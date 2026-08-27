@@ -55,7 +55,7 @@ fn test_every_ruby_test_source_has_a_retained_v_translation() {
 			continue
 		}
 		test_source_union++
-		target := os.join_path(root, 'src/homebrew', translated_relative_path(relative_path))
+		target := os.join_path(root, 'homebrew', translated_relative_path(relative_path))
 		assert os.is_file(target), 'missing V test translation for ${relative_path}'
 		translated := os.read_file(target)!
 		assert translated.contains('// Translated from Homebrew/brew `${relative_path}`.')
@@ -76,7 +76,7 @@ fn test_every_rspec_example_has_an_explicit_translation_boundary() {
 		if !is_test_source(relative_path) {
 			continue
 		}
-		target := os.join_path(root, 'src/homebrew', translated_relative_path(relative_path))
+		target := os.join_path(root, 'homebrew', translated_relative_path(relative_path))
 		for translated_line in os.read_lines(target)! {
 			if translated_line.starts_with('// Ruby it `')
 				|| translated_line.starts_with('// Ruby specify `')
