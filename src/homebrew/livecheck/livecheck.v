@@ -1,0 +1,1434 @@
+module livecheck
+
+import brew_runtime
+
+// Translated from Homebrew/brew `livecheck/livecheck.rb`.
+// The original source is retained below until every stub has a typed V body.
+
+// Ruby method `self.livecheck_strategy_names(strategy_class)` at line 37.
+pub fn ruby_livecheck_l37_d1_self_livecheck_strategy_names(args ...brew_runtime.Value) brew_runtime.Value {
+	return brew_runtime.unimplemented_fn('self.livecheck_strategy_names', ...args)
+}
+
+// Ruby method `self.livecheck_find_versions_parameters(strategy_class)` at line 43.
+pub fn ruby_livecheck_l43_d2_self_livecheck_find_versions_parameters(args ...brew_runtime.Value) brew_runtime.Value {
+	return brew_runtime.unimplemented_fn('self.livecheck_find_versions_parameters', ...args)
+}
+
+// Ruby method `self.load_other_tap_strategies(formulae_and_casks_to_check)` at line 53.
+pub fn ruby_livecheck_l53_d3_self_load_other_tap_strategies(args ...brew_runtime.Value) brew_runtime.Value {
+	return brew_runtime.unimplemented_fn('self.load_other_tap_strategies', ...args)
+}
+
+// Ruby method `self.resolve_livecheck_reference(` at line 83.
+pub fn ruby_livecheck_l83_d4_self_resolve_livecheck_reference(args ...brew_runtime.Value) brew_runtime.Value {
+	return brew_runtime.unimplemented_fn('self.resolve_livecheck_reference', ...args)
+}
+
+// Ruby method `self.run_checks(` at line 160.
+pub fn ruby_livecheck_l160_d5_self_run_checks(args ...brew_runtime.Value) brew_runtime.Value {
+	return brew_runtime.unimplemented_fn('self.run_checks', ...args)
+}
+
+// Ruby method `self.package_or_resource_name(package_or_resource, full_name: false)` at line 430.
+pub fn ruby_livecheck_l430_d6_self_package_or_resource_name(args ...brew_runtime.Value) brew_runtime.Value {
+	return brew_runtime.unimplemented_fn('self.package_or_resource_name', ...args)
+}
+
+// Ruby method `self.cask_name(cask, full_name: false)` at line 446.
+pub fn ruby_livecheck_l446_d7_self_cask_name(args ...brew_runtime.Value) brew_runtime.Value {
+	return brew_runtime.unimplemented_fn('self.cask_name', ...args)
+}
+
+// Ruby method `self.formula_name(formula, full_name: false)` at line 453.
+pub fn ruby_livecheck_l453_d8_self_formula_name(args ...brew_runtime.Value) brew_runtime.Value {
+	return brew_runtime.unimplemented_fn('self.formula_name', ...args)
+}
+
+// Ruby method `self.status_hash(package_or_resource, status_str, messages = nil, full_name: false, verbose: false)` at line 466.
+pub fn ruby_livecheck_l466_d9_self_status_hash(args ...brew_runtime.Value) brew_runtime.Value {
+	return brew_runtime.unimplemented_fn('self.status_hash', ...args)
+}
+
+// Ruby method `self.print_latest_version(info, verbose: false, ambiguous_cask: false)` at line 492.
+pub fn ruby_livecheck_l492_d10_self_print_latest_version(args ...brew_runtime.Value) brew_runtime.Value {
+	return brew_runtime.unimplemented_fn('self.print_latest_version', ...args)
+}
+
+// Ruby method `self.print_resources_info(info, verbose: false)` at line 515.
+pub fn ruby_livecheck_l515_d11_self_print_resources_info(args ...brew_runtime.Value) brew_runtime.Value {
+	return brew_runtime.unimplemented_fn('self.print_resources_info', ...args)
+}
+
+// Ruby method `self.livecheck_url_to_string(livecheck_url, package_or_resource)` at line 531.
+pub fn ruby_livecheck_l531_d12_self_livecheck_url_to_string(args ...brew_runtime.Value) brew_runtime.Value {
+	return brew_runtime.unimplemented_fn('self.livecheck_url_to_string', ...args)
+}
+
+// Ruby method `self.checkable_urls(package_or_resource)` at line 552.
+pub fn ruby_livecheck_l552_d13_self_checkable_urls(args ...brew_runtime.Value) brew_runtime.Value {
+	return brew_runtime.unimplemented_fn('self.checkable_urls', ...args)
+}
+
+// Ruby method `self.use_homebrew_curl?(formula_or_cask, url)` at line 579.
+pub fn ruby_livecheck_l579_d14_self_use_homebrew_curl(args ...brew_runtime.Value) brew_runtime.Value {
+	return brew_runtime.unimplemented_fn('self.use_homebrew_curl?', ...args)
+}
+
+// Ruby method `self.url_host(url)` at line 607.
+pub fn ruby_livecheck_l607_d15_self_url_host(args ...brew_runtime.Value) brew_runtime.Value {
+	return brew_runtime.unimplemented_fn('self.url_host', ...args)
+}
+
+// Ruby method `self.latest_version(` at line 626.
+pub fn ruby_livecheck_l626_d16_self_latest_version(args ...brew_runtime.Value) brew_runtime.Value {
+	return brew_runtime.unimplemented_fn('self.latest_version', ...args)
+}
+
+// Ruby method `self.resource_version(` at line 897.
+pub fn ruby_livecheck_l897_d17_self_resource_version(args ...brew_runtime.Value) brew_runtime.Value {
+	return brew_runtime.unimplemented_fn('self.resource_version', ...args)
+}
+
+// Ruby method `self.throttle_allows_bump?(formula_or_cask, version, throttle_rate: nil, throttle_days: nil)` at line 1135.
+pub fn ruby_livecheck_l1135_d18_self_throttle_allows_bump(args ...brew_runtime.Value) brew_runtime.Value {
+	return brew_runtime.unimplemented_fn('self.throttle_allows_bump?', ...args)
+}
+
+// Ruby method `self.formula_or_cask_last_updated_timestamp(package_or_resource)` at line 1147.
+pub fn ruby_livecheck_l1147_d19_self_formula_or_cask_last_updated_timestamp(args ...brew_runtime.Value) brew_runtime.Value {
+	return brew_runtime.unimplemented_fn('self.formula_or_cask_last_updated_timestamp', ...args)
+}
+
+// Ruby method `self.formula_last_version_update_timestamp(formula, tap:)` at line 1162.
+pub fn ruby_livecheck_l1162_d20_self_formula_last_version_update_timestamp(args ...brew_runtime.Value) brew_runtime.Value {
+	return brew_runtime.unimplemented_fn('self.formula_last_version_update_timestamp', ...args)
+}
+
+// Ruby method `self.find_version_update_revision(formula, current_version)` at line 1173.
+pub fn ruby_livecheck_l1173_d21_self_find_version_update_revision(args ...brew_runtime.Value) brew_runtime.Value {
+	return brew_runtime.unimplemented_fn('self.find_version_update_revision', ...args)
+}
+
+// Ruby method `self.origin_stable_version(formula, formula_versions)` at line 1200.
+pub fn ruby_livecheck_l1200_d22_self_origin_stable_version(args ...brew_runtime.Value) brew_runtime.Value {
+	return brew_runtime.unimplemented_fn('self.origin_stable_version', ...args)
+}
+
+// Ruby method `self.formula_or_cask_last_commit_timestamp(package_or_resource, tap)` at line 1223.
+pub fn ruby_livecheck_l1223_d23_self_formula_or_cask_last_commit_timestamp(args ...brew_runtime.Value) brew_runtime.Value {
+	return brew_runtime.unimplemented_fn('self.formula_or_cask_last_commit_timestamp', ...args)
+}
+
+// Ruby method `self.timestamp_for_revision(repository_path, revision)` at line 1274.
+pub fn ruby_livecheck_l1274_d24_self_timestamp_for_revision(args ...brew_runtime.Value) brew_runtime.Value {
+	return brew_runtime.unimplemented_fn('self.timestamp_for_revision', ...args)
+}
+
+// Ruby method `self.throttle_interval_elapsed?(package_or_resource, days)` at line 1291.
+pub fn ruby_livecheck_l1291_d25_self_throttle_interval_elapsed(args ...brew_runtime.Value) brew_runtime.Value {
+	return brew_runtime.unimplemented_fn('self.throttle_interval_elapsed?', ...args)
+}
+
+// Original Ruby source (line-for-line):
+// 1: # typed: strict
+// 2: # frozen_string_literal: true
+// 3:
+// 4: require "livecheck/constants"
+// 5: require "livecheck/error"
+// 6: require "livecheck/livecheck_version"
+// 7: require "livecheck/skip_conditions"
+// 8: require "livecheck/strategy"
+// 9: require "formula_versions"
+// 10: require "uri"
+// 11: require "utils/git"
+// 12: require "utils/output"
+// 13:
+// 14: module Homebrew
+// 15:   # The {Livecheck} module consists of methods used by the `brew livecheck`
+// 16:   # command. These methods print the requested livecheck information
+// 17:   # for formulae.
+// 18:   module Livecheck
+// 19:     extend Utils::Output::Mixin
+// 20:
+// 21:     NO_CURRENT_VERSION_MSG = "Unable to identify current version"
+// 22:     NO_VERSIONS_MSG = "Unable to get versions"
+// 23:
+// 24:     UNSTABLE_VERSION_KEYWORDS = %w[
+// 25:       alpha
+// 26:       beta
+// 27:       bpo
+// 28:       dev
+// 29:       experimental
+// 30:       prerelease
+// 31:       preview
+// 32:       rc
+// 33:     ].freeze
+// 34:     private_constant :UNSTABLE_VERSION_KEYWORDS
+// 35:
+// 36:     sig { params(strategy_class: T::Class[Strategic]).returns(String) }
+// 37:     def self.livecheck_strategy_names(strategy_class)
+// 38:       @livecheck_strategy_names ||= T.let({}, T.nilable(T::Hash[T::Class[Strategic], String]))
+// 39:       @livecheck_strategy_names[strategy_class] ||= Utils.demodulize(strategy_class.name)
+// 40:     end
+// 41:
+// 42:     sig { params(strategy_class: T::Class[Strategic]).returns(T::Array[Symbol]) }
+// 43:     def self.livecheck_find_versions_parameters(strategy_class)
+// 44:       @livecheck_find_versions_parameters ||= T.let({}, T.nilable(T::Hash[T::Class[Strategic], T::Array[Symbol]]))
+// 45:       @livecheck_find_versions_parameters[strategy_class] ||=
+// 46:         (T::Utils.signature_for_method(strategy_class.method(:find_versions))&.parameters ||
+// 47:          strategy_class.method(:find_versions).parameters).map(&:second)
+// 48:     end
+// 49:
+// 50:     # Uses `formulae_and_casks_to_check` to identify taps in use other than
+// 51:     # homebrew/core and homebrew/cask and loads strategies from them.
+// 52:     sig { params(formulae_and_casks_to_check: T::Array[T.any(Formula, Cask::Cask)]).void }
+// 53:     def self.load_other_tap_strategies(formulae_and_casks_to_check)
+// 54:       other_taps = {}
+// 55:       formulae_and_casks_to_check.each do |formula_or_cask|
+// 56:         tap = formula_or_cask.tap
+// 57:         next unless tap
+// 58:         next if tap.core_tap?
+// 59:         next if tap.core_cask_tap?
+// 60:         next if other_taps[tap.name]
+// 61:
+// 62:         other_taps[tap.name] = tap
+// 63:       end
+// 64:       other_taps = other_taps.sort.to_h
+// 65:
+// 66:       other_taps.each_value do |tap|
+// 67:         tap_strategy_path = "#{tap.path}/livecheck/strategy"
+// 68:         Dir["#{tap_strategy_path}/*.rb"].each { require(it) } if Dir.exist?(tap_strategy_path)
+// 69:       end
+// 70:     end
+// 71:
+// 72:     # Resolve formula/cask references in `livecheck` blocks to a final formula
+// 73:     # or cask.
+// 74:     sig {
+// 75:       params(
+// 76:         formula_or_cask:       T.any(Formula, Cask::Cask),
+// 77:         first_formula_or_cask: T.any(Formula, Cask::Cask),
+// 78:         references:            T::Array[T.any(Formula, Cask::Cask)],
+// 79:         full_name:             T::Boolean,
+// 80:         debug:                 T::Boolean,
+// 81:       ).returns(T.nilable(T::Array[T.untyped]))
+// 82:     }
+// 83:     def self.resolve_livecheck_reference(
+// 84:       formula_or_cask,
+// 85:       first_formula_or_cask = formula_or_cask,
+// 86:       references = [],
+// 87:       full_name: false,
+// 88:       debug: false
+// 89:     )
+// 90:       # Check the `livecheck` block for a formula or cask reference
+// 91:       livecheck = formula_or_cask.livecheck
+// 92:       livecheck_formula = livecheck.formula
+// 93:       livecheck_cask = livecheck.cask
+// 94:       return [nil, references] if livecheck_formula.blank? && livecheck_cask.blank?
+// 95:
+// 96:       # Load the referenced formula or cask
+// 97:       referenced_formula_or_cask = Homebrew.with_no_api_env do
+// 98:         if livecheck_formula
+// 99:           Formulary.factory(livecheck_formula)
+// 100:         elsif livecheck_cask
+// 101:           Cask::CaskLoader.load(livecheck_cask)
+// 102:         else
+// 103:           raise "livecheck formula or cask not found"
+// 104:         end
+// 105:       end
+// 106:
+// 107:       # Error if a `livecheck` block references a formula/cask that was already
+// 108:       # referenced (or itself)
+// 109:       if referenced_formula_or_cask == first_formula_or_cask ||
+// 110:          referenced_formula_or_cask == formula_or_cask ||
+// 111:          references.include?(referenced_formula_or_cask)
+// 112:         if debug
+// 113:           # Print the chain of references for debugging
+// 114:           puts "Reference Chain:"
+// 115:           puts package_or_resource_name(first_formula_or_cask, full_name:)
+// 116:
+// 117:           references << referenced_formula_or_cask
+// 118:           references.each do |ref_formula_or_cask|
+// 119:             puts package_or_resource_name(ref_formula_or_cask, full_name:)
+// 120:           end
+// 121:         end
+// 122:
+// 123:         raise "Circular formula/cask reference encountered"
+// 124:       end
+// 125:       references << referenced_formula_or_cask
+// 126:
+// 127:       # Check the referenced formula/cask for a reference
+// 128:       next_referenced_formula_or_cask, next_references = resolve_livecheck_reference(
+// 129:         referenced_formula_or_cask,
+// 130:         first_formula_or_cask,
+// 131:         references,
+// 132:         full_name:,
+// 133:         debug:,
+// 134:       )
+// 135:
+// 136:       # Returning references along with the final referenced formula/cask
+// 137:       # allows us to print the chain of references in the debug output
+// 138:       [
+// 139:         next_referenced_formula_or_cask || referenced_formula_or_cask,
+// 140:         next_references,
+// 141:       ]
+// 142:     end
+// 143:
+// 144:     # Executes the livecheck logic for each formula/cask in the
+// 145:     # `formulae_and_casks_to_check` array and prints the results.
+// 146:     sig {
+// 147:       params(
+// 148:         formulae_and_casks_to_check: T::Array[T.any(Formula, Cask::Cask)],
+// 149:         full_name:                   T::Boolean,
+// 150:         handle_name_conflict:        T::Boolean,
+// 151:         check_resources:             T::Boolean,
+// 152:         json:                        T::Boolean,
+// 153:         newer_only:                  T::Boolean,
+// 154:         extract_plist:               T::Boolean,
+// 155:         debug:                       T::Boolean,
+// 156:         quiet:                       T::Boolean,
+// 157:         verbose:                     T::Boolean,
+// 158:       ).void
+// 159:     }
+// 160:     def self.run_checks(
+// 161:       formulae_and_casks_to_check,
+// 162:       full_name: false, handle_name_conflict: false, check_resources: false, json: false, newer_only: false,
+// 163:       extract_plist: false, debug: false, quiet: false, verbose: false
+// 164:     )
+// 165:       load_other_tap_strategies(formulae_and_casks_to_check)
+// 166:
+// 167:       ambiguous_casks = []
+// 168:       if handle_name_conflict
+// 169:         ambiguous_casks = formulae_and_casks_to_check
+// 170:                           .group_by { |item| package_or_resource_name(item, full_name: true) }
+// 171:                           .values
+// 172:                           .select { |items| items.length > 1 }
+// 173:                           .flatten
+// 174:                           .grep(Cask::Cask)
+// 175:       end
+// 176:
+// 177:       ambiguous_names = []
+// 178:       unless full_name
+// 179:         grouped = (formulae_and_casks_to_check - ambiguous_casks).group_by { |item| package_or_resource_name(item) }
+// 180:         ambiguous_names = grouped.values.select { |items| items.length > 1 }.flatten
+// 181:       end
+// 182:
+// 183:       has_a_newer_upstream_version = T.let(false, T::Boolean)
+// 184:
+// 185:       formulae_and_casks_total = formulae_and_casks_to_check.count
+// 186:       if json && !quiet && $stderr.tty?
+// 187:         Tty.with($stderr) do |stderr|
+// 188:           stderr.puts Formatter.headline("Running checks", color: :blue)
+// 189:         end
+// 190:
+// 191:         require "ruby-progressbar"
+// 192:         progress = ProgressBar.create(
+// 193:           total:          formulae_and_casks_total,
+// 194:           progress_mark:  "#",
+// 195:           remainder_mark: ".",
+// 196:           format:         " %t: [%B] %c/%C ",
+// 197:           output:         $stderr,
+// 198:         )
+// 199:       end
+// 200:
+// 201:       # Allow ExtractPlist strategy if only one formula/cask is being checked.
+// 202:       extract_plist = true if formulae_and_casks_total == 1
+// 203:
+// 204:       formulae_checked = formulae_and_casks_to_check.map.with_index do |formula_or_cask, i|
+// 205:         case formula_or_cask
+// 206:         when Formula
+// 207:           formula = formula_or_cask
+// 208:           formula.head&.downloader&.quiet!
+// 209:         when Cask::Cask
+// 210:           cask = formula_or_cask
+// 211:         end
+// 212:
+// 213:         use_full_name = full_name || ambiguous_names.include?(formula_or_cask)
+// 214:         name = package_or_resource_name(formula_or_cask, full_name: use_full_name)
+// 215:
+// 216:         referenced_formula_or_cask, livecheck_references =
+// 217:           resolve_livecheck_reference(formula_or_cask, full_name: use_full_name, debug:)
+// 218:
+// 219:         if debug && i.positive?
+// 220:           puts <<~EOS
+// 221:
+// 222:             ----------
+// 223:
+// 224:           EOS
+// 225:         elsif debug
+// 226:           puts
+// 227:         end
+// 228:
+// 229:         # Check skip conditions for a referenced formula/cask
+// 230:         if referenced_formula_or_cask
+// 231:           skip_info = SkipConditions.referenced_skip_information(
+// 232:             referenced_formula_or_cask,
+// 233:             name,
+// 234:             full_name:     use_full_name,
+// 235:             verbose:,
+// 236:             extract_plist:,
+// 237:           )
+// 238:         end
+// 239:
+// 240:         skip_info ||= SkipConditions.skip_information(
+// 241:           formula_or_cask,
+// 242:           full_name:     use_full_name,
+// 243:           verbose:,
+// 244:           extract_plist:,
+// 245:         )
+// 246:         if skip_info.present?
+// 247:           next skip_info if json && !newer_only
+// 248:
+// 249:           SkipConditions.print_skip_information(skip_info) if !newer_only && !quiet
+// 250:           next
+// 251:         end
+// 252:
+// 253:         # Use the `stable` version for comparison except for installed
+// 254:         # HEAD-only formulae. A formula with `stable` and `head` that's
+// 255:         # installed using `--head` will still use the `stable` version for
+// 256:         # comparison.
+// 257:         current = if formula
+// 258:           if formula.head_only?
+// 259:             formula_commit = formula.any_installed_version&.version&.commit
+// 260:             Version.new(formula_commit) if formula_commit
+// 261:           elsif (stable = formula.stable)
+// 262:             stable.version
+// 263:           end
+// 264:         else
+// 265:           Version.new(formula_or_cask.version)
+// 266:         end
+// 267:         unless current
+// 268:           raise Livecheck::Error, NO_CURRENT_VERSION_MSG unless json
+// 269:           next if quiet
+// 270:
+// 271:           next status_hash(formula_or_cask, "error", [NO_CURRENT_VERSION_MSG], full_name: use_full_name, verbose:)
+// 272:         end
+// 273:
+// 274:         current_str = current.to_s
+// 275:         current = LivecheckVersion.create(formula_or_cask, current)
+// 276:
+// 277:         latest = if formula&.head_only?
+// 278:           Version.new(T.must(formula.head).downloader.fetch_last_commit)
+// 279:         else
+// 280:           version_info = latest_version(
+// 281:             formula_or_cask,
+// 282:             referenced_formula_or_cask:,
+// 283:             livecheck_references:,
+// 284:             json:, full_name: use_full_name, verbose:, debug:
+// 285:           )
+// 286:           version_info[:latest] if version_info.present?
+// 287:         end
+// 288:
+// 289:         check_for_resources = check_resources && formula_or_cask.is_a?(Formula) && formula_or_cask.resources.present?
+// 290:         if check_for_resources
+// 291:           resource_version_info = formula_or_cask.resources.map do |resource|
+// 292:             res_skip_info ||= SkipConditions.skip_information(resource, verbose:)
+// 293:             if res_skip_info.present?
+// 294:               res_skip_info
+// 295:             else
+// 296:               res_version_info = resource_version(
+// 297:                 resource,
+// 298:                 latest.to_s,
+// 299:                 json:,
+// 300:                 full_name: use_full_name,
+// 301:                 debug:,
+// 302:                 quiet:,
+// 303:                 verbose:,
+// 304:               )
+// 305:               if res_version_info.empty?
+// 306:                 status_hash(resource, "error", [NO_VERSIONS_MSG], verbose:)
+// 307:               else
+// 308:                 res_version_info
+// 309:               end
+// 310:             end
+// 311:           end.compact_blank
+// 312:           Homebrew.failed = true if resource_version_info.any? { |info| info[:status] == "error" }
+// 313:         end
+// 314:
+// 315:         if latest.blank?
+// 316:           raise Livecheck::Error, NO_VERSIONS_MSG unless json
+// 317:           next if quiet
+// 318:
+// 319:           next version_info if version_info.is_a?(Hash) && version_info[:status] && version_info[:messages]
+// 320:
+// 321:           latest_info = status_hash(formula_or_cask, "error", [NO_VERSIONS_MSG], full_name: use_full_name,
+// 322:                                                                                  verbose:)
+// 323:           if check_for_resources
+// 324:             unless verbose
+// 325:               resource_version_info.map! do |info|
+// 326:                 info.delete(:meta)
+// 327:                 info
+// 328:               end
+// 329:             end
+// 330:             latest_info[:resources] = resource_version_info
+// 331:           end
+// 332:
+// 333:           next latest_info
+// 334:         end
+// 335:
+// 336:         if (m = latest.to_s.match(/(.*)-release$/)) && !current.to_s.match(/.*-release$/)
+// 337:           latest = Version.new(m[1])
+// 338:         end
+// 339:
+// 340:         latest_str = latest.to_s
+// 341:         latest = LivecheckVersion.create(formula_or_cask, latest)
+// 342:
+// 343:         is_outdated = if formula&.head_only?
+// 344:           # A HEAD-only formula is considered outdated if the latest upstream
+// 345:           # commit hash is different than the installed version's commit hash
+// 346:           (current != latest)
+// 347:         else
+// 348:           (current < latest)
+// 349:         end
+// 350:
+// 351:         is_newer_than_upstream = (formula&.stable? || cask) && (current > latest)
+// 352:
+// 353:         info = {}
+// 354:         info[:formula] = name if formula
+// 355:         info[:cask] = name if cask
+// 356:         info[:version] = {
+// 357:           current:             current_str,
+// 358:           latest:              latest_str,
+// 359:           latest_throttled:    version_info&.dig(:latest_throttled),
+// 360:           outdated:            is_outdated,
+// 361:           newer_than_upstream: is_newer_than_upstream,
+// 362:         }.compact
+// 363:         info[:meta] = {
+// 364:           livecheck_defined: formula_or_cask.livecheck_defined?,
+// 365:         }
+// 366:         info[:meta][:head_only] = true if formula&.head_only?
+// 367:         info[:meta].merge!(version_info[:meta]) if version_info.present? && version_info.key?(:meta)
+// 368:
+// 369:         info[:resources] = resource_version_info if check_for_resources
+// 370:
+// 371:         next if newer_only && !info[:version][:outdated]
+// 372:
+// 373:         has_a_newer_upstream_version ||= true
+// 374:
+// 375:         if json
+// 376:           progress&.increment
+// 377:           info.delete(:meta) unless verbose
+// 378:           if check_for_resources && !verbose
+// 379:             resource_version_info.map! do |resource_info|
+// 380:               resource_info.delete(:meta)
+// 381:               resource_info
+// 382:             end
+// 383:           end
+// 384:           next info
+// 385:         end
+// 386:         puts if debug
+// 387:         print_latest_version(info, verbose:, ambiguous_cask: ambiguous_casks.include?(formula_or_cask))
+// 388:         print_resources_info(resource_version_info, verbose:) if check_for_resources
+// 389:         nil
+// 390:       rescue => e
+// 391:         Homebrew.failed = true
+// 392:         use_full_name = full_name || ambiguous_names.include?(formula_or_cask)
+// 393:
+// 394:         if json
+// 395:           progress&.increment
+// 396:           unless quiet
+// 397:             status_hash(formula_or_cask, "error", [e.to_s], full_name: use_full_name,
+// 398:                                                             verbose:)
+// 399:           end
+// 400:         elsif !quiet
+// 401:           name = package_or_resource_name(formula_or_cask, full_name: use_full_name)
+// 402:           name += " (cask)" if ambiguous_casks.include?(formula_or_cask)
+// 403:
+// 404:           onoe "#{Tty.blue}#{name}#{Tty.reset}: #{e}"
+// 405:           if debug && !e.is_a?(Livecheck::Error)
+// 406:             require "utils/backtrace"
+// 407:             $stderr.puts Utils::Backtrace.clean(e)
+// 408:           end
+// 409:           print_resources_info(resource_version_info, verbose:) if check_for_resources
+// 410:           nil
+// 411:         end
+// 412:       end
+// 413:
+// 414:       puts "No newer upstream versions." if newer_only && !has_a_newer_upstream_version && !debug && !json && !quiet
+// 415:
+// 416:       return unless json
+// 417:
+// 418:       if progress
+// 419:         progress.finish
+// 420:         Tty.with($stderr) do |stderr|
+// 421:           erase = "#{Tty.up}#{Tty.erase_line}" * 2
+// 422:           stderr.print "#{Tty.begin_synchronized_update}#{erase}#{Tty.end_synchronized_update}" unless erase.empty?
+// 423:         end
+// 424:       end
+// 425:
+// 426:       puts JSON.pretty_generate(formulae_checked.compact)
+// 427:     end
+// 428:
+// 429:     sig { params(package_or_resource: T.any(Formula, Cask::Cask, Resource), full_name: T::Boolean).returns(String) }
+// 430:     def self.package_or_resource_name(package_or_resource, full_name: false)
+// 431:       case package_or_resource
+// 432:       when Formula
+// 433:         formula_name(package_or_resource, full_name:)
+// 434:       when Cask::Cask
+// 435:         cask_name(package_or_resource, full_name:)
+// 436:       when Resource
+// 437:         package_or_resource.name.to_s
+// 438:       else
+// 439:         T.absurd(package_or_resource)
+// 440:       end
+// 441:     end
+// 442:
+// 443:     # Returns the fully-qualified name of a cask if the `full_name` argument is
+// 444:     # provided; returns the name otherwise.
+// 445:     sig { params(cask: Cask::Cask, full_name: T::Boolean).returns(String) }
+// 446:     private_class_method def self.cask_name(cask, full_name: false)
+// 447:       full_name ? cask.full_name : cask.token
+// 448:     end
+// 449:
+// 450:     # Returns the fully-qualified name of a formula if the `full_name` argument is
+// 451:     # provided; returns the name otherwise.
+// 452:     sig { params(formula: Formula, full_name: T::Boolean).returns(String) }
+// 453:     private_class_method def self.formula_name(formula, full_name: false)
+// 454:       full_name ? formula.full_name : formula.name
+// 455:     end
+// 456:
+// 457:     sig {
+// 458:       params(
+// 459:         package_or_resource: T.any(Formula, Cask::Cask, Resource),
+// 460:         status_str:          String,
+// 461:         messages:            T.nilable(T::Array[String]),
+// 462:         full_name:           T::Boolean,
+// 463:         verbose:             T::Boolean,
+// 464:       ).returns(T::Hash[Symbol, T.untyped])
+// 465:     }
+// 466:     def self.status_hash(package_or_resource, status_str, messages = nil, full_name: false, verbose: false)
+// 467:       formula = package_or_resource if package_or_resource.is_a?(Formula)
+// 468:       cask = package_or_resource if package_or_resource.is_a?(Cask::Cask)
+// 469:       resource = package_or_resource if package_or_resource.is_a?(Resource)
+// 470:
+// 471:       status_hash = {}
+// 472:       if formula
+// 473:         status_hash[:formula] = formula_name(formula, full_name:)
+// 474:       elsif cask
+// 475:         status_hash[:cask] = cask_name(cask, full_name:)
+// 476:       elsif resource
+// 477:         status_hash[:resource] = resource.name
+// 478:       end
+// 479:       status_hash[:status] = status_str
+// 480:       status_hash[:messages] = messages if messages.is_a?(Array)
+// 481:
+// 482:       status_hash[:meta] = {
+// 483:         livecheck_defined: package_or_resource.livecheck_defined?,
+// 484:       }
+// 485:       status_hash[:meta][:head_only] = true if formula&.head_only?
+// 486:
+// 487:       status_hash
+// 488:     end
+// 489:
+// 490:     # Formats and prints the livecheck result for a formula/cask/resource.
+// 491:     sig { params(info: T::Hash[Symbol, T.untyped], verbose: T::Boolean, ambiguous_cask: T::Boolean).void }
+// 492:     private_class_method def self.print_latest_version(info, verbose: false, ambiguous_cask: false)
+// 493:       package_or_resource_s = info[:resource].present? ? "  " : ""
+// 494:       package_or_resource_s += "#{Tty.blue}#{info[:formula] || info[:cask] || info[:resource]}#{Tty.reset}"
+// 495:       package_or_resource_s += " (cask)" if ambiguous_cask
+// 496:       package_or_resource_s += " (guessed)" if verbose && !info[:meta][:livecheck_defined]
+// 497:
+// 498:       current_s = if info[:version][:newer_than_upstream]
+// 499:         "#{Tty.red}#{info[:version][:current]}#{Tty.reset}"
+// 500:       else
+// 501:         info[:version][:current]
+// 502:       end
+// 503:
+// 504:       latest_s = if info[:version][:outdated]
+// 505:         "#{Tty.green}#{info[:version][:latest]}#{Tty.reset}"
+// 506:       else
+// 507:         info[:version][:latest]
+// 508:       end
+// 509:
+// 510:       puts "#{package_or_resource_s}: #{current_s} ==> #{latest_s}"
+// 511:     end
+// 512:
+// 513:     # Prints the livecheck result for the resources of a given Formula.
+// 514:     sig { params(info: T::Array[T::Hash[Symbol, T.untyped]], verbose: T::Boolean).void }
+// 515:     private_class_method def self.print_resources_info(info, verbose: false)
+// 516:       info.each do |r_info|
+// 517:         if r_info[:status] && r_info[:messages]
+// 518:           SkipConditions.print_skip_information(r_info)
+// 519:         else
+// 520:           print_latest_version(r_info, verbose:)
+// 521:         end
+// 522:       end
+// 523:     end
+// 524:
+// 525:     sig {
+// 526:       params(
+// 527:         livecheck_url:       T.any(String, Symbol),
+// 528:         package_or_resource: T.any(Formula, Cask::Cask, Resource),
+// 529:       ).returns(String)
+// 530:     }
+// 531:     def self.livecheck_url_to_string(livecheck_url, package_or_resource)
+// 532:       livecheck_url_string = case livecheck_url
+// 533:       when String
+// 534:         livecheck_url
+// 535:       when :url
+// 536:         package_or_resource.url&.to_s if package_or_resource.is_a?(Cask::Cask) || package_or_resource.is_a?(Resource)
+// 537:       when :head, :stable
+// 538:         package_or_resource.public_send(livecheck_url)&.url if package_or_resource.is_a?(Formula)
+// 539:       when :homepage
+// 540:         package_or_resource.homepage unless package_or_resource.is_a?(Resource)
+// 541:       end
+// 542:
+// 543:       if livecheck_url.is_a?(Symbol) && !livecheck_url_string
+// 544:         raise ArgumentError, "`url #{livecheck_url.inspect}` does not reference a checkable URL"
+// 545:       end
+// 546:
+// 547:       livecheck_url_string
+// 548:     end
+// 549:
+// 550:     # Returns an Array containing the formula/cask/resource URLs that can be used by livecheck.
+// 551:     sig { params(package_or_resource: T.any(Formula, Cask::Cask, Resource)).returns(T::Array[String]) }
+// 552:     def self.checkable_urls(package_or_resource)
+// 553:       urls = []
+// 554:
+// 555:       case package_or_resource
+// 556:       when Formula
+// 557:         if package_or_resource.stable
+// 558:           urls << T.must(package_or_resource.stable).url
+// 559:           urls.concat(T.must(package_or_resource.stable).mirrors)
+// 560:         end
+// 561:         urls << T.must(package_or_resource.head).url if package_or_resource.head
+// 562:         urls << package_or_resource.homepage if package_or_resource.homepage
+// 563:       when Cask::Cask
+// 564:         urls << package_or_resource.url.to_s if package_or_resource.url
+// 565:         urls << package_or_resource.homepage if package_or_resource.homepage
+// 566:       when Resource
+// 567:         urls << package_or_resource.url
+// 568:       else
+// 569:         T.absurd(package_or_resource)
+// 570:       end
+// 571:
+// 572:       urls.compact.uniq
+// 573:     end
+// 574:
+// 575:     # livecheck should fetch a URL using brewed curl if the formula/cask
+// 576:     # contains a `stable`/`url` or `head` URL `using: :homebrew_curl` that
+// 577:     # shares the same host or uses it as a parent domain.
+// 578:     sig { params(formula_or_cask: T.any(Formula, Cask::Cask), url: String).returns(T::Boolean) }
+// 579:     def self.use_homebrew_curl?(formula_or_cask, url)
+// 580:       host = url_host(url)
+// 581:       return false unless host
+// 582:
+// 583:       homebrew_curl_hosts = case formula_or_cask
+// 584:       when Formula
+// 585:         [formula_or_cask.stable, formula_or_cask.head].filter_map do |spec|
+// 586:           next unless spec
+// 587:           next if spec.using != :homebrew_curl
+// 588:           next unless (spec_url = spec.url)
+// 589:
+// 590:           url_host(spec_url)
+// 591:         end
+// 592:       when Cask::Cask
+// 593:         cask_url = formula_or_cask.url
+// 594:         return false if cask_url&.using != :homebrew_curl
+// 595:
+// 596:         [url_host(cask_url.to_s)].compact
+// 597:       end
+// 598:
+// 599:       homebrew_curl_hosts.any? do |homebrew_curl_host|
+// 600:         host == homebrew_curl_host ||
+// 601:           host.end_with?(".#{homebrew_curl_host}") ||
+// 602:           homebrew_curl_host.end_with?(".#{host}")
+// 603:       end
+// 604:     end
+// 605:
+// 606:     sig { params(url: String).returns(T.nilable(String)) }
+// 607:     private_class_method def self.url_host(url)
+// 608:       URI.parse(url).host&.downcase
+// 609:     rescue URI::InvalidURIError
+// 610:       nil
+// 611:     end
+// 612:
+// 613:     # Identifies the latest version of the formula/cask and returns a Hash containing
+// 614:     # the version information. Returns nil if a latest version couldn't be found.
+// 615:     sig {
+// 616:       params(
+// 617:         formula_or_cask:            T.any(Formula, Cask::Cask),
+// 618:         referenced_formula_or_cask: T.nilable(T.any(Formula, Cask::Cask)),
+// 619:         livecheck_references:       T::Array[T.any(Formula, Cask::Cask)],
+// 620:         json:                       T::Boolean,
+// 621:         full_name:                  T::Boolean,
+// 622:         verbose:                    T::Boolean,
+// 623:         debug:                      T::Boolean,
+// 624:       ).returns(T.nilable(T::Hash[Symbol, T.untyped]))
+// 625:     }
+// 626:     def self.latest_version(
+// 627:       formula_or_cask,
+// 628:       referenced_formula_or_cask: nil,
+// 629:       livecheck_references: [],
+// 630:       json: false, full_name: false, verbose: false, debug: false
+// 631:     )
+// 632:       formula = formula_or_cask if formula_or_cask.is_a?(Formula)
+// 633:       cask = formula_or_cask if formula_or_cask.is_a?(Cask::Cask)
+// 634:
+// 635:       livecheck_defined = formula_or_cask.livecheck_defined?
+// 636:       livecheck = formula_or_cask.livecheck
+// 637:       referenced_livecheck = referenced_formula_or_cask&.livecheck
+// 638:
+// 639:       livecheck_options = livecheck.options || referenced_livecheck&.options
+// 640:       livecheck_url_options = livecheck_options.url_options.compact
+// 641:       livecheck_url = livecheck.url || referenced_livecheck&.url
+// 642:       livecheck_regex = livecheck.regex || referenced_livecheck&.regex
+// 643:       livecheck_strategy = livecheck.strategy || referenced_livecheck&.strategy
+// 644:       livecheck_strategy_block = livecheck.strategy_block || referenced_livecheck&.strategy_block
+// 645:       livecheck_throttle = livecheck.throttle || referenced_livecheck&.throttle
+// 646:       livecheck_throttle_days = livecheck.throttle_days || referenced_livecheck&.throttle_days
+// 647:
+// 648:       referenced_package = referenced_formula_or_cask || formula_or_cask
+// 649:
+// 650:       livecheck_url_string = livecheck_url_to_string(livecheck_url, referenced_package) if livecheck_url
+// 651:
+// 652:       urls = [livecheck_url_string] if livecheck_url_string
+// 653:       urls ||= checkable_urls(referenced_package)
+// 654:
+// 655:       if debug
+// 656:         if formula
+// 657:           puts "Formula:          #{formula_name(formula, full_name:)}"
+// 658:           puts "Head only?:       true" if formula.head_only?
+// 659:         elsif cask
+// 660:           puts "Cask:             #{cask_name(formula_or_cask, full_name:)}"
+// 661:         end
+// 662:         puts "livecheck block?: #{livecheck_defined ? "Yes" : "No"}"
+// 663:         if livecheck_throttle || livecheck_throttle_days
+// 664:           throttle_items = []
+// 665:           if livecheck_throttle
+// 666:             throttle_items << "#{livecheck_throttle} #{Utils.pluralize("version", livecheck_throttle)}"
+// 667:           end
+// 668:           if livecheck_throttle_days
+// 669:             throttle_items << "#{livecheck_throttle_days} #{Utils.pluralize("day", livecheck_throttle_days)}"
+// 670:           end
+// 671:           puts "Throttle:         #{throttle_items.join(" or ")}"
+// 672:         end
+// 673:
+// 674:         livecheck_references.each do |ref_formula_or_cask|
+// 675:           case ref_formula_or_cask
+// 676:           when Formula
+// 677:             puts "Formula Ref:      #{formula_name(ref_formula_or_cask, full_name:)}"
+// 678:           when Cask::Cask
+// 679:             puts "Cask Ref:         #{cask_name(ref_formula_or_cask, full_name:)}"
+// 680:           end
+// 681:         end
+// 682:       end
+// 683:
+// 684:       checked_urls = []
+// 685:       urls.each_with_index do |original_url, i|
+// 686:         url = original_url
+// 687:         next if checked_urls.include?(url)
+// 688:
+// 689:         strategies = Strategy.from_url(
+// 690:           url,
+// 691:           livecheck_strategy:,
+// 692:           regex_provided:     livecheck_regex.present?,
+// 693:           block_provided:     livecheck_strategy_block.present?,
+// 694:         )
+// 695:         strategy = Strategy.from_symbol(livecheck_strategy) || strategies.first
+// 696:         next unless strategy
+// 697:
+// 698:         strategy_name = livecheck_strategy_names(strategy)
+// 699:
+// 700:         if strategy.respond_to?(:preprocess_url)
+// 701:           url = strategy.preprocess_url(url)
+// 702:           next if checked_urls.include?(url)
+// 703:         end
+// 704:
+// 705:         if debug
+// 706:           puts
+// 707:           if livecheck_url.is_a?(Symbol)
+// 708:             # This assumes the URL symbol will fit within the available space
+// 709:             puts "URL (#{livecheck_url}):".ljust(18, " ") + original_url
+// 710:           elsif original_url.present? && original_url != "None"
+// 711:             puts "URL:              #{original_url}"
+// 712:           end
+// 713:           puts "URL (processed):  #{url}" if url != original_url
+// 714:           puts "URL Options:      #{livecheck_url_options}" if livecheck_url_options.present?
+// 715:           if strategies.present? && verbose
+// 716:             puts "Strategies:       #{strategies.map { |s| livecheck_strategy_names(s) }.join(", ")}"
+// 717:           end
+// 718:           puts "Strategy:         #{strategy_name}" if strategy.present?
+// 719:           puts "Regex:            #{livecheck_regex.inspect}" if livecheck_regex.present?
+// 720:         end
+// 721:
+// 722:         if livecheck_strategy.present?
+// 723:           if livecheck_url.blank? && strategy.method(:find_versions).parameters.include?([:keyreq, :url])
+// 724:             odebug "#{strategy_name} strategy requires a URL"
+// 725:             next
+// 726:           elsif livecheck_strategy != :page_match && strategies.exclude?(strategy)
+// 727:             odebug "#{strategy_name} strategy does not apply to this URL"
+// 728:             next
+// 729:           end
+// 730:         end
+// 731:
+// 732:         next if strategy.blank?
+// 733:
+// 734:         if (livecheck_homebrew_curl = livecheck_options.homebrew_curl).nil?
+// 735:           case strategy_name
+// 736:           when "PageMatch", "HeaderMatch"
+// 737:             if (homebrew_curl = use_homebrew_curl?(referenced_package, url))
+// 738:               livecheck_options = livecheck_options.merge({ homebrew_curl: })
+// 739:               livecheck_homebrew_curl = homebrew_curl
+// 740:             end
+// 741:           end
+// 742:         end
+// 743:         puts "Homebrew curl?:   #{livecheck_homebrew_curl ? "Yes" : "No"}" if debug && !livecheck_homebrew_curl.nil?
+// 744:
+// 745:         # Only use arguments that the strategy's `#find_versions` method
+// 746:         # supports
+// 747:         find_versions_parameters = livecheck_find_versions_parameters(strategy)
+// 748:         strategy_args = {}
+// 749:         strategy_args[:cask] = cask if find_versions_parameters.include?(:cask)
+// 750:         strategy_args[:url] = url if find_versions_parameters.include?(:url)
+// 751:         strategy_args[:regex] = livecheck_regex if find_versions_parameters.include?(:regex)
+// 752:         strategy_args[:options] = livecheck_options if find_versions_parameters.include?(:options)
+// 753:         strategy_args.compact!
+// 754:
+// 755:         strategy_data = strategy.find_versions(**strategy_args, &livecheck_strategy_block)
+// 756:         match_version_map = strategy_data[:matches]
+// 757:         regex = strategy_data[:regex]
+// 758:         messages = strategy_data[:messages]
+// 759:         checked_urls << url
+// 760:
+// 761:         if messages.is_a?(Array) && match_version_map.blank?
+// 762:           puts messages unless json
+// 763:           next if i + 1 < urls.length
+// 764:
+// 765:           return status_hash(formula_or_cask, "error", messages, full_name:, verbose:)
+// 766:         end
+// 767:
+// 768:         if debug
+// 769:           if strategy_data[:url].present? && strategy_data[:url] != url
+// 770:             puts "URL (strategy):   #{strategy_data[:url]}"
+// 771:           end
+// 772:           puts "URL (final):      #{strategy_data[:final_url]}" if strategy_data[:final_url].present?
+// 773:           if strategy_data[:regex].present? && strategy_data[:regex] != livecheck_regex
+// 774:             puts "Regex (strategy): #{strategy_data[:regex].inspect}"
+// 775:           end
+// 776:           puts "Cached?:          Yes" if strategy_data[:cached] == true
+// 777:         end
+// 778:
+// 779:         match_version_map.delete_if do |_match, version|
+// 780:           next true if version.blank?
+// 781:           next false if livecheck_defined
+// 782:
+// 783:           UNSTABLE_VERSION_KEYWORDS.any? do |rejection|
+// 784:             version.to_s.include?(rejection)
+// 785:           end
+// 786:         end
+// 787:         next if match_version_map.blank?
+// 788:
+// 789:         if debug
+// 790:           puts
+// 791:           puts "Matched Versions:"
+// 792:
+// 793:           if verbose
+// 794:             match_version_map.each do |match, version|
+// 795:               puts "#{match} => #{version.inspect}"
+// 796:             end
+// 797:           else
+// 798:             puts match_version_map.values.join(", ")
+// 799:           end
+// 800:         end
+// 801:
+// 802:         version_info = {
+// 803:           latest: Version.new(match_version_map.values.max_by { |v| LivecheckVersion.create(formula_or_cask, v) }),
+// 804:         }
+// 805:
+// 806:         if livecheck_throttle || livecheck_throttle_days
+// 807:           throttled_match_version_map = if livecheck_throttle
+// 808:             match_version_map.select do |_match, version|
+// 809:               throttle_allows_bump?(formula_or_cask, version, throttle_rate: livecheck_throttle)
+// 810:             end
+// 811:           else
+// 812:             {}
+// 813:           end
+// 814:
+// 815:           if livecheck_throttle_days &&
+// 816:              throttle_allows_bump?(formula_or_cask, version_info[:latest], throttle_days: livecheck_throttle_days)
+// 817:             version_info[:latest_throttled] = version_info[:latest]
+// 818:           elsif throttled_match_version_map.present?
+// 819:             version_info[:latest_throttled] = Version.new(
+// 820:               throttled_match_version_map.values.max_by { |v| LivecheckVersion.create(formula_or_cask, v) },
+// 821:             )
+// 822:           else
+// 823:             version_info[:latest_throttled] = nil
+// 824:           end
+// 825:
+// 826:           if debug
+// 827:             puts
+// 828:             puts "Matched Throttled Versions:"
+// 829:
+// 830:             if verbose
+// 831:               throttled_match_version_map.each do |match, version|
+// 832:                 puts "#{match} => #{version.inspect}"
+// 833:               end
+// 834:             elsif throttled_match_version_map.present?
+// 835:               puts throttled_match_version_map.values.join(", ")
+// 836:             end
+// 837:
+// 838:             if version_info[:latest_throttled] == version_info[:latest] && throttled_match_version_map.blank?
+// 839:               puts "#{version_info[:latest_throttled]} (throttle interval elapsed)"
+// 840:             end
+// 841:           end
+// 842:         end
+// 843:
+// 844:         if json && verbose
+// 845:           version_info[:meta] = {}
+// 846:
+// 847:           if livecheck_references.present?
+// 848:             version_info[:meta][:references] = livecheck_references.map do |ref_formula_or_cask|
+// 849:               case ref_formula_or_cask
+// 850:               when Formula
+// 851:                 { formula: formula_name(ref_formula_or_cask, full_name:) }
+// 852:               when Cask::Cask
+// 853:                 { cask: cask_name(ref_formula_or_cask, full_name:) }
+// 854:               end
+// 855:             end
+// 856:           end
+// 857:
+// 858:           if url != "None"
+// 859:             version_info[:meta][:url] = {}
+// 860:             version_info[:meta][:url][:symbol] = livecheck_url if livecheck_url.is_a?(Symbol) && livecheck_url_string
+// 861:             version_info[:meta][:url][:original] = original_url
+// 862:             version_info[:meta][:url][:processed] = url if url != original_url
+// 863:             if strategy_data[:url].present? && strategy_data[:url] != url
+// 864:               version_info[:meta][:url][:strategy] = strategy_data[:url]
+// 865:             end
+// 866:             version_info[:meta][:url][:final] = strategy_data[:final_url] if strategy_data[:final_url]
+// 867:             version_info[:meta][:url][:options] = livecheck_url_options if livecheck_url_options.present?
+// 868:           end
+// 869:           version_info[:meta][:strategy] = strategy_name if strategy.present?
+// 870:           version_info[:meta][:strategies] = strategies.map { |s| livecheck_strategy_names(s) } if strategies.present?
+// 871:           version_info[:meta][:regex] = regex.inspect if regex.present?
+// 872:           version_info[:meta][:cached] = true if strategy_data[:cached] == true
+// 873:           version_info[:meta][:throttle] = livecheck_throttle if livecheck_throttle
+// 874:           version_info[:meta][:throttle_days] = livecheck_throttle_days if livecheck_throttle_days
+// 875:
+// 876:           version_info[:content] = strategy_data[:content] if strategy_data[:content] && strategy_name == "Pypi"
+// 877:         end
+// 878:
+// 879:         return version_info
+// 880:       end
+// 881:       nil
+// 882:     end
+// 883:
+// 884:     # Identifies the latest version of a resource and returns a Hash containing the
+// 885:     # version information. Returns nil if a latest version couldn't be found.
+// 886:     sig {
+// 887:       params(
+// 888:         resource:       Resource,
+// 889:         formula_latest: String,
+// 890:         json:           T::Boolean,
+// 891:         full_name:      T::Boolean,
+// 892:         debug:          T::Boolean,
+// 893:         quiet:          T::Boolean,
+// 894:         verbose:        T::Boolean,
+// 895:       ).returns(T::Hash[Symbol, T.untyped])
+// 896:     }
+// 897:     def self.resource_version(
+// 898:       resource,
+// 899:       formula_latest,
+// 900:       json: false,
+// 901:       full_name: false,
+// 902:       debug: false,
+// 903:       quiet: false,
+// 904:       verbose: false
+// 905:     )
+// 906:       livecheck_defined = resource.livecheck_defined?
+// 907:
+// 908:       if debug
+// 909:         puts "\n\n"
+// 910:         puts "Resource:         #{resource.name}"
+// 911:         puts "livecheck block?: #{livecheck_defined ? "Yes" : "No"}"
+// 912:       end
+// 913:
+// 914:       resource_version_info = {}
+// 915:
+// 916:       livecheck = resource.livecheck
+// 917:       livecheck_options = livecheck.options
+// 918:       livecheck_url_options = livecheck_options.url_options.compact
+// 919:       livecheck_reference = livecheck.formula
+// 920:       livecheck_url = livecheck.url
+// 921:       livecheck_regex = livecheck.regex
+// 922:       livecheck_strategy = livecheck.strategy
+// 923:       livecheck_strategy_block = livecheck.strategy_block
+// 924:
+// 925:       livecheck_url_string = livecheck_url_to_string(livecheck_url, resource) if livecheck_url
+// 926:
+// 927:       urls = [livecheck_url_string] if livecheck_url_string
+// 928:       urls = ["None"] if livecheck_reference == :parent
+// 929:       urls ||= checkable_urls(resource)
+// 930:
+// 931:       checked_urls = []
+// 932:       urls.each_with_index do |original_url, i|
+// 933:         url = original_url.gsub(Constants::LATEST_VERSION, formula_latest)
+// 934:         next if checked_urls.include?(url)
+// 935:
+// 936:         strategies = Strategy.from_url(
+// 937:           url,
+// 938:           livecheck_strategy:,
+// 939:           regex_provided:     livecheck_regex.present?,
+// 940:           block_provided:     livecheck_strategy_block.present?,
+// 941:         )
+// 942:         strategy = Strategy.from_symbol(livecheck_strategy) || strategies.first
+// 943:         next if strategy.blank? && livecheck_reference != :parent
+// 944:
+// 945:         strategy_name = livecheck_strategy_names(strategy) if strategy.present?
+// 946:
+// 947:         if strategy.respond_to?(:preprocess_url)
+// 948:           url = strategy.preprocess_url(url)
+// 949:           next if checked_urls.include?(url)
+// 950:         end
+// 951:
+// 952:         if debug
+// 953:           puts
+// 954:           if livecheck_url.is_a?(Symbol)
+// 955:             # This assumes the URL symbol will fit within the available space
+// 956:             puts "URL (#{livecheck_url}):".ljust(18, " ") + original_url
+// 957:           elsif original_url.present? && original_url != "None"
+// 958:             puts "URL:              #{original_url}"
+// 959:           end
+// 960:           puts "URL (processed):  #{url}" if url != original_url
+// 961:           puts "URL Options:      #{livecheck_url_options}" if livecheck_url_options.present?
+// 962:           if strategies.present? && verbose
+// 963:             puts "Strategies:       #{strategies.map { |s| livecheck_strategy_names(s) }.join(", ")}"
+// 964:           end
+// 965:           puts "Strategy:         #{strategy_name}" if strategy.present?
+// 966:           puts "Regex:            #{livecheck_regex.inspect}" if livecheck_regex.present?
+// 967:           if livecheck_reference == :parent
+// 968:             resource_owner = resource.owner
+// 969:             raise "Resource owner is nil" if resource_owner.nil?
+// 970:
+// 971:             formula = if full_name
+// 972:               T.cast(resource_owner, ::Formula).full_name
+// 973:             else
+// 974:               resource_owner.name
+// 975:             end
+// 976:             puts "Formula Ref:      #{formula} (parent)"
+// 977:           end
+// 978:         end
+// 979:
+// 980:         if livecheck_strategy.present?
+// 981:           if livecheck_url.blank? && strategy.method(:find_versions).parameters.include?([:keyreq, :url])
+// 982:             odebug "#{strategy_name} strategy requires a URL"
+// 983:             next
+// 984:           elsif livecheck_strategy != :page_match && strategies.exclude?(strategy)
+// 985:             odebug "#{strategy_name} strategy does not apply to this URL"
+// 986:             next
+// 987:           end
+// 988:         end
+// 989:         puts if debug && strategy.blank? && livecheck_reference != :parent
+// 990:         next if strategy.blank? && livecheck_reference != :parent
+// 991:
+// 992:         if debug && !(livecheck_homebrew_curl = livecheck_options.homebrew_curl).nil?
+// 993:           puts "Homebrew curl?:   #{livecheck_homebrew_curl ? "Yes" : "No"}"
+// 994:         end
+// 995:
+// 996:         if livecheck_reference == :parent
+// 997:           match_version_map = { formula_latest => Version.new(formula_latest) }
+// 998:           cached = true
+// 999:         else
+// 1000:           # Only use arguments that the strategy's `#find_versions` method
+// 1001:           # supports
+// 1002:           find_versions_parameters = livecheck_find_versions_parameters(strategy)
+// 1003:           strategy_args = {}
+// 1004:           strategy_args[:url] = url if find_versions_parameters.include?(:url)
+// 1005:           strategy_args[:regex] = livecheck_regex if find_versions_parameters.include?(:regex)
+// 1006:           strategy_args[:options] = livecheck_options if find_versions_parameters.include?(:options)
+// 1007:           strategy_args.compact!
+// 1008:
+// 1009:           strategy_data = strategy.find_versions(**strategy_args, &livecheck_strategy_block)
+// 1010:           match_version_map = strategy_data[:matches]
+// 1011:           regex = strategy_data[:regex]
+// 1012:           messages = strategy_data[:messages]
+// 1013:           cached = strategy_data[:cached]
+// 1014:         end
+// 1015:
+// 1016:         checked_urls << url
+// 1017:
+// 1018:         if messages.is_a?(Array) && match_version_map.blank?
+// 1019:           puts messages unless json
+// 1020:           next if i + 1 < urls.length
+// 1021:
+// 1022:           return status_hash(resource, "error", messages, verbose:)
+// 1023:         end
+// 1024:
+// 1025:         if debug
+// 1026:           if strategy_data&.dig(:url).present? && strategy_data[:url] != url
+// 1027:             puts "URL (strategy):   #{strategy_data[:url]}"
+// 1028:           end
+// 1029:           puts "URL (final):      #{strategy_data[:final_url]}" if strategy_data&.dig(:final_url).present?
+// 1030:           if strategy_data&.dig(:regex).present? && strategy_data[:regex] != livecheck_regex
+// 1031:             puts "Regex (strategy): #{strategy_data[:regex].inspect}"
+// 1032:           end
+// 1033:           puts "Cached?:          Yes" if cached == true
+// 1034:         end
+// 1035:
+// 1036:         match_version_map.delete_if do |_match, version|
+// 1037:           next true if version.blank?
+// 1038:           next false if livecheck_defined
+// 1039:
+// 1040:           UNSTABLE_VERSION_KEYWORDS.any? do |rejection|
+// 1041:             version.to_s.include?(rejection)
+// 1042:           end
+// 1043:         end
+// 1044:         next if match_version_map.blank?
+// 1045:
+// 1046:         if debug
+// 1047:           puts
+// 1048:           puts "Matched Versions:"
+// 1049:
+// 1050:           if verbose
+// 1051:             match_version_map.each do |match, version|
+// 1052:               puts "#{match} => #{version.inspect}"
+// 1053:             end
+// 1054:           else
+// 1055:             puts match_version_map.values.join(", ")
+// 1056:           end
+// 1057:         end
+// 1058:
+// 1059:         res_current = T.must(resource.version)
+// 1060:         res_latest = Version.new(match_version_map.values.max_by { |v| LivecheckVersion.create(resource, v) })
+// 1061:
+// 1062:         return status_hash(resource, "error", [NO_VERSIONS_MSG], verbose:) if res_latest.blank?
+// 1063:
+// 1064:         is_outdated = res_current < res_latest
+// 1065:         is_newer_than_upstream = res_current > res_latest
+// 1066:
+// 1067:         resource_version_info = {
+// 1068:           resource: resource.name,
+// 1069:           version:  {
+// 1070:             current:             res_current.to_s,
+// 1071:             latest:              res_latest.to_s,
+// 1072:             outdated:            is_outdated,
+// 1073:             newer_than_upstream: is_newer_than_upstream,
+// 1074:           },
+// 1075:         }
+// 1076:
+// 1077:         resource_version_info[:meta] = {
+// 1078:           livecheck_defined: livecheck_defined,
+// 1079:         }
+// 1080:         if livecheck_reference == :parent
+// 1081:           resource_owner = resource.owner
+// 1082:           raise "Resource owner is nil" if resource_owner.nil?
+// 1083:
+// 1084:           formula = if full_name
+// 1085:             T.cast(resource_owner, ::Formula).full_name
+// 1086:           else
+// 1087:             resource_owner.name
+// 1088:           end
+// 1089:           resource_version_info[:meta][:references] =
+// 1090:             [{ formula:, symbol: :parent }]
+// 1091:         end
+// 1092:         if url != "None"
+// 1093:           resource_version_info[:meta][:url] = {}
+// 1094:           if livecheck_url.is_a?(Symbol) && livecheck_url_string
+// 1095:             resource_version_info[:meta][:url][:symbol] = livecheck_url
+// 1096:           end
+// 1097:           resource_version_info[:meta][:url][:original] = original_url
+// 1098:           resource_version_info[:meta][:url][:processed] = url if url != original_url
+// 1099:           if strategy_data&.dig(:url).present? && strategy_data[:url] != url
+// 1100:             resource_version_info[:meta][:url][:strategy] = strategy_data[:url]
+// 1101:           end
+// 1102:           resource_version_info[:meta][:url][:final] = strategy_data[:final_url] if strategy_data&.dig(:final_url)
+// 1103:           resource_version_info[:meta][:url][:options] = livecheck_url_options if livecheck_url_options.present?
+// 1104:         end
+// 1105:         resource_version_info[:meta][:strategy] = strategy_name if strategy.present?
+// 1106:         if strategies.present?
+// 1107:           resource_version_info[:meta][:strategies] = strategies.map { |s| livecheck_strategy_names(s) }
+// 1108:         end
+// 1109:         resource_version_info[:meta][:regex] = regex.inspect if regex.present?
+// 1110:         resource_version_info[:meta][:cached] = true if cached == true
+// 1111:       rescue => e
+// 1112:         Homebrew.failed = true
+// 1113:         if json
+// 1114:           status_hash(resource, "error", [e.to_s], verbose:)
+// 1115:         elsif !quiet
+// 1116:           onoe "#{Tty.blue}#{resource.name}#{Tty.reset}: #{e}"
+// 1117:           if debug && !e.is_a?(Livecheck::Error)
+// 1118:             require "utils/backtrace"
+// 1119:             $stderr.puts Utils::Backtrace.clean(e)
+// 1120:           end
+// 1121:           nil
+// 1122:         end
+// 1123:       end
+// 1124:       resource_version_info
+// 1125:     end
+// 1126:
+// 1127:     sig {
+// 1128:       params(
+// 1129:         formula_or_cask: T.any(Formula, Cask::Cask),
+// 1130:         version:         T.any(String, Version),
+// 1131:         throttle_rate:   T.nilable(Integer),
+// 1132:         throttle_days:   T.nilable(Integer),
+// 1133:       ).returns(T::Boolean)
+// 1134:     }
+// 1135:     def self.throttle_allows_bump?(formula_or_cask, version, throttle_rate: nil, throttle_days: nil)
+// 1136:       return true if throttle_rate.nil? && throttle_days.nil?
+// 1137:
+// 1138:       unless throttle_rate.nil?
+// 1139:         version = Version.new(version) unless version.is_a?(Version)
+// 1140:         return true if version.patch.to_i.modulo(throttle_rate).zero?
+// 1141:       end
+// 1142:
+// 1143:       !throttle_days.nil? && throttle_interval_elapsed?(formula_or_cask, throttle_days)
+// 1144:     end
+// 1145:
+// 1146:     sig { params(package_or_resource: T.any(Formula, Cask::Cask)).returns(T.nilable(Integer)) }
+// 1147:     def self.formula_or_cask_last_updated_timestamp(package_or_resource)
+// 1148:       tap = package_or_resource.tap
+// 1149:       return if tap.nil?
+// 1150:       return unless tap.git?
+// 1151:       return unless Utils::Git.available?
+// 1152:
+// 1153:       if package_or_resource.is_a?(Formula)
+// 1154:         timestamp = formula_last_version_update_timestamp(package_or_resource, tap:)
+// 1155:         return timestamp if timestamp.present?
+// 1156:       end
+// 1157:
+// 1158:       formula_or_cask_last_commit_timestamp(package_or_resource, tap)
+// 1159:     end
+// 1160:
+// 1161:     sig { params(formula: Formula, tap: Tap).returns(T.nilable(Integer)) }
+// 1162:     private_class_method def self.formula_last_version_update_timestamp(formula, tap:)
+// 1163:       stable = formula.stable
+// 1164:       return if stable.blank?
+// 1165:
+// 1166:       version_update_revision = find_version_update_revision(formula, stable.version)
+// 1167:       return if version_update_revision.nil?
+// 1168:
+// 1169:       timestamp_for_revision(tap.path, version_update_revision)
+// 1170:     end
+// 1171:
+// 1172:     sig { params(formula: Formula, current_version: Version).returns(T.nilable(String)) }
+// 1173:     private_class_method def self.find_version_update_revision(formula, current_version)
+// 1174:       version_update_revision = T.let(nil, T.nilable(String))
+// 1175:       found_current_version = T.let(false, T::Boolean)
+// 1176:
+// 1177:       formula_versions = FormulaVersions.new(formula)
+// 1178:       current_version = origin_stable_version(formula, formula_versions) || current_version
+// 1179:
+// 1180:       formula_versions.rev_list("HEAD") do |revision, path|
+// 1181:         formula_versions.formula_at_revision(revision, path) do |historical_formula|
+// 1182:           historical_stable = historical_formula.stable
+// 1183:           next if historical_stable.blank?
+// 1184:
+// 1185:           if historical_stable.version == current_version
+// 1186:             found_current_version = true
+// 1187:             version_update_revision = revision
+// 1188:           elsif found_current_version
+// 1189:             return version_update_revision
+// 1190:           end
+// 1191:         end
+// 1192:       rescue MacOSVersion::Error, LegacyDSLError
+// 1193:         break
+// 1194:       end
+// 1195:
+// 1196:       version_update_revision
+// 1197:     end
+// 1198:
+// 1199:     sig { params(formula: Formula, formula_versions: FormulaVersions).returns(T.nilable(Version)) }
+// 1200:     private_class_method def self.origin_stable_version(formula, formula_versions)
+// 1201:       tap = formula.tap
+// 1202:       return if tap.nil?
+// 1203:
+// 1204:       revision = Utils.popen_read(
+// 1205:         Utils::Git.git, "rev-parse", "origin/HEAD",
+// 1206:         chdir: tap.path
+// 1207:       ).chomp.presence
+// 1208:       return if revision.nil?
+// 1209:
+// 1210:       relative_path = formula.path.relative_path_from(tap.path).to_s
+// 1211:       version = T.let(nil, T.nilable(Version))
+// 1212:       formula_versions.formula_at_revision(revision, relative_path) do |historical_formula|
+// 1213:         version = historical_formula.stable&.version
+// 1214:       end
+// 1215:       version
+// 1216:     rescue MacOSVersion::Error, LegacyDSLError
+// 1217:       nil
+// 1218:     end
+// 1219:
+// 1220:     sig {
+// 1221:       params(package_or_resource: T.any(Formula, Cask::Cask), tap: Tap).returns(T.nilable(Integer))
+// 1222:     }
+// 1223:     private_class_method def self.formula_or_cask_last_commit_timestamp(package_or_resource, tap)
+// 1224:       sourcefile = case package_or_resource
+// 1225:       when Formula
+// 1226:         package_or_resource.path
+// 1227:       when Cask::Cask
+// 1228:         package_or_resource.sourcefile_path
+// 1229:       end
+// 1230:       return if sourcefile.nil?
+// 1231:
+// 1232:       default_branch = Utils.popen_read(
+// 1233:         Utils::Git.git,
+// 1234:         "symbolic-ref",
+// 1235:         "refs/remotes/origin/HEAD",
+// 1236:         "--short",
+// 1237:         chdir: tap.path,
+// 1238:         err:   :close,
+// 1239:       ).chomp.presence
+// 1240:
+// 1241:       # A detached checkout, as used for pull request CI, has no local branch,
+// 1242:       # so fall back to the remote-tracking ref and finally the current commit.
+// 1243:       refs = [
+// 1244:         default_branch,
+// 1245:         default_branch&.delete_prefix("origin/"),
+// 1246:         "origin/HEAD",
+// 1247:         "origin/main",
+// 1248:         "main",
+// 1249:         "HEAD",
+// 1250:       ].compact.uniq
+// 1251:
+// 1252:       relative_sourcefile = sourcefile.relative_path_from(tap.path).to_s
+// 1253:       timestamp = refs.lazy.filter_map do |ref|
+// 1254:         Utils.popen_read(
+// 1255:           Utils::Git.git,
+// 1256:           "log",
+// 1257:           ref,
+// 1258:           "-1",
+// 1259:           "--format=%ct",
+// 1260:           "--",
+// 1261:           relative_sourcefile,
+// 1262:           chdir: tap.path,
+// 1263:           err:   :close,
+// 1264:         ).chomp.presence
+// 1265:       end.first
+// 1266:       return if timestamp.nil?
+// 1267:
+// 1268:       Integer(timestamp, exception: false)
+// 1269:     rescue ArgumentError
+// 1270:       nil
+// 1271:     end
+// 1272:
+// 1273:     sig { params(repository_path: Pathname, revision: String).returns(T.nilable(Integer)) }
+// 1274:     private_class_method def self.timestamp_for_revision(repository_path, revision)
+// 1275:       timestamp = Utils.popen_read(
+// 1276:         Utils::Git.git,
+// 1277:         "show",
+// 1278:         "-s",
+// 1279:         "--format=%ct",
+// 1280:         revision,
+// 1281:         chdir: repository_path,
+// 1282:       ).chomp.presence
+// 1283:       return if timestamp.nil?
+// 1284:
+// 1285:       Integer(timestamp, exception: false)
+// 1286:     rescue ArgumentError
+// 1287:       nil
+// 1288:     end
+// 1289:
+// 1290:     sig { params(package_or_resource: T.any(Formula, Cask::Cask), days: Integer).returns(T::Boolean) }
+// 1291:     def self.throttle_interval_elapsed?(package_or_resource, days)
+// 1292:       return false if days <= 0
+// 1293:
+// 1294:       last_updated_timestamp = formula_or_cask_last_updated_timestamp(package_or_resource)
+// 1295:       return false if last_updated_timestamp.nil?
+// 1296:
+// 1297:       elapsed_seconds = Time.now.to_i - last_updated_timestamp
+// 1298:       elapsed_seconds >= (days * 24 * 60 * 60)
+// 1299:     end
+// 1300:   end
+// 1301: end

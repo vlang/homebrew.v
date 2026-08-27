@@ -1,0 +1,82 @@
+module types
+
+import brew_runtime
+
+// Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/sorbet-runtime-0.6.13412/lib/types/types/typed_range.rb`.
+// The original source is retained below until every stub has a typed V body.
+
+// Ruby method `underlying_class` at line 6.
+pub fn ruby_typed_range_l6_d1_underlying_class(args ...brew_runtime.Value) brew_runtime.Value {
+	return brew_runtime.unimplemented_fn('underlying_class', ...args)
+}
+
+// Ruby method `name` at line 11.
+pub fn ruby_typed_range_l11_d2_name(args ...brew_runtime.Value) brew_runtime.Value {
+	return brew_runtime.unimplemented_fn('name', ...args)
+}
+
+// Ruby method `recursively_valid?(obj)` at line 16.
+pub fn ruby_typed_range_l16_d3_recursively_valid(args ...brew_runtime.Value) brew_runtime.Value {
+	return brew_runtime.unimplemented_fn('recursively_valid?', ...args)
+}
+
+// Ruby method `valid?(obj)` at line 21.
+pub fn ruby_typed_range_l21_d4_valid(args ...brew_runtime.Value) brew_runtime.Value {
+	return brew_runtime.unimplemented_fn('valid?', ...args)
+}
+
+// Ruby method `new(...)` at line 25.
+pub fn ruby_typed_range_l25_d5_new(args ...brew_runtime.Value) brew_runtime.Value {
+	return brew_runtime.unimplemented_fn('new', ...args)
+}
+
+// Ruby method `initialize` at line 30.
+pub fn ruby_typed_range_l30_d6_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+	return brew_runtime.unimplemented_fn('initialize', ...args)
+}
+
+// Ruby method `valid?(obj)` at line 34.
+pub fn ruby_typed_range_l34_d7_valid(args ...brew_runtime.Value) brew_runtime.Value {
+	return brew_runtime.unimplemented_fn('valid?', ...args)
+}
+
+// Original Ruby source (line-for-line):
+// 1: # frozen_string_literal: true
+// 2: # typed: true
+// 3:
+// 4: module T::Types
+// 5:   class TypedRange < TypedEnumerable
+// 6:     def underlying_class
+// 7:       Range
+// 8:     end
+// 9:
+// 10:     # overrides Base
+// 11:     def name
+// 12:       "T::Range[#{type.name}]"
+// 13:     end
+// 14:
+// 15:     # overrides Base
+// 16:     def recursively_valid?(obj)
+// 17:       obj.is_a?(Range) && super
+// 18:     end
+// 19:
+// 20:     # overrides Base
+// 21:     def valid?(obj)
+// 22:       obj.is_a?(Range)
+// 23:     end
+// 24:
+// 25:     def new(...)
+// 26:       Range.new(...)
+// 27:     end
+// 28:
+// 29:     class Untyped < TypedRange
+// 30:       def initialize
+// 31:         super(T::Types::Untyped::Private::INSTANCE)
+// 32:       end
+// 33:
+// 34:       def valid?(obj)
+// 35:         obj.is_a?(Range)
+// 36:       end
+// 37:     end
+// 38:   end
+// 39: end

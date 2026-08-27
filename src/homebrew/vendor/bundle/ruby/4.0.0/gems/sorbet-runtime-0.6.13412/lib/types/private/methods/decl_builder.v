@@ -1,0 +1,348 @@
+module methods
+
+import brew_runtime
+
+// Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/sorbet-runtime-0.6.13412/lib/types/private/methods/decl_builder.rb`.
+// The original source is retained below until every stub has a typed V body.
+
+// Ruby attr_reader `attr_reader :decl` at line 8.
+pub fn ruby_decl_builder_l8_d1_decl(args ...brew_runtime.Value) brew_runtime.Value {
+	return brew_runtime.unimplemented_fn('decl', ...args)
+}
+
+// Ruby method `check_live!` at line 12.
+pub fn ruby_decl_builder_l12_d2_check_live(args ...brew_runtime.Value) brew_runtime.Value {
+	return brew_runtime.unimplemented_fn('check_live!', ...args)
+}
+
+// Ruby method `initialize(mod, abstract, override, overridable)` at line 18.
+pub fn ruby_decl_builder_l18_d3_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+	return brew_runtime.unimplemented_fn('initialize', ...args)
+}
+
+// Ruby method `params(*unused_positional_params, **params)` at line 48.
+pub fn ruby_decl_builder_l48_d4_params(args ...brew_runtime.Value) brew_runtime.Value {
+	return brew_runtime.unimplemented_fn('params', ...args)
+}
+
+// Ruby method `returns(type)` at line 76.
+pub fn ruby_decl_builder_l76_d5_returns(args ...brew_runtime.Value) brew_runtime.Value {
+	return brew_runtime.unimplemented_fn('returns', ...args)
+}
+
+// Ruby method `void` at line 90.
+pub fn ruby_decl_builder_l90_d6_void(args ...brew_runtime.Value) brew_runtime.Value {
+	return brew_runtime.unimplemented_fn('void', ...args)
+}
+
+// Ruby method `bind(type)` at line 101.
+pub fn ruby_decl_builder_l101_d7_bind(args ...brew_runtime.Value) brew_runtime.Value {
+	return brew_runtime.unimplemented_fn('bind', ...args)
+}
+
+// Ruby method `checked(level)` at line 112.
+pub fn ruby_decl_builder_l112_d8_checked(args ...brew_runtime.Value) brew_runtime.Value {
+	return brew_runtime.unimplemented_fn('checked', ...args)
+}
+
+// Ruby method `on_failure(*args)` at line 130.
+pub fn ruby_decl_builder_l130_d9_on_failure(args ...brew_runtime.Value) brew_runtime.Value {
+	return brew_runtime.unimplemented_fn('on_failure', ...args)
+}
+
+// Ruby method `abstract` at line 150.
+pub fn ruby_decl_builder_l150_d10_abstract(args ...brew_runtime.Value) brew_runtime.Value {
+	return brew_runtime.unimplemented_fn('abstract', ...args)
+}
+
+// Ruby method `final` at line 165.
+pub fn ruby_decl_builder_l165_d11_final(args ...brew_runtime.Value) brew_runtime.Value {
+	return brew_runtime.unimplemented_fn('final', ...args)
+}
+
+// Ruby method `override(allow_incompatible: false)` at line 170.
+pub fn ruby_decl_builder_l170_d12_override(args ...brew_runtime.Value) brew_runtime.Value {
+	return brew_runtime.unimplemented_fn('override', ...args)
+}
+
+// Ruby method `overridable` at line 193.
+pub fn ruby_decl_builder_l193_d13_overridable(args ...brew_runtime.Value) brew_runtime.Value {
+	return brew_runtime.unimplemented_fn('overridable', ...args)
+}
+
+// Ruby method `type_parameters(*names)` at line 221.
+pub fn ruby_decl_builder_l221_d14_type_parameters(args ...brew_runtime.Value) brew_runtime.Value {
+	return brew_runtime.unimplemented_fn('type_parameters', ...args)
+}
+
+// Ruby method `finalize!` at line 237.
+pub fn ruby_decl_builder_l237_d15_finalize(args ...brew_runtime.Value) brew_runtime.Value {
+	return brew_runtime.unimplemented_fn('finalize!', ...args)
+}
+
+// Original Ruby source (line-for-line):
+// 1: # frozen_string_literal: true
+// 2: # typed: true
+// 3:
+// 4: module T::Private::Methods
+// 5:   Declaration = Struct.new(:mod, :params, :returns, :bind, :mode, :checked, :finalized, :on_failure, :override_allow_incompatible, :type_parameters, :raw)
+// 6:
+// 7:   class DeclBuilder
+// 8:     attr_reader :decl
+// 9:
+// 10:     class BuilderError < StandardError; end
+// 11:
+// 12:     private def check_live!
+// 13:       if decl.finalized
+// 14:         raise BuilderError.new("You can't modify a signature declaration after it has been used.")
+// 15:       end
+// 16:     end
+// 17:
+// 18:     def initialize(mod, abstract, override, overridable)
+// 19:       @decl = Declaration.new(
+// 20:         mod,
+// 21:         ARG_NOT_PROVIDED, # params
+// 22:         ARG_NOT_PROVIDED, # returns
+// 23:         ARG_NOT_PROVIDED, # bind
+// 24:         Modes.standard, # mode
+// 25:         nil, # checked
+// 26:         false, # finalized
+// 27:         ARG_NOT_PROVIDED, # on_failure
+// 28:         false, # override_allow_incompatible
+// 29:         ARG_NOT_PROVIDED, # type_parameters
+// 30:       )
+// 31:
+// 32:       # Call the methods after the fact (instead of setting them in the constructor)
+// 33:       # so we get the BuilderError's, if applicable
+// 34:
+// 35:       if abstract
+// 36:         self.abstract
+// 37:       end
+// 38:
+// 39:       if override
+// 40:         self.override(**override)
+// 41:       end
+// 42:
+// 43:       if overridable
+// 44:         self.overridable
+// 45:       end
+// 46:     end
+// 47:
+// 48:     def params(*unused_positional_params, **params)
+// 49:       check_live!
+// 50:       if !decl.params.equal?(ARG_NOT_PROVIDED)
+// 51:         raise BuilderError.new("You can't call .params twice")
+// 52:       end
+// 53:
+// 54:       if unused_positional_params.any?
+// 55:         some_or_only = params.any? ? "some" : "only"
+// 56:         raise BuilderError.new(<<~MSG)
+// 57:           'params' was called with #{some_or_only} positional arguments, but it needs to be called with keyword arguments.
+// 58:           The keyword arguments' keys must match the name and order of the method's parameters.
+// 59:         MSG
+// 60:       end
+// 61:
+// 62:       if params.empty?
+// 63:         raise BuilderError.new(<<~MSG)
+// 64:           'params' was called without any arguments, but it needs to be called with keyword arguments.
+// 65:           The keyword arguments' keys must match the name and order of the method's parameters.
+// 66:
+// 67:           Omit 'params' entirely for methods with no parameters.
+// 68:         MSG
+// 69:       end
+// 70:
+// 71:       decl.params = params
+// 72:
+// 73:       self
+// 74:     end
+// 75:
+// 76:     def returns(type)
+// 77:       check_live!
+// 78:       if decl.returns.is_a?(T::Private::Types::Void)
+// 79:         raise BuilderError.new("You can't call .returns after calling .void.")
+// 80:       end
+// 81:       if !decl.returns.equal?(ARG_NOT_PROVIDED)
+// 82:         raise BuilderError.new("You can't call .returns multiple times in a signature.")
+// 83:       end
+// 84:
+// 85:       decl.returns = type
+// 86:
+// 87:       self
+// 88:     end
+// 89:
+// 90:     def void
+// 91:       check_live!
+// 92:       if !decl.returns.equal?(ARG_NOT_PROVIDED)
+// 93:         raise BuilderError.new("You can't call .void after calling .returns.")
+// 94:       end
+// 95:
+// 96:       decl.returns = T::Private::Types::Void::Private::INSTANCE
+// 97:
+// 98:       self
+// 99:     end
+// 100:
+// 101:     def bind(type)
+// 102:       check_live!
+// 103:       if !decl.bind.equal?(ARG_NOT_PROVIDED)
+// 104:         raise BuilderError.new("You can't call .bind multiple times in a signature.")
+// 105:       end
+// 106:
+// 107:       decl.bind = type
+// 108:
+// 109:       self
+// 110:     end
+// 111:
+// 112:     def checked(level)
+// 113:       check_live!
+// 114:
+// 115:       if !decl.checked.nil?
+// 116:         raise BuilderError.new("You can't call .checked multiple times in a signature.")
+// 117:       end
+// 118:       if :never == level && !decl.on_failure.equal?(ARG_NOT_PROVIDED)
+// 119:         raise BuilderError.new("You can't use .checked(:#{level}) with .on_failure because .on_failure will have no effect.")
+// 120:       end
+// 121:       if !T::Private::RuntimeLevels::LEVELS.include?(level)
+// 122:         raise BuilderError.new("Invalid `checked` level '#{level}'. Use one of: #{T::Private::RuntimeLevels::LEVELS}.")
+// 123:       end
+// 124:
+// 125:       decl.checked = level
+// 126:
+// 127:       self
+// 128:     end
+// 129:
+// 130:     def on_failure(*args)
+// 131:       check_live!
+// 132:
+// 133:       if !decl.on_failure.equal?(ARG_NOT_PROVIDED)
+// 134:         raise BuilderError.new("You can't call .on_failure multiple times in a signature.")
+// 135:       end
+// 136:       effective_checked = decl.checked.nil? ? T::Private::RuntimeLevels.default_checked_level : decl.checked
+// 137:       if effective_checked == :never
+// 138:         if decl.checked.nil?
+// 139:           raise BuilderError.new("To use .on_failure you must additionally call .checked(:tests) or .checked(:always), otherwise, the .on_failure has no effect.")
+// 140:         else
+// 141:           raise BuilderError.new("You can't use .on_failure with .checked(:#{effective_checked}) because .on_failure will have no effect.")
+// 142:         end
+// 143:       end
+// 144:
+// 145:       decl.on_failure = args
+// 146:
+// 147:       self
+// 148:     end
+// 149:
+// 150:     def abstract
+// 151:       check_live!
+// 152:
+// 153:       case decl.mode
+// 154:       when Modes.standard
+// 155:         decl.mode = Modes.abstract
+// 156:       when Modes.abstract
+// 157:         raise BuilderError.new(".abstract cannot be repeated in a single signature")
+// 158:       else
+// 159:         raise BuilderError.new("`.abstract` cannot be combined with `.override` or `.overridable`.")
+// 160:       end
+// 161:
+// 162:       self
+// 163:     end
+// 164:
+// 165:     def final
+// 166:       check_live!
+// 167:       raise BuilderError.new("The syntax for declaring a method final is `sig(:final) {...}`, not `sig {final. ...}`")
+// 168:     end
+// 169:
+// 170:     def override(allow_incompatible: false)
+// 171:       check_live!
+// 172:
+// 173:       case decl.mode
+// 174:       when Modes.standard
+// 175:         decl.mode = Modes.override
+// 176:         case allow_incompatible
+// 177:         when true, false, :visibility
+// 178:           decl.override_allow_incompatible = allow_incompatible
+// 179:         else
+// 180:           raise BuilderError.new(".override(allow_incompatible: ...) only accepts `true`, `false`, or `:visibility`, got: #{allow_incompatible.inspect}")
+// 181:         end
+// 182:       when Modes.override, Modes.overridable_override
+// 183:         raise BuilderError.new(".override cannot be repeated in a single signature")
+// 184:       when Modes.overridable
+// 185:         decl.mode = Modes.overridable_override
+// 186:       else
+// 187:         raise BuilderError.new("`.override` cannot be combined with `.abstract`.")
+// 188:       end
+// 189:
+// 190:       self
+// 191:     end
+// 192:
+// 193:     def overridable
+// 194:       check_live!
+// 195:
+// 196:       case decl.mode
+// 197:       when Modes.abstract
+// 198:         raise BuilderError.new("`.overridable` cannot be combined with `.#{decl.mode}`")
+// 199:       when Modes.override
+// 200:         decl.mode = Modes.overridable_override
+// 201:       when Modes.standard
+// 202:         decl.mode = Modes.overridable
+// 203:       when Modes.overridable, Modes.overridable_override
+// 204:         raise BuilderError.new(".overridable cannot be repeated in a single signature")
+// 205:       end
+// 206:
+// 207:       self
+// 208:     end
+// 209:
+// 210:     # Declares valid type parameters which can be used with `T.type_parameter` in
+// 211:     # this `sig`.
+// 212:     #
+// 213:     # This is used for generic methods. Example usage:
+// 214:     #
+// 215:     #  sig do
+// 216:     #    type_parameters(:U)
+// 217:     #    .params(blk: T.proc.params(arg0: Elem).returns(T.type_parameter(:U)))
+// 218:     #    .returns(T::Array[T.type_parameter(:U)])
+// 219:     #  end
+// 220:     #  def map(&blk); end
+// 221:     def type_parameters(*names)
+// 222:       check_live!
+// 223:
+// 224:       names.each do |name|
+// 225:         raise BuilderError.new("not a symbol: #{name}") unless Symbol === name
+// 226:       end
+// 227:
+// 228:       if !decl.type_parameters.equal?(ARG_NOT_PROVIDED)
+// 229:         raise BuilderError.new("You can't call .type_parameters multiple times in a signature.")
+// 230:       end
+// 231:
+// 232:       decl.type_parameters = names
+// 233:
+// 234:       self
+// 235:     end
+// 236:
+// 237:     def finalize!
+// 238:       check_live!
+// 239:
+// 240:       if decl.returns.equal?(ARG_NOT_PROVIDED)
+// 241:         raise BuilderError.new("You must provide a return type; use the `.returns` or `.void` builder methods.")
+// 242:       end
+// 243:
+// 244:       if decl.bind.equal?(ARG_NOT_PROVIDED)
+// 245:         decl.bind = nil
+// 246:       end
+// 247:       if decl.on_failure.equal?(ARG_NOT_PROVIDED)
+// 248:         decl.on_failure = nil
+// 249:       end
+// 250:       if decl.params.equal?(ARG_NOT_PROVIDED)
+// 251:         decl.params = FROZEN_HASH
+// 252:       end
+// 253:       if decl.type_parameters.equal?(ARG_NOT_PROVIDED)
+// 254:         decl.type_parameters = FROZEN_ARRAY
+// 255:       end
+// 256:
+// 257:       decl.finalized = true
+// 258:
+// 259:       self
+// 260:     end
+// 261:
+// 262:     FROZEN_HASH = {}.freeze
+// 263:     FROZEN_ARRAY = [].freeze
+// 264:   end
+// 265: end

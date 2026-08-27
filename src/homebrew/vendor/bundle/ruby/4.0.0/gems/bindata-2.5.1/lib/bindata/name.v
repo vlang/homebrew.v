@@ -1,0 +1,46 @@
+module bindata
+
+import brew_runtime
+
+// Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/bindata-2.5.1/lib/bindata/name.rb`.
+// The original source is retained below until every stub has a typed V body.
+
+// Ruby method `self.included(base) # :nodoc:` at line 16.
+pub fn ruby_name_l16_d1_self_included(args ...brew_runtime.Value) brew_runtime.Value {
+	return brew_runtime.unimplemented_fn('self.included', ...args)
+}
+
+// Ruby method `initialize_shared_instance` at line 21.
+pub fn ruby_name_l21_d2_initialize_shared_instance(args ...brew_runtime.Value) brew_runtime.Value {
+	return brew_runtime.unimplemented_fn('initialize_shared_instance', ...args)
+}
+
+// Original Ruby source (line-for-line):
+// 1: module BinData
+// 2:   # == Parameters
+// 3:   #
+// 4:   # Parameters may be provided at initialisation to control the behaviour of
+// 5:   # an object.  These parameters are:
+// 6:   #
+// 7:   # <tt>:name</tt>:: The name that this object can be referred to may be
+// 8:   #                  set explicitly.  This is only useful when dynamically
+// 9:   #                  generating types.
+// 10:   #                  <code><pre>
+// 11:   #                    BinData::Struct.new(name: :my_struct, fields: ...)
+// 12:   #                    array = BinData::Array.new(type: :my_struct)
+// 13:   #                  </pre></code>
+// 14:   module RegisterNamePlugin
+// 15:
+// 16:     def self.included(base) # :nodoc:
+// 17:       # The registered name may be provided explicitly.
+// 18:       base.optional_parameter :name
+// 19:     end
+// 20:
+// 21:     def initialize_shared_instance
+// 22:       if has_parameter?(:name)
+// 23:         RegisteredClasses.register(get_parameter(:name), self)
+// 24:       end
+// 25:       super
+// 26:     end
+// 27:   end
+// 28: end

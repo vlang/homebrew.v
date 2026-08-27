@@ -1,0 +1,64 @@
+module artifact
+
+import brew_runtime
+
+// Translated from Homebrew/brew `test/cask/artifact/postflight_block_spec.rb`.
+// The original source is retained below until every stub has a typed V body.
+
+// Ruby it `it "calls the specified block after installing, passing a Cask mini-dsl" do` at line 6.
+pub fn ruby_postflight_block_spec_l6_d1_calls(args ...brew_runtime.Value) brew_runtime.Value {
+	return brew_runtime.unimplemented_fn('calls', ...args)
+}
+
+// Ruby it `it "calls the specified block after uninstalling, passing a Cask mini-dsl" do` at line 27.
+pub fn ruby_postflight_block_spec_l27_d2_calls(args ...brew_runtime.Value) brew_runtime.Value {
+	return brew_runtime.unimplemented_fn('calls', ...args)
+}
+
+// Original Ruby source (line-for-line):
+// 1: # typed: strict
+// 2: # frozen_string_literal: true
+// 3:
+// 4: RSpec.describe Cask::Artifact::PostflightBlock, :cask do
+// 5:   describe "install_phase" do
+// 6:     it "calls the specified block after installing, passing a Cask mini-dsl" do
+// 7:       called = T.let(false, T::Boolean)
+// 8:       yielded_arg = T.let(nil, T.nilable(Cask::DSL::Postflight))
+// 9:
+// 10:       cask = Cask::Cask.new("with-postflight") do
+// 11:         postflight do |c|
+// 12:           called = true
+// 13:           yielded_arg = c
+// 14:         end
+// 15:       end
+// 16:
+// 17:       cask.artifacts.grep(described_class).each do |artifact|
+// 18:         artifact.install_phase(command: NeverSudoSystemCommand, force: false)
+// 19:       end
+// 20:
+// 21:       expect(called).to be true
+// 22:       expect(yielded_arg).to be_a(Cask::DSL::Postflight)
+// 23:     end
+// 24:   end
+// 25:
+// 26:   describe "uninstall_phase" do
+// 27:     it "calls the specified block after uninstalling, passing a Cask mini-dsl" do
+// 28:       called = T.let(false, T::Boolean)
+// 29:       yielded_arg = T.let(nil, T.nilable(Cask::DSL::UninstallPostflight))
+// 30:
+// 31:       cask = Cask::Cask.new("with-uninstall-postflight") do
+// 32:         uninstall_postflight do |c|
+// 33:           called = true
+// 34:           yielded_arg = c
+// 35:         end
+// 36:       end
+// 37:
+// 38:       cask.artifacts.grep(described_class).each do |artifact|
+// 39:         artifact.uninstall_phase(command: NeverSudoSystemCommand, force: false)
+// 40:       end
+// 41:
+// 42:       expect(called).to be true
+// 43:       expect(yielded_arg).to be_a(Cask::DSL::UninstallPostflight)
+// 44:     end
+// 45:   end
+// 46: end
