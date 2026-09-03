@@ -1,153 +1,242 @@
 module utils
 
 import brew_runtime
+import homebrew.utils as brew_utils
+
+fn output_spec_options(stream_is_tty bool, no_emoji bool) brew_utils.OutputOptions {
+	return brew_utils.OutputOptions{
+		tty:      brew_utils.TtyState{
+			stream_is_tty: stream_is_tty
+		}
+		no_emoji: no_emoji
+	}
+}
 
 // Translated from Homebrew/brew `test/utils/output_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `esc(code)` at line 8.
 pub fn ruby_output_spec_l8_d1_esc(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('esc', ...args)
+	code := if args.len > 0 { args[0].as_int() or { 0 } } else { 0 }
+	return brew_runtime.string_value('\x1b[${code}m')
 }
 
 // Ruby subject `subject(:pretty_installed_output) { described_class.pretty_installed("foo") }` at line 13.
 pub fn ruby_output_spec_l13_d2_pretty_installed_output(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('pretty_installed_output', ...args)
+	return brew_runtime.string_value(brew_utils.pretty_installed('foo', output_spec_options(true,
+		false)))
 }
 
 // Ruby it `it "returns a string with a colored checkmark" do` at line 19.
 pub fn ruby_output_spec_l19_d3_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	output := brew_utils.pretty_installed('foo', output_spec_options(true, false))
+	return brew_runtime.bool_value(output.contains('\x1b[1mfoo ') && output.contains('\x1b[32m✔')
+		&& output.contains('\x1b[0m'))
 }
 
 // Ruby it `it "returns a string with colored info" do` at line 28.
 pub fn ruby_output_spec_l28_d4_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	output := brew_utils.pretty_installed('foo', output_spec_options(true, true))
+	return brew_runtime.bool_value(
+		output.contains('\x1b[1mfoo (installed)') && output.contains('\x1b[0m'))
 }
 
 // Ruby it `it "returns plain text" do` at line 38.
 pub fn ruby_output_spec_l38_d5_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	return brew_runtime.bool_value(brew_utils.pretty_installed('foo', output_spec_options(false,
+		false)) == 'foo')
 }
 
 // Ruby it `it "returns a bold string with a colored up arrow by default" do` at line 48.
 pub fn ruby_output_spec_l48_d6_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	output := brew_utils.pretty_upgradable('foo', true, output_spec_options(true, false))
+	return brew_runtime.bool_value(output.starts_with('\x1b[1mfoo ')
+		&& output.contains('\x1b[32m↑'))
 }
 
 // Ruby it `it "omits the bold escape when bold is false" do` at line 52.
 pub fn ruby_output_spec_l52_d7_omits(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('omits', ...args)
+	output := brew_utils.pretty_upgradable('foo', false, output_spec_options(true, false))
+	return brew_runtime.bool_value(output.starts_with('foo ') && output.contains('\x1b[32m↑'))
 }
 
 // Ruby it `it "returns plain text" do` at line 60.
 pub fn ruby_output_spec_l60_d8_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	return brew_runtime.bool_value(brew_utils.pretty_upgradable('foo', false, output_spec_options(false,
+		false)) == 'foo')
 }
 
 // Ruby subject `subject(:pretty_uninstalled_output) { described_class.pretty_uninstalled("foo") }` at line 67.
 pub fn ruby_output_spec_l67_d9_pretty_uninstalled_output(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('pretty_uninstalled_output', ...args)
+	return brew_runtime.string_value(brew_utils.pretty_uninstalled('foo', true, output_spec_options(true,
+		false)))
 }
 
 // Ruby it `it "returns a string with a colored checkmark" do` at line 73.
 pub fn ruby_output_spec_l73_d10_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	output := brew_utils.pretty_uninstalled('foo', true, output_spec_options(true, false))
+	return brew_runtime.bool_value(output.contains('\x1b[1mfoo ') && output.contains('\x1b[31m✘'))
 }
 
 // Ruby it `it "returns a string with colored info" do` at line 82.
 pub fn ruby_output_spec_l82_d11_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	output := brew_utils.pretty_uninstalled('foo', true, output_spec_options(true, true))
+	return brew_runtime.bool_value(
+		output.contains('\x1b[1mfoo (uninstalled)') && output.contains('\x1b[0m'))
 }
 
 // Ruby it `it "returns plain text" do` at line 92.
 pub fn ruby_output_spec_l92_d12_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	return brew_runtime.bool_value(brew_utils.pretty_uninstalled('foo', true, output_spec_options(false,
+		false)) == 'foo')
 }
 
 // Ruby it `it "returns a bold string" do` at line 102.
 pub fn ruby_output_spec_l102_d13_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	return brew_runtime.bool_value(brew_utils.pretty_unmarked('foo', true, output_spec_options(true,
+		false)) == '\x1b[1mfoo\x1b[0m')
 }
 
 // Ruby it `it "returns plain text" do` at line 110.
 pub fn ruby_output_spec_l110_d14_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	return brew_runtime.bool_value(brew_utils.pretty_unmarked('foo', true, output_spec_options(false,
+		false)) == 'foo')
 }
 
 // Ruby it `it "bolds an uninstalled string when bold is true" do` at line 119.
 pub fn ruby_output_spec_l119_d15_bolds(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('bolds', ...args)
+	output := brew_utils.pretty_install_status('foo', brew_utils.InstallStatusOptions{
+		installed:        false
+		mark_uninstalled: false
+		bold:             true
+	}, output_spec_options(true, false))
+	return brew_runtime.bool_value(output == '\x1b[1mfoo\x1b[0m')
 }
 
 // Ruby it `it "leaves an uninstalled string plain when bold is unset" do` at line 124.
 pub fn ruby_output_spec_l124_d16_leaves(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('leaves', ...args)
+	output := brew_utils.pretty_install_status('foo', brew_utils.InstallStatusOptions{
+		installed:        false
+		mark_uninstalled: false
+	}, output_spec_options(true, false))
+	return brew_runtime.bool_value(output == 'foo')
 }
 
 // Ruby it `it "bolds an installed entry when bold is unset" do` at line 128.
 pub fn ruby_output_spec_l128_d17_bolds(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('bolds', ...args)
+	output := brew_utils.pretty_install_status('foo', brew_utils.InstallStatusOptions{
+		installed: true
+		outdated:  true
+	}, output_spec_options(true, false))
+	return brew_runtime.bool_value(output.starts_with('\x1b[1mfoo ')
+		&& output.contains('\x1b[32m↑'))
 }
 
 // Ruby it `it "omits the bold escape on every entry when bold is false" do` at line 133.
 pub fn ruby_output_spec_l133_d18_omits(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('omits', ...args)
+	output := brew_utils.pretty_install_status('foo', brew_utils.InstallStatusOptions{
+		installed: true
+		outdated:  true
+		bold:      false
+	}, output_spec_options(true, false))
+	return brew_runtime.bool_value(output.starts_with('foo ') && output.contains('\x1b[32m↑'))
 }
 
 // Ruby subject `subject(:pretty_deprecated_output) { described_class.pretty_deprecated("foo") }` at line 140.
 pub fn ruby_output_spec_l140_d19_pretty_deprecated_output(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('pretty_deprecated_output', ...args)
+	return brew_runtime.string_value(brew_utils.pretty_deprecated('foo', output_spec_options(true,
+		false)))
 }
 
 // Ruby it `it "returns a string with a colored (deprecated) label" do` at line 145.
 pub fn ruby_output_spec_l145_d20_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	return brew_runtime.bool_value(brew_utils.pretty_deprecated('foo', output_spec_options(true,
+		false)).contains('foo \x1b[33m(deprecated)\x1b[0m'))
 }
 
 // Ruby it `it "returns plain text" do` at line 154.
 pub fn ruby_output_spec_l154_d21_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	return brew_runtime.bool_value(brew_utils.pretty_deprecated('foo', output_spec_options(false,
+		false)) == 'foo')
 }
 
 // Ruby subject `subject(:pretty_disabled_output) { described_class.pretty_disabled("foo") }` at line 161.
 pub fn ruby_output_spec_l161_d22_pretty_disabled_output(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('pretty_disabled_output', ...args)
+	return brew_runtime.string_value(brew_utils.pretty_disabled('foo', output_spec_options(true,
+		false)))
 }
 
 // Ruby it `it "returns a string with a colored (disabled) label" do` at line 166.
 pub fn ruby_output_spec_l166_d23_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	return brew_runtime.bool_value(brew_utils.pretty_disabled('foo', output_spec_options(true,
+		false)).contains('foo \x1b[31m(disabled)\x1b[0m'))
 }
 
 // Ruby it `it "returns plain text" do` at line 175.
 pub fn ruby_output_spec_l175_d24_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	return brew_runtime.bool_value(brew_utils.pretty_disabled('foo', output_spec_options(false,
+		false)) == 'foo')
 }
 
 // Ruby it `it "converts seconds to a human-readable string" do` at line 182.
 pub fn ruby_output_spec_l182_d25_converts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('converts', ...args)
+	examples := {
+		'1':      '1 second'
+		'2.5':    '2 seconds'
+		'42':     '42 seconds'
+		'240':    '4 minutes'
+		'252.45': '4 minutes 12 seconds'
+		'300':    '5 minutes'
+		'365':    '6 minutes'
+		'3600':   '1 hour'
+		'3660':   '1 hour 1 minute'
+		'73085':  '20 hours 18 minutes'
+	}
+	for seconds, expected in examples {
+		if brew_utils.pretty_duration(seconds.f64()) != expected {
+			return brew_runtime.bool_value(false)
+		}
+	}
+	return brew_runtime.bool_value(true)
 }
 
 // Ruby it `it "sets Homebrew.failed to true" do` at line 197.
 pub fn ruby_output_spec_l197_d26_sets(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sets', ...args)
+	result := brew_utils.output_fail('foo', output_spec_options(false, false))
+	return brew_runtime.bool_value(result.failed && result.message == 'Error: foo')
 }
 
 // Ruby it `it "prints a warning without a GitHub Actions annotation" do` at line 207.
 pub fn ruby_output_spec_l207_d27_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+	options := brew_utils.OutputOptions{
+		tty:            brew_utils.TtyState{}
+		github_actions: true
+	}
+	return brew_runtime.bool_value(brew_utils.output_warning_without_annotation('foo', options) == 'Warning: foo')
 }
 
 // Ruby it `it "exits with 1" do` at line 219.
 pub fn ruby_output_spec_l219_d28_exits(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('exits', ...args)
+	exit_value := brew_utils.ruby_output_l151_d12_odie(brew_runtime.string_value('foo'))
+	return brew_runtime.bool_value(exit_value.type_name == 'SystemExit' && (exit_value.attribute('exit_code') or {
+		''
+	}) == '1' && exit_value.as_string().contains('Error: foo'))
 }
 
 // Ruby it `it "raises a MethodDeprecatedError when `disable` is true" do` at line 227.
 pub fn ruby_output_spec_l227_d29_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+	if _ := brew_utils.output_deprecated('method', brew_utils.DeprecationOptions{
+		replacement: 'replacement'
+		disable:     true
+		caller:      ['/Library/Taps/playbrew/homebrew-play/formula.rb:12']
+	}, output_spec_options(false, false))
+	{
+		return brew_runtime.bool_value(false)
+	} else {
+		return brew_runtime.bool_value(err.msg().contains('method')
+			&& err.msg().contains('replacement') && err.msg().contains('playbrew/homebrew-play')
+			&& err.msg().contains('/Taps/playbrew/homebrew-play/'))
+	}
 }
 
 // Original Ruby source (line-for-line):

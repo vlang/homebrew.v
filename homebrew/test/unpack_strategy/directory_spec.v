@@ -1,83 +1,236 @@
 module unpack_strategy
 
 import brew_runtime
+import homebrew.unpack_strategy as typed_unpack
+import os
 
 // Translated from Homebrew/brew `test/unpack_strategy/directory_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+fn directory_spec_fixture() string {
+	path := spec_temp_dir('directory-source')
+	file := os.join_path(path, 'file')
+	os.write_file(file, '') or { panic(err) }
+	os.symlink('file', os.join_path(path, 'symlink')) or { panic(err) }
+	os.link(file, os.join_path(path, 'hardlink')) or { panic(err) }
+	os.mkdir(os.join_path(path, 'folder')) or { panic(err) }
+	os.symlink('folder', os.join_path(path, 'folderSymlink')) or { panic(err) }
+	return path
+}
+
+fn directory_spec_move(args []brew_runtime.Value) bool {
+	if args.len == 0 {
+		return false
+	}
+	if args[0].type_name == 'Bool' {
+		return args[0].as_bool() or { false }
+	}
+	return (args[0].attribute('move') or { return false }) == 'true'
+}
+
+fn directory_spec_extract(source string, destination string, move bool) ! {
+	typed_unpack.new_directory_strategy(source, move).extract(typed_unpack.ExtractOptions{
+		destination: destination
+	})!
+}
+
+fn directory_spec_cleanup(paths ...string) {
+	for path in paths {
+		if os.is_dir(path) && !os.is_link(path) {
+			os.rmdir_all(path) or {}
+		} else if os.exists(path) || os.is_link(path) {
+			os.rm(path) or {}
+		}
+	}
+}
 
 // Ruby let `let(:path) do` at line 7.
 pub fn ruby_directory_spec_l7_d1_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('path', ...args)
+	return brew_runtime.string_value(directory_spec_fixture())
 }
 
 // Ruby let `let(:unpack_dir) { mktmpdir }` at line 17.
 pub fn ruby_directory_spec_l17_d2_unpack_dir(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('unpack_dir', ...args)
+	return brew_runtime.string_value(spec_temp_dir('directory-destination'))
 }
 
 // Ruby subject `subject(:strategy) { described_class.new(path, move:) }` at line 20.
 pub fn ruby_directory_spec_l20_d3_strategy(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('strategy', ...args)
+	path := if args.len > 0 { args[0].as_string() } else { directory_spec_fixture() }
+	move := if args.len > 1 { args[1].as_bool() or { false } } else { false }
+	return brew_runtime.structured_value('UnpackStrategy::Directory', path, {
+		'path': path
+		'move': move.str()
+	})
 }
 
 // Ruby it `it "does not follow symlinks" do` at line 22.
 pub fn ruby_directory_spec_l22_d4_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	source := directory_spec_fixture()
+	destination := spec_temp_dir('directory-symlink')
+	defer { directory_spec_cleanup(source, destination) }
+	directory_spec_extract(source, destination, directory_spec_move(args)) or {
+		return spec_bool(false)
+	}
+	return spec_bool(os.is_link(os.join_path(destination, 'symlink')))
 }
 
 // Ruby it `it "does not follow top level symlinks to directories" do` at line 27.
 pub fn ruby_directory_spec_l27_d5_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	source := directory_spec_fixture()
+	destination := spec_temp_dir('directory-folder-symlink')
+	defer { directory_spec_cleanup(source, destination) }
+	directory_spec_extract(source, destination, directory_spec_move(args)) or {
+		return spec_bool(false)
+	}
+	return spec_bool(os.is_link(os.join_path(destination, 'folderSymlink')))
 }
 
 // Ruby it `it "preserves permissions of contained files" do` at line 32.
 pub fn ruby_directory_spec_l32_d6_preserves(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('preserves', ...args)
+	source := directory_spec_fixture()
+	destination := spec_temp_dir('directory-file-mode')
+	defer { directory_spec_cleanup(source, destination) }
+	os.chmod(os.join_path(source, 'file'), 0o644) or { return spec_bool(false) }
+	directory_spec_extract(source, destination, directory_spec_move(args)) or {
+		return spec_bool(false)
+	}
+	return spec_bool(os.inode(os.join_path(destination, 'file')).bitmask() == u32(0o644))
 }
 
 // Ruby it `it "preserves permissions of contained subdirectories" do` at line 39.
 pub fn ruby_directory_spec_l39_d7_preserves(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('preserves', ...args)
+	source := directory_spec_fixture()
+	destination := spec_temp_dir('directory-folder-mode')
+	defer { directory_spec_cleanup(source, destination) }
+	os.mkdir(os.join_path(destination, 'folder')) or { return spec_bool(false) }
+	os.chmod(os.join_path(destination, 'folder'), 0o755) or { return spec_bool(false) }
+	os.chmod(os.join_path(source, 'folder'), 0o700) or { return spec_bool(false) }
+	directory_spec_extract(source, destination, directory_spec_move(args)) or {
+		return spec_bool(false)
+	}
+	return spec_bool(os.inode(os.join_path(destination, 'folder')).bitmask() == u32(0o700))
 }
 
 // Ruby it `it "preserves permissions of the destination directory" do` at line 48.
 pub fn ruby_directory_spec_l48_d8_preserves(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('preserves', ...args)
+	source := directory_spec_fixture()
+	destination := spec_temp_dir('directory-destination-mode')
+	defer { directory_spec_cleanup(source, destination) }
+	os.chmod(source, 0o700) or { return spec_bool(false) }
+	os.chmod(destination, 0o755) or { return spec_bool(false) }
+	directory_spec_extract(source, destination, directory_spec_move(args)) or {
+		return spec_bool(false)
+	}
+	return spec_bool(os.inode(destination).bitmask() == u32(0o755))
 }
 
 // Ruby it `it "preserves mtime of contained files and directories" do` at line 56.
 pub fn ruby_directory_spec_l56_d9_preserves(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('preserves', ...args)
+	source := directory_spec_fixture()
+	destination := spec_temp_dir('directory-mtime')
+	defer { directory_spec_cleanup(source, destination) }
+	os.mkdir(os.join_path(destination, 'folder')) or { return spec_bool(false) }
+	os.utime(os.join_path(source, 'folder'), 946_782_245, 946_782_245) or {
+		return spec_bool(false)
+	}
+	mut source_mtimes := map[string]i64{}
+	for child in os.ls(source) or { return spec_bool(false) } {
+		source_mtimes[child] = os.inode(os.join_path(source, child)).mtime
+	}
+	directory_spec_extract(source, destination, directory_spec_move(args)) or {
+		return spec_bool(false)
+	}
+	mut destination_mtimes := map[string]i64{}
+	for child in os.ls(destination) or { return spec_bool(false) } {
+		destination_mtimes[child] = os.inode(os.join_path(destination, child)).mtime
+	}
+	return spec_bool(destination_mtimes == source_mtimes)
 }
 
 // Ruby it `it "preserves unrelated destination files and subdirectories" do` at line 65.
 pub fn ruby_directory_spec_l65_d10_preserves(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('preserves', ...args)
+	source := directory_spec_fixture()
+	destination := spec_temp_dir('directory-unrelated')
+	defer { directory_spec_cleanup(source, destination) }
+	os.write_file(os.join_path(destination, 'existing_file'), '') or { return spec_bool(false) }
+	os.mkdir(os.join_path(destination, 'existing_folder')) or { return spec_bool(false) }
+	directory_spec_extract(source, destination, directory_spec_move(args)) or {
+		return spec_bool(false)
+	}
+	return spec_bool(os.is_file(os.join_path(destination, 'existing_file')) && os.is_dir(os.join_path(destination, 'existing_folder')))
 }
 
 // Ruby it `it "overwrites destination files/symlinks with source files/symlinks" do` at line 74.
 pub fn ruby_directory_spec_l74_d11_overwrites(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('overwrites', ...args)
+	source := directory_spec_fixture()
+	destination := spec_temp_dir('directory-overwrite')
+	defer { directory_spec_cleanup(source, destination) }
+	os.mkdir(os.join_path(destination, 'existing_folder')) or { return spec_bool(false) }
+	os.symlink(os.join_path(destination, 'existing_folder'), os.join_path(destination, 'symlink')) or {
+		return spec_bool(false)
+	}
+	os.write_file(os.join_path(destination, 'file'), 'existing contents') or {
+		return spec_bool(false)
+	}
+	directory_spec_extract(source, destination, directory_spec_move(args)) or {
+		return spec_bool(false)
+	}
+	contents := os.read_file(os.join_path(destination, 'file')) or { return spec_bool(false) }
+	target := os.readlink(os.join_path(destination, 'symlink')) or { return spec_bool(false) }
+	return spec_bool(contents == '' && target == 'file')
 }
 
 // Ruby it `it "fails when overwriting a directory with a file" do` at line 84.
 pub fn ruby_directory_spec_l84_d12_fails(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fails', ...args)
+	source := directory_spec_fixture()
+	destination := spec_temp_dir('directory-overwrite-directory')
+	defer { directory_spec_cleanup(source, destination) }
+	os.mkdir(os.join_path(destination, 'file')) or { return spec_bool(false) }
+	if _ := directory_spec_extract(source, destination, directory_spec_move(args)) {
+		return spec_bool(false)
+	} else {
+		message := err.msg().to_lower()
+		return spec_bool(message.contains('is a directory') || message.contains('cannot overwrite directory'))
+	}
 }
 
 // Ruby it `it "fails when overwriting a nested directory with a file" do` at line 89.
 pub fn ruby_directory_spec_l89_d13_fails(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fails', ...args)
+	source := directory_spec_fixture()
+	destination := spec_temp_dir('directory-overwrite-nested-directory')
+	defer { directory_spec_cleanup(source, destination) }
+	os.write_file(os.join_path(source, 'folder/nested'), '') or { return spec_bool(false) }
+	os.mkdir_all(os.join_path(destination, 'folder/nested')) or { return spec_bool(false) }
+	if _ := directory_spec_extract(source, destination, directory_spec_move(args)) {
+		return spec_bool(false)
+	} else {
+		message := err.msg().to_lower()
+		return spec_bool(message.contains('is a directory') || message.contains('cannot overwrite directory'))
+	}
 }
 
 // Ruby it `it "preserves hardlinks" do` at line 103.
 pub fn ruby_directory_spec_l103_d14_preserves(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('preserves', ...args)
+	source := directory_spec_fixture()
+	destination := spec_temp_dir('directory-hardlinks')
+	defer { directory_spec_cleanup(source, destination) }
+	directory_spec_extract(source, destination, true) or { return spec_bool(false) }
+	file_stat := os.stat(os.join_path(destination, 'file')) or { return spec_bool(false) }
+	hardlink_stat := os.stat(os.join_path(destination, 'hardlink')) or { return spec_bool(false) }
+	return spec_bool(file_stat.inode == hardlink_stat.inode)
 }
 
 // Ruby it `it "fails when overwriting a file with a directory" do` at line 110.
 pub fn ruby_directory_spec_l110_d15_fails(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fails', ...args)
+	source := directory_spec_fixture()
+	destination := spec_temp_dir('directory-overwrite-file')
+	defer { directory_spec_cleanup(source, destination) }
+	os.write_file(os.join_path(destination, 'folder'), '') or { return spec_bool(false) }
+	if _ := directory_spec_extract(source, destination, true) {
+		return spec_bool(false)
+	} else {
+		return spec_bool(err.msg().to_lower().contains('cannot overwrite non-directory'))
+	}
 }
 
 // Original Ruby source (line-for-line):

@@ -7,7 +7,11 @@ import brew_runtime
 
 // Ruby method `duplicable? = false` at line 11.
 pub fn ruby_singleton_l11_d1_duplicable(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('duplicable?', ...args)
+	return brew_runtime.bool_value(false)
+}
+
+pub fn singleton_is_duplicable() bool {
+	return false
 }
 
 // Original Ruby source (line-for-line):

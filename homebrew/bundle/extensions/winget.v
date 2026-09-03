@@ -1,213 +1,955 @@
 module extensions
 
 import brew_runtime
+import json2
+
+pub const winget_default_source = 'winget'
+pub const winget_sources = ['winget', 'msstore']
+
+pub struct WingetApp {
+pub:
+	id     string
+	name   string
+	source string
+}
+
+pub struct WingetRecord {
+pub:
+	id     string
+	source string
+}
+
+pub struct WingetState {
+pub mut:
+	is_wsl     bool
+	executable string
+	apps       []WingetApp
+	packages   []WingetApp
+	records    []WingetRecord
+	output     []string
+	commands   [][]string
+}
+
+pub struct WingetCommandResult {
+pub:
+	success bool
+	output  string
+}
+
+pub fn winget_command_result_value(result WingetCommandResult) brew_runtime.Value {
+	return brew_runtime.map_value({
+		'success': brew_runtime.bool_value(result.success)
+		'output':  brew_runtime.string_value(result.output)
+	})
+}
+
+pub fn winget_command_result_from_value(value brew_runtime.Value) WingetCommandResult {
+	values := value.as_map() or { return WingetCommandResult{} }
+	return WingetCommandResult{
+		success: if 'success' in values { values['success'].as_bool() or { false } } else { false }
+		output: if 'output' in values { values['output'].as_string() } else { '' }
+	}
+}
+
+fn winget_error(kind string, message string) brew_runtime.Value {
+	return brew_runtime.structured_value(kind, message, {
+		'message': message
+	})
+}
+
+pub fn winget_definition() ExtensionDefinition {
+	return ExtensionDefinition{
+		class_name: 'Homebrew::Bundle::Winget'
+		type_name: 'winget'
+		banner_name: 'WinGet packages'
+		check_label: 'WinGet Package'
+		cleanup_heading: 'WinGet packages'
+	}
+}
+
+pub fn winget_app_value(app WingetApp) brew_runtime.Value {
+	return brew_runtime.map_value({
+		'id':     brew_runtime.string_value(app.id)
+		'name':   brew_runtime.string_value(app.name)
+		'source': brew_runtime.string_value(app.source)
+	})
+}
+
+pub fn winget_app_from_value(value brew_runtime.Value) WingetApp {
+	values := value.as_map() or {
+		return WingetApp{
+			id: value.as_string()
+			name: value.as_string()
+			source: winget_default_source
+		}
+	}
+	return WingetApp{
+		id: if 'id' in values { values['id'].as_string() } else { '' }
+		name: if 'name' in values { values['name'].as_string() } else { '' }
+		source: if 'source' in values {
+			values['source'].as_string()} else {
+			winget_default_source}
+	}
+}
+
+pub fn winget_apps_value(apps []WingetApp) brew_runtime.Value {
+	return brew_runtime.array_value(apps.map(winget_app_value(it)))
+}
+
+pub fn winget_apps_from_value(value brew_runtime.Value) []WingetApp {
+	items := value.as_array() or { return [] }
+	return items.map(winget_app_from_value(it))
+}
+
+fn winget_records_value(records []WingetRecord) brew_runtime.Value {
+	return brew_runtime.array_value(records.map(brew_runtime.array_value([
+		brew_runtime.string_value(it.id),
+		brew_runtime.string_value(it.source),
+	])))
+}
+
+fn winget_records_from_value(value brew_runtime.Value) []WingetRecord {
+	items := value.as_array() or { return [] }
+	mut records := []WingetRecord{}
+	for item in items {
+		parts := item.as_array() or { continue }
+		if parts.len >= 2 {
+			records << WingetRecord{
+				id: parts[0].as_string()
+				source: parts[1].as_string()
+			}
+		}
+	}
+	return records
+}
+
+pub fn winget_state_value(state WingetState) brew_runtime.Value {
+	return brew_runtime.map_value({
+		'_definition': extension_definition_value(winget_definition())
+		'is_wsl':      brew_runtime.bool_value(state.is_wsl)
+		'executable':  if state.executable == '' {
+			brew_runtime.object_value('NilClass', '')
+		} else {
+			brew_runtime.object_value('Pathname', state.executable)
+		}
+		'apps':        winget_apps_value(state.apps)
+		'packages':    winget_apps_value(state.packages)
+		'records':     winget_records_value(state.records)
+		'output':      brew_runtime.string_array_value(state.output)
+		'commands':    brew_runtime.array_value(state.commands.map(brew_runtime.string_array_value(it)))
+	})
+}
+
+pub fn winget_state_from_value(value brew_runtime.Value) WingetState {
+	values := value.as_map() or { return WingetState{} }
+	mut commands := [][]string{}
+	if 'commands' in values {
+		for command in values['commands'].as_array() or { [] } {
+			commands << (command.as_string_array() or { [] })
+		}
+	}
+	return WingetState{
+		is_wsl: if 'is_wsl' in values { values['is_wsl'].as_bool() or { false } } else { false }
+		executable: if 'executable' in values && values['executable'].type_name != 'NilClass' {
+			values['executable'].as_string()} else {
+			''}
+		apps: if 'apps' in values { winget_apps_from_value(values['apps']) } else { [] }
+		packages: if 'packages' in values { winget_apps_from_value(values['packages']) } else { [] }
+		records: if 'records' in values { winget_records_from_value(values['records']) } else { [] }
+		output: if 'output' in values { values['output'].as_string_array() or { [] } } else { [] }
+		commands: commands
+	}
+}
+
+pub fn winget_entry(name string, options map[string]brew_runtime.Value) !ExtensionEntry {
+	mut unknown_options := []string{}
+	for key in options.keys() {
+		if key !in ['id', 'source'] {
+			unknown_options << ':${key}'
+		}
+	}
+	if unknown_options.len > 0 {
+		return error('unknown options([${unknown_options.join(', ')}]) for winget')
+	}
+	id := if 'id' in options { options['id'] } else { brew_runtime.string_value(name) }
+	if id.type_name != 'String' {
+		return error('options[:id](${id.repr}) should be a String object')
+	}
+	source := if 'source' in options {
+		options['source']
+	} else {
+		brew_runtime.string_value(winget_default_source)
+	}
+	if source.type_name != 'String' {
+		return error('options[:source](${source.repr}) should be a String object')
+	}
+	if source.as_string() !in winget_sources {
+		return error('options[:source](${source.repr}) should be one of ["winget", "msstore"]')
+	}
+	return ExtensionEntry{
+		entry_type: 'winget'
+		name: name
+		options: {
+			'id':     id
+			'source': source
+		}
+	}
+}
+
+pub fn winget_windows_path_to_wsl_path(path string) ?string {
+	normalized := path.replace('\\', '/')
+	if normalized.starts_with('/') {
+		return normalized
+	}
+	if normalized.len < 4 || normalized[1..3] != ':/' || !((normalized[0] >= `A` && normalized[0] <= `Z`) || (normalized[0] >= `a` && normalized[0] <= `z`)) {
+		return none
+	}
+	drive := normalized[0].ascii_str().to_lower()
+	return '/mnt/${drive}/${normalized[3..]}'
+}
+
+pub fn winget_windows_apps_executables(environment map[string]string, detected_local_appdata string) []string {
+	mut windows_paths := []string{}
+	if local := environment['LOCALAPPDATA'] {
+		windows_paths << '${local}\\Microsoft\\WindowsApps\\winget.exe'
+	}
+	if profile := environment['USERPROFILE'] {
+		windows_paths << '${profile}\\AppData\\Local\\Microsoft\\WindowsApps\\winget.exe'
+	}
+	if detected_local_appdata != '' {
+		windows_paths << '${detected_local_appdata}\\Microsoft\\WindowsApps\\winget.exe'
+	}
+	mut paths := []string{}
+	for path in windows_paths {
+		if path.contains('%') {
+			continue
+		}
+		converted := winget_windows_path_to_wsl_path(path) or { continue }
+		if converted !in paths {
+			paths << converted
+		}
+	}
+	return paths
+}
+
+pub fn winget_parse_list_names(output string) map[string]string {
+	lines := output.replace('\r', '').split_into_lines()
+	mut header_index := -1
+	for index, line in lines {
+		name_position := line.index('Name') or { -1 }
+		id_position := line.index('Id') or { -1 }
+		version_position := line.index('Version') or { -1 }
+		if name_position >= 0 && id_position > name_position && version_position > id_position {
+			header_index = index
+			break
+		}
+	}
+	if header_index < 0 {
+		return {}
+	}
+	header := lines[header_index]
+	header_start := header.index('Name') or { return {} }
+	id_column := header.index_after('Id', header_start) or { return {} }
+	version_column := header.index_after('Version', header_start) or { return {} }
+	mut names := map[string]string{}
+	for index in header_index + 1 .. lines.len {
+		line := lines[index]
+		if line.trim_space() == '' || line.len <= header_start || line[header_start..].trim_space().trim('-') == '' {
+			continue
+		}
+		if line.len < version_column {
+			continue
+		}
+		name := line[header_start..id_column].trim_space()
+		id := line[id_column..version_column].trim_space()
+		if name != '' && id != '' {
+			names[id.to_lower()] = name
+		}
+	}
+	return names
+}
+
+pub fn winget_export_apps(exported []WingetApp, names map[string]string) []WingetApp {
+	return exported.map(WingetApp{
+		id: it.id
+		name: names[it.id.to_lower()] or { it.name }
+		source: it.source
+	})
+}
+
+pub fn winget_parse_export(output string, source string) []WingetApp {
+	decoded := json2.decode[json2.Any](output) or { return [] }
+	if decoded !is map[string]json2.Any {
+		return []
+	}
+	export := decoded as map[string]json2.Any
+	sources_value := export['Sources'] or { return [] }
+	if sources_value !is []json2.Any {
+		return []
+	}
+	mut apps := []WingetApp{}
+	for source_value in sources_value as []json2.Any {
+		if source_value !is map[string]json2.Any {
+			continue
+		}
+		source_export := source_value as map[string]json2.Any
+		packages_value := source_export['Packages'] or { continue }
+		if packages_value !is []json2.Any {
+			continue
+		}
+		for package_value in packages_value as []json2.Any {
+			if package_value !is map[string]json2.Any {
+				continue
+			}
+			package := package_value as map[string]json2.Any
+			id_value := package['PackageIdentifier'] or { continue }
+			if id_value !is string {
+				continue
+			}
+			id := id_value as string
+			if id.trim_space() == '' {
+				continue
+			}
+			apps << WingetApp{
+				id: id
+				name: id
+				source: source
+			}
+		}
+	}
+	return apps
+}
+
+fn winget_ascii_word(character u8) bool {
+	return (character >= `a` && character <= `z`) || (character >= `A` && character <= `Z`) || (character >= `0` && character <= `9`) || character == `_`
+}
+
+fn winget_word_prefix(value string, prefix string) bool {
+	return value == prefix || (value.starts_with(prefix) && value.len > prefix.len && !winget_ascii_word(value[prefix.len]))
+}
+
+fn winget_contains_word(value string, word string) bool {
+	mut position := 0
+	for position <= value.len - word.len {
+		index := value.index_after(word, position) or { return false }
+		end := index + word.len
+		if (index == 0 || !winget_ascii_word(value[index - 1])) && (end == value.len || !winget_ascii_word(value[end])) {
+			return true
+		}
+		position = index + 1
+	}
+	return false
+}
+
+pub fn winget_internal_package(app WingetApp) bool {
+	for value in [app.id, app.name] {
+		lower := value.to_lower()
+		if lower in ['app installer', '9nblggh4nns1', 'microsoft store', 'store experience host',
+			'microsoft.onedrive', 'microsoft.wsl', 'nvidia.physx'] {
+			return true
+		}
+		if lower in ['windows feature experience pack', 'windows web experience pack'] {
+			return true
+		}
+		if lower.starts_with('microsoft visual c++') || lower.starts_with('windows app runtime') || lower.starts_with('microsoft.vcredist.') {
+			return true
+		}
+		for prefix in ['microsoft.appinstaller', 'microsoft.desktopappinstaller', 'microsoft.directx',
+			'microsoft.dotnet', 'microsoft.edge', 'microsoft.edgewebview2runtime',
+			'microsoft.gameinput', 'microsoft.hevcvideoextension', 'microsoft.net.native',
+			'microsoft.rawimageextension', 'microsoft.services.store.engagement',
+			'microsoft.storepurchaseapp', 'microsoft.ui.xaml', 'microsoft.vclibs',
+			'microsoft.windowsappruntime', 'microsoft.windowsstore', 'microsoft.webmediaextensions',
+			'microsoft.webpimageextension', 'microsoft.vp9videoextensions'] {
+			if winget_word_prefix(lower, prefix) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+pub fn winget_packages(apps []WingetApp) []WingetApp {
+	mut packages := apps.filter(!winget_internal_package(it))
+	packages.sort_with_compare(fn (a &WingetApp, b &WingetApp) int {
+		a_index := winget_sources.index(a.source)
+		b_index := winget_sources.index(b.source)
+		a_source := if a_index < 0 { winget_sources.len } else { a_index }
+		b_source := if b_index < 0 { winget_sources.len } else { b_index }
+		if a_source != b_source {
+			return a_source - b_source
+		}
+		return a.name.to_lower().compare(b.name.to_lower())
+	})
+	return packages
+}
+
+pub fn winget_app_installed(records []WingetRecord, id string, source string) bool {
+	return records.any(it.id.to_lower() == id.to_lower() && it.source == source)
+}
+
+pub fn winget_dump_entry(app WingetApp) string {
+	mut line := 'winget ${extension_quote(app.name)}'
+	if app.id != app.name {
+		line += ', id: ${extension_quote(app.id)}'
+	}
+	if app.source != winget_default_source {
+		line += ', source: ${extension_quote(app.source)}'
+	}
+	return line
+}
+
+pub fn winget_cleanup_item(app WingetApp) string {
+	return '{"id":${extension_quote(app.id)},"name":${extension_quote(app.name)},"source":${extension_quote(app.source)}}'
+}
+
+pub fn winget_parse_cleanup_item(item string) !WingetApp {
+	decoded := json2.decode[json2.Any](item) or { return error('Invalid WinGet cleanup item: ${item}') }
+	if decoded !is map[string]json2.Any {
+		return error('Invalid WinGet cleanup item: ${item}')
+	}
+	parsed := decoded as map[string]json2.Any
+	id_value := parsed['id'] or { return error('Invalid WinGet cleanup item: ${item}') }
+	name_value := parsed['name'] or { return error('Invalid WinGet cleanup item: ${item}') }
+	source_value := parsed['source'] or { return error('Invalid WinGet cleanup item: ${item}') }
+	if id_value !is string || name_value !is string || source_value !is string {
+		return error('Invalid WinGet cleanup item: ${item}')
+	}
+	return WingetApp{
+		id: id_value as string
+		name: name_value as string
+		source: source_value as string
+	}
+}
+
+pub fn winget_cleanup_item_name(item string) !string {
+	app := winget_parse_cleanup_item(item)!
+	if app.name == app.id && app.source == winget_default_source {
+		return app.id
+	}
+	if app.name == app.id {
+		return '${app.id} (${app.source})'
+	}
+	if app.source == winget_default_source {
+		return '${app.name} (${app.id})'
+	}
+	return '${app.name} (${app.id}, ${app.source})'
+}
+
+pub fn winget_cleanup_items(entries []ExtensionEntry, executable string, exported []WingetApp) []string {
+	mut kept := []WingetRecord{}
+	for entry in entries {
+		if entry.entry_type != 'winget' {
+			continue
+		}
+		kept << WingetRecord{
+			id: if 'id' in entry.options { entry.options['id'].as_string() } else { entry.name }
+			source: if 'source' in entry.options {
+				entry.options['source'].as_string()} else {
+				winget_default_source}
+		}
+	}
+	if kept.len == 0 || executable == '' {
+		return []
+	}
+	return winget_packages(exported).filter(!winget_app_installed(kept, it.id, it.source)).map(winget_cleanup_item(it))
+}
+
+pub fn winget_powershell_quote(value string) string {
+	return "'${value.replace("'", "''")}'"
+}
+
+pub fn winget_elevation_failure(output string) bool {
+	lower := output.to_lower()
+	return lower.contains('installer failed with exit code: 1603') || winget_contains_word(lower, 'admin') || winget_contains_word(lower, 'administrator') || winget_contains_word(lower, 'elevat') || winget_contains_word(lower, 'uac')
+}
+
+pub fn winget_installer_ui_failure(output string) bool {
+	lower := output.to_lower()
+	return winget_contains_word(lower, 'interactive') || lower.contains('user input') || lower.contains('user cancelled')
+}
+
+pub fn winget_report_install_failure(name string, id string, source string, output string) []string {
+	mut lines := ['WinGet failed to install ${name} (${id}) from ${source}.']
+	if winget_elevation_failure(output) {
+		lines << 'The installer may require Windows UAC/elevation.'
+		lines << 'Try installing it from an elevated Windows Terminal:'
+		lines << '  winget install --id ${id} --exact --source ${source} --disable-interactivity'
+	} else if winget_installer_ui_failure(output) {
+		lines << 'The installer appears to require installer UI or user input, which brew bundle does not automate.'
+		lines << 'Install it manually from Windows:'
+		lines << '  winget install --id ${id} --exact --source ${source}'
+	} else {
+		lines << 'Try installing it manually from Windows:'
+		lines << '  winget install --id ${id} --exact --source ${source}'
+	}
+	return lines
+}
+
+pub fn winget_install_args(id string, source string) []string {
+	return ['install', '--id', id, '--exact', '--source', source, '--accept-source-agreements',
+		'--accept-package-agreements', '--disable-interactivity']
+}
 
 // Translated from Homebrew/brew `bundle/extensions/winget.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `type = :winget` at line 49.
 pub fn ruby_winget_l49_d1_type(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('type', ...args)
+	_ = args
+	return brew_runtime.object_value('Symbol', 'winget')
 }
 
 // Ruby method `check_label = "WinGet Package"` at line 52.
 pub fn ruby_winget_l52_d2_check_label(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('check_label', ...args)
+	_ = args
+	return brew_runtime.string_value('WinGet Package')
 }
 
 // Ruby method `banner_name = "WinGet packages"` at line 55.
 pub fn ruby_winget_l55_d3_banner_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('banner_name', ...args)
+	_ = args
+	return brew_runtime.string_value('WinGet packages')
 }
 
 // Ruby method `switch_description(description)` at line 58.
 pub fn ruby_winget_l58_d4_switch_description(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('switch_description', ...args)
+	description := if args.len > 0 { args[0].as_string() } else { '' }
+	return brew_runtime.string_value('${extension_switch_description(description)} Note: WSL only.')
 }
 
 // Ruby method `add_supported?` at line 63.
 pub fn ruby_winget_l63_d5_add_supported(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('add_supported?', ...args)
+	_ = args
+	return brew_runtime.bool_value(false)
 }
 
 // Ruby method `cleanup_heading` at line 68.
 pub fn ruby_winget_l68_d6_cleanup_heading(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cleanup_heading', ...args)
+	_ = args
+	return brew_runtime.string_value('WinGet packages')
 }
 
 // Ruby method `entry(name, options = {})` at line 73.
 pub fn ruby_winget_l73_d7_entry(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('entry', ...args)
+	if args.len == 0 {
+		return winget_error('ArgumentError', 'name is required')
+	}
+	options := if args.len > 1 {
+		args[1].as_map() or { return winget_error('ArgumentError', err.msg()) }
+	} else {
+		map[string]brew_runtime.Value{}
+	}
+	entry := winget_entry(args[0].as_string(), options) or { return winget_error('RuntimeError', err.msg()) }
+	return extension_entry_value(entry)
 }
 
 // Ruby method `package_manager_executable` at line 90.
 pub fn ruby_winget_l90_d8_package_manager_executable(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('package_manager_executable', ...args)
+	state := if args.len > 0 { winget_state_from_value(args[0]) } else { WingetState{} }
+	if !state.is_wsl || state.executable == '' {
+		return brew_runtime.object_value('NilClass', '')
+	}
+	return brew_runtime.object_value('Pathname', state.executable)
 }
 
 // Ruby method `windows_apps_executables` at line 97.
 pub fn ruby_winget_l97_d9_windows_apps_executables(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('windows_apps_executables', ...args)
+	environment := if args.len > 0 {
+		args[0].as_map() or { map[string]brew_runtime.Value{} }
+	} else {
+		map[string]brew_runtime.Value{}
+	}
+	mut strings := map[string]string{}
+	for key, value in environment {
+		strings[key] = value.as_string()
+	}
+	detected := if args.len > 1 { args[1].as_string() } else { '' }
+	return brew_runtime.array_value(winget_windows_apps_executables(strings, detected).map(brew_runtime.object_value('Pathname', it)))
 }
 
 // Ruby method `windows_local_appdata` at line 108.
 pub fn ruby_winget_l108_d10_windows_local_appdata(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('windows_local_appdata', ...args)
+	cmd_executable := if args.len > 0 { args[0].as_bool() or { false } } else { false }
+	output := if args.len > 1 { args[1].as_string().trim_space() } else { '' }
+	if !cmd_executable || output == '' {
+		return brew_runtime.object_value('NilClass', '')
+	}
+	return brew_runtime.string_value(output)
 }
 
 // Ruby method `windows_path_to_wsl_path(path)` at line 116.
 pub fn ruby_winget_l116_d11_windows_path_to_wsl_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('windows_path_to_wsl_path', ...args)
+	if args.len == 0 {
+		return brew_runtime.object_value('NilClass', '')
+	}
+	if path := winget_windows_path_to_wsl_path(args[0].as_string()) {
+		return brew_runtime.object_value('Pathname', path)
+	}
+	return brew_runtime.object_value('NilClass', '')
 }
 
 // Ruby method `reset!` at line 131.
 pub fn ruby_winget_l131_d12_reset(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reset!', ...args)
+	mut state := if args.len > 0 { winget_state_from_value(args[0]) } else { WingetState{} }
+	state.apps = []
+	state.packages = []
+	state.records = []
+	return winget_state_value(state)
 }
 
 // Ruby method `apps` at line 138.
 pub fn ruby_winget_l138_d13_apps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('apps', ...args)
+	state := if args.len > 0 { winget_state_from_value(args[0]) } else { WingetState{} }
+	if state.apps.len > 0 {
+		return winget_apps_value(state.apps)
+	}
+	if state.executable == '' {
+		return winget_apps_value([])
+	}
+	if args.len > 1 {
+		return winget_apps_value(winget_apps_from_value(args[1]))
+	}
+	return winget_apps_value(state.apps)
 }
 
 // Ruby method `export_apps(winget, source:)` at line 153.
 pub fn ruby_winget_l153_d14_export_apps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('export_apps', ...args)
+	exported := if args.len > 1 { winget_apps_from_value(args[1]) } else { [] }
+	name_values := if args.len > 2 {
+		args[2].as_map() or { map[string]brew_runtime.Value{} }
+	} else {
+		map[string]brew_runtime.Value{}
+	}
+	mut names := map[string]string{}
+	for key, value in name_values {
+		names[key] = value.as_string()
+	}
+	return winget_apps_value(winget_export_apps(exported, names))
 }
 
 // Ruby method `exported_apps(winget, source:)` at line 161.
 pub fn ruby_winget_l161_d15_exported_apps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('exported_apps', ...args)
+	success := if args.len > 2 { args[2].as_bool() or { false } } else { false }
+	if !success {
+		return winget_apps_value([])
+	}
+	output := if args.len > 3 { args[3].as_string() } else { '' }
+	source := if args.len > 1 { args[1].as_string() } else { winget_default_source }
+	return winget_apps_value(winget_parse_export(output, source))
 }
 
 // Ruby method `listed_app_names(winget, source:)` at line 172.
 pub fn ruby_winget_l172_d16_listed_app_names(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('listed_app_names', ...args)
+	output := if args.len > 2 {
+		args[2].as_string()
+	} else if args.len > 0 { args[0].as_string() } else { '' }
+	mut names := map[string]brew_runtime.Value{}
+	for key, value in winget_parse_list_names(output) {
+		names[key] = brew_runtime.string_value(value)
+	}
+	return brew_runtime.map_value(names)
 }
 
 // Ruby method `parse_list_names(output)` at line 180.
 pub fn ruby_winget_l180_d17_parse_list_names(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('parse_list_names', ...args)
+	output := if args.len > 0 { args[0].as_string() } else { '' }
+	mut names := map[string]brew_runtime.Value{}
+	for key, value in winget_parse_list_names(output) {
+		names[key] = brew_runtime.string_value(value)
+	}
+	return brew_runtime.map_value(names)
 }
 
 // Ruby method `windows_export_path(path)` at line 206.
 pub fn ruby_winget_l206_d18_windows_export_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('windows_export_path', ...args)
+	path := if args.len > 0 { args[0].as_string() } else { '' }
+	converted := if args.len > 1 { args[1].as_string().trim_space() } else { '' }
+	failed := if args.len > 2 { args[2].as_bool() or { false } } else { false }
+	return brew_runtime.string_value(if !failed && converted != '' { converted } else { path })
 }
 
 // Ruby method `parse_export(output, source:)` at line 216.
 pub fn ruby_winget_l216_d19_parse_export(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('parse_export', ...args)
+	output := if args.len > 0 { args[0].as_string() } else { '' }
+	source := if args.len > 1 { args[1].as_string() } else { winget_default_source }
+	return winget_apps_value(winget_parse_export(output, source))
 }
 
 // Ruby method `packages` at line 243.
 pub fn ruby_winget_l243_d20_packages(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('packages', ...args)
+	apps := if args.len > 0 { winget_apps_from_value(args[0]) } else { [] }
+	return winget_apps_value(winget_packages(apps))
 }
 
 // Ruby method `installed_packages` at line 252.
 pub fn ruby_winget_l252_d21_installed_packages(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('installed_packages', ...args)
+	apps := if args.len > 0 { winget_apps_from_value(args[0]) } else { [] }
+	return winget_apps_value(apps)
 }
 
 // Ruby method `internal_package?(app)` at line 257.
 pub fn ruby_winget_l257_d22_internal_package(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('internal_package?', ...args)
+	if args.len == 0 {
+		return brew_runtime.bool_value(false)
+	}
+	return brew_runtime.bool_value(winget_internal_package(winget_app_from_value(args[0])))
 }
 
 // Ruby method `installed_app_records` at line 264.
 pub fn ruby_winget_l264_d23_installed_app_records(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('installed_app_records', ...args)
+	apps := if args.len > 0 { winget_apps_from_value(args[0]) } else { [] }
+	return winget_records_value(apps.map(WingetRecord{ id: it.id, source: it.source }))
 }
 
 // Ruby method `dump_name(package)` at line 272.
 pub fn ruby_winget_l272_d24_dump_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dump_name', ...args)
+	if args.len == 0 {
+		return winget_error('ArgumentError', 'package is required')
+	}
+	return brew_runtime.string_value(winget_app_from_value(args[0]).name)
 }
 
 // Ruby method `dump_entry(package)` at line 277.
 pub fn ruby_winget_l277_d25_dump_entry(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dump_entry', ...args)
+	if args.len == 0 {
+		return winget_error('ArgumentError', 'package is required')
+	}
+	return brew_runtime.string_value(winget_dump_entry(winget_app_from_value(args[0])))
 }
 
 // Ruby method `cleanup_item(app)` at line 287.
 pub fn ruby_winget_l287_d26_cleanup_item(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cleanup_item', ...args)
+	if args.len == 0 {
+		return winget_error('ArgumentError', 'app is required')
+	}
+	return brew_runtime.string_value(winget_cleanup_item(winget_app_from_value(args[0])))
 }
 
 // Ruby method `cleanup_item_name(item)` at line 292.
 pub fn ruby_winget_l292_d27_cleanup_item_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cleanup_item_name', ...args)
+	if args.len == 0 {
+		return winget_error('ArgumentError', 'item is required')
+	}
+	name := winget_cleanup_item_name(args[0].as_string()) or { return winget_error('TypeError', err.msg()) }
+	return brew_runtime.string_value(name)
 }
 
 // Ruby method `cleanup_items(entries)` at line 303.
 pub fn ruby_winget_l303_d28_cleanup_items(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cleanup_items', ...args)
+	entries_value := if args.len > 0 { args[0].as_array() or { [] } } else { [] }
+	entries := entries_value.map(extension_entry_from_value(it))
+	executable := if args.len > 1 { args[1].as_string() } else { '' }
+	exported := if args.len > 2 { winget_apps_from_value(args[2]) } else { [] }
+	return brew_runtime.string_array_value(winget_cleanup_items(entries, executable, exported))
 }
 
 // Ruby method `cleanup!(items)` at line 326.
 pub fn ruby_winget_l326_d29_cleanup(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cleanup!', ...args)
+	mut state := if args.len > 0 { winget_state_from_value(args[0]) } else { WingetState{} }
+	items := if args.len > 1 { args[1].as_string_array() or { [] } } else { [] }
+	if state.executable == '' {
+		return winget_state_value(state)
+	}
+	for item in items {
+		app := winget_parse_cleanup_item(item) or { return winget_error('TypeError', err.msg()) }
+		state.commands << [state.executable, 'uninstall', '--id', app.id, '--exact', '--source',
+			app.source, '--accept-source-agreements', '--disable-interactivity']
+	}
+	suffix := if items.len == 1 { '' } else { 's' }
+	state.output << 'Uninstalled ${items.len} WinGet package${suffix}'
+	return winget_state_value(state)
 }
 
 // Ruby method `app_installed?(id, source:)` at line 339.
 pub fn ruby_winget_l339_d30_app_installed(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('app_installed?', ...args)
+	records := if args.len > 0 { winget_records_from_value(args[0]) } else { [] }
+	id := if args.len > 1 { args[1].as_string() } else { '' }
+	source := if args.len > 2 { args[2].as_string() } else { winget_default_source }
+	return brew_runtime.bool_value(winget_app_installed(records, id, source))
 }
 
 // Ruby method `preinstall!(name, id: nil, with: nil, no_upgrade: false, verbose: false, source: DEFAULT_SOURCE,` at line 354.
 pub fn ruby_winget_l354_d31_preinstall(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('preinstall!', ...args)
+	state := if args.len > 0 { winget_state_from_value(args[0]) } else { WingetState{} }
+	name := if args.len > 1 { args[1].as_string() } else { '' }
+	id := if args.len > 2 && args[2].type_name != 'NilClass' { args[2].as_string() } else { name }
+	source := if args.len > 3 { args[3].as_string() } else { winget_default_source }
+	verbose := if args.len > 4 { args[4].as_bool() or { false } } else { false }
+	if state.executable == '' {
+		return winget_error('RuntimeError', 'Unable to install ${name} WinGet package. winget.exe is not installed.')
+	}
+	if winget_app_installed(state.records, id, source) {
+		if verbose {
+			return brew_runtime.map_value({
+				'result': brew_runtime.bool_value(false)
+				'output': brew_runtime.string_value('Skipping install of ${name} WinGet package. It is already installed.')
+			})
+		}
+		return brew_runtime.bool_value(false)
+	}
+	return brew_runtime.bool_value(true)
 }
 
 // Ruby method `install!(name, id: nil, with: nil, preinstall: true, no_upgrade: false, verbose: false, force: false,` at line 387.
 pub fn ruby_winget_l387_d32_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install!', ...args)
+	mut state := if args.len > 0 { winget_state_from_value(args[0]) } else { WingetState{} }
+	name := if args.len > 1 { args[1].as_string() } else { '' }
+	id := if args.len > 2 && args[2].type_name != 'NilClass' { args[2].as_string() } else { name }
+	source := if args.len > 3 { args[3].as_string() } else { winget_default_source }
+	preinstall := if args.len > 4 { args[4].as_bool() or { true } } else { true }
+	if !preinstall {
+		return brew_runtime.bool_value(true)
+	}
+	if state.executable == '' {
+		return winget_error('RuntimeError', 'winget.exe is not installed')
+	}
+	normal := if args.len > 5 {
+		winget_command_result_from_value(args[5])
+	} else {
+		WingetCommandResult{}
+	}
+	mut success := normal.success
+	mut output := normal.output
+	state.commands << ([state.executable] as []string)
+	state.commands[state.commands.len - 1] << winget_install_args(id, source)
+	if !success && winget_elevation_failure(output) {
+		state.output << 'WinGet install for ${name} may require Windows UAC/elevation; retrying elevated.'
+		elevated := if args.len > 6 {
+			winget_command_result_from_value(args[6])
+		} else {
+			WingetCommandResult{}
+		}
+		success = elevated.success
+		if elevated.output != '' {
+			output = elevated.output
+		}
+	}
+	if !success {
+		state.output << winget_report_install_failure(name, id, source, output)
+		return brew_runtime.map_value({
+			'result': brew_runtime.bool_value(false)
+			'state':  winget_state_value(state)
+		})
+	}
+	if !state.apps.any(it.id.to_lower() == id.to_lower() && it.source == source) {
+		state.apps << WingetApp{ id: id, name: name, source: source }
+		state.packages = winget_packages(state.apps)
+	}
+	if !winget_app_installed(state.records, id, source) {
+		state.records << WingetRecord{ id: id, source: source }
+	}
+	return brew_runtime.map_value({
+		'result': brew_runtime.bool_value(true)
+		'state':  winget_state_value(state)
+	})
 }
 
 // Ruby method `run_install_command(winget, args, verbose:, elevated:)` at line 430.
 pub fn ruby_winget_l430_d33_run_install_command(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('run_install_command', ...args)
+	if args.len > 4 {
+		return args[4]
+	}
+	return winget_command_result_value(WingetCommandResult{})
 }
 
 // Ruby method `run_elevated_install_command(winget, args, verbose:)` at line 448.
 pub fn ruby_winget_l448_d34_run_elevated_install_command(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('run_elevated_install_command', ...args)
+	winget := if args.len > 0 { args[0].as_string() } else { '' }
+	command_args := if args.len > 1 { args[1].as_string_array() or { [] } } else { [] }
+	powershell := if args.len > 2 { args[2].as_string() } else { '' }
+	if powershell == '' {
+		return winget_command_result_value(WingetCommandResult{ output: 'powershell.exe is not available.\n' })
+	}
+	winget_path := if winget.contains('/') && args.len > 3 && args[3].as_string() != '' {
+		args[3].as_string()
+	} else {
+		winget
+	}
+	argument_list := command_args.map(winget_powershell_quote(it)).join(', ')
+	script := "\$startProcessArgs = @{\n  FilePath = ${winget_powershell_quote(winget_path)}\n  ArgumentList = @(${argument_list})\n  Verb = 'RunAs'\n  Wait = \$true\n  PassThru = \$true\n}\n\$process = Start-Process @startProcessArgs\n\$process.WaitForExit()\nexit \$process.ExitCode\n"
+	success := if args.len > 4 { args[4].as_bool() or { false } } else { false }
+	return brew_runtime.map_value({
+		'success':    brew_runtime.bool_value(success)
+		'output':     brew_runtime.string_value('')
+		'powershell': brew_runtime.object_value('Pathname', powershell)
+		'script':     brew_runtime.string_value(script)
+	})
 }
 
 // Ruby method `powershell_quote(value)` at line 472.
 pub fn ruby_winget_l472_d35_powershell_quote(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('powershell_quote', ...args)
+	return brew_runtime.string_value(winget_powershell_quote(if args.len > 0 {
+		args[0].as_string()
+	} else {
+		''
+	}))
 }
 
 // Ruby method `elevation_failure?(output)` at line 477.
 pub fn ruby_winget_l477_d36_elevation_failure(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('elevation_failure?', ...args)
+	return brew_runtime.bool_value(winget_elevation_failure(if args.len > 0 {
+		args[0].as_string()
+	} else {
+		''
+	}))
 }
 
 // Ruby method `installer_ui_failure?(output)` at line 482.
 pub fn ruby_winget_l482_d37_installer_ui_failure(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('installer_ui_failure?', ...args)
+	return brew_runtime.bool_value(winget_installer_ui_failure(if args.len > 0 {
+		args[0].as_string()
+	} else {
+		''
+	}))
 }
 
 // Ruby method `report_install_failure(name, id:, source:, output:)` at line 487.
 pub fn ruby_winget_l487_d38_report_install_failure(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('report_install_failure', ...args)
+	name := if args.len > 0 { args[0].as_string() } else { '' }
+	id := if args.len > 1 { args[1].as_string() } else { name }
+	source := if args.len > 2 { args[2].as_string() } else { winget_default_source }
+	output := if args.len > 3 { args[3].as_string() } else { '' }
+	return brew_runtime.string_array_value(winget_report_install_failure(name, id, source, output))
 }
 
 // Ruby method `parse_cleanup_item(item)` at line 504.
 pub fn ruby_winget_l504_d39_parse_cleanup_item(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('parse_cleanup_item', ...args)
+	if args.len == 0 {
+		return winget_error('TypeError', 'Invalid WinGet cleanup item: ')
+	}
+	app := winget_parse_cleanup_item(args[0].as_string()) or { return winget_error('TypeError', err.msg()) }
+	return winget_app_value(app)
 }
 
 // Ruby method `format_checkable(entries)` at line 520.
 pub fn ruby_winget_l520_d40_format_checkable(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('format_checkable', ...args)
+	entries_value := if args.len > 0 { args[0].as_array() or { [] } } else { [] }
+	mut apps := []WingetApp{}
+	for entry_value in entries_value {
+		entry := extension_entry_from_value(entry_value)
+		if entry.entry_type != 'winget' {
+			continue
+		}
+		apps << WingetApp{
+			id: if 'id' in entry.options { entry.options['id'].as_string() } else { entry.name }
+			name: entry.name
+			source: if 'source' in entry.options {
+				entry.options['source'].as_string()} else {
+				winget_default_source}
+		}
+	}
+	return winget_apps_value(apps)
 }
 
 // Ruby method `installed_and_up_to_date?(package, no_upgrade: false)` at line 528.
 pub fn ruby_winget_l528_d41_installed_and_up_to_date(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('installed_and_up_to_date?', ...args)
+	if args.len < 2 {
+		return brew_runtime.bool_value(false)
+	}
+	records := winget_records_from_value(args[0])
+	app := winget_app_from_value(args[1])
+	return brew_runtime.bool_value(winget_app_installed(records, app.id, app.source))
 }
 
 // Original Ruby source (line-for-line):

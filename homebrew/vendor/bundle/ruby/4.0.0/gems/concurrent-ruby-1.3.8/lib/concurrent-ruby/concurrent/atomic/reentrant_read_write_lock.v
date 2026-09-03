@@ -1,88 +1,469 @@
 module atomic
 
 import brew_runtime
+import sync
+import time
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/atomic/reentrant_read_write_lock.rb`.
 // The original source is retained below until every stub has a typed V body.
+const reentrant_reader_bits = 15
+const reentrant_writer_bits = 14
+const reentrant_waiting_writer = i64(32_768)
+const reentrant_running_writer = i64(536_870_912)
+const reentrant_max_readers = reentrant_waiting_writer - 1
+const reentrant_max_writers = reentrant_running_writer - reentrant_max_readers - 1
+const reentrant_write_lock_held = reentrant_waiting_writer
+const reentrant_read_lock_mask = reentrant_write_lock_held - 1
+const reentrant_write_lock_mask = reentrant_max_writers
+
+@[heap]
+struct ReentrantReadWriteLockState {
+	mutex           &sync.Mutex
+	read_condition  &sync.Cond
+	write_condition &sync.Cond
+mut:
+	counter i64
+	holds   map[u64]i64
+}
+
+@[heap]
+pub struct ReentrantReadWriteLock {
+mut:
+	state &ReentrantReadWriteLockState
+}
+
+pub fn new_reentrant_read_write_lock() &ReentrantReadWriteLock {
+	mutex := sync.new_mutex()
+	return &ReentrantReadWriteLock{
+		state: &ReentrantReadWriteLockState{
+			mutex: mutex
+			read_condition: sync.new_cond(mutex)
+			write_condition: sync.new_cond(mutex)
+		}
+	}
+}
+
+fn reentrant_running_readers(counter i64) i64 {
+	return counter & reentrant_max_readers
+}
+
+fn reentrant_running_readers_present(counter i64) bool {
+	return reentrant_running_readers(counter) > 0
+}
+
+fn reentrant_running_writer_present(counter i64) bool {
+	return counter >= reentrant_running_writer
+}
+
+fn reentrant_waiting_writers(counter i64) i64 {
+	return (counter & reentrant_max_writers) >> reentrant_reader_bits
+}
+
+fn reentrant_waiting_or_running_writer_present(counter i64) bool {
+	return counter >= reentrant_waiting_writer
+}
+
+fn reentrant_max_readers_reached(counter i64) bool {
+	return (counter & reentrant_max_readers) == reentrant_max_readers
+}
+
+fn reentrant_max_writers_reached(counter i64) bool {
+	return (counter & reentrant_max_writers) == reentrant_max_writers
+}
+
+fn reentrant_read_holds(held i64) i64 {
+	return held & reentrant_read_lock_mask
+}
+
+fn reentrant_write_holds(held i64) i64 {
+	return (held & reentrant_write_lock_mask) >> reentrant_reader_bits
+}
+
+pub fn (mut rwlock ReentrantReadWriteLock) with_read_lock(action ReadWriteLockAction) !brew_runtime.Value {
+	rwlock.acquire_read_lock()!
+	defer {
+		rwlock.release_read_lock() or {}
+	}
+	return action()!
+}
+
+pub fn (mut rwlock ReentrantReadWriteLock) with_write_lock(action ReadWriteLockAction) !brew_runtime.Value {
+	rwlock.acquire_write_lock()!
+	defer {
+		rwlock.release_write_lock() or {}
+	}
+	return action()!
+}
+
+pub fn (mut rwlock ReentrantReadWriteLock) acquire_read_lock() !bool {
+	context_id := sync.thread_id()
+	rwlock.state.mutex.lock()
+	defer {
+		rwlock.state.mutex.unlock()
+	}
+	held := rwlock.state.holds[context_id]
+	if held > 0 {
+		if reentrant_read_holds(held) == reentrant_read_lock_mask {
+			return error('Too many reader holds on this thread')
+		}
+		if reentrant_read_holds(held) == 0 {
+			if reentrant_max_readers_reached(rwlock.state.counter) {
+				return error('Too many reader threads')
+			}
+			rwlock.state.counter++
+		}
+		rwlock.state.holds[context_id] = held + 1
+		return true
+	}
+	mut has_waited := false
+	for {
+		if reentrant_max_readers_reached(rwlock.state.counter) {
+			return error('Too many reader threads')
+		}
+		if (!has_waited && reentrant_waiting_or_running_writer_present(rwlock.state.counter)) || (has_waited && reentrant_running_writer_present(rwlock.state.counter)) {
+			rwlock.state.read_condition.wait()
+			has_waited = true
+			continue
+		}
+		rwlock.state.counter++
+		rwlock.state.holds[context_id] = 1
+		return true
+	}
+	return false
+}
+
+pub fn (mut rwlock ReentrantReadWriteLock) try_read_lock() !bool {
+	context_id := sync.thread_id()
+	rwlock.state.mutex.lock()
+	defer {
+		rwlock.state.mutex.unlock()
+	}
+	held := rwlock.state.holds[context_id]
+	if held > 0 {
+		if reentrant_read_holds(held) == reentrant_read_lock_mask {
+			return error('Too many reader holds on this thread')
+		}
+		if reentrant_read_holds(held) == 0 {
+			if reentrant_max_readers_reached(rwlock.state.counter) {
+				return error('Too many reader threads')
+			}
+			rwlock.state.counter++
+		}
+		rwlock.state.holds[context_id] = held + 1
+		return true
+	}
+	if reentrant_waiting_or_running_writer_present(rwlock.state.counter) {
+		return false
+	}
+	if reentrant_max_readers_reached(rwlock.state.counter) {
+		return error('Too many reader threads')
+	}
+	rwlock.state.counter++
+	rwlock.state.holds[context_id] = 1
+	return true
+}
+
+pub fn (mut rwlock ReentrantReadWriteLock) try_read_lock_for(timeout time.Duration) !bool {
+	deadline := time.sys_mono_now() + u64(if timeout > 0 { timeout } else { 0 })
+	for {
+		if rwlock.try_read_lock()! {
+			return true
+		}
+		sleep_for := lock_poll_duration(deadline)
+		if sleep_for <= 0 {
+			return false
+		}
+		time.sleep(sleep_for)
+	}
+	return false
+}
+
+pub fn (mut rwlock ReentrantReadWriteLock) release_read_lock() !bool {
+	context_id := sync.thread_id()
+	rwlock.state.mutex.lock()
+	defer {
+		rwlock.state.mutex.unlock()
+	}
+	held := rwlock.state.holds[context_id]
+	if reentrant_read_holds(held) == 0 {
+		return error('Cannot release a read lock which is not held')
+	}
+	new_held := held - 1
+	if reentrant_read_holds(new_held) == 0 {
+		rwlock.state.counter--
+		if reentrant_waiting_or_running_writer_present(rwlock.state.counter) {
+			rwlock.state.write_condition.signal()
+		}
+	}
+	if new_held == 0 {
+		rwlock.state.holds.delete(context_id)
+	} else {
+		rwlock.state.holds[context_id] = new_held
+	}
+	return true
+}
+
+pub fn (mut rwlock ReentrantReadWriteLock) acquire_write_lock() !bool {
+	context_id := sync.thread_id()
+	rwlock.state.mutex.lock()
+	defer {
+		rwlock.state.mutex.unlock()
+	}
+	held := rwlock.state.holds[context_id]
+	if reentrant_write_holds(held) > 0 {
+		rwlock.state.holds[context_id] = held + reentrant_write_lock_held
+		return true
+	}
+	own_readers := if reentrant_read_holds(held) > 0 { i64(1) } else { i64(0) }
+	if !reentrant_waiting_or_running_writer_present(rwlock.state.counter) && reentrant_running_readers(rwlock.state.counter) == own_readers {
+		rwlock.state.counter += reentrant_running_writer
+		rwlock.state.holds[context_id] = held + reentrant_write_lock_held
+		return true
+	}
+	if reentrant_max_writers_reached(rwlock.state.counter) {
+		return error('Too many writer threads')
+	}
+	rwlock.state.counter += reentrant_waiting_writer
+	for reentrant_running_writer_present(rwlock.state.counter) || reentrant_running_readers(rwlock.state.counter) != own_readers {
+		rwlock.state.write_condition.wait()
+	}
+	rwlock.state.counter += reentrant_running_writer - reentrant_waiting_writer
+	rwlock.state.holds[context_id] = held + reentrant_write_lock_held
+	return true
+}
+
+pub fn (mut rwlock ReentrantReadWriteLock) try_write_lock() bool {
+	context_id := sync.thread_id()
+	rwlock.state.mutex.lock()
+	defer {
+		rwlock.state.mutex.unlock()
+	}
+	held := rwlock.state.holds[context_id]
+	if reentrant_write_holds(held) > 0 {
+		rwlock.state.holds[context_id] = held + reentrant_write_lock_held
+		return true
+	}
+	own_readers := if reentrant_read_holds(held) > 0 { i64(1) } else { i64(0) }
+	if !reentrant_waiting_or_running_writer_present(rwlock.state.counter) && reentrant_running_readers(rwlock.state.counter) == own_readers {
+		rwlock.state.counter += reentrant_running_writer
+		rwlock.state.holds[context_id] = held + reentrant_write_lock_held
+		return true
+	}
+	return false
+}
+
+pub fn (mut rwlock ReentrantReadWriteLock) try_write_lock_for(timeout time.Duration) !bool {
+	context_id := sync.thread_id()
+	deadline := time.sys_mono_now() + u64(if timeout > 0 { timeout } else { 0 })
+	rwlock.state.mutex.lock()
+	defer {
+		rwlock.state.mutex.unlock()
+	}
+	held := rwlock.state.holds[context_id]
+	if reentrant_write_holds(held) > 0 {
+		rwlock.state.holds[context_id] = held + reentrant_write_lock_held
+		return true
+	}
+	own_readers := if reentrant_read_holds(held) > 0 { i64(1) } else { i64(0) }
+	if !reentrant_waiting_or_running_writer_present(rwlock.state.counter) && reentrant_running_readers(rwlock.state.counter) == own_readers {
+		rwlock.state.counter += reentrant_running_writer
+		rwlock.state.holds[context_id] = held + reentrant_write_lock_held
+		return true
+	}
+	if reentrant_max_writers_reached(rwlock.state.counter) {
+		return error('Too many writer threads')
+	}
+	rwlock.state.counter += reentrant_waiting_writer
+	for {
+		if !reentrant_running_writer_present(rwlock.state.counter) && reentrant_running_readers(rwlock.state.counter) == own_readers {
+			rwlock.state.counter += reentrant_running_writer - reentrant_waiting_writer
+			rwlock.state.holds[context_id] = held + reentrant_write_lock_held
+			return true
+		}
+		sleep_for := lock_poll_duration(deadline)
+		if sleep_for <= 0 {
+			rwlock.state.counter -= reentrant_waiting_writer
+			if !reentrant_waiting_or_running_writer_present(rwlock.state.counter) {
+				rwlock.state.read_condition.broadcast()
+			}
+			return false
+		}
+		rwlock.state.mutex.unlock()
+		time.sleep(sleep_for)
+		rwlock.state.mutex.lock()
+	}
+	return false
+}
+
+pub fn (mut rwlock ReentrantReadWriteLock) release_write_lock() !bool {
+	context_id := sync.thread_id()
+	rwlock.state.mutex.lock()
+	defer {
+		rwlock.state.mutex.unlock()
+	}
+	held := rwlock.state.holds[context_id]
+	if reentrant_write_holds(held) == 0 {
+		return error('Cannot release a write lock which is not held')
+	}
+	new_held := held - reentrant_write_lock_held
+	if reentrant_write_holds(new_held) == 0 {
+		rwlock.state.counter -= reentrant_running_writer
+		rwlock.state.read_condition.broadcast()
+		if reentrant_waiting_writers(rwlock.state.counter) > 0 {
+			rwlock.state.write_condition.signal()
+		}
+	}
+	if new_held == 0 {
+		rwlock.state.holds.delete(context_id)
+	} else {
+		rwlock.state.holds[context_id] = new_held
+	}
+	return true
+}
+
+pub fn (mut rwlock ReentrantReadWriteLock) counter_value() i64 {
+	rwlock.state.mutex.lock()
+	defer {
+		rwlock.state.mutex.unlock()
+	}
+	return rwlock.state.counter
+}
+
+pub fn (mut rwlock ReentrantReadWriteLock) held_count() i64 {
+	rwlock.state.mutex.lock()
+	defer {
+		rwlock.state.mutex.unlock()
+	}
+	return rwlock.state.holds[sync.thread_id()]
+}
+
+fn reentrant_read_write_lock_boundary(rwlock &ReentrantReadWriteLock) brew_runtime.Value {
+	return brew_runtime.structured_value('Concurrent::ReentrantReadWriteLock', '#<Concurrent::ReentrantReadWriteLock>', {
+		'reentrant_read_write_lock_address': u64(voidptr(rwlock)).str()
+	})
+}
+
+fn reentrant_read_write_lock_boundary_receiver(args []brew_runtime.Value) &ReentrantReadWriteLock {
+	if args.len == 0 {
+		panic('ReentrantReadWriteLock method requires a receiver')
+	}
+	address := (args[0].attribute('reentrant_read_write_lock_address') or {
+		panic('${args[0].type_name} has no translated reentrant-read-write-lock state')
+	}).u64()
+	return unsafe { &ReentrantReadWriteLock(voidptr(address)) }
+}
+
+fn reentrant_boundary_counter(mut rwlock ReentrantReadWriteLock, args []brew_runtime.Value) i64 {
+	return if args.len > 1 { args[1].as_int() or { panic(err) } } else { rwlock.counter_value() }
+}
 
 // Ruby method `initialize` at line 109.
 pub fn ruby_reentrant_read_write_lock_l109_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	return reentrant_read_write_lock_boundary(new_reentrant_read_write_lock())
 }
 
 // Ruby method `with_read_lock` at line 126.
 pub fn ruby_reentrant_read_write_lock_l126_d2_with_read_lock(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('with_read_lock', ...args)
+	if args.len < 2 {
+		panic('no block given')
+	}
+	mut rwlock := reentrant_read_write_lock_boundary_receiver(args)
+	rwlock.acquire_read_lock() or { panic(err) }
+	defer {
+		rwlock.release_read_lock() or {}
+	}
+	return args[1]
 }
 
 // Ruby method `with_write_lock` at line 145.
 pub fn ruby_reentrant_read_write_lock_l145_d3_with_write_lock(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('with_write_lock', ...args)
+	if args.len < 2 {
+		panic('no block given')
+	}
+	mut rwlock := reentrant_read_write_lock_boundary_receiver(args)
+	rwlock.acquire_write_lock() or { panic(err) }
+	defer {
+		rwlock.release_write_lock() or {}
+	}
+	return args[1]
 }
 
 // Ruby method `acquire_read_lock` at line 162.
 pub fn ruby_reentrant_read_write_lock_l162_d4_acquire_read_lock(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('acquire_read_lock', ...args)
+	mut rwlock := reentrant_read_write_lock_boundary_receiver(args)
+	return brew_runtime.bool_value(rwlock.acquire_read_lock() or { panic(err) })
 }
 
 // Ruby method `try_read_lock` at line 220.
 pub fn ruby_reentrant_read_write_lock_l220_d5_try_read_lock(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('try_read_lock', ...args)
+	mut rwlock := reentrant_read_write_lock_boundary_receiver(args)
+	return brew_runtime.bool_value(rwlock.try_read_lock() or { panic(err) })
 }
 
 // Ruby method `release_read_lock` at line 243.
 pub fn ruby_reentrant_read_write_lock_l243_d6_release_read_lock(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('release_read_lock', ...args)
+	mut rwlock := reentrant_read_write_lock_boundary_receiver(args)
+	return brew_runtime.bool_value(rwlock.release_read_lock() or { panic(err) })
 }
 
 // Ruby method `acquire_write_lock` at line 264.
 pub fn ruby_reentrant_read_write_lock_l264_d7_acquire_write_lock(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('acquire_write_lock', ...args)
+	mut rwlock := reentrant_read_write_lock_boundary_receiver(args)
+	return brew_runtime.bool_value(rwlock.acquire_write_lock() or { panic(err) })
 }
 
 // Ruby method `try_write_lock` at line 317.
 pub fn ruby_reentrant_read_write_lock_l317_d8_try_write_lock(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('try_write_lock', ...args)
+	mut rwlock := reentrant_read_write_lock_boundary_receiver(args)
+	return brew_runtime.bool_value(rwlock.try_write_lock())
 }
 
 // Ruby method `release_write_lock` at line 336.
 pub fn ruby_reentrant_read_write_lock_l336_d9_release_write_lock(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('release_write_lock', ...args)
+	mut rwlock := reentrant_read_write_lock_boundary_receiver(args)
+	return brew_runtime.bool_value(rwlock.release_write_lock() or { panic(err) })
 }
 
 // Ruby method `running_readers(c = @Counter.value)` at line 352.
 pub fn ruby_reentrant_read_write_lock_l352_d10_running_readers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('running_readers', ...args)
+	mut rwlock := reentrant_read_write_lock_boundary_receiver(args)
+	return brew_runtime.int_value(reentrant_running_readers(reentrant_boundary_counter(mut rwlock, args)))
 }
 
 // Ruby method `running_readers?(c = @Counter.value)` at line 357.
 pub fn ruby_reentrant_read_write_lock_l357_d11_running_readers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('running_readers?', ...args)
+	mut rwlock := reentrant_read_write_lock_boundary_receiver(args)
+	return brew_runtime.bool_value(reentrant_running_readers_present(reentrant_boundary_counter(mut rwlock, args)))
 }
 
 // Ruby method `running_writer?(c = @Counter.value)` at line 362.
 pub fn ruby_reentrant_read_write_lock_l362_d12_running_writer(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('running_writer?', ...args)
+	mut rwlock := reentrant_read_write_lock_boundary_receiver(args)
+	return brew_runtime.bool_value(reentrant_running_writer_present(reentrant_boundary_counter(mut rwlock, args)))
 }
 
 // Ruby method `waiting_writers(c = @Counter.value)` at line 367.
 pub fn ruby_reentrant_read_write_lock_l367_d13_waiting_writers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('waiting_writers', ...args)
+	mut rwlock := reentrant_read_write_lock_boundary_receiver(args)
+	return brew_runtime.int_value(reentrant_waiting_writers(reentrant_boundary_counter(mut rwlock, args)))
 }
 
 // Ruby method `waiting_or_running_writer?(c = @Counter.value)` at line 372.
 pub fn ruby_reentrant_read_write_lock_l372_d14_waiting_or_running_writer(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('waiting_or_running_writer?', ...args)
+	mut rwlock := reentrant_read_write_lock_boundary_receiver(args)
+	return brew_runtime.bool_value(reentrant_waiting_or_running_writer_present(reentrant_boundary_counter(mut rwlock, args)))
 }
 
 // Ruby method `max_readers?(c = @Counter.value)` at line 377.
 pub fn ruby_reentrant_read_write_lock_l377_d15_max_readers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('max_readers?', ...args)
+	mut rwlock := reentrant_read_write_lock_boundary_receiver(args)
+	return brew_runtime.bool_value(reentrant_max_readers_reached(reentrant_boundary_counter(mut rwlock, args)))
 }
 
 // Ruby method `max_writers?(c = @Counter.value)` at line 382.
 pub fn ruby_reentrant_read_write_lock_l382_d16_max_writers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('max_writers?', ...args)
+	mut rwlock := reentrant_read_write_lock_boundary_receiver(args)
+	return brew_runtime.bool_value(reentrant_max_writers_reached(reentrant_boundary_counter(mut rwlock, args)))
 }
 
 // Original Ruby source (line-for-line):

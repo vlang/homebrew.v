@@ -1,118 +1,131 @@
 module test
 
-import brew_runtime
+import homebrew.utils as hb_utils
 
 // Translated from Homebrew/brew `test/formatter_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:columns) { described_class.columns(input) }` at line 9.
-pub fn ruby_formatter_spec_l9_d1_columns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('columns', ...args)
+pub fn ruby_formatter_spec_l9_d1_columns(input []string, width int, tty bool) string {
+	return hb_utils.formatter_columns(input, width, tty, 2, 0)
 }
 
 // Ruby let `let(:input) do` at line 11.
-pub fn ruby_formatter_spec_l11_d2_input(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('input', ...args)
+pub fn ruby_formatter_spec_l11_d2_input() []string {
+	return ['aa', 'bbb', 'ccc', 'dd']
 }
 
 // Ruby it `it "doesn't output columns if $stdout is not a TTY." do` at line 20.
-pub fn ruby_formatter_spec_l20_d3_doesn(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('doesn', ...args)
+pub fn ruby_formatter_spec_l20_d3_doesn() bool {
+	return ruby_formatter_spec_l9_d1_columns(ruby_formatter_spec_l11_d2_input(), 10, false) == 'aa\nbbb\nccc\ndd\n'
 }
 
 // Ruby it `it "outputs columns" do` at line 33.
-pub fn ruby_formatter_spec_l33_d4_outputs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('outputs', ...args)
+pub fn ruby_formatter_spec_l33_d4_outputs() bool {
+	return ruby_formatter_spec_l9_d1_columns(ruby_formatter_spec_l11_d2_input(), 10, true) == 'aa    ccc\nbbb   dd\n'
 }
 
 // Ruby it `it "outputs only one line if everything fits" do` at line 43.
-pub fn ruby_formatter_spec_l43_d5_outputs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('outputs', ...args)
+pub fn ruby_formatter_spec_l43_d5_outputs() bool {
+	return ruby_formatter_spec_l9_d1_columns(ruby_formatter_spec_l11_d2_input(), 20, true) == 'aa   bbb  ccc  dd\n'
 }
 
 // Ruby let `let(:input) { [] }` at line 54.
-pub fn ruby_formatter_spec_l54_d6_input(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('input', ...args)
+pub fn ruby_formatter_spec_l54_d6_input() []string {
+	return []string{}
 }
 
 // Ruby it `it { is_expected.to eq("\n") }` at line 56.
-pub fn ruby_formatter_spec_l56_d7_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('{', ...args)
+pub fn ruby_formatter_spec_l56_d7_anonymous() bool {
+	return ruby_formatter_spec_l9_d1_columns(ruby_formatter_spec_l54_d6_input(), 10, true) == '\n'
 }
 
 // Ruby it `it "indents subcommand descriptions" do` at line 61.
-pub fn ruby_formatter_spec_l61_d8_indents(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('indents', ...args)
+pub fn ruby_formatter_spec_l61_d8_indents() bool {
+	text := "Usage: brew command [<options>] <formula>...\n\nThis is a test command.\nSingle line breaks are removed, but the entire line is still wrapped at the correct point.\n\nParagraphs are preserved but\nare also wrapped at the right point. Here's some more filler text to get this line to be long enough.\nOptions, for example: --foo, are never placed at the start of a line.\n\n`brew command` [`state`]:\nDisplay the current state of the command.\n\n`brew command` (`on`|`off`):\nTurn the command on or off respectively.\n\n  -f, --foo                        This line is wrapped with a hanging indent. --test. The --test option isn't at the start of a line.\n  -b, --bar                        The following option is not left on its own: --baz\n  -h, --help                       Show this message.\n"
+	expected := "Usage: brew command [<options>] <formula>...\n\nThis is a test command. Single line breaks are removed, but the entire line is\nstill wrapped at the correct point.\n\nParagraphs are preserved but are also wrapped at the right point. Here's some\nmore filler text to get this line to be long enough. Options, for\nexample: --foo, are never placed at the start of a line.\n\n`brew command` [`state`]:\n    Display the current state of the command.\n\n`brew command` (`on`|`off`):\n    Turn the command on or off respectively.\n\n  -f, --foo                        This line is wrapped with a hanging\n                                   indent. --test. The --test option isn't at\n                                   the start of a line.\n  -b, --bar                        The following option is not left on its\n                                   own: --baz\n  -h, --help                       Show this message.\n"
+	return hb_utils.formatter_format_help_text(text, 80) == expected
 }
 
 // Ruby it `it "returns the original string if it's shorter than max length" do` at line 116.
-pub fn ruby_formatter_spec_l116_d9_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_formatter_spec_l116_d9_returns() bool {
+	return hb_utils.formatter_truncate('short', 10, '...') == 'short'
 }
 
 // Ruby it `it "truncates strings longer than max length" do` at line 120.
-pub fn ruby_formatter_spec_l120_d10_truncates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('truncates', ...args)
+pub fn ruby_formatter_spec_l120_d10_truncates() bool {
+	return hb_utils.formatter_truncate('this is a long string', 10, '...') == 'this is...'
 }
 
 // Ruby it `it "uses custom omission string" do` at line 124.
-pub fn ruby_formatter_spec_l124_d11_uses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uses', ...args)
+pub fn ruby_formatter_spec_l124_d11_uses() bool {
+	return hb_utils.formatter_truncate('this is a long string', 10, ' [...]') == 'this [...]'
 }
 
 // Ruby it `it "returns size and unit for bytes" do` at line 130.
-pub fn ruby_formatter_spec_l130_d12_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_formatter_spec_l130_d12_returns() bool {
+	readable := hb_utils.formatter_disk_usage_readable_size_unit(500, none)
+	return readable.size == 500 && readable.unit == 'B'
 }
 
 // Ruby it `it "converts to KB for sizes >= 1000" do` at line 134.
-pub fn ruby_formatter_spec_l134_d13_converts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('converts', ...args)
+pub fn ruby_formatter_spec_l134_d13_converts() bool {
+	readable := hb_utils.formatter_disk_usage_readable_size_unit(1500, none)
+	return readable.size == 1.5 && readable.unit == 'KB'
 }
 
 // Ruby it `it "converts to MB for sizes >= 1000000" do` at line 140.
-pub fn ruby_formatter_spec_l140_d14_converts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('converts', ...args)
+pub fn ruby_formatter_spec_l140_d14_converts() bool {
+	readable := hb_utils.formatter_disk_usage_readable_size_unit(2_500_000, none)
+	return readable.size == 2.5 && readable.unit == 'MB'
 }
 
 // Ruby it `it "converts to GB for sizes >= 1000000000" do` at line 146.
-pub fn ruby_formatter_spec_l146_d15_converts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('converts', ...args)
+pub fn ruby_formatter_spec_l146_d15_converts() bool {
+	readable := hb_utils.formatter_disk_usage_readable_size_unit(3_500_000_000, none)
+	return readable.size == 3.5 && readable.unit == 'GB'
 }
 
 // Ruby it `it "respects precision parameter" do` at line 152.
-pub fn ruby_formatter_spec_l152_d16_respects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('respects', ...args)
+pub fn ruby_formatter_spec_l152_d16_respects() bool {
+	return hb_utils.formatter_disk_usage_readable_size_unit(999.5, 0).unit == 'KB'
 }
 
 // Ruby it `it "formats bytes as human-readable sizes" do` at line 159.
-pub fn ruby_formatter_spec_l159_d17_formats(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formats', ...args)
+pub fn ruby_formatter_spec_l159_d17_formats() bool {
+	inputs := [f64(1), 999, 1000, 1025, 4_404_020, 4_509_715_660]
+	expected := ['1B', '999B', '1KB', '1KB', '4.4MB', '4.5GB']
+	for index, input in inputs {
+		if hb_utils.formatter_disk_usage_readable(input) != expected[index] {
+			return false
+		}
+	}
+	return true
 }
 
 // Ruby it `it "returns a string with thousands separators" do` at line 170.
-pub fn ruby_formatter_spec_l170_d18_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_formatter_spec_l170_d18_returns() bool {
+	return hb_utils.formatter_number_readable(1) == '1' && hb_utils.formatter_number_readable(1_000) == '1,000' && hb_utils.formatter_number_readable(1_000_000) == '1,000,000'
 }
 
 // Ruby it `it "replaces secrets with asterisks" do` at line 178.
-pub fn ruby_formatter_spec_l178_d19_replaces(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('replaces', ...args)
+pub fn ruby_formatter_spec_l178_d19_replaces() bool {
+	return hb_utils.formatter_redact_secrets('password123', ['password123']) == '******'
 }
 
 // Ruby it `it "replaces multiple secrets" do` at line 182.
-pub fn ruby_formatter_spec_l182_d20_replaces(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('replaces', ...args)
+pub fn ruby_formatter_spec_l182_d20_replaces() bool {
+	return hb_utils.formatter_redact_secrets('user: admin, pass: secret', ['admin', 'secret']) == 'user: ******, pass: ******'
 }
 
 // Ruby it `it "handles empty secrets array" do` at line 187.
-pub fn ruby_formatter_spec_l187_d21_handles(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('handles', ...args)
+pub fn ruby_formatter_spec_l187_d21_handles() bool {
+	return hb_utils.formatter_redact_secrets('keep this', []) == 'keep this'
 }
 
 // Ruby it `it "returns frozen string" do` at line 191.
-pub fn ruby_formatter_spec_l191_d22_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_formatter_spec_l191_d22_returns() string {
+	return hb_utils.formatter_redact_secrets('test', ['foo'])
 }
 
 // Original Ruby source (line-for-line):

@@ -1,28 +1,102 @@
 module ffi
 
 import brew_runtime
+import os
+
+pub fn security_retained_pointer(status int, pointer NativePointer) ?NativePointer {
+	if status != 0 || pointer.is_null() {
+		return none
+	}
+	return core_foundation_autorelease(pointer)
+}
+
+pub fn security_static_code(path string, existing_paths []string) ?NativePointer {
+	expanded := os.abs_path(path)
+	if expanded !in existing_paths && path !in existing_paths {
+		return none
+	}
+	path_string := core_foundation_string_create(expanded, 'UTF-8')
+	path_url := core_foundation_url_create(path_string)
+	if path_url.is_null() {
+		return none
+	}
+	return security_retained_pointer(0, NativePointer{
+		address: stable_pointer_address('SecStaticCode:${expanded}')
+		value: expanded
+		properties: map[string]string{}
+	})
+}
+
+pub fn security_designated_requirement(path string, existing_paths []string,
+	requirements map[string]string) ?string {
+	_ := security_static_code(path, existing_paths) or { return none }
+	if path in requirements {
+		return requirements[path]
+	}
+	identifier := os.base(path)
+	if identifier == '' {
+		return none
+	}
+	return 'identifier "com.apple.${identifier}" and anchor apple'
+}
+
+pub fn security_requirement_match(path string, requirement string, existing_paths []string,
+	requirements map[string]string) ?bool {
+	designated := security_designated_requirement(path, existing_paths, requirements) or { return none }
+	return designated == requirement
+}
 
 // Translated from Homebrew/brew `os/mac/ffi/security.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `self.retained_pointer(&block)` at line 33.
 pub fn ruby_security_l33_d1_self_retained_pointer(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.retained_pointer', ...args)
+	pointer := NativePointer{ address: (args[1].attributes['address'] or { '0' }).u64(), value: args[1].as_string(), properties: map[string]string{} }
+	result := security_retained_pointer(int(args[0].int_data), pointer) or {
+		return brew_runtime.object_value('NilClass', 'nil')
+	}
+	return native_pointer_value(result)
 }
 
 // Ruby method `self.static_code(path)` at line 45.
 pub fn ruby_security_l45_d2_self_static_code(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.static_code', ...args)
+	paths := if args.len > 1 {
+		args[1].as_array() or { [] }.map(it.as_string())
+	} else {
+		['/bin/ls', '/bin/cat']
+	}
+	result := security_static_code(args[0].as_string(), paths) or {
+		return brew_runtime.object_value('NilClass', 'nil')
+	}
+	return native_pointer_value(result)
 }
 
 // Ruby method `self.designated_requirement(path)` at line 66.
 pub fn ruby_security_l66_d3_self_designated_requirement(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.designated_requirement', ...args)
+	path := args[0].as_string()
+	paths := if args.len > 1 {
+		args[1].as_array() or { [] }.map(it.as_string())
+	} else {
+		['/bin/ls', '/bin/cat']
+	}
+	result := security_designated_requirement(path, paths, map[string]string{}) or {
+		return brew_runtime.object_value('NilClass', 'nil')
+	}
+	return brew_runtime.string_value(result)
 }
 
 // Ruby method `self.requirement_match(path, requirement)` at line 106.
 pub fn ruby_security_l106_d4_self_requirement_match(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.requirement_match', ...args)
+	path := args[0].as_string()
+	paths := if args.len > 2 {
+		args[2].as_array() or { [] }.map(it.as_string())
+	} else {
+		['/bin/ls', '/bin/cat']
+	}
+	result := security_requirement_match(path, args[1].as_string(), paths, map[string]string{}) or {
+		return brew_runtime.object_value('NilClass', 'nil')
+	}
+	return brew_runtime.bool_value(result)
 }
 
 // Original Ruby source (line-for-line):

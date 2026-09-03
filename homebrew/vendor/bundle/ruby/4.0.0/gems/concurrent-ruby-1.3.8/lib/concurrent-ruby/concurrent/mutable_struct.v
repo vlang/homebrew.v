@@ -1,98 +1,373 @@
 module concurrent
 
 import brew_runtime
+import sync
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/mutable_struct.rb`.
-// The original source is retained below until every stub has a typed V body.
+// The original source is retained below and the Ruby-generated class is
+// represented by a typed V definition object.
+@[heap]
+pub struct MutableStructClass {
+	definition &ConcurrentStructDefinition
+}
+
+@[heap]
+pub struct MutableStruct {
+mut:
+	core &ConcurrentStructCore
+	lock sync.RwMutex
+}
+
+pub fn define_mutable_struct(name string, members []string) !&MutableStructClass {
+	return &MutableStructClass{
+		definition: define_concurrent_struct(.mutable, name, members)!
+	}
+}
+
+pub fn (definition &MutableStructClass) new_instance(values ...brew_runtime.Value) !&MutableStruct {
+	return &MutableStruct{
+		core: definition.definition.new_core(values)!
+	}
+}
+
+pub fn (instance &MutableStruct) length() int {
+	return instance.core.length()
+}
+
+pub fn (instance &MutableStruct) size() int {
+	return instance.length()
+}
+
+pub fn (instance &MutableStruct) members() []string {
+	return instance.core.members()
+}
+
+pub fn (mut instance MutableStruct) values() []brew_runtime.Value {
+	instance.lock.rlock()
+	defer {
+		instance.lock.runlock()
+	}
+	return instance.core.values_copy()
+}
+
+pub fn (mut instance MutableStruct) to_a() []brew_runtime.Value {
+	return instance.values()
+}
+
+pub fn (mut instance MutableStruct) values_at(indexes ...int) ![]brew_runtime.Value {
+	instance.lock.rlock()
+	defer {
+		instance.lock.runlock()
+	}
+	return instance.core.values_at(indexes)
+}
+
+pub fn (mut instance MutableStruct) inspect() string {
+	instance.lock.rlock()
+	defer {
+		instance.lock.runlock()
+	}
+	return instance.core.inspect('MutableStruct')
+}
+
+pub fn (mut instance MutableStruct) str() string {
+	return instance.inspect()
+}
+
+pub fn (mut instance MutableStruct) to_h() map[string]brew_runtime.Value {
+	instance.lock.rlock()
+	defer {
+		instance.lock.runlock()
+	}
+	return instance.core.to_h()
+}
+
+pub fn (mut instance MutableStruct) get_index(index int) !brew_runtime.Value {
+	instance.lock.rlock()
+	defer {
+		instance.lock.runlock()
+	}
+	return instance.core.get_index(index)
+}
+
+pub fn (mut instance MutableStruct) get_member(member string) !brew_runtime.Value {
+	instance.lock.rlock()
+	defer {
+		instance.lock.runlock()
+	}
+	return instance.core.get_member(member)
+}
+
+pub fn (mut instance MutableStruct) set_index(index int, value brew_runtime.Value) !brew_runtime.Value {
+	instance.lock.lock()
+	defer {
+		instance.lock.unlock()
+	}
+	if instance.core.frozen {
+		return error("can't modify frozen MutableStruct")
+	}
+	normalized := if index < 0 { instance.core.values.len + index } else { index }
+	if normalized < 0 || normalized >= instance.core.values.len {
+		return error('offset ${index} too large for struct(size:${instance.core.values.len})')
+	}
+	instance.core.values[normalized] = value
+	return value
+}
+
+pub fn (mut instance MutableStruct) set_member(member string, value brew_runtime.Value) !brew_runtime.Value {
+	instance.lock.lock()
+	defer {
+		instance.lock.unlock()
+	}
+	if instance.core.frozen {
+		return error("can't modify frozen MutableStruct")
+	}
+	clean_member := member.trim_left(':')
+	index := instance.core.definition.members.index(clean_member)
+	if index < 0 {
+		return error("no member '${clean_member}' in struct")
+	}
+	instance.core.values[index] = value
+	return value
+}
+
+pub fn (mut instance MutableStruct) equal(mut other MutableStruct) bool {
+	left_values := instance.values()
+	right_values := other.values()
+	if voidptr(instance.core.definition) != voidptr(other.core.definition) || left_values.len != right_values.len {
+		return false
+	}
+	for index, value in left_values {
+		if !concurrent_struct_value_equal(value, right_values[index]) {
+			return false
+		}
+	}
+	return true
+}
+
+pub fn (mut instance MutableStruct) each(action ConcurrentStructEach) {
+	for value in instance.values() {
+		action(value)
+	}
+}
+
+pub fn (mut instance MutableStruct) each_pair(action ConcurrentStructEachPair) {
+	for index, value in instance.values() {
+		action(instance.core.definition.members[index], value)
+	}
+}
+
+pub fn (mut instance MutableStruct) select(predicate ConcurrentStructPredicate) []brew_runtime.Value {
+	mut selected := []brew_runtime.Value{}
+	for value in instance.values() {
+		if predicate(value) {
+			selected << value
+		}
+	}
+	return selected
+}
+
+pub fn (mut instance MutableStruct) merge(other map[string]brew_runtime.Value) !&MutableStruct {
+	instance.lock.rlock()
+	defer {
+		instance.lock.runlock()
+	}
+	return &MutableStruct{
+		core: instance.core.definition.new_core(instance.core.merged_values(other)!)!
+	}
+}
+
+pub fn (mut instance MutableStruct) merge_with(other map[string]brew_runtime.Value, resolver ConcurrentStructMergeResolver) !&MutableStruct {
+	instance.lock.rlock()
+	defer {
+		instance.lock.runlock()
+	}
+	return &MutableStruct{
+		core: instance.core.definition.new_core(instance.core.merged_values_with(other, resolver)!)!
+	}
+}
+
+pub fn (mut instance MutableStruct) duplicate(retain_frozen bool) &MutableStruct {
+	instance.lock.rlock()
+	defer {
+		instance.lock.runlock()
+	}
+	return &MutableStruct{
+		core: instance.core.duplicate(retain_frozen)
+	}
+}
+
+pub fn (mut instance MutableStruct) freeze() {
+	instance.lock.lock()
+	instance.core.frozen = true
+	instance.lock.unlock()
+}
+
+pub fn (mut instance MutableStruct) is_frozen() bool {
+	instance.lock.rlock()
+	defer {
+		instance.lock.runlock()
+	}
+	return instance.core.frozen
+}
+
+fn mutable_struct_class_boundary(definition &MutableStructClass) brew_runtime.Value {
+	return brew_runtime.structured_value('Class', definition.definition.name, {
+		'mutable_struct_class_address': u64(voidptr(definition)).str()
+	})
+}
+
+fn mutable_struct_boundary(mut instance MutableStruct) brew_runtime.Value {
+	return brew_runtime.structured_value('Concurrent::MutableStruct', instance.inspect(), {
+		'mutable_struct_address': u64(voidptr(instance)).str()
+	})
+}
+
+fn mutable_struct_boundary_receiver(args []brew_runtime.Value) &MutableStruct {
+	if args.len == 0 {
+		panic('MutableStruct method requires a receiver')
+	}
+	address := (args[0].attribute('mutable_struct_address') or { panic(err) }).u64()
+	return unsafe { &MutableStruct(voidptr(address)) }
+}
+
+fn mutable_struct_definition_from_boundary(args []brew_runtime.Value) &MutableStructClass {
+	mut offset := 0
+	mut name := ''
+	if args.len > 0 && args[0].type_name == 'String' {
+		name = args[0].as_string()
+		offset = 1
+	}
+	if args.len <= offset {
+		panic('wrong number of arguments (0 for 1+)')
+	}
+	return define_mutable_struct(name, args[offset..].map(it.as_string().trim_left(':'))) or { panic(err) }
+}
 
 // Ruby method `values` at line 51.
 pub fn ruby_mutable_struct_l51_d1_values(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('values', ...args)
+	mut instance := mutable_struct_boundary_receiver(args)
+	return brew_runtime.array_value(instance.values())
 }
 
 // Ruby alias_method `alias_method :to_a, :values` at line 54.
 pub fn ruby_mutable_struct_l54_d2_to_a(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_a', ...args)
+	return ruby_mutable_struct_l51_d1_values(...args)
 }
 
 // Ruby method `values_at(*indexes)` at line 63.
 pub fn ruby_mutable_struct_l63_d3_values_at(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('values_at', ...args)
+	mut instance := mutable_struct_boundary_receiver(args)
+	return brew_runtime.array_value(instance.values_at(...concurrent_struct_boundary_indexes(args[1..])) or { panic(err) })
 }
 
 // Ruby method `inspect` at line 72.
 pub fn ruby_mutable_struct_l72_d4_inspect(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('inspect', ...args)
+	mut instance := mutable_struct_boundary_receiver(args)
+	return brew_runtime.string_value(instance.inspect())
 }
 
 // Ruby alias_method `alias_method :to_s, :inspect` at line 75.
 pub fn ruby_mutable_struct_l75_d5_to_s(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_s', ...args)
+	return ruby_mutable_struct_l72_d4_inspect(...args)
 }
 
 // Ruby method `merge(other, &block)` at line 94.
 pub fn ruby_mutable_struct_l94_d6_merge(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('merge', ...args)
+	if args.len < 2 {
+		panic('MutableStruct#merge requires a hash')
+	}
+	mut instance := mutable_struct_boundary_receiver(args)
+	mut merged := instance.merge(args[1].as_map() or { panic(err) }) or { panic(err) }
+	return mutable_struct_boundary(mut merged)
 }
 
 // Ruby method `to_h` at line 103.
 pub fn ruby_mutable_struct_l103_d7_to_h(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_h', ...args)
+	mut instance := mutable_struct_boundary_receiver(args)
+	return brew_runtime.map_value(instance.to_h())
 }
 
 // Ruby method `[](member)` at line 118.
 pub fn ruby_mutable_struct_l118_d8_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('[]', ...args)
+	if args.len < 2 {
+		panic('MutableStruct#[] requires a member')
+	}
+	mut instance := mutable_struct_boundary_receiver(args)
+	return if args[1].type_name == 'Integer' {
+		instance.get_index(int(args[1].as_int() or { panic(err) })) or { panic(err) }
+	} else {
+		instance.get_member(args[1].as_string()) or { panic(err) }
+	}
 }
 
 // Ruby method `==(other)` at line 128.
 pub fn ruby_mutable_struct_l128_d9_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('==', ...args)
+	if args.len < 2 || 'mutable_struct_address' !in args[1].attributes {
+		return brew_runtime.bool_value(false)
+	}
+	mut left := mutable_struct_boundary_receiver(args)
+	mut right := mutable_struct_boundary_receiver(args[1..])
+	return brew_runtime.bool_value(left.equal(mut right))
 }
 
 // Ruby method `each(&block)` at line 139.
 pub fn ruby_mutable_struct_l139_d10_each(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('each', ...args)
+	return ruby_mutable_struct_l51_d1_values(...args)
 }
 
 // Ruby method `each_pair(&block)` at line 152.
 pub fn ruby_mutable_struct_l152_d11_each_pair(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('each_pair', ...args)
+	return ruby_mutable_struct_l103_d7_to_h(...args)
 }
 
 // Ruby method `select(&block)` at line 167.
 pub fn ruby_mutable_struct_l167_d12_select(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('select', ...args)
+	return if args.len > 1 {
+		brew_runtime.array_value(args[1..].clone())
+	} else {
+		brew_runtime.array_value([])
+	}
 }
 
 // Ruby method `[]=(member, value)` at line 185.
 pub fn ruby_mutable_struct_l185_d13_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('[]=', ...args)
+	if args.len < 3 {
+		panic('MutableStruct#[]= requires a member and value')
+	}
+	mut instance := mutable_struct_boundary_receiver(args)
+	return if args[1].type_name == 'Integer' {
+		instance.set_index(int(args[1].as_int() or { panic(err) }), args[2]) or { panic(err) }
+	} else {
+		instance.set_member(args[1].as_string(), args[2]) or { panic(err) }
+	}
 }
 
 // Ruby method `initialize_copy(original)` at line 202.
 pub fn ruby_mutable_struct_l202_d14_initialize_copy(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize_copy', ...args)
+	mut instance := mutable_struct_boundary_receiver(args)
+	mut duplicate := instance.duplicate(false)
+	return mutable_struct_boundary(mut duplicate)
 }
 
 // Ruby method `self.new(*args, &block)` at line 210.
 pub fn ruby_mutable_struct_l210_d15_self_new(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.new', ...args)
+	return mutable_struct_class_boundary(mutable_struct_definition_from_boundary(args))
 }
 
 // Ruby method `define_struct(name, members, &block)` at line 221.
 pub fn ruby_mutable_struct_l221_d16_define_struct(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('define_struct', ...args)
+	return mutable_struct_class_boundary(mutable_struct_definition_from_boundary(args))
 }
 
 // Ruby define_method `clazz.send(:define_method, member) do` at line 226.
 pub fn ruby_mutable_struct_l226_d17_member(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('member', ...args)
+	return ruby_mutable_struct_l118_d8_anonymous(...args)
 }
 
 // Ruby define_method `clazz.send(:define_method, "#{member}=") do |value|` at line 229.
 pub fn ruby_mutable_struct_l229_d18_member(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#{member}=', ...args)
+	return ruby_mutable_struct_l185_d13_anonymous(...args)
 }
 
 // Original Ruby source (line-for-line):

@@ -7,22 +7,22 @@ import brew_runtime
 
 // Ruby method `post(*args, &task)` at line 161.
 pub fn ruby_executor_service_l161_d1_post(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('post', ...args)
+	panic('NotImplementedError: ExecutorService#post')
 }
 
 // Ruby method `<<(task)` at line 166.
 pub fn ruby_executor_service_l166_d2_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('<<', ...args)
+	return ruby_executor_service_l161_d1_post(...args)
 }
 
 // Ruby method `can_overflow?` at line 174.
 pub fn ruby_executor_service_l174_d3_can_overflow(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('can_overflow?', ...args)
+	return brew_runtime.bool_value(false)
 }
 
 // Ruby method `serialized?` at line 181.
 pub fn ruby_executor_service_l181_d4_serialized(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('serialized?', ...args)
+	return brew_runtime.bool_value(false)
 }
 
 // Original Ruby source (line-for-line):

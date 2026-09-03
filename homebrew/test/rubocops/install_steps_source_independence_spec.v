@@ -1,28 +1,32 @@
 module rubocops
 
-import brew_runtime
+import homebrew.rubocops as install_source_core
 
 // Translated from Homebrew/brew `test/rubocops/install_steps_source_independence_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "rejects formula source lookups" do` at line 7.
-pub fn ruby_install_steps_source_independence_spec_l7_d1_rejects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('rejects', ...args)
+pub fn ruby_install_steps_source_independence_spec_l7_d1_rejects() bool {
+	source := 'Formula["foo"]\nFormulary.factory("foo")\nformula_class = Formula'
+	return install_source_core.audit_install_steps_source_independence(source).len == 3
 }
 
 // Ruby it `it "rejects formula resources" do` at line 18.
-pub fn ruby_install_steps_source_independence_spec_l18_d2_rejects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('rejects', ...args)
+pub fn ruby_install_steps_source_independence_spec_l18_d2_rejects() bool {
+	source := 'context.resource("setuptools")\nResource.new("pip")'
+	return install_source_core.audit_install_steps_source_independence(source).len == 2
 }
 
 // Ruby it `it "rejects direct downloads" do` at line 27.
-pub fn ruby_install_steps_source_independence_spec_l27_d3_rejects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('rejects', ...args)
+pub fn ruby_install_steps_source_independence_spec_l27_d3_rejects() bool {
+	source := 'Utils::Curl.curl_download("https://example.com/input")\nURI.open("https://example.com/input")'
+	return install_source_core.audit_install_steps_source_independence(source).len == 2
 }
 
 // Ruby it `it "accepts bottled paths and archives" do` at line 41.
-pub fn ruby_install_steps_source_independence_spec_l41_d4_accepts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('accepts', ...args)
+pub fn ruby_install_steps_source_independence_spec_l41_d4_accepts() bool {
+	source := 'archive = context_path("libexec")/"post-install-resources/input.tar.gz"\nUnpackStrategy.detect(archive).extract(to: temporary_path)\nUtils::Path.formula_opt_bin("glib")/"gio-querymodules"'
+	return install_source_core.audit_install_steps_source_independence(source).len == 0
 }
 
 // Original Ruby source (line-for-line):

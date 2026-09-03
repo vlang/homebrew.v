@@ -1,33 +1,64 @@
 module test
 
-import brew_runtime
+import homebrew
 
 // Translated from Homebrew/brew `test/bundle_version_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+fn bundle_version_spec_new(short_version ?string, version ?string) ?homebrew.BundleVersion {
+	return homebrew.new_bundle_version(short_version, version) or { return none }
+}
+
+fn bundle_version_spec_nice(short_version ?string, version ?string, expected string) bool {
+	bundle := bundle_version_spec_new(short_version, version) or { return false }
+	return bundle.nice_version() == expected
+}
 
 // Ruby it `it "compares both the `short_version` and `version`" do` at line 8.
-pub fn ruby_bundle_version_spec_l8_d1_compares(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('compares', ...args)
+pub fn ruby_bundle_version_spec_l8_d1_compares() bool {
+	v3000 := bundle_version_spec_new('1.2.3', '3000') or { return false }
+	v4000 := bundle_version_spec_new('1.2.3', '4000') or { return false }
+	v124 := bundle_version_spec_new('1.2.4', '4000') or { return false }
+	return v3000.compare_to(v4000) < 0 && v4000.compare_to(v4000) <= 0 && v4000.compare_to(v4000) >= 0 && v124.compare_to(v4000) > 0
 }
 
 // Ruby it `it "compares `version` first" do` at line 15.
-pub fn ruby_bundle_version_spec_l15_d2_compares(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('compares', ...args)
+pub fn ruby_bundle_version_spec_l15_d2_compares() bool {
+	left := bundle_version_spec_new('1.2.4', '3000') or { return false }
+	right := bundle_version_spec_new('1.2.3', '4000') or { return false }
+	return left.compare_to(right) < 0
 }
 
 // Ruby it `it "does not fail when `short_version` or `version` is missing" do` at line 19.
-pub fn ruby_bundle_version_spec_l19_d3_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_bundle_version_spec_l19_d3_does() bool {
+	short_106 := bundle_version_spec_new('1.06', none) or { return false }
+	both_112 := bundle_version_spec_new('1.12', '1.12') or { return false }
+	both_471 := bundle_version_spec_new('1.06', '471') or { return false }
+	version_311 := bundle_version_spec_new(none, '311') or { return false }
+	short_123 := bundle_version_spec_new('1.2.3', none) or { return false }
+	short_124 := bundle_version_spec_new('1.2.4', none) or { return false }
+	version_123 := bundle_version_spec_new(none, '1.2.3') or { return false }
+	version_124 := bundle_version_spec_new(none, '1.2.4') or { return false }
+	return short_106.compare_to(both_112) < 0 && both_471.compare_to(version_311) > 0 && short_123.compare_to(short_124) < 0 && version_123.compare_to(version_124) < 0 && short_123.compare_to(version_123) < 0 && version_123.compare_to(short_123) > 0
 }
 
-// Ruby it `it "maps (#{short_version.inspect}, expect(described_class.new(short_version, version).nice_version) .to eq expected_version end end end  describe "#to_h" do it "returns a hash containing non-nil instance variables" do expect(described_class.new("1.2.3", "3000").to_h) .to eq({ short_version: "1.2.3", version: "3000" }) expect(described_class.new(nil, "3000").to_h) .to eq({ version: "3000" }) expect(described_class.new("1.2.3", nil).to_h) .to eq({ short_version: "1.2.3" }) end end end` at line 45.
-pub fn ruby_bundle_version_spec_l45_d4_maps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('maps', ...args)
+// Ruby it `it "maps (#{short_version.inspect}, #{version.inspect}) to #{expected_version.inspect}" do` at line 45.
+pub fn ruby_bundle_version_spec_l45_d4_maps() bool {
+	return bundle_version_spec_nice('1.2', none, '1.2') && bundle_version_spec_nice(none, '1.2.3', '1.2.3') && bundle_version_spec_nice('1.2', '1.2.3', '1.2.3') && bundle_version_spec_nice('1.2.3', '1.2', '1.2.3') && bundle_version_spec_nice('1.2.3', '8312', '1.2.3,8312') && bundle_version_spec_nice('2021', '2006', '2021,2006') && bundle_version_spec_nice('1.0', '1', '1.0') && bundle_version_spec_nice('1.0', '0', '1.0') && bundle_version_spec_nice('1.2.3.4000', '4000', '1.2.3.4000') && bundle_version_spec_nice('5', '5.0.45', '5.0.45') && bundle_version_spec_nice('2.5.2(3329)', '3329', '2.5.2,3329')
 }
 
 // Ruby it `it "returns a hash containing non-nil instance variables" do` at line 53.
-pub fn ruby_bundle_version_spec_l53_d5_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_bundle_version_spec_l53_d5_returns() bool {
+	both := bundle_version_spec_new('1.2.3', '3000') or { return false }
+	version := bundle_version_spec_new(none, '3000') or { return false }
+	short_version := bundle_version_spec_new('1.2.3', none) or { return false }
+	return both.to_h() == {
+		'short_version': '1.2.3'
+		'version':       '3000'
+	} && version.to_h() == {
+		'version': '3000'
+	} && short_version.to_h() == {
+		'short_version': '1.2.3'
+	}
 }
 
 // Original Ruby source (line-for-line):

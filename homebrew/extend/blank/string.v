@@ -7,12 +7,14 @@ import brew_runtime
 
 // Ruby method `blank?` at line 28.
 pub fn ruby_string_l28_d1_blank(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('blank?', ...args)
+	if args.len == 0 { panic('String#blank? requires a receiver') }
+	return brew_runtime.bool_value(value_is_blank(args[0]))
 }
 
 // Ruby method `present? = !blank? # :nodoc:` at line 41.
 pub fn ruby_string_l41_d2_present(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('present?', ...args)
+	if args.len == 0 { panic('String#present? requires a receiver') }
+	return brew_runtime.bool_value(value_is_present(args[0]))
 }
 
 // Original Ruby source (line-for-line):

@@ -1,68 +1,92 @@
 module test
 
-import brew_runtime
+import homebrew
 
 // Translated from Homebrew/brew `test/homebrew_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+fn homebrew_spec_check_match(name string) bool {
+	return name.starts_with('check_')
+}
 
 // Ruby it `it "wraps matching methods with timing" do` at line 18.
-pub fn ruby_homebrew_spec_l18_d1_wraps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('wraps', ...args)
+pub fn ruby_homebrew_spec_l18_d1_wraps() bool {
+	mut state := homebrew.DumpStatsState{}
+	wrapped := homebrew.inject_dump_stats(mut state, ['check_something'], homebrew_spec_check_match)
+	result := homebrew.run_dump_stats_method(mut state, wrapped[0], ruby_homebrew_spec_l20_d2_check_something) or {
+		return false
+	}
+	return result == 'result' && 'check_something' in state.times
 }
 
 // Ruby method `check_something` at line 20.
-pub fn ruby_homebrew_spec_l20_d2_check_something(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('check_something', ...args)
+pub fn ruby_homebrew_spec_l20_d2_check_something() !string {
+	return 'result'
 }
 
 // Ruby it `it "does not recurse when a prepended module calls super" do` at line 31.
-pub fn ruby_homebrew_spec_l31_d3_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_homebrew_spec_l31_d3_does() bool {
+	mut state := homebrew.DumpStatsState{}
+	homebrew.inject_dump_stats(mut state, ['check_example'], homebrew_spec_check_match)
+	result := homebrew.run_dump_stats_method(mut state, 'check_example', ruby_homebrew_spec_l39_d5_check_example) or { return false }
+	return result == 'base_extended' && 'check_example' in state.times
 }
 
 // Ruby method `check_example` at line 33.
-pub fn ruby_homebrew_spec_l33_d4_check_example(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('check_example', ...args)
+pub fn ruby_homebrew_spec_l33_d4_check_example() !string {
+	return 'base'
 }
 
 // Ruby method `check_example` at line 39.
-pub fn ruby_homebrew_spec_l39_d5_check_example(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('check_example', ...args)
+pub fn ruby_homebrew_spec_l39_d5_check_example() !string {
+	return '${ruby_homebrew_spec_l33_d4_check_example()!}_extended'
 }
 
 // Ruby it `it "only wraps methods matching the pattern" do` at line 51.
-pub fn ruby_homebrew_spec_l51_d6_only(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('only', ...args)
+pub fn ruby_homebrew_spec_l51_d6_only() bool {
+	mut state := homebrew.DumpStatsState{}
+	wrapped := homebrew.inject_dump_stats(mut state, ['check_matched', 'other_method'], homebrew_spec_check_match)
+	if wrapped != ['check_matched'] {
+		return false
+	}
+	_ := homebrew.run_dump_stats_method(mut state, 'check_matched', ruby_homebrew_spec_l53_d7_check_matched) or { return false }
+	_ := ruby_homebrew_spec_l57_d8_other_method() or { return false }
+	return 'check_matched' in state.times && 'other_method' !in state.times
 }
 
 // Ruby method `check_matched` at line 53.
-pub fn ruby_homebrew_spec_l53_d7_check_matched(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('check_matched', ...args)
+pub fn ruby_homebrew_spec_l53_d7_check_matched() !string {
+	return 'matched'
 }
 
 // Ruby method `other_method` at line 57.
-pub fn ruby_homebrew_spec_l57_d8_other_method(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('other_method', ...args)
+pub fn ruby_homebrew_spec_l57_d8_other_method() !string {
+	return 'other'
 }
 
 // Ruby it `it "returns true for a successful command" do` at line 74.
-pub fn ruby_homebrew_spec_l74_d9_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_homebrew_spec_l74_d9_returns() bool {
+	return homebrew.homebrew_system(homebrew.HomebrewSystemRequest{ command: 'true' })
 }
 
 // Ruby it `it "returns false for a failing command" do` at line 78.
-pub fn ruby_homebrew_spec_l78_d10_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_homebrew_spec_l78_d10_returns() bool {
+	return !homebrew.homebrew_system(homebrew.HomebrewSystemRequest{ command: 'false' })
 }
 
 // Ruby it `it "does not raise for a successful command" do` at line 84.
-pub fn ruby_homebrew_spec_l84_d11_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_homebrew_spec_l84_d11_does() bool {
+	homebrew.homebrew_safe_system(homebrew.HomebrewSystemRequest{ command: 'true' }) or {
+		return false
+	}
+	return true
 }
 
 // Ruby it `it "raises for a failing command" do` at line 88.
-pub fn ruby_homebrew_spec_l88_d12_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+pub fn ruby_homebrew_spec_l88_d12_raises() bool {
+	homebrew.homebrew_safe_system(homebrew.HomebrewSystemRequest{ command: 'false' }) or {
+		return err.msg().contains('Failure while executing')
+	}
+	return false
 }
 
 // Original Ruby source (line-for-line):

@@ -1,88 +1,391 @@
 module homebrew
 
 import brew_runtime
+import crypto.sha256
+import homebrew.unpack_strategy
+import os
+import time
 
 // Translated from Homebrew/brew `external_patch.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub struct ExternalPatch {
+pub mut:
+	resource  PatchResourceModel
+	owner     string
+	has_owner bool
+	version   string
+pub:
+	strip string
+}
+
+pub fn new_external_patch(strip string, resource PatchResourceModel) !ExternalPatch {
+	if resource.has_patch_type {
+		parse_patch_type(resource.patch_type_name)!
+	}
+	return ExternalPatch{
+		strip: strip
+		resource: resource
+	}
+}
+
+pub fn external_patch_from_model(model PatchModel) !ExternalPatch {
+	if model.kind != .external {
+		return error('ExternalPatch requires an external Patch model')
+	}
+	return new_external_patch(model.strip, model.resource)
+}
+
+pub fn (patch ExternalPatch) model() PatchModel {
+	return PatchModel{
+		kind: .external
+		strip: patch.strip
+		resource: patch.resource
+		has_patch_type: patch.resource.has_patch_type
+		patch_type: if patch.resource.has_patch_type {
+			parse_patch_type(patch.resource.patch_type_name) or { PatchType.unofficial }} else {
+			PatchType.unofficial}
+	}
+}
+
+pub fn (patch ExternalPatch) url() string {
+	return patch.resource.url
+}
+
+pub fn (patch ExternalPatch) patch_files() []string {
+	return patch.resource.patch_files.clone()
+}
+
+pub fn (patch ExternalPatch) cached_download() string {
+	if patch.resource.cached_download_path != '' {
+		return patch.resource.cached_download_path
+	}
+	if patch.resource.url.starts_with('file://') {
+		return patch.resource.url['file://'.len..]
+	}
+	return ''
+}
+
+pub fn (patch ExternalPatch) downloaded() bool {
+	path := patch.cached_download()
+	return path != '' && os.is_file(path)
+}
+
+pub fn (patch ExternalPatch) verify_download_integrity(path string) ! {
+	if patch.resource.checksum == '' || !os.is_file(path) {
+		return
+	}
+	actual := sha256.sum256(os.read_bytes(path)!).hex()
+	if actual != patch.resource.checksum {
+		return error('SHA-256 mismatch for ${path}: expected ${patch.resource.checksum}, got ${actual}')
+	}
+}
+
+pub fn (patch ExternalPatch) fetch() !string {
+	path := patch.cached_download()
+	if path == '' || !os.is_file(path) {
+		return error('Patch download is unavailable: ${patch.resource.url}')
+	}
+	patch.verify_download_integrity(path)!
+	return path
+}
+
+pub fn (mut patch ExternalPatch) clear_cache() ! {
+	path := patch.resource.cached_download_path
+	if path != '' && os.exists(path) {
+		os.rm(path)!
+	}
+}
+
+pub fn (patch ExternalPatch) external() bool {
+	return true
+}
+
+pub fn (patch ExternalPatch) resolved_identifiers() []string {
+	return patch.model().resolves()
+}
+
+pub fn (patch ExternalPatch) type_name() ?string {
+	if patch.resource.has_patch_type {
+		return patch.resource.patch_type_name
+	}
+	return none
+}
+
+fn external_patch_url_encode(value string) string {
+	mut encoded := ''
+	hex := '0123456789ABCDEF'
+	for character in value.bytes() {
+		if character.is_alnum() || character in [`-`, `_`, `.`, `~`] {
+			encoded += character.ascii_str()
+		} else {
+			encoded += '%${hex[int(character >> 4)].ascii_str()}${hex[int(character & 15)].ascii_str()}'
+		}
+	}
+	return encoded
+}
+
+pub fn (patch ExternalPatch) with_owner(owner ?string) ExternalPatch {
+	if actual := owner {
+		return ExternalPatch{
+			...patch
+			owner: actual
+			has_owner: true
+			version: if patch.resource.checksum != '' {
+				patch.resource.checksum
+			} else {
+				external_patch_url_encode(patch.resource.url)
+			}
+		}
+	}
+	return ExternalPatch{
+		...patch
+		owner: ''
+		has_owner: false
+		version: if patch.resource.checksum != '' {
+			patch.resource.checksum
+		} else {
+			external_patch_url_encode(patch.resource.url)
+		}
+	}
+}
+
+fn external_patch_unpack(path string, destination string) !string {
+	os.mkdir_all(destination)!
+	strategy := unpack_strategy.detect(path, unpack_strategy.DetectOptions{
+		prioritize_extension: true
+	})
+	strategy.extract_nestedly(unpack_strategy.ExtractOptions{
+		destination: destination
+		basename: os.base(path)
+		prioritize_extension: true
+	})!
+	mut children := os.ls(destination)!
+	children.sort()
+	if children.len == 1 && os.is_dir(os.join_path(destination, children[0])) {
+		return os.join_path(destination, children[0])
+	}
+	return destination
+}
+
+pub fn (patch ExternalPatch) apply(base_dir string, homebrew_prefix string) ![]string {
+	if !os.is_dir(base_dir) {
+		return error('Patch base directory does not exist: ${base_dir}')
+	}
+	download := patch.fetch()!
+	staging := os.join_path(os.temp_dir(), 'brew-v-external-patch-${os.getpid()}-${time.now().unix_nano()}')
+	defer { os.rmdir_all(staging) or {} }
+	patch_dir := external_patch_unpack(download, staging)!
+	mut patch_files := patch.resource.patch_files.clone()
+	if patch_files.len == 0 {
+		children := os.ls(patch_dir)!
+		if children.len != 1 || !os.is_file(os.join_path(patch_dir, children[0])) {
+			return error('There should be exactly one patch file in the staging directory unless\nthe "apply" method was used one or more times in the patch-do block.')
+		}
+		patch_files << children[0]
+	}
+	target := if patch.resource.directory != '' {
+		os.join_path(base_dir, patch.resource.directory)
+	} else {
+		base_dir
+	}
+	mut applied := []string{}
+	for patch_file in patch_files {
+		path := os.join_path(patch_dir, patch_file)
+		if !os.is_file(path) {
+			return error('No such file or directory: ${path}')
+		}
+		contents := os.read_file(path)!
+		apply_patch_text(contents, patch.strip, target, homebrew_prefix)!
+		applied << patch_file
+	}
+	return applied
+}
+
+pub fn (patch ExternalPatch) inspect() string {
+	return '#<ExternalPatch: :${patch.strip} "${patch.resource.url}">'
+}
+
+fn external_patch_value(patch ExternalPatch) brew_runtime.Value {
+	model_value := patch_model_value(patch.model())
+	mut attributes := model_value.attributes.clone()
+	attributes['owner'] = patch.owner
+	attributes['has_owner'] = patch.has_owner.str()
+	attributes['version'] = patch.version
+	return brew_runtime.structured_value('ExternalPatch', patch.inspect(), attributes)
+}
+
+fn external_patch_from_value(value brew_runtime.Value) !ExternalPatch {
+	model := patch_model_from_value(value)!
+	mut patch := external_patch_from_model(model)!
+	if (value.attributes['has_owner'] or { 'false' }) == 'true' {
+		patch = patch.with_owner(value.attributes['owner'] or { '' })
+	}
+	return patch
+}
 
 // Ruby attr_reader `attr_reader :resource` at line 16.
 pub fn ruby_external_patch_l16_d1_resource(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('resource', ...args)
+	if args.len == 0 {
+		return brew_runtime.object_value('ArgumentError', 'receiver is required')
+	}
+	patch := external_patch_from_value(args[0]) or { return brew_runtime.object_value('ArgumentError', err.msg()) }
+	return brew_runtime.map_value({
+		'url':       brew_runtime.string_value(patch.resource.url)
+		'apply':     brew_runtime.string_array_value(patch.resource.patch_files)
+		'directory': brew_runtime.string_value(patch.resource.directory)
+		'sha256':    brew_runtime.string_value(patch.resource.checksum)
+	})
 }
 
 // Ruby attr_reader `attr_reader :strip` at line 19.
 pub fn ruby_external_patch_l19_d2_strip(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('strip', ...args)
+	if args.len == 0 {
+		return brew_runtime.object_value('ArgumentError', 'receiver is required')
+	}
+	patch := external_patch_from_value(args[0]) or { return brew_runtime.object_value('ArgumentError', err.msg()) }
+	return brew_runtime.object_value('Symbol', patch.strip)
 }
 
 // Ruby def_delegators `def_delegators :resource, :url, :fetch, :patch_files, :verify_download_integrity, :cached_download, :downloaded?, :clear_cache` at line 21.
 pub fn ruby_external_patch_l21_d3_url(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('url', ...args)
+	if args.len == 0 {
+		return brew_runtime.string_value('')
+	}
+	patch := external_patch_from_value(args[0]) or { return brew_runtime.object_value('ArgumentError', err.msg()) }
+	return brew_runtime.string_value(patch.url())
 }
 
 // Ruby def_delegators `def_delegators :resource, :url, :fetch, :patch_files, :verify_download_integrity, :cached_download, :downloaded?, :clear_cache` at line 21.
 pub fn ruby_external_patch_l21_d4_fetch(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fetch', ...args)
+	if args.len == 0 {
+		return brew_runtime.object_value('ArgumentError', 'receiver is required')
+	}
+	patch := external_patch_from_value(args[0]) or { return brew_runtime.object_value('ArgumentError', err.msg()) }
+	return brew_runtime.string_value(patch.fetch() or { return brew_runtime.object_value('ErrorDuringExecution', err.msg()) })
 }
 
 // Ruby def_delegators `def_delegators :resource, :url, :fetch, :patch_files, :verify_download_integrity, :cached_download, :downloaded?, :clear_cache` at line 21.
 pub fn ruby_external_patch_l21_d5_patch_files(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('patch_files', ...args)
+	if args.len == 0 {
+		return brew_runtime.string_array_value([])
+	}
+	patch := external_patch_from_value(args[0]) or { return brew_runtime.object_value('ArgumentError', err.msg()) }
+	return brew_runtime.string_array_value(patch.patch_files())
 }
 
 // Ruby def_delegators `def_delegators :resource, :url, :fetch, :patch_files, :verify_download_integrity, :cached_download, :downloaded?, :clear_cache` at line 21.
 pub fn ruby_external_patch_l21_d6_verify_download_integrity(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('verify_download_integrity', ...args)
+	if args.len == 0 {
+		return brew_runtime.object_value('ArgumentError', 'receiver is required')
+	}
+	patch := external_patch_from_value(args[0]) or { return brew_runtime.object_value('ArgumentError', err.msg()) }
+	path := if args.len > 1 { args[1].as_string() } else { patch.cached_download() }
+	patch.verify_download_integrity(path) or { return brew_runtime.object_value('ChecksumMismatchError', err.msg()) }
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Ruby def_delegators `def_delegators :resource, :url, :fetch, :patch_files, :verify_download_integrity, :cached_download, :downloaded?, :clear_cache` at line 21.
 pub fn ruby_external_patch_l21_d7_cached_download(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cached_download', ...args)
+	if args.len == 0 {
+		return brew_runtime.string_value('')
+	}
+	patch := external_patch_from_value(args[0]) or { return brew_runtime.object_value('ArgumentError', err.msg()) }
+	return brew_runtime.string_value(patch.cached_download())
 }
 
 // Ruby def_delegators `def_delegators :resource, :url, :fetch, :patch_files, :verify_download_integrity, :cached_download, :downloaded?, :clear_cache` at line 21.
 pub fn ruby_external_patch_l21_d8_downloaded(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('downloaded?', ...args)
+	if args.len == 0 {
+		return brew_runtime.bool_value(false)
+	}
+	patch := external_patch_from_value(args[0]) or { return brew_runtime.object_value('ArgumentError', err.msg()) }
+	return brew_runtime.bool_value(patch.downloaded())
 }
 
 // Ruby def_delegators `def_delegators :resource, :url, :fetch, :patch_files, :verify_download_integrity, :cached_download, :downloaded?, :clear_cache` at line 21.
 pub fn ruby_external_patch_l21_d9_clear_cache(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('clear_cache', ...args)
+	if args.len == 0 {
+		return brew_runtime.object_value('ArgumentError', 'receiver is required')
+	}
+	mut patch := external_patch_from_value(args[0]) or { return brew_runtime.object_value('ArgumentError', err.msg()) }
+	patch.clear_cache() or { return brew_runtime.object_value('ErrorDuringExecution', err.msg()) }
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Ruby method `initialize(strip, &block)` at line 26.
 pub fn ruby_external_patch_l26_d10_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	if args.len == 0 {
+		return brew_runtime.object_value('ArgumentError', 'strip is required')
+	}
+	config := if args.len > 1 { args[1] } else { brew_runtime.map_value({}) }
+	model_value := ruby_patch_l73_d4_self_create(brew_runtime.object_value('Symbol', args[0].as_string()), brew_runtime.object_value('NilClass', ''), config)
+	model := patch_model_from_value(model_value) or { return brew_runtime.object_value('ArgumentError', err.msg()) }
+	patch := external_patch_from_model(model) or { return brew_runtime.object_value('ArgumentError', err.msg()) }
+	return external_patch_value(patch)
 }
 
 // Ruby method `external?` at line 32.
 pub fn ruby_external_patch_l32_d11_external(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('external?', ...args)
+	return brew_runtime.bool_value(args.len > 0)
 }
 
 // Ruby method `resolves` at line 37.
 pub fn ruby_external_patch_l37_d12_resolves(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('resolves', ...args)
+	if args.len == 0 {
+		return brew_runtime.string_array_value([])
+	}
+	patch := external_patch_from_value(args[0]) or { return brew_runtime.object_value('ArgumentError', err.msg()) }
+	return brew_runtime.string_array_value(patch.resolved_identifiers())
 }
 
 // Ruby method `type` at line 42.
 pub fn ruby_external_patch_l42_d13_type(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('type', ...args)
+	if args.len == 0 {
+		return brew_runtime.object_value('NilClass', 'nil')
+	}
+	patch := external_patch_from_value(args[0]) or { return brew_runtime.object_value('ArgumentError', err.msg()) }
+	if name := patch.type_name() {
+		return brew_runtime.object_value('Symbol', name)
+	}
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Ruby method `owner=(owner)` at line 47.
 pub fn ruby_external_patch_l47_d14_owner(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('owner=', ...args)
+	if args.len == 0 {
+		return brew_runtime.object_value('ArgumentError', 'receiver is required')
+	}
+	patch := external_patch_from_value(args[0]) or { return brew_runtime.object_value('ArgumentError', err.msg()) }
+	owner := if args.len > 1 && args[1].type_name != 'NilClass' { args[1].as_string() } else { '' }
+	return external_patch_value(patch.with_owner(if owner == '' { none } else { owner }))
 }
 
 // Ruby method `apply` at line 53.
 pub fn ruby_external_patch_l53_d15_apply(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('apply', ...args)
+	if args.len < 2 {
+		return brew_runtime.object_value('ArgumentError', 'receiver and base directory are required')
+	}
+	patch := external_patch_from_value(args[0]) or { return brew_runtime.object_value('ArgumentError', err.msg()) }
+	applied := patch.apply(args[1].as_string(), if args.len > 2 {
+		args[2].as_string()
+	} else {
+		'/opt/homebrew'
+	}) or {
+		name := if err.msg().starts_with('There should be exactly one patch file') {
+			'MissingApplyError'
+		} else if err.msg().starts_with('No such file') { 'Errno::ENOENT' } else { 'BuildError' }
+		return brew_runtime.object_value(name, err.msg())
+	}
+	return brew_runtime.string_array_value(applied)
 }
 
 // Ruby method `inspect` at line 95.
 pub fn ruby_external_patch_l95_d16_inspect(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('inspect', ...args)
+	if args.len == 0 {
+		return brew_runtime.string_value('')
+	}
+	patch := external_patch_from_value(args[0]) or { return brew_runtime.object_value('ArgumentError', err.msg()) }
+	return brew_runtime.string_value(patch.inspect())
 }
 
 // Original Ruby source (line-for-line):

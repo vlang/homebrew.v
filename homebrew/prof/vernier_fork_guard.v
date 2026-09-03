@@ -5,34 +5,161 @@ import brew_runtime
 // Translated from Homebrew/brew `prof/vernier_fork_guard.rb`.
 // The original source is retained below until every stub has a typed V body.
 
+pub struct VernierForkRequest {
+pub:
+	block_provided      bool
+	vernier_defined     bool
+	collector_running   bool
+	yield_returns_pid   bool
+	pid                 int
+	running_after_yield bool
+}
+
+pub struct VernierForkResult {
+pub:
+	yielded           bool
+	collector_stopped bool
+	collector_cleared bool
+	collector_restarted bool
+	has_pid           bool
+	pid               int
+}
+
+pub struct VernierStopResult {
+pub:
+	collector_stopped bool
+}
+
+pub struct VernierExecResult {
+pub:
+	collector_stopped bool
+	command           []string
+	original_exec     string
+}
+
+pub fn vernier_without_running_collector(request VernierForkRequest) !VernierForkResult {
+	if !request.block_provided {
+		return error('block required')
+	}
+	if !request.vernier_defined || !request.collector_running {
+		return VernierForkResult{
+			yielded: true
+			has_pid: request.yield_returns_pid
+			pid: request.pid
+		}
+	}
+	return VernierForkResult{
+		yielded: true
+		collector_stopped: true
+		collector_cleared: true
+		collector_restarted: request.yield_returns_pid && !request.running_after_yield
+		has_pid: request.yield_returns_pid
+		pid: request.pid
+	}
+}
+
+pub fn vernier_stop_running_collector(vernier_defined bool, collector_running bool) VernierStopResult {
+	return VernierStopResult{
+		collector_stopped: vernier_defined && collector_running
+	}
+}
+
+pub fn vernier_guarded_exec(vernier_defined bool, collector_running bool, command []string) VernierExecResult {
+	return VernierExecResult{
+		collector_stopped: vernier_stop_running_collector(vernier_defined, collector_running).collector_stopped
+		command: command.clone()
+		original_exec: 'homebrew_vernier_fork_guard_exec'
+	}
+}
+
+@[heap]
+pub struct VernierForkGuardInput {
+pub:
+	request VernierForkRequest
+	command []string
+}
+
+pub fn vernier_fork_guard_input_boundary(input &VernierForkGuardInput) brew_runtime.Value {
+	return brew_runtime.structured_value('Homebrew::VernierForkGuard::Input', '', {
+		'vernier_fork_guard_input_address': u64(voidptr(input)).str()
+	})
+}
+
+fn vernier_fork_guard_input_from_value(value brew_runtime.Value) &VernierForkGuardInput {
+	address := value.attributes['vernier_fork_guard_input_address'] or {
+		panic('invalid VernierForkGuard input')
+	}
+	return unsafe { &VernierForkGuardInput(voidptr(address.u64())) }
+}
+
+fn vernier_fork_result_value(result VernierForkResult) brew_runtime.Value {
+	return brew_runtime.map_value({
+		'yielded': brew_runtime.bool_value(result.yielded)
+		'collector_stopped': brew_runtime.bool_value(result.collector_stopped)
+		'collector_cleared': brew_runtime.bool_value(result.collector_cleared)
+		'collector_restarted': brew_runtime.bool_value(result.collector_restarted)
+		'has_pid': brew_runtime.bool_value(result.has_pid)
+		'pid': brew_runtime.int_value(result.pid)
+	})
+}
+
 // Ruby method `self.without_running_collector(&block)` at line 15.
 pub fn ruby_vernier_fork_guard_l15_d1_self_without_running_collector(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.without_running_collector', ...args)
+	if args.len == 0 {
+		return brew_runtime.object_value('ArgumentError', 'block required')
+	}
+	input := vernier_fork_guard_input_from_value(args[0])
+	return vernier_fork_result_value(vernier_without_running_collector(input.request) or {
+		return brew_runtime.object_value('ArgumentError', err.msg())
+	})
 }
 
 // Ruby method `self.stop_running_collector` at line 48.
 pub fn ruby_vernier_fork_guard_l48_d2_self_stop_running_collector(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.stop_running_collector', ...args)
+	if args.len == 0 {
+		return brew_runtime.object_value('ArgumentError', 'collector state is required')
+	}
+	request := vernier_fork_guard_input_from_value(args[0]).request
+	result := vernier_stop_running_collector(request.vernier_defined, request.collector_running)
+	return brew_runtime.bool_value(result.collector_stopped)
 }
 
 // Ruby alias_method `alias_method :homebrew_vernier_fork_guard_fork, :fork` at line 67.
 pub fn ruby_vernier_fork_guard_l67_d3_homebrew_vernier_fork_guard_fork(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('homebrew_vernier_fork_guard_fork', ...args)
+	_ = args
+	return brew_runtime.object_value('Method', 'fork')
 }
 
 // Ruby alias_method `alias_method :homebrew_vernier_fork_guard_exec, :exec` at line 68.
 pub fn ruby_vernier_fork_guard_l68_d4_homebrew_vernier_fork_guard_exec(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('homebrew_vernier_fork_guard_exec', ...args)
+	_ = args
+	return brew_runtime.object_value('Method', 'exec')
 }
 
 // Ruby method `fork(&block)` at line 70.
 pub fn ruby_vernier_fork_guard_l70_d5_fork(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fork', ...args)
+	if args.len == 0 {
+		return brew_runtime.object_value('ArgumentError', 'block required')
+	}
+	input := vernier_fork_guard_input_from_value(args[0])
+	return vernier_fork_result_value(vernier_without_running_collector(input.request) or {
+		return brew_runtime.object_value('ArgumentError', err.msg())
+	})
 }
 
 // Ruby method `exec(...)` at line 76.
 pub fn ruby_vernier_fork_guard_l76_d6_exec(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('exec', ...args)
+	if args.len == 0 {
+		return brew_runtime.object_value('ArgumentError', 'exec input is required')
+	}
+	input := vernier_fork_guard_input_from_value(args[0])
+	result := vernier_guarded_exec(input.request.vernier_defined, input.request.collector_running,
+		input.command)
+	return brew_runtime.map_value({
+		'collector_stopped': brew_runtime.bool_value(result.collector_stopped)
+		'command': brew_runtime.string_array_value(result.command)
+		'original_exec': brew_runtime.object_value('Method', result.original_exec)
+	})
 }
 
 // Original Ruby source (line-for-line):

@@ -1,348 +1,1049 @@
 module macho
 
 import brew_runtime
+import encoding.binary
+import os
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/ruby-macho-6.0.0/lib/macho/macho_file.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub struct MachoFileOptions {
+pub:
+	permissive bool
+	decompress bool
+}
+
+pub struct DeleteRpathOptions {
+pub:
+	uniq bool
+	last bool
+}
+
+@[heap]
+pub struct MachoFile {
+pub mut:
+	filename         string
+	has_filename     bool
+	options          MachoFileOptions
+	endianness       string
+	header           &MachoHeaderRecord = unsafe { nil }
+	load_commands    []&LoadCommandRecord
+	raw_data         []u8
+	prelinked_header &MachoHeaderRecord = unsafe { nil }
+mut:
+	load_commands_by_type map[string][]&LoadCommandRecord
+}
+
+fn macho_file_options_from_value(value brew_runtime.Value) MachoFileOptions {
+	values := value.as_map() or { return MachoFileOptions{} }
+	return MachoFileOptions{
+		permissive: (values['permissive'] or { brew_runtime.bool_value(false) }).as_bool() or { false }
+		decompress: (values['decompress'] or { brew_runtime.bool_value(false) }).as_bool() or { false }
+	}
+}
+
+fn macho_file_options_value(options MachoFileOptions) brew_runtime.Value {
+	return brew_runtime.map_value({
+		'permissive': brew_runtime.bool_value(options.permissive)
+		'decompress': brew_runtime.bool_value(options.decompress)
+	})
+}
+
+fn nil_macho_value() brew_runtime.Value {
+	return brew_runtime.object_value('NilClass', 'nil')
+}
+
+fn macho_file_boundary(file &MachoFile) brew_runtime.Value {
+	return brew_runtime.structured_value('MachO::MachOFile', '#<MachO::MachOFile>', {
+		'macho_file_address': u64(voidptr(file)).str()
+	})
+}
+
+fn macho_file_from_args(args []brew_runtime.Value) &MachoFile {
+	if args.len == 0 {
+		panic('MachOFile method requires a receiver')
+	}
+	address := (args[0].attribute('macho_file_address') or {
+		panic('${args[0].type_name} has no translated MachOFile state')
+	}).u64()
+	return unsafe { &MachoFile(voidptr(address)) }
+}
+
+fn macho_file_u32(data []u8, offset int, endianness string) !u32 {
+	if offset < 0 || offset + 4 > data.len {
+		return error('File is too short to contain a 32-bit Mach-O field')
+	}
+	return if endianness == 'big' {
+		binary.big_endian_u32_at(data, offset)
+	} else {
+		binary.little_endian_u32_at(data, offset)
+	}
+}
+
+fn macho_file_put_u32(mut data []u8, offset int, value u32, endianness string) ! {
+	if offset < 0 || offset + 4 > data.len {
+		return error('Mach-O field offset is outside serialized data')
+	}
+	if endianness == 'big' {
+		binary.big_endian_put_u32_at(mut data, value, offset)
+	} else {
+		binary.little_endian_put_u32_at(mut data, value, offset)
+	}
+}
+
+fn macho_header_size(header &MachoHeaderRecord) int {
+	return if header.kind == .mach_header64 { 32 } else { 28 }
+}
+
+pub fn new_macho_file_from_bin(data []u8, options MachoFileOptions) !&MachoFile {
+	mut file := &MachoFile{
+		options: options
+		raw_data: data.clone()
+		load_commands_by_type: map[string][]&LoadCommandRecord{}
+	}
+	file.populate_fields()!
+	return file
+}
+
+pub fn new_macho_file(filename string, options MachoFileOptions) !&MachoFile {
+	if !os.is_file(filename) {
+		return error('${filename}: no such file')
+	}
+	data := os.read_bytes(filename)!
+	mut file := new_macho_file_from_bin(data, options)!
+	file.filename = filename
+	file.has_filename = true
+	return file
+}
+
+pub fn (file &MachoFile) serialize() []u8 {
+	return file.raw_data.clone()
+}
+
+pub fn (file &MachoFile) magic_string() string {
+	return header_magic_symbol(file.header.magic)
+}
+
+pub fn (file &MachoFile) filetype_symbol() string {
+	return header_filetype_symbol(file.header.filetype)
+}
+
+pub fn (file &MachoFile) cputype_symbol() string {
+	return header_cpu_type_symbol(file.header.cputype)
+}
+
+pub fn (file &MachoFile) cpusubtype_symbol() string {
+	return header_cpu_subtype_symbol(file.header.cputype, file.header.cpusubtype)
+}
+
+pub fn (file &MachoFile) command(name string) []&LoadCommandRecord {
+	return (file.load_commands_by_type[name.trim_string_left(':')] or { []&LoadCommandRecord{} }).clone()
+}
+
+pub fn (mut file MachoFile) clear_memoization_cache() {
+	file.load_commands_by_type = map[string][]&LoadCommandRecord{}
+}
+
+pub fn (mut file MachoFile) populate_and_check_magic() !u32 {
+	if file.raw_data.len < 4 {
+		return error('File is too short to contain a valid Mach-O header')
+	}
+	magic := binary.big_endian_u32(file.raw_data[..4])
+	if !macho_magic(magic) {
+		return error('Unrecognized Mach-O magic: 0x${magic:08x}')
+	}
+	if macho_fat_magic(magic) {
+		return error('Fat binaries must be loaded with MachO::FatFile')
+	}
+	file.endianness = if macho_little_magic(magic) { 'little' } else { 'big' }
+	return magic
+}
+
+pub fn (file &MachoFile) check_cputype(cputype u32) ! {
+	if header_cpu_type_symbol(cputype) == '' {
+		return error('Unknown CPU type: 0x${cputype:08x}')
+	}
+}
+
+pub fn (file &MachoFile) check_cpusubtype(cputype u32, cpusubtype u32) ! {
+	if header_cpu_subtype_symbol(cputype, cpusubtype & ~cpu_subtype_mask) == '' {
+		return error('Unknown CPU subtype: 0x${cpusubtype:08x} for CPU type 0x${cputype:08x}')
+	}
+}
+
+pub fn (file &MachoFile) check_filetype(filetype u32) ! {
+	if header_filetype_symbol(filetype) == '' {
+		return error('Unknown Mach-O file type: 0x${filetype:08x}')
+	}
+}
+
+pub fn (mut file MachoFile) populate_prelinked_kernel_header() ! {
+	if !file.options.decompress {
+		return error('Compressed Mach-O cannot be loaded without decompression')
+	}
+	if file.raw_data.len < 384 {
+		return error('File is too short to contain a prelinked kernel header')
+	}
+	data := file.raw_data
+	file.prelinked_header = new_prelinked_kernel_header(
+		binary.big_endian_u32_at(data, 0),
+		binary.big_endian_u32_at(data, 4),
+		binary.big_endian_u32_at(data, 8),
+		binary.big_endian_u32_at(data, 12),
+		binary.big_endian_u32_at(data, 16),
+		binary.big_endian_u32_at(data, 20),
+		data[24..64].bytestr(),
+		data[64..128].bytestr().all_before('\0'),
+		data[128..384].bytestr().all_before('\0'),
+	)
+	if file.prelinked_header.compress_type == comp_type_lzss {
+		return error('unsupported compression type: LZSS')
+	}
+	if file.prelinked_header.compress_type != comp_type_fastlib {
+		return error('unknown compression type: 0x${file.prelinked_header.compress_type:x}')
+	}
+	file.decompress_macho_lzvn()!
+}
+
+pub fn (mut file MachoFile) decompress_macho_lzvn() ! {
+	return error('LZVN required but a translated lzfse decoder is not installed')
+}
+
+pub fn (mut file MachoFile) populate_mach_header() !&MachoHeaderRecord {
+	if file.raw_data.len < 28 {
+		return error('File is too short to contain a valid Mach-O header')
+	}
+	first_magic := binary.big_endian_u32(file.raw_data[..4])
+	if macho_compressed_magic(first_magic) {
+		file.populate_prelinked_kernel_header()!
+	}
+	magic := file.populate_and_check_magic()!
+	endianness := file.endianness
+	cputype := macho_file_u32(file.raw_data, 4, endianness)!
+	cpusubtype := macho_file_u32(file.raw_data, 8, endianness)! & ~cpu_subtype_mask
+	filetype := macho_file_u32(file.raw_data, 12, endianness)!
+	ncmds := macho_file_u32(file.raw_data, 16, endianness)!
+	sizeofcmds := macho_file_u32(file.raw_data, 20, endianness)!
+	flags := macho_file_u32(file.raw_data, 24, endianness)!
+	file.check_cputype(cputype)!
+	file.check_cpusubtype(cputype, cpusubtype)!
+	file.check_filetype(filetype)!
+	if macho_magic32(magic) {
+		return new_mach_header(magic, cputype, cpusubtype, filetype, ncmds, sizeofcmds, flags)
+	}
+	if file.raw_data.len < 32 {
+		return error('File is too short to contain a valid 64-bit Mach-O header')
+	}
+	return new_mach_header64(magic, cputype, cpusubtype, filetype, ncmds, sizeofcmds, flags, macho_file_u32(file.raw_data, 28, endianness)!)
+}
+
+pub fn (mut file MachoFile) populate_load_commands() ![]&LoadCommandRecord {
+	header_size := macho_header_size(file.header)
+	commands_end := header_size + int(file.header.sizeofcmds)
+	if commands_end > file.raw_data.len {
+		return error('Declared Mach-O load command region is truncated')
+	}
+	mut offset := header_size
+	mut commands := []&LoadCommandRecord{cap: int(file.header.ncmds)}
+	file.load_commands_by_type = map[string][]&LoadCommandRecord{}
+	for _ in 0 .. int(file.header.ncmds) {
+		if offset + 8 > commands_end {
+			return error('Declared Mach-O load commands are truncated')
+		}
+		cmd := macho_file_u32(file.raw_data, offset, file.endianness)!
+		cmdsize := macho_file_u32(file.raw_data, offset + 4, file.endianness)!
+		if cmdsize % 4 != 0 || cmdsize < 8 || offset + int(cmdsize) > commands_end {
+			return error('Invalid Mach-O load command size: ${cmdsize}')
+		}
+		if load_command_name(cmd) == none && !file.options.permissive {
+			return error('Unrecognized Mach-O load command: 0x${cmd:08x}')
+		}
+		view := new_load_command_view(file.raw_data, offset, file.endianness, file.header.alignment())
+		command := new_load_command_from_bin(.load_command, view)!
+		if int(cmdsize) < load_command_bytesize(command.kind) {
+			return error('Invalid Mach-O load command size: ${cmdsize}')
+		}
+		commands << command
+		name := command.type_symbol() or { '' }
+		mut same_type := file.load_commands_by_type[name] or { []&LoadCommandRecord{} }
+		same_type << command
+		file.load_commands_by_type[name] = same_type
+		offset += int(cmdsize)
+	}
+	segments := commands.filter(it.kind in [.segment, .segment64])
+	for mut command in commands {
+		command.file_segments = segments.clone()
+	}
+	return commands
+}
+
+pub fn (mut file MachoFile) populate_fields() ! {
+	file.clear_memoization_cache()
+	file.header = file.populate_mach_header()!
+	file.load_commands = file.populate_load_commands()!
+}
+
+pub fn (file &MachoFile) dylib_load_commands() []&LoadCommandRecord {
+	return file.load_commands.filter(is_dylib_load_command(it.type_symbol() or { '' })).clone()
+}
+
+pub fn (file &MachoFile) segments() []&LoadCommandRecord {
+	return file.command(if file.header.magic32() { 'LC_SEGMENT' } else { 'LC_SEGMENT_64' })
+}
+
+pub fn (file &MachoFile) calculate_segment_alignment() int {
+	cpu := file.cputype_symbol()
+	if cpu in ['i386', 'x86_64', 'ppc', 'ppc64'] {
+		return 12
+	}
+	if cpu in ['arm', 'arm64'] {
+		return 14
+	}
+	mut current := max_sect_align
+	for segment in file.segments() {
+		mut alignment := segment.guess_align()
+		if file.filetype_symbol() == 'object' {
+			alignment = if file.header.magic32() { 2 } else { 3 }
+			for section in segment.sections {
+				if int(section.align) > alignment {
+					alignment = int(section.align)
+				}
+			}
+		}
+		if alignment < current {
+			current = alignment
+		}
+	}
+	return current
+}
+
+pub fn (file &MachoFile) low_fileoff() int {
+	mut offset := file.raw_data.len
+	for segment in file.segments() {
+		fileoff := int(segment.numbers['fileoff'] or { 0 })
+		filesize := int(segment.numbers['filesize'] or { 0 })
+		nsects := int(segment.numbers['nsects'] or { 0 })
+		if nsects == 0 && fileoff > 0 && filesize > 0 && fileoff < offset {
+			offset = fileoff
+		}
+		for section in segment.sections {
+			section_type := section.flags & 0xff
+			if section.size == 0 || section_type in [u32(1), 12] {
+				continue
+			}
+			if int(section.offset) < offset {
+				offset = int(section.offset)
+			}
+		}
+	}
+	return offset
+}
+
+pub fn (mut file MachoFile) update_ncmds(value u32) ! {
+	macho_file_put_u32(mut file.raw_data, 16, value, file.endianness)!
+}
+
+pub fn (mut file MachoFile) update_sizeofcmds(value u32) ! {
+	macho_file_put_u32(mut file.raw_data, 20, value, file.endianness)!
+}
+
+pub fn (mut file MachoFile) insert_command(offset int, command &LoadCommandRecord, repopulate bool) ! {
+	context := new_serialization_context(file.endianness, file.header.alignment())
+	command_raw := command.serialize(context)!
+	new_size := file.header.sizeofcmds + u32(command_raw.len)
+	if offset < macho_header_size(file.header) || offset + command_raw.len > file.low_fileoff() {
+		return error('Load command offset ${offset} is outside the load command region')
+	}
+	if macho_header_size(file.header) + int(new_size) > file.low_fileoff() {
+		return error('${file.filename}: not enough header padding for the load command')
+	}
+	file.update_ncmds(file.header.ncmds + 1)!
+	file.update_sizeofcmds(new_size)!
+	mut expanded := []u8{cap: file.raw_data.len + command_raw.len}
+	expanded << file.raw_data[..offset]
+	expanded << command_raw
+	expanded << file.raw_data[offset..]
+	file.raw_data = expanded[..file.raw_data.len].clone()
+	if repopulate {
+		file.populate_fields()!
+	}
+}
+
+pub fn (mut file MachoFile) delete_command(command &LoadCommandRecord, repopulate bool) ! {
+	offset := command.source_offset()!
+	size := int(command.cmdsize)
+	if offset < 0 || offset + size > file.raw_data.len {
+		return error('Load command range is outside serialized Mach-O')
+	}
+	new_size := file.header.sizeofcmds - command.cmdsize
+	mut reduced := []u8{cap: file.raw_data.len}
+	reduced << file.raw_data[..offset]
+	reduced << file.raw_data[offset + size..]
+	pad_offset := macho_header_size(file.header) + int(new_size)
+	mut padded := []u8{cap: file.raw_data.len}
+	padded << reduced[..pad_offset]
+	padded << []u8{len: size}
+	padded << reduced[pad_offset..]
+	file.raw_data = padded[..file.raw_data.len].clone()
+	file.update_ncmds(file.header.ncmds - 1)!
+	file.update_sizeofcmds(new_size)!
+	if repopulate {
+		file.populate_fields()!
+	}
+}
+
+pub fn (mut file MachoFile) replace_command(old_command &LoadCommandRecord, new_command &LoadCommandRecord) ! {
+	context := new_serialization_context(file.endianness, file.header.alignment())
+	new_raw := new_command.serialize(context)!
+	new_size := int(file.header.sizeofcmds) + new_raw.len - int(old_command.cmdsize)
+	if macho_header_size(file.header) + new_size > file.low_fileoff() {
+		return error('${file.filename}: not enough header padding for the load command')
+	}
+	offset := old_command.source_offset()!
+	file.delete_command(old_command, true)!
+	file.insert_command(offset, new_command, true)!
+}
+
+pub fn (mut file MachoFile) add_command(command &LoadCommandRecord, repopulate bool) ! {
+	file.insert_command(macho_header_size(file.header) + int(file.header.sizeofcmds), command, repopulate)!
+}
+
+pub fn (file &MachoFile) dylib_id() ?string {
+	if file.header.filetype != mh_dylib {
+		return none
+	}
+	commands := file.command('LC_ID_DYLIB')
+	if commands.len == 0 {
+		return none
+	}
+	return (commands[0].strings['name'] or { LoadCommandLCStr{} }).value
+}
+
+pub fn (mut file MachoFile) change_dylib_id(new_id string) ! {
+	if file.header.filetype != mh_dylib {
+		return
+	}
+	commands := file.command('LC_ID_DYLIB')
+	if commands.len == 0 {
+		return error('Mach-O dylib is missing LC_ID_DYLIB')
+	}
+	old := commands[0]
+	new_command := create_load_command('LC_ID_DYLIB', [
+		brew_runtime.string_value(new_id),
+		brew_runtime.int_value(old.numbers['timestamp'] or { 0 }),
+		brew_runtime.int_value(old.numbers['current_version'] or { 0 }),
+		brew_runtime.int_value(old.numbers['compatibility_version'] or { 0 }),
+	])!
+	file.replace_command(old, new_command)!
+}
+
+pub fn (file &MachoFile) linked_dylibs() []string {
+	mut result := []string{}
+	for command in file.dylib_load_commands() {
+		name := (command.strings['name'] or { LoadCommandLCStr{} }).value
+		if name !in result {
+			result << name
+		}
+	}
+	return result
+}
+
+pub fn (mut file MachoFile) change_install_name(old_name string, new_name string) ! {
+	for old in file.dylib_load_commands() {
+		if (old.strings['name'] or { LoadCommandLCStr{} }).value == old_name {
+			new_command := create_load_command(old.type_symbol() or { '' }, [
+				brew_runtime.string_value(new_name),
+				brew_runtime.int_value(old.numbers['timestamp'] or { 0 }),
+				brew_runtime.int_value(old.numbers['current_version'] or { 0 }),
+				brew_runtime.int_value(old.numbers['compatibility_version'] or { 0 }),
+				brew_runtime.int_value(old.numbers['flags'] or { 0 }),
+			])!
+			file.replace_command(old, new_command)!
+			return
+		}
+	}
+	return error('Unknown linked dylib: ${old_name}')
+}
+
+pub fn (file &MachoFile) rpaths() []string {
+	return file.command('LC_RPATH').map((it.strings['path'] or { LoadCommandLCStr{} }).value)
+}
+
+pub fn (mut file MachoFile) delete_rpath(path string, options DeleteRpathOptions) ! {
+	if options.uniq && options.last {
+		return error('Cannot set both :uniq and :last to true')
+	}
+	mut matches := file.command('LC_RPATH').filter((it.strings['path'] or { LoadCommandLCStr{} }).value == path)
+	if matches.len == 0 {
+		return error('Unknown rpath: ${path}')
+	}
+	if !options.uniq {
+		matches = if options.last { [matches.last()] } else { [matches[0]] }
+	}
+	for index := matches.len - 1; index >= 0; index-- {
+		file.delete_command(matches[index], true)!
+	}
+}
+
+pub fn (mut file MachoFile) change_rpath(old_path string, new_path string, options DeleteRpathOptions) ! {
+	commands := file.command('LC_RPATH').filter((it.strings['path'] or { LoadCommandLCStr{} }).value == old_path)
+	if commands.len == 0 {
+		return error('Unknown rpath: ${old_path}')
+	}
+	offset := commands[0].source_offset()!
+	new_command := create_load_command('LC_RPATH', [
+		brew_runtime.string_value(new_path),
+	])!
+	file.delete_rpath(old_path, options)!
+	file.insert_command(offset, new_command, true)!
+}
+
+pub fn (mut file MachoFile) add_rpath(path string) ! {
+	if path in file.rpaths() {
+		return error('Rpath already exists: ${path}')
+	}
+	file.add_command(create_load_command('LC_RPATH', [brew_runtime.string_value(path)])!, true)!
+}
+
+fn macho_file_code_signing_adapter(file &MachoFile) &CodeSigningMachO {
+	mut commands := []CodeSigningCommand{}
+	mut segments := []CodeSigningSegment{}
+	for command in file.load_commands {
+		kind := command.type_symbol() or { '' }
+		commands << CodeSigningCommand{
+			kind: kind
+			view_offset: command.view_offset
+			version: u32(command.numbers['version'] or { 0 })
+			minos: u32(command.numbers['minos'] or { 0 })
+			platform: u32(command.numbers['platform'] or { 0 })
+			uuid: command.uuid.clone()
+			dataoff: u32(command.numbers['dataoff'] or { 0 })
+			datasize: u32(command.numbers['datasize'] or { 0 })
+		}
+		if command.kind in [.segment, .segment64] {
+			segments << CodeSigningSegment{
+				segname: (command.strings['segname'] or { LoadCommandLCStr{} }).value
+				fileoff: u64(command.numbers['fileoff'] or { 0 })
+				view_offset: command.view_offset
+				sections: command.sections.map(CodeSigningSection{
+					segname: it.segname
+					sectname: it.sectname
+					offset: it.offset
+					size: it.size
+				})
+				filesize: u64(command.numbers['filesize'] or { 0 })
+				vmsize: u64(command.numbers['vmsize'] or { 0 })
+			}
+		}
+	}
+	return &CodeSigningMachO{
+		filename: file.filename
+		header_size: macho_header_size(file.header)
+		endianness: file.endianness
+		segment_alignment: file.calculate_segment_alignment()
+		executable: file.header.filetype == mh_execute
+		magic64: file.header.magic64()
+		data: file.raw_data.clone()
+		commands: commands
+		segments: segments
+		ncmds: file.header.ncmds
+		sizeofcmds: file.header.sizeofcmds
+	}
+}
+
+pub fn (mut file MachoFile) codesign(identifier string) ! {
+	adapter := macho_file_code_signing_adapter(file)
+	actual_identifier := if identifier == '' {
+		code_signing_identifier(adapter, file.filename)
+	} else {
+		identifier
+	}
+	mut signer := new_adhoc_signer(adapter, actual_identifier)
+	signer.sign()!
+	file.raw_data = adapter.data.clone()
+	file.populate_fields()!
+}
+
+pub fn (file &MachoFile) write(filename string) ! {
+	os.write_file_array(filename, file.raw_data)!
+}
+
+pub fn (file &MachoFile) write_initial() ! {
+	if !file.has_filename {
+		return error('no initial file to write to')
+	}
+	file.write(file.filename)!
+}
+
+pub fn (file &MachoFile) to_h() brew_runtime.Value {
+	return brew_runtime.map_value({
+		'header':        file.header.to_h()
+		'load_commands': brew_runtime.array_value(file.load_commands.map(it.to_h()))
+	})
+}
+
+fn delete_rpath_options_from_value(value brew_runtime.Value) DeleteRpathOptions {
+	values := value.as_map() or { return DeleteRpathOptions{} }
+	return DeleteRpathOptions{
+		uniq: (values['uniq'] or { brew_runtime.bool_value(false) }).as_bool() or { false }
+		last: (values['last'] or { brew_runtime.bool_value(false) }).as_bool() or { false }
+	}
+}
 
 // Ruby attr_accessor `attr_accessor :filename` at line 16.
 pub fn ruby_macho_file_l16_d1_filename(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('filename', ...args)
+	file := macho_file_from_args(args)
+	return if file.has_filename {
+		brew_runtime.string_value(file.filename)
+	} else {
+		nil_macho_value()
+	}
 }
 
 // Ruby attr_accessor `attr_accessor :filename` at line 16.
 pub fn ruby_macho_file_l16_d2_filename(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('filename=', ...args)
+	mut file := macho_file_from_args(args)
+	if args.len < 2 { panic('filename= requires a filename') }
+	file.filename = args[1].as_string()
+	file.has_filename = args[1].type_name != 'NilClass'
+	return args[1]
 }
 
 // Ruby attr_reader `attr_reader :options` at line 19.
 pub fn ruby_macho_file_l19_d3_options(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('options', ...args)
+	return macho_file_options_value(macho_file_from_args(args).options)
 }
 
 // Ruby attr_reader `attr_reader :endianness` at line 22.
 pub fn ruby_macho_file_l22_d4_endianness(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('endianness', ...args)
+	return brew_runtime.object_value('Symbol', ':${macho_file_from_args(args).endianness}')
 }
 
 // Ruby attr_reader `attr_reader :header` at line 26.
 pub fn ruby_macho_file_l26_d5_header(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('header', ...args)
+	return macho_header_boundary(macho_file_from_args(args).header)
 }
 
 // Ruby attr_reader `attr_reader :load_commands` at line 31.
 pub fn ruby_macho_file_l31_d6_load_commands(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('load_commands', ...args)
+	return brew_runtime.array_value(macho_file_from_args(args).load_commands.map(load_command_boundary(it)))
 }
 
 // Ruby method `self.new_from_bin(bin, **opts)` at line 42.
 pub fn ruby_macho_file_l42_d7_self_new_from_bin(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.new_from_bin', ...args)
+	if args.len == 0 { panic('new_from_bin requires binary data') }
+	options := if args.len > 1 {
+		macho_file_options_from_value(args[1])
+	} else {
+		MachoFileOptions{}
+	}
+	return macho_file_boundary(new_macho_file_from_bin(args[0].as_string().bytes(), options) or { panic(err) })
 }
 
 // Ruby method `initialize(filename, **opts)` at line 58.
 pub fn ruby_macho_file_l58_d8_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	if args.len == 0 { panic('initialize requires a filename') }
+	options := if args.len > 1 {
+		macho_file_options_from_value(args[1])
+	} else {
+		MachoFileOptions{}
+	}
+	return macho_file_boundary(new_macho_file(args[0].as_string(), options) or { panic(err) })
 }
 
 // Ruby method `initialize_from_bin(bin, opts)` at line 75.
 pub fn ruby_macho_file_l75_d9_initialize_from_bin(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize_from_bin', ...args)
+	if args.len == 0 { panic('initialize_from_bin requires binary data') }
+	options := if args.len > 1 {
+		macho_file_options_from_value(args[1])
+	} else {
+		MachoFileOptions{}
+	}
+	return macho_file_boundary(new_macho_file_from_bin(args[0].as_string().bytes(), options) or { panic(err) })
 }
 
 // Ruby method `serialize` at line 84.
 pub fn ruby_macho_file_l84_d10_serialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('serialize', ...args)
+	return brew_runtime.string_value(macho_file_from_args(args).serialize().bytestr())
 }
 
 // Ruby def_delegators `def_delegators :header, :magic, :ncmds, :sizeofcmds, :flags, :object?, :executable?, :fvmlib?, :core?, :preload?, :dylib?, :dylinker?, :bundle?, :dsym?, :kext?, :magic32?, :magic64?, :alignment` at line 122.
 pub fn ruby_macho_file_l122_d11_magic(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('magic', ...args)
+	return brew_runtime.int_value(macho_file_from_args(args).header.magic)
 }
 
 // Ruby def_delegators `def_delegators :header, :magic, :ncmds, :sizeofcmds, :flags, :object?, :executable?, :fvmlib?, :core?, :preload?, :dylib?, :dylinker?, :bundle?, :dsym?, :kext?, :magic32?, :magic64?, :alignment` at line 122.
 pub fn ruby_macho_file_l122_d12_ncmds(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ncmds', ...args)
+	return brew_runtime.int_value(macho_file_from_args(args).header.ncmds)
 }
 
 // Ruby def_delegators `def_delegators :header, :magic, :ncmds, :sizeofcmds, :flags, :object?, :executable?, :fvmlib?, :core?, :preload?, :dylib?, :dylinker?, :bundle?, :dsym?, :kext?, :magic32?, :magic64?, :alignment` at line 122.
 pub fn ruby_macho_file_l122_d13_sizeofcmds(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sizeofcmds', ...args)
+	return brew_runtime.int_value(macho_file_from_args(args).header.sizeofcmds)
 }
 
 // Ruby def_delegators `def_delegators :header, :magic, :ncmds, :sizeofcmds, :flags, :object?, :executable?, :fvmlib?, :core?, :preload?, :dylib?, :dylinker?, :bundle?, :dsym?, :kext?, :magic32?, :magic64?, :alignment` at line 122.
 pub fn ruby_macho_file_l122_d14_flags(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('flags', ...args)
+	return brew_runtime.int_value(macho_file_from_args(args).header.flags)
 }
 
 // Ruby def_delegators `def_delegators :header, :magic, :ncmds, :sizeofcmds, :flags, :object?, :executable?, :fvmlib?, :core?, :preload?, :dylib?, :dylinker?, :bundle?, :dsym?, :kext?, :magic32?, :magic64?, :alignment` at line 122.
 pub fn ruby_macho_file_l122_d15_object(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('object?', ...args)
+	return brew_runtime.bool_value(macho_file_from_args(args).header.filetype == mh_object)
 }
 
 // Ruby def_delegators `def_delegators :header, :magic, :ncmds, :sizeofcmds, :flags, :object?, :executable?, :fvmlib?, :core?, :preload?, :dylib?, :dylinker?, :bundle?, :dsym?, :kext?, :magic32?, :magic64?, :alignment` at line 122.
 pub fn ruby_macho_file_l122_d16_executable(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('executable?', ...args)
+	return brew_runtime.bool_value(macho_file_from_args(args).header.filetype == mh_execute)
 }
 
 // Ruby def_delegators `def_delegators :header, :magic, :ncmds, :sizeofcmds, :flags, :object?, :executable?, :fvmlib?, :core?, :preload?, :dylib?, :dylinker?, :bundle?, :dsym?, :kext?, :magic32?, :magic64?, :alignment` at line 122.
 pub fn ruby_macho_file_l122_d17_fvmlib(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fvmlib?', ...args)
+	return brew_runtime.bool_value(macho_file_from_args(args).header.filetype == mh_fvmlib)
 }
 
 // Ruby def_delegators `def_delegators :header, :magic, :ncmds, :sizeofcmds, :flags, :object?, :executable?, :fvmlib?, :core?, :preload?, :dylib?, :dylinker?, :bundle?, :dsym?, :kext?, :magic32?, :magic64?, :alignment` at line 122.
 pub fn ruby_macho_file_l122_d18_core(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('core?', ...args)
+	return brew_runtime.bool_value(macho_file_from_args(args).header.filetype == mh_core)
 }
 
 // Ruby def_delegators `def_delegators :header, :magic, :ncmds, :sizeofcmds, :flags, :object?, :executable?, :fvmlib?, :core?, :preload?, :dylib?, :dylinker?, :bundle?, :dsym?, :kext?, :magic32?, :magic64?, :alignment` at line 122.
 pub fn ruby_macho_file_l122_d19_preload(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('preload?', ...args)
+	return brew_runtime.bool_value(macho_file_from_args(args).header.filetype == mh_preload)
 }
 
 // Ruby def_delegators `def_delegators :header, :magic, :ncmds, :sizeofcmds, :flags, :object?, :executable?, :fvmlib?, :core?, :preload?, :dylib?, :dylinker?, :bundle?, :dsym?, :kext?, :magic32?, :magic64?, :alignment` at line 122.
 pub fn ruby_macho_file_l122_d20_dylib(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dylib?', ...args)
+	return brew_runtime.bool_value(macho_file_from_args(args).header.filetype == mh_dylib)
 }
 
 // Ruby def_delegators `def_delegators :header, :magic, :ncmds, :sizeofcmds, :flags, :object?, :executable?, :fvmlib?, :core?, :preload?, :dylib?, :dylinker?, :bundle?, :dsym?, :kext?, :magic32?, :magic64?, :alignment` at line 122.
 pub fn ruby_macho_file_l122_d21_dylinker(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dylinker?', ...args)
+	return brew_runtime.bool_value(macho_file_from_args(args).header.filetype == mh_dylinker)
 }
 
 // Ruby def_delegators `def_delegators :header, :magic, :ncmds, :sizeofcmds, :flags, :object?, :executable?, :fvmlib?, :core?, :preload?, :dylib?, :dylinker?, :bundle?, :dsym?, :kext?, :magic32?, :magic64?, :alignment` at line 122.
 pub fn ruby_macho_file_l122_d22_bundle(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('bundle?', ...args)
+	return brew_runtime.bool_value(macho_file_from_args(args).header.filetype == mh_bundle)
 }
 
 // Ruby def_delegators `def_delegators :header, :magic, :ncmds, :sizeofcmds, :flags, :object?, :executable?, :fvmlib?, :core?, :preload?, :dylib?, :dylinker?, :bundle?, :dsym?, :kext?, :magic32?, :magic64?, :alignment` at line 122.
 pub fn ruby_macho_file_l122_d23_dsym(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dsym?', ...args)
+	return brew_runtime.bool_value(macho_file_from_args(args).header.filetype == mh_dsym)
 }
 
 // Ruby def_delegators `def_delegators :header, :magic, :ncmds, :sizeofcmds, :flags, :object?, :executable?, :fvmlib?, :core?, :preload?, :dylib?, :dylinker?, :bundle?, :dsym?, :kext?, :magic32?, :magic64?, :alignment` at line 122.
 pub fn ruby_macho_file_l122_d24_kext(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('kext?', ...args)
+	return brew_runtime.bool_value(macho_file_from_args(args).header.filetype == mh_kext_bundle)
 }
 
 // Ruby def_delegators `def_delegators :header, :magic, :ncmds, :sizeofcmds, :flags, :object?, :executable?, :fvmlib?, :core?, :preload?, :dylib?, :dylinker?, :bundle?, :dsym?, :kext?, :magic32?, :magic64?, :alignment` at line 122.
 pub fn ruby_macho_file_l122_d25_magic32(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('magic32?', ...args)
+	return brew_runtime.bool_value(macho_file_from_args(args).header.magic32())
 }
 
 // Ruby def_delegators `def_delegators :header, :magic, :ncmds, :sizeofcmds, :flags, :object?, :executable?, :fvmlib?, :core?, :preload?, :dylib?, :dylinker?, :bundle?, :dsym?, :kext?, :magic32?, :magic64?, :alignment` at line 122.
 pub fn ruby_macho_file_l122_d26_magic64(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('magic64?', ...args)
+	return brew_runtime.bool_value(macho_file_from_args(args).header.magic64())
 }
 
 // Ruby def_delegators `def_delegators :header, :magic, :ncmds, :sizeofcmds, :flags, :object?, :executable?, :fvmlib?, :core?, :preload?, :dylib?, :dylinker?, :bundle?, :dsym?, :kext?, :magic32?, :magic64?, :alignment` at line 122.
 pub fn ruby_macho_file_l122_d27_alignment(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('alignment', ...args)
+	return brew_runtime.int_value(macho_file_from_args(args).header.alignment())
 }
 
 // Ruby method `magic_string` at line 128.
 pub fn ruby_macho_file_l128_d28_magic_string(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('magic_string', ...args)
+	return brew_runtime.string_value(macho_file_from_args(args).magic_string())
 }
 
 // Ruby method `filetype` at line 133.
 pub fn ruby_macho_file_l133_d29_filetype(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('filetype', ...args)
+	return brew_runtime.object_value('Symbol', ':${macho_file_from_args(args).filetype_symbol()}')
 }
 
 // Ruby method `cputype` at line 138.
 pub fn ruby_macho_file_l138_d30_cputype(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cputype', ...args)
+	return brew_runtime.object_value('Symbol', ':${macho_file_from_args(args).cputype_symbol()}')
 }
 
 // Ruby method `cpusubtype` at line 143.
 pub fn ruby_macho_file_l143_d31_cpusubtype(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cpusubtype', ...args)
+	return brew_runtime.object_value('Symbol', ':${macho_file_from_args(args).cpusubtype_symbol()}')
 }
 
 // Ruby method `command(name)` at line 154.
 pub fn ruby_macho_file_l154_d32_command(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('command', ...args)
+	if args.len < 2 { panic('command requires a name') }
+	return brew_runtime.array_value(macho_file_from_args(args).command(args[1].as_string()).map(load_command_boundary(it)))
 }
 
 // Ruby alias `alias [] command` at line 158.
 pub fn ruby_macho_file_l158_d33_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('[]', ...args)
+	return ruby_macho_file_l154_d32_command(...args)
 }
 
 // Ruby method `insert_command(offset, lc, options = {})` at line 170.
 pub fn ruby_macho_file_l170_d34_insert_command(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('insert_command', ...args)
+	if args.len < 3 { panic('insert_command requires an offset and load command') }
+	mut file := macho_file_from_args(args)
+	repopulate := if args.len > 3 {
+		(args[3].as_map() or { map[string]brew_runtime.Value{} })['repopulate'].as_bool() or { true }
+	} else {
+		true
+	}
+	file.insert_command(int(args[1].as_int() or { panic(err) }), load_command_from_args(args[2..3]), repopulate) or { panic(err) }
+	return nil_macho_value()
 }
 
 // Ruby method `replace_command(old_lc, new_lc)` at line 198.
 pub fn ruby_macho_file_l198_d35_replace_command(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('replace_command', ...args)
+	if args.len < 3 { panic('replace_command requires old and new load commands') }
+	mut file := macho_file_from_args(args)
+	file.replace_command(load_command_from_args(args[1..2]), load_command_from_args(args[2..3])) or { panic(err) }
+	return nil_macho_value()
 }
 
 // Ruby method `add_command(lc, options = {})` at line 220.
 pub fn ruby_macho_file_l220_d36_add_command(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('add_command', ...args)
+	if args.len < 2 { panic('add_command requires a load command') }
+	mut file := macho_file_from_args(args)
+	repopulate := if args.len > 2 {
+		(args[2].as_map() or { map[string]brew_runtime.Value{} })['repopulate'].as_bool() or { true }
+	} else {
+		true
+	}
+	file.add_command(load_command_from_args(args[1..2]), repopulate) or { panic(err) }
+	return nil_macho_value()
 }
 
 // Ruby method `delete_command(lc, options = {})` at line 234.
 pub fn ruby_macho_file_l234_d37_delete_command(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('delete_command', ...args)
+	if args.len < 2 { panic('delete_command requires a load command') }
+	mut file := macho_file_from_args(args)
+	repopulate := if args.len > 2 {
+		(args[2].as_map() or { map[string]brew_runtime.Value{} })['repopulate'].as_bool() or { true }
+	} else {
+		true
+	}
+	file.delete_command(load_command_from_args(args[1..2]), repopulate) or { panic(err) }
+	return nil_macho_value()
 }
 
 // Ruby method `populate_fields` at line 252.
 pub fn ruby_macho_file_l252_d38_populate_fields(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('populate_fields', ...args)
+	mut file := macho_file_from_args(args)
+	file.populate_fields() or { panic(err) }
+	return nil_macho_value()
 }
 
 // Ruby method `dylib_load_commands` at line 260.
 pub fn ruby_macho_file_l260_d39_dylib_load_commands(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dylib_load_commands', ...args)
+	return brew_runtime.array_value(macho_file_from_args(args).dylib_load_commands().map(load_command_boundary(it)))
 }
 
 // Ruby method `segments` at line 268.
 pub fn ruby_macho_file_l268_d40_segments(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('segments', ...args)
+	return brew_runtime.array_value(macho_file_from_args(args).segments().map(load_command_boundary(it)))
 }
 
 // Ruby method `segment_alignment` at line 280.
 pub fn ruby_macho_file_l280_d41_segment_alignment(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('segment_alignment', ...args)
+	return brew_runtime.int_value(macho_file_from_args(args).calculate_segment_alignment())
 }
 
 // Ruby method `dylib_id` at line 288.
 pub fn ruby_macho_file_l288_d42_dylib_id(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dylib_id', ...args)
+	return if id := macho_file_from_args(args).dylib_id() {
+		brew_runtime.string_value(id)
+	} else {
+		nil_macho_value()
+	}
 }
 
 // Ruby method `change_dylib_id(new_id, _options = {})` at line 305.
 pub fn ruby_macho_file_l305_d43_change_dylib_id(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('change_dylib_id', ...args)
+	if args.len < 2 || args[1].type_name != 'String' { panic('new ID must be a String') }
+	mut file := macho_file_from_args(args)
+	file.change_dylib_id(args[1].as_string()) or { panic(err) }
+	return nil_macho_value()
 }
 
 // Ruby alias `alias dylib_id= change_dylib_id` at line 320.
 pub fn ruby_macho_file_l320_d44_dylib_id(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dylib_id=', ...args)
+	return ruby_macho_file_l305_d43_change_dylib_id(...args)
 }
 
 // Ruby method `linked_dylibs` at line 324.
 pub fn ruby_macho_file_l324_d45_linked_dylibs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('linked_dylibs', ...args)
+	return brew_runtime.string_array_value(macho_file_from_args(args).linked_dylibs())
 }
 
 // Ruby method `change_install_name(old_name, new_name, _options = {})` at line 343.
 pub fn ruby_macho_file_l343_d46_change_install_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('change_install_name', ...args)
+	if args.len < 3 { panic('change_install_name requires old and new names') }
+	mut file := macho_file_from_args(args)
+	file.change_install_name(args[1].as_string(), args[2].as_string()) or { panic(err) }
+	return nil_macho_value()
 }
 
 // Ruby alias `alias change_dylib change_install_name` at line 355.
 pub fn ruby_macho_file_l355_d47_change_dylib(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('change_dylib', ...args)
+	return ruby_macho_file_l343_d46_change_install_name(...args)
 }
 
 // Ruby method `rpaths` at line 359.
 pub fn ruby_macho_file_l359_d48_rpaths(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('rpaths', ...args)
+	return brew_runtime.string_array_value(macho_file_from_args(args).rpaths())
 }
 
 // Ruby method `change_rpath(old_path, new_path, options = {})` at line 374.
 pub fn ruby_macho_file_l374_d49_change_rpath(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('change_rpath', ...args)
+	if args.len < 3 { panic('change_rpath requires old and new paths') }
+	mut file := macho_file_from_args(args)
+	options := if args.len > 3 {
+		delete_rpath_options_from_value(args[3])
+	} else {
+		DeleteRpathOptions{}
+	}
+	file.change_rpath(args[1].as_string(), args[2].as_string(), options) or { panic(err) }
+	return nil_macho_value()
 }
 
 // Ruby method `add_rpath(path, _options = {})` at line 395.
 pub fn ruby_macho_file_l395_d50_add_rpath(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('add_rpath', ...args)
+	if args.len < 2 { panic('add_rpath requires a path') }
+	mut file := macho_file_from_args(args)
+	file.add_rpath(args[1].as_string()) or { panic(err) }
+	return nil_macho_value()
 }
 
 // Ruby method `delete_rpath(path, options = {})` at line 424.
 pub fn ruby_macho_file_l424_d51_delete_rpath(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('delete_rpath', ...args)
+	if args.len < 2 { panic('delete_rpath requires a path') }
+	mut file := macho_file_from_args(args)
+	options := if args.len > 2 {
+		delete_rpath_options_from_value(args[2])
+	} else {
+		DeleteRpathOptions{}
+	}
+	file.delete_rpath(args[1].as_string(), options) or { panic(err) }
+	return nil_macho_value()
 }
 
 // Ruby method `codesign!(identifier: nil)` at line 444.
 pub fn ruby_macho_file_l444_d52_codesign(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('codesign!', ...args)
+	mut file := macho_file_from_args(args)
+	identifier := if args.len > 1 && args[1].type_name != 'NilClass' {
+		args[1].as_string()
+	} else {
+		''
+	}
+	file.codesign(identifier) or { panic(err) }
+	return nil_macho_value()
 }
 
 // Ruby method `write(filename)` at line 451.
 pub fn ruby_macho_file_l451_d53_write(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('write', ...args)
+	if args.len < 2 { panic('write requires a filename') }
+	macho_file_from_args(args).write(args[1].as_string()) or { panic(err) }
+	return brew_runtime.int_value(macho_file_from_args(args).raw_data.len)
 }
 
 // Ruby method `write!` at line 459.
 pub fn ruby_macho_file_l459_d54_write(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('write!', ...args)
+	macho_file_from_args(args).write_initial() or { panic(err) }
+	return brew_runtime.int_value(macho_file_from_args(args).raw_data.len)
 }
 
 // Ruby method `to_h` at line 466.
 pub fn ruby_macho_file_l466_d55_to_h(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_h', ...args)
+	return macho_file_from_args(args).to_h()
 }
 
 // Ruby method `clear_memoization_cache` at line 478.
 pub fn ruby_macho_file_l478_d56_clear_memoization_cache(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('clear_memoization_cache', ...args)
+	mut file := macho_file_from_args(args)
+	file.clear_memoization_cache()
+	return nil_macho_value()
 }
 
 // Ruby method `populate_mach_header` at line 491.
 pub fn ruby_macho_file_l491_d57_populate_mach_header(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('populate_mach_header', ...args)
+	mut file := macho_file_from_args(args)
+	return macho_header_boundary(file.populate_mach_header() or { panic(err) })
 }
 
 // Ruby method `populate_prelinked_kernel_header` at line 515.
 pub fn ruby_macho_file_l515_d58_populate_prelinked_kernel_header(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('populate_prelinked_kernel_header', ...args)
+	mut file := macho_file_from_args(args)
+	file.populate_prelinked_kernel_header() or { panic(err) }
+	return nil_macho_value()
 }
 
 // Ruby method `decompress_macho_lzvn` at line 532.
 pub fn ruby_macho_file_l532_d59_decompress_macho_lzvn(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('decompress_macho_lzvn', ...args)
+	mut file := macho_file_from_args(args)
+	file.decompress_macho_lzvn() or { panic(err) }
+	return nil_macho_value()
 }
 
 // Ruby method `populate_and_check_magic` at line 556.
 pub fn ruby_macho_file_l556_d60_populate_and_check_magic(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('populate_and_check_magic', ...args)
+	mut file := macho_file_from_args(args)
+	return brew_runtime.int_value(file.populate_and_check_magic() or { panic(err) })
 }
 
 // Ruby method `check_cputype(cputype)` at line 571.
 pub fn ruby_macho_file_l571_d61_check_cputype(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('check_cputype', ...args)
+	if args.len < 2 { panic('check_cputype requires a CPU type') }
+	macho_file_from_args(args).check_cputype(u32(args[1].as_int() or { panic(err) })) or { panic(err) }
+	return nil_macho_value()
 }
 
 // Ruby method `check_cpusubtype(cputype, cpusubtype)` at line 579.
 pub fn ruby_macho_file_l579_d62_check_cpusubtype(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('check_cpusubtype', ...args)
+	if args.len < 3 { panic('check_cpusubtype requires a CPU type and subtype') }
+	macho_file_from_args(args).check_cpusubtype(u32(args[1].as_int() or { panic(err) }), u32(args[2].as_int() or { panic(err) })) or { panic(err) }
+	return nil_macho_value()
 }
 
 // Ruby method `check_filetype(filetype)` at line 588.
 pub fn ruby_macho_file_l588_d63_check_filetype(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('check_filetype', ...args)
+	if args.len < 2 { panic('check_filetype requires a file type') }
+	macho_file_from_args(args).check_filetype(u32(args[1].as_int() or { panic(err) })) or { panic(err) }
+	return nil_macho_value()
 }
 
 // Ruby method `populate_load_commands` at line 598.
 pub fn ruby_macho_file_l598_d64_populate_load_commands(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('populate_load_commands', ...args)
+	mut file := macho_file_from_args(args)
+	return brew_runtime.array_value((file.populate_load_commands() or { panic(err) }).map(load_command_boundary(it)))
 }
 
 // Ruby method `calculate_segment_alignment` at line 643.
 pub fn ruby_macho_file_l643_d65_calculate_segment_alignment(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('calculate_segment_alignment', ...args)
+	return brew_runtime.int_value(macho_file_from_args(args).calculate_segment_alignment())
 }
 
 // Ruby method `low_fileoff` at line 669.
 pub fn ruby_macho_file_l669_d66_low_fileoff(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('low_fileoff', ...args)
+	return brew_runtime.int_value(macho_file_from_args(args).low_fileoff())
 }
 
 // Ruby method `update_ncmds(ncmds)` at line 693.
 pub fn ruby_macho_file_l693_d67_update_ncmds(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('update_ncmds', ...args)
+	if args.len < 2 { panic('update_ncmds requires a count') }
+	mut file := macho_file_from_args(args)
+	file.update_ncmds(u32(args[1].as_int() or { panic(err) })) or { panic(err) }
+	return nil_macho_value()
 }
 
 // Ruby method `update_sizeofcmds(size)` at line 703.
 pub fn ruby_macho_file_l703_d68_update_sizeofcmds(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('update_sizeofcmds', ...args)
+	if args.len < 2 { panic('update_sizeofcmds requires a size') }
+	mut file := macho_file_from_args(args)
+	file.update_sizeofcmds(u32(args[1].as_int() or { panic(err) })) or { panic(err) }
+	return nil_macho_value()
 }
 
 // Original Ruby source (line-for-line):

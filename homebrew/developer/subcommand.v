@@ -1,13 +1,22 @@
 module developer
 
-import brew_runtime
+import homebrew.developer.subcommand
 
 // Translated from Homebrew/brew `developer/subcommand.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `dispatch(args)` at line 16.
-pub fn ruby_subcommand_l16_d1_dispatch(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dispatch', ...args)
+pub fn ruby_subcommand_l16_d1_dispatch(arguments []string, mut state subcommand.DeveloperState) !string {
+	if arguments.len > 1 {
+		return error('developer accepts at most one named argument')
+	}
+	name := if arguments.len == 0 { 'state' } else { arguments[0] }
+	return match name {
+		'on' { subcommand.ruby_on_l22_d1_run(mut state) }
+		'off' { subcommand.ruby_off_l22_d1_run(mut state) }
+		'state' { subcommand.ruby_state_l21_d1_run(state) }
+		else { error('unknown developer subcommand: ${name}') }
+	}
 }
 
 // Original Ruby source (line-for-line):

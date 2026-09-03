@@ -1,38 +1,49 @@
 module bottle
 
 import brew_runtime
+import homebrew.rubocops as bottle_core
 
 // Translated from Homebrew/brew `test/rubocops/bottle/bottle_digest_indentation_spec.rb`.
-// The original source is retained below until every stub has a typed V body.
+// The original source is retained below for line-by-line provenance.
 
 // Ruby subject `subject(:cop) { described_class.new }` at line 7.
 pub fn ruby_bottle_digest_indentation_spec_l7_d1_cop(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cop', ...args)
+	return brew_runtime.object_value('RuboCop::Cop::FormulaAudit::BottleDigestIndentation', 'FormulaAudit/BottleDigestIndentation')
 }
 
 // Ruby it `it "reports no offenses for `bottle :unneeded`" do` at line 9.
-pub fn ruby_bottle_digest_indentation_spec_l9_d2_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_bottle_digest_indentation_spec_l9_d2_reports() bool {
+	return bottle_core.audit_bottle_digest_indentation(bottle_spec_formula('  bottle :unneeded')).len == 0
 }
 
 // Ruby it `it "reports no offenses for properly aligned digests in `bottle` blocks without cellars" do` at line 19.
-pub fn ruby_bottle_digest_indentation_spec_l19_d3_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_bottle_digest_indentation_spec_l19_d3_reports() bool {
+	multiple := bottle_spec_formula('  bottle do\n    rebuild 4\n    sha256 arm64_big_sur: "aaaaaaaa"\n    sha256 big_sur:       "faceb00c"\n    sha256 catalina:      "deadbeef"\n  end')
+	single := bottle_spec_formula('  bottle do\n    sha256 arm64_big_sur: "aaaaaaaa"\n  end')
+	return bottle_core.audit_bottle_digest_indentation(multiple).len == 0 && bottle_core.audit_bottle_digest_indentation(single).len == 0
 }
 
 // Ruby it `it "reports no offenses for properly aligned tags in `bottle` blocks with cellars" do` at line 44.
-pub fn ruby_bottle_digest_indentation_spec_l44_d4_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_bottle_digest_indentation_spec_l44_d4_reports() bool {
+	multiple := bottle_spec_formula('  bottle do\n    rebuild 4\n    sha256 cellar: :any,                arm64_big_sur: "aaaaaaaa"\n    sha256 cellar: "/usr/local/Cellar", big_sur:       "faceb00c"\n    sha256                              catalina:      "deadbeef"\n  end')
+	single := bottle_spec_formula('  bottle do\n    sha256 cellar: :any, arm64_big_sur: "aaaaaaaa"\n  end')
+	return bottle_core.audit_bottle_digest_indentation(multiple).len == 0 && bottle_core.audit_bottle_digest_indentation(single).len == 0
 }
 
 // Ruby it `it "reports and corrects misaligned digests in `bottle` block" do` at line 69.
-pub fn ruby_bottle_digest_indentation_spec_l69_d5_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_bottle_digest_indentation_spec_l69_d5_reports() bool {
+	source := bottle_spec_formula('  bottle do\n    rebuild 4\n    sha256 arm64_big_sur: "aaaaaaaa"\n    sha256 big_sur: "faceb00c"\n    sha256 catalina: "deadbeef"\n  end')
+	expected := bottle_spec_formula('  bottle do\n    rebuild 4\n    sha256 arm64_big_sur: "aaaaaaaa"\n    sha256 big_sur:       "faceb00c"\n    sha256 catalina:      "deadbeef"\n  end')
+	problems := bottle_core.audit_bottle_digest_indentation(source)
+	return problems.len == 2 && problems.all(it.message == bottle_core.bottle_digest_indentation_message) && source[problems[0].begin_pos..problems[0].end_pos] == '"faceb00c"' && source[problems[1].begin_pos..problems[1].end_pos] == '"deadbeef"' && bottle_core.correct_bottle_digest_indentation(source) == expected
 }
 
 // Ruby it `it "reports and corrects misaligned digests in `bottle` block with cellars" do` at line 99.
-pub fn ruby_bottle_digest_indentation_spec_l99_d6_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_bottle_digest_indentation_spec_l99_d6_reports() bool {
+	source := bottle_spec_formula('  bottle do\n    rebuild 4\n    sha256 cellar: :any,                arm64_big_sur: "aaaaaaaa"\n    sha256 cellar: "/usr/local/Cellar", big_sur: "faceb00c"\n    sha256                              catalina: "deadbeef"\n  end')
+	expected := bottle_spec_formula('  bottle do\n    rebuild 4\n    sha256 cellar: :any,                arm64_big_sur: "aaaaaaaa"\n    sha256 cellar: "/usr/local/Cellar", big_sur:       "faceb00c"\n    sha256                              catalina:      "deadbeef"\n  end')
+	problems := bottle_core.audit_bottle_digest_indentation(source)
+	return problems.len == 2 && problems.all(it.message == bottle_core.bottle_digest_indentation_message) && bottle_core.correct_bottle_digest_indentation(source) == expected
 }
 
 // Original Ruby source (line-for-line):

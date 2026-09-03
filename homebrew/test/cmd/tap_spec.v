@@ -1,13 +1,16 @@
 module cmd
 
-import brew_runtime
+import homebrew.cmd as tap_core
 
 // Translated from Homebrew/brew `test/cmd/tap_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "taps a given Tap", :integration_test do` at line 10.
-pub fn ruby_tap_spec_l10_d1_taps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('taps', ...args)
+pub fn ruby_tap_spec_l10_d1_taps() bool {
+	result := tap_core.run_tap_command(tap_core.TapCommandRequest{
+		named: ['homebrew/bar', '/tmp/homebrew-bar/.git']
+	}) or { return false }
+	return (result.installed or { '' }) == 'homebrew/bar' && (result.clone_target or { '' }) == '/tmp/homebrew-bar/.git' && result.output.contains('Tapped')
 }
 
 // Original Ruby source (line-for-line):

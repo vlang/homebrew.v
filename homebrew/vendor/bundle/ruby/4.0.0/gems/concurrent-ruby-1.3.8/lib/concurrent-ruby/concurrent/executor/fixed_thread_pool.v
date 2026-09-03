@@ -4,10 +4,32 @@ import brew_runtime
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/executor/fixed_thread_pool.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub fn fixed_thread_pool_options(number_of_threads int,
+	options map[string]brew_runtime.Value) !ThreadPoolOptions {
+	if number_of_threads < 1 {
+		return error('number of threads must be greater than zero')
+	}
+	return ThreadPoolOptions{
+		min_threads: number_of_threads
+		max_threads: number_of_threads
+		max_queue: option_integer(options, 'max_queue', default_max_queue_size)
+		idletime: option_integer(options, 'idletime', default_thread_idletimeout)
+		fallback_policy: option_string(options, 'fallback_policy', 'abort')
+	}
+}
 
 // Ruby method `initialize(num_threads, opts = {})` at line 213.
 pub fn ruby_fixed_thread_pool_l213_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	if args.len == 0 { panic('FixedThreadPool#initialize requires num_threads') }
+	options := if args.len >= 2 {
+		args[1].as_map() or { panic(err) }
+	} else {
+		map[string]brew_runtime.Value{}
+	}
+	config := fixed_thread_pool_options(int(args[0].as_int() or { panic(err) }), options) or {
+		panic(err)
+	}
+	return thread_pool_value('Concurrent::FixedThreadPool', config)
 }
 
 // Original Ruby source (line-for-line):

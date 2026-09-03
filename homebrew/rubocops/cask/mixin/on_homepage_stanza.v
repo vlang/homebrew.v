@@ -7,17 +7,20 @@ import brew_runtime
 
 // Ruby method `on_cask(cask_block)` at line 13.
 pub fn ruby_on_homepage_stanza_l13_d1_on_cask(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('on_cask', ...args)
+	source := if args.len > 0 { args[0].as_string() } else { '' }
+	return stanza_values(cask_stanzas_named(source, 'homepage'))
 }
 
 // Ruby attr_reader `attr_reader :cask_block` at line 24.
 pub fn ruby_on_homepage_stanza_l24_d2_cask_block(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask_block', ...args)
+	source := if args.len > 0 { args[0].as_string() } else { '' }
+	return cask_block_value(source)
 }
 
 // Ruby def_delegators `def_delegators :cask_block, :toplevel_stanzas` at line 26.
 pub fn ruby_on_homepage_stanza_l26_d3_toplevel_stanzas(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('toplevel_stanzas', ...args)
+	source := if args.len > 0 { args[0].as_string() } else { '' }
+	return stanza_values(cask_toplevel_stanzas(source))
 }
 
 // Original Ruby source (line-for-line):

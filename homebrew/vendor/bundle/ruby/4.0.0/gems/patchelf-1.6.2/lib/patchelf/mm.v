@@ -4,95 +4,439 @@ import brew_runtime
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/patchelf-1.6.2/lib/patchelf/mm.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub type MemoryAllocationCallback = fn(offset u64, virtual_address u64) !
+
+pub struct MemoryAllocationRequest {
+pub:
+	size     u64
+	callback MemoryAllocationCallback @[required]
+}
+
+@[heap]
+pub struct MemoryManager {
+mut:
+	elf          &AltSaver
+	requests     []MemoryAllocationRequest
+	request_size u64
+	was_extended bool
+	extend_size  u64
+	threshold    u64
+}
+
+fn empty_memory_allocation_callback(_ u64, _ u64) ! {}
+
+pub fn new_memory_manager(elf &AltSaver) &MemoryManager {
+	return &MemoryManager{
+		elf: elf
+	}
+}
+
+pub fn (manager &MemoryManager) extend_size_value() u64 {
+	return manager.extend_size
+}
+
+pub fn (manager &MemoryManager) threshold_value() u64 {
+	return manager.threshold
+}
+
+pub fn (manager &MemoryManager) allocation_sizes() []u64 {
+	return manager.requests.map(it.size)
+}
+
+pub fn (mut manager MemoryManager) malloc(size i64, callback MemoryAllocationCallback) ![]u64 {
+	if size <= 0 {
+		return error("malloc's size most be positive.")
+	}
+	manager.requests << MemoryAllocationRequest{
+		size: u64(size)
+		callback: callback
+	}
+	return manager.allocation_sizes()
+}
+
+fn (manager &MemoryManager) load_segment_indices() []int {
+	mut indices := []int{}
+	for index, segment in manager.elf.segments {
+		if segment.header.p_type == alt_pt_load {
+			indices << index
+		}
+	}
+	return indices
+}
+
+fn segment_file_head(segment AltSegment) u64 {
+	return segment.header.p_offset
+}
+
+fn segment_file_tail(segment AltSegment) u64 {
+	return segment.header.p_offset + segment.header.p_filesz
+}
+
+fn segment_memory_head(segment AltSegment) u64 {
+	return segment.header.p_vaddr
+}
+
+fn segment_memory_tail(segment AltSegment) u64 {
+	return segment.header.p_vaddr + segment.header.p_memsz
+}
+
+fn segment_offset_to_vma(segment AltSegment, offset u64) u64 {
+	return segment.header.p_vaddr + (offset - segment.header.p_offset)
+}
+
+pub fn (manager &MemoryManager) writable(segment_index int) bool {
+	if segment_index < 0 || segment_index >= manager.elf.segments.len {
+		return false
+	}
+	flags := manager.elf.segments[segment_index].header.p_flags
+	return flags & alt_pf_r != 0 && flags & alt_pf_w != 0
+}
+
+pub fn (manager &MemoryManager) find_gap(check_size bool, memory_gap bool) !int {
+	loads := manager.load_segment_indices()
+	for position in 1 .. loads.len {
+		previous := manager.elf.segments[loads[position - 1]]
+		next := manager.elf.segments[loads[position]]
+		if !manager.writable(loads[position]) && !manager.writable(loads[position - 1]) {
+			continue
+		}
+		gap := if memory_gap {
+			patch_elf_align_down(i64(segment_memory_head(next)), 0x1000) - i64(segment_memory_tail(previous))
+		} else {
+			i64(segment_file_head(next)) - i64(segment_file_tail(previous))
+		}
+		if check_size && gap < 0 {
+			return error('LOAD segments are out of order.')
+		}
+		if gap >= i64(manager.request_size) {
+			return position
+		}
+	}
+	return error('no suitable LOAD segment gap')
+}
+
+pub fn (mut manager MemoryManager) invoke_callbacks(segment_index int, start u64) ! {
+	if segment_index < 0 || segment_index >= manager.elf.segments.len {
+		return error('LOAD segment index ${segment_index} is out of range')
+	}
+	segment := manager.elf.segments[segment_index]
+	mut current := start
+	for request in manager.requests {
+		request.callback(current, segment_offset_to_vma(segment, current))!
+		current += request.size
+	}
+}
+
+pub fn (mut manager MemoryManager) extend_backward(segment_index int, size u64) !bool {
+	if segment_index < 0 || segment_index >= manager.elf.segments.len {
+		return error('LOAD segment index ${segment_index} is out of range')
+	}
+	start := segment_file_tail(manager.elf.segments[segment_index])
+	manager.invoke_callbacks(segment_index, start)!
+	mut elf := manager.elf
+	elf.segments[segment_index].header.p_filesz += size
+	elf.segments[segment_index].header.p_memsz += size
+	return true
+}
+
+pub fn (mut manager MemoryManager) extend_forward(segment_index int, size u64) !bool {
+	if segment_index < 0 || segment_index >= manager.elf.segments.len {
+		return error('LOAD segment index ${segment_index} is out of range')
+	}
+	mut elf := manager.elf
+	if elf.segments[segment_index].header.p_offset < size || elf.segments[segment_index].header.p_vaddr < size {
+		return error('LOAD segment cannot be extended before the beginning of the file')
+	}
+	elf.segments[segment_index].header.p_offset -= size
+	elf.segments[segment_index].header.p_vaddr -= size
+	elf.segments[segment_index].header.p_filesz += size
+	elf.segments[segment_index].header.p_memsz += size
+	start := segment_file_head(elf.segments[segment_index])
+	manager.invoke_callbacks(segment_index, start)!
+	return true
+}
+
+pub fn (mut manager MemoryManager) fgap_method() !bool {
+	position := manager.find_gap(true, false) or {
+		if err.msg() == 'LOAD segments are out of order.' {
+			return err
+		}
+		return false
+	}
+	loads := manager.load_segment_indices()
+	if manager.writable(loads[position - 1]) {
+		return manager.extend_backward(loads[position - 1], manager.request_size)
+	}
+	return manager.extend_forward(loads[position], manager.request_size)
+}
+
+pub fn (mut manager MemoryManager) shift_attributes() {
+	mut elf := manager.elf
+	for index in 0 .. elf.sections.len {
+		if elf.sections[index].header.sh_offset >= manager.threshold {
+			elf.sections[index].header.sh_offset += manager.extend_size
+		}
+	}
+	for index in 0 .. elf.segments.len {
+		if elf.segments[index].header.p_offset < manager.threshold {
+			continue
+		}
+		elf.segments[index].header.p_offset += manager.extend_size
+		if elf.segments[index].header.p_type == alt_pt_load {
+			elf.segments[index].header.p_align = u64(patch_elf_page_size(-1))
+		}
+	}
+	if elf.ehdr.e_shoff >= manager.threshold {
+		elf.ehdr.e_shoff += manager.extend_size
+	}
+}
+
+pub fn (mut manager MemoryManager) mgap_method() !bool {
+	position := manager.find_gap(false, true) or { return false }
+	loads := manager.load_segment_indices()
+	manager.threshold = segment_file_head(manager.elf.segments[loads[position]])
+	manager.extend_size = u64(patch_elf_align_up(i64(manager.request_size), 0x1000))
+	manager.was_extended = true
+	manager.shift_attributes()
+	if manager.writable(loads[position - 1]) {
+		return manager.extend_backward(loads[position - 1], manager.request_size)
+	}
+	return manager.extend_forward(loads[position], manager.extend_size)
+}
+
+pub fn (manager &MemoryManager) new_load_method() !bool {
+	return error('NotImplementedError: PatchELF::MM#new_load_method')
+}
+
+pub fn (mut manager MemoryManager) dispatch() !bool {
+	if manager.requests.len == 0 {
+		return false
+	}
+	manager.request_size = 0
+	for request in manager.requests {
+		manager.request_size += request.size
+	}
+	if manager.load_segment_indices().len == 0 {
+		return error('No LOAD segment found, not an executable.')
+	}
+	if manager.fgap_method()! {
+		return true
+	}
+	if manager.mgap_method()! {
+		return true
+	}
+	return manager.new_load_method()!
+}
+
+pub fn (manager &MemoryManager) extended() bool {
+	return manager.was_extended
+}
+
+pub fn (manager &MemoryManager) extended_offset(offset u64) u64 {
+	if !manager.was_extended || offset < manager.threshold {
+		return offset
+	}
+	return offset + manager.extend_size
+}
+
+fn memory_manager_value(manager &MemoryManager) brew_runtime.Value {
+	return brew_runtime.structured_value('PatchELF::MM', '#<PatchELF::MM>', {
+		'memory_manager_address': u64(voidptr(manager)).str()
+	})
+}
+
+fn memory_manager_from_args(args []brew_runtime.Value) &MemoryManager {
+	if args.len == 0 {
+		panic('PatchELF::MM method requires a receiver')
+	}
+	address := args[0].attribute('memory_manager_address') or { panic('invalid PatchELF::MM receiver') }
+	return unsafe { &MemoryManager(voidptr(address.u64())) }
+}
+
+fn memory_segment_value(index int, segment AltSegment) brew_runtime.Value {
+	return brew_runtime.structured_value('ELFTools::Segments::LoadSegment', '#<LoadSegment>', {
+		'memory_segment_index': index.str()
+		'p_type':               segment.header.p_type.str()
+		'p_offset':             segment.header.p_offset.str()
+		'p_vaddr':              segment.header.p_vaddr.str()
+		'p_filesz':             segment.header.p_filesz.str()
+		'p_memsz':              segment.header.p_memsz.str()
+		'p_flags':              segment.header.p_flags.str()
+	})
+}
+
+fn memory_segment_index(value brew_runtime.Value) int {
+	if index := value.attribute('memory_segment_index') {
+		return index.int()
+	}
+	return -1
+}
+
+fn memory_requests_value(manager &MemoryManager) brew_runtime.Value {
+	return brew_runtime.array_value(manager.requests.map(brew_runtime.int_value(i64(it.size))))
+}
+
+fn memory_nil_value() brew_runtime.Value {
+	return brew_runtime.object_value('NilClass', 'nil')
+}
 
 // Ruby attr_reader `attr_reader :extend_size` at line 9.
 pub fn ruby_mm_l9_d1_extend_size(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('extend_size', ...args)
+	manager := memory_manager_from_args(args)
+	if !manager.extended() {
+		return memory_nil_value()
+	}
+	return brew_runtime.int_value(i64(manager.extend_size_value()))
 }
 
 // Ruby attr_reader `attr_reader :threshold` at line 10.
 pub fn ruby_mm_l10_d2_threshold(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('threshold', ...args)
+	manager := memory_manager_from_args(args)
+	if !manager.extended() {
+		return memory_nil_value()
+	}
+	return brew_runtime.int_value(i64(manager.threshold_value()))
 }
 
 // Ruby method `initialize(elf)` at line 14.
 pub fn ruby_mm_l14_d3_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	if args.len == 0 {
+		panic('PatchELF::MM#initialize requires an ELF file')
+	}
+	return memory_manager_value(new_memory_manager(alt_saver_from_args(args)))
 }
 
 // Ruby method `malloc(size, &block)` at line 27.
 pub fn ruby_mm_l27_d4_malloc(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('malloc', ...args)
+	if args.len < 2 {
+		panic('PatchELF::MM#malloc requires a size')
+	}
+	mut manager := memory_manager_from_args(args)
+	manager.malloc(args[1].as_int() or { panic(err) }, empty_memory_allocation_callback) or {
+		panic(err)
+	}
+	return memory_requests_value(manager)
 }
 
 // Ruby method `dispatch!` at line 35.
 pub fn ruby_mm_l35_d5_dispatch(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dispatch!', ...args)
+	mut manager := memory_manager_from_args(args)
+	if manager.requests.len == 0 {
+		return memory_nil_value()
+	}
+	return brew_runtime.bool_value(manager.dispatch() or { panic(err) })
 }
 
 // Ruby method `extended?` at line 57.
 pub fn ruby_mm_l57_d6_extended(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('extended?', ...args)
+	return brew_runtime.bool_value(memory_manager_from_args(args).extended())
 }
 
 // Ruby method `extended_offset(off)` at line 66.
 pub fn ruby_mm_l66_d7_extended_offset(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('extended_offset', ...args)
+	if args.len < 2 {
+		panic('PatchELF::MM#extended_offset requires an offset')
+	}
+	return brew_runtime.int_value(i64(memory_manager_from_args(args).extended_offset(u64(args[1].as_int() or {
+		panic(err)
+	}))))
 }
 
 // Ruby method `fgap_method?` at line 75.
 pub fn ruby_mm_l75_d8_fgap_method(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fgap_method?', ...args)
+	mut manager := memory_manager_from_args(args)
+	return brew_runtime.bool_value(manager.fgap_method() or { panic(err) })
 }
 
 // Ruby method `extend_backward?(seg, size = @request_size)` at line 86.
 pub fn ruby_mm_l86_d9_extend_backward(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('extend_backward?', ...args)
+	if args.len < 2 {
+		panic('PatchELF::MM#extend_backward? requires a segment')
+	}
+	mut manager := memory_manager_from_args(args)
+	index := memory_segment_index(args[1])
+	size := if args.len > 2 {
+		u64(args[2].as_int() or { panic(err) })
+	} else {
+		manager.request_size
+	}
+	return brew_runtime.bool_value(manager.extend_backward(index, size) or { panic(err) })
 }
 
 // Ruby method `extend_forward?(seg, size = @request_size)` at line 93.
 pub fn ruby_mm_l93_d10_extend_forward(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('extend_forward?', ...args)
+	if args.len < 2 {
+		panic('PatchELF::MM#extend_forward? requires a segment')
+	}
+	mut manager := memory_manager_from_args(args)
+	index := memory_segment_index(args[1])
+	size := if args.len > 2 {
+		u64(args[2].as_int() or { panic(err) })
+	} else {
+		manager.request_size
+	}
+	return brew_runtime.bool_value(manager.extend_forward(index, size) or { panic(err) })
 }
 
 // Ruby method `mgap_method?` at line 102.
 pub fn ruby_mm_l102_d11_mgap_method(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('mgap_method?', ...args)
+	mut manager := memory_manager_from_args(args)
+	return brew_runtime.bool_value(manager.mgap_method() or { panic(err) })
 }
 
 // Ruby method `find_gap(check_sz: true)` at line 122.
 pub fn ruby_mm_l122_d12_find_gap(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('find_gap', ...args)
+	manager := memory_manager_from_args(args)
+	check_size := if args.len > 1 { args[1].as_bool() or { true } } else { true }
+	position := manager.find_gap(check_size, false) or { return memory_nil_value() }
+	return brew_runtime.int_value(position)
 }
 
 // Ruby method `new_load_method` at line 138.
 pub fn ruby_mm_l138_d13_new_load_method(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('new_load_method', ...args)
+	manager := memory_manager_from_args(args)
+	manager.new_load_method() or { panic(err) }
+	return memory_nil_value()
 }
 
 // Ruby method `writable?(seg)` at line 142.
 pub fn ruby_mm_l142_d14_writable(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('writable?', ...args)
+	if args.len < 2 {
+		panic('PatchELF::MM#writable? requires a segment')
+	}
+	manager := memory_manager_from_args(args)
+	return brew_runtime.bool_value(manager.writable(memory_segment_index(args[1])))
 }
 
 // Ruby method `shift_attributes` at line 147.
 pub fn ruby_mm_l147_d15_shift_attributes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('shift_attributes', ...args)
+	mut manager := memory_manager_from_args(args)
+	manager.shift_attributes()
+	return memory_nil_value()
 }
 
 // Ruby method `load_segments` at line 170.
 pub fn ruby_mm_l170_d16_load_segments(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('load_segments', ...args)
+	manager := memory_manager_from_args(args)
+	return brew_runtime.array_value(manager.load_segment_indices().map(memory_segment_value(it, manager.elf.segments[it])))
 }
 
 // Ruby method `invoke_callbacks(seg, start)` at line 174.
 pub fn ruby_mm_l174_d17_invoke_callbacks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('invoke_callbacks', ...args)
+	if args.len < 3 {
+		panic('PatchELF::MM#invoke_callbacks requires a segment and start offset')
+	}
+	mut manager := memory_manager_from_args(args)
+	manager.invoke_callbacks(memory_segment_index(args[1]), u64(args[2].as_int() or {
+		panic(err)
+	})) or { panic(err) }
+	return memory_nil_value()
 }
 
 // Ruby method `abnormal_elf(msg)` at line 182.
 pub fn ruby_mm_l182_d18_abnormal_elf(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('abnormal_elf', ...args)
+	message := if args.len > 1 { args[1].as_string() } else { 'abnormal ELF' }
+	panic(message)
 }
 
 // Original Ruby source (line-for-line):

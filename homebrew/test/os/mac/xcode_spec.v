@@ -1,18 +1,20 @@
 module mac
 
-import brew_runtime
+import homebrew.os.mac as xcode
 
 // Translated from Homebrew/brew `test/os/mac/xcode_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "loads Plist when version.plist exists" do` at line 8.
-pub fn ruby_xcode_spec_l8_d1_loads(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('loads', ...args)
+pub fn ruby_xcode_spec_l8_d1_loads() bool {
+	plist := '<?xml version="1.0" encoding="UTF-8"?>\n<plist version="1.0"><dict><key>CFBundleShortVersionString</key><string>26.3</string></dict></plist>'
+	return xcode.xcode_detect_version(true, false, plist, []string{}, '') == '26.3'
 }
 
 // Ruby it `it "recommends Software Update on prerelease macOS" do` at line 29.
-pub fn ruby_xcode_spec_l29_d2_recommends(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('recommends', ...args)
+pub fn ruby_xcode_spec_l29_d2_recommends() bool {
+	reinstall := xcode.clt_reinstall_instructions('show you any updates', '26.3')
+	return xcode.clt_update_instructions('27', reinstall).contains('Update them from Software Update in System Settings.')
 }
 
 // Original Ruby source (line-for-line):

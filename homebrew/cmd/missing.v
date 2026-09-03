@@ -4,10 +4,90 @@ import brew_runtime
 
 // Translated from Homebrew/brew `cmd/missing.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub struct MissingCommandResult {
+pub:
+	output string
+	failed bool
+}
+
+pub struct MissingCommandPackage {
+pub:
+	full_name            string
+	display_name         string
+	missing_dependencies []string
+}
+
+pub fn missing_command(formulae []MissingCommandPackage, casks []MissingCommandPackage,
+	storage_exists bool) MissingCommandResult {
+	if !storage_exists {
+		return MissingCommandResult{}
+	}
+	mut sorted_formulae := formulae.clone()
+	sorted_formulae.sort_with_compare(fn (left &MissingCommandPackage,
+		right &MissingCommandPackage) int {
+		return compare_strings(left.full_name, right.full_name)
+	})
+	mut sorted_casks := casks.clone()
+	sorted_casks.sort_with_compare(fn (left &MissingCommandPackage,
+		right &MissingCommandPackage) int {
+		return compare_strings(left.full_name, right.full_name)
+	})
+	package_count := sorted_formulae.len + sorted_casks.len
+	mut lines := []string{}
+	for formula in sorted_formulae {
+		if formula.missing_dependencies.len == 0 {
+			continue
+		}
+		prefix := if package_count > 1 {
+			'${if formula.display_name == '' { formula.full_name } else { formula.display_name }}: '
+		} else {
+			''
+		}
+		lines << prefix + formula.missing_dependencies.join(' ')
+	}
+	for cask in sorted_casks {
+		if cask.missing_dependencies.len == 0 {
+			continue
+		}
+		prefix := if package_count > 1 {
+			'${if cask.display_name == '' { cask.full_name } else { cask.display_name }}: '
+		} else {
+			''
+		}
+		lines << prefix + cask.missing_dependencies.join(' ')
+	}
+	return MissingCommandResult{
+		output: if lines.len == 0 { '' } else { lines.join('\n') + '\n' }
+		failed: lines.len > 0
+	}
+}
 
 // Ruby method `run` at line 26.
 pub fn ruby_missing_l26_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('run', ...args)
+	formulae := if args.len > 0 {
+		missing_command_packages_from_value(args[0])
+	} else {
+		[]MissingCommandPackage{}
+	}
+	casks := if args.len > 1 {
+		missing_command_packages_from_value(args[1])
+	} else {
+		[]MissingCommandPackage{}
+	}
+	storage_exists := if args.len > 2 { args[2].as_bool() or { true } } else { true }
+	result := missing_command(formulae, casks, storage_exists)
+	return brew_runtime.structured_value('MissingCommandResult', result.output, {
+		'output': result.output
+		'failed': result.failed.str()
+	})
+}
+
+fn missing_command_packages_from_value(value brew_runtime.Value) []MissingCommandPackage {
+	return value.array_data.map(MissingCommandPackage{
+		full_name: it.attributes['full_name'] or { it.as_string() }
+		display_name: it.attributes['display_name'] or { it.as_string() }
+		missing_dependencies: (it.attributes['missing_dependencies'] or { '' }).split(',').filter(it != '')
+	})
 }
 
 // Original Ruby source (line-for-line):

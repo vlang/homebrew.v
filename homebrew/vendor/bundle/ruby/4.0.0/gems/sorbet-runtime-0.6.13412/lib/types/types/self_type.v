@@ -4,30 +4,58 @@ import brew_runtime
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/sorbet-runtime-0.6.13412/lib/types/types/self_type.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub struct SelfType {}
+
+pub fn new_self_type() SelfType {
+	return SelfType{}
+}
+
+pub fn (_ SelfType) build_type() brew_runtime.Value {
+	return brew_runtime.object_value('NilClass', 'nil')
+}
+
+pub fn (_ SelfType) name() string {
+	return 'T.self_type'
+}
+
+pub fn (_ SelfType) valid(_ brew_runtime.Value) bool {
+	return true
+}
+
+pub fn (_ SelfType) subtype_of_single(other brew_runtime.Value) bool {
+	return other.type_name == 'T::Types::SelfType'
+}
+
+fn self_type_value() brew_runtime.Value {
+	return brew_runtime.object_value('T::Types::SelfType', 'T.self_type')
+}
 
 // Ruby method `initialize(); end` at line 9.
 pub fn ruby_self_type_l9_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Ruby method `build_type` at line 11.
 pub fn ruby_self_type_l11_d2_build_type(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('build_type', ...args)
+	return new_self_type().build_type()
 }
 
 // Ruby method `name` at line 16.
 pub fn ruby_self_type_l16_d3_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('name', ...args)
+	return brew_runtime.string_value(new_self_type().name())
 }
 
 // Ruby method `valid?(obj)` at line 21.
 pub fn ruby_self_type_l21_d4_valid(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('valid?', ...args)
+	return brew_runtime.bool_value(true)
 }
 
 // Ruby method `subtype_of_single?(other)` at line 26.
 pub fn ruby_self_type_l26_d5_subtype_of_single(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('subtype_of_single?', ...args)
+	if args.len < 2 {
+		panic('SelfType#subtype_of_single? requires another type')
+	}
+	return brew_runtime.bool_value(new_self_type().subtype_of_single(args[1]))
 }
 
 // Original Ruby source (line-for-line):

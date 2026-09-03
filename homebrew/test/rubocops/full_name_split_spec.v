@@ -1,43 +1,54 @@
 module rubocops
 
-import brew_runtime
+import homebrew.rubocops as full_name_split_core
 
 // Translated from Homebrew/brew `test/rubocops/full_name_split_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "registers and corrects an offense when using `name.split(\"/\").last`" do` at line 7.
-pub fn ruby_full_name_split_spec_l7_d1_registers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('registers', ...args)
+pub fn ruby_full_name_split_spec_l7_d1_registers() bool {
+	source := 'name.split("/").last\n'
+	offenses := full_name_split_core.audit_full_name_split(source)
+	return offenses.len == 1 && offenses[0].begin_pos == 0 && offenses[0].end_pos == 20 && offenses[0].message == full_name_split_core.full_name_split_message && full_name_split_core.correct_full_name_split(source) == '::Utils.name_from_full_name(name)\n'
 }
 
 // Ruby it `it "registers and corrects an offense when using `token.split(\"/\").fetch(-1)`" do` at line 18.
-pub fn ruby_full_name_split_spec_l18_d2_registers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('registers', ...args)
+pub fn ruby_full_name_split_spec_l18_d2_registers() bool {
+	source := 'token.split("/").fetch(-1)\n'
+	offenses := full_name_split_core.audit_full_name_split(source)
+	return offenses.len == 1 && offenses[0].begin_pos == 0 && offenses[0].end_pos == 26 && full_name_split_core.correct_full_name_split(source) == '::Utils.name_from_full_name(token)\n'
 }
 
 // Ruby it `it "registers and corrects an offense when using a safe navigation split" do` at line 29.
-pub fn ruby_full_name_split_spec_l29_d3_registers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('registers', ...args)
+pub fn ruby_full_name_split_spec_l29_d3_registers() bool {
+	source := 'dep["full_name"]&.split("/")&.last\n'
+	offenses := full_name_split_core.audit_full_name_split(source)
+	return offenses.len == 1 && offenses[0].begin_pos == 0 && offenses[0].end_pos == 34 && offenses[0].call.safe_navigation && full_name_split_core.correct_full_name_split(source) == 'dep["full_name"]&.then { ::Utils.name_from_full_name(it) }\n'
 }
 
 // Ruby it `it "registers and corrects an offense for known full-name variables" do` at line 40.
-pub fn ruby_full_name_split_spec_l40_d4_registers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('registers', ...args)
+pub fn ruby_full_name_split_spec_l40_d4_registers() bool {
+	source := 'dep_name.split("/").last\nfull_name.split("/").last\n'
+	offenses := full_name_split_core.audit_full_name_split(source)
+	return offenses.len == 2 && source[offenses[0].begin_pos..offenses[0].end_pos] == 'dep_name.split("/").last' && source[offenses[1].begin_pos..offenses[1].end_pos] == 'full_name.split("/").last' && full_name_split_core.correct_full_name_split(source) == '::Utils.name_from_full_name(dep_name)\n::Utils.name_from_full_name(full_name)\n'
 }
 
 // Ruby it `it "does not register an offense for URL or path component parsing" do` at line 54.
-pub fn ruby_full_name_split_spec_l54_d5_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_full_name_split_spec_l54_d5_does() bool {
+	source := 'url.split("/").last\nline.split("/").fetch(-1)\nfile_name.split("/").last\n'
+	return full_name_split_core.audit_full_name_split(source).len == 0
 }
 
 // Ruby it `it "does not register an offense for two-part tap full names" do` at line 62.
-pub fn ruby_full_name_split_spec_l62_d6_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_full_name_split_spec_l62_d6_does() bool {
+	source := 'user, repo = tap.full_name.split("/")\ntap.full_name.split("/").last\nformula.tap.full_name.split("/").last\ntap_name.split("/").last\n'
+	return full_name_split_core.audit_full_name_split(source).len == 0
 }
 
 // Ruby it `it "does not register an offense for mixed safe navigation" do` at line 71.
-pub fn ruby_full_name_split_spec_l71_d7_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_full_name_split_spec_l71_d7_does() bool {
+	source := 'name&.split("/").last\nname.split("/")&.last\n'
+	return full_name_split_core.audit_full_name_split(source).len == 0
 }
 
 // Original Ruby source (line-for-line):

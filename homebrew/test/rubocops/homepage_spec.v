@@ -1,73 +1,110 @@
 module rubocops
 
 import brew_runtime
+import homebrew.rubocops as homepage_core
 
 // Translated from Homebrew/brew `test/rubocops/homepage_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:cop) { described_class.new }` at line 7.
 pub fn ruby_homepage_spec_l7_d1_cop(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cop', ...args)
+	return brew_runtime.object_value('RuboCop::Cop::FormulaAudit::Homepage', 'FormulaAudit/Homepage')
 }
 
 // Ruby it `it "reports an offense when there is no homepage" do` at line 10.
-pub fn ruby_homepage_spec_l10_d2_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_homepage_spec_l10_d2_reports() bool {
+	return homepage_core.audit_formula_homepage("class Foo < Formula\n  url 'https://brew.sh/foo-1.0.tgz'\nend").map(it.kind) == [
+		'missing',
+	]
 }
 
 // Ruby it `it "reports an offense when the homepage is not HTTP or HTTPS" do` at line 19.
-pub fn ruby_homepage_spec_l19_d3_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_homepage_spec_l19_d3_reports() bool {
+	return homepage_core.audit_formula_homepage('class Foo < Formula\n  homepage "ftp://brew.sh/foo"\nend').map(it.kind) == [
+		'protocol',
+	]
 }
 
 // Ruby it `it "reports an offense for freedesktop.org wiki pages" do` at line 29.
-pub fn ruby_homepage_spec_l29_d4_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_homepage_spec_l29_d4_reports() bool {
+	problems := homepage_core.audit_formula_homepage('class Foo < Formula\n  homepage "http://www.freedesktop.org/wiki/bar"\nend')
+	return problems.map(it.kind) == ['freedesktop_style'] && problems[0].message.ends_with('https://wiki.freedesktop.org/project_name')
 }
 
 // Ruby it `it "reports an offense for freedesktop.org software wiki pages" do` at line 39.
-pub fn ruby_homepage_spec_l39_d5_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_homepage_spec_l39_d5_reports() bool {
+	problems := homepage_core.audit_formula_homepage('class Foo < Formula\n  homepage "http://www.freedesktop.org/wiki/Software/baz"\nend')
+	return problems.map(it.kind) == ['freedesktop_style'] && problems[0].message.ends_with('https://wiki.freedesktop.org/www/Software/project_name')
 }
 
 // Ruby it `it "reports and corrects Google Code homepages" do` at line 49.
-pub fn ruby_homepage_spec_l49_d6_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_homepage_spec_l49_d6_reports() bool {
+	source := 'class Foo < Formula\n  homepage "https://code.google.com/p/qux"\nend'
+	return homepage_core.audit_formula_homepage(source).map(it.kind) == [
+		'google_code_slash',
+	] && homepage_core.correct_formula_homepage(source).contains('homepage "https://code.google.com/p/qux/"')
 }
 
 // Ruby it `it "reports and corrects GitHub homepages" do` at line 66.
-pub fn ruby_homepage_spec_l66_d7_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_homepage_spec_l66_d7_reports() bool {
+	source := 'class Foo < Formula\n  homepage "https://github.com/foo/bar.git"\nend'
+	return homepage_core.audit_formula_homepage(source).map(it.kind) == [
+		'github_dot_git',
+	] && homepage_core.correct_formula_homepage(source).contains('homepage "https://github.com/foo/bar"')
 }
 
 // Ruby let `let(:correct_formula) do` at line 84.
-pub fn ruby_homepage_spec_l84_d8_correct_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('correct_formula', ...args)
+pub fn ruby_homepage_spec_l84_d8_correct_formula() string {
+	return 'class Foo < Formula\n  homepage "https://foo.sourceforge.io/"\n  url "https://brew.sh/foo-1.0.tgz"\nend\n'
+}
+
+fn homepage_sourceforge_spec(source_url string) bool {
+	source := 'class Foo < Formula\n  homepage "${source_url}"\n  url "https://brew.sh/foo-1.0.tgz"\nend\n'
+	return homepage_core.audit_formula_homepage(source).map(it.kind) == [
+		'sourceforge_style',
+	] && homepage_core.correct_formula_homepage(source) == ruby_homepage_spec_l84_d8_correct_formula()
 }
 
 // Ruby it `it "reports and corrects [1]" do` at line 93.
-pub fn ruby_homepage_spec_l93_d9_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_homepage_spec_l93_d9_reports() bool {
+	return homepage_sourceforge_spec('http://foo.sourceforge.net/')
 }
 
 // Ruby it `it "reports and corrects [2]" do` at line 105.
-pub fn ruby_homepage_spec_l105_d10_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_homepage_spec_l105_d10_reports() bool {
+	return homepage_sourceforge_spec('http://foo.sourceforge.net')
 }
 
 // Ruby it `it "reports and corrects [3]" do` at line 117.
-pub fn ruby_homepage_spec_l117_d11_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_homepage_spec_l117_d11_reports() bool {
+	return homepage_sourceforge_spec('http://foo.sf.net/')
 }
 
 // Ruby it `it "reports and corrects readthedocs.org pages" do` at line 130.
-pub fn ruby_homepage_spec_l130_d12_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_homepage_spec_l130_d12_reports() bool {
+	source := 'class Foo < Formula\n  homepage "https://foo.readthedocs.org"\nend'
+	return homepage_core.audit_formula_homepage(source).map(it.kind) == [
+		'readthedocs_domain',
+	] && homepage_core.correct_formula_homepage(source).contains('homepage "https://foo.readthedocs.io"')
 }
 
 // Ruby it `it "reports an offense for HTTP homepages" do` at line 147.
-pub fn ruby_homepage_spec_l147_d13_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_homepage_spec_l147_d13_reports() bool {
+	homepages := [
+		'http://foo.sourceforge.io/',
+		'http://savannah.nongnu.org/corge',
+		'http://grault.github.io/',
+		'http://www.gnome.org/garply',
+		'http://www.gnu.org/waldo',
+		'http://github.com/quux',
+	]
+	for homepage in homepages {
+		problems := homepage_core.audit_formula_homepage('class Foo < Formula\n  homepage "${homepage}"\nend')
+		if problems.map(it.kind) != ['https'] || problems[0].message != 'Please use https:// for ${homepage}' {
+			return false
+		}
+	}
+	return true
 }
 
 // Original Ruby source (line-for-line):

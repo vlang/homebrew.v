@@ -4,30 +4,58 @@ import brew_runtime
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/sorbet-runtime-0.6.13412/lib/types/types/anything.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub struct AnythingType {}
+
+pub fn new_anything_type() AnythingType {
+	return AnythingType{}
+}
+
+pub fn (_ AnythingType) build_type() brew_runtime.Value {
+	return brew_runtime.object_value('NilClass', 'nil')
+}
+
+pub fn (_ AnythingType) name() string {
+	return 'T.anything'
+}
+
+pub fn (_ AnythingType) valid(_ brew_runtime.Value) bool {
+	return true
+}
+
+pub fn (_ AnythingType) subtype_of_single(other brew_runtime.Value) bool {
+	return other.type_name == 'T::Types::Anything'
+}
+
+fn anything_type_value() brew_runtime.Value {
+	return brew_runtime.object_value('T::Types::Anything', 'T.anything')
+}
 
 // Ruby method `initialize; end` at line 7.
 pub fn ruby_anything_l7_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Ruby method `build_type` at line 9.
 pub fn ruby_anything_l9_d2_build_type(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('build_type', ...args)
+	return new_anything_type().build_type()
 }
 
 // Ruby method `name` at line 14.
 pub fn ruby_anything_l14_d3_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('name', ...args)
+	return brew_runtime.string_value(new_anything_type().name())
 }
 
 // Ruby method `valid?(obj)` at line 19.
 pub fn ruby_anything_l19_d4_valid(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('valid?', ...args)
+	return brew_runtime.bool_value(true)
 }
 
 // Ruby method `subtype_of_single?(other)` at line 24.
 pub fn ruby_anything_l24_d5_subtype_of_single(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('subtype_of_single?', ...args)
+	if args.len < 2 {
+		panic('Anything#subtype_of_single? requires another type')
+	}
+	return brew_runtime.bool_value(new_anything_type().subtype_of_single(args[1]))
 }
 
 // Original Ruby source (line-for-line):

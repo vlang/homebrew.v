@@ -7,7 +7,13 @@ import brew_runtime
 
 // Ruby method `valid_library_extension?(filename)` at line 8.
 pub fn ruby_formula_cellar_checks_l8_d1_valid_library_extension(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('valid_library_extension?', ...args)
+	return brew_runtime.bool_value(args.len >= 2 && valid_library_extension(args[0].as_string(), args[1].as_bool() or {
+		false
+	}))
+}
+
+pub fn valid_library_extension(filename string, base_valid bool) bool {
+	return base_valid || filename.all_after_last('/').contains('.so.')
 }
 
 // Original Ruby source (line-for-line):

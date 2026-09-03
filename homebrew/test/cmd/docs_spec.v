@@ -1,13 +1,16 @@
 module cmd
 
-import brew_runtime
+import homebrew.cmd as brew_cmd
 
 // Translated from Homebrew/brew `test/cmd/docs_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "opens the docs page", :integration_test do` at line 10.
-pub fn ruby_docs_spec_l10_d1_opens(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('opens', ...args)
+pub fn ruby_docs_spec_l10_d1_opens() bool {
+	plan := brew_cmd.docs_browser_plan('echo', '', '')
+	return plan.available && plan.command.program == 'echo' && plan.command.arguments == [
+		brew_cmd.homebrew_docs_url,
+	]
 }
 
 // Original Ruby source (line-for-line):

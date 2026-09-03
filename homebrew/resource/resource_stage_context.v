@@ -1,63 +1,171 @@
 module resource
 
 import brew_runtime
+import homebrew
 
 // Translated from Homebrew/brew `resource/resource_stage_context.rb`.
 // The original source is retained below until every stub has a typed V body.
 
+// ResourceStageContext keeps the two Ruby objects by identity. The generic
+// Value boundary remains necessary while Resource#stage's block ABI is being
+// translated, but the context itself has concrete state and delegates to the
+// real translated Mktemp implementation.
+@[heap]
+pub struct ResourceStageContext {
+pub:
+	resource brew_runtime.Value
+	staging  brew_runtime.Value
+}
+
+pub fn new_resource_stage_context(resource_value brew_runtime.Value,
+	staging_value brew_runtime.Value) &ResourceStageContext {
+	if resource_value.type_name != 'Resource' {
+		panic('ResourceStageContext requires a Resource, got ${resource_value.type_name}')
+	}
+	if staging_value.type_name != 'Mktemp' {
+		panic('ResourceStageContext requires a Mktemp, got ${staging_value.type_name}')
+	}
+	return &ResourceStageContext{
+		resource: resource_value
+		staging: staging_value
+	}
+}
+
+fn resource_stage_string_map(values map[string]string) brew_runtime.Value {
+	mut mapped := map[string]brew_runtime.Value{}
+	for key, value in values {
+		mapped[key] = brew_runtime.string_value(value)
+	}
+	return brew_runtime.map_value(mapped)
+}
+
+// resource_stage_resource_boundary adapts the already typed Resource while
+// its stage callback still crosses the generic translation boundary.
+pub fn resource_stage_resource_boundary(resource_value &homebrew.Resource,
+	representation string) brew_runtime.Value {
+	version := if value := resource_value.version() {
+		brew_runtime.object_value('Version', value.to_s())
+	} else {
+		brew_runtime.object_value('NilClass', 'nil')
+	}
+	url := if value := resource_value.url() {
+		brew_runtime.string_value(value)
+	} else {
+		brew_runtime.object_value('NilClass', 'nil')
+	}
+	using := if value := resource_value.using() {
+		brew_runtime.object_value('Class', value)
+	} else {
+		brew_runtime.object_value('NilClass', 'nil')
+	}
+	modified_time := if resource_value.has_source_modified_time {
+		brew_runtime.int_value(resource_value.source_modified_time)
+	} else {
+		brew_runtime.object_value('NilClass', 'nil')
+	}
+	return brew_runtime.Value{
+		type_name: 'Resource'
+		repr: representation
+		map_data: {
+			'version':              version
+			'url':                  url
+			'mirrors':              brew_runtime.string_array_value(resource_value.mirrors)
+			'specs':                resource_stage_string_map(resource_value.specs())
+			'using':                using
+			'source_modified_time': modified_time
+		}
+	}
+}
+
+fn resource_stage_context_value(context &ResourceStageContext) brew_runtime.Value {
+	return brew_runtime.structured_value('ResourceStageContext', context.str(), {
+		'context_address': u64(voidptr(context)).str()
+	})
+}
+
+fn resource_stage_context_from_args(args []brew_runtime.Value,
+	method string) &ResourceStageContext {
+	if args.len == 0 || args[0].type_name != 'ResourceStageContext' {
+		panic('ResourceStageContext#${method} requires a translated receiver')
+	}
+	address := args[0].attributes['context_address'] or {
+		panic('ResourceStageContext receiver has no translated state')
+	}
+	return unsafe { &ResourceStageContext(voidptr(address.u64())) }
+}
+
+fn (context &ResourceStageContext) delegated_resource_value(name string) brew_runtime.Value {
+	return context.resource.map_data[name] or {
+		panic('ResourceStageContext cannot delegate `${name}` to an incomplete Resource boundary')
+	}
+}
+
+pub fn (context &ResourceStageContext) retain_files() {
+	homebrew.ruby_mktemp_l27_d3_retain(context.staging)
+}
+
+pub fn (context &ResourceStageContext) str() string {
+	return '<ResourceStageContext: resource=${context.resource.as_string()} staging=${context.staging.as_string()}>'
+}
+
 // Ruby attr_reader `attr_reader :resource` at line 12.
 pub fn ruby_resource_stage_context_l12_d1_resource(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('resource', ...args)
+	return resource_stage_context_from_args(args, 'resource').resource
 }
 
 // Ruby attr_reader `attr_reader :staging` at line 16.
 pub fn ruby_resource_stage_context_l16_d2_staging(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('staging', ...args)
+	return resource_stage_context_from_args(args, 'staging').staging
 }
 
 // Ruby def_delegators `def_delegators :@resource, :version, :url, :mirrors, :specs, :using, :source_modified_time` at line 18.
 pub fn ruby_resource_stage_context_l18_d3_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('version', ...args)
+	return resource_stage_context_from_args(args, 'version').delegated_resource_value('version')
 }
 
 // Ruby def_delegators `def_delegators :@resource, :version, :url, :mirrors, :specs, :using, :source_modified_time` at line 18.
 pub fn ruby_resource_stage_context_l18_d4_url(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('url', ...args)
+	return resource_stage_context_from_args(args, 'url').delegated_resource_value('url')
 }
 
 // Ruby def_delegators `def_delegators :@resource, :version, :url, :mirrors, :specs, :using, :source_modified_time` at line 18.
 pub fn ruby_resource_stage_context_l18_d5_mirrors(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('mirrors', ...args)
+	return resource_stage_context_from_args(args, 'mirrors').delegated_resource_value('mirrors')
 }
 
 // Ruby def_delegators `def_delegators :@resource, :version, :url, :mirrors, :specs, :using, :source_modified_time` at line 18.
 pub fn ruby_resource_stage_context_l18_d6_specs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('specs', ...args)
+	return resource_stage_context_from_args(args, 'specs').delegated_resource_value('specs')
 }
 
 // Ruby def_delegators `def_delegators :@resource, :version, :url, :mirrors, :specs, :using, :source_modified_time` at line 18.
 pub fn ruby_resource_stage_context_l18_d7_using(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('using', ...args)
+	return resource_stage_context_from_args(args, 'using').delegated_resource_value('using')
 }
 
 // Ruby def_delegators `def_delegators :@resource, :version, :url, :mirrors, :specs, :using, :source_modified_time` at line 18.
 pub fn ruby_resource_stage_context_l18_d8_source_modified_time(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('source_modified_time', ...args)
+	return resource_stage_context_from_args(args, 'source_modified_time').delegated_resource_value('source_modified_time')
 }
 
 // Ruby def_delegators `def_delegators :@staging, :retain!` at line 19.
 pub fn ruby_resource_stage_context_l19_d9_retain(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('retain!', ...args)
+	context := resource_stage_context_from_args(args, 'retain!')
+	context.retain_files()
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Ruby method `initialize(resource, staging)` at line 22.
 pub fn ruby_resource_stage_context_l22_d10_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	if args.len < 2 {
+		panic('ResourceStageContext#initialize requires resource and staging')
+	}
+	return resource_stage_context_value(new_resource_stage_context(args[0], args[1]))
 }
 
 // Ruby method `to_s` at line 28.
 pub fn ruby_resource_stage_context_l28_d11_to_s(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_s', ...args)
+	return brew_runtime.string_value(resource_stage_context_from_args(args, 'to_s').str())
 }
 
 // Original Ruby source (line-for-line):

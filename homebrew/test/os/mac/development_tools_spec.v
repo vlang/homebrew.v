@@ -1,18 +1,32 @@
 module mac
 
-import brew_runtime
+import homebrew.extend.os.mac as development_tools
 
 // Translated from Homebrew/brew `test/os/mac/development_tools_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "doesn't call xcrun when Xcode and the CLT are not installed" do` at line 12.
-pub fn ruby_development_tools_spec_l12_d1_doesn(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('doesn', ...args)
+pub fn ruby_development_tools_spec_l12_d1_doesn() bool {
+	mut tools := development_tools.new_mac_development_tools()
+	missing := tools.locate('missing-tool')
+	return missing == none && tools.xcrun_calls.len == 0
 }
 
 // Ruby it `it "uses xcrun when developer tools are installed" do` at line 23.
-pub fn ruby_development_tools_spec_l23_d2_uses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uses', ...args)
+pub fn ruby_development_tools_spec_l23_d2_uses() bool {
+	mut tools := &development_tools.MacDevelopmentTools{
+		xcode_installed: true
+		xcrun_results: {
+			'xcode-tool': '/Xcode/usr/bin/xcode-tool\n'
+		}
+		executable_paths: ['/Xcode/usr/bin/xcode-tool']
+		locate_cache: map[string]string{}
+		xcrun_calls: []string{}
+	}
+	path := tools.locate('xcode-tool') or { return false }
+	return path == '/Xcode/usr/bin/xcode-tool' && tools.xcrun_calls == [
+		'/usr/bin/xcrun -no-cache -find xcode-tool',
+	]
 }
 
 // Original Ruby source (line-for-line):

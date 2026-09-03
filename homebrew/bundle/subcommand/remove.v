@@ -1,13 +1,66 @@
 module subcommand
 
 import brew_runtime
+import homebrew.bundle
 
 // Translated from Homebrew/brew `bundle/subcommand/remove.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `run` at line 35.
 pub fn ruby_remove_l35_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('run', ...args)
+	if args.len < 3 {
+		return brew_runtime.object_value('ArgumentError', 'items, selected type, and Brewfile are required')
+	}
+	items := if args[0].type_name == 'Array' {
+		args[0].as_array() or { [] }.map(it.as_string())
+	} else {
+		[args[0].as_string()]
+	}
+	selected_types := args[1].as_string_array() or { [args[1].as_string()] }
+	packages := if args.len > 3 {
+		subcommand_remove_packages_from_value(args[3])
+	} else {
+		[]bundle.BundlePackage{}
+	}
+	result := run_bundle_remove(BundleRemoveCommandOptions{
+		items: items
+		selected_types: selected_types
+		file: args[2].as_string()
+		packages: packages
+	}) or { return brew_runtime.object_value('UsageError', err.msg()) }
+	return brew_runtime.structured_value('Bundle::RemoveSubcommand::Result', result.path, {
+		'path':    result.path
+		'content': result.content
+		'removed': result.removed.join(',')
+		'warning': result.warning
+	})
+}
+
+pub struct BundleRemoveCommandOptions {
+pub:
+	items          []string
+	selected_types []string
+	file           string
+	packages       []bundle.BundlePackage
+}
+
+pub fn run_bundle_remove(options BundleRemoveCommandOptions) !bundle.BundleRemoveResult {
+	if options.selected_types.len != 1 {
+		return error('`remove` supports only one type of entry at a time.')
+	}
+	return bundle.remove_bundle_entries(options.file, options.items, options.selected_types[0], options.packages)
+}
+
+fn subcommand_remove_packages_from_value(value brew_runtime.Value) []bundle.BundlePackage {
+	values := value.as_array() or { [] }
+	return values.map(bundle.BundlePackage{
+		kind: if (it.attribute('kind') or { 'formula' }) == 'cask' { .cask } else { .formula }
+		name: it.attribute('name') or { it.as_string() }
+		full_name: it.attribute('full_name') or { it.as_string() }
+		aliases: (it.attribute('aliases') or { '' }).split(',').filter(it != '')
+		oldnames: (it.attribute('oldnames') or { '' }).split(',').filter(it != '')
+		desc: it.attribute('desc') or { '' }
+	})
 }
 
 // Original Ruby source (line-for-line):

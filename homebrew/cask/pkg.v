@@ -1,78 +1,371 @@
 module cask
 
 import brew_runtime
+import os
 
 // Translated from Homebrew/brew `cask/pkg.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub enum PkgPathKind {
+	unknown
+	file
+	directory
+	symlink
+	character_device
+	block_device
+}
+
+pub struct PkgBomEntry {
+pub:
+	path string
+	kind PkgPathKind
+}
+
+pub struct PkgInfo {
+pub:
+	volume           string
+	install_location string
+	paths            []string
+}
+
+pub struct PkgCommandInvocation {
+pub:
+	executable   string
+	args         []string
+	input        string
+	sudo         bool
+	sudo_as_root bool
+}
+
+@[heap]
+pub struct PkgCommand {
+pub:
+	matches                   map[string][]string
+	infos                     map[string]PkgInfo
+	boms                      map[string][]PkgBomEntry
+	allow_filesystem_mutation bool
+pub mut:
+	invocations []PkgCommandInvocation
+}
+
+@[heap]
+pub struct Pkg {
+pub:
+	package_id string
+	command    &PkgCommand
+}
+
+pub fn new_pkg_command() &PkgCommand {
+	return &PkgCommand{}
+}
+
+pub fn new_pkg(package_id string, command &PkgCommand) &Pkg {
+	return &Pkg{
+		package_id: package_id
+		command: command
+	}
+}
+
+fn pkg_plist_keys(xml string) []string {
+	mut keys := []string{}
+	mut remaining := xml
+	for {
+		start := remaining.index('<key>') or { break }
+		after_start := remaining[start + 5..]
+		end := after_start.index('</key>') or { break }
+		keys << after_start[..end]
+		remaining = after_start[end + 6..]
+	}
+	return keys
+}
+
+fn pkg_plist_string(xml string, key string) string {
+	marker := '<key>${key}</key>'
+	key_start := xml.index(marker) or { return '' }
+	after_key := xml[key_start + marker.len..]
+	string_start := after_key.index('<string>') or { return '' }
+	after_start := after_key[string_start + 8..]
+	string_end := after_start.index('</string>') or { return '' }
+	return after_start[..string_end]
+}
+
+pub fn parse_pkg_info_plist(xml string) PkgInfo {
+	return PkgInfo{
+		volume: pkg_plist_string(xml, 'volume')
+		install_location: pkg_plist_string(xml, 'install-location')
+		paths: pkg_plist_keys(xml).filter(it !in ['volume', 'install-location', 'paths'])
+	}
+}
+
+pub fn pkg_all_matching(regexp string, command &PkgCommand) []&Pkg {
+	return (command.matches[regexp] or { [] }).map(new_pkg(it.trim_right('\n'), command))
+}
+
+fn (mut command PkgCommand) record(executable string, args []string, input string, sudo bool) {
+	command.invocations << PkgCommandInvocation{
+		executable: executable
+		args: args.clone()
+		input: input
+		sudo: sudo
+		sudo_as_root: sudo
+	}
+}
+
+pub fn (pkg &Pkg) info() PkgInfo {
+	return pkg.command.infos[pkg.package_id] or { PkgInfo{} }
+}
+
+pub fn (pkg &Pkg) root() string {
+	info := pkg.info()
+	if info.install_location == '' {
+		return os.norm_path(info.volume)
+	}
+	return os.norm_path(os.join_path(info.volume, info.install_location))
+}
+
+pub fn (pkg &Pkg) pkgutil_bom_all() []PkgBomEntry {
+	root := pkg.root()
+	mut paths := []PkgBomEntry{}
+	for entry in pkg.command.boms[pkg.package_id] or { [] } {
+		path := if os.is_abs_path(entry.path) { entry.path } else { os.join_path(root, entry.path) }
+		if !macos_undeletable(path) {
+			paths << PkgBomEntry{
+				path: path
+				kind: entry.kind
+			}
+		}
+	}
+	return paths
+}
+
+pub fn pkg_special(path PkgBomEntry) bool {
+	return path.kind in [.symlink, .character_device, .block_device] || (path.kind == .unknown && os.is_link(path.path))
+}
+
+fn pkg_file(path PkgBomEntry) bool {
+	return path.kind == .file || (path.kind == .unknown && os.is_file(path.path))
+}
+
+fn pkg_directory(path PkgBomEntry) bool {
+	return path.kind == .directory || (path.kind == .unknown && os.is_dir(path.path))
+}
+
+pub fn (pkg &Pkg) pkgutil_bom_specials() []string {
+	return pkg.pkgutil_bom_all().filter(pkg_special(it)).map(it.path)
+}
+
+pub fn (pkg &Pkg) pkgutil_bom_files() []string {
+	specials := pkg.pkgutil_bom_specials()
+	return pkg.pkgutil_bom_all().filter(pkg_file(it) && it.path !in specials).map(it.path)
+}
+
+pub fn (pkg &Pkg) pkgutil_bom_dirs() []string {
+	specials := pkg.pkgutil_bom_specials()
+	return pkg.pkgutil_bom_all().filter(pkg_directory(it) && it.path !in specials).map(it.path)
+}
+
+pub fn pkg_deepest_path_first(paths []string) []string {
+	mut sorted := paths.clone()
+	sorted.sort_with_compare(fn (left &string, right &string) int {
+		left_depth := left.split(os.path_separator).len
+		right_depth := right.split(os.path_separator).len
+		if left_depth == right_depth {
+			return 0
+		}
+		return if left_depth > right_depth { -1 } else { 1 }
+	})
+	return sorted
+}
+
+fn remove_pkg_directory(path string) {
+	if !os.is_dir(path) {
+		return
+	}
+	for name in os.ls(path) or { return } {
+		child := os.join_path(path, name)
+		if name == '.DS_Store' || (os.is_link(child) && !os.exists(child)) {
+			os.rm(child) or {}
+		}
+	}
+	os.rmdir(path) or {}
+}
+
+pub fn (pkg &Pkg) rmdir(paths []string) {
+	mut command := pkg.command
+	command.record('/usr/bin/xargs', ['-0', '--', 'cask/utils/rmdir.sh'], paths.join('\0'), true)
+	if command.allow_filesystem_mutation {
+		for path in paths {
+			remove_pkg_directory(path)
+		}
+	}
+}
+
+pub fn (pkg &Pkg) forget() {
+	mut command := pkg.command
+	command.record('/usr/sbin/pkgutil', ['--forget', pkg.package_id], '', true)
+}
+
+pub fn (pkg &Pkg) uninstall() {
+	files := pkg.pkgutil_bom_files()
+	if files.len > 0 {
+		mut command := pkg.command
+		command.record('/usr/bin/xargs', ['-0', '--', '/bin/rm', '--'], files.join('\0'), true)
+		if command.allow_filesystem_mutation {
+			for path in files {
+				os.rm(path) or {}
+			}
+		}
+	}
+	specials := pkg.pkgutil_bom_specials()
+	if specials.len > 0 {
+		mut command := pkg.command
+		command.record('/usr/bin/xargs', ['-0', '--', '/bin/rm', '--'], specials.join('\0'), true)
+		if command.allow_filesystem_mutation {
+			for path in specials {
+				os.rm(path) or {}
+			}
+		}
+	}
+	directories := pkg.pkgutil_bom_dirs()
+	if directories.len > 0 {
+		pkg.rmdir(pkg_deepest_path_first(directories))
+	}
+	root := pkg.root()
+	if !macos_undeletable(root) {
+		pkg.rmdir([root])
+	}
+	pkg.forget()
+}
+
+fn pkg_info_value(info PkgInfo) brew_runtime.Value {
+	return brew_runtime.map_value({
+		'volume':           brew_runtime.string_value(info.volume)
+		'install-location': brew_runtime.string_value(info.install_location)
+		'paths':            brew_runtime.string_array_value(info.paths)
+	})
+}
+
+fn pkg_command_value(command &PkgCommand) brew_runtime.Value {
+	return brew_runtime.structured_value('SystemCommand', '', {
+		'pkg_command_address': u64(voidptr(command)).str()
+	})
+}
+
+fn pkg_command_from_value(value brew_runtime.Value) &PkgCommand {
+	address := value.attributes['pkg_command_address'] or { panic('invalid Pkg command') }
+	return unsafe { &PkgCommand(voidptr(address.u64())) }
+}
+
+pub fn pkg_command_boundary(command &PkgCommand) brew_runtime.Value {
+	return pkg_command_value(command)
+}
+
+fn pkg_value(pkg &Pkg) brew_runtime.Value {
+	return brew_runtime.structured_value('Cask::Pkg', pkg.package_id, {
+		'pkg_address': u64(voidptr(pkg)).str()
+	})
+}
+
+fn pkg_from_value(value brew_runtime.Value) &Pkg {
+	address := value.attributes['pkg_address'] or { panic('invalid Cask::Pkg') }
+	return unsafe { &Pkg(voidptr(address.u64())) }
+}
 
 // Ruby method `self.all_matching(regexp, command)` at line 13.
 pub fn ruby_pkg_l13_d1_self_all_matching(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.all_matching', ...args)
+	if args.len < 2 {
+		return brew_runtime.array_value([])
+	}
+	command := pkg_command_from_value(args[1])
+	return brew_runtime.array_value(pkg_all_matching(args[0].as_string(), command).map(pkg_value(it)))
 }
 
 // Ruby attr_reader `attr_reader :package_id` at line 20.
 pub fn ruby_pkg_l20_d2_package_id(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('package_id', ...args)
+	return brew_runtime.string_value(pkg_from_value(args[0]).package_id)
 }
 
 // Ruby method `initialize(package_id, command = SystemCommand)` at line 23.
 pub fn ruby_pkg_l23_d3_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	if args.len < 2 {
+		return brew_runtime.object_value('ArgumentError', 'package_id and command are required')
+	}
+	return pkg_value(new_pkg(args[0].as_string(), pkg_command_from_value(args[1])))
 }
 
 // Ruby method `uninstall` at line 29.
 pub fn ruby_pkg_l29_d4_uninstall(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uninstall', ...args)
+	pkg_from_value(args[0]).uninstall()
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Ruby method `forget` at line 63.
 pub fn ruby_pkg_l63_d5_forget(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('forget', ...args)
+	pkg_from_value(args[0]).forget()
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Ruby method `pkgutil_bom_files` at line 74.
 pub fn ruby_pkg_l74_d6_pkgutil_bom_files(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('pkgutil_bom_files', ...args)
+	return brew_runtime.string_array_value(pkg_from_value(args[0]).pkgutil_bom_files())
 }
 
 // Ruby method `pkgutil_bom_specials` at line 80.
 pub fn ruby_pkg_l80_d7_pkgutil_bom_specials(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('pkgutil_bom_specials', ...args)
+	return brew_runtime.string_array_value(pkg_from_value(args[0]).pkgutil_bom_specials())
 }
 
 // Ruby method `pkgutil_bom_dirs` at line 85.
 pub fn ruby_pkg_l85_d8_pkgutil_bom_dirs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('pkgutil_bom_dirs', ...args)
+	return brew_runtime.string_array_value(pkg_from_value(args[0]).pkgutil_bom_dirs())
 }
 
 // Ruby method `pkgutil_bom_all` at line 91.
 pub fn ruby_pkg_l91_d9_pkgutil_bom_all(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('pkgutil_bom_all', ...args)
+	return brew_runtime.string_array_value(pkg_from_value(args[0]).pkgutil_bom_all().map(it.path))
 }
 
 // Ruby method `root` at line 103.
 pub fn ruby_pkg_l103_d10_root(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('root', ...args)
+	return brew_runtime.object_value('Pathname', pkg_from_value(args[0]).root())
 }
 
 // Ruby method `info` at line 108.
 pub fn ruby_pkg_l108_d11_info(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('info', ...args)
+	return pkg_info_value(pkg_from_value(args[0]).info())
 }
 
 // Ruby method `special?(path)` at line 115.
 pub fn ruby_pkg_l115_d12_special(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('special?', ...args)
+	kind := if args.len > 2 {
+		match args[2].as_string() {
+			'symlink' { PkgPathKind.symlink }
+			'character_device' { PkgPathKind.character_device }
+			'block_device' { PkgPathKind.block_device }
+			else { PkgPathKind.unknown }
+		}
+	} else {
+		PkgPathKind.unknown
+	}
+	return brew_runtime.bool_value(pkg_special(PkgBomEntry{
+		path: args[1].as_string()
+		kind: kind
+	}))
 }
 
 // Ruby method `rmdir(path)` at line 125.
 pub fn ruby_pkg_l125_d13_rmdir(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('rmdir', ...args)
+	paths := if args[1].type_name == 'Array' {
+		args[1].as_string_array() or { [] }
+	} else {
+		[args[1].as_string()]
+	}
+	pkg_from_value(args[0]).rmdir(paths)
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Ruby method `deepest_path_first(paths)` at line 136.
 pub fn ruby_pkg_l136_d14_deepest_path_first(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('deepest_path_first', ...args)
+	return brew_runtime.string_array_value(pkg_deepest_path_first(args[1].as_string_array() or { [] }))
 }
 
 // Original Ruby source (line-for-line):

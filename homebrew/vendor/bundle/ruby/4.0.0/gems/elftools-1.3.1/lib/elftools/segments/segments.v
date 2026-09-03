@@ -4,10 +4,46 @@ import brew_runtime
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/elftools-1.3.1/lib/elftools/segments/segments.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub enum SegmentKind {
+	segment
+	dynamic
+	interpreter
+	load
+	note
+}
+
+pub fn segment_kind(program_type int) SegmentKind {
+	return match program_type {
+		2 { .dynamic }
+		3 { .interpreter }
+		1 { .load }
+		4 { .note }
+		else { .segment }
+	}
+}
+
+pub fn (kind SegmentKind) class_name() string {
+	return match kind {
+		.segment { 'Segment' }
+		.dynamic { 'DynamicSegment' }
+		.interpreter { 'InterpSegment' }
+		.load { 'LoadSegment' }
+		.note { 'NoteSegment' }
+	}
+}
 
 // Ruby method `create(header, stream, *args, **kwargs)` at line 22.
 pub fn ruby_segments_l22_d1_create(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('create', ...args)
+	if args.len == 0 { panic('Segment.create requires a header') }
+	program_type := if args[0].type_name == 'Integer' {
+		int(args[0].as_int() or { panic(err) })
+	} else {
+		(args[0].attribute('p_type') or { '0' }).int()
+	}
+	kind := segment_kind(program_type)
+	return brew_runtime.structured_value(kind.class_name(), kind.class_name(), {
+		'p_type': program_type.str()
+	})
 }
 
 // Original Ruby source (line-for-line):

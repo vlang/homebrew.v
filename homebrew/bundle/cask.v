@@ -1,138 +1,806 @@
 module bundle
 
 import brew_runtime
+import homebrew
 
 // Translated from Homebrew/brew `bundle/cask.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub struct BundleCask {
+pub:
+	name                 string
+	full_name            string
+	desc                 string
+	explicit             map[string]brew_runtime.Value
+	old_tokens           []string
+	formula_dependencies []string
+	pinned               bool
+	outdated             bool
+	greedy_outdated      bool
+}
+
+pub struct BundleCaskState {
+pub:
+	cask_available     bool
+	casks              []BundleCask
+	loadable_casks     []BundleCask
+	installed_casks    []string
+	installed_override bool
+	outdated_casks     []string
+	outdated_override  bool
+	trusted_casks      []string
+	home_dir           string
+}
+
+pub struct BundleCaskOptions {
+pub:
+	full_name   string
+	trusted     bool
+	greedy      bool
+	args        map[string]brew_runtime.Value
+	postinstall string
+}
+
+pub struct BundleCaskEffects {
+pub:
+	command_results     map[string]bool
+	postinstall_results map[string]bool
+}
+
+pub struct BundleCaskActionResult {
+pub:
+	success  bool
+	state    BundleCaskState
+	commands [][]string
+	trusted  []string
+	output   []string
+}
+
+pub struct BundleCaskInstalledResult {
+pub:
+	installed bool
+	warning   string
+}
+
+fn bundle_cask_nil_value() brew_runtime.Value {
+	return brew_runtime.object_value('NilClass', '')
+}
+
+fn bundle_cask_strings_value(values []string) brew_runtime.Value {
+	return brew_runtime.string_array_value(values)
+}
+
+fn bundle_cask_strings_from_value(value brew_runtime.Value) []string {
+	return value.as_string_array() or { [] }
+}
+
+fn bundle_cask_bool(value brew_runtime.Value, fallback bool) bool {
+	return value.as_bool() or { fallback }
+}
+
+pub fn bundle_cask_value(cask BundleCask) brew_runtime.Value {
+	return brew_runtime.Value{
+		type_name: 'Cask::Cask'
+		repr: cask.name
+		map_data: {
+			'name':                 brew_runtime.string_value(cask.name)
+			'full_name':            brew_runtime.string_value(cask.full_name)
+			'desc':                 if cask.desc == '' {
+				bundle_cask_nil_value()} else {
+				brew_runtime.string_value(cask.desc)}
+			'explicit':             brew_runtime.map_value(cask.explicit)
+			'old_tokens':           bundle_cask_strings_value(cask.old_tokens)
+			'formula_dependencies': bundle_cask_strings_value(cask.formula_dependencies)
+			'pinned?':              brew_runtime.bool_value(cask.pinned)
+			'outdated?':            brew_runtime.bool_value(cask.outdated)
+			'greedy_outdated?':     brew_runtime.bool_value(cask.greedy_outdated)
+		}
+		attributes: {
+			'name':      cask.name
+			'full_name': cask.full_name
+		}
+	}
+}
+
+pub fn bundle_cask_from_value(value brew_runtime.Value) BundleCask {
+	fields := value.map_data.clone()
+	return BundleCask{
+		name: (fields['name'] or { brew_runtime.string_value(value.repr) }).as_string()
+		full_name: (fields['full_name'] or { brew_runtime.string_value(value.attributes['full_name'] or { value.repr }) }).as_string()
+		desc: if (fields['desc'] or { bundle_cask_nil_value() }).type_name in ['Nil', 'NilClass'] {
+			''} else {
+			(fields['desc'] or { bundle_cask_nil_value() }).as_string()}
+		explicit: (fields['explicit'] or { brew_runtime.map_value({}) }).as_map() or { map[string]brew_runtime.Value{} }
+		old_tokens: bundle_cask_strings_from_value(fields['old_tokens'] or { bundle_cask_strings_value([]) })
+		formula_dependencies: bundle_cask_strings_from_value(fields['formula_dependencies'] or { bundle_cask_strings_value([]) })
+		pinned: bundle_cask_bool(fields['pinned?'] or { brew_runtime.bool_value(false) }, false)
+		outdated: bundle_cask_bool(fields['outdated?'] or { brew_runtime.bool_value(false) }, false)
+		greedy_outdated: bundle_cask_bool(fields['greedy_outdated?'] or { brew_runtime.bool_value(false) }, false)
+	}
+}
+
+fn bundle_casks_value(casks []BundleCask) brew_runtime.Value {
+	return brew_runtime.array_value(casks.map(bundle_cask_value(it)))
+}
+
+fn bundle_casks_from_value(value brew_runtime.Value) []BundleCask {
+	return value.as_array() or { [] }.map(bundle_cask_from_value(it))
+}
+
+pub fn bundle_cask_state_value(state BundleCaskState) brew_runtime.Value {
+	return brew_runtime.Value{
+		type_name: 'Homebrew::Bundle::Cask::State'
+		array_data: state.casks.map(bundle_cask_value(it))
+		map_data: {
+			'cask_available':     brew_runtime.bool_value(state.cask_available)
+			'loadable_casks':     bundle_casks_value(state.loadable_casks)
+			'installed_casks':    bundle_cask_strings_value(state.installed_casks)
+			'installed_override': brew_runtime.bool_value(state.installed_override)
+			'outdated_casks':     bundle_cask_strings_value(state.outdated_casks)
+			'outdated_override':  brew_runtime.bool_value(state.outdated_override)
+			'trusted_casks':      bundle_cask_strings_value(state.trusted_casks)
+			'home_dir':           brew_runtime.string_value(state.home_dir)
+		}
+	}
+}
+
+pub fn bundle_cask_state_from_value(value brew_runtime.Value) BundleCaskState {
+	fields := value.map_data.clone()
+	return BundleCaskState{
+		cask_available: bundle_cask_bool(fields['cask_available'] or { brew_runtime.bool_value(false) }, false)
+		casks: value.array_data.map(bundle_cask_from_value(it))
+		loadable_casks: bundle_casks_from_value(fields['loadable_casks'] or { bundle_casks_value([]) })
+		installed_casks: bundle_cask_strings_from_value(fields['installed_casks'] or { bundle_cask_strings_value([]) })
+		installed_override: bundle_cask_bool(fields['installed_override'] or { brew_runtime.bool_value(false) }, false)
+		outdated_casks: bundle_cask_strings_from_value(fields['outdated_casks'] or { bundle_cask_strings_value([]) })
+		outdated_override: bundle_cask_bool(fields['outdated_override'] or { brew_runtime.bool_value(false) }, false)
+		trusted_casks: bundle_cask_strings_from_value(fields['trusted_casks'] or { bundle_cask_strings_value([]) })
+		home_dir: (fields['home_dir'] or { brew_runtime.string_value('') }).as_string()
+	}
+}
+
+pub fn bundle_cask_options_value(options BundleCaskOptions) brew_runtime.Value {
+	return brew_runtime.map_value({
+		'full_name':   if options.full_name == '' {
+			bundle_cask_nil_value()
+		} else {
+			brew_runtime.string_value(options.full_name)
+		}
+		'trusted':     brew_runtime.bool_value(options.trusted)
+		'greedy':      brew_runtime.bool_value(options.greedy)
+		'args':        brew_runtime.map_value(options.args)
+		'postinstall': if options.postinstall == '' {
+			bundle_cask_nil_value()
+		} else {
+			brew_runtime.string_value(options.postinstall)
+		}
+	})
+}
+
+pub fn bundle_cask_options_from_value(value brew_runtime.Value) BundleCaskOptions {
+	fields := value.as_map() or { map[string]brew_runtime.Value{} }
+	return BundleCaskOptions{
+		full_name: if (fields['full_name'] or { bundle_cask_nil_value() }).type_name in [
+			'Nil',
+			'NilClass',
+		] {
+			''} else {
+			(fields['full_name'] or { bundle_cask_nil_value() }).as_string()}
+		trusted: bundle_cask_bool(fields['trusted'] or { brew_runtime.bool_value(false) }, false)
+		greedy: bundle_cask_bool(fields['greedy'] or { brew_runtime.bool_value(false) }, false)
+		args: (fields['args'] or { brew_runtime.map_value({}) }).as_map() or { map[string]brew_runtime.Value{} }
+		postinstall: if (fields['postinstall'] or { bundle_cask_nil_value() }).type_name in [
+			'Nil',
+			'NilClass',
+		] {
+			''} else {
+			(fields['postinstall'] or { bundle_cask_nil_value() }).as_string()}
+	}
+}
+
+pub fn bundle_cask_effects_value(effects BundleCaskEffects) brew_runtime.Value {
+	mut commands := map[string]brew_runtime.Value{}
+	for key, value in effects.command_results {
+		commands[key] = brew_runtime.bool_value(value)
+	}
+	mut postinstalls := map[string]brew_runtime.Value{}
+	for key, value in effects.postinstall_results {
+		postinstalls[key] = brew_runtime.bool_value(value)
+	}
+	return brew_runtime.map_value({
+		'command_results':     brew_runtime.map_value(commands)
+		'postinstall_results': brew_runtime.map_value(postinstalls)
+	})
+}
+
+pub fn bundle_cask_effects_from_value(value brew_runtime.Value) BundleCaskEffects {
+	fields := value.as_map() or { map[string]brew_runtime.Value{} }
+	mut command_results := map[string]bool{}
+	for key, result in (fields['command_results'] or { brew_runtime.map_value({}) }).as_map() or { map[string]brew_runtime.Value{} } {
+		command_results[key] = bundle_cask_bool(result, false)
+	}
+	mut postinstall_results := map[string]bool{}
+	for key, result in (fields['postinstall_results'] or { brew_runtime.map_value({}) }).as_map() or { map[string]brew_runtime.Value{} } {
+		postinstall_results[key] = bundle_cask_bool(result, false)
+	}
+	return BundleCaskEffects{
+		command_results: command_results
+		postinstall_results: postinstall_results
+	}
+}
+
+fn bundle_cask_action_value(result BundleCaskActionResult) brew_runtime.Value {
+	return brew_runtime.map_value({
+		'result':   brew_runtime.bool_value(result.success)
+		'state':    bundle_cask_state_value(result.state)
+		'commands': brew_runtime.array_value(result.commands.map(brew_runtime.string_array_value(it)))
+		'trusted':  bundle_cask_strings_value(result.trusted)
+		'output':   bundle_cask_strings_value(result.output)
+	})
+}
+
+pub fn bundle_cask_reset(state BundleCaskState) BundleCaskState {
+	return BundleCaskState{
+		cask_available: state.cask_available
+		casks: state.casks.clone()
+		loadable_casks: state.loadable_casks.clone()
+		trusted_casks: state.trusted_casks.clone()
+		home_dir: state.home_dir
+	}
+}
+
+pub fn bundle_cask_casks(state BundleCaskState) []BundleCask {
+	return if state.cask_available { state.casks.clone() } else { [] }
+}
+
+pub fn bundle_cask_names(state BundleCaskState) []string {
+	return bundle_cask_casks(state).map(it.name)
+}
+
+pub fn bundle_cask_outdated_names(state BundleCaskState) []string {
+	if !state.cask_available {
+		return []
+	}
+	return state.casks.filter(!it.pinned && it.outdated).map(it.name)
+}
+
+pub fn bundle_cask_installed_names(state BundleCaskState) []string {
+	return if state.installed_override {
+		state.installed_casks.clone()
+	} else {
+		bundle_cask_names(state)
+	}
+}
+
+pub fn bundle_cask_outdated_casks(state BundleCaskState) []string {
+	return if state.outdated_override {
+		state.outdated_casks.clone()
+	} else {
+		bundle_cask_outdated_names(state)
+	}
+}
+
+pub fn bundle_cask_oldnames(state BundleCaskState) map[string]string {
+	mut oldnames := map[string]string{}
+	for cask in bundle_cask_casks(state) {
+		for oldname in cask.old_tokens {
+			oldnames[oldname] = cask.full_name
+			if tap := homebrew.tap_from_full_name(cask.full_name) {
+				oldnames['${tap}/${oldname}'] = cask.full_name
+			}
+		}
+	}
+	return oldnames
+}
+
+pub fn bundle_cask_in_array(cask string, values []string) bool {
+	return cask in values || homebrew.name_from_full_name(cask) in values
+}
+
+pub fn bundle_cask_installed_result(state BundleCaskState, cask string) BundleCaskInstalledResult {
+	installed := bundle_cask_installed_names(state)
+	if bundle_cask_in_array(cask, installed) {
+		return BundleCaskInstalledResult{ installed: true }
+	}
+	oldnames := bundle_cask_oldnames(state)
+	oldname := oldnames[cask] or { oldnames[homebrew.name_from_full_name(cask)] or { '' } }
+	if oldname == '' || !bundle_cask_in_array(oldname, installed) {
+		return BundleCaskInstalledResult{}
+	}
+	return BundleCaskInstalledResult{
+		installed: true
+		warning: '${cask} was renamed to ${oldname}'
+	}
+}
+
+pub fn bundle_cask_installed(state BundleCaskState, cask string) bool {
+	return bundle_cask_installed_result(state, cask).installed
+}
+
+pub fn bundle_cask_upgradable(state BundleCaskState, cask string) bool {
+	return bundle_cask_in_array(cask, bundle_cask_outdated_casks(state))
+}
+
+pub fn bundle_cask_greedy_outdated(state BundleCaskState, name string) bool {
+	if !state.cask_available {
+		return false
+	}
+	for cask in state.casks {
+		if cask.name == name {
+			return !cask.pinned && cask.greedy_outdated
+		}
+	}
+	return false
+}
+
+pub fn bundle_cask_upgrading(state BundleCaskState, no_upgrade bool, name string, options BundleCaskOptions) bool {
+	if no_upgrade {
+		return false
+	}
+	if bundle_cask_upgradable(state, name) {
+		return true
+	}
+	return options.greedy && bundle_cask_greedy_outdated(state, name)
+}
+
+pub fn bundle_cask_installed_and_up_to_date(state BundleCaskState, cask string, no_upgrade bool) bool {
+	if !bundle_cask_installed(state, cask) {
+		return false
+	}
+	return no_upgrade || !bundle_cask_upgradable(state, cask)
+}
+
+pub fn bundle_cask_install_verb(state BundleCaskState, name string, options BundleCaskOptions) string {
+	return if !bundle_cask_installed(state, name) || !bundle_cask_upgrading(state, false, name, options) {
+		'Installing'
+	} else {
+		'Upgrading'
+	}
+}
+
+pub fn bundle_cask_preinstall(state BundleCaskState, name string, no_upgrade bool, verbose bool, options BundleCaskOptions) (bool, []string) {
+	if bundle_cask_installed(state, name) && !bundle_cask_upgrading(state, no_upgrade, name, options) {
+		return false, if verbose {
+			['Skipping install of ${name} cask. It is already installed.']
+		} else {
+			[]
+		}
+	}
+	return true, []string{}
+}
+
+fn bundle_cask_unique(values []string) []string {
+	mut seen := map[string]bool{}
+	mut result := []string{}
+	for value in values {
+		if value !in seen {
+			seen[value] = true
+			result << value
+		}
+	}
+	return result
+}
+
+pub fn bundle_cask_install_args(options BundleCaskOptions, force bool) []string {
+	mut arguments := []string{}
+	for key, value in options.args {
+		if value.type_name == 'Bool' {
+			if value.bool_data {
+				arguments << '--${key}'
+			}
+		} else if value.type_name !in ['Nil', 'NilClass'] {
+			arguments << '--${key}=${value.as_string()}'
+		}
+	}
+	if force {
+		arguments << '--force'
+	}
+	if '--force' !in arguments {
+		arguments << '--adopt'
+	}
+	return bundle_cask_unique(arguments)
+}
+
+fn bundle_cask_command_result(effects BundleCaskEffects, command []string) bool {
+	return effects.command_results[command.join('\x1f')] or { false }
+}
+
+pub fn bundle_cask_postinstall(name string, options BundleCaskOptions, verbose bool, effects BundleCaskEffects) (bool, []string) {
+	if options.postinstall.trim_space() == '' {
+		return true, []string{}
+	}
+	result := effects.postinstall_results[options.postinstall] or { false }
+	return result, if verbose {
+		['Running postinstall for ${name}: ${options.postinstall}']
+	} else {
+		[]
+	}
+}
+
+pub fn bundle_cask_install(state BundleCaskState, name string, preinstall bool, no_upgrade bool, verbose bool, force bool, options BundleCaskOptions, effects BundleCaskEffects) BundleCaskActionResult {
+	if !preinstall {
+		return BundleCaskActionResult{ success: true, state: state }
+	}
+	full_name := if options.full_name != '' { options.full_name } else { name }
+	mut commands := [][]string{}
+	mut trusted := []string{}
+	mut output := []string{}
+	if options.trusted && homebrew.is_full_name(full_name) {
+		trusted << full_name
+	}
+	mut updated := state
+	mut install_result := false
+	if bundle_cask_installed(state, name) && bundle_cask_upgrading(state, no_upgrade, name, options) {
+		status := if options.greedy { 'may not be' } else { 'not' }
+		if verbose {
+			output << 'Upgrading ${name} cask. It is installed but ${status} up-to-date.'
+		}
+		command := ['upgrade', '--cask', full_name]
+		commands << command
+		install_result = bundle_cask_command_result(effects, command)
+	} else {
+		arguments := bundle_cask_install_args(options, force)
+		if verbose {
+			with_args := if arguments.len > 0 { ' with ${arguments.join(' ')}' } else { '' }
+			output << 'Installing ${name} cask${with_args}. It is not currently installed.'
+		}
+		mut command := ['install', '--cask', full_name]
+		command << arguments
+		commands << command
+		install_result = bundle_cask_command_result(effects, command)
+		if install_result {
+			mut installed := bundle_cask_installed_names(updated)
+			installed << name
+			updated = BundleCaskState{
+				...updated
+				installed_casks: bundle_cask_unique(installed)
+				installed_override: true
+			}
+		}
+	}
+	mut result := install_result
+	if bundle_cask_installed(updated, name) {
+		postinstall_result, postinstall_output := bundle_cask_postinstall(name, options, verbose, effects)
+		output << postinstall_output
+		result = result && postinstall_result
+	}
+	return BundleCaskActionResult{
+		success: result
+		state: updated
+		commands: commands
+		trusted: trusted
+		output: output
+	}
+}
+
+pub fn bundle_cask_fetchable_name(state BundleCaskState, name string, options BundleCaskOptions, no_upgrade bool) ?string {
+	if !bundle_cask_installed(state, name) || bundle_cask_upgrading(state, no_upgrade, name, options) {
+		return if options.full_name != '' { options.full_name } else { name }
+	}
+	return none
+}
+
+pub fn bundle_cask_explicit_s(explicit map[string]brew_runtime.Value, home_dir string) string {
+	mut values := []string{}
+	for original_key, original_value in explicit {
+		mut key := original_key
+		mut value := original_value.as_string()
+		if key == 'languages' {
+			key = 'language'
+			value = original_value.as_string_array() or { [] }.join(',')
+		}
+		if home_dir != '' && value.starts_with(home_dir) {
+			value = '~${value[home_dir.len..]}'
+		}
+		values << '${key}: "${value}"'
+	}
+	return values.join(', ')
+}
+
+pub fn bundle_cask_dump(state BundleCaskState, describe bool) string {
+	mut lines := []string{}
+	for cask in bundle_cask_casks(state) {
+		if describe && cask.desc != '' {
+			lines << '# ${cask.desc}'
+		}
+		mut line := 'cask "${cask.full_name}"'
+		if cask.explicit.len > 0 {
+			line += ', args: { ${bundle_cask_explicit_s(cask.explicit, state.home_dir)} }'
+		}
+		if cask.full_name in state.trusted_casks {
+			line += ', trusted: true'
+		}
+		lines << line
+	}
+	return lines.join('\n')
+}
+
+pub fn bundle_cask_formula_dependencies(state BundleCaskState, names []string) []string {
+	if names.len == 0 {
+		return []
+	}
+	mut dependencies := []string{}
+	for name in names {
+		mut found := false
+		for cask in bundle_cask_casks(state) {
+			if cask.name == name || cask.full_name == name {
+				dependencies << cask.formula_dependencies
+				found = true
+				break
+			}
+		}
+		if found {
+			continue
+		}
+		for cask in state.loadable_casks {
+			if cask.name == name || cask.full_name == name {
+				dependencies << cask.formula_dependencies
+				break
+			}
+		}
+	}
+	return dependencies
+}
 
 // Ruby method `type = :cask` at line 16.
 pub fn ruby_cask_l16_d1_type(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('type', ...args)
+	_ = args
+	return brew_runtime.object_value('Symbol', 'cask')
 }
 
 // Ruby method `check_label = "Cask"` at line 19.
 pub fn ruby_cask_l19_d2_check_label(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('check_label', ...args)
+	_ = args
+	return brew_runtime.string_value('Cask')
 }
 
 // Ruby method `reset!` at line 22.
 pub fn ruby_cask_l22_d3_reset(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reset!', ...args)
+	state := if args.len > 0 { bundle_cask_state_from_value(args[0]) } else { BundleCaskState{} }
+	return bundle_cask_state_value(bundle_cask_reset(state))
 }
 
 // Ruby method `casks` at line 31.
 pub fn ruby_cask_l31_d4_casks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('casks', ...args)
+	state := if args.len > 0 { bundle_cask_state_from_value(args[0]) } else { BundleCaskState{} }
+	return bundle_casks_value(bundle_cask_casks(state))
 }
 
 // Ruby method `install_verb(name, options = {})` at line 44.
 pub fn ruby_cask_l44_d5_install_verb(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install_verb', ...args)
+	state := if args.len > 0 { bundle_cask_state_from_value(args[0]) } else { BundleCaskState{} }
+	name := if args.len > 1 { args[1].as_string() } else { '' }
+	options := if args.len > 2 {
+		bundle_cask_options_from_value(args[2])
+	} else {
+		BundleCaskOptions{}
+	}
+	return brew_runtime.string_value(bundle_cask_install_verb(state, name, options))
 }
 
 // Ruby method `preinstall!(name, no_upgrade: false, verbose: false, **options)` at line 51.
 pub fn ruby_cask_l51_d6_preinstall(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('preinstall!', ...args)
+	state := if args.len > 0 { bundle_cask_state_from_value(args[0]) } else { BundleCaskState{} }
+	name := if args.len > 1 { args[1].as_string() } else { '' }
+	no_upgrade := if args.len > 2 { bundle_cask_bool(args[2], false) } else { false }
+	verbose := if args.len > 3 { bundle_cask_bool(args[3], false) } else { false }
+	options := if args.len > 4 {
+		bundle_cask_options_from_value(args[4])
+	} else {
+		BundleCaskOptions{}
+	}
+	result, output := bundle_cask_preinstall(state, name, no_upgrade, verbose, options)
+	return brew_runtime.map_value({
+		'result': brew_runtime.bool_value(result)
+		'output': bundle_cask_strings_value(output)
+	})
 }
 
 // Ruby method `install!(name, preinstall: true, no_upgrade: false, verbose: false, force: false, **options)` at line 64.
 pub fn ruby_cask_l64_d7_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install!', ...args)
+	state := if args.len > 0 { bundle_cask_state_from_value(args[0]) } else { BundleCaskState{} }
+	name := if args.len > 1 { args[1].as_string() } else { '' }
+	preinstall := if args.len > 2 { bundle_cask_bool(args[2], true) } else { true }
+	no_upgrade := if args.len > 3 { bundle_cask_bool(args[3], false) } else { false }
+	verbose := if args.len > 4 { bundle_cask_bool(args[4], false) } else { false }
+	force := if args.len > 5 { bundle_cask_bool(args[5], false) } else { false }
+	options := if args.len > 6 {
+		bundle_cask_options_from_value(args[6])
+	} else {
+		BundleCaskOptions{}
+	}
+	effects := if args.len > 7 {
+		bundle_cask_effects_from_value(args[7])
+	} else {
+		BundleCaskEffects{}
+	}
+	return bundle_cask_action_value(bundle_cask_install(state, name, preinstall, no_upgrade, verbose, force, options, effects))
 }
 
 // Ruby method `installable_or_upgradable?(name, no_upgrade: false, **options)` at line 114.
 pub fn ruby_cask_l114_d8_installable_or_upgradable(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('installable_or_upgradable?', ...args)
+	state := if args.len > 0 { bundle_cask_state_from_value(args[0]) } else { BundleCaskState{} }
+	name := if args.len > 1 { args[1].as_string() } else { '' }
+	no_upgrade := if args.len > 2 { bundle_cask_bool(args[2], false) } else { false }
+	options := if args.len > 3 {
+		bundle_cask_options_from_value(args[3])
+	} else {
+		BundleCaskOptions{}
+	}
+	return brew_runtime.bool_value(!bundle_cask_installed(state, name) || bundle_cask_upgrading(state, no_upgrade, name, options))
 }
 
 // Ruby method `fetchable_name(name, options = {}, no_upgrade: false)` at line 119.
 pub fn ruby_cask_l119_d9_fetchable_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fetchable_name', ...args)
+	state := if args.len > 0 { bundle_cask_state_from_value(args[0]) } else { BundleCaskState{} }
+	name := if args.len > 1 { args[1].as_string() } else { '' }
+	options := if args.len > 2 {
+		bundle_cask_options_from_value(args[2])
+	} else {
+		BundleCaskOptions{}
+	}
+	no_upgrade := if args.len > 3 { bundle_cask_bool(args[3], false) } else { false }
+	if fetchable := bundle_cask_fetchable_name(state, name, options, no_upgrade) {
+		return brew_runtime.string_value(fetchable)
+	}
+	return bundle_cask_nil_value()
 }
 
 // Ruby method `cask_installed_and_up_to_date?(cask, no_upgrade: false)` at line 127.
 pub fn ruby_cask_l127_d10_cask_installed_and_up_to_date(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask_installed_and_up_to_date?', ...args)
+	state := if args.len > 0 { bundle_cask_state_from_value(args[0]) } else { BundleCaskState{} }
+	cask := if args.len > 1 { args[1].as_string() } else { '' }
+	no_upgrade := if args.len > 2 { bundle_cask_bool(args[2], false) } else { false }
+	return brew_runtime.bool_value(bundle_cask_installed_and_up_to_date(state, cask, no_upgrade))
 }
 
 // Ruby method `cask_in_array?(cask, array)` at line 135.
 pub fn ruby_cask_l135_d11_cask_in_array(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask_in_array?', ...args)
+	cask := if args.len > 0 { args[0].as_string() } else { '' }
+	values := if args.len > 1 { bundle_cask_strings_from_value(args[1]) } else { [] }
+	return brew_runtime.bool_value(bundle_cask_in_array(cask, values))
 }
 
 // Ruby method `cask_installed?(cask)` at line 142.
 pub fn ruby_cask_l142_d12_cask_installed(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask_installed?', ...args)
+	state := if args.len > 0 { bundle_cask_state_from_value(args[0]) } else { BundleCaskState{} }
+	cask := if args.len > 1 { args[1].as_string() } else { '' }
+	result := bundle_cask_installed_result(state, cask)
+	return brew_runtime.map_value({
+		'result':  brew_runtime.bool_value(result.installed)
+		'warning': if result.warning == '' {
+			bundle_cask_nil_value()
+		} else {
+			brew_runtime.string_value(result.warning)
+		}
+	})
 }
 
 // Ruby method `cask_upgradable?(cask)` at line 156.
 pub fn ruby_cask_l156_d13_cask_upgradable(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask_upgradable?', ...args)
+	state := if args.len > 0 { bundle_cask_state_from_value(args[0]) } else { BundleCaskState{} }
+	cask := if args.len > 1 { args[1].as_string() } else { '' }
+	return brew_runtime.bool_value(bundle_cask_upgradable(state, cask))
 }
 
 // Ruby method `installed_casks` at line 161.
 pub fn ruby_cask_l161_d14_installed_casks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('installed_casks', ...args)
+	state := if args.len > 0 { bundle_cask_state_from_value(args[0]) } else { BundleCaskState{} }
+	return bundle_cask_strings_value(bundle_cask_installed_names(state))
 }
 
 // Ruby method `outdated_casks` at line 166.
 pub fn ruby_cask_l166_d15_outdated_casks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('outdated_casks', ...args)
+	state := if args.len > 0 { bundle_cask_state_from_value(args[0]) } else { BundleCaskState{} }
+	return bundle_cask_strings_value(bundle_cask_outdated_casks(state))
 }
 
 // Ruby method `cask_names` at line 171.
 pub fn ruby_cask_l171_d16_cask_names(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask_names', ...args)
+	state := if args.len > 0 { bundle_cask_state_from_value(args[0]) } else { BundleCaskState{} }
+	return bundle_cask_strings_value(bundle_cask_names(state))
 }
 
 // Ruby method `outdated_cask_names` at line 176.
 pub fn ruby_cask_l176_d17_outdated_cask_names(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('outdated_cask_names', ...args)
+	state := if args.len > 0 { bundle_cask_state_from_value(args[0]) } else { BundleCaskState{} }
+	return bundle_cask_strings_value(bundle_cask_outdated_names(state))
 }
 
 // Ruby method `cask_is_outdated_using_greedy?(cask_name)` at line 185.
 pub fn ruby_cask_l185_d18_cask_is_outdated_using_greedy(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask_is_outdated_using_greedy?', ...args)
+	state := if args.len > 0 { bundle_cask_state_from_value(args[0]) } else { BundleCaskState{} }
+	name := if args.len > 1 { args[1].as_string() } else { '' }
+	return brew_runtime.bool_value(bundle_cask_greedy_outdated(state, name))
 }
 
 // Ruby method `dump(describe: false)` at line 195.
 pub fn ruby_cask_l195_d19_dump(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dump', ...args)
+	state := if args.len > 0 { bundle_cask_state_from_value(args[0]) } else { BundleCaskState{} }
+	describe := if args.len > 1 { bundle_cask_bool(args[1], false) } else { false }
+	return brew_runtime.string_value(bundle_cask_dump(state, describe))
 }
 
 // Ruby method `dump_output(describe: false, no_restart: false)` at line 207.
 pub fn ruby_cask_l207_d20_dump_output(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dump_output', ...args)
+	state := if args.len > 0 { bundle_cask_state_from_value(args[0]) } else { BundleCaskState{} }
+	describe := if args.len > 1 { bundle_cask_bool(args[1], false) } else { false }
+	return brew_runtime.string_value(bundle_cask_dump(state, describe))
 }
 
 // Ruby method `cask_oldnames` at line 214.
 pub fn ruby_cask_l214_d21_cask_oldnames(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask_oldnames', ...args)
+	state := if args.len > 0 { bundle_cask_state_from_value(args[0]) } else { BundleCaskState{} }
+	mut values := map[string]brew_runtime.Value{}
+	for key, value in bundle_cask_oldnames(state) {
+		values[key] = brew_runtime.string_value(value)
+	}
+	return brew_runtime.map_value(values)
 }
 
 // Ruby method `formula_dependencies(cask_list)` at line 229.
 pub fn ruby_cask_l229_d22_formula_dependencies(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_dependencies', ...args)
+	state := if args.len > 0 { bundle_cask_state_from_value(args[0]) } else { BundleCaskState{} }
+	names := if args.len > 1 { bundle_cask_strings_from_value(args[1]) } else { [] }
+	return bundle_cask_strings_value(bundle_cask_formula_dependencies(state, names))
 }
 
 // Ruby method `upgrading?(no_upgrade, name, options)` at line 253.
 pub fn ruby_cask_l253_d23_upgrading(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('upgrading?', ...args)
+	state := if args.len > 0 { bundle_cask_state_from_value(args[0]) } else { BundleCaskState{} }
+	no_upgrade := if args.len > 1 { bundle_cask_bool(args[1], false) } else { false }
+	name := if args.len > 2 { args[2].as_string() } else { '' }
+	options := if args.len > 3 {
+		bundle_cask_options_from_value(args[3])
+	} else {
+		BundleCaskOptions{}
+	}
+	return brew_runtime.bool_value(bundle_cask_upgrading(state, no_upgrade, name, options))
 }
 
 // Ruby method `postinstall_change_state!(name:, options:, verbose:)` at line 262.
 pub fn ruby_cask_l262_d24_postinstall_change_state(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('postinstall_change_state!', ...args)
+	name := if args.len > 0 { args[0].as_string() } else { '' }
+	options := if args.len > 1 {
+		bundle_cask_options_from_value(args[1])
+	} else {
+		BundleCaskOptions{}
+	}
+	verbose := if args.len > 2 { bundle_cask_bool(args[2], false) } else { false }
+	effects := if args.len > 3 {
+		bundle_cask_effects_from_value(args[3])
+	} else {
+		BundleCaskEffects{}
+	}
+	result, output := bundle_cask_postinstall(name, options, verbose, effects)
+	return brew_runtime.map_value({
+		'result': brew_runtime.bool_value(result)
+		'output': bundle_cask_strings_value(output)
+	})
 }
 
 // Ruby method `explicit_s(cask_config)` at line 271.
 pub fn ruby_cask_l271_d25_explicit_s(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('explicit_s', ...args)
+	explicit := if args.len > 0 {
+		args[0].as_map() or { map[string]brew_runtime.Value{} }
+	} else {
+		map[string]brew_runtime.Value{}
+	}
+	home_dir := if args.len > 1 { args[1].as_string() } else { '' }
+	return brew_runtime.string_value(bundle_cask_explicit_s(explicit, home_dir))
 }
 
 // Ruby method `installed_and_up_to_date?(cask, no_upgrade: false)` at line 284.
 pub fn ruby_cask_l284_d26_installed_and_up_to_date(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('installed_and_up_to_date?', ...args)
+	if args.len < 2 || args[1].type_name != 'String' {
+		actual := if args.len > 1 { args[1].type_name } else { 'NilClass' }
+		repr := if args.len > 1 { args[1].repr } else { '' }
+		return brew_runtime.structured_value('RuntimeError', 'cask must be a String, got ${actual}: ${repr}', {
+			'message': 'cask must be a String, got ${actual}: ${repr}'
+		})
+	}
+	state := bundle_cask_state_from_value(args[0])
+	no_upgrade := if args.len > 2 { bundle_cask_bool(args[2], false) } else { false }
+	return brew_runtime.bool_value(bundle_cask_installed_and_up_to_date(state, args[1].as_string(), no_upgrade))
 }
 
 // Original Ruby source (line-for-line):

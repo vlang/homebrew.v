@@ -1,13 +1,62 @@
 module dev_cmd
 
 import brew_runtime
+import os
 
 // Translated from Homebrew/brew `dev-cmd/rubydoc.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub struct RubydocOptions {
+pub:
+	library_path string
+	only_public  bool
+	open         bool
+}
+
+pub struct RubydocPlan {
+pub:
+	bundler_groups []string
+	working_dir    string
+	output_dir     string
+	command        []string
+	browser_url    string
+}
+
+pub fn rubydoc_plan(options RubydocOptions) RubydocPlan {
+	output_dir := os.join_path(options.library_path, 'doc')
+	mut command := ['bundle', 'exec', 'yard', 'doc', '--fail-on-warning']
+	if options.only_public {
+		command << ['--hide-api', 'private', '--hide-api', 'internal']
+	}
+	command << ['--output', output_dir]
+	return RubydocPlan{
+		bundler_groups: ['doc']
+		working_dir: options.library_path
+		output_dir: output_dir
+		command: command
+		browser_url: if options.open { 'file://${output_dir}/index.html' } else { '' }
+	}
+}
+
+fn rubydoc_plan_value(plan RubydocPlan) brew_runtime.Value {
+	return brew_runtime.map_value({
+		'bundler_groups': brew_runtime.string_array_value(plan.bundler_groups)
+		'working_dir':    brew_runtime.string_value(plan.working_dir)
+		'output_dir':     brew_runtime.string_value(plan.output_dir)
+		'command':        brew_runtime.string_array_value(plan.command)
+		'browser_url':    brew_runtime.string_value(plan.browser_url)
+	})
+}
 
 // Ruby method `run` at line 20.
 pub fn ruby_rubydoc_l20_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('run', ...args)
+	if args.len == 0 {
+		return brew_runtime.object_value('ArgumentError', 'library path is required')
+	}
+	return rubydoc_plan_value(rubydoc_plan(RubydocOptions{
+		library_path: args[0].as_string()
+		only_public: args.len > 1 && (args[1].as_bool() or { false })
+		open: args.len > 2 && (args[2].as_bool() or { false })
+	}))
 }
 
 // Original Ruby source (line-for-line):

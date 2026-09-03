@@ -1,33 +1,41 @@
 module class
 
 import brew_runtime
+import homebrew.rubocops as class_core
 
 // Translated from Homebrew/brew `test/rubocops/class/class_name_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:cop) { described_class.new }` at line 7.
 pub fn ruby_class_name_spec_l7_d1_cop(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cop', ...args)
+	return brew_runtime.object_value('RuboCop::Cop::FormulaAudit::ClassName', 'FormulaAudit/ClassName')
 }
 
 // Ruby let `let(:corrected_source) do` at line 9.
-pub fn ruby_class_name_spec_l9_d2_corrected_source(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('corrected_source', ...args)
+pub fn ruby_class_name_spec_l9_d2_corrected_source() string {
+	return "class Foo < Formula\n  url 'https://brew.sh/foo-1.0.tgz'\nend\n"
+}
+
+fn class_name_deprecated_case(parent string) bool {
+	source := "class Foo < ${parent}\n  url 'https://brew.sh/foo-1.0.tgz'\nend\n"
+	return class_core.audit_formula_class_name(source).map(it.kind) == [
+		'deprecated_class',
+	] && class_core.correct_formula_class_name(source) == ruby_class_name_spec_l9_d2_corrected_source()
 }
 
 // Ruby it `it "reports and corrects an offense when using ScriptFileFormula" do` at line 17.
-pub fn ruby_class_name_spec_l17_d3_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_class_name_spec_l17_d3_reports() bool {
+	return class_name_deprecated_case('ScriptFileFormula')
 }
 
 // Ruby it `it "reports and corrects an offense when using GithubGistFormula" do` at line 27.
-pub fn ruby_class_name_spec_l27_d4_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_class_name_spec_l27_d4_reports() bool {
+	return class_name_deprecated_case('GithubGistFormula')
 }
 
 // Ruby it `it "reports and corrects an offense when using AmazonWebServicesFormula" do` at line 37.
-pub fn ruby_class_name_spec_l37_d5_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_class_name_spec_l37_d5_reports() bool {
+	return class_name_deprecated_case('AmazonWebServicesFormula')
 }
 
 // Original Ruby source (line-for-line):

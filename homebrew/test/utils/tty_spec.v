@@ -1,73 +1,106 @@
 module utils
 
-import brew_runtime
+import homebrew.utils as hb_utils
 
 // Translated from Homebrew/brew `test/utils/tty_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "removes ANSI escape codes from a string" do` at line 6.
-pub fn ruby_tty_spec_l6_d1_removes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('removes', ...args)
+pub fn ruby_tty_spec_l6_d1_removes() bool {
+	return hb_utils.tty_strip_ansi('\x1b[36;7mhello\x1b[0m') == 'hello'
 }
 
 // Ruby it `it "keeps only the final segment of a carriage-return-delimited progress bar" do` at line 12.
-pub fn ruby_tty_spec_l12_d2_keeps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('keeps', ...args)
+pub fn ruby_tty_spec_l12_d2_keeps() bool {
+	return hb_utils.tty_collapse_carriage_returns('#\r##\r### 100%') == '### 100%'
 }
 
 // Ruby it `it "collapses carriage returns independently on each real line" do` at line 16.
-pub fn ruby_tty_spec_l16_d3_collapses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('collapses', ...args)
+pub fn ruby_tty_spec_l16_d3_collapses() bool {
+	return hb_utils.tty_collapse_carriage_returns('a\rb\nc\rd') == 'b\nd'
 }
 
 // Ruby it `it "returns the string unchanged when it has no carriage returns" do` at line 20.
-pub fn ruby_tty_spec_l20_d4_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_tty_spec_l20_d4_returns() bool {
+	input := "curl: (7) Couldn't connect to server"
+	return hb_utils.tty_collapse_carriage_returns(input) == input
 }
 
 // Ruby it `it "keeps the last written content when the string ends with a trailing carriage return" do` at line 26.
-pub fn ruby_tty_spec_l26_d5_keeps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('keeps', ...args)
+pub fn ruby_tty_spec_l26_d5_keeps() bool {
+	return hb_utils.tty_collapse_carriage_returns('### 50%\r') == '### 50%'
 }
 
 // Ruby it `it "returns the DEC private mode 2026 set sequence" do` at line 32.
-pub fn ruby_tty_spec_l32_d6_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_tty_spec_l32_d6_returns() bool {
+	return hb_utils.tty_begin_synchronized_update() == '\x1b[?2026h'
 }
 
 // Ruby it `it "returns the DEC private mode 2026 reset sequence" do` at line 38.
-pub fn ruby_tty_spec_l38_d7_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_tty_spec_l38_d7_returns() bool {
+	return hb_utils.tty_end_synchronized_update() == '\x1b[?2026l'
 }
 
 // Ruby specify `specify do` at line 44.
-pub fn ruby_tty_spec_l44_d8_do(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('do', ...args)
+pub fn ruby_tty_spec_l44_d8_do() bool {
+	return hb_utils.tty_width() >= 0
 }
 
 // Ruby it `it "truncates the text to the terminal width, minus 4, to account for '==> '" do` at line 51.
-pub fn ruby_tty_spec_l51_d9_truncates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('truncates', ...args)
+pub fn ruby_tty_spec_l51_d9_truncates() bool {
+	return hb_utils.tty_truncate('foobar something very long', 15) == 'foobar some' && hb_utils.tty_truncate('truncate', 15) == 'truncate'
 }
 
 // Ruby it `it "doesn't truncate the text if the terminal is unsupported, i.e. the width is 0" do` at line 58.
-pub fn ruby_tty_spec_l58_d10_doesn(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('doesn', ...args)
+pub fn ruby_tty_spec_l58_d10_doesn() bool {
+	input := 'foobar something very long'
+	return hb_utils.tty_truncate(input, 0) == input
+}
+
+fn tty_spec_color_codes(state hb_utils.TtyState) []string {
+	mut codes := []string{}
+	for name in ['red', 'green', 'yellow', 'blue', 'magenta', 'cyan', 'default'] {
+		mut colored := state
+		colored.escape_sequence = state.escape_sequence.clone()
+		colored.add_code(name) or { return []string{} }
+		codes << colored.str()
+	}
+	return codes
 }
 
 // Ruby it `it "returns an empty string for all colors" do` at line 69.
-pub fn ruby_tty_spec_l69_d11_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_tty_spec_l69_d11_returns() bool {
+	state := hb_utils.TtyState{
+		stream_is_tty: false
+	}
+	return state.current_escape_sequence() == '' && tty_spec_color_codes(state) == ['', '', '',
+		'', '', '', '']
 }
 
 // Ruby it `it "returns ANSI escape codes for colors" do` at line 86.
-pub fn ruby_tty_spec_l86_d12_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_tty_spec_l86_d12_returns() bool {
+	state := hb_utils.TtyState{
+		stream_is_tty: true
+	}
+	return state.current_escape_sequence() == '' && tty_spec_color_codes(state) == [
+		'\x1b[31m',
+		'\x1b[32m',
+		'\x1b[33m',
+		'\x1b[34m',
+		'\x1b[35m',
+		'\x1b[36m',
+		'\x1b[39m',
+	]
 }
 
 // Ruby it `it "returns an empty string for all colors when HOMEBREW_NO_COLOR is set" do` at line 97.
-pub fn ruby_tty_spec_l97_d13_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_tty_spec_l97_d13_returns() bool {
+	state := hb_utils.TtyState{
+		stream_is_tty: true
+		no_color: true
+	}
+	return state.current_escape_sequence() == '' && tty_spec_color_codes(state) == ['', '', '',
+		'', '', '', '']
 }
 
 // Original Ruby source (line-for-line):

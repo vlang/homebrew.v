@@ -4,10 +4,158 @@ import brew_runtime
 
 // Translated from Homebrew/brew `cmd/desc.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub enum DescSearchField {
+	name
+	description
+	either
+}
+
+pub enum DescItemKind {
+	formula
+	cask
+}
+
+pub struct DescItem {
+pub:
+	kind        DescItemKind
+	full_name   string
+	names       []string
+	description ?string
+	installed   bool
+}
+
+pub struct DescCommandRequest {
+pub:
+	named                []string
+	items                []DescItem
+	search               bool
+	name_only            bool
+	description_only     bool
+	eval_all             bool
+	no_install_from_api  bool
+	tap_trust_configured bool
+	tty                  bool
+}
+
+pub struct DescCommandResult {
+pub:
+	output       string
+	searched     bool
+	search_query string
+	search_field DescSearchField
+}
+
+pub fn run_desc_command(request DescCommandRequest) !DescCommandResult {
+	mut search_field := DescSearchField.either
+	searching := request.search || request.name_only || request.description_only
+	if request.name_only {
+		search_field = .name
+	} else if request.description_only {
+		search_field = .description
+	}
+	if searching {
+		if !request.eval_all && !request.tap_trust_configured && request.no_install_from_api {
+			return error('`brew desc --search` needs `HOMEBREW_REQUIRE_TAP_TRUST=1` or `HOMEBREW_NO_REQUIRE_TAP_TRUST=1` set!')
+		}
+		return DescCommandResult{
+			searched: true
+			search_query: request.named.join(' ')
+			search_field: search_field
+		}
+	}
+	mut lines := []string{}
+	for item in request.items {
+		description := item.description or { continue }
+		if description == '' {
+			continue
+		}
+		match item.kind {
+			.formula {
+				lines << '${item.full_name}: ${description}'
+			}
+			.cask {
+				status := if request.tty && item.installed { ' ✔' } else { '' }
+				names := if item.names.len > 0 { ' (${item.names.join(', ')})' } else { '' }
+				lines << '${item.full_name}${status}:${names} ${description}'
+			}
+		}
+	}
+	lines.sort()
+	return DescCommandResult{
+		output: if lines.len > 0 { lines.join('\n') + '\n' } else { '' }
+		search_field: search_field
+	}
+}
+
+pub fn desc_item_to_value(item DescItem) brew_runtime.Value {
+	mut attributes := {
+		'kind':      item.kind.str()
+		'full_name': item.full_name
+		'names':     item.names.join(', ')
+		'installed': item.installed.str()
+	}
+	if description := item.description {
+		attributes['description'] = description
+	}
+	return brew_runtime.structured_value('DescItem', item.full_name, attributes)
+}
+
+fn desc_item_from_value(value brew_runtime.Value) DescItem {
+	description := if text := value.attributes['description'] { ?string(text) } else { none }
+	return DescItem{
+		kind: if (value.attributes['kind'] or { 'formula' }) == 'cask' {
+			DescItemKind.cask} else {
+			DescItemKind.formula}
+		full_name: value.attributes['full_name'] or { value.as_string() }
+		names: (value.attributes['names'] or { '' }).split(', ').filter(it != '')
+		description: description
+		installed: (value.attributes['installed'] or { 'false' }) == 'true'
+	}
+}
+
+pub fn desc_result_to_value(result DescCommandResult) brew_runtime.Value {
+	return brew_runtime.map_value({
+		'output':       brew_runtime.string_value(result.output)
+		'searched':     brew_runtime.bool_value(result.searched)
+		'search_query': brew_runtime.string_value(result.search_query)
+		'search_field': brew_runtime.string_value(result.search_field.str())
+	})
+}
 
 // Ruby method `run` at line 42.
 pub fn ruby_desc_l42_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('run', ...args)
+	if args.len == 0 {
+		return brew_runtime.object_value('ArgumentError', 'at least one formula, cask, or search term is required')
+	}
+	values := args[0].as_map() or { return brew_runtime.object_value('ArgumentError', err.msg()) }
+	items := if value := values['items'] {
+		value.as_array() or { []brew_runtime.Value{} }.map(desc_item_from_value(it))
+	} else {
+		[]DescItem{}
+	}
+	request := DescCommandRequest{
+		named: if value := values['named'] {
+			value.as_string_array() or { []string{} }} else {
+			[]string{}}
+		items: items
+		search: if value := values['search'] { value.as_bool() or { false } } else { false }
+		name_only: if value := values['name_only'] { value.as_bool() or { false } } else { false }
+		description_only: if value := values['description_only'] {
+			value.as_bool() or { false }} else {
+			false}
+		eval_all: if value := values['eval_all'] { value.as_bool() or { false } } else { false }
+		no_install_from_api: if value := values['no_install_from_api'] {
+			value.as_bool() or { false }} else {
+			false}
+		tap_trust_configured: if value := values['tap_trust_configured'] {
+			value.as_bool() or { false }} else {
+			false}
+		tty: if value := values['tty'] { value.as_bool() or { false } } else { false }
+	}
+	result := run_desc_command(request) or {
+		return brew_runtime.object_value('UsageError', err.msg())
+	}
+	return desc_result_to_value(result)
 }
 
 // Original Ruby source (line-for-line):

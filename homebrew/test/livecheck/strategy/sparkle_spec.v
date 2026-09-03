@@ -1,188 +1,631 @@
 module strategy
 
-import brew_runtime
+import homebrew
+import homebrew.livecheck as strategy_core
+import homebrew.livecheck.strategy as sparkle_core
+import homebrew.utils
+import time
 
 // Translated from Homebrew/brew `test/livecheck/strategy/sparkle_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub struct SparkleItemFixture {
+pub:
+	title                  string
+	link                   string
+	release_notes_link     string
+	pub_date               string
+	os                     string
+	url                    string
+	short_version          string
+	version                string
+	minimum_system_version string
+}
+
+fn sparkle_spec_optional(value string) ?string {
+	return if value == '' { none } else { value }
+}
+
+fn sparkle_spec_fixture_item(fixture SparkleItemFixture) sparkle_core.SparkleItem {
+	minimum := homebrew.new_macos_version(fixture.minimum_system_version) or {
+		homebrew.null_macos_version()
+	}
+	bundle := homebrew.new_bundle_version(sparkle_spec_optional(fixture.short_version), sparkle_spec_optional(fixture.version)) or { homebrew.BundleVersion{} }
+	parsed := time.parse_rfc2822(fixture.pub_date) or { time.unix(0) }
+	return sparkle_core.SparkleItem{
+		title: sparkle_spec_optional(fixture.title)
+		link: sparkle_spec_optional(fixture.link)
+		release_notes_link: sparkle_spec_optional(fixture.release_notes_link)
+		pub_date: parsed.unix()
+		os: sparkle_spec_optional(fixture.os)
+		url: sparkle_spec_optional(if fixture.url != '' { fixture.url } else { fixture.link })
+		bundle_version: bundle
+		minimum_system_version: minimum
+	}
+}
+
+fn sparkle_spec_option_text(value ?string) string {
+	return value or { '' }
+}
+
+fn sparkle_spec_item_equal(left sparkle_core.SparkleItem,
+	right sparkle_core.SparkleItem) bool {
+	left_bundle := if bundle := left.bundle_version { bundle.to_h() } else { map[string]string{} }
+	right_bundle := if bundle := right.bundle_version { bundle.to_h() } else { map[string]string{} }
+	left_macos := if version := left.minimum_system_version { version.str() } else { '' }
+	right_macos := if version := right.minimum_system_version { version.str() } else { '' }
+	return sparkle_spec_option_text(left.title) == sparkle_spec_option_text(right.title) && sparkle_spec_option_text(left.link) == sparkle_spec_option_text(right.link) && sparkle_spec_option_text(left.channel) == sparkle_spec_option_text(right.channel) && sparkle_spec_option_text(left.release_notes_link) == sparkle_spec_option_text(right.release_notes_link) && left.pub_date == right.pub_date && sparkle_spec_option_text(left.os) == sparkle_spec_option_text(right.os) && sparkle_spec_option_text(left.url) == sparkle_spec_option_text(right.url) && left_bundle == right_bundle && left_macos == right_macos
+}
+
+fn sparkle_spec_items_equal(left []sparkle_core.SparkleItem,
+	right []sparkle_core.SparkleItem) bool {
+	if left.len != right.len {
+		return false
+	}
+	for index, item in left {
+		if !sparkle_spec_item_equal(item, right[index]) {
+			return false
+		}
+	}
+	return true
+}
+
+fn sparkle_spec_item_xml(fixture SparkleItemFixture, enclosure bool) string {
+	mut lines := ['<item>', '<title>${fixture.title}</title>']
+	if fixture.link != '' {
+		lines << '<link>${fixture.link}</link>'
+	}
+	lines << '<sparkle:minimumSystemVersion>${fixture.minimum_system_version}</sparkle:minimumSystemVersion>'
+	lines << '<sparkle:releaseNotesLink>${fixture.release_notes_link}</sparkle:releaseNotesLink>'
+	lines << '<pubDate>${fixture.pub_date}</pubDate>'
+	if enclosure {
+		os_attribute := if fixture.os == '' { '' } else { ' os="${fixture.os}"' }
+		lines << '<enclosure${os_attribute} url="${fixture.url}" sparkle:shortVersionString="${fixture.short_version}" sparkle:version="${fixture.version}" length="12345678" type="application/octet-stream" sparkle:dsaSignature="ABCDEF" />'
+	} else {
+		lines << '<sparkle:version>${fixture.version}</sparkle:version>'
+		lines << '<sparkle:shortVersionString>${fixture.short_version}</sparkle:shortVersionString>'
+	}
+	lines << '</item>'
+	return lines.join('\n')
+}
+
+fn sparkle_spec_string(value string) strategy_core.StrategyBlockValue {
+	return strategy_core.StrategyBlockValue{ kind: .string_value, value: value }
+}
+
+fn sparkle_spec_strings(values []string) strategy_core.StrategyBlockValue {
+	return strategy_core.StrategyBlockValue{
+		kind: .array
+		values: values.map(strategy_core.StrategyBlockItem{
+			kind: .string_value
+			value: it
+		})
+	}
+}
+
+fn sparkle_spec_nice(item sparkle_core.SparkleItem) string {
+	return sparkle_core.ruby_sparkle_l83_d4_nice_version(item) or { '' }
+}
+
+fn sparkle_spec_title_capture(title string) ?string {
+	marker := 'version '
+	index := title.to_lower().index(marker) or { return none }
+	mut value := title[index + marker.len..].trim_space()
+	if value.starts_with('v') || value.starts_with('V') {
+		value = value[1..]
+	}
+	if value == '' || value.split('.').any(it == '' || !it.bytes().all(it.is_digit())) {
+		return none
+	}
+	return value
+}
+
+fn sparkle_spec_sub_item(items []sparkle_core.SparkleItem,
+	_ ?sparkle_core.XmlRegex) !strategy_core.StrategyBlockValue {
+	return sparkle_spec_string(sparkle_spec_nice(items[0]).replace_once('1', '0'))
+}
+
+fn sparkle_spec_sub_items(items []sparkle_core.SparkleItem,
+	_ ?sparkle_core.XmlRegex) !strategy_core.StrategyBlockValue {
+	return sparkle_spec_strings(items.map(sparkle_spec_nice(it).replace_once('1', '0')))
+}
+
+fn sparkle_spec_stable_channel(items []sparkle_core.SparkleItem,
+	_ ?sparkle_core.XmlRegex) !strategy_core.StrategyBlockValue {
+	for item in items {
+		if item.channel == none {
+			return sparkle_spec_string(sparkle_spec_nice(item))
+		}
+	}
+	return strategy_core.StrategyBlockValue{ kind: .nil_value }
+}
+
+fn sparkle_spec_title_item(items []sparkle_core.SparkleItem,
+	_ ?sparkle_core.XmlRegex) !strategy_core.StrategyBlockValue {
+	title := items[0].title or { return strategy_core.StrategyBlockValue{ kind: .nil_value } }
+	return sparkle_spec_string(sparkle_spec_title_capture(title) or { '' })
+}
+
+fn sparkle_spec_title_items(items []sparkle_core.SparkleItem,
+	_ ?sparkle_core.XmlRegex) !strategy_core.StrategyBlockValue {
+	mut versions := []string{}
+	for item in items {
+		title := item.title or { continue }
+		versions << sparkle_spec_title_capture(title) or { continue }
+	}
+	return sparkle_spec_strings(versions)
+}
+
+fn sparkle_spec_title_array(items []sparkle_core.SparkleItem,
+	regex ?sparkle_core.XmlRegex) !strategy_core.StrategyBlockValue {
+	return sparkle_spec_title_items(items, regex)
+}
+
+fn sparkle_spec_title_combined(items []sparkle_core.SparkleItem,
+	_ ?sparkle_core.XmlRegex) !strategy_core.StrategyBlockValue {
+	item := items[0]
+	title := item.title or { return strategy_core.StrategyBlockValue{ kind: .nil_value } }
+	short := sparkle_spec_title_capture(title) or {
+		return strategy_core.StrategyBlockValue{ kind: .nil_value }
+	}
+	version := sparkle_core.ruby_sparkle_l71_d2_version(item) or { '' }
+	return sparkle_spec_string('${short},${version}')
+}
+
+fn sparkle_spec_short_version(items []sparkle_core.SparkleItem,
+	_ ?sparkle_core.XmlRegex) !strategy_core.StrategyBlockValue {
+	return sparkle_spec_string(sparkle_core.ruby_sparkle_l77_d3_short_version(items[0]) or { '' })
+}
+
+fn sparkle_spec_nil(_ []sparkle_core.SparkleItem,
+	_ ?sparkle_core.XmlRegex) !strategy_core.StrategyBlockValue {
+	return strategy_core.StrategyBlockValue{ kind: .nil_value }
+}
+
+fn sparkle_spec_invalid(_ []sparkle_core.SparkleItem,
+	_ ?sparkle_core.XmlRegex) !strategy_core.StrategyBlockValue {
+	return strategy_core.StrategyBlockValue{ kind: .invalid }
+}
+
+fn sparkle_spec_url_capture(items []sparkle_core.SparkleItem,
+	_ ?sparkle_core.XmlRegex) !strategy_core.StrategyBlockValue {
+	url := items[0].url or { return strategy_core.StrategyBlockValue{ kind: .nil_value } }
+	marker := '/example-'
+	start := url.index(marker) or { return strategy_core.StrategyBlockValue{ kind: .nil_value } }
+	rest := url[start + marker.len..]
+	version := rest.all_before('.tar')
+	return sparkle_spec_string('${version},${version.replace('.', '')}')
+}
+
+fn sparkle_spec_fetched(_ strategy_core.StrategyCurlRequest) !utils.CurlCommandResult {
+	content := ruby_sparkle_spec_l68_d6_xml()['appcast'] or { '' }
+	return utils.CurlCommandResult{
+		stdout: 'HTTP/1.1 200 OK\r\nContent-Type: application/xml\r\n\r\n${content}'
+		exit_status: 0
+	}
+}
+
+fn sparkle_spec_unused_fetcher(_ strategy_core.StrategyCurlRequest) !utils.CurlCommandResult {
+	return error('cached content unexpectedly fetched')
+}
+
+fn sparkle_spec_match_equal(left sparkle_core.SparkleMatchData,
+	right sparkle_core.SparkleMatchData) bool {
+	left_regex := if value := left.regex { value.pattern } else { '' }
+	right_regex := if value := right.regex { value.pattern } else { '' }
+	return left.matches == right.matches && left_regex == right_regex && left.url == right.url && left.cached == right.cached && left.has_cached == right.has_cached && left.content == right.content && left.has_content == right.has_content && left.final_url == right.final_url && left.has_final_url == right.has_final_url && left.messages == right.messages && left.has_messages == right.has_messages
+}
 
 // Ruby subject `subject(:sparkle) { described_class }` at line 8.
-pub fn ruby_sparkle_spec_l8_d1_sparkle(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sparkle', ...args)
+pub fn ruby_sparkle_spec_l8_d1_sparkle() string {
+	return 'Sparkle'
 }
 
 // Ruby let `let(:appcast_url) { "https://www.example.com/example/appcast.xml" }` at line 10.
-pub fn ruby_sparkle_spec_l10_d2_appcast_url(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('appcast_url', ...args)
+pub fn ruby_sparkle_spec_l10_d2_appcast_url() string {
+	return 'https://www.example.com/example/appcast.xml'
 }
 
 // Ruby let `let(:non_http_url) { "ftp://brew.sh/" }` at line 11.
-pub fn ruby_sparkle_spec_l11_d3_non_http_url(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('non_http_url', ...args)
+pub fn ruby_sparkle_spec_l11_d3_non_http_url() string {
+	return 'ftp://brew.sh/'
 }
 
 // Ruby let `let(:title_regex) { /Version\s+v?(\d+(?:\.\d+)+)\s*$/i }` at line 12.
-pub fn ruby_sparkle_spec_l12_d4_title_regex(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('title_regex', ...args)
+pub fn ruby_sparkle_spec_l12_d4_title_regex() sparkle_core.XmlRegex {
+	return sparkle_core.XmlRegex{
+		pattern: r'Version\s+v?(\d+(?:\.\d+)+)\s*$'
+		case_insensitive: true
+	}
 }
 
 // Ruby let `let(:item_hashes) do` at line 15.
-pub fn ruby_sparkle_spec_l15_d5_item_hashes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('item_hashes', ...args)
+pub fn ruby_sparkle_spec_l15_d5_item_hashes() map[string]SparkleItemFixture {
+	return {
+		'v124': SparkleItemFixture{ title: 'Version 1.2.4', release_notes_link: 'https://www.example.com/example/1.2.4.html', pub_date: 'Fri, 02 Jan 2021 01:23:45 +0000', url: 'https://www.example.com/example/example-1.2.4.tar.gz', short_version: '1.2.4', version: '124', minimum_system_version: '10.10' }
+		'v123': SparkleItemFixture{ title: 'Version 1.2.3', release_notes_link: 'https://www.example.com/example/1.2.3.html', pub_date: 'Fri, 01 Jan 2021 01:23:45 +0000', url: 'https://www.example.com/example/example-1.2.3.tar.gz', short_version: '1.2.3', version: '123', minimum_system_version: '10.10' }
+		'v122': SparkleItemFixture{ title: 'Version 1.2.2', release_notes_link: 'https://www.example.com/example/1.2.2.html', pub_date: 'Not a parseable date string', link: 'https://www.example.com/example/example-1.2.2.tar.gz', short_version: '1.2.2', version: '122', minimum_system_version: '10.10' }
+		'v121': SparkleItemFixture{ title: 'Version 1.2.1', release_notes_link: 'https://www.example.com/example/1.2.1.html', pub_date: 'Thu, 31 Dec 2020 01:23:45 +0000', os: 'osx', url: 'https://www.example.com/example/example-1.2.1.tar.gz', short_version: '1.2.1', version: '121', minimum_system_version: '10.10' }
+		'v120': SparkleItemFixture{ title: 'Version 1.2.0', release_notes_link: 'https://www.example.com/example/1.2.0.html', pub_date: 'Wed, 30 Dec 2020 01:23:45 +0000', os: 'macos', url: 'https://www.example.com/example/example-1.2.0.tar.gz', short_version: '1.2.0', version: '120', minimum_system_version: '10.10' }
+	}
 }
 
 // Ruby let `let(:xml) do` at line 68.
-pub fn ruby_sparkle_spec_l68_d6_xml(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('xml', ...args)
+pub fn ruby_sparkle_spec_l68_d6_xml() map[string]string {
+	fixtures := ruby_sparkle_spec_l15_d5_item_hashes()
+	v123 := fixtures['v123'] or { SparkleItemFixture{} }
+	v122 := fixtures['v122'] or { SparkleItemFixture{} }
+	v121 := fixtures['v121'] or { SparkleItemFixture{} }
+	v120 := fixtures['v120'] or { SparkleItemFixture{} }
+	v123_xml := sparkle_spec_item_xml(v123, true)
+	appcast := ruby_sparkle_spec_l280_d10_create_appcast_xml([v123_xml,
+		sparkle_spec_item_xml(v122, false), sparkle_spec_item_xml(v121, true),
+		sparkle_spec_item_xml(v120, true)].join('\n'))
+	omitted_os := v123_xml.replace('<enclosure ', '<enclosure os="not-osx-or-macos" ')
+	omitted_minimum := v123_xml.replace('>10.10</sparkle:minimumSystemVersion>', '>100</sparkle:minimumSystemVersion>')
+	bad_macos := appcast.replace_once('>10.10</sparkle:minimumSystemVersion>', '>a1b2c3d</sparkle:minimumSystemVersion>')
+	beta := appcast.replace_once('<title>${v123.title}</title>', '<title>${v123.title}</title>\n<sparkle:channel>beta</sparkle:channel>')
+	no_versions := ruby_sparkle_spec_l280_d10_create_appcast_xml('<item>\n<title>Version</title>\n<sparkle:minimumSystemVersion>${v123.minimum_system_version}</sparkle:minimumSystemVersion>\n<sparkle:releaseNotesLink>${v123.release_notes_link}</sparkle:releaseNotesLink>\n<pubDate>${v123.pub_date}</pubDate>\n<enclosure url="${v123.url}" length="12345678" type="application/octet-stream" sparkle:dsaSignature="ABCDEF" />\n</item>')
+	return {
+		'appcast':             appcast
+		'omitted_items':       ruby_sparkle_spec_l280_d10_create_appcast_xml('${omitted_os}\n${omitted_minimum}\n<item>\n</item>')
+		'bad_macos_version':   bad_macos
+		'beta_channel_item':   beta
+		'no_versions_item':    no_versions
+		'no_items':            ruby_sparkle_spec_l280_d10_create_appcast_xml('')
+		'undefined_namespace': appcast.replace(' xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle"', '')
+	}
 }
 
 // Ruby let `let(:items) do` at line 173.
-pub fn ruby_sparkle_spec_l173_d7_items(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('items', ...args)
+pub fn ruby_sparkle_spec_l173_d7_items() map[string]sparkle_core.SparkleItem {
+	fixtures := ruby_sparkle_spec_l15_d5_item_hashes()
+	mut items := map[string]sparkle_core.SparkleItem{}
+	for key, fixture in fixtures {
+		items[key] = sparkle_spec_fixture_item(fixture)
+	}
+	return items
 }
 
 // Ruby let `let(:item_arrays) do` at line 237.
-pub fn ruby_sparkle_spec_l237_d8_item_arrays(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('item_arrays', ...args)
+pub fn ruby_sparkle_spec_l237_d8_item_arrays() map[string][]sparkle_core.SparkleItem {
+	items := ruby_sparkle_spec_l173_d7_items()
+	v123 := items['v123'] or { sparkle_core.SparkleItem{} }
+	v122 := items['v122'] or { sparkle_core.SparkleItem{} }
+	v121 := items['v121'] or { sparkle_core.SparkleItem{} }
+	v120 := items['v120'] or { sparkle_core.SparkleItem{} }
+	mut bad_macos := v123
+	bad_macos.minimum_system_version = none
+	mut beta := v123
+	beta.channel = 'beta'
+	mut no_versions := v123
+	no_versions.title = 'Version'
+	no_versions.bundle_version = none
+	return {
+		'appcast':           [v123, v122, v121, v120]
+		'appcast_sorted':    [v123, v121, v120, v122]
+		'bad_macos_version': [bad_macos, v122, v121, v120]
+		'beta_channel_item': [beta, v122, v121, v120]
+		'no_versions_item':  [no_versions]
+	}
 }
 
 // Ruby let `let(:matches) { ["1.2.3,123"] }` at line 278.
-pub fn ruby_sparkle_spec_l278_d9_matches(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('matches', ...args)
+pub fn ruby_sparkle_spec_l278_d9_matches() []string {
+	return ['1.2.3,123']
 }
 
 // Ruby method `create_appcast_xml(items_str = "")` at line 280.
-pub fn ruby_sparkle_spec_l280_d10_create_appcast_xml(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('create_appcast_xml', ...args)
+pub fn ruby_sparkle_spec_l280_d10_create_appcast_xml(items_str string) string {
+	return '<?xml version="1.0" encoding="utf-8"?>\n<rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">\n<channel>\n<title>Example Changelog</title>\n<link>${ruby_sparkle_spec_l10_d2_appcast_url()}</link>\n<description>Most recent changes with links to updates.</description>\n<language>en</language>\n${items_str}\n</channel>\n</rss>\n'
 }
 
 // Ruby it `it "returns true for an HTTP URL" do` at line 296.
-pub fn ruby_sparkle_spec_l296_d11_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_sparkle_spec_l296_d11_returns() bool {
+	return sparkle_core.ruby_sparkle_l33_d1_self_match(ruby_sparkle_spec_l10_d2_appcast_url())
 }
 
 // Ruby it `it "returns false for a non-HTTP URL" do` at line 300.
-pub fn ruby_sparkle_spec_l300_d12_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_sparkle_spec_l300_d12_returns() bool {
+	return !sparkle_core.ruby_sparkle_l33_d1_self_match(ruby_sparkle_spec_l11_d3_non_http_url())
 }
 
 // Ruby let `let(:items_from_appcast) { sparkle.items_from_content(xml[:appcast]) }` at line 306.
-pub fn ruby_sparkle_spec_l306_d13_items_from_appcast(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('items_from_appcast', ...args)
+pub fn ruby_sparkle_spec_l306_d13_items_from_appcast() ![]sparkle_core.SparkleItem {
+	xml_data := ruby_sparkle_spec_l68_d6_xml()
+	return sparkle_core.ruby_sparkle_l91_d5_self_items_from_content(xml_data['appcast'] or { '' })
 }
 
 // Ruby it `it "returns nil if content is blank" do` at line 308.
-pub fn ruby_sparkle_spec_l308_d14_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_sparkle_spec_l308_d14_returns() bool {
+	return (sparkle_core.ruby_sparkle_l91_d5_self_items_from_content('') or { return false }).len == 0
 }
 
 // Ruby it `it "returns an array of Items when given XML data" do` at line 312.
-pub fn ruby_sparkle_spec_l312_d15_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_sparkle_spec_l312_d15_returns() bool {
+	actual := ruby_sparkle_spec_l306_d13_items_from_appcast() or { return false }
+	arrays := ruby_sparkle_spec_l237_d8_item_arrays()
+	if !sparkle_spec_items_equal(actual, arrays['appcast'] or { return false }) {
+		return false
+	}
+	xml_data := ruby_sparkle_spec_l68_d6_xml()
+	for key in ['bad_macos_version', 'beta_channel_item', 'no_versions_item'] {
+		parsed := sparkle_core.ruby_sparkle_l91_d5_self_items_from_content(xml_data[key] or { return false }) or { return false }
+		if !sparkle_spec_items_equal(parsed, arrays[key] or { return false }) {
+			return false
+		}
+	}
+	return true
 }
 
 // Ruby let `let(:items_non_mac_os) do` at line 327.
-pub fn ruby_sparkle_spec_l327_d16_items_non_mac_os(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('items_non_mac_os', ...args)
+pub fn ruby_sparkle_spec_l327_d16_items_non_mac_os() []sparkle_core.SparkleItem {
+	items := ruby_sparkle_spec_l173_d7_items()
+	arrays := ruby_sparkle_spec_l237_d8_item_arrays()
+	mut excluded := items['v124'] or { sparkle_core.SparkleItem{} }
+	excluded.os = 'not-osx-or-macos'
+	mut values := (arrays['appcast'] or { []sparkle_core.SparkleItem{} }).clone()
+	values << excluded
+	return values
 }
 
 // Ruby let `let(:items_prerelease_minimum_system_version) do` at line 333.
-pub fn ruby_sparkle_spec_l333_d17_items_prerelease_minimum_system_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('items_prerelease_minimum_system_version', ...args)
+pub fn ruby_sparkle_spec_l333_d17_items_prerelease_minimum_system_version() []sparkle_core.SparkleItem {
+	items := ruby_sparkle_spec_l173_d7_items()
+	arrays := ruby_sparkle_spec_l237_d8_item_arrays()
+	mut excluded := items['v124'] or { sparkle_core.SparkleItem{} }
+	minimum := homebrew.new_macos_version('100') or { homebrew.null_macos_version() }
+	excluded.minimum_system_version = minimum
+	mut values := (arrays['appcast'] or { []sparkle_core.SparkleItem{} }).clone()
+	values << excluded
+	return values
 }
 
 // Ruby it `it "removes items with a non-mac OS" do` at line 339.
-pub fn ruby_sparkle_spec_l339_d18_removes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('removes', ...args)
+pub fn ruby_sparkle_spec_l339_d18_removes() bool {
+	actual := sparkle_core.ruby_sparkle_l170_d6_self_filter_items(ruby_sparkle_spec_l327_d16_items_non_mac_os(), '27') or { return false }
+	expected := ruby_sparkle_spec_l237_d8_item_arrays()['appcast'] or { return false }
+	return sparkle_spec_items_equal(actual, expected)
 }
 
 // Ruby it `it "removes items with a prerelease minimumSystemVersion" do` at line 343.
-pub fn ruby_sparkle_spec_l343_d19_removes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('removes', ...args)
+pub fn ruby_sparkle_spec_l343_d19_removes() bool {
+	actual := sparkle_core.ruby_sparkle_l170_d6_self_filter_items(ruby_sparkle_spec_l333_d17_items_prerelease_minimum_system_version(), '27') or { return false }
+	expected := ruby_sparkle_spec_l237_d8_item_arrays()['appcast'] or { return false }
+	return sparkle_spec_items_equal(actual, expected)
 }
 
 // Ruby it `it "returns a sorted array of items" do` at line 349.
-pub fn ruby_sparkle_spec_l349_d20_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_sparkle_spec_l349_d20_returns() bool {
+	arrays := ruby_sparkle_spec_l237_d8_item_arrays()
+	actual := sparkle_core.ruby_sparkle_l190_d7_self_sort_items(arrays['appcast'] or { return false })
+	return sparkle_spec_items_equal(actual, arrays['appcast_sorted'] or { return false })
 }
 
 // Ruby let `let(:versions) { [items[:v123].nice_version] }` at line 359.
-pub fn ruby_sparkle_spec_l359_d21_versions(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('versions', ...args)
+pub fn ruby_sparkle_spec_l359_d21_versions() []string {
+	items := ruby_sparkle_spec_l173_d7_items()
+	return [sparkle_spec_nice(items['v123'] or { sparkle_core.SparkleItem{} })]
 }
 
 // Ruby let `let(:subbed_items) { item_arrays[:appcast_sorted].map { |item| item.nice_version.sub("1", "0") } }` at line 360.
-pub fn ruby_sparkle_spec_l360_d22_subbed_items(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('subbed_items', ...args)
+pub fn ruby_sparkle_spec_l360_d22_subbed_items() []string {
+	arrays := ruby_sparkle_spec_l237_d8_item_arrays()
+	return (arrays['appcast_sorted'] or { []sparkle_core.SparkleItem{} }).map(sparkle_spec_nice(it).replace_once('1', '0'))
 }
 
 // Ruby it `it "returns an array of version strings when given content" do` at line 362.
-pub fn ruby_sparkle_spec_l362_d23_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_sparkle_spec_l362_d23_returns() bool {
+	xml_data := ruby_sparkle_spec_l68_d6_xml()
+	for key in ['appcast', 'beta_channel_item', 'undefined_namespace'] {
+		actual := sparkle_core.ruby_sparkle_l209_d8_self_versions_from_content(sparkle_core.SparkleVersionsRequest{
+			content: xml_data[key] or { return false }
+		}, '27') or { return false }
+		if actual != ruby_sparkle_spec_l359_d21_versions() {
+			return false
+		}
+	}
+	for key in ['omitted_items', 'no_versions_item'] {
+		actual := sparkle_core.ruby_sparkle_l209_d8_self_versions_from_content(sparkle_core.SparkleVersionsRequest{
+			content: xml_data[key] or { return false }
+		}, '27') or { return false }
+		if actual.len != 0 {
+			return false
+		}
+	}
+	return true
 }
 
 // Ruby it `it "returns an empty array if no items are found" do` at line 370.
-pub fn ruby_sparkle_spec_l370_d24_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_sparkle_spec_l370_d24_returns() bool {
+	xml_data := ruby_sparkle_spec_l68_d6_xml()
+	actual := sparkle_core.ruby_sparkle_l209_d8_self_versions_from_content(sparkle_core.SparkleVersionsRequest{
+		content: xml_data['no_items'] or { return false }
+	}, '27') or { return false }
+	return actual.len == 0
 }
 
 // Ruby it `it "returns an array of version strings when given content and a block" do` at line 374.
-pub fn ruby_sparkle_spec_l374_d25_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_sparkle_spec_l374_d25_returns() bool {
+	xml_data := ruby_sparkle_spec_l68_d6_xml()
+	appcast := xml_data['appcast'] or { return false }
+	one := sparkle_core.ruby_sparkle_l209_d8_self_versions_from_content(sparkle_core.SparkleVersionsRequest{
+		content: appcast
+		has_block: true
+		block_parameter: .item
+		block: sparkle_spec_sub_item
+	}, '27') or { return false }
+	all := sparkle_core.ruby_sparkle_l209_d8_self_versions_from_content(sparkle_core.SparkleVersionsRequest{
+		content: appcast
+		has_block: true
+		block_parameter: .items
+		block: sparkle_spec_sub_items
+	}, '27') or { return false }
+	stable := sparkle_core.ruby_sparkle_l209_d8_self_versions_from_content(sparkle_core.SparkleVersionsRequest{
+		content: xml_data['beta_channel_item'] or { return false }
+		has_block: true
+		block_parameter: .items
+		block: sparkle_spec_stable_channel
+	}, '27') or { return false }
+	items := ruby_sparkle_spec_l173_d7_items()
+	return one == [ruby_sparkle_spec_l360_d22_subbed_items()[0]] && all == ruby_sparkle_spec_l360_d22_subbed_items() && stable == [
+		sparkle_spec_nice(items['v121'] or { return false }),
+	]
 }
 
 // Ruby it `it "returns an array of version strings when given content, a regex and a block" do` at line 396.
-pub fn ruby_sparkle_spec_l396_d26_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_sparkle_spec_l396_d26_returns() bool {
+	xml_data := ruby_sparkle_spec_l68_d6_xml()
+	content := xml_data['appcast'] or { return false }
+	regex := ruby_sparkle_spec_l12_d4_title_regex()
+	mut requests := [
+		sparkle_core.SparkleVersionsRequest{ content: content, regex: regex, has_block: true, block_parameter: .item, block: sparkle_spec_title_item },
+		sparkle_core.SparkleVersionsRequest{ content: content, regex: regex, has_block: true, block_parameter: .items, block: sparkle_spec_title_combined },
+		sparkle_core.SparkleVersionsRequest{ content: content, regex: regex, has_block: true, block_parameter: .item, block: sparkle_spec_title_array },
+		sparkle_core.SparkleVersionsRequest{ content: content, has_block: true, block_parameter: .anonymous, block: sparkle_spec_short_version },
+		sparkle_core.SparkleVersionsRequest{ content: content, regex: regex, has_block: true, block_parameter: .items, block: sparkle_spec_title_items },
+	]
+	expected := [
+		['1.2.3'],
+		['1.2.3,123'],
+		['1.2.3'],
+		['1.2.3'],
+		['1.2.3', '1.2.1', '1.2.0', '1.2.2'],
+	]
+	for index, request in requests {
+		actual := sparkle_core.ruby_sparkle_l209_d8_self_versions_from_content(request, '27') or { return false }
+		if actual != expected[index] {
+			return false
+		}
+	}
+	return true
 }
 
 // Ruby it `it "allows a nil return from a block" do` at line 433.
-pub fn ruby_sparkle_spec_l433_d27_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+pub fn ruby_sparkle_spec_l433_d27_allows() bool {
+	xml_data := ruby_sparkle_spec_l68_d6_xml()
+	actual := sparkle_core.ruby_sparkle_l209_d8_self_versions_from_content(sparkle_core.SparkleVersionsRequest{
+		content: xml_data['appcast'] or { return false }
+		has_block: true
+		block_parameter: .item
+		block: sparkle_spec_nil
+	}, '27') or { return false }
+	return actual.len == 0
 }
 
 // Ruby it `it "errors on an invalid return type from a block" do` at line 442.
-pub fn ruby_sparkle_spec_l442_d28_errors(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('errors', ...args)
+pub fn ruby_sparkle_spec_l442_d28_errors() bool {
+	xml_data := ruby_sparkle_spec_l68_d6_xml()
+	sparkle_core.ruby_sparkle_l209_d8_self_versions_from_content(sparkle_core.SparkleVersionsRequest{
+		content: xml_data['appcast'] or { return false }
+		has_block: true
+		block_parameter: .item
+		block: sparkle_spec_invalid
+	}, '27') or {
+		return err.msg() == 'Return value of a strategy block must be a string or array of strings.'
+	}
+	return false
 }
 
 // Ruby it `it "errors if the first block argument uses an unhandled name" do` at line 451.
-pub fn ruby_sparkle_spec_l451_d29_errors(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('errors', ...args)
+pub fn ruby_sparkle_spec_l451_d29_errors() bool {
+	xml_data := ruby_sparkle_spec_l68_d6_xml()
+	sparkle_core.ruby_sparkle_l209_d8_self_versions_from_content(sparkle_core.SparkleVersionsRequest{
+		content: xml_data['appcast'] or { return false }
+		has_block: true
+		block_parameter: .invalid
+		block: sparkle_spec_invalid
+	}, '27') or {
+		return err.msg() == 'First argument of Sparkle `strategy` block must be `item` or `items`'
+	}
+	return false
 }
 
 // Ruby let `let(:match_data) do` at line 458.
-pub fn ruby_sparkle_spec_l458_d30_match_data(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('match_data', ...args)
+pub fn ruby_sparkle_spec_l458_d30_match_data() map[string]sparkle_core.SparkleMatchData {
+	xml_data := ruby_sparkle_spec_l68_d6_xml()
+	content := xml_data['appcast'] or { '' }
+	base := sparkle_core.SparkleMatchData{
+		matches: {
+			'1.2.3,123': '1.2.3,123'
+		}
+		url: ruby_sparkle_spec_l10_d2_appcast_url()
+	}
+	return {
+		'fetched':        sparkle_core.SparkleMatchData{ ...base, content: content, has_content: true }
+		'cached':         sparkle_core.SparkleMatchData{ ...base, cached: true, has_cached: true }
+		'cached_default': sparkle_core.SparkleMatchData{ ...base, matches: map[string]string{}, cached: true, has_cached: true }
+	}
 }
 
 // Ruby let `let(:appcast_regex) { %r{/example[._-]v?(\d+(?:\.\d+)+)\.t}i }` at line 472.
-pub fn ruby_sparkle_spec_l472_d31_appcast_regex(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('appcast_regex', ...args)
+pub fn ruby_sparkle_spec_l472_d31_appcast_regex() sparkle_core.XmlRegex {
+	return sparkle_core.XmlRegex{
+		pattern: r'/example[._-]v?(\d+(?:\.\d+)+)\.t'
+		case_insensitive: true
+	}
 }
 
 // Ruby it `it "finds versions in fetched content" do` at line 474.
-pub fn ruby_sparkle_spec_l474_d32_finds(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('finds', ...args)
+pub fn ruby_sparkle_spec_l474_d32_finds() bool {
+	actual := sparkle_core.ruby_sparkle_l247_d9_self_find_versions(sparkle_core.SparkleFindVersionsRequest{
+		url: ruby_sparkle_spec_l10_d2_appcast_url()
+	}, sparkle_spec_fetched, '27') or { return false }
+	expected := ruby_sparkle_spec_l458_d30_match_data()['fetched'] or { return false }
+	return sparkle_spec_match_equal(actual, expected)
 }
 
 // Ruby it `it "finds versions in provided content" do` at line 481.
-pub fn ruby_sparkle_spec_l481_d33_finds(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('finds', ...args)
+pub fn ruby_sparkle_spec_l481_d33_finds() bool {
+	xml_data := ruby_sparkle_spec_l68_d6_xml()
+	content := xml_data['appcast'] or { return false }
+	cached := sparkle_core.ruby_sparkle_l247_d9_self_find_versions(sparkle_core.SparkleFindVersionsRequest{
+		url: ruby_sparkle_spec_l10_d2_appcast_url()
+		content: content
+	}, sparkle_spec_unused_fetcher, '27') or { return false }
+	with_regex := sparkle_core.ruby_sparkle_l247_d9_self_find_versions(sparkle_core.SparkleFindVersionsRequest{
+		url: ruby_sparkle_spec_l10_d2_appcast_url()
+		content: content
+		regex: ruby_sparkle_spec_l472_d31_appcast_regex()
+		has_block: true
+		block_parameter: .item
+		block: sparkle_spec_url_capture
+	}, sparkle_spec_unused_fetcher, '27') or { return false }
+	expected := ruby_sparkle_spec_l458_d30_match_data()['cached'] or { return false }
+	expected_regex := sparkle_core.SparkleMatchData{ ...expected, regex: ruby_sparkle_spec_l472_d31_appcast_regex() }
+	return sparkle_spec_match_equal(cached, expected) && sparkle_spec_match_equal(with_regex, expected_regex)
 }
 
 // Ruby it `it "returns default match_data when url is blank" do` at line 495.
-pub fn ruby_sparkle_spec_l495_d34_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_sparkle_spec_l495_d34_returns() bool {
+	xml_data := ruby_sparkle_spec_l68_d6_xml()
+	actual := sparkle_core.ruby_sparkle_l247_d9_self_find_versions(sparkle_core.SparkleFindVersionsRequest{
+		content: xml_data['appcast'] or { return false }
+	}, sparkle_spec_unused_fetcher, '27') or { return false }
+	expected := ruby_sparkle_spec_l458_d30_match_data()['cached_default'] or { return false }
+	return sparkle_spec_match_equal(actual, sparkle_core.SparkleMatchData{ ...expected, url: '' })
 }
 
 // Ruby it `it "returns default match_data when content is blank" do` at line 500.
-pub fn ruby_sparkle_spec_l500_d35_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_sparkle_spec_l500_d35_returns() bool {
+	actual := sparkle_core.ruby_sparkle_l247_d9_self_find_versions(sparkle_core.SparkleFindVersionsRequest{
+		url: ruby_sparkle_spec_l10_d2_appcast_url()
+		content: ''
+	}, sparkle_spec_unused_fetcher, '27') or { return false }
+	expected := ruby_sparkle_spec_l458_d30_match_data()['cached_default'] or { return false }
+	return sparkle_spec_match_equal(actual, expected)
 }
 
 // Ruby it `it "errors if a regex is provided without a `strategy` block" do` at line 505.
-pub fn ruby_sparkle_spec_l505_d36_errors(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('errors', ...args)
+pub fn ruby_sparkle_spec_l505_d36_errors() bool {
+	xml_data := ruby_sparkle_spec_l68_d6_xml()
+	sparkle_core.ruby_sparkle_l247_d9_self_find_versions(sparkle_core.SparkleFindVersionsRequest{
+		url: ruby_sparkle_spec_l10_d2_appcast_url()
+		content: xml_data['appcast'] or { return false }
+		regex: ruby_sparkle_spec_l472_d31_appcast_regex()
+	}, sparkle_spec_unused_fetcher, '27') or {
+		return err.msg() == 'Sparkle only supports a regex when using a `strategy` block'
+	}
+	return false
 }
 
 // Original Ruby source (line-for-line):

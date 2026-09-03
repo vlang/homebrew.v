@@ -1,18 +1,26 @@
 module unpack_strategy
 
-import brew_runtime
-
 // Translated from Homebrew/brew `unpack_strategy/microsoft_office_xml.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `self.extensions` at line 10.
-pub fn ruby_microsoft_office_xml_l10_d1_self_extensions(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.extensions', ...args)
+pub fn ruby_microsoft_office_xml_l10_d1_self_extensions() []string {
+	return microsoft_office_xml_extensions()
 }
 
 // Ruby method `self.can_extract?(path)` at line 19.
-pub fn ruby_microsoft_office_xml_l19_d2_self_can_extract(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.can_extract?', ...args)
+pub fn ruby_microsoft_office_xml_l19_d2_self_can_extract(path string) bool {
+	return microsoft_office_xml_can_extract(path)
+}
+
+pub fn microsoft_office_xml_extensions() []string {
+	return ['.doc', '.docx', '.ppt', '.pptx', '.xls', '.xlsx']
+}
+
+pub fn microsoft_office_xml_can_extract(path string) bool {
+	if !file_starts_with(path, [u8(`P`), `K`, 0x03, 0x04]) { return false }
+	return file_has_bytes_at(path, 30, '[Content_Types].xml'.bytes())
+		|| file_has_bytes_at(path, 30, '_rels/.rels'.bytes())
 }
 
 // Original Ruby source (line-for-line):

@@ -1,143 +1,667 @@
 module macho
 
 import brew_runtime
+import encoding.binary
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/ruby-macho-6.0.0/lib/macho/headers.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub const fat_magic = u32(0xcafebabe)
+pub const fat_cigam = u32(0xbebafeca)
+pub const fat_magic_64 = u32(0xcafebabf)
+pub const fat_cigam_64 = u32(0xbfbafeca)
+pub const mh_magic = u32(0xfeedface)
+pub const mh_cigam = u32(0xcefaedfe)
+pub const mh_magic_64 = u32(0xfeedfacf)
+pub const mh_cigam_64 = u32(0xcffaedfe)
+pub const compressed_magic = u32(0x636f6d70)
+pub const comp_type_lzss = u32(0x6c7a7373)
+pub const comp_type_fastlib = u32(0x6c7a766e)
+pub const cpu_arch_abi64 = u32(0x0100_0000)
+pub const cpu_arch_abi64_32 = u32(0x0200_0000)
+pub const cpu_type_any = u32(0xffff_ffff)
+pub const cpu_type_mc680x0 = u32(0x06)
+pub const cpu_type_i386 = u32(0x07)
+pub const cpu_type_x86_64 = cpu_type_i386 | cpu_arch_abi64
+pub const cpu_type_arm = u32(0x0c)
+pub const cpu_type_mc88000 = u32(0x0d)
+pub const cpu_type_arm64 = cpu_type_arm | cpu_arch_abi64
+pub const cpu_type_arm64_32 = cpu_type_arm | cpu_arch_abi64_32
+pub const cpu_type_powerpc = u32(0x12)
+pub const cpu_type_powerpc64 = cpu_type_powerpc | cpu_arch_abi64
+pub const cpu_subtype_mask = u32(0xff00_0000)
+pub const cpu_subtype_lib64 = u32(0x8000_0000)
+pub const cpu_subtype_i386 = u32(3)
+pub const cpu_subtype_486 = u32(4)
+pub const cpu_subtype_486sx = u32(132)
+pub const cpu_subtype_586 = u32(5)
+pub const cpu_subtype_pent = cpu_subtype_586
+pub const cpu_subtype_pentpro = u32(22)
+pub const cpu_subtype_pentii_m3 = u32(54)
+pub const cpu_subtype_pentii_m5 = u32(86)
+pub const cpu_subtype_pentium_4 = u32(10)
+pub const cpu_subtype_mc680x0_all = u32(1)
+pub const cpu_subtype_mc68030 = cpu_subtype_mc680x0_all
+pub const cpu_subtype_mc68040 = u32(2)
+pub const cpu_subtype_mc68030_only = u32(3)
+pub const cpu_subtype_x86_64_all = cpu_subtype_i386
+pub const cpu_subtype_x86_64_h = u32(8)
+pub const cpu_subtype_arm_all = u32(0)
+pub const cpu_subtype_arm_v4t = u32(5)
+pub const cpu_subtype_arm_v6 = u32(6)
+pub const cpu_subtype_arm_v5tej = u32(7)
+pub const cpu_subtype_arm_xscale = u32(8)
+pub const cpu_subtype_arm_v7 = u32(9)
+pub const cpu_subtype_arm_v7f = u32(10)
+pub const cpu_subtype_arm_v7s = u32(11)
+pub const cpu_subtype_arm_v7k = u32(12)
+pub const cpu_subtype_arm_v6m = u32(14)
+pub const cpu_subtype_arm_v7m = u32(15)
+pub const cpu_subtype_arm_v7em = u32(16)
+pub const cpu_subtype_arm_v8 = u32(13)
+pub const cpu_subtype_arm64_all = u32(0)
+pub const cpu_subtype_arm64_v8 = u32(1)
+pub const cpu_subtype_arm64_32_v8 = u32(1)
+pub const cpu_subtype_arm64e = u32(2)
+pub const cpu_subtype_mc88000_all = u32(0)
+pub const cpu_subtype_mmax_jpc = cpu_subtype_mc88000_all
+pub const cpu_subtype_mc88100 = u32(1)
+pub const cpu_subtype_mc88110 = u32(2)
+pub const cpu_subtype_powerpc_all = u32(0)
+pub const cpu_subtype_powerpc_601 = u32(1)
+pub const cpu_subtype_powerpc_602 = u32(2)
+pub const cpu_subtype_powerpc_603 = u32(3)
+pub const cpu_subtype_powerpc_603e = u32(4)
+pub const cpu_subtype_powerpc_603ev = u32(5)
+pub const cpu_subtype_powerpc_604 = u32(6)
+pub const cpu_subtype_powerpc_604e = u32(7)
+pub const cpu_subtype_powerpc_620 = u32(8)
+pub const cpu_subtype_powerpc_750 = u32(9)
+pub const cpu_subtype_powerpc_7400 = u32(10)
+pub const cpu_subtype_powerpc_7450 = u32(11)
+pub const cpu_subtype_powerpc_970 = u32(100)
+pub const cpu_subtype_powerpc64_all = cpu_subtype_powerpc_all
+pub const mh_object = u32(0x1)
+pub const mh_execute = u32(0x2)
+pub const mh_fvmlib = u32(0x3)
+pub const mh_core = u32(0x4)
+pub const mh_preload = u32(0x5)
+pub const mh_dylib = u32(0x6)
+pub const mh_dylinker = u32(0x7)
+pub const mh_bundle = u32(0x8)
+pub const mh_dylib_stub = u32(0x9)
+pub const mh_dsym = u32(0xa)
+pub const mh_kext_bundle = u32(0xb)
+pub const mh_fileset = u32(0xc)
+pub const mh_gpu_execute = u32(0xd)
+pub const mh_gpu_dylib = u32(0xe)
+
+pub enum MachoHeaderKind {
+	fat_header
+	fat_arch
+	fat_arch64
+	mach_header
+	mach_header64
+	prelinked_kernel
+}
+
+@[heap]
+pub struct MachoHeaderRecord {
+pub:
+	kind              MachoHeaderKind
+	magic             u32
+	nfat_arch         u32
+	cputype           u32
+	cpusubtype        u32
+	offset            u64
+	size              u64
+	align             u32
+	reserved          u32
+	filetype          u32
+	ncmds             u32
+	sizeofcmds        u32
+	flags             u32
+	signature         u32
+	compress_type     u32
+	adler32           u32
+	uncompressed_size u32
+	compressed_size   u32
+	prelink_version   u32
+	reserved_bytes    string
+	platform_name     string
+	root_path         string
+}
+
+pub fn new_fat_header(magic u32, architectures u32) &MachoHeaderRecord {
+	return &MachoHeaderRecord{
+		kind: .fat_header
+		magic: magic
+		nfat_arch: architectures
+	}
+}
+
+pub fn new_fat_arch(cputype u32, cpusubtype u32, offset u64, size u64, align u32) &MachoHeaderRecord {
+	return &MachoHeaderRecord{
+		kind: .fat_arch
+		cputype: cputype
+		cpusubtype: cpusubtype & 0x00ff_ffff
+		offset: offset
+		size: size
+		align: align
+	}
+}
+
+pub fn new_fat_arch64(cputype u32, cpusubtype u32, offset u64, size u64, align u32, reserved u32) &MachoHeaderRecord {
+	return &MachoHeaderRecord{
+		kind: .fat_arch64
+		cputype: cputype
+		cpusubtype: cpusubtype & 0x00ff_ffff
+		offset: offset
+		size: size
+		align: align
+		reserved: reserved
+	}
+}
+
+pub fn new_mach_header(magic u32, cputype u32, cpusubtype u32, filetype u32, commands u32, command_size u32, flags u32) &MachoHeaderRecord {
+	return &MachoHeaderRecord{
+		kind: .mach_header
+		magic: magic
+		cputype: cputype
+		cpusubtype: cpusubtype & 0x00ff_ffff
+		filetype: filetype
+		ncmds: commands
+		sizeofcmds: command_size
+		flags: flags
+	}
+}
+
+pub fn new_mach_header64(magic u32, cputype u32, cpusubtype u32, filetype u32, commands u32, command_size u32, flags u32, reserved u32) &MachoHeaderRecord {
+	return &MachoHeaderRecord{
+		kind: .mach_header64
+		magic: magic
+		cputype: cputype
+		cpusubtype: cpusubtype & 0x00ff_ffff
+		filetype: filetype
+		ncmds: commands
+		sizeofcmds: command_size
+		flags: flags
+		reserved: reserved
+	}
+}
+
+pub fn new_prelinked_kernel_header(signature u32, compress_type u32, adler32 u32, uncompressed_size u32, compressed_size u32, prelink_version u32, reserved string, platform_name string, root_path string) &MachoHeaderRecord {
+	return &MachoHeaderRecord{
+		kind: .prelinked_kernel
+		signature: signature
+		compress_type: compress_type
+		adler32: adler32
+		uncompressed_size: uncompressed_size
+		compressed_size: compressed_size
+		prelink_version: prelink_version
+		reserved_bytes: reserved
+		platform_name: platform_name
+		root_path: root_path
+	}
+}
+
+fn put_be_u32(mut bytes []u8, offset int, value u32) {
+	binary.big_endian_put_u32_at(mut bytes, value, offset)
+}
+
+fn put_be_u64(mut bytes []u8, offset int, value u64) {
+	binary.big_endian_put_u64_at(mut bytes, value, offset)
+}
+
+pub fn (header &MachoHeaderRecord) serialize() ![]u8 {
+	match header.kind {
+		.fat_header {
+			mut bytes := []u8{len: 8}
+			put_be_u32(mut bytes, 0, header.magic)
+			put_be_u32(mut bytes, 4, header.nfat_arch)
+			return bytes
+		}
+		.fat_arch {
+			mut bytes := []u8{len: 20}
+			for index, value in [header.cputype, header.cpusubtype, u32(header.offset),
+				u32(header.size), header.align] {
+				put_be_u32(mut bytes, index * 4, value)
+			}
+			return bytes
+		}
+		.fat_arch64 {
+			mut bytes := []u8{len: 32}
+			put_be_u32(mut bytes, 0, header.cputype)
+			put_be_u32(mut bytes, 4, header.cpusubtype)
+			put_be_u64(mut bytes, 8, header.offset)
+			put_be_u64(mut bytes, 16, header.size)
+			put_be_u32(mut bytes, 24, header.align)
+			put_be_u32(mut bytes, 28, header.reserved)
+			return bytes
+		}
+		else {
+			return error('header type ${header.kind} has no explicit source serialize method')
+		}
+	}
+}
+
+fn header_magic_symbol(magic u32) string {
+	return match magic {
+		fat_magic { 'FAT_MAGIC' }
+		fat_magic_64 { 'FAT_MAGIC_64' }
+		mh_magic { 'MH_MAGIC' }
+		mh_cigam { 'MH_CIGAM' }
+		mh_magic_64 { 'MH_MAGIC_64' }
+		mh_cigam_64 { 'MH_CIGAM_64' }
+		else { '' }
+	}
+}
+
+fn header_cpu_type_symbol(cputype u32) string {
+	return match cputype {
+		cpu_type_any { 'any' }
+		cpu_type_i386 { 'i386' }
+		cpu_type_x86_64 { 'x86_64' }
+		cpu_type_arm { 'arm' }
+		cpu_type_arm64 { 'arm64' }
+		cpu_type_arm64_32 { 'arm64_32' }
+		cpu_type_powerpc { 'ppc' }
+		cpu_type_powerpc64 { 'ppc64' }
+		else { '' }
+	}
+}
+
+fn header_cpu_subtype_symbol(cputype u32, subtype u32) string {
+	return match cputype {
+		cpu_type_i386 {
+			match subtype {
+				cpu_subtype_i386 { 'i386' }
+				cpu_subtype_486 { 'i486' }
+				cpu_subtype_486sx { 'i486SX' }
+				cpu_subtype_586 { 'i586' }
+				cpu_subtype_pentpro { 'i686' }
+				cpu_subtype_pentii_m3 { 'pentIIm3' }
+				cpu_subtype_pentii_m5 { 'pentIIm5' }
+				cpu_subtype_pentium_4 { 'pentium4' }
+				else { '' }
+			}
+		}
+		cpu_type_x86_64 {
+			match subtype {
+				cpu_subtype_x86_64_all { 'x86_64' }
+				cpu_subtype_x86_64_h { 'x86_64h' }
+				else { '' }
+			}
+		}
+		cpu_type_arm {
+			match subtype {
+				cpu_subtype_arm_all { 'arm' }
+				cpu_subtype_arm_v4t { 'armv4t' }
+				cpu_subtype_arm_v6 { 'armv6' }
+				cpu_subtype_arm_v5tej { 'armv5' }
+				cpu_subtype_arm_xscale { 'xscale' }
+				cpu_subtype_arm_v7 { 'armv7' }
+				cpu_subtype_arm_v7f { 'armv7f' }
+				cpu_subtype_arm_v7s { 'armv7s' }
+				cpu_subtype_arm_v7k { 'armv7k' }
+				cpu_subtype_arm_v6m { 'armv6m' }
+				cpu_subtype_arm_v7m { 'armv7m' }
+				cpu_subtype_arm_v7em { 'armv7em' }
+				cpu_subtype_arm_v8 { 'armv8' }
+				else { '' }
+			}
+		}
+		cpu_type_arm64 {
+			match subtype {
+				cpu_subtype_arm64_all { 'arm64' }
+				cpu_subtype_arm64_v8 { 'arm64v8' }
+				cpu_subtype_arm64e { 'arm64e' }
+				else { '' }
+			}
+		}
+		cpu_type_arm64_32 {
+			if subtype == cpu_subtype_arm64_32_v8 { 'arm64_32v8' } else { '' }
+		}
+		cpu_type_powerpc {
+			match subtype {
+				cpu_subtype_powerpc_all { 'ppc' }
+				cpu_subtype_powerpc_601 { 'ppc601' }
+				cpu_subtype_powerpc_603 { 'ppc603' }
+				cpu_subtype_powerpc_603e { 'ppc603e' }
+				cpu_subtype_powerpc_603ev { 'ppc603ev' }
+				cpu_subtype_powerpc_604 { 'ppc604' }
+				cpu_subtype_powerpc_604e { 'ppc604e' }
+				cpu_subtype_powerpc_750 { 'ppc750' }
+				cpu_subtype_powerpc_7400 { 'ppc7400' }
+				cpu_subtype_powerpc_7450 { 'ppc7450' }
+				cpu_subtype_powerpc_970 { 'ppc970' }
+				else { '' }
+			}
+		}
+		cpu_type_powerpc64 {
+			match subtype {
+				cpu_subtype_powerpc64_all { 'ppc64' }
+				cpu_subtype_powerpc_970 { 'ppc970_64' }
+				else { '' }
+			}
+		}
+		cpu_type_mc680x0 {
+			match subtype {
+				cpu_subtype_mc680x0_all { 'mc68030' }
+				cpu_subtype_mc68040 { 'mc68040' }
+				else { '' }
+			}
+		}
+		cpu_type_mc88000 {
+			if subtype == cpu_subtype_mc88000_all { 'm88k' } else { '' }
+		}
+		else { '' }
+	}
+}
+
+fn header_filetype_symbol(filetype u32) string {
+	return match filetype {
+		mh_object { 'object' }
+		mh_execute { 'execute' }
+		mh_fvmlib { 'fvmlib' }
+		mh_core { 'core' }
+		mh_preload { 'preload' }
+		mh_dylib { 'dylib' }
+		mh_dylinker { 'dylinker' }
+		mh_bundle { 'bundle' }
+		mh_dylib_stub { 'dylib_stub' }
+		mh_dsym { 'dsym' }
+		mh_kext_bundle { 'kext_bundle' }
+		mh_fileset { 'fileset' }
+		mh_gpu_execute { 'gpu_execute' }
+		mh_gpu_dylib { 'gpu_dylib' }
+		else { '' }
+	}
+}
+
+fn header_structure_value(format string, bytesize int) brew_runtime.Value {
+	return brew_runtime.map_value({
+		'format':   brew_runtime.string_value(format)
+		'bytesize': brew_runtime.int_value(bytesize)
+	})
+}
+
+fn prelinked_reserved_value(reserved string) brew_runtime.Value {
+	bytes := reserved.bytes()
+	mut words := []brew_runtime.Value{}
+	for offset := 0; offset + 4 <= bytes.len && words.len < 10; offset += 4 {
+		words << brew_runtime.int_value(binary.big_endian_u32(bytes[offset..offset + 4]))
+	}
+	return brew_runtime.array_value(words)
+}
+
+pub fn (header &MachoHeaderRecord) to_h() brew_runtime.Value {
+	mut values := map[string]brew_runtime.Value{}
+	match header.kind {
+		.fat_header {
+			values['magic'] = brew_runtime.int_value(header.magic)
+			values['magic_sym'] = brew_runtime.string_value(header_magic_symbol(header.magic))
+			values['nfat_arch'] = brew_runtime.int_value(header.nfat_arch)
+			values['structure'] = header_structure_value('L>L>', 8)
+		}
+		.fat_arch, .fat_arch64 {
+			values['cputype'] = brew_runtime.int_value(header.cputype)
+			values['cputype_sym'] = brew_runtime.string_value(header_cpu_type_symbol(header.cputype))
+			values['cpusubtype'] = brew_runtime.int_value(header.cpusubtype)
+			values['cpusubtype_sym'] = brew_runtime.string_value(header_cpu_subtype_symbol(header.cputype, header.cpusubtype))
+			values['offset'] = brew_runtime.int_value(i64(header.offset))
+			values['size'] = brew_runtime.int_value(i64(header.size))
+			values['align'] = brew_runtime.int_value(header.align)
+			if header.kind == .fat_arch64 {
+				values['reserved'] = brew_runtime.int_value(header.reserved)
+				values['structure'] = header_structure_value('L>L>Q>Q>L>L>', 32)
+			} else {
+				values['structure'] = header_structure_value('L>L>L>L>L>', 20)
+			}
+		}
+		.mach_header, .mach_header64 {
+			values['magic'] = brew_runtime.int_value(header.magic)
+			values['magic_sym'] = brew_runtime.string_value(header_magic_symbol(header.magic))
+			values['cputype'] = brew_runtime.int_value(header.cputype)
+			values['cputype_sym'] = brew_runtime.string_value(header_cpu_type_symbol(header.cputype))
+			values['cpusubtype'] = brew_runtime.int_value(header.cpusubtype)
+			values['cpusubtype_sym'] = brew_runtime.string_value(header_cpu_subtype_symbol(header.cputype, header.cpusubtype))
+			values['filetype'] = brew_runtime.int_value(header.filetype)
+			values['filetype_sym'] = brew_runtime.string_value(header_filetype_symbol(header.filetype))
+			values['ncmds'] = brew_runtime.int_value(header.ncmds)
+			values['sizeofcmds'] = brew_runtime.int_value(header.sizeofcmds)
+			values['flags'] = brew_runtime.int_value(header.flags)
+			values['alignment'] = brew_runtime.int_value(header.alignment())
+			if header.kind == .mach_header64 {
+				values['reserved'] = brew_runtime.int_value(header.reserved)
+				values['structure'] = header_structure_value('L=L=L=L=L=L=L=L=', 32)
+			} else {
+				values['structure'] = header_structure_value('L=L=L=L=L=L=L=', 28)
+			}
+		}
+		.prelinked_kernel {
+			values['signature'] = brew_runtime.int_value(header.signature)
+			values['compress_type'] = brew_runtime.int_value(header.compress_type)
+			values['adler32'] = brew_runtime.int_value(header.adler32)
+			values['uncompressed_size'] = brew_runtime.int_value(header.uncompressed_size)
+			values['compressed_size'] = brew_runtime.int_value(header.compressed_size)
+			values['prelink_version'] = brew_runtime.int_value(header.prelink_version)
+			values['reserved'] = prelinked_reserved_value(header.reserved_bytes)
+			values['platform_name'] = brew_runtime.string_value(header.platform_name)
+			values['root_path'] = brew_runtime.string_value(header.root_path)
+			values['structure'] = header_structure_value('L>L>L>L>L>L>a40a64a256', 384)
+		}
+	}
+	return brew_runtime.map_value(values)
+}
+
+fn header_flag_value(flag string) ?u32 {
+	value := match flag {
+		'MH_NOUNDEFS' { u32(0x1) }
+		'MH_INCRLINK' { u32(0x2) }
+		'MH_DYLDLINK' { u32(0x4) }
+		'MH_BINDATLOAD' { u32(0x8) }
+		'MH_PREBOUND' { u32(0x10) }
+		'MH_SPLIT_SEGS' { u32(0x20) }
+		'MH_LAZY_INIT' { u32(0x40) }
+		'MH_TWOLEVEL' { u32(0x80) }
+		'MH_FORCE_FLAT' { u32(0x100) }
+		'MH_NOMULTIDEFS' { u32(0x200) }
+		'MH_NOFIXPREBINDING' { u32(0x400) }
+		'MH_PREBINDABLE' { u32(0x800) }
+		'MH_ALLMODSBOUND' { u32(0x1000) }
+		'MH_SUBSECTIONS_VIA_SYMBOLS' { u32(0x2000) }
+		'MH_CANONICAL' { u32(0x4000) }
+		'MH_WEAK_DEFINES' { u32(0x8000) }
+		'MH_BINDS_TO_WEAK' { u32(0x10000) }
+		'MH_ALLOW_STACK_EXECUTION' { u32(0x20000) }
+		'MH_ROOT_SAFE' { u32(0x40000) }
+		'MH_SETUID_SAFE' { u32(0x80000) }
+		'MH_NO_REEXPORTED_DYLIBS' { u32(0x100000) }
+		'MH_PIE' { u32(0x200000) }
+		'MH_DEAD_STRIPPABLE_DYLIB' { u32(0x400000) }
+		'MH_HAS_TLV_DESCRIPTORS' { u32(0x800000) }
+		'MH_NO_HEAP_EXECUTION' { u32(0x1000000) }
+		'MH_APP_EXTENSION_SAFE' { u32(0x2000000) }
+		'MH_NLIST_OUTOFSYNC_WITH_DYLDINFO' { u32(0x4000000) }
+		'MH_SIM_SUPPORT' { u32(0x8000000) }
+		'MH_IMPLICIT_PAGEZERO' { u32(0x10000000) }
+		'MH_DYLIB_IN_CACHE' { u32(0x80000000) }
+		else {
+			return none
+		}
+	}
+	return value
+}
+
+pub fn (header &MachoHeaderRecord) flag(flag string) bool {
+	value := header_flag_value(flag) or { return false }
+	return header.flags & value == value
+}
+
+pub fn (header &MachoHeaderRecord) magic32() bool {
+	return header.magic in [mh_magic, mh_cigam]
+}
+
+pub fn (header &MachoHeaderRecord) magic64() bool {
+	return header.magic in [mh_magic_64, mh_cigam_64]
+}
+
+pub fn (header &MachoHeaderRecord) alignment() int {
+	return if header.magic32() { 4 } else { 8 }
+}
+
+fn macho_header_boundary(header &MachoHeaderRecord) brew_runtime.Value {
+	return brew_runtime.structured_value('MachO::Headers::${header.kind}', '#<MachO::Headers::${header.kind}>', {
+		'macho_header_address': u64(voidptr(header)).str()
+	})
+}
+
+fn macho_header_from_args(args []brew_runtime.Value) &MachoHeaderRecord {
+	if args.len == 0 {
+		panic('MachO header method requires a receiver')
+	}
+	address := (args[0].attribute('macho_header_address') or {
+		panic('${args[0].type_name} has no translated MachO header state')
+	}).u64()
+	return unsafe { &MachoHeaderRecord(voidptr(address)) }
+}
 
 // Ruby method `serialize` at line 526.
 pub fn ruby_headers_l526_d1_serialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('serialize', ...args)
+	return brew_runtime.string_value(macho_header_from_args(args).serialize() or { panic(err) }.bytestr())
 }
 
 // Ruby method `to_h` at line 531.
 pub fn ruby_headers_l531_d2_to_h(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_h', ...args)
+	return macho_header_from_args(args).to_h()
 }
 
 // Ruby method `serialize` at line 562.
 pub fn ruby_headers_l562_d3_serialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('serialize', ...args)
+	return brew_runtime.string_value(macho_header_from_args(args).serialize() or { panic(err) }.bytestr())
 }
 
 // Ruby method `to_h` at line 567.
 pub fn ruby_headers_l567_d4_to_h(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_h', ...args)
+	return macho_header_from_args(args).to_h()
 }
 
 // Ruby method `serialize` at line 596.
 pub fn ruby_headers_l596_d5_serialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('serialize', ...args)
+	return brew_runtime.string_value(macho_header_from_args(args).serialize() or { panic(err) }.bytestr())
 }
 
 // Ruby method `to_h` at line 601.
 pub fn ruby_headers_l601_d6_to_h(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_h', ...args)
+	return macho_header_from_args(args).to_h()
 }
 
 // Ruby method `flag?(flag)` at line 635.
 pub fn ruby_headers_l635_d7_flag(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('flag?', ...args)
+	if args.len < 2 {
+		panic('MachHeader#flag? requires a flag')
+	}
+	return brew_runtime.bool_value(macho_header_from_args(args).flag(args[1].as_string().trim_string_left(':')))
 }
 
 // Ruby method `object?` at line 644.
 pub fn ruby_headers_l644_d8_object(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('object?', ...args)
+	return brew_runtime.bool_value(macho_header_from_args(args).filetype == 1)
 }
 
 // Ruby method `executable?` at line 649.
 pub fn ruby_headers_l649_d9_executable(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('executable?', ...args)
+	return brew_runtime.bool_value(macho_header_from_args(args).filetype == 2)
 }
 
 // Ruby method `fvmlib?` at line 654.
 pub fn ruby_headers_l654_d10_fvmlib(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fvmlib?', ...args)
+	return brew_runtime.bool_value(macho_header_from_args(args).filetype == 3)
 }
 
 // Ruby method `core?` at line 659.
 pub fn ruby_headers_l659_d11_core(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('core?', ...args)
+	return brew_runtime.bool_value(macho_header_from_args(args).filetype == 4)
 }
 
 // Ruby method `preload?` at line 664.
 pub fn ruby_headers_l664_d12_preload(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('preload?', ...args)
+	return brew_runtime.bool_value(macho_header_from_args(args).filetype == 5)
 }
 
 // Ruby method `dylib?` at line 669.
 pub fn ruby_headers_l669_d13_dylib(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dylib?', ...args)
+	return brew_runtime.bool_value(macho_header_from_args(args).filetype == 6)
 }
 
 // Ruby method `dylinker?` at line 674.
 pub fn ruby_headers_l674_d14_dylinker(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dylinker?', ...args)
+	return brew_runtime.bool_value(macho_header_from_args(args).filetype == 7)
 }
 
 // Ruby method `bundle?` at line 679.
 pub fn ruby_headers_l679_d15_bundle(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('bundle?', ...args)
+	return brew_runtime.bool_value(macho_header_from_args(args).filetype == 8)
 }
 
 // Ruby method `dsym?` at line 684.
 pub fn ruby_headers_l684_d16_dsym(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dsym?', ...args)
+	return brew_runtime.bool_value(macho_header_from_args(args).filetype == 10)
 }
 
 // Ruby method `kext?` at line 689.
 pub fn ruby_headers_l689_d17_kext(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('kext?', ...args)
+	return brew_runtime.bool_value(macho_header_from_args(args).filetype == 11)
 }
 
 // Ruby method `fileset?` at line 694.
 pub fn ruby_headers_l694_d18_fileset(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fileset?', ...args)
+	return brew_runtime.bool_value(macho_header_from_args(args).filetype == 12)
 }
 
 // Ruby method `magic32?` at line 699.
 pub fn ruby_headers_l699_d19_magic32(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('magic32?', ...args)
+	return brew_runtime.bool_value(macho_header_from_args(args).magic32())
 }
 
 // Ruby method `magic64?` at line 704.
 pub fn ruby_headers_l704_d20_magic64(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('magic64?', ...args)
+	return brew_runtime.bool_value(macho_header_from_args(args).magic64())
 }
 
 // Ruby method `alignment` at line 709.
 pub fn ruby_headers_l709_d21_alignment(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('alignment', ...args)
+	return brew_runtime.int_value(macho_header_from_args(args).alignment())
 }
 
 // Ruby method `to_h` at line 714.
 pub fn ruby_headers_l714_d22_to_h(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_h', ...args)
+	return macho_header_from_args(args).to_h()
 }
 
 // Ruby method `to_h` at line 738.
 pub fn ruby_headers_l738_d23_to_h(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_h', ...args)
+	return macho_header_from_args(args).to_h()
 }
 
 // Ruby method `kaslr?` at line 775.
 pub fn ruby_headers_l775_d24_kaslr(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('kaslr?', ...args)
+	return brew_runtime.bool_value(macho_header_from_args(args).prelink_version >= 1)
 }
 
 // Ruby method `lzss?` at line 780.
 pub fn ruby_headers_l780_d25_lzss(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('lzss?', ...args)
+	return brew_runtime.bool_value(macho_header_from_args(args).compress_type == comp_type_lzss)
 }
 
 // Ruby method `lzvn?` at line 785.
 pub fn ruby_headers_l785_d26_lzvn(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('lzvn?', ...args)
+	return brew_runtime.bool_value(macho_header_from_args(args).compress_type == comp_type_fastlib)
 }
 
 // Ruby method `to_h` at line 790.
 pub fn ruby_headers_l790_d27_to_h(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_h', ...args)
+	return macho_header_from_args(args).to_h()
 }
 
 // Original Ruby source (line-for-line):

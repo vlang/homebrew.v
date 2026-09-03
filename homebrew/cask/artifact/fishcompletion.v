@@ -1,13 +1,28 @@
 module artifact
 
 import brew_runtime
+import os
 
 // Translated from Homebrew/brew `cask/artifact/fishcompletion.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub fn resolve_fish_completion_target(target string, completion_directory string) string {
+	name := if target.ends_with('.fish') {
+		target
+	} else {
+		'${os.base(target).trim_string_right(os.file_ext(target))}.fish'
+	}
+	return brew_runtime.join_path(completion_directory, name)
+}
 
 // Ruby method `resolve_target(target, base_dir: nil)` at line 11.
 pub fn ruby_fishcompletion_l11_d1_resolve_target(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('resolve_target', ...args)
+	if args.len == 0 { panic('FishCompletion#resolve_target requires a target') }
+	directory := if args.len > 1 {
+		args[1].as_string()
+	} else {
+		brew_runtime.join_path(cask_artifact_prefix(), 'share/fish/vendor_completions.d')
+	}
+	return brew_runtime.object_value('Pathname', resolve_fish_completion_target(args[0].as_string(), directory))
 }
 
 // Original Ruby source (line-for-line):

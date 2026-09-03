@@ -1,13 +1,61 @@
 module dev_cmd
 
 import brew_runtime
+import os
 
 // Translated from Homebrew/brew `dev-cmd/ruby.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub struct RubyCommandOptions {
+pub:
+	ruby_exec_args []string
+	load_path      []string
+	require_name   ?string
+	code           ?string
+	named          []string
+}
+
+pub fn build_ruby_command_exec_args(options RubyCommandOptions) []string {
+	mut command := options.ruby_exec_args.clone()
+	command << ['-I', options.load_path.join(os.path_delimiter), '-rglobal', '-rbrew_irb_helpers']
+	if require_name := options.require_name {
+		command << '-r${require_name}'
+	}
+	if code := options.code {
+		command << '-e ${code}'
+	}
+	command << options.named
+	return command
+}
 
 // Ruby method `run` at line 26.
 pub fn ruby_ruby_l26_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('run', ...args)
+	if args.len < 2 {
+		return brew_runtime.object_value('ArgumentError', 'Ruby exec args and load path are required')
+	}
+	ruby_exec_args := args[0].as_string_array() or {
+		return brew_runtime.object_value('TypeError', err.msg())
+	}
+	load_path := args[1].as_string_array() or {
+		return brew_runtime.object_value('TypeError', err.msg())
+	}
+	require_name := if args.len > 2 && args[2].type_name !in ['Nil', 'NilClass', ''] {
+		?string(args[2].as_string())
+	} else {
+		?string(none)
+	}
+	code := if args.len > 3 && args[3].type_name !in ['Nil', 'NilClass', ''] {
+		?string(args[3].as_string())
+	} else {
+		?string(none)
+	}
+	named := if args.len > 4 { args[4].as_string_array() or { []string{} } } else { []string{} }
+	return brew_runtime.string_array_value(build_ruby_command_exec_args(RubyCommandOptions{
+		ruby_exec_args: ruby_exec_args
+		load_path: load_path
+		require_name: require_name
+		code: code
+		named: named
+	}))
 }
 
 // Original Ruby source (line-for-line):

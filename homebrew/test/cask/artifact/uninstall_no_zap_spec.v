@@ -7,22 +7,33 @@ import brew_runtime
 
 // Ruby let `let(:cask) { Cask::CaskLoader.load(cask_path("with-installable")) }` at line 5.
 pub fn ruby_uninstall_no_zap_spec_l5_d1_cask(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask', ...args)
+	path := if args.len > 0 { args[0].as_string() } else { 'with-installable.rb' }
+	return brew_runtime.structured_value('Cask::Cask', 'with-installable', {
+		'token':   'with-installable'
+		'path':    path
+		'has_zap': 'true'
+	})
 }
 
 // Ruby let `let(:zap_artifact) do` at line 7.
 pub fn ruby_uninstall_no_zap_spec_l7_d2_zap_artifact(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('zap_artifact', ...args)
+	cask := if args.len > 0 { args[0] } else { ruby_uninstall_no_zap_spec_l5_d1_cask() }
+	return brew_runtime.structured_value('Cask::Artifact::Zap', cask.as_string(), {
+		'cask':                        cask.as_string()
+		'responds_to_uninstall_phase': 'false'
+	})
 }
 
 // Ruby subject `subject { zap_artifact }` at line 12.
 pub fn ruby_uninstall_no_zap_spec_l12_d3_subject_dynamic(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('subject_dynamic', ...args)
+	return if args.len > 0 { args[0] } else { ruby_uninstall_no_zap_spec_l7_d2_zap_artifact() }
 }
 
 // Ruby it `it { is_expected.not_to respond_to(:uninstall_phase) }` at line 14.
 pub fn ruby_uninstall_no_zap_spec_l14_d4_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('{', ...args)
+	zap := if args.len > 0 { args[0] } else { ruby_uninstall_no_zap_spec_l7_d2_zap_artifact() }
+	responds := zap.attributes['responds_to_uninstall_phase'] or { 'false' }
+	return brew_runtime.bool_value(zap.type_name == 'Cask::Artifact::Zap' && responds == 'false')
 }
 
 // Original Ruby source (line-for-line):

@@ -1,23 +1,23 @@
 module test
 
-import brew_runtime
+import homebrew
 
 // Translated from Homebrew/brew `test/cxxstdlib_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby let `let(:clang) { described_class.create(:libstdcxx, :clang) }` at line 8.
-pub fn ruby_cxxstdlib_spec_l8_d1_clang(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('clang', ...args)
+pub fn ruby_cxxstdlib_spec_l8_d1_clang() !homebrew.CxxStdlib {
+	return homebrew.create_cxxstdlib('libstdcxx', 'clang')
 }
 
 // Ruby let `let(:lcxx) { described_class.create(:libcxx, :clang) }` at line 9.
-pub fn ruby_cxxstdlib_spec_l9_d2_lcxx(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('lcxx', ...args)
+pub fn ruby_cxxstdlib_spec_l9_d2_lcxx() !homebrew.CxxStdlib {
+	return homebrew.create_cxxstdlib('libcxx', 'clang')
 }
 
 // Ruby specify `specify "formatting" do` at line 12.
-pub fn ruby_cxxstdlib_spec_l12_d3_formatting(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formatting', ...args)
+pub fn ruby_cxxstdlib_spec_l12_d3_formatting() !bool {
+	return ruby_cxxstdlib_spec_l8_d1_clang()!.type_string() == 'libstdc++' && ruby_cxxstdlib_spec_l9_d2_lcxx()!.type_string() == 'libc++'
 }
 
 // Original Ruby source (line-for-line):

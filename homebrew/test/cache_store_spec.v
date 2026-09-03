@@ -1,103 +1,176 @@
 module test
 
 import brew_runtime
+import homebrew
+import os
+import time
 
 // Translated from Homebrew/brew `test/cache_store_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:sample_db) { described_class.new(:sample) }` at line 7.
-pub fn ruby_cache_store_spec_l7_d1_sample_db(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sample_db', ...args)
+pub fn ruby_cache_store_spec_l7_d1_sample_db(cache_root string) homebrew.CacheStoreDatabase {
+	return homebrew.new_cache_store_database('sample', cache_root)
 }
 
 // Ruby let `let(:type) { :test }` at line 10.
-pub fn ruby_cache_store_spec_l10_d2_type(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('type', ...args)
+pub fn ruby_cache_store_spec_l10_d2_type() string {
+	return 'test'
+}
+
+fn cache_store_spec_root() !string {
+	root := os.join_path(os.temp_dir(), 'brew-v-cache-store-${os.getpid()}-${time.now().unix_nano()}')
+	os.mkdir_all(root)!
+	return root
+}
+
+fn cache_store_spec_noop(mut _ homebrew.CacheStoreDatabase) !brew_runtime.Value {
+	return brew_runtime.Value{ type_name: 'NilClass' }
+}
+
+fn cache_store_spec_create_file(database homebrew.CacheStoreDatabase) ! {
+	os.mkdir_all(os.dir(database.cache_path()))!
+	os.write_file(database.cache_path(), '{}')!
 }
 
 // Ruby it `it "creates a new `DatabaseCache` instance" do` at line 12.
-pub fn ruby_cache_store_spec_l12_d3_creates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('creates', ...args)
+pub fn ruby_cache_store_spec_l12_d3_creates() !bool {
+	root := cache_store_spec_root()!
+	defer { os.rmdir_all(root) or {} }
+	mut registry := homebrew.CacheStoreRegistry{}
+	_ := homebrew.cache_store_use(mut registry, ruby_cache_store_spec_l10_d2_type(), root, cache_store_spec_noop)!
+	return (registry.counts['test'] or { -1 }) == 0 && 'test' !in registry.databases
 }
 
 // Ruby let `let(:db) { instance_double(Hash, "db", :[]= => nil) }` at line 23.
-pub fn ruby_cache_store_spec_l23_d4_db(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('db', ...args)
+pub fn ruby_cache_store_spec_l23_d4_db() map[string]brew_runtime.Value {
+	return map[string]brew_runtime.Value{}
 }
 
 // Ruby it `it "sets the value in the `CacheStoreDatabase`" do` at line 25.
-pub fn ruby_cache_store_spec_l25_d5_sets(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sets', ...args)
+pub fn ruby_cache_store_spec_l25_d5_sets() !bool {
+	root := cache_store_spec_root()!
+	defer { os.rmdir_all(root) or {} }
+	mut database := ruby_cache_store_spec_l7_d1_sample_db(root)
+	cache_store_spec_create_file(database)!
+	homebrew.ruby_cache_store_l137_d13_db(mut database, ruby_cache_store_spec_l23_d4_db())
+	homebrew.ruby_cache_store_l60_d3_set(mut database, 'foo', brew_runtime.string_value('bar'))
+	return database.dirty && (database.values['foo'] or { brew_runtime.Value{} }).repr == 'bar'
 }
 
 // Ruby let `let(:db) { instance_double(Hash, "db", :[] => "bar") }` at line 37.
-pub fn ruby_cache_store_spec_l37_d6_db(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('db', ...args)
+pub fn ruby_cache_store_spec_l37_d6_db() map[string]brew_runtime.Value {
+	return {
+		'foo': brew_runtime.string_value('bar')
+	}
 }
 
 // Ruby it `it "gets value in the `CacheStoreDatabase` corresponding to the key" do` at line 39.
-pub fn ruby_cache_store_spec_l39_d7_gets(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('gets', ...args)
+pub fn ruby_cache_store_spec_l39_d7_gets() !bool {
+	root := cache_store_spec_root()!
+	defer { os.rmdir_all(root) or {} }
+	mut database := ruby_cache_store_spec_l7_d1_sample_db(root)
+	cache_store_spec_create_file(database)!
+	homebrew.ruby_cache_store_l137_d13_db(mut database, ruby_cache_store_spec_l37_d6_db())
+	value := homebrew.ruby_cache_store_l67_d4_get(mut database, 'foo') or { return false }
+	return value.repr == 'bar'
 }
 
 // Ruby let `let(:db) { instance_double(Hash, "db", :[] => nil) }` at line 48.
-pub fn ruby_cache_store_spec_l48_d8_db(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('db', ...args)
+pub fn ruby_cache_store_spec_l48_d8_db() map[string]brew_runtime.Value {
+	return map[string]brew_runtime.Value{}
 }
 
 // Ruby it `it "does not get value in the `CacheStoreDatabase` corresponding to key" do` at line 54.
-pub fn ruby_cache_store_spec_l54_d9_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_cache_store_spec_l54_d9_does() !bool {
+	root := cache_store_spec_root()!
+	defer { os.rmdir_all(root) or {} }
+	mut database := ruby_cache_store_spec_l7_d1_sample_db(root)
+	return homebrew.ruby_cache_store_l67_d4_get(mut database, 'foo') == none
 }
 
 // Ruby it `it "does not call `db[]` if `CacheStoreDatabase.created?` is `false`" do` at line 58.
-pub fn ruby_cache_store_spec_l58_d10_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_cache_store_spec_l58_d10_does() !bool {
+	root := cache_store_spec_root()!
+	defer { os.rmdir_all(root) or {} }
+	mut database := ruby_cache_store_spec_l7_d1_sample_db(root)
+	database.values['foo'] = brew_runtime.string_value('bar')
+	return homebrew.ruby_cache_store_l67_d4_get(mut database, 'foo') == none
 }
 
 // Ruby let `let(:db) { instance_double(Hash, "db", :[] => { foo: "bar" }) }` at line 67.
-pub fn ruby_cache_store_spec_l67_d11_db(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('db', ...args)
+pub fn ruby_cache_store_spec_l67_d11_db() map[string]brew_runtime.Value {
+	return {
+		'foo': brew_runtime.map_value({
+			'foo': brew_runtime.string_value('bar')
+		})
+	}
 }
 
 // Ruby it `it "deletes value in the `CacheStoreDatabase` corresponding to the key" do` at line 73.
-pub fn ruby_cache_store_spec_l73_d12_deletes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('deletes', ...args)
+pub fn ruby_cache_store_spec_l73_d12_deletes() !bool {
+	root := cache_store_spec_root()!
+	defer { os.rmdir_all(root) or {} }
+	mut database := ruby_cache_store_spec_l7_d1_sample_db(root)
+	cache_store_spec_create_file(database)!
+	homebrew.ruby_cache_store_l137_d13_db(mut database, ruby_cache_store_spec_l67_d11_db())
+	homebrew.ruby_cache_store_l75_d5_delete(mut database, 'foo')
+	return 'foo' !in database.values && database.dirty
 }
 
 // Ruby let `let(:db) { instance_double(Hash, "db", delete: nil) }` at line 80.
-pub fn ruby_cache_store_spec_l80_d13_db(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('db', ...args)
+pub fn ruby_cache_store_spec_l80_d13_db() map[string]brew_runtime.Value {
+	return map[string]brew_runtime.Value{}
 }
 
 // Ruby it `it "does not call `db.delete` if `CacheStoreDatabase.created?` is `false`" do` at line 86.
-pub fn ruby_cache_store_spec_l86_d14_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_cache_store_spec_l86_d14_does() !bool {
+	root := cache_store_spec_root()!
+	defer { os.rmdir_all(root) or {} }
+	mut database := ruby_cache_store_spec_l7_d1_sample_db(root)
+	homebrew.ruby_cache_store_l75_d5_delete(mut database, 'foo')
+	return !database.dirty
 }
 
 // Ruby it `it "does not raise an error when `close` is called on the database" do` at line 95.
-pub fn ruby_cache_store_spec_l95_d15_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_cache_store_spec_l95_d15_does() !bool {
+	root := cache_store_spec_root()!
+	defer { os.rmdir_all(root) or {} }
+	mut database := ruby_cache_store_spec_l7_d1_sample_db(root)
+	homebrew.ruby_cache_store_l93_d7_write_if_dirty(mut database)!
+	return true
 }
 
 // Ruby it `it "does not raise an error when `close` is called on the database" do` at line 105.
-pub fn ruby_cache_store_spec_l105_d16_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_cache_store_spec_l105_d16_does() !bool {
+	root := cache_store_spec_root()!
+	defer { os.rmdir_all(root) or {} }
+	mut database := ruby_cache_store_spec_l7_d1_sample_db(root)
+	homebrew.ruby_cache_store_l137_d13_db(mut database, none)
+	homebrew.ruby_cache_store_l93_d7_write_if_dirty(mut database)!
+	return true
 }
 
 // Ruby let `let(:cache_path) { Pathname("path/to/homebrew/cache/sample.json") }` at line 112.
-pub fn ruby_cache_store_spec_l112_d17_cache_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cache_path', ...args)
+pub fn ruby_cache_store_spec_l112_d17_cache_path() string {
+	return 'path/to/homebrew/cache/sample.json'
 }
 
 // Ruby it `it "returns `true`" do` at line 123.
-pub fn ruby_cache_store_spec_l123_d18_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_cache_store_spec_l123_d18_returns() !bool {
+	root := cache_store_spec_root()!
+	defer { os.rmdir_all(root) or {} }
+	database := ruby_cache_store_spec_l7_d1_sample_db(root)
+	cache_store_spec_create_file(database)!
+	return homebrew.ruby_cache_store_l102_d8_created(database)
 }
 
 // Ruby it `it "returns `false`" do` at line 133.
-pub fn ruby_cache_store_spec_l133_d19_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_cache_store_spec_l133_d19_returns() !bool {
+	root := cache_store_spec_root()!
+	defer { os.rmdir_all(root) or {} }
+	database := ruby_cache_store_spec_l7_d1_sample_db(root)
+	return !homebrew.ruby_cache_store_l102_d8_created(database)
 }
 
 // Original Ruby source (line-for-line):

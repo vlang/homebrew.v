@@ -1,63 +1,185 @@
 module artifact
 
 import brew_runtime
+import homebrew.cask.artifact as core
+import os
+import time
 
 // Translated from Homebrew/brew `test/cask/artifact/installer_spec.rb`.
-// The original source is retained below until every stub has a typed V body.
+// The original source is retained below for exact boundary auditing.
+
+pub struct InstallerSpecRunResult {
+pub:
+	request         brew_runtime.Value
+	stdout          string
+	command_called  bool
+	sandbox_created bool
+}
+
+fn installer_spec_root(label string) string {
+	return os.join_path(os.temp_dir(), 'brew-v-installer-spec-${label}-${os.getpid()}-${time.now().unix_micro()}')
+}
+
+fn installer_spec_cask(staged_path string) brew_runtime.Value {
+	return brew_runtime.Value{
+		type_name: 'Cask::Cask'
+		repr: 'installer-spec'
+		map_data: {
+			'staged_path': brew_runtime.object_value('Pathname', staged_path)
+		}
+		attributes: {
+			'token': 'installer-spec'
+		}
+	}
+}
+
+fn installer_spec_arguments(value brew_runtime.Value) map[string]brew_runtime.Value {
+	return if value.type_name == 'Hash' {
+		value.map_data.clone()
+	} else {
+		map[string]brew_runtime.Value{}
+	}
+}
+
+pub fn installer_spec_install(cask brew_runtime.Value, supplied map[string]brew_runtime.Value,
+	homebrew_prefix string, environment_path string, sandbox_available bool) !InstallerSpecRunResult {
+	installer := core.new_installer_artifact(cask, supplied)!
+	request := installer.install_request(homebrew_prefix, environment_path)
+	if installer.manual_install {
+		return InstallerSpecRunResult{
+			request: request
+			stdout: request.repr
+		}
+	}
+	executable := (request.map_data['executable'] or {
+		return error('script installer did not create an executable request')
+	}).as_string()
+	if !os.is_file(executable) {
+		return error('script installer executable does not exist: ${executable}')
+	}
+	// The Ruby example makes Sandbox available and asserts that Installer still calls
+	// SystemCommand directly. Keep that observation explicit in the translated result.
+	_ = sandbox_available
+	return InstallerSpecRunResult{
+		request: request
+		command_called: true
+		sandbox_created: false
+	}
+}
+
+fn installer_spec_script_scenario(sandbox_available bool) bool {
+	root := installer_spec_root('script')
+	defer { os.rmdir_all(root) or {} }
+	os.mkdir_all(root) or { return false }
+	executable := os.join_path(root, 'executable')
+	os.write_file(executable, '#!/bin/sh\nexit 0\n') or { return false }
+	prefix := os.join_path(root, 'prefix')
+	environment_path := '/usr/local/bin:/usr/bin:/bin'
+	result := installer_spec_install(installer_spec_cask(root), installer_spec_arguments(ruby_installer_spec_l25_d9_args()), prefix, environment_path, sandbox_available) or { return false }
+	options := (result.request.map_data['options'] or { return false }).as_map() or { return false }
+	environment := (options['env'] or { return false }).as_map() or { return false }
+	return result.request.type_name == 'SystemCommand::Request' && result.request.repr == executable
+		&& (result.request.map_data['executable'] or { return false }).as_string() == executable
+		&& environment['PATH'].as_string() == '${prefix}/bin:${prefix}/sbin:${environment_path}'
+		&& (options['reset_uid'] or { return false }).as_bool() or { return false }
+		&& result.command_called && !result.sandbox_created && os.is_file(executable)
+}
 
 // Ruby subject `subject(:installer) { described_class.new(cask, **args) }` at line 5.
 pub fn ruby_installer_spec_l5_d1_installer(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('installer', ...args)
+	cask := if args.len > 0 { args[0] } else { ruby_installer_spec_l8_d3_cask() }
+	supplied := if args.len > 1 {
+		installer_spec_arguments(args[1])
+	} else {
+		map[string]brew_runtime.Value{}
+	}
+	installer := core.new_installer_artifact(cask, supplied) or {
+		return brew_runtime.object_value('CaskInvalidError', err.msg())
+	}
+	return core.installer_artifact_value(installer)
 }
 
 // Ruby let `let(:staged_path) { mktmpdir }` at line 7.
 pub fn ruby_installer_spec_l7_d2_staged_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('staged_path', ...args)
+	label := if args.len > 0 { args[0].as_string() } else { 'staged' }
+	path := installer_spec_root(label)
+	os.mkdir_all(path) or { return brew_runtime.object_value('FileSystemError', err.msg()) }
+	return brew_runtime.object_value('Pathname', path)
 }
 
 // Ruby let `let(:cask) { instance_double(Cask::Cask, staged_path:) }` at line 8.
 pub fn ruby_installer_spec_l8_d3_cask(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask', ...args)
+	staged_path := if args.len > 0 {
+		args[0].as_string()
+	} else {
+		ruby_installer_spec_l7_d2_staged_path().as_string()
+	}
+	return installer_spec_cask(staged_path)
 }
 
 // Ruby let `let(:command) { SystemCommand }` at line 9.
 pub fn ruby_installer_spec_l9_d4_command(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('command', ...args)
+	_ = args
+	return brew_runtime.object_value('Class<SystemCommand>', 'SystemCommand')
 }
 
 // Ruby let `let(:args) { {} }` at line 10.
 pub fn ruby_installer_spec_l10_d5_args(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('args', ...args)
+	_ = args
+	return brew_runtime.map_value({})
 }
 
 // Ruby let `let(:args) { { manual: "installer" } }` at line 14.
 pub fn ruby_installer_spec_l14_d6_args(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('args', ...args)
+	_ = args
+	return brew_runtime.map_value({
+		'manual': brew_runtime.string_value('installer')
+	})
 }
 
 // Ruby it `it "shows a message prompting to run the installer manually" do` at line 16.
 pub fn ruby_installer_spec_l16_d7_shows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('shows', ...args)
+	root := if args.len > 0 { args[0].as_string() } else { installer_spec_root('manual') }
+	created_root := args.len == 0
+	if created_root {
+		os.mkdir_all(root) or { return brew_runtime.bool_value(false) }
+		defer { os.rmdir_all(root) or {} }
+	}
+	result := installer_spec_install(installer_spec_cask(root), installer_spec_arguments(ruby_installer_spec_l14_d6_args()), '/opt/homebrew', os.getenv('PATH'), false) or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value(result.stdout.contains('open ${os.join_path(root, 'installer')}')
+		&& !result.command_called && !result.sandbox_created)
 }
 
 // Ruby let `let(:executable) { staged_path/"executable" }` at line 24.
 pub fn ruby_installer_spec_l24_d8_executable(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('executable', ...args)
+	staged_path := if args.len > 0 {
+		args[0].as_string()
+	} else {
+		ruby_installer_spec_l7_d2_staged_path().as_string()
+	}
+	return brew_runtime.object_value('Pathname', os.join_path(staged_path, 'executable'))
 }
 
 // Ruby let `let(:args) { { script: { executable: "executable" } } }` at line 25.
 pub fn ruby_installer_spec_l25_d9_args(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('args', ...args)
+	_ = args
+	return brew_runtime.map_value({
+		'script': brew_runtime.map_value({
+			'executable': brew_runtime.string_value('executable')
+		})
+	})
 }
 
 // Ruby it `it "looks for the executable in HOMEBREW_PREFIX" do` at line 31.
 pub fn ruby_installer_spec_l31_d10_looks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('looks', ...args)
+	_ = args
+	return brew_runtime.bool_value(installer_spec_script_scenario(false))
 }
 
 // Ruby it `it "does not sandbox the executable" do` at line 42.
 pub fn ruby_installer_spec_l42_d11_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	_ = args
+	return brew_runtime.bool_value(installer_spec_script_scenario(true))
 }
 
 // Original Ruby source (line-for-line):

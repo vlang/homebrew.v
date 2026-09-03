@@ -7,7 +7,26 @@ import brew_runtime
 
 // Ruby method `run` at line 21.
 pub fn ruby_edit_l21_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('run', ...args)
+	path := if args.len > 0 { args[0].as_string() } else { 'Brewfile' }
+	editor := if args.len > 1 { args[1].as_string() } else { '' }
+	plan := run_bundle_edit(path, editor)
+	return brew_runtime.structured_value('Bundle::EditSubcommand::Plan', plan.path, {
+		'path':   plan.path
+		'editor': plan.editor
+	})
+}
+
+pub struct BundleEditPlan {
+pub:
+	path   string
+	editor string
+}
+
+pub fn run_bundle_edit(path string, editor string) BundleEditPlan {
+	return BundleEditPlan{
+		path: if path.trim_space() != '' { path } else { 'Brewfile' }
+		editor: editor
+	}
 }
 
 // Original Ruby source (line-for-line):

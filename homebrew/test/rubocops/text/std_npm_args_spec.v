@@ -1,78 +1,99 @@
 module text
 
 import brew_runtime
+import homebrew.rubocops as line_cops
 
 // Translated from Homebrew/brew `test/rubocops/text/std_npm_args_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+fn std_npm_args_spec_install(command string) string {
+	return 'def install\n  ${command}\nend'
+}
+
+fn std_npm_args_spec_formula(command string) string {
+	return 'class Foo < Formula\n  def install\n    ${command}\n  end\nend'
+}
+
+fn std_npm_args_spec_reports(command string, message string, correction string) bool {
+	source := std_npm_args_spec_formula(command)
+	analysis := line_cops.audit_lines_std_npm_args(line_cops.LinesContext{
+		source: source
+	})
+	corrected := if correction == '' { source } else { std_npm_args_spec_formula(correction) }
+	return analysis.offenses.len == 1 && analysis.offenses[0].message == message && analysis.corrected == corrected
+}
 
 // Ruby subject `subject(:cop) { described_class.new }` at line 7.
 pub fn ruby_std_npm_args_spec_l7_d1_cop(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cop', ...args)
+	return brew_runtime.object_value('RuboCop::Cop::FormulaAudit::StdNpmArgs', 'StdNpmArgs')
 }
 
 // Ruby it `it "reports an offense when `npm install` is called without std_npm_args arguments" do` at line 10.
 pub fn ruby_std_npm_args_spec_l10_d2_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	return brew_runtime.bool_value(std_npm_args_spec_reports('system "npm", "install"', 'Use `std_npm_args` for npm install', ''))
 }
 
 // Ruby method `install` at line 13.
 pub fn ruby_std_npm_args_spec_l13_d3_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	return brew_runtime.string_value(std_npm_args_spec_install('system "npm", "install"'))
 }
 
 // Ruby it `it "reports and corrects an offense when using local_npm_install_args" do` at line 21.
 pub fn ruby_std_npm_args_spec_l21_d4_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	return brew_runtime.bool_value(std_npm_args_spec_reports('system "npm", "install", *Language::Node.local_npm_install_args, "--production"', 'Use `std_npm_args` instead of `local_npm_install_args`.', 'system "npm", "install", *std_npm_args(prefix: false), "--production"'))
 }
 
 // Ruby method `install` at line 24.
 pub fn ruby_std_npm_args_spec_l24_d5_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	return brew_runtime.string_value(std_npm_args_spec_install('system "npm", "install", *Language::Node.local_npm_install_args, "--production"'))
 }
 
 // Ruby method `install` at line 33.
 pub fn ruby_std_npm_args_spec_l33_d6_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	return brew_runtime.string_value(std_npm_args_spec_install('system "npm", "install", *std_npm_args(prefix: false), "--production"'))
 }
 
 // Ruby it `it "reports and corrects an offense when using std_npm_install_args with libexec" do` at line 40.
 pub fn ruby_std_npm_args_spec_l40_d7_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	return brew_runtime.bool_value(std_npm_args_spec_reports('system "npm", "install", *Language::Node.std_npm_install_args(libexec), "--production"', 'Use `std_npm_args` instead of `std_npm_install_args`.', 'system "npm", "install", *std_npm_args, "--production"'))
 }
 
 // Ruby method `install` at line 43.
 pub fn ruby_std_npm_args_spec_l43_d8_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	return brew_runtime.string_value(std_npm_args_spec_install('system "npm", "install", *Language::Node.std_npm_install_args(libexec), "--production"'))
 }
 
 // Ruby method `install` at line 52.
 pub fn ruby_std_npm_args_spec_l52_d9_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	return brew_runtime.string_value(std_npm_args_spec_install('system "npm", "install", *std_npm_args, "--production"'))
 }
 
 // Ruby it `it "reports and corrects an offense when using std_npm_install_args without libexec" do` at line 59.
 pub fn ruby_std_npm_args_spec_l59_d10_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	return brew_runtime.bool_value(std_npm_args_spec_reports('system "npm", "install", *Language::Node.std_npm_install_args(buildpath), "--production"', 'Use `std_npm_args` instead of `std_npm_install_args`.', 'system "npm", "install", *std_npm_args(prefix: buildpath), "--production"'))
 }
 
 // Ruby method `install` at line 62.
 pub fn ruby_std_npm_args_spec_l62_d11_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	return brew_runtime.string_value(std_npm_args_spec_install('system "npm", "install", *Language::Node.std_npm_install_args(buildpath), "--production"'))
 }
 
 // Ruby method `install` at line 71.
 pub fn ruby_std_npm_args_spec_l71_d12_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	return brew_runtime.string_value(std_npm_args_spec_install('system "npm", "install", *std_npm_args(prefix: buildpath), "--production"'))
 }
 
 // Ruby it `it "does not report an offense when using std_npm_args" do` at line 78.
 pub fn ruby_std_npm_args_spec_l78_d13_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	source := std_npm_args_spec_formula('system "npm", "install", *std_npm_args')
+	analysis := line_cops.audit_lines_std_npm_args(line_cops.LinesContext{
+		source: source
+	})
+	return brew_runtime.bool_value(analysis.offenses.len == 0 && analysis.corrected == source)
 }
 
 // Ruby method `install` at line 81.
 pub fn ruby_std_npm_args_spec_l81_d14_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	return brew_runtime.string_value(std_npm_args_spec_install('system "npm", "install", *std_npm_args'))
 }
 
 // Original Ruby source (line-for-line):

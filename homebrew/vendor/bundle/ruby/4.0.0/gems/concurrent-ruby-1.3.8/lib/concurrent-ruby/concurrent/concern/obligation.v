@@ -1,128 +1,434 @@
 module concern
 
 import brew_runtime
+import sync
+import time
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/concern/obligation.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub enum ObligationState {
+	unscheduled
+	pending
+	processing
+	fulfilled
+	rejected
+	cancelled
+}
+
+pub type ObligationAction = fn() brew_runtime.Value
+
+@[heap]
+pub struct Obligation {
+	mutex     &sync.Mutex
+	condition &sync.Cond
+mut:
+	state_value  ObligationState
+	result_value brew_runtime.Value
+	reason_value string
+}
+
+pub fn new_obligation(state ObligationState) &Obligation {
+	mutex := sync.new_mutex()
+	return &Obligation{
+		mutex: mutex
+		condition: sync.new_cond(mutex)
+		state_value: state
+		result_value: obligation_nil_value()
+	}
+}
+
+fn obligation_nil_value() brew_runtime.Value {
+	return brew_runtime.object_value('NilClass', 'nil')
+}
+
+fn obligation_state_is_complete(state ObligationState) bool {
+	return state in [.fulfilled, .rejected]
+}
+
+fn obligation_state_from_string(value string) ObligationState {
+	return match value.trim_left(':') {
+		'unscheduled' { .unscheduled }
+		'pending' { .pending }
+		'processing' { .processing }
+		'fulfilled' { .fulfilled }
+		'rejected' { .rejected }
+		'cancelled' { .cancelled }
+		else { panic('ArgumentError: unknown obligation state `${value}`') }
+	}
+}
+
+pub fn (mut obligation Obligation) state() ObligationState {
+	obligation.mutex.lock()
+	state := obligation.state_value
+	obligation.mutex.unlock()
+	return state
+}
+
+pub fn (mut obligation Obligation) fulfilled() bool {
+	return obligation.state() == .fulfilled
+}
+
+pub fn (mut obligation Obligation) realized() bool {
+	return obligation.fulfilled()
+}
+
+pub fn (mut obligation Obligation) rejected() bool {
+	return obligation.state() == .rejected
+}
+
+pub fn (mut obligation Obligation) pending() bool {
+	return obligation.state() == .pending
+}
+
+pub fn (mut obligation Obligation) unscheduled() bool {
+	return obligation.state() == .unscheduled
+}
+
+pub fn (mut obligation Obligation) complete() bool {
+	return obligation_state_is_complete(obligation.state())
+}
+
+pub fn (mut obligation Obligation) incomplete() bool {
+	return !obligation.complete()
+}
+
+pub fn (mut obligation Obligation) wait(timeout ?time.Duration) bool {
+	obligation.mutex.lock()
+	defer {
+		obligation.mutex.unlock()
+	}
+	if obligation_state_is_complete(obligation.state_value) {
+		return true
+	}
+	if duration := timeout {
+		if duration <= 0 {
+			return false
+		}
+		deadline := time.sys_mono_now() + u64(duration)
+		for !obligation_state_is_complete(obligation.state_value) {
+			now := time.sys_mono_now()
+			if now >= deadline {
+				return false
+			}
+			remaining := deadline - now
+			sleep_for := if remaining < u64(time.millisecond) {
+				time.Duration(remaining)
+			} else {
+				time.millisecond
+			}
+			obligation.mutex.unlock()
+			time.sleep(sleep_for)
+			obligation.mutex.lock()
+		}
+		return true
+	}
+	for !obligation_state_is_complete(obligation.state_value) {
+		obligation.condition.wait()
+	}
+	return true
+}
+
+pub fn (mut obligation Obligation) value(timeout ?time.Duration) brew_runtime.Value {
+	obligation.wait(timeout)
+	obligation.mutex.lock()
+	value := if obligation.state_value == .fulfilled {
+		obligation.result_value
+	} else {
+		obligation_nil_value()
+	}
+	obligation.mutex.unlock()
+	return value
+}
+
+pub fn (mut obligation Obligation) value_or_error(timeout ?time.Duration) !brew_runtime.Value {
+	obligation.wait(timeout)
+	obligation.mutex.lock()
+	defer {
+		obligation.mutex.unlock()
+	}
+	if obligation.state_value == .rejected {
+		return error(obligation.reason_value)
+	}
+	return if obligation.state_value == .fulfilled {
+		obligation.result_value
+	} else {
+		obligation_nil_value()
+	}
+}
+
+pub fn (mut obligation Obligation) reason() string {
+	obligation.mutex.lock()
+	reason := obligation.reason_value
+	obligation.mutex.unlock()
+	return reason
+}
+
+pub fn (mut obligation Obligation) exception() !string {
+	if !obligation.rejected() {
+		return error('obligation is not rejected')
+	}
+	return obligation.reason()
+}
+
+pub fn (mut obligation Obligation) initialize() {
+	obligation.mutex.lock()
+	obligation.result_value = obligation_nil_value()
+	obligation.reason_value = ''
+	obligation.mutex.unlock()
+}
+
+pub fn (mut obligation Obligation) set_result(success bool, value brew_runtime.Value, reason string) {
+	obligation.mutex.lock()
+	if success {
+		obligation.result_value = value
+		obligation.reason_value = ''
+		obligation.state_value = .fulfilled
+	} else {
+		obligation.result_value = obligation_nil_value()
+		obligation.reason_value = reason
+		obligation.state_value = .rejected
+	}
+	obligation.condition.broadcast()
+	obligation.mutex.unlock()
+}
+
+pub fn (mut obligation Obligation) set_state(state ObligationState) {
+	obligation.mutex.lock()
+	obligation.state_value = state
+	obligation.mutex.unlock()
+}
+
+pub fn (mut obligation Obligation) compare_and_set_state(next_state ObligationState, expected []ObligationState) bool {
+	obligation.mutex.lock()
+	defer {
+		obligation.mutex.unlock()
+	}
+	if obligation.state_value !in expected {
+		return false
+	}
+	obligation.state_value = next_state
+	return true
+}
+
+pub fn (mut obligation Obligation) if_state(expected []ObligationState, action ObligationAction) ?brew_runtime.Value {
+	obligation.mutex.lock()
+	defer {
+		obligation.mutex.unlock()
+	}
+	if obligation.state_value !in expected {
+		return none
+	}
+	return action()
+}
+
+pub fn (mut obligation Obligation) check_state(expected ObligationState) bool {
+	return obligation.state() == expected
+}
+
+fn obligation_boundary_value(obligation &Obligation) brew_runtime.Value {
+	return brew_runtime.structured_value('Concurrent::Concern::Obligation', '#<Concurrent::Concern::Obligation>', {
+		'obligation_address': u64(voidptr(obligation)).str()
+	})
+}
+
+fn obligation_boundary_receiver(args []brew_runtime.Value) &Obligation {
+	if args.len == 0 {
+		panic('Obligation method requires a receiver')
+	}
+	address := (args[0].attribute('obligation_address') or {
+		panic('${args[0].type_name} has no translated Obligation state')
+	}).u64()
+	return unsafe { &Obligation(voidptr(address)) }
+}
+
+fn obligation_boundary_timeout(args []brew_runtime.Value, index int) ?time.Duration {
+	if index >= args.len || args[index].type_name == 'NilClass' {
+		return none
+	}
+	seconds := args[index].as_float() or { panic(err) }
+	return time.Duration(seconds * f64(time.second))
+}
+
+fn obligation_boundary_state(value brew_runtime.Value) ObligationState {
+	return obligation_state_from_string(value.as_string())
+}
 
 // Ruby method `fulfilled?` at line 20.
 pub fn ruby_obligation_l20_d1_fulfilled(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fulfilled?', ...args)
+	mut obligation := obligation_boundary_receiver(args)
+	return brew_runtime.bool_value(obligation.fulfilled())
 }
 
 // Ruby alias_method `alias_method :realized?, :fulfilled?` at line 23.
 pub fn ruby_obligation_l23_d2_realized(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('realized?', ...args)
+	mut obligation := obligation_boundary_receiver(args)
+	return brew_runtime.bool_value(obligation.realized())
 }
 
 // Ruby method `rejected?` at line 28.
 pub fn ruby_obligation_l28_d3_rejected(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('rejected?', ...args)
+	mut obligation := obligation_boundary_receiver(args)
+	return brew_runtime.bool_value(obligation.rejected())
 }
 
 // Ruby method `pending?` at line 35.
 pub fn ruby_obligation_l35_d4_pending(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('pending?', ...args)
+	mut obligation := obligation_boundary_receiver(args)
+	return brew_runtime.bool_value(obligation.pending())
 }
 
 // Ruby method `unscheduled?` at line 42.
 pub fn ruby_obligation_l42_d5_unscheduled(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('unscheduled?', ...args)
+	mut obligation := obligation_boundary_receiver(args)
+	return brew_runtime.bool_value(obligation.unscheduled())
 }
 
 // Ruby method `complete?` at line 49.
 pub fn ruby_obligation_l49_d6_complete(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('complete?', ...args)
+	mut obligation := obligation_boundary_receiver(args)
+	return brew_runtime.bool_value(obligation.complete())
 }
 
 // Ruby method `incomplete?` at line 56.
 pub fn ruby_obligation_l56_d7_incomplete(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('incomplete?', ...args)
+	mut obligation := obligation_boundary_receiver(args)
+	return brew_runtime.bool_value(obligation.incomplete())
 }
 
 // Ruby method `value(timeout = nil)` at line 65.
 pub fn ruby_obligation_l65_d8_value(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('value', ...args)
+	mut obligation := obligation_boundary_receiver(args)
+	return obligation.value(obligation_boundary_timeout(args, 1))
 }
 
 // Ruby method `wait(timeout = nil)` at line 74.
 pub fn ruby_obligation_l74_d9_wait(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('wait', ...args)
+	mut obligation := obligation_boundary_receiver(args)
+	obligation.wait(obligation_boundary_timeout(args, 1))
+	return args[0]
 }
 
 // Ruby method `wait!(timeout = nil)` at line 86.
 pub fn ruby_obligation_l86_d10_wait(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('wait!', ...args)
+	mut obligation := obligation_boundary_receiver(args)
+	obligation.wait(obligation_boundary_timeout(args, 1))
+	if obligation.rejected() {
+		panic(obligation.reason())
+	}
+	return args[0]
 }
 
 // Ruby alias_method `alias_method :no_error!, :wait!` at line 89.
 pub fn ruby_obligation_l89_d11_no_error(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('no_error!', ...args)
+	return ruby_obligation_l86_d10_wait(...args)
 }
 
 // Ruby method `value!(timeout = nil)` at line 98.
 pub fn ruby_obligation_l98_d12_value(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('value!', ...args)
+	mut obligation := obligation_boundary_receiver(args)
+	return obligation.value_or_error(obligation_boundary_timeout(args, 1)) or { panic(err) }
 }
 
 // Ruby method `state` at line 110.
 pub fn ruby_obligation_l110_d13_state(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('state', ...args)
+	mut obligation := obligation_boundary_receiver(args)
+	return brew_runtime.object_value('Symbol', ':${obligation.state()}')
 }
 
 // Ruby method `reason` at line 119.
 pub fn ruby_obligation_l119_d14_reason(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reason', ...args)
+	mut obligation := obligation_boundary_receiver(args)
+	reason := obligation.reason()
+	return if reason.len == 0 {
+		obligation_nil_value()
+	} else {
+		brew_runtime.object_value('StandardError', reason)
+	}
 }
 
 // Ruby method `exception(*args)` at line 126.
 pub fn ruby_obligation_l126_d15_exception(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('exception', ...args)
+	mut obligation := obligation_boundary_receiver(args)
+	return brew_runtime.object_value('StandardError', obligation.exception() or { panic(err) })
 }
 
 // Ruby method `get_arguments_from(opts = {})` at line 134.
 pub fn ruby_obligation_l134_d16_get_arguments_from(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('get_arguments_from', ...args)
+	if args.len == 0 || args[args.len - 1].type_name == 'NilClass' {
+		return brew_runtime.array_value([])
+	}
+	options := args[args.len - 1].as_map() or { panic(err) }
+	return if 'args' in options { options['args'] } else { brew_runtime.array_value([]) }
 }
 
 // Ruby method `init_obligation` at line 139.
 pub fn ruby_obligation_l139_d17_init_obligation(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('init_obligation', ...args)
+	mut obligation := new_obligation(.pending)
+	obligation.initialize()
+	return obligation_boundary_value(obligation)
 }
 
 // Ruby method `event` at line 145.
 pub fn ruby_obligation_l145_d18_event(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('event', ...args)
+	return args[0]
 }
 
 // Ruby method `set_state(success, value, reason)` at line 150.
 pub fn ruby_obligation_l150_d19_set_state(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('set_state', ...args)
+	mut obligation := obligation_boundary_receiver(args)
+	if args.len < 4 {
+		panic('set_state requires success, value, and reason')
+	}
+	success := args[1].as_bool() or { panic(err) }
+	obligation.set_result(success, args[2], if args[3].type_name == 'NilClass' {
+		''
+	} else {
+		args[3].as_string()
+	})
+	return args[0]
 }
 
 // Ruby method `state=(value)` at line 161.
 pub fn ruby_obligation_l161_d20_state(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('state=', ...args)
+	mut obligation := obligation_boundary_receiver(args)
+	if args.len < 2 {
+		panic('state= requires a value')
+	}
+	obligation.set_state(obligation_boundary_state(args[1]))
+	return args[1]
 }
 
 // Ruby method `compare_and_set_state(next_state, *expected_current)` at line 174.
 pub fn ruby_obligation_l174_d21_compare_and_set_state(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('compare_and_set_state', ...args)
+	mut obligation := obligation_boundary_receiver(args)
+	if args.len < 3 {
+		return brew_runtime.bool_value(false)
+	}
+	expected := args[2..].map(obligation_boundary_state(it))
+	return brew_runtime.bool_value(obligation.compare_and_set_state(obligation_boundary_state(args[1]), expected))
 }
 
 // Ruby method `if_state(*expected_states)` at line 190.
 pub fn ruby_obligation_l190_d22_if_state(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('if_state', ...args)
+	mut obligation := obligation_boundary_receiver(args)
+	expected := args[1..].map(obligation_boundary_state(it))
+	return brew_runtime.bool_value(obligation.state() in expected)
 }
 
 // Ruby method `ns_check_state?(expected)` at line 210.
 pub fn ruby_obligation_l210_d23_ns_check_state(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ns_check_state?', ...args)
+	mut obligation := obligation_boundary_receiver(args)
+	return brew_runtime.bool_value(args.len > 1 && obligation.check_state(obligation_boundary_state(args[1])))
 }
 
 // Ruby method `ns_set_state(value)` at line 215.
 pub fn ruby_obligation_l215_d24_ns_set_state(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ns_set_state', ...args)
+	mut obligation := obligation_boundary_receiver(args)
+	if args.len < 2 {
+		panic('ns_set_state requires a value')
+	}
+	obligation.set_state(obligation_boundary_state(args[1]))
+	return args[1]
 }
 
 // Original Ruby source (line-for-line):

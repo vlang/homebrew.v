@@ -1,33 +1,106 @@
 module unpack_strategy
 
 import brew_runtime
+import os
 
 // Translated from Homebrew/brew `unpack_strategy/directory.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `self.extensions` at line 10.
-pub fn ruby_directory_l10_d1_self_extensions(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.extensions', ...args)
+pub fn ruby_directory_l10_d1_self_extensions() []string {
+	return directory_extensions()
 }
 
 // Ruby method `self.can_extract?(path)` at line 15.
-pub fn ruby_directory_l15_d2_self_can_extract(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.can_extract?', ...args)
+pub fn ruby_directory_l15_d2_self_can_extract(path string) bool {
+	return directory_can_extract(path)
 }
 
 // Ruby method `initialize(path, ref_type: nil, ref: nil, merge_xattrs: false, move: false)` at line 28.
-pub fn ruby_directory_l28_d3_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+pub fn ruby_directory_l28_d3_initialize(path string, ref_type string, ref string, merge_xattrs bool, move bool) Strategy {
+	return Strategy{
+		kind: .directory
+		path: brew_runtime.real_path(path)
+		ref_type: ref_type
+		ref: ref
+		merge_xattrs: merge_xattrs
+		move: move
+	}
 }
 
 // Ruby method `extract_to_dir(unpack_dir, basename:, verbose:)` at line 36.
-pub fn ruby_directory_l36_d4_extract_to_dir(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('extract_to_dir', ...args)
+pub fn ruby_directory_l36_d4_extract_to_dir(path string, unpack_dir string, basename string, verbose bool, move bool) ! {
+	directory_extract_to_dir(path, unpack_dir, basename, verbose, move)!
 }
 
 // Ruby method `move_to_dir(unpack_dir, verbose:)` at line 49.
-pub fn ruby_directory_l49_d5_move_to_dir(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('move_to_dir', ...args)
+pub fn ruby_directory_l49_d5_move_to_dir(path string, unpack_dir string, verbose bool) ! {
+	directory_move_to_dir(path, unpack_dir, verbose)!
+}
+
+pub fn directory_extensions() []string {
+	return []
+}
+
+pub fn new_directory_strategy(path string, move bool) Strategy {
+	return Strategy{
+		kind: .directory
+		path: os.abs_path(path)
+		move: move
+	}
+}
+
+pub fn directory_can_extract(path string) bool {
+	return brew_runtime.is_dir(path)
+}
+
+pub fn directory_extract_to_dir(path string, unpack_dir string, basename string, verbose bool, move bool) ! {
+	_ = basename
+	_ = verbose
+	if move {
+		directory_move_to_dir(path, unpack_dir, verbose)!
+		return
+	}
+	children := brew_runtime.list_dir(path)!
+	if children.len == 0 {
+		return
+	}
+	mut arguments := ['-pR']
+	for child in children {
+		arguments << brew_runtime.join_path(path, child)
+	}
+	arguments << unpack_dir
+	checked_command(command_path('cp')!, arguments)!
+}
+
+pub fn directory_move_to_dir(path string, unpack_dir string, verbose bool) ! {
+	_ = verbose
+	for name in brew_runtime.list_dir(path)! {
+		source := brew_runtime.join_path(path, name)
+		destination := brew_runtime.join_path(unpack_dir, name)
+		if os.exists(destination) || os.is_link(destination) {
+			source_directory := os.is_dir(source) && !os.is_link(source)
+			destination_directory := os.is_dir(destination) && !os.is_link(destination)
+			if source_directory && !destination_directory {
+				return error("mv: cannot overwrite non-directory '${destination}' with directory '${source}'")
+			}
+			if !source_directory && destination_directory {
+				return error("mv: cannot overwrite directory '${destination}' with non-directory '${source}'")
+			}
+			if source_directory {
+				// Pathname#find retains the source directory attributes even when its
+				// children are merged into an existing destination directory.
+				source_stat := os.stat(source)!
+				source_mode := os.inode(source).bitmask()
+				directory_move_to_dir(source, destination, verbose)!
+				os.chmod(destination, int(source_mode))!
+				os.utime(destination, source_stat.atime, source_stat.mtime)!
+				continue
+			}
+			remove_path(destination)!
+		}
+		os.mv(source, destination)!
+	}
 }
 
 // Original Ruby source (line-for-line):

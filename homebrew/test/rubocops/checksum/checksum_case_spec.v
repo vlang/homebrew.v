@@ -1,23 +1,27 @@
 module checksum
 
 import brew_runtime
+import homebrew.rubocops as checksum_core
 
 // Translated from Homebrew/brew `test/rubocops/checksum/checksum_case_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:cop) { described_class.new }` at line 7.
 pub fn ruby_checksum_case_spec_l7_d1_cop(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cop', ...args)
+	return brew_runtime.object_value('RuboCop::Cop::FormulaAudit::ChecksumCase', 'FormulaAudit/ChecksumCase')
 }
 
 // Ruby it `it "reports an offense if a checksum contains uppercase letters" do` at line 10.
-pub fn ruby_checksum_case_spec_l10_d2_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_checksum_case_spec_l10_d2_reports() bool {
+	source := 'sha256 "5cf6e1ae0A645b426c0a7cc7cd3f7d1605ffa1ac5756a39a8b2268ddc7ea0e9a"\nsha256 "5cf6e1Ae0a645b426b047aa4cc7cd3f7d1605ffa1ac5756a39a8b2268ddc7ea9"'
+	return checksum_core.audit_formula_checksum_case(source).len == 2
 }
 
 // Ruby it `it "reports and corrects an offense if a checksum outside a `stable` block contains uppercase letters" do` at line 29.
-pub fn ruby_checksum_case_spec_l29_d3_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_checksum_case_spec_l29_d3_reports() bool {
+	source := 'sha256 "A4cc7cd3f7d1605ffa1ac5755cf6e1ae0a645b426b047a6a39a8b2268ddc7ea9"\nsha256 "5cf6e1ae0a645b426c0a7cc7cd3f7d1605ffa1ac5756a39a8b2268ddc7ea0e9a"'
+	corrected := 'sha256 "a4cc7cd3f7d1605ffa1ac5755cf6e1ae0a645b426b047a6a39a8b2268ddc7ea9"\nsha256 "5cf6e1ae0a645b426c0a7cc7cd3f7d1605ffa1ac5756a39a8b2268ddc7ea0e9a"'
+	return checksum_core.audit_formula_checksum_case(source).len == 1 && checksum_core.correct_formula_checksum_case(source) == corrected
 }
 
 // Original Ruby source (line-for-line):

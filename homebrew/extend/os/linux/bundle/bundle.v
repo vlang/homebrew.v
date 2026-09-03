@@ -7,7 +7,22 @@ import brew_runtime
 
 // Ruby method `prepend_pkgconf_path_if_needed!` at line 11.
 pub fn ruby_bundle_l11_d1_prepend_pkgconf_path_if_needed(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prepend_pkgconf_path_if_needed!', ...args)
+	if args.len < 3 {
+		return brew_runtime.string_value(if args.len > 0 { args[0].as_string() } else { '' })
+	}
+	return brew_runtime.string_value(prepend_pkgconf_path_if_needed(args[0].as_string(),
+		args[1].as_string(), args[2].as_bool() or { false }))
+}
+
+pub fn prepend_pkgconf_path_if_needed(current_path string, pkgconf_opt_bin string,
+	installed bool) string {
+	if !installed {
+		return current_path
+	}
+	if current_path.len == 0 {
+		return pkgconf_opt_bin
+	}
+	return '${pkgconf_opt_bin}:${current_path}'
 }
 
 // Original Ruby source (line-for-line):

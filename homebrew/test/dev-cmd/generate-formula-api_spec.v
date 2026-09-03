@@ -1,23 +1,99 @@
 module dev_cmd
 
 import brew_runtime
+import os
 
 // Translated from Homebrew/brew `test/dev-cmd/generate-formula-api_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
+fn generate_formula_api_spec_options(root string,
+	advisory_statuses map[string]brew_runtime.Value, advisory_load_error string) GenerateFormulaApiOptions {
+	return GenerateFormulaApiOptions{
+		output_directory: root
+		formula_names: ['foo']
+		formulas: {
+			'foo': GenerateFormulaApiFormula{
+				name: 'foo'
+				pkg_version: '1.0.0'
+				hash: {
+					'name': brew_runtime.string_value('foo')
+				}
+				serialized_by_tag: {
+					'arm64_sonoma': {
+						'name': brew_runtime.string_value('foo')
+					}
+				}
+			}
+		}
+		tap_git_head: 'formula-head'
+		executables_contents: 'foo(1.0.0):foo-tool food\n'
+		advisory_statuses: advisory_statuses
+		advisory_loaded: advisory_statuses.len > 0
+		advisory_load_error: advisory_load_error
+		bottle_tags: ['arm64_sonoma']
+	}
+}
+
+fn generate_formula_api_spec_json(path string) !map[string]brew_runtime.Value {
+	return brew_runtime.parse_json_value(os.read_file(path)!)!.as_map()
+}
+
+pub fn generate_formula_api_spec_writes(root string) !bool {
+	os.mkdir_all(root)!
+	options := generate_formula_api_spec_options(root, {}, '')
+	run_generate_formula_api(options)!
+	data := generate_formula_api_spec_json(os.join_path(root, '_data/formula/foo.json'))!
+	executables := data['executables']!.as_array()!.map(it.as_string())
+	return executables == ['foo-tool', 'food'] && 'vulnerabilities' !in data
+}
+
+pub fn generate_formula_api_spec_attaches(root string) !bool {
+	os.mkdir_all(root)!
+	status := brew_runtime.map_value({
+		'open':        brew_runtime.array_value([
+			brew_runtime.map_value({
+				'id':       brew_runtime.string_value('BREW-foo-CVE-2024-1234')
+				'upstream': brew_runtime.string_array_value(['CVE-2024-1234'])
+			}),
+		])
+		'patched':     brew_runtime.array_value([])
+		'fixed_count': brew_runtime.int_value(0)
+	})
+	options := generate_formula_api_spec_options(root, {
+		'foo': status
+	}, '')
+	run_generate_formula_api(options)!
+	data := generate_formula_api_spec_json(os.join_path(root, '_data/formula/foo.json'))!
+	vulnerabilities := data['vulnerabilities']!.as_map()!
+	open := vulnerabilities['open']!.as_array()!
+	patched := vulnerabilities['patched']!.as_array()!
+	return open.len == 1 && open[0].as_map()!['id']!.as_string() == 'BREW-foo-CVE-2024-1234'
+		&& patched.len == 0 && vulnerabilities['fixed_count']!.as_int()! == 0
+}
+
+pub fn generate_formula_api_spec_omits(root string) !bool {
+	os.mkdir_all(root)!
+	options := generate_formula_api_spec_options(root, {}, 'boom')
+	result := run_generate_formula_api(options)!
+	data := generate_formula_api_spec_json(os.join_path(root, '_data/formula/foo.json'))!
+	return 'vulnerabilities' !in data && result.warnings == [
+		'Skipping vulnerabilities field: boom',
+	]
+}
+
 // Ruby it `it "writes formula executables to generated formula data" do` at line 30.
-pub fn ruby_generate_formula_api_spec_l30_d1_writes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('writes', ...args)
+pub fn ruby_generate_formula_api_spec_l30_d1_writes(root string) !bool {
+	return generate_formula_api_spec_writes(root)
 }
 
 // Ruby it `it "attaches vulnerabilities from the advisory-database corpus to the public formula JSON" do` at line 43.
-pub fn ruby_generate_formula_api_spec_l43_d2_attaches(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('attaches', ...args)
+pub fn ruby_generate_formula_api_spec_l43_d2_attaches(root string) !bool {
+	return generate_formula_api_spec_attaches(root)
 }
 
 // Ruby it `it "omits the vulnerabilities field and warns when the advisory feed cannot be loaded" do` at line 71.
-pub fn ruby_generate_formula_api_spec_l71_d3_omits(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('omits', ...args)
+pub fn ruby_generate_formula_api_spec_l71_d3_omits(root string) !bool {
+	return generate_formula_api_spec_omits(root)
 }
 
 // Original Ruby source (line-for-line):

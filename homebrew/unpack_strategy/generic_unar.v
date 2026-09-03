@@ -1,28 +1,52 @@
 module unpack_strategy
 
-import brew_runtime
-
 // Translated from Homebrew/brew `unpack_strategy/generic_unar.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `self.extensions` at line 10.
-pub fn ruby_generic_unar_l10_d1_self_extensions(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.extensions', ...args)
+pub fn ruby_generic_unar_l10_d1_self_extensions() []string {
+	return generic_unar_extensions()
 }
 
 // Ruby method `self.can_extract?(_path)` at line 15.
-pub fn ruby_generic_unar_l15_d2_self_can_extract(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.can_extract?', ...args)
+pub fn ruby_generic_unar_l15_d2_self_can_extract(path string) bool {
+	return generic_unar_can_extract(path)
 }
 
 // Ruby method `dependencies` at line 20.
-pub fn ruby_generic_unar_l20_d3_dependencies(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dependencies', ...args)
+pub fn ruby_generic_unar_l20_d3_dependencies() []string {
+	return generic_unar_dependencies()
 }
 
 // Ruby method `extract_to_dir(unpack_dir, basename:, verbose:)` at line 27.
-pub fn ruby_generic_unar_l27_d4_extract_to_dir(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('extract_to_dir', ...args)
+pub fn ruby_generic_unar_l27_d4_extract_to_dir(path string, unpack_dir string, basename string, verbose bool) ! {
+	generic_unar_extract_to_dir(path, unpack_dir, basename, verbose)!
+}
+
+pub fn generic_unar_extensions() []string {
+	return []
+}
+
+pub fn generic_unar_can_extract(path string) bool {
+	_ = path
+	return false
+}
+
+pub fn generic_unar_dependencies() []string {
+	return ['unar']
+}
+
+pub fn generic_unar_extract_to_dir(path string, unpack_dir string, basename string, verbose bool) ! {
+	_ = basename
+	_ = verbose
+	lsar := command_path('lsar')!
+	listing := checked_command(lsar, ['-q', '--', path])!
+	mut members := listing.output.split_into_lines()
+	if members.len > 0 { members.delete(0) }
+	validate_archive_members(members)!
+	unar := command_path('unar')!
+	checked_command(unar, ['-force-overwrite', '-quiet', '-no-directory', '-output-directory',
+		unpack_dir, '--', path])!
 }
 
 // Original Ruby source (line-for-line):

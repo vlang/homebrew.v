@@ -1,283 +1,480 @@
 module test
 
-import brew_runtime
+import homebrew
+import os
 
 // Translated from Homebrew/brew `test/patch_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+fn patch_spec_external(strip string, resource homebrew.PatchResourceModel) !homebrew.PatchModel {
+	return homebrew.create_patch(homebrew.PatchFactoryRequest{
+		strip: strip
+		resource: resource
+	})
+}
+
+fn patch_spec_local(strip string, file string, resource homebrew.PatchResourceModel) !homebrew.PatchModel {
+	mut configured := resource
+	configured.file = file
+	configured.has_file = true
+	return patch_spec_external(strip, configured)
+}
+
+fn patch_spec_string(strip string, text string) !homebrew.PatchModel {
+	return homebrew.create_patch(homebrew.PatchFactoryRequest{
+		strip: strip
+		source_kind: .string
+		source: text
+	})
+}
+
+fn patch_spec_data(strip string) !homebrew.PatchModel {
+	return homebrew.create_patch(homebrew.PatchFactoryRequest{
+		strip: strip
+		source_kind: .data
+	})
+}
+
+fn patch_spec_rejects_resource(resource homebrew.PatchResourceModel, expected string) bool {
+	if _ := patch_spec_external('p1', resource) {
+		return false
+	} else {
+		return err.msg().contains(expected)
+	}
+}
+
+fn patch_spec_directory(name string) !string {
+	path := os.join_path(os.temp_dir(), 'brew-v-patch-spec-${os.getpid()}-${name}')
+	os.rmdir_all(path) or {}
+	os.mkdir_all(path)!
+	return path
+}
+
+fn patch_spec_refuses_escape(text string, strip string, name string, create_decoy bool) !bool {
+	root := patch_spec_directory(name)!
+	defer {
+		os.rmdir_all(root) or {}
+	}
+	source := os.join_path(root, 'source')
+	os.mkdir_all(source)!
+	if create_decoy {
+		os.write_file(os.join_path(source, 'decoy.c'), 'old\n')!
+	}
+	patch := patch_spec_string(strip, text)!
+	mut rejected := false
+	patch.apply(source, '/opt/homebrew') or { rejected = true }
+	return rejected && !os.exists(os.join_path(root, 'evil'))
+}
 
 // Ruby subject `subject(:patch) { described_class.create(:p2, nil) }` at line 9.
-pub fn ruby_patch_spec_l9_d1_patch(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('patch', ...args)
+pub fn ruby_patch_spec_l9_d1_patch() !homebrew.PatchModel {
+	return patch_spec_external('p2', homebrew.PatchResourceModel{})
 }
 
 // Ruby specify `specify(:aggregate_failures) do` at line 11.
-pub fn ruby_patch_spec_l11_d2_aggregate_failures(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('aggregate_failures', ...args)
+pub fn ruby_patch_spec_l11_d2_aggregate_failures() !bool {
+	patch := ruby_patch_spec_l9_d1_patch()!
+	return patch.kind == .external && patch.is_external()
 }
 
 // Ruby it `it(:strip) { expect(patch.strip).to eq(:p2) }` at line 16.
-pub fn ruby_patch_spec_l16_d3_strip(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('strip', ...args)
+pub fn ruby_patch_spec_l16_d3_strip() !bool {
+	return ruby_patch_spec_l9_d1_patch()!.strip == 'p2'
 }
 
 // Ruby subject `subject(:patch) { described_class.create(:p0, "foo") }` at line 20.
-pub fn ruby_patch_spec_l20_d4_patch(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('patch', ...args)
+pub fn ruby_patch_spec_l20_d4_patch() !homebrew.PatchModel {
+	return patch_spec_string('p0', 'foo')
 }
 
 // Ruby it `it { is_expected.to be_a StringPatch }` at line 22.
-pub fn ruby_patch_spec_l22_d5_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('{', ...args)
+pub fn ruby_patch_spec_l22_d5_anonymous() !bool {
+	return ruby_patch_spec_l20_d4_patch()!.kind == .string
 }
 
 // Ruby it `it(:strip) { expect(patch.strip).to eq(:p0) }` at line 23.
-pub fn ruby_patch_spec_l23_d6_strip(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('strip', ...args)
+pub fn ruby_patch_spec_l23_d6_strip() !bool {
+	return ruby_patch_spec_l20_d4_patch()!.strip == 'p0'
 }
 
 // Ruby subject `subject(:patch) { described_class.create("foo", nil) }` at line 27.
-pub fn ruby_patch_spec_l27_d7_patch(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('patch', ...args)
+pub fn ruby_patch_spec_l27_d7_patch() !homebrew.PatchModel {
+	return homebrew.create_patch(homebrew.PatchFactoryRequest{
+		strip: 'foo'
+		strip_kind: .string
+	})
 }
 
 // Ruby it `it { is_expected.to be_a StringPatch }` at line 29.
-pub fn ruby_patch_spec_l29_d8_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('{', ...args)
+pub fn ruby_patch_spec_l29_d8_anonymous() !bool {
+	return ruby_patch_spec_l27_d7_patch()!.kind == .string
 }
 
 // Ruby it `it(:strip) { expect(patch.strip).to eq(:p1) }` at line 30.
-pub fn ruby_patch_spec_l30_d9_strip(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('strip', ...args)
+pub fn ruby_patch_spec_l30_d9_strip() !bool {
+	return ruby_patch_spec_l27_d7_patch()!.strip == 'p1'
 }
 
 // Ruby subject `subject(:patch) { described_class.create(:p0, :DATA) }` at line 34.
-pub fn ruby_patch_spec_l34_d10_patch(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('patch', ...args)
+pub fn ruby_patch_spec_l34_d10_patch() !homebrew.PatchModel {
+	return patch_spec_data('p0')
 }
 
 // Ruby it `it { is_expected.to be_a DATAPatch }` at line 36.
-pub fn ruby_patch_spec_l36_d11_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('{', ...args)
+pub fn ruby_patch_spec_l36_d11_anonymous() !bool {
+	return ruby_patch_spec_l34_d10_patch()!.kind == .data
 }
 
 // Ruby it `it(:strip) { expect(patch.strip).to eq(:p0) }` at line 37.
-pub fn ruby_patch_spec_l37_d12_strip(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('strip', ...args)
+pub fn ruby_patch_spec_l37_d12_strip() !bool {
+	return ruby_patch_spec_l34_d10_patch()!.strip == 'p0'
 }
 
 // Ruby subject `subject(:patch) { described_class.create(:DATA, nil) }` at line 41.
-pub fn ruby_patch_spec_l41_d13_patch(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('patch', ...args)
+pub fn ruby_patch_spec_l41_d13_patch() !homebrew.PatchModel {
+	return homebrew.create_patch(homebrew.PatchFactoryRequest{
+		strip_kind: .data
+	})
 }
 
 // Ruby it `it { is_expected.to be_a DATAPatch }` at line 43.
-pub fn ruby_patch_spec_l43_d14_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('{', ...args)
+pub fn ruby_patch_spec_l43_d14_anonymous() !bool {
+	return ruby_patch_spec_l41_d13_patch()!.kind == .data
 }
 
 // Ruby it `it(:strip) { expect(patch.strip).to eq(:p1) }` at line 44.
-pub fn ruby_patch_spec_l44_d15_strip(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('strip', ...args)
+pub fn ruby_patch_spec_l44_d15_strip() !bool {
+	return ruby_patch_spec_l41_d13_patch()!.strip == 'p1'
 }
 
 // Ruby subject `subject(:patch) { described_class.create(:p0, nil) { file "Patches/foo.diff" } }` at line 48.
-pub fn ruby_patch_spec_l48_d16_patch(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('patch', ...args)
+pub fn ruby_patch_spec_l48_d16_patch() !homebrew.PatchModel {
+	return patch_spec_local('p0', 'Patches/foo.diff', homebrew.PatchResourceModel{})
 }
 
 // Ruby specify `specify(:aggregate_failures) do` at line 50.
-pub fn ruby_patch_spec_l50_d17_aggregate_failures(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('aggregate_failures', ...args)
+pub fn ruby_patch_spec_l50_d17_aggregate_failures() !bool {
+	patch := ruby_patch_spec_l48_d16_patch()!
+	return patch.kind == .local && !patch.is_external()
 }
 
 // Ruby it `it(:strip) { expect(patch.strip).to eq(:p0) }` at line 55.
-pub fn ruby_patch_spec_l55_d18_strip(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('strip', ...args)
+pub fn ruby_patch_spec_l55_d18_strip() !bool {
+	return ruby_patch_spec_l48_d16_patch()!.strip == 'p0'
 }
 
 // Ruby it `it(:inspect) { expect(patch.inspect).to eq('#<LocalPatch: :p0 "Patches/foo.diff">') }` at line 56.
-pub fn ruby_patch_spec_l56_d19_inspect(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('inspect', ...args)
+pub fn ruby_patch_spec_l56_d19_inspect() !bool {
+	return ruby_patch_spec_l48_d16_patch()!.inspect() == '#<LocalPatch: :p0 "Patches/foo.diff">'
 }
 
 // Ruby it `it "rejects blank local file patch paths" do` at line 59.
-pub fn ruby_patch_spec_l59_d20_rejects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('rejects', ...args)
+pub fn ruby_patch_spec_l59_d20_rejects() bool {
+	return patch_spec_rejects_resource(homebrew.PatchResourceModel{
+		has_file: true
+	}, 'Patch file must be a relative path within the repository.')
 }
 
 // Ruby it `it "rejects current directory local file patch paths" do` at line 65.
-pub fn ruby_patch_spec_l65_d21_rejects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('rejects', ...args)
+pub fn ruby_patch_spec_l65_d21_rejects() bool {
+	return patch_spec_rejects_resource(homebrew.PatchResourceModel{
+		file: '.'
+		has_file: true
+	}, 'Patch file must be a relative path within the repository.')
 }
 
 // Ruby it `it "rejects parent directory local file patch paths" do` at line 71.
-pub fn ruby_patch_spec_l71_d22_rejects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('rejects', ...args)
+pub fn ruby_patch_spec_l71_d22_rejects() bool {
+	return patch_spec_rejects_resource(homebrew.PatchResourceModel{
+		file: '..'
+		has_file: true
+	}, 'Patch file must be a relative path within the repository.')
 }
 
 // Ruby it `it "rejects local file patch paths ending in a slash" do` at line 77.
-pub fn ruby_patch_spec_l77_d23_rejects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('rejects', ...args)
+pub fn ruby_patch_spec_l77_d23_rejects() bool {
+	return patch_spec_rejects_resource(homebrew.PatchResourceModel{
+		file: 'Patches/'
+		has_file: true
+	}, 'Patch file must be a relative path within the repository.')
 }
 
 // Ruby it `it "rejects local file patches outside the repository" do` at line 83.
-pub fn ruby_patch_spec_l83_d24_rejects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('rejects', ...args)
+pub fn ruby_patch_spec_l83_d24_rejects() bool {
+	return patch_spec_rejects_resource(homebrew.PatchResourceModel{
+		file: '../foo.diff'
+		has_file: true
+	}, 'Patch file must be a relative path within the repository.')
 }
 
 // Ruby it `it "rejects absolute local file patches" do` at line 89.
-pub fn ruby_patch_spec_l89_d25_rejects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('rejects', ...args)
+pub fn ruby_patch_spec_l89_d25_rejects() bool {
+	return patch_spec_rejects_resource(homebrew.PatchResourceModel{
+		file: '/tmp/foo.diff'
+		has_file: true
+	}, 'Patch file must be a relative path within the repository.')
 }
 
 // Ruby it `it "rejects local file patches with URLs" do` at line 95.
-pub fn ruby_patch_spec_l95_d26_rejects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('rejects', ...args)
+pub fn ruby_patch_spec_l95_d26_rejects() bool {
+	return patch_spec_rejects_resource(homebrew.PatchResourceModel{
+		file: 'Patches/foo.diff'
+		has_file: true
+		url: 'https://brew.sh/foo.diff'
+	}, 'Patch cannot have both `file` and `url`.')
 }
 
 // Ruby it `it "rejects local file patches with sha256" do` at line 104.
-pub fn ruby_patch_spec_l104_d27_rejects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('rejects', ...args)
+pub fn ruby_patch_spec_l104_d27_rejects() bool {
+	return patch_spec_rejects_resource(homebrew.PatchResourceModel{
+		file: 'Patches/foo.diff'
+		has_file: true
+		checksum: '63376b8fdd6613a91976106d9376069274191860cd58f039b29ff16de1925621'
+	}, 'Patch cannot use `sha256` with `file`.')
 }
 
 // Ruby it `it "accepts local file patches with directory" do` at line 113.
-pub fn ruby_patch_spec_l113_d28_accepts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('accepts', ...args)
+pub fn ruby_patch_spec_l113_d28_accepts() !bool {
+	patch := patch_spec_local('p1', 'Patches/foo.diff', homebrew.PatchResourceModel{
+		directory: 'subdir'
+	})!
+	return patch.kind == .local && patch.directory == 'subdir'
 }
 
 // Ruby it `it "rejects local file patches with apply" do` at line 123.
-pub fn ruby_patch_spec_l123_d29_rejects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('rejects', ...args)
+pub fn ruby_patch_spec_l123_d29_rejects() bool {
+	return patch_spec_rejects_resource(homebrew.PatchResourceModel{
+		file: 'Patches/foo.diff'
+		has_file: true
+		patch_files: ['foo.diff']
+	}, 'Patch cannot use `apply` with `file`.')
 }
 
 // Ruby it `it "extracts and normalises CVE identifiers from strings" do` at line 134.
-pub fn ruby_patch_spec_l134_d30_extracts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('extracts', ...args)
+pub fn ruby_patch_spec_l134_d30_extracts() bool {
+	return homebrew.extract_cves([
+		'patches/any/CVE-2024-2961.patch',
+		'patches/28-cve-2022-0529-and-cve-2022-0530.patch',
+		'patches/any/CVE-2024-33601_33602.patch',
+		'https://example.com/fix.diff',
+	]) == ['CVE-2024-2961', 'CVE-2022-0529', 'CVE-2022-0530', 'CVE-2024-33601']
 }
 
 // Ruby it `it "returns an empty array when nothing matches" do` at line 144.
-pub fn ruby_patch_spec_l144_d31_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_patch_spec_l144_d31_returns() bool {
+	return homebrew.extract_cves(['foo', 'bar.patch']).len == 0
 }
 
 // Ruby it `it "classifies CVE, GHSA and OSV identifiers as security and everything else as defect" do` at line 150.
-pub fn ruby_patch_spec_l150_d32_classifies(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('classifies', ...args)
+pub fn ruby_patch_spec_l150_d32_classifies() bool {
+	return homebrew.resolves_type('CVE-2024-1234') == 'security' && homebrew.resolves_type('GHSA-xr7r-f8xq-vfvv') == 'security' && homebrew.resolves_type('OSV-2023-298') == 'security' && homebrew.resolves_type('https://github.com/foo/bar/issues/1') == 'defect'
 }
 
 // Ruby it `it "allows targets that stay within the source tree" do` at line 159.
-pub fn ruby_patch_spec_l159_d33_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+pub fn ruby_patch_spec_l159_d33_allows() !bool {
+	base := patch_spec_directory('safe')!
+	defer {
+		os.rmdir_all(base) or {}
+	}
+	os.mkdir_all(os.join_path(base, 'src'))!
+	os.write_file(os.join_path(base, 'src/foo.c'), 'old\n')!
+	text := '--- a/src/foo.c\n+++ b/src/foo.c\n@@ -1 +1 @@\n-old\n+new\n'
+	homebrew.ensure_patch_targets_within(text, 'p1', base)!
+	return true
 }
 
 // Ruby it `it "allows /dev/null headers for added or deleted files" do` at line 175.
-pub fn ruby_patch_spec_l175_d34_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+pub fn ruby_patch_spec_l175_d34_allows() !bool {
+	base := patch_spec_directory('dev-null')!
+	defer {
+		os.rmdir_all(base) or {}
+	}
+	text := '--- /dev/null\n+++ b/new.c\n@@ -0,0 +1 @@\n+new\n'
+	homebrew.ensure_patch_targets_within(text, 'p1', base)!
+	return true
 }
 
 // Ruby it `it "allows a context diff whose selected target stays within the source tree" do` at line 188.
-pub fn ruby_patch_spec_l188_d35_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+pub fn ruby_patch_spec_l188_d35_allows() !bool {
+	base := patch_spec_directory('context')!
+	defer {
+		os.rmdir_all(base) or {}
+	}
+	os.mkdir_all(os.join_path(base, 'lib/sh'))!
+	os.write_file(os.join_path(base, 'lib/sh/foo.c'), 'old\n')!
+	text := '*** ../pkg-1.0-patched/lib/sh/foo.c\t2024-01-01\n--- lib/sh/foo.c\t2024-01-01\n***************\n*** 1 ****\n! old\n--- 1 ----\n! new\n'
+	homebrew.ensure_patch_targets_within(text, 'p0', base)!
+	return true
 }
 
 // Ruby it `it "rejects an Index header that escapes via `..`", :needs_macos do` at line 206.
-pub fn ruby_patch_spec_l206_d36_rejects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('rejects', ...args)
+pub fn ruby_patch_spec_l206_d36_rejects() !bool {
+	base := patch_spec_directory('index-escape')!
+	defer {
+		os.rmdir_all(base) or {}
+	}
+	text := 'Index: a/../escape.txt\n===================================================================\n@@ -0,0 +1 @@\n+owned\n'
+	if _ := homebrew.ensure_patch_targets_within(text, 'p1', base) {
+		return false
+	} else {
+		return err.msg().contains('escapes the staged source tree')
+	}
 }
 
 // Ruby it `it "merges explicit resolves with CVEs inferred from url and apply paths" do` at line 222.
-pub fn ruby_patch_spec_l222_d37_merges(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('merges', ...args)
+pub fn ruby_patch_spec_l222_d37_merges() !bool {
+	patch := patch_spec_external('p1', homebrew.PatchResourceModel{
+		url: 'https://example.com/CVE-2024-1111.patch'
+		patch_files: ['patches/cve-2024-2222.patch']
+		explicit_resolves: ['CVE-2024-3333']
+	})!
+	return patch.resolves() == ['CVE-2024-3333', 'CVE-2024-1111', 'CVE-2024-2222']
 }
 
 // Ruby it `it "carries explicit resolves through to a local file patch and infers from the file path" do` at line 231.
-pub fn ruby_patch_spec_l231_d38_carries(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('carries', ...args)
+pub fn ruby_patch_spec_l231_d38_carries() !bool {
+	patch := patch_spec_local('p1', 'Patches/CVE-2024-1234.diff', homebrew.PatchResourceModel{
+		explicit_resolves: ['CVE-2024-5678']
+	})!
+	return patch.resolves() == ['CVE-2024-5678', 'CVE-2024-1234']
 }
 
 // Ruby it `it "stores a valid type on an external patch" do` at line 241.
-pub fn ruby_patch_spec_l241_d39_stores(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('stores', ...args)
+pub fn ruby_patch_spec_l241_d39_stores() !bool {
+	patch := patch_spec_external('p1', homebrew.PatchResourceModel{
+		url: 'https://example.com/foo.diff'
+		has_patch_type: true
+		patch_type_name: 'backport'
+	})!
+	return patch.has_patch_type && patch.patch_type == .backport
 }
 
 // Ruby it `it "carries type through to a local file patch" do` at line 249.
-pub fn ruby_patch_spec_l249_d40_carries(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('carries', ...args)
+pub fn ruby_patch_spec_l249_d40_carries() !bool {
+	patch := patch_spec_local('p1', 'Patches/foo.diff', homebrew.PatchResourceModel{
+		has_patch_type: true
+		patch_type_name: 'unofficial'
+	})!
+	return patch.has_patch_type && patch.patch_type == .unofficial
 }
 
 // Ruby it `it "rejects invalid types" do` at line 257.
-pub fn ruby_patch_spec_l257_d41_rejects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('rejects', ...args)
+pub fn ruby_patch_spec_l257_d41_rejects() bool {
+	return patch_spec_rejects_resource(homebrew.PatchResourceModel{
+		url: 'https://example.com/foo.diff'
+		has_patch_type: true
+		patch_type_name: 'hotfix'
+	}, 'Patch type must be one of')
 }
 
 // Ruby subject `subject(:patch) { described_class.create(:p2, nil) }` at line 268.
-pub fn ruby_patch_spec_l268_d42_patch(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('patch', ...args)
+pub fn ruby_patch_spec_l268_d42_patch() !homebrew.PatchModel {
+	return patch_spec_external('p2', homebrew.PatchResourceModel{})
 }
 
 // Ruby it `it(:resource) { expect(patch.resource).to be_a Resource::Patch }` at line 271.
-pub fn ruby_patch_spec_l271_d43_resource(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('resource', ...args)
+pub fn ruby_patch_spec_l271_d43_resource() !bool {
+	patch := ruby_patch_spec_l268_d42_patch()!
+	return patch.kind == .external && patch.resource.patch_files.len == 0
 }
 
 // Ruby specify `specify(:aggregate_failures) do` at line 273.
-pub fn ruby_patch_spec_l273_d44_aggregate_failures(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('aggregate_failures', ...args)
+pub fn ruby_patch_spec_l273_d44_aggregate_failures() !bool {
+	patch := ruby_patch_spec_l268_d42_patch()!
+	return patch.patch_files() == patch.resource.patch_files && patch.patch_files().len == 0
 }
 
 // Ruby it `it "returns applied patch files" do` at line 279.
-pub fn ruby_patch_spec_l279_d45_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_patch_spec_l279_d45_returns() !bool {
+	mut patch := ruby_patch_spec_l268_d42_patch()!
+	patch.resource.apply('patch1.diff')
+	if patch.patch_files() != ['patch1.diff'] {
+		return false
+	}
+	patch.resource.apply('patch2.diff', 'patch3.diff')
+	if patch.patch_files() != ['patch1.diff', 'patch2.diff', 'patch3.diff'] {
+		return false
+	}
+	patch.resource.apply('patch4.diff', 'patch5.diff')
+	if patch.patch_files().len != 5 {
+		return false
+	}
+	patch.resource.apply('patch4.diff', 'patch5.diff', 'patch6.diff', 'patch7.diff')
+	return patch.patch_files().len == 7
 }
 
 // Ruby subject `subject(:patch) { described_class.new(:p1) { url "file:///my.patch" } }` at line 295.
-pub fn ruby_patch_spec_l295_d46_patch(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('patch', ...args)
+pub fn ruby_patch_spec_l295_d46_patch() !homebrew.PatchModel {
+	return patch_spec_external('p1', homebrew.PatchResourceModel{
+		url: 'file:///my.patch'
+	})
 }
 
 // Ruby it `it(:url) { expect(patch.url).to eq("file:///my.patch") }` at line 298.
-pub fn ruby_patch_spec_l298_d47_url(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('url', ...args)
+pub fn ruby_patch_spec_l298_d47_url() !bool {
+	return ruby_patch_spec_l295_d46_patch()!.url() == 'file:///my.patch'
 }
 
 // Ruby it `it(:inspect) { expect(patch.inspect).to eq('#<ExternalPatch: :p1 "file:///my.patch">') }` at line 302.
-pub fn ruby_patch_spec_l302_d48_inspect(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('inspect', ...args)
+pub fn ruby_patch_spec_l302_d48_inspect() !bool {
+	return ruby_patch_spec_l295_d46_patch()!.inspect() == '#<ExternalPatch: :p1 "file:///my.patch">'
 }
 
 // Ruby it `it(:cached_download) { expect(patch.cached_download).to eq("/tmp/foo.tar.gz") }` at line 310.
-pub fn ruby_patch_spec_l310_d49_cached_download(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cached_download', ...args)
+pub fn ruby_patch_spec_l310_d49_cached_download() !bool {
+	patch := patch_spec_external('p1', homebrew.PatchResourceModel{
+		url: 'file:///my.patch'
+		cached_download_path: '/tmp/foo.tar.gz'
+	})!
+	return patch.cached_download() == '/tmp/foo.tar.gz'
 }
 
 // Ruby it `it "applies a patch whose target stays within the source tree" do` at line 315.
-pub fn ruby_patch_spec_l315_d50_applies(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('applies', ...args)
+pub fn ruby_patch_spec_l315_d50_applies() !bool {
+	root := patch_spec_directory('apply-safe')!
+	defer {
+		os.rmdir_all(root) or {}
+	}
+	source := os.join_path(root, 'source')
+	os.mkdir_all(source)!
+	os.write_file(os.join_path(source, 'foo'), 'old\n')!
+	patch := patch_spec_string('p1', '--- a/foo\n+++ b/foo\n@@ -1 +1 @@\n-old\n+new\n')!
+	patch.apply(source, '/opt/homebrew')!
+	return os.read_file(os.join_path(source, 'foo'))! == 'new\n'
 }
 
 // Ruby it `it "refuses to apply a patch whose target escapes the source tree" do` at line 332.
-pub fn ruby_patch_spec_l332_d51_refuses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('refuses', ...args)
+pub fn ruby_patch_spec_l332_d51_refuses() !bool {
+	return patch_spec_refuses_escape('Index: a/../evil\n===================================================================\n@@ -0,0 +1 @@\n+owned\n', 'p1', 'index-apply-escape', false)
 }
 
 // Ruby it `it "does not let a Perforce target escape the source tree" do` at line 348.
-pub fn ruby_patch_spec_l348_d52_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_patch_spec_l348_d52_does() !bool {
+	return patch_spec_refuses_escape('==== a/../evil ====\n@@ -0,0 +1 @@\n+owned\n', 'p1', 'perforce-escape', false)
 }
 
 // Ruby it `it "does not let a standard target escape the source tree" do` at line 363.
-pub fn ruby_patch_spec_l363_d53_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_patch_spec_l363_d53_does() !bool {
+	return patch_spec_refuses_escape('--- a/../evil\n+++ b/../evil\n@@ -0,0 +1 @@\n+owned\n', 'p1', 'standard-escape', false)
 }
 
 // Ruby it `it "does not let an absolute target escape the source tree" do` at line 379.
-pub fn ruby_patch_spec_l379_d54_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_patch_spec_l379_d54_does() !bool {
+	root := patch_spec_directory('absolute-escape-root')!
+	defer {
+		os.rmdir_all(root) or {}
+	}
+	source := os.join_path(root, 'source')
+	os.mkdir_all(source)!
+	escape := os.join_path(root, 'evil')
+	patch := patch_spec_string('p0', 'Index: ${escape}\n===================================================================\n@@ -0,0 +1 @@\n+owned\n')!
+	mut rejected := false
+	patch.apply(source, '/opt/homebrew') or { rejected = true }
+	return rejected && !os.exists(escape)
 }
 
 // Ruby it `it "does not let one escaping target in a multi-file patch escape the source tree" do` at line 397.
-pub fn ruby_patch_spec_l397_d55_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_patch_spec_l397_d55_does() !bool {
+	return patch_spec_refuses_escape('--- a/decoy.c\n+++ b/decoy.c\n@@ -1 +1 @@\n-old\n+new\nIndex: a/../evil\n===================================================================\n@@ -0,0 +1 @@\n+owned\n', 'p1', 'multi-escape', true)
 }
 
 // Original Ruby source (line-for-line):

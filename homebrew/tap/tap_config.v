@@ -1,33 +1,77 @@
 module tap
 
-import brew_runtime
-
 // Translated from Homebrew/brew `tap/tap_config.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub struct TapConfigTap {
+pub:
+	name string
+	path string
+	git  bool
+}
+
+pub struct TapConfig {
+pub:
+	tap TapConfigTap
+mut:
+	settings map[string]string
+}
+
+pub fn new_tap_config(tap TapConfigTap) TapConfig {
+	return TapConfig{
+		tap: tap
+		settings: map[string]string{}
+	}
+}
+
+pub fn (config &TapConfig) get(key string, git_available bool) ?bool {
+	if !config.tap.git || !git_available {
+		return none
+	}
+	value := config.settings[key] or { return none }
+	return match value {
+		'true' { true }
+		'false' { false }
+		else { none }
+	}
+}
+
+pub fn (mut config TapConfig) set(key string, value bool, git_available bool) {
+	if config.tap.git && git_available {
+		config.settings[key] = value.str()
+	}
+}
+
+pub fn (mut config TapConfig) delete(key string, git_available bool) {
+	if config.tap.git && git_available {
+		config.settings.delete(key)
+	}
+}
 
 // Ruby attr_reader `attr_reader :tap` at line 7.
-pub fn ruby_tap_config_l7_d1_tap(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tap', ...args)
+pub fn ruby_tap_config_l7_d1_tap(config &TapConfig) TapConfigTap {
+	return config.tap
 }
 
 // Ruby method `initialize(tap)` at line 10.
-pub fn ruby_tap_config_l10_d2_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+pub fn ruby_tap_config_l10_d2_initialize(tap TapConfigTap) TapConfig {
+	return new_tap_config(tap)
 }
 
 // Ruby method `[](key)` at line 15.
-pub fn ruby_tap_config_l15_d3_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('[]', ...args)
+pub fn ruby_tap_config_l15_d3_anonymous(config &TapConfig, key string,
+	git_available bool) ?bool {
+	return config.get(key, git_available)
 }
 
 // Ruby method `[]=(key, value)` at line 26.
-pub fn ruby_tap_config_l26_d4_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('[]=', ...args)
+pub fn ruby_tap_config_l26_d4_anonymous(mut config TapConfig, key string, value bool,
+	git_available bool) {
+	config.set(key, value, git_available)
 }
 
 // Ruby method `delete(key)` at line 34.
-pub fn ruby_tap_config_l34_d5_delete(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('delete', ...args)
+pub fn ruby_tap_config_l34_d5_delete(mut config TapConfig, key string, git_available bool) {
+	config.delete(key, git_available)
 }
 
 // Original Ruby source (line-for-line):

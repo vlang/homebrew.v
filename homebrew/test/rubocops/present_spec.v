@@ -1,33 +1,73 @@
 module rubocops
 
-import brew_runtime
+import homebrew.rubocops as present_core
 
 // Translated from Homebrew/brew `test/rubocops/present_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "registers an offense and corrects" do` at line 8.
-pub fn ruby_present_spec_l8_d1_registers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('registers', ...args)
+pub fn ruby_present_spec_l8_d1_registers() bool {
+	sources := [
+		'foo && !foo.empty?',
+		'!foo.nil? && !foo.empty?',
+		'!nil? && !empty?',
+		'foo != nil && !foo.empty?',
+		'!!foo && !foo.empty?',
+		'!foo.nil? && !foo.empty?',
+		'!foo.bar.nil? && !foo.bar.empty?',
+		'!FOO.nil? && !FOO.empty?',
+		'!Foo.nil? && !Foo.empty?',
+		'!@foo.nil? && !@foo.empty?',
+		'!\$foo.nil? && !\$foo.empty?',
+		'!@@foo.nil? && !@@foo.empty?',
+		'!foo[bar].nil? && !foo[bar].empty?',
+		'!Foo::Bar.nil? && !Foo::Bar.empty?',
+		'!foo(bar).nil? && !foo(bar).empty?',
+	]
+	corrections := [
+		'foo.present?',
+		'foo.present?',
+		'present?',
+		'foo.present?',
+		'foo.present?',
+		'foo.present?',
+		'foo.bar.present?',
+		'FOO.present?',
+		'Foo.present?',
+		'@foo.present?',
+		'\$foo.present?',
+		'@@foo.present?',
+		'foo[bar].present?',
+		'Foo::Bar.present?',
+		'foo(bar).present?',
+	]
+	for index, source in sources {
+		offenses := present_core.audit_present(source)
+		if offenses.len != 1 || offenses[0].begin_pos != 0 || offenses[0].end_pos != source.len || offenses[0].message != 'Use `${corrections[index]}` instead of `${source}`.' || present_core.correct_present(source) != corrections[index] {
+			return false
+		}
+	}
+	return true
 }
 
 // Ruby it `it "accepts checking nil?" do` at line 20.
-pub fn ruby_present_spec_l20_d2_accepts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('accepts', ...args)
+pub fn ruby_present_spec_l20_d2_accepts() bool {
+	return present_core.audit_present('foo.nil?').len == 0
 }
 
 // Ruby it `it "accepts checking empty?" do` at line 24.
-pub fn ruby_present_spec_l24_d3_accepts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('accepts', ...args)
+pub fn ruby_present_spec_l24_d3_accepts() bool {
+	return present_core.audit_present('foo.empty?').len == 0
 }
 
 // Ruby it `it "accepts checking nil? || empty? on different objects" do` at line 28.
-pub fn ruby_present_spec_l28_d4_accepts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('accepts', ...args)
+pub fn ruby_present_spec_l28_d4_accepts() bool {
+	return present_core.audit_present('foo.nil? || bar.empty?').len == 0
 }
 
 // Ruby it `it "accepts checking existence && not empty? on different objects" do` at line 32.
-pub fn ruby_present_spec_l32_d5_accepts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('accepts', ...args)
+pub fn ruby_present_spec_l32_d5_accepts() bool {
+	return present_core.audit_present('foo && !bar.empty?').len == 0
 }
 
 // Original Ruby source (line-for-line):

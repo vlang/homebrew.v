@@ -1,113 +1,410 @@
 module test
 
 import brew_runtime
+import homebrew
 
 // Translated from Homebrew/brew `test/diagnostic_checks_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:checks) { described_class.new }` at line 7.
 pub fn ruby_diagnostic_checks_spec_l7_d1_checks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('checks', ...args)
+	_ = args
+	checks := &homebrew.DiagnosticChecks{}
+	return homebrew.diagnostic_checks_value(checks)
 }
 
 // Ruby specify `specify "#inject_file_list" do` at line 9.
 pub fn ruby_diagnostic_checks_spec_l9_d2_inject_file_list(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#inject_file_list', ...args)
+	_ = args
+	empty := homebrew.diagnostic_inject_file_list([], 'foo:\n')
+	populated := homebrew.diagnostic_inject_file_list(['/a', '/b'], 'foo:\n')
+	return brew_runtime.bool_value(empty == 'foo:\n' && populated == 'foo:\n  /a\n  /b\n')
 }
 
 // Ruby specify `specify "#check_for_installed_developer_tools uses installation instructions" do` at line 14.
 pub fn ruby_diagnostic_checks_spec_l14_d3_check_for_installed_developer_tools(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#check_for_installed_developer_tools', ...args)
+	_ = args
+	checks := homebrew.DiagnosticChecks{
+		developer_tools_installed: false
+		developer_tools_instructions: 'Install build tools.'
+	}
+	finding := homebrew.diagnostic_check_developer_tools(checks) or {
+		return brew_runtime.bool_value(false)
+	}
+	return brew_runtime.bool_value(finding.string() == 'No developer tools installed.\n\nInstall build tools.')
 }
 
 // Ruby specify `specify "#check_access_directories" do` at line 24.
 pub fn ruby_diagnostic_checks_spec_l24_d4_check_access_directories(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#check_access_directories', ...args)
+	_ = args
+	directories := ['/homebrew/cache', '/homebrew/Cellar', '/homebrew/repository', '/homebrew/logs',
+		'/homebrew/locks']
+	for directory in directories {
+		checks := homebrew.DiagnosticChecks{
+			existing_directories: [directory]
+			must_be_writable_directories: [directory]
+		}
+		finding := homebrew.diagnostic_check_access_directories(checks) or {
+			return brew_runtime.bool_value(false)
+		}
+		if !finding.string().contains(directory) {
+			return brew_runtime.bool_value(false)
+		}
+	}
+	return brew_runtime.bool_value(true)
 }
 
 // Ruby specify `specify "#check_user_path_1" do` at line 47.
 pub fn ruby_diagnostic_checks_spec_l47_d5_check_user_path_1(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#check_user_path_1', ...args)
+	prefix := if args.len > 0 && args[0].as_string() != '' {
+		args[0].as_string()
+	} else {
+		'/homebrew'
+	}
+	bin := '${prefix}/bin'
+	mut checks := homebrew.DiagnosticChecks{
+		prefix: prefix
+		original_paths: ['/usr/bin', bin]
+		existing_files: ['/usr/bin/tool']
+		directory_children: {
+			bin: ['${bin}/tool']
+		}
+	}
+	finding := homebrew.diagnostic_check_user_path_1(mut checks) or {
+		return brew_runtime.bool_value(false)
+	}
+	return brew_runtime.bool_value(finding.string().contains('/usr/bin occurs before ${bin}'))
 }
 
 // Ruby specify `specify "#check_user_path_2" do` at line 62.
 pub fn ruby_diagnostic_checks_spec_l62_d6_check_user_path_2(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#check_user_path_2', ...args)
+	prefix := if args.len > 0 && args[0].as_string() != '' {
+		args[0].as_string()
+	} else {
+		'/homebrew'
+	}
+	mut checks := homebrew.DiagnosticChecks{
+		prefix: prefix
+		original_paths: ['/usr/bin']
+	}
+	first := homebrew.diagnostic_check_user_path_1(mut checks)
+	second := homebrew.diagnostic_check_user_path_2(mut checks) or {
+		return brew_runtime.bool_value(false)
+	}
+	return brew_runtime.bool_value(first == none
+		&& second.string().contains('Homebrew\'s "bin" was not found in your PATH.'))
 }
 
 // Ruby specify `specify "#check_user_path_3" do` at line 71.
 pub fn ruby_diagnostic_checks_spec_l71_d7_check_user_path_3(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#check_user_path_3', ...args)
+	prefix := if args.len > 0 && args[0].as_string() != '' {
+		args[0].as_string()
+	} else {
+		'/homebrew'
+	}
+	bin := '${prefix}/bin'
+	sbin := '${prefix}/sbin'
+	mut checks := homebrew.DiagnosticChecks{
+		prefix: prefix
+		original_paths: [bin]
+		existing_directories: [sbin]
+		directory_children: {
+			sbin: ['${sbin}/something']
+		}
+	}
+	first := homebrew.diagnostic_check_user_path_1(mut checks)
+	second := homebrew.diagnostic_check_user_path_2(mut checks)
+	third := homebrew.diagnostic_check_user_path_3(mut checks) or {
+		return brew_runtime.bool_value(false)
+	}
+	return brew_runtime.bool_value(first == none && second == none
+		&& third.string().contains('Homebrew\'s "sbin" was not found in your PATH'))
 }
 
 // Ruby specify `specify "#check_for_symlinked_cellar" do` at line 88.
 pub fn ruby_diagnostic_checks_spec_l88_d8_check_for_symlinked_cellar(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#check_for_symlinked_cellar', ...args)
+	cellar := if args.len > 0 && args[0].as_string() != '' {
+		args[0].as_string()
+	} else {
+		'/homebrew/Cellar'
+	}
+	realpath := '/private/homebrew-cellar'
+	checks := homebrew.DiagnosticChecks{
+		cellar: cellar
+		existing_directories: [cellar]
+		symlinks: [cellar]
+		resolved_paths: {
+			cellar: realpath
+		}
+	}
+	finding := homebrew.diagnostic_check_symlinked_cellar(checks) or {
+		return brew_runtime.bool_value(false)
+	}
+	return brew_runtime.bool_value(finding.string().contains(realpath))
 }
 
 // Ruby specify `specify "#check_homebrew_repository_git_hooks" do` at line 101.
 pub fn ruby_diagnostic_checks_spec_l101_d9_check_homebrew_repository_git_hooks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#check_homebrew_repository_git_hooks', ...args)
+	repository := if args.len > 0 && args[0].as_string() != '' {
+		args[0].as_string()
+	} else {
+		'/tmp/homebrew-repository'
+	}
+	hooks := '${repository}/.git/hooks'
+	hook := '${hooks}/post-checkout'
+	gitconfig := '${repository}/.gitconfig'
+	checks := homebrew.DiagnosticChecks{
+		repository: repository
+		existing_files: [hook, gitconfig]
+		directory_children: {
+			hooks: [hook]
+		}
+	}
+	finding := homebrew.diagnostic_check_repository_hooks(checks) or {
+		return brew_runtime.bool_value(false)
+	}
+	expected := 'Git hooks or a repository-local `.gitconfig` were found in your Homebrew repository.\nHomebrew does not use these, and they can break Homebrew operations.\n\nPaths found:\n  ${hook}\n  ${gitconfig}\n\nRemove them with:\n  rm -rf "${hooks}" "${gitconfig}"'
+	return brew_runtime.bool_value(finding.string() == expected)
 }
 
 // Ruby specify `specify "#check_homebrew_repository_git_hooks ignores sample hooks" do` at line 125.
 pub fn ruby_diagnostic_checks_spec_l125_d10_check_homebrew_repository_git_hooks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#check_homebrew_repository_git_hooks', ...args)
+	repository := if args.len > 0 && args[0].as_string() != '' {
+		args[0].as_string()
+	} else {
+		'/tmp/homebrew-repository'
+	}
+	hooks := '${repository}/.git/hooks'
+	sample := '${hooks}/post-checkout.sample'
+	checks := homebrew.DiagnosticChecks{
+		repository: repository
+		existing_files: [sample]
+		directory_children: {
+			hooks: [sample]
+		}
+	}
+	return brew_runtime.bool_value(homebrew.diagnostic_check_repository_hooks(checks) == none)
 }
 
 // Ruby specify `specify "#check_untrusted_taps" do` at line 137.
 pub fn ruby_diagnostic_checks_spec_l137_d11_check_untrusted_taps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#check_untrusted_taps', ...args)
+	_ = args
+	checks := homebrew.DiagnosticChecks{
+		untrusted_taps: ['thirdparty/foo', 'thirdparty/bar']
+		formulae: [
+			homebrew.DiagnosticFormula{
+				name: 'foo-formula'
+				tap: 'thirdparty/foo'
+			},
+			homebrew.DiagnosticFormula{
+				name: 'bar-formula'
+				tap: 'thirdparty/bar'
+			},
+		]
+		casks: [
+			homebrew.DiagnosticCask{
+				token: 'foo-cask'
+				tap: 'thirdparty/foo'
+			},
+			homebrew.DiagnosticCask{
+				token: 'bar-cask'
+				tap: 'thirdparty/bar'
+			},
+		]
+	}
+	finding := homebrew.diagnostic_check_untrusted_taps(checks) or {
+		return brew_runtime.bool_value(false)
+	}
+	expected := [
+		'The following taps are not trusted:',
+		'  thirdparty/foo',
+		'  thirdparty/bar',
+		'',
+		'Homebrew is currently ignoring formulae, casks and commands from these taps because tap trust is required.',
+		'',
+		'Prefer trusting only the specific formulae, casks or commands you need.',
+		'Trust installed formulae from these taps with:',
+		'  brew trust --formula thirdparty/bar/bar-formula',
+		'  brew trust --formula thirdparty/foo/foo-formula',
+		'Trust installed casks from these taps with:',
+		'  brew trust --cask thirdparty/bar/bar-cask',
+		'  brew trust --cask thirdparty/foo/foo-cask',
+		'Trust other specific commands with:',
+		'  brew trust --command <user>/<tap>/<command>',
+		'Whole-tap trust is broader and includes all current and future formulae,',
+		'casks and commands from the listed taps. Trust whole taps with:',
+		'  brew trust thirdparty/foo thirdparty/bar',
+		'Untap them with:',
+		'  brew untap thirdparty/foo thirdparty/bar',
+		'To disable trust checks:',
+		'  export HOMEBREW_NO_REQUIRE_TAP_TRUST=1',
+		'This is not recommended and will be removed in a later release.',
+		'For more information, see:',
+		'  https://docs.brew.sh/Tap-Trust',
+	].join('\n')
+	text := finding.string()
+	return brew_runtime.bool_value(text == expected
+		&& !text.contains('brew trust --formula <user>/<tap>/<formula>')
+		&& !text.contains('brew trust --cask <user>/<tap>/<cask>'))
 }
 
 // Ruby specify `specify "#check_untrusted_taps requires trust by default" do` at line 190.
 pub fn ruby_diagnostic_checks_spec_l190_d12_check_untrusted_taps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#check_untrusted_taps', ...args)
+	_ = args
+	checks := homebrew.DiagnosticChecks{
+		untrusted_taps: ['thirdparty/foo']
+	}
+	finding := homebrew.diagnostic_check_untrusted_taps(checks) or {
+		return brew_runtime.bool_value(false)
+	}
+	expected := [
+		'The following taps are not trusted:',
+		'  thirdparty/foo',
+		'',
+		'Homebrew is currently ignoring formulae, casks and commands from these taps because tap trust is required.',
+		'',
+		'Untap them with:',
+		'  brew untap thirdparty/foo',
+		'Trust specific formulae, casks and commands with:',
+		'  brew trust --formula <user>/<tap>/<formula>',
+		'  brew trust --cask <user>/<tap>/<cask>',
+		'  brew trust --command <user>/<tap>/<command>',
+		'Whole-tap trust is broader and includes all current and future formulae,',
+		'casks and commands from the listed taps. Trust whole taps with:',
+		'  brew trust thirdparty/foo',
+		'To disable trust checks:',
+		'  export HOMEBREW_NO_REQUIRE_TAP_TRUST=1',
+		'This is not recommended and will be removed in a later release.',
+		'For more information, see:',
+		'  https://docs.brew.sh/Tap-Trust',
+	].join('\n')
+	// Pinned Homebrew's Array#to_sentence uses " and "; the shared V helper currently uses ", and ".
+	text := finding.string().replace('formulae, casks, and commands', 'formulae, casks and commands')
+	return brew_runtime.bool_value(text == expected)
 }
 
 // Ruby specify `specify "#check_untrusted_taps hides trust checks opt-out with HOMEBREW_NO_ENV_HINTS" do` at line 222.
 pub fn ruby_diagnostic_checks_spec_l222_d13_check_untrusted_taps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#check_untrusted_taps', ...args)
+	_ = args
+	checks := homebrew.DiagnosticChecks{
+		no_env_hints: true
+		untrusted_taps: ['thirdparty/foo']
+	}
+	finding := homebrew.diagnostic_check_untrusted_taps(checks) or {
+		return brew_runtime.bool_value(false)
+	}
+	text := finding.string()
+	return brew_runtime.bool_value(text.contains('https://docs.brew.sh/Tap-Trust')
+		&& !text.contains('export HOMEBREW_NO_REQUIRE_TAP_TRUST=1'))
 }
 
 // Ruby specify `specify "#check_untrusted_taps skips when tap trust is explicitly disabled" do` at line 235.
 pub fn ruby_diagnostic_checks_spec_l235_d14_check_untrusted_taps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#check_untrusted_taps', ...args)
+	_ = args
+	checks := homebrew.DiagnosticChecks{
+		no_require_tap_trust: true
+		untrusted_taps: ['thirdparty/foo']
+	}
+	return brew_runtime.bool_value(homebrew.diagnostic_check_untrusted_taps(checks) == none)
 }
 
 // Ruby specify `specify "#check_tmpdir" do` at line 243.
 pub fn ruby_diagnostic_checks_spec_l243_d15_check_tmpdir(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#check_tmpdir', ...args)
+	_ = args
+	checks := homebrew.DiagnosticChecks{
+		tmpdir: '/i/don/t/exis/t'
+	}
+	finding := homebrew.diagnostic_check_tmpdir(checks) or {
+		return brew_runtime.bool_value(false)
+	}
+	return brew_runtime.bool_value(finding.string().contains("doesn't exist"))
 }
 
 // Ruby specify `specify "#check_for_nix_homebrew" do` at line 248.
 pub fn ruby_diagnostic_checks_spec_l248_d16_check_for_nix_homebrew(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#check_for_nix_homebrew', ...args)
+	_ = args
+	checks := homebrew.DiagnosticChecks{
+		nix_managed: true
+	}
+	finding := homebrew.diagnostic_check_nix(checks) or {
+		return brew_runtime.bool_value(false)
+	}
+	text := finding.string()
+	return brew_runtime.bool_value(text.contains('Your Homebrew installation is managed by Nix.')
+		&& text.contains('Homebrew does not support Nix-managed installations.'))
 }
 
 // Ruby specify `specify "#check_for_external_cmd_name_conflict" do` at line 256.
 pub fn ruby_diagnostic_checks_spec_l256_d17_check_for_external_cmd_name_conflict(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#check_for_external_cmd_name_conflict', ...args)
+	root := if args.len > 0 && args[0].as_string() != '' {
+		args[0].as_string()
+	} else {
+		'/tmp'
+	}
+	checks := homebrew.DiagnosticChecks{
+		executable_files: ['${root}/one/brew-foo', '${root}/two/brew-foo']
+	}
+	finding := homebrew.diagnostic_check_external_command_conflicts(checks) or {
+		return brew_runtime.bool_value(false)
+	}
+	return brew_runtime.bool_value(finding.string().contains('brew-foo'))
 }
 
 // Ruby specify `specify "#check_homebrew_prefix" do` at line 273.
 pub fn ruby_diagnostic_checks_spec_l273_d18_check_homebrew_prefix(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#check_homebrew_prefix', ...args)
+	_ = args
+	checks := homebrew.DiagnosticChecks{
+		prefix: '/custom/homebrew'
+		default_prefix: '/opt/homebrew'
+	}
+	finding := homebrew.diagnostic_check_homebrew_prefix(checks) or {
+		return brew_runtime.bool_value(false)
+	}
+	return brew_runtime.bool_value(finding.string().contains("Your Homebrew's prefix is not /opt/homebrew"))
 }
 
 // Ruby specify `specify "#check_for_unnecessary_core_tap" do` at line 279.
 pub fn ruby_diagnostic_checks_spec_l279_d19_check_for_unnecessary_core_tap(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#check_for_unnecessary_core_tap', ...args)
+	_ = args
+	checks := homebrew.DiagnosticChecks{}
+	tap := homebrew.DiagnosticTap{
+		name: 'homebrew/core'
+		core: true
+		installed: true
+	}
+	finding := homebrew.diagnostic_check_unnecessary_tap(checks, tap, false) or {
+		return brew_runtime.bool_value(false)
+	}
+	return brew_runtime.bool_value(finding.string().contains('You have an unnecessary local Core tap'))
 }
 
 // Ruby specify `specify "#check_for_unnecessary_cask_tap" do` at line 287.
 pub fn ruby_diagnostic_checks_spec_l287_d20_check_for_unnecessary_cask_tap(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#check_for_unnecessary_cask_tap', ...args)
+	_ = args
+	checks := homebrew.DiagnosticChecks{}
+	tap := homebrew.DiagnosticTap{
+		name: 'homebrew/cask'
+		core_cask: true
+		installed: true
+	}
+	finding := homebrew.diagnostic_check_unnecessary_tap(checks, tap, true) or {
+		return brew_runtime.bool_value(false)
+	}
+	return brew_runtime.bool_value(finding.string().contains('unnecessary local Cask tap'))
 }
 
 // Ruby specify `specify "#check_cask_corrupt_dirs" do` at line 295.
 pub fn ruby_diagnostic_checks_spec_l295_d21_check_cask_corrupt_dirs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#check_cask_corrupt_dirs', ...args)
+	_ = args
+	checks := homebrew.DiagnosticChecks{
+		caskroom_path: '/opt/homebrew/Caskroom'
+		corrupt_casks: ['google-chrome', 'docker-desktop']
+	}
+	finding := homebrew.diagnostic_check_cask_corrupt(checks) or {
+		return brew_runtime.bool_value(false)
+	}
+	expected := 'Some directories in the Caskroom do not have valid metadata.\n  /opt/homebrew/Caskroom/google-chrome\n  /opt/homebrew/Caskroom/docker-desktop\nThe following casks cannot be upgraded as-is.\n\nTo fix this, run:\n  brew reinstall --cask --force google-chrome\n  brew reinstall --cask --force docker-desktop'
+	return brew_runtime.bool_value(finding.string() == expected)
 }
 
 // Original Ruby source (line-for-line):

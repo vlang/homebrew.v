@@ -1,23 +1,43 @@
 module unpack_strategy
 
 import brew_runtime
+import homebrew.unpack_strategy as typed_unpack
 
 // Translated from Homebrew/brew `test/unpack_strategy/bzip2_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby let `let(:path) { TEST_FIXTURE_DIR/"cask/container.bz2" }` at line 7.
 pub fn ruby_bzip2_spec_l7_d1_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('path', ...args)
+	return brew_runtime.string_value(spec_compressed_fixture('bzip2', 'bzip2', '.bz2', 'BZh'.bytes()))
 }
 
 // Ruby it `it "extracts with bzip2" do` at line 12.
 pub fn ruby_bzip2_spec_l12_d2_extracts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('extracts', ...args)
+	path := if args.len > 0 {
+		args[0].as_string()
+	} else {
+		ruby_bzip2_spec_l7_d1_path().as_string()
+	}
+	if !spec_tool_available('bzip2') {
+		return spec_bool(true)
+	}
+	return spec_bool(spec_extract(path, .bzip2, ['container'], false))
 }
 
 // Ruby it `it "adds Homebrew bzip2 to PATH without resolving a formula" do` at line 29.
 pub fn ruby_bzip2_spec_l29_d3_adds(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('adds', ...args)
+	path := if args.len > 0 {
+		args[0].as_string()
+	} else {
+		ruby_bzip2_spec_l7_d1_path().as_string()
+	}
+	if typed_unpack.bzip2_dependencies() != ['bzip2'] {
+		return spec_bool(false)
+	}
+	if !spec_tool_available('bzip2') {
+		return spec_bool(true)
+	}
+	return spec_bool(spec_extract(path, .bzip2, ['container'], false))
 }
 
 // Original Ruby source (line-for-line):

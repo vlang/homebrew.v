@@ -1,53 +1,133 @@
 module atomic
 
 import brew_runtime
+import sync
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/atomic/mutex_atomic_boolean.rb`.
 // The original source is retained below until every stub has a typed V body.
+@[heap]
+pub struct MutexAtomicBoolean {
+mut:
+	lock  sync.Mutex
+	value bool
+}
+
+pub fn new_mutex_atomic_boolean(initial bool) &MutexAtomicBoolean {
+	return &MutexAtomicBoolean{
+		value: initial
+	}
+}
+
+pub fn (mut flag MutexAtomicBoolean) get() bool {
+	flag.lock.lock()
+	defer {
+		flag.lock.unlock()
+	}
+	return flag.value
+}
+
+pub fn (mut flag MutexAtomicBoolean) set(value bool) bool {
+	flag.lock.lock()
+	flag.value = value
+	flag.lock.unlock()
+	return value
+}
+
+pub fn (mut flag MutexAtomicBoolean) make(value bool) bool {
+	flag.lock.lock()
+	changed := flag.value != value
+	flag.value = value
+	flag.lock.unlock()
+	return changed
+}
+
+fn atomic_boolean_boundary_truthy(value brew_runtime.Value) bool {
+	if value.type_name == 'NilClass' {
+		return false
+	}
+	if value.type_name == 'Bool' {
+		return value.as_bool() or { false }
+	}
+	return true
+}
+
+fn mutex_atomic_boolean_boundary_new(initial bool) brew_runtime.Value {
+	flag := new_mutex_atomic_boolean(initial)
+	return brew_runtime.structured_value('Concurrent::MutexAtomicBoolean', '#<Concurrent::MutexAtomicBoolean>', {
+		'atomic_boolean_address': u64(voidptr(flag)).str()
+	})
+}
+
+fn mutex_atomic_boolean_boundary_receiver(args []brew_runtime.Value) &MutexAtomicBoolean {
+	if args.len == 0 {
+		panic('MutexAtomicBoolean method requires a receiver')
+	}
+	address := (args[0].attribute('atomic_boolean_address') or {
+		panic('${args[0].type_name} has no translated atomic boolean state')
+	}).u64()
+	return unsafe { &MutexAtomicBoolean(voidptr(address)) }
+}
 
 // Ruby method `initialize(initial = false)` at line 12.
 pub fn ruby_mutex_atomic_boolean_l12_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	initial := if args.len > 0 { atomic_boolean_boundary_truthy(args[0]) } else { false }
+	return mutex_atomic_boolean_boundary_new(initial)
 }
 
 // Ruby method `value` at line 19.
 pub fn ruby_mutex_atomic_boolean_l19_d2_value(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('value', ...args)
+	mut flag := mutex_atomic_boolean_boundary_receiver(args)
+	return brew_runtime.bool_value(flag.get())
 }
 
 // Ruby method `value=(value)` at line 24.
 pub fn ruby_mutex_atomic_boolean_l24_d3_value(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('value=', ...args)
+	if args.len < 2 {
+		panic('MutexAtomicBoolean#value= requires value')
+	}
+	mut flag := mutex_atomic_boolean_boundary_receiver(args)
+	return brew_runtime.bool_value(flag.set(atomic_boolean_boundary_truthy(args[1])))
 }
 
 // Ruby method `true?` at line 29.
 pub fn ruby_mutex_atomic_boolean_l29_d4_true(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('true?', ...args)
+	return ruby_mutex_atomic_boolean_l19_d2_value(...args)
 }
 
 // Ruby method `false?` at line 34.
 pub fn ruby_mutex_atomic_boolean_l34_d5_false(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('false?', ...args)
+	mut flag := mutex_atomic_boolean_boundary_receiver(args)
+	return brew_runtime.bool_value(!flag.get())
 }
 
 // Ruby method `make_true` at line 39.
 pub fn ruby_mutex_atomic_boolean_l39_d6_make_true(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('make_true', ...args)
+	mut flag := mutex_atomic_boolean_boundary_receiver(args)
+	return brew_runtime.bool_value(flag.make(true))
 }
 
 // Ruby method `make_false` at line 44.
 pub fn ruby_mutex_atomic_boolean_l44_d7_make_false(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('make_false', ...args)
+	mut flag := mutex_atomic_boolean_boundary_receiver(args)
+	return brew_runtime.bool_value(flag.make(false))
 }
 
 // Ruby method `synchronize` at line 51.
 pub fn ruby_mutex_atomic_boolean_l51_d8_synchronize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('synchronize', ...args)
+	mut flag := mutex_atomic_boolean_boundary_receiver(args)
+	flag.lock.lock()
+	value := if args.len > 1 { args[1] } else { brew_runtime.bool_value(flag.value) }
+	flag.lock.unlock()
+	return value
 }
 
 // Ruby method `ns_make_value(value)` at line 62.
 pub fn ruby_mutex_atomic_boolean_l62_d9_ns_make_value(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ns_make_value', ...args)
+	if args.len < 2 {
+		panic('MutexAtomicBoolean#ns_make_value requires value')
+	}
+	mut flag := mutex_atomic_boolean_boundary_receiver(args)
+	return brew_runtime.bool_value(flag.make(atomic_boolean_boundary_truthy(args[1])))
 }
 
 // Original Ruby source (line-for-line):

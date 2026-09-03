@@ -1,118 +1,149 @@
 module rubocops
 
 import brew_runtime
+import homebrew.rubocops as formula_path_core
 
 // Translated from Homebrew/brew `test/rubocops/formula_path_methods_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+fn formula_path_spec_correction(source string, expected string) bool {
+	problems := formula_path_core.audit_formula_path_methods(source)
+	return problems.len == 1 && problems[0].message == 'Use `${problems[0].preferred}` instead of `${problems[0].current}`.' && formula_path_core.correct_formula_path_methods(source) == expected
+}
 
 // Ruby it `it "registers an offense and corrects `Formula[]` opt path calls" do` at line 7.
 pub fn ruby_formula_path_methods_spec_l7_d1_registers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('registers', ...args)
+	source := 'Formula["foo"].opt_bin/"foo"'
+	expected := 'Utils::Path.formula_opt_bin("foo")/"foo"'
+	return brew_runtime.bool_value(formula_path_spec_correction(source, expected))
 }
 
 // Ruby it `it "registers an offense and corrects `Formula[]` opt path calls in formulae" do` at line 18.
 pub fn ruby_formula_path_methods_spec_l18_d2_registers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('registers', ...args)
+	source := 'class Foo < Formula\n  def install\n    Formula["foo"].opt_bin/"foo"\n  end\nend'
+	expected := 'class Foo < Formula\n  def install\n    formula_opt_bin("foo")/"foo"\n  end\nend'
+	return brew_runtime.bool_value(formula_path_spec_correction(source, expected))
 }
 
 // Ruby method `install` at line 21.
 pub fn ruby_formula_path_methods_spec_l21_d3_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	return brew_runtime.string_value('Formula["foo"].opt_bin/"foo"')
 }
 
 // Ruby method `install` at line 30.
 pub fn ruby_formula_path_methods_spec_l30_d4_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	return brew_runtime.string_value('formula_opt_bin("foo")/"foo"')
 }
 
 // Ruby it `it "registers an offense and corrects `Formula[]` opt path calls in casks" do` at line 37.
 pub fn ruby_formula_path_methods_spec_l37_d5_registers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('registers', ...args)
+	source := 'cask "foo" do\n  postflight do\n    Formula["foo"].opt_bin/"foo"\n  end\nend'
+	expected := 'cask "foo" do\n  postflight do\n    formula_opt_bin("foo")/"foo"\n  end\nend'
+	return brew_runtime.bool_value(formula_path_spec_correction(source, expected))
 }
 
 // Ruby it `it "registers an offense and corrects scoped formula helpers in service blocks" do` at line 56.
 pub fn ruby_formula_path_methods_spec_l56_d6_registers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('registers', ...args)
+	source := 'class Foo < Formula\n  service do\n    Utils::Path.formula_opt_bin("foo")/"foo"\n  end\nend'
+	expected := 'class Foo < Formula\n  service do\n    formula_opt_bin("foo")/"foo"\n  end\nend'
+	return brew_runtime.bool_value(formula_path_spec_correction(source, expected))
 }
 
 // Ruby it `it "registers an offense and corrects `Formulary.factory` opt path calls" do` at line 75.
 pub fn ruby_formula_path_methods_spec_l75_d7_registers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('registers', ...args)
+	source := 'Formulary.factory("foo").opt_prefix/"bin/foo"'
+	expected := 'Utils::Path.formula_opt_prefix("foo")/"bin/foo"'
+	return brew_runtime.bool_value(formula_path_spec_correction(source, expected))
 }
 
 // Ruby it `it "registers an offense and corrects dynamic formula names" do` at line 86.
 pub fn ruby_formula_path_methods_spec_l86_d8_registers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('registers', ...args)
+	source := 'Formula[python_dep].opt_libexec/"bin/python"'
+	expected := 'Utils::Path.formula_opt_libexec(python_dep)/"bin/python"'
+	return brew_runtime.bool_value(formula_path_spec_correction(source, expected))
 }
 
 // Ruby it `it "registers an offense and corrects formula installed checks" do` at line 97.
 pub fn ruby_formula_path_methods_spec_l97_d9_registers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('registers', ...args)
+	source := 'Formula["foo"].any_version_installed?'
+	expected := 'Utils::Path.formula_any_version_installed?("foo")'
+	return brew_runtime.bool_value(formula_path_spec_correction(source, expected))
 }
 
 // Ruby it `it "registers an offense and corrects formula installed checks in formulae" do` at line 108.
 pub fn ruby_formula_path_methods_spec_l108_d10_registers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('registers', ...args)
+	source := 'class Foo < Formula\n  def install\n    Formula["foo"].any_version_installed?\n  end\nend'
+	expected := 'class Foo < Formula\n  def install\n    formula_any_version_installed?("foo")\n  end\nend'
+	return brew_runtime.bool_value(formula_path_spec_correction(source, expected))
 }
 
 // Ruby method `install` at line 111.
 pub fn ruby_formula_path_methods_spec_l111_d11_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	return brew_runtime.string_value('Formula["foo"].any_version_installed?')
 }
 
 // Ruby method `install` at line 120.
 pub fn ruby_formula_path_methods_spec_l120_d12_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	return brew_runtime.string_value('formula_any_version_installed?("foo")')
 }
 
 // Ruby it `it "registers an offense and corrects cask installed checks" do` at line 127.
 pub fn ruby_formula_path_methods_spec_l127_d13_registers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('registers', ...args)
+	source := 'Cask::Cask.new(cask_token).installed?'
+	expected := 'Cask::Caskroom.cask_installed?(cask_token)'
+	return brew_runtime.bool_value(formula_path_spec_correction(source, expected))
 }
 
 // Ruby it `it "registers an offense and corrects cask any-version installed checks" do` at line 138.
 pub fn ruby_formula_path_methods_spec_l138_d14_registers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('registers', ...args)
+	source := 'Cask::Cask.new(cask_token).any_version_installed?'
+	expected := 'Cask::Caskroom.cask_installed?(cask_token)'
+	return brew_runtime.bool_value(formula_path_spec_correction(source, expected))
 }
 
 // Ruby it `it "registers an offense and corrects cask installed version checks" do` at line 149.
 pub fn ruby_formula_path_methods_spec_l149_d15_registers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('registers', ...args)
+	source := 'Cask::Cask.new(name, config: config).installed_version'
+	expected := 'Cask::Caskroom.cask_installed_version(name)'
+	return brew_runtime.bool_value(formula_path_spec_correction(source, expected))
 }
 
 // Ruby it `it "does not register an offense for formula methods that require a formula instance" do` at line 160.
 pub fn ruby_formula_path_methods_spec_l160_d16_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	return brew_runtime.bool_value(formula_path_core.audit_formula_path_methods('Formula["foo"].keg_only?').len == 0)
 }
 
 // Ruby it `it "does not register an offense for dynamic formula installed checks that may need alias metadata" do` at line 166.
 pub fn ruby_formula_path_methods_spec_l166_d17_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	return brew_runtime.bool_value(formula_path_core.audit_formula_path_methods('Formula[dependency].any_version_installed?').len == 0)
 }
 
 // Ruby it `it "does not register an offense for cask loader methods that may need DSL metadata" do` at line 172.
 pub fn ruby_formula_path_methods_spec_l172_d18_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	return brew_runtime.bool_value(formula_path_core.audit_formula_path_methods('Cask::CaskLoader.load(cask_token).installed?').len == 0)
 }
 
 // Ruby it `it "does not register an offense when `Formula[]` is used for error handling" do` at line 178.
 pub fn ruby_formula_path_methods_spec_l178_d19_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	source := 'begin\n  Formula[dependency].any_version_installed?\nrescue FormulaUnavailableError\n  false\nend'
+	return brew_runtime.bool_value(formula_path_core.audit_formula_path_methods(source).len == 0)
 }
 
 // Ruby it `it "does not register an offense for scoped formula helpers outside service blocks" do` at line 188.
 pub fn ruby_formula_path_methods_spec_l188_d20_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	source := 'class Foo < Formula\n  on_linux do\n    Utils::Path.formula_any_version_installed?("glibc")\n  end\nend'
+	return brew_runtime.bool_value(formula_path_core.audit_formula_path_methods(source).len == 0)
 }
 
 // Ruby it `it "does not register an offense for formula path calls used for error handling" do` at line 198.
 pub fn ruby_formula_path_methods_spec_l198_d21_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	source := 'begin\n  Formula["foo"].opt_bin/"foo"\nrescue FormulaUnavailableError\n  nil\nend'
+	return brew_runtime.bool_value(formula_path_core.audit_formula_path_methods(source).len == 0)
 }
 
 // Ruby it `it "does not register an offense for `Formulary.factory` with additional arguments" do` at line 208.
 pub fn ruby_formula_path_methods_spec_l208_d22_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	source := 'Formulary.factory("foo", spec: :stable).opt_prefix'
+	return brew_runtime.bool_value(formula_path_core.audit_formula_path_methods(source).len == 0)
 }
 
 // Original Ruby source (line-for-line):

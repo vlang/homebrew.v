@@ -1,143 +1,203 @@
 module rubocops
 
 import brew_runtime
+import homebrew.rubocops as public_api_cop
 
 // Translated from Homebrew/brew `test/rubocops/public_api_cookbook_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+fn public_api_spec_analysis(source string, path string) public_api_cop.PublicApiCookbookAnalysis {
+	return public_api_cop.audit_public_api_cookbook(public_api_cop.PublicApiCookbookContext{
+		source: source
+		relative_path: path
+	})
+}
+
+fn public_api_spec_messages(source string, path string) []string {
+	return public_api_spec_analysis(source, path).offenses.map(it.message)
+}
+
+fn public_api_spec_helper_analysis(source string, markdown string, formula_methods map[string]string,
+	service_methods []string) public_api_cop.PublicApiCookbookAnalysis {
+	return public_api_cop.audit_public_api_cookbook(public_api_cop.PublicApiCookbookContext{
+		source: source
+		relative_path: 'rubocops/shared/api_annotation_helper.rb'
+		formula_cookbook_methods: formula_methods
+		service_cookbook_methods: service_methods
+		formula_cookbook_markdown: markdown
+	})
+}
 
 // Ruby subject `subject(:cop) { described_class.new }` at line 7.
 pub fn ruby_public_api_cookbook_spec_l7_d1_cop(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cop', ...args)
+	return brew_runtime.object_value('RuboCop::Cop::Homebrew::PublicApiCookbook', 'PublicApiCookbook')
 }
 
 // Ruby let `let(:formula_path) { "formula.rb" }` at line 9.
 pub fn ruby_public_api_cookbook_spec_l9_d2_formula_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_path', ...args)
+	return brew_runtime.string_value('formula.rb')
 }
 
 // Ruby let `let(:cask_dsl_path) { "cask/dsl.rb" }` at line 10.
 pub fn ruby_public_api_cookbook_spec_l10_d3_cask_dsl_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask_dsl_path', ...args)
+	return brew_runtime.string_value('cask/dsl.rb')
 }
 
 // Ruby let `let(:helper_path) { "rubocops/shared/api_annotation_helper.rb" }` at line 11.
 pub fn ruby_public_api_cookbook_spec_l11_d4_helper_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('helper_path', ...args)
+	return brew_runtime.string_value('rubocops/shared/api_annotation_helper.rb')
 }
 
 // Ruby let `let(:service_path) { "service.rb" }` at line 13.
 pub fn ruby_public_api_cookbook_spec_l13_d5_service_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('service_path', ...args)
+	return brew_runtime.string_value('service.rb')
 }
 
 // Ruby it `it "reports an offense for a formula method" do` at line 16.
 pub fn ruby_public_api_cookbook_spec_l16_d6_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	source := 'class Formula\n  ${ruby_public_api_cookbook_spec_l19_d7_libexec().as_string()}\nend'
+	return brew_runtime.bool_value(public_api_spec_messages(source, 'formula.rb') == [
+		'Method `libexec` is referenced in the Formula Cookbook but is not annotated with `@api public`.',
+	])
 }
 
 // Ruby method `libexec` at line 19.
 pub fn ruby_public_api_cookbook_spec_l19_d7_libexec(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('libexec', ...args)
+	return brew_runtime.string_value('def libexec\n  prefix/"libexec"\nend')
 }
 
 // Ruby it `it "does not report an offense" do` at line 29.
 pub fn ruby_public_api_cookbook_spec_l29_d8_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	source := 'class Formula\n  # The libexec directory.\n  #\n  # @api public\n  ${ruby_public_api_cookbook_spec_l35_d9_libexec().as_string()}\nend'
+	return brew_runtime.bool_value(public_api_spec_messages(source, 'formula.rb').len == 0)
 }
 
 // Ruby method `libexec` at line 35.
 pub fn ruby_public_api_cookbook_spec_l35_d9_libexec(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('libexec', ...args)
+	return ruby_public_api_cookbook_spec_l19_d7_libexec(...args)
 }
 
 // Ruby it `it "does not report an offense" do` at line 44.
 pub fn ruby_public_api_cookbook_spec_l44_d10_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	source := 'class Something\n  ${ruby_public_api_cookbook_spec_l47_d11_libexec().as_string()}\nend'
+	return brew_runtime.bool_value(public_api_spec_messages(source, 'some_other_file.rb').len == 0)
 }
 
 // Ruby method `libexec; end` at line 47.
 pub fn ruby_public_api_cookbook_spec_l47_d11_libexec(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('libexec', ...args)
+	return brew_runtime.string_value('def libexec; end')
 }
 
 // Ruby it `it "does not report an offense" do` at line 54.
 pub fn ruby_public_api_cookbook_spec_l54_d12_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	source := 'class Formula\n  ${ruby_public_api_cookbook_spec_l57_d13_some_internal_method().as_string()}\nend'
+	return brew_runtime.bool_value(public_api_spec_messages(source, 'formula.rb').len == 0)
 }
 
 // Ruby method `some_internal_method; end` at line 57.
 pub fn ruby_public_api_cookbook_spec_l57_d13_some_internal_method(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('some_internal_method', ...args)
+	return brew_runtime.string_value('def some_internal_method; end')
 }
 
 // Ruby it `it "reports an offense for a cask cookbook method without @api public" do` at line 64.
 pub fn ruby_public_api_cookbook_spec_l64_d14_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	source := 'module Cask\n  module DSL\n    ${ruby_public_api_cookbook_spec_l68_d15_desc().as_string()}\n  end\nend'
+	return brew_runtime.bool_value(public_api_spec_messages(source, 'cask/dsl.rb') == [
+		'Method `desc` is referenced in the Cask Cookbook but is not annotated with `@api public`.',
+	])
 }
 
 // Ruby method `desc; end` at line 68.
 pub fn ruby_public_api_cookbook_spec_l68_d15_desc(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('desc', ...args)
+	return brew_runtime.string_value('def desc; end')
 }
 
 // Ruby it `it "does not report an offense for an annotated cask method" do` at line 75.
 pub fn ruby_public_api_cookbook_spec_l75_d16_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	source := 'module Cask\n  module DSL\n    # The description of this cask.\n    #\n    # @api public\n    ${ruby_public_api_cookbook_spec_l82_d17_desc().as_string()}\n  end\nend'
+	return brew_runtime.bool_value(public_api_spec_messages(source, 'cask/dsl.rb').len == 0)
 }
 
 // Ruby method `desc; end` at line 82.
 pub fn ruby_public_api_cookbook_spec_l82_d17_desc(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('desc', ...args)
+	return ruby_public_api_cookbook_spec_l68_d15_desc(...args)
 }
 
 // Ruby it `it "reports an offense" do` at line 104.
 pub fn ruby_public_api_cookbook_spec_l104_d18_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	source := 'module ApiAnnotationHelper\n  FORMULA_COOKBOOK_METHODS = {}.freeze\nend'
+	markdown := '[`new_api`](/rubydoc/Formula.html#new_api-instance_method)'
+	analysis := public_api_spec_helper_analysis(source, markdown, map[string]string{}, [])
+	return brew_runtime.bool_value(analysis.offenses.map(it.message) == [
+		'Formula Cookbook references methods missing from `FORMULA_COOKBOOK_METHODS`: `new_api`.',
+	])
 }
 
 // Ruby it `it "reports an offense" do` at line 119.
 pub fn ruby_public_api_cookbook_spec_l119_d19_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	source := 'module Cask\n  module DSL\n    # The new stanza.\n    #\n    # @api public\n    ${ruby_public_api_cookbook_spec_l127_d20_new_stanza().as_string()}\n  end\nend'
+	analysis := public_api_cop.audit_public_api_cookbook(public_api_cop.PublicApiCookbookContext{
+		source: source
+		relative_path: 'cask/dsl.rb'
+		cask_cookbook_methods: map[string]string{}
+	})
+	return brew_runtime.bool_value(analysis.offenses.map(it.message) == [
+		'Method `new_stanza` is annotated with `@api public` in `cask/dsl.rb` but is missing from `CASK_COOKBOOK_METHODS`.',
+	])
 }
 
 // Ruby method `new_stanza; end` at line 127.
 pub fn ruby_public_api_cookbook_spec_l127_d20_new_stanza(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('new_stanza', ...args)
+	return brew_runtime.string_value('def new_stanza; end')
 }
 
 // Ruby it `it "reports an offense" do` at line 135.
 pub fn ruby_public_api_cookbook_spec_l135_d21_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	source := 'class Service\n  ${ruby_public_api_cookbook_spec_l138_d22_require_root().as_string()}\nend'
+	return brew_runtime.bool_value(public_api_spec_messages(source, 'service.rb') == [
+		'Method `require_root` is referenced in the Formula Cookbook but is not annotated with `@api public`.',
+	])
 }
 
 // Ruby method `require_root(value = nil); end` at line 138.
 pub fn ruby_public_api_cookbook_spec_l138_d22_require_root(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('require_root', ...args)
+	return brew_runtime.string_value('def require_root(value = nil); end')
 }
 
 // Ruby it `it "does not report an offense" do` at line 146.
 pub fn ruby_public_api_cookbook_spec_l146_d23_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	source := 'class Service\n  # Whether the service requires root access.\n  #\n  # @api public\n  ${ruby_public_api_cookbook_spec_l152_d24_require_root().as_string()}\nend'
+	return brew_runtime.bool_value(public_api_spec_messages(source, 'service.rb').len == 0)
 }
 
 // Ruby method `require_root(value = nil); end` at line 152.
 pub fn ruby_public_api_cookbook_spec_l152_d24_require_root(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('require_root', ...args)
+	return ruby_public_api_cookbook_spec_l138_d22_require_root(...args)
 }
 
 // Ruby it `it "reports an offense" do` at line 159.
 pub fn ruby_public_api_cookbook_spec_l159_d25_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	source := 'class Service\n  # An undocumented method.\n  #\n  # @api public\n  ${ruby_public_api_cookbook_spec_l165_d26_undocumented().as_string()}\nend'
+	return brew_runtime.bool_value(public_api_spec_messages(source, 'service.rb') == [
+		'Method `undocumented` is annotated with `@api public` in `service.rb` but is missing from the Formula Cookbook\'s "Service block methods" table.',
+	])
 }
 
 // Ruby method `undocumented; end` at line 165.
 pub fn ruby_public_api_cookbook_spec_l165_d26_undocumented(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('undocumented', ...args)
+	return brew_runtime.string_value('def undocumented; end')
 }
 
 // Ruby it `it "reports an offense" do` at line 193.
 pub fn ruby_public_api_cookbook_spec_l193_d27_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	source := 'module ApiAnnotationHelper\n  SERVICE_COOKBOOK_METHODS = [].to_set.freeze\nend'
+	markdown := '#### Service block methods\n\n| method  | description |\n| ------- | ----------- |\n| `run`   | command     |\n\n#### Next section'
+	analysis := public_api_spec_helper_analysis(source, markdown, map[string]string{}, [
+		'run',
+		'extra',
+	])
+	return brew_runtime.bool_value(analysis.offenses.map(it.message) == [
+		'`SERVICE_COOKBOOK_METHODS` is out of sync with the Formula Cookbook\'s "Service block methods" table: not in the cookbook table: `extra`.',
+	])
 }
 
 // Original Ruby source (line-for-line):

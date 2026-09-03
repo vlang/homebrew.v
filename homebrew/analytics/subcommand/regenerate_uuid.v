@@ -1,13 +1,11 @@
 module subcommand
 
-import brew_runtime
-
 // Translated from Homebrew/brew `analytics/subcommand/regenerate_uuid.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `run` at line 21.
-pub fn ruby_regenerate_uuid_l21_run(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('run', ...args)
+pub fn ruby_regenerate_uuid_l21_run() !string {
+	return error('brew analytics regenerate-uuid has been disabled')
 }
 
 // Original Ruby source (line-for-line):

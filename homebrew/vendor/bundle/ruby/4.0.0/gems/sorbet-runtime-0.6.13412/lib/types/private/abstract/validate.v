@@ -4,35 +4,191 @@ import brew_runtime
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/sorbet-runtime-0.6.13412/lib/types/private/abstract/validate.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub struct AbstractValidationMethod {
+pub:
+	name              string
+	owner             string
+	source_location   string
+	mode              string
+	effective_mode    string
+	visibility        string
+	signature_owner   string
+	has_signature     bool
+	override_error    string
+	concrete_ancestor bool
+}
+
+pub struct AbstractValidationModule {
+pub:
+	name                    string
+	abstract_type           string
+	allows_abstract_methods bool
+	is_singleton_class      bool
+	methods                 []AbstractValidationMethod
+}
+
+pub fn describe_abstract_method(method AbstractValidationMethod, show_owner bool) string {
+	location := if method.source_location == '' {
+		'<unknown location>'
+	} else {
+		method.source_location
+	}
+	owner := if show_owner { ' declared in ${method.owner}' } else { '' }
+	return '    * `${method.name}`${owner} at ${location}'
+}
+
+fn validation_methods_named(mod AbstractValidationModule, names []string) []AbstractValidationMethod {
+	return mod.methods.filter(it.name in names)
+}
+
+pub fn validate_interface_all_abstract(mod AbstractValidationModule, method_names []string) ! {
+	violations := validation_methods_named(mod, method_names).filter(it.mode.trim_string_left(':') != 'abstract').map(describe_abstract_method(it, false))
+	if violations.len > 0 {
+		return error('`${mod.name}` is declared as an interface, but the following methods are not declared with `abstract`:\n${violations.join('\n')}')
+	}
+}
+
+pub fn validate_interface_all_public(mod AbstractValidationModule, method_names []string) ! {
+	violations := validation_methods_named(mod, method_names).filter(it.visibility != 'public').map(describe_abstract_method(it, false))
+	if violations.len > 0 {
+		return error('All methods on an interface must be public. If you intend to have non-public methods, declare your class/module using `abstract!` instead of `interface!`. The following methods on `${mod.name}` are not public: \n${violations.join('\n')}')
+	}
+}
+
+pub fn validate_interface(mod AbstractValidationModule) ! {
+	names := mod.methods.map(it.name)
+	validate_interface_all_abstract(mod, names)!
+	validate_interface_all_public(mod, names)!
+}
+
+pub fn validate_abstract_module(mod AbstractValidationModule) ! {
+	if mod.abstract_type.trim_string_left(':') == 'interface' {
+		validate_interface(mod)!
+	}
+}
+
+pub fn validate_abstract_subclass(mod AbstractValidationModule) ! {
+	mut unimplemented := []string{}
+	for method in mod.methods.filter(it.mode.trim_string_left(':') == 'abstract') {
+		effective_mode := if method.effective_mode == '' {
+			method.mode
+		} else {
+			method.effective_mode
+		}
+		if effective_mode.trim_string_left(':') == 'abstract' && !method.concrete_ancestor {
+			if !mod.allows_abstract_methods {
+				unimplemented << describe_abstract_method(method, true)
+			}
+			continue
+		}
+		if method.has_signature && method.signature_owner == mod.name {
+			continue
+		}
+		if !method.has_signature && method.mode.trim_string_left(':') != 'abstract' {
+			continue
+		}
+		if method.mode.trim_string_left(':') == 'abstract' && !method.has_signature {
+			return error('Method being abstract must imply it has a signature')
+		}
+		if method.override_error != '' {
+			return error(method.override_error)
+		}
+	}
+	if unimplemented.len > 0 {
+		method_type := if mod.is_singleton_class { 'class' } else { 'instance' }
+		return error('Missing implementation for abstract ${method_type} method(s) in ${mod.name}:\n${unimplemented.join('\n')}\nIf ${mod.name} is meant to be an abstract class/module, you can call `abstract!` or `interface!`. Otherwise, you must implement the method(s).')
+	}
+}
+
+fn abstract_validation_method_from_value(value brew_runtime.Value) AbstractValidationMethod {
+	return AbstractValidationMethod{
+		name: value.attribute('name') or { value.as_string() }
+		owner: value.attribute('owner') or { '' }
+		source_location: value.attribute('source_location') or { '' }
+		mode: value.attribute('mode') or { '' }
+		effective_mode: value.attribute('effective_mode') or { value.attribute('mode') or { '' } }
+		visibility: value.attribute('visibility') or { 'public' }
+		signature_owner: value.attribute('signature_owner') or { '' }
+		has_signature: value.attribute('has_signature') or { 'false' } == 'true'
+		override_error: value.attribute('override_error') or { '' }
+		concrete_ancestor: value.attribute('concrete_ancestor') or { 'false' } == 'true'
+	}
+}
+
+fn abstract_validation_module_from_value(value brew_runtime.Value) AbstractValidationModule {
+	methods_value := value.map_data['methods'] or { brew_runtime.array_value(value.array_data) }
+	return AbstractValidationModule{
+		name: value.as_string()
+		abstract_type: value.attribute('abstract_type') or { '' }
+		allows_abstract_methods: value.attribute('can_have_abstract_methods') or { 'false' } == 'true'
+		is_singleton_class: value.attribute('singleton_class') or { 'false' } == 'true'
+		methods: (methods_value.as_array() or { []brew_runtime.Value{} }).map(abstract_validation_method_from_value(it))
+	}
+}
+
+fn abstract_validation_names(args []brew_runtime.Value, mod AbstractValidationModule) []string {
+	if args.len < 2 {
+		return mod.methods.map(it.name)
+	}
+	return args[1].as_string_array() or { args[1].as_array() or { []brew_runtime.Value{} }.map(it.as_string()) }
+}
 
 // Ruby method `self.validate_abstract_module(mod)` at line 10.
 pub fn ruby_validate_l10_d1_self_validate_abstract_module(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.validate_abstract_module', ...args)
+	if args.len == 0 {
+		panic('Validate.validate_abstract_module requires a module')
+	}
+	validate_abstract_module(abstract_validation_module_from_value(args[0])) or { panic(err.msg()) }
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Ruby method `self.validate_subclass(mod)` at line 17.
 pub fn ruby_validate_l17_d2_self_validate_subclass(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.validate_subclass', ...args)
+	if args.len == 0 {
+		panic('Validate.validate_subclass requires a module')
+	}
+	validate_abstract_subclass(abstract_validation_module_from_value(args[0])) or {
+		panic(err.msg())
+	}
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Ruby method `self.validate_interface_all_abstract(mod, method_names)` at line 79.
 pub fn ruby_validate_l79_d3_self_validate_interface_all_abstract(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.validate_interface_all_abstract', ...args)
+	if args.len == 0 {
+		panic('Validate.validate_interface_all_abstract requires a module')
+	}
+	mod := abstract_validation_module_from_value(args[0])
+	validate_interface_all_abstract(mod, abstract_validation_names(args, mod)) or { panic(err.msg()) }
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Ruby method `self.validate_interface(mod)` at line 93.
 pub fn ruby_validate_l93_d4_self_validate_interface(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.validate_interface', ...args)
+	if args.len == 0 {
+		panic('Validate.validate_interface requires a module')
+	}
+	validate_interface(abstract_validation_module_from_value(args[0])) or { panic(err.msg()) }
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Ruby method `self.validate_interface_all_public(mod, method_names)` at line 99.
 pub fn ruby_validate_l99_d5_self_validate_interface_all_public(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.validate_interface_all_public', ...args)
+	if args.len == 0 {
+		panic('Validate.validate_interface_all_public requires a module')
+	}
+	mod := abstract_validation_module_from_value(args[0])
+	validate_interface_all_public(mod, abstract_validation_names(args, mod)) or { panic(err.msg()) }
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Ruby method `self.describe_method(method, show_owner: true)` at line 113.
 pub fn ruby_validate_l113_d6_self_describe_method(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.describe_method', ...args)
+	if args.len == 0 {
+		panic('Validate.describe_method requires a method')
+	}
+	show_owner := if args.len > 1 { args[1].as_bool() or { true } } else { true }
+	return brew_runtime.string_value(describe_abstract_method(abstract_validation_method_from_value(args[0]), show_owner))
 }
 
 // Original Ruby source (line-for-line):

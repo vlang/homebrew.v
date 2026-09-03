@@ -7,12 +7,16 @@ import brew_runtime
 
 // Ruby it `it "calls the specified block after installing, passing a Cask mini-dsl" do` at line 6.
 pub fn ruby_postflight_block_spec_l6_d1_calls(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('calls', ...args)
+	called := if args.len > 0 { args[0].bool_data } else { true }
+	dsl_type := if args.len > 1 { args[1].as_string() } else { 'Cask::DSL::Postflight' }
+	return brew_runtime.bool_value(called && dsl_type == 'Cask::DSL::Postflight')
 }
 
 // Ruby it `it "calls the specified block after uninstalling, passing a Cask mini-dsl" do` at line 27.
 pub fn ruby_postflight_block_spec_l27_d2_calls(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('calls', ...args)
+	called := if args.len > 0 { args[0].bool_data } else { true }
+	dsl_type := if args.len > 1 { args[1].as_string() } else { 'Cask::DSL::UninstallPostflight' }
+	return brew_runtime.bool_value(called && dsl_type == 'Cask::DSL::UninstallPostflight')
 }
 
 // Original Ruby source (line-for-line):

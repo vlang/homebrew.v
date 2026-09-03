@@ -4,15 +4,86 @@ import brew_runtime
 
 // Translated from Homebrew/brew `extend/os/linux/cmd/update-report.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub struct UpdateReportDependency {
+pub:
+	name  string
+	build bool
+	test  bool
+}
+
+pub struct UpdateReportFormula {
+pub:
+	name         string
+	core_tap     bool
+	dependencies []UpdateReportDependency
+	unavailable  bool
+pub mut:
+	version_scheme int
+	tab_writes     int
+}
+
+@[heap]
+pub struct UpdateReportState {
+pub mut:
+	gcc_rpaths_fixed bool
+	formulas         []UpdateReportFormula
+	settings_writes  int
+}
+
+pub fn update_report_no_changes_message() string {
+	return 'No changes to formulae.'
+}
+
+pub fn (mut state UpdateReportState) migrate_gcc_dependents_if_needed() {
+	if state.gcc_rpaths_fixed {
+		return
+	}
+	for mut formula in state.formulas {
+		if !formula.core_tap || formula.unavailable {
+			continue
+		}
+		has_runtime_gcc := formula.dependencies.any(it.name == 'gcc' && !it.build && !it.test)
+		if !has_runtime_gcc {
+			continue
+		}
+		formula.version_scheme = -1
+		formula.tab_writes++
+	}
+	state.gcc_rpaths_fixed = true
+	state.settings_writes++
+}
+
+fn update_report_state_value(state &UpdateReportState) brew_runtime.Value {
+	return brew_runtime.structured_value('Homebrew::UpdateReportState', '', {
+		'update_report_state_address': u64(voidptr(state)).str()
+	})
+}
+
+fn update_report_state_from_value(value brew_runtime.Value) &UpdateReportState {
+	address := value.attributes['update_report_state_address'] or {
+		panic('invalid update report state')
+	}
+	return unsafe { &UpdateReportState(voidptr(address.u64())) }
+}
+
+pub fn update_report_state_boundary(state &UpdateReportState) brew_runtime.Value {
+	return update_report_state_value(state)
+}
 
 // Ruby method `no_changes_message` at line 8.
 pub fn ruby_update_report_l8_d1_no_changes_message(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('no_changes_message', ...args)
+	_ = args
+	return brew_runtime.string_value(update_report_no_changes_message())
 }
 
 // Ruby method `migrate_gcc_dependents_if_needed` at line 13.
 pub fn ruby_update_report_l13_d2_migrate_gcc_dependents_if_needed(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('migrate_gcc_dependents_if_needed', ...args)
+	if args.len == 0 {
+		return brew_runtime.object_value('ArgumentError', 'update report state is required')
+	}
+	mut state := update_report_state_from_value(args[0])
+	state.migrate_gcc_dependents_if_needed()
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Original Ruby source (line-for-line):

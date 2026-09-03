@@ -4,15 +4,32 @@ import brew_runtime
 
 // Translated from Homebrew/brew `sorbet/tapioca/compilers/tty.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub const tty_compiler_dynamic_methods = ['red', 'green', 'yellow', 'blue', 'magenta', 'cyan',
+	'default', 'reset', 'bold', 'italic', 'underline', 'strikethrough', 'no_underline', 'up', 'down',
+	'right', 'left', 'erase_line', 'erase_char']
+
+pub fn tty_compiler_decoration(constant_name string) TapiocaDecoration {
+	return TapiocaDecoration{
+		constant_name: constant_name
+		kind: 'module'
+		methods: tty_compiler_dynamic_methods.map(TapiocaGeneratedMethod{
+			name: it
+			return_type: 'String'
+			class_method: true
+		})
+	}
+}
 
 // Ruby method `self.gather_constants = [::Tty]` at line 13.
 pub fn ruby_tty_l13_d1_self_gather_constants(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.gather_constants', ...args)
+	_ = args
+	return brew_runtime.array_value([brew_runtime.object_value('Module', 'Tty')])
 }
 
 // Ruby method `decorate` at line 16.
 pub fn ruby_tty_l16_d2_decorate(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('decorate', ...args)
+	constant_name := if args.len > 0 { args[0].as_string() } else { 'Tty' }
+	return tapioca_decoration_value(tty_compiler_decoration(constant_name))
 }
 
 // Original Ruby source (line-for-line):

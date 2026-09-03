@@ -1,28 +1,138 @@
 module dev_cmd
 
-import brew_runtime
+import os
+import time
 
 // Translated from Homebrew/brew `test/dev-cmd/which-update_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
+fn which_update_spec_root(label string) string {
+	return os.join_path(os.temp_dir(), 'brew-v-which-update-${label}-${os.getpid()}-${time.now().unix_micro()}')
+}
+
+pub fn which_update_spec_requires_pull_request() bool {
+	run_which_update(WhichUpdateOptions{
+		source: 'executables.txt'
+		repository: 'Homebrew/homebrew-core'
+	}) or {
+		return err.msg() == '`--repository` requires `--pull-request`.'
+	}
+	return false
+}
+
+pub fn which_update_spec_rejects_repository_path() !bool {
+	root := which_update_spec_root('repository')
+	os.mkdir_all(root)!
+	defer {
+		os.rmdir_all(root) or {}
+	}
+	database := os.join_path(root, 'executables.txt')
+	run_which_update(WhichUpdateOptions{
+		source: database
+		pull_request: '123'
+		repository: 'Homebrew/homebrew-core/extra'
+	}) or {
+		return err.msg() == '`--repository` must be in the form `owner/repo`.'
+	}
+	return false
+}
+
+fn which_update_spec_pull_request_files() [][]WhichUpdatePullFile {
+	return [
+		[
+			WhichUpdatePullFile{
+				filename: 'Formula/new-formula.rb'
+				status: 'added'
+			},
+			WhichUpdatePullFile{
+				filename: 'Formula/old-formula.rb'
+				status: 'removed'
+			},
+		],
+		[
+			WhichUpdatePullFile{
+				filename: 'Formula/renamed-new.rb'
+				previous_filename: 'Formula/renamed-old.rb'
+				status: 'renamed'
+			},
+			WhichUpdatePullFile{
+				filename: '.github/workflows/tests.yml'
+				status: 'modified'
+			},
+		],
+	]
+}
+
+pub fn which_update_spec_removes_pull_request_formulae() !bool {
+	root := which_update_spec_root('pull-request')
+	os.mkdir_all(root)!
+	defer {
+		os.rmdir_all(root) or {}
+	}
+	database := os.join_path(root, 'executables.txt')
+	os.write_file(database, '')!
+	result := run_which_update(WhichUpdateOptions{
+		source: database
+		pull_request: '123'
+		repository: 'Homebrew/homebrew-core'
+		pull_request_file_pages: which_update_spec_pull_request_files()
+	})!
+	return result.removed_formulae == ['old-formula', 'renamed-old']
+		&& result.pull_request_url.ends_with('/repos/Homebrew/homebrew-core/pulls/123/files')
+}
+
+pub fn which_update_spec_updates_versionless_entries() !bool {
+	root := which_update_spec_root('integration')
+	os.mkdir_all(root)!
+	defer {
+		os.rmdir_all(root) or {}
+	}
+	database := os.join_path(root, 'executables.txt')
+	os.write_file(database, 'bar(2.0.0):oldbar\nfoo(1.0.0):foo oldfoo\nremove-me(3.0.0):remove-me\nuntouched(4.0.0):untouched\n')!
+	removed_formulae := os.join_path(root, 'removed-formulae.txt')
+	os.write_file(removed_formulae, 'remove-me\n')!
+	bottle_json_dir := os.join_path(root, 'bottle-json')
+	os.mkdir_all(bottle_json_dir)!
+	os.write_file(os.join_path(bottle_json_dir, 'invalid.bottle.json'), '{')!
+	os.write_file(os.join_path(bottle_json_dir, 'foo.bottle.json'), '{
+		"foo": {
+			"formula": {"name": "foo"},
+			"bottle": {"tags": {"arm64_sonoma": {
+				"path_exec_files": ["bin/foo", "sbin/food"]
+			}}}
+		}
+	}')!
+	github_output := os.join_path(root, 'github-output.txt')
+	result := run_which_update(WhichUpdateOptions{
+		source: database
+		bottle_json_dir: bottle_json_dir
+		removed_formulae_file: removed_formulae
+		github_output: github_output
+	})!
+	return result.updated && result.removed_entries == ['remove-me']
+		&& result.warnings.len == 1
+		&& os.read_file(database)! == 'bar:oldbar\nfoo:foo food\nuntouched:untouched\n'
+		&& os.read_file(github_output)! == 'updated=true\n'
+}
+
 // Ruby it `it "requires --pull-request when --repository is passed" do` at line 10.
-pub fn ruby_which_update_spec_l10_d1_requires(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('requires', ...args)
+pub fn ruby_which_update_spec_l10_d1_requires() bool {
+	return which_update_spec_requires_pull_request()
 }
 
 // Ruby it `it "rejects repositories with extra path segments" do` at line 20.
-pub fn ruby_which_update_spec_l20_d2_rejects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('rejects', ...args)
+pub fn ruby_which_update_spec_l20_d2_rejects() !bool {
+	return which_update_spec_rejects_repository_path()
 }
 
 // Ruby it `it "removes formulae from pull request files" do` at line 35.
-pub fn ruby_which_update_spec_l35_d3_removes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('removes', ...args)
+pub fn ruby_which_update_spec_l35_d3_removes() !bool {
+	return which_update_spec_removes_pull_request_formulae()
 }
 
 // Ruby it `it "updates versionless formula entries from bottle JSON", :integration_test do` at line 69.
-pub fn ruby_which_update_spec_l69_d4_updates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('updates', ...args)
+pub fn ruby_which_update_spec_l69_d4_updates() !bool {
+	return which_update_spec_updates_versionless_entries()
 }
 
 // Original Ruby source (line-for-line):

@@ -2,17 +2,70 @@ module test_bot
 
 import brew_runtime
 
+pub struct DownloadedArtifactFixture {
+pub:
+	name string
+	url  string
+	id   i64
+}
+
+pub struct TestFormulaeFixture {
+pub mut:
+	downloaded_artifacts map[string][]string
+}
+
 // Translated from Homebrew/brew `test/test_bot/test_formulae_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:test_formulae) do` at line 8.
 pub fn ruby_test_formulae_spec_l8_d1_test_formulae(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('test_formulae', ...args)
+	return brew_runtime.structured_value('Homebrew::TestBot::TestFormulae', 'TestFormulae', {
+		'dry_run':                      'false'
+		'fail_fast':                    'false'
+		'verbose':                      'false'
+		'downloaded_artifacts_default': 'Array'
+	})
 }
 
 // Ruby it `it "does not raise KeyError when accessing downloaded_artifacts for a new SHA" do` at line 13.
 pub fn ruby_test_formulae_spec_l13_d2_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	sha := if args.len > 0 {
+		args[0].as_string()
+	} else {
+		'8e624f21ac73d02a609cfec1ce620ccfee3aa97c'
+	}
+	mut fixture := TestFormulaeFixture{}
+	download_previous_artifact_names(mut fixture, sha, 'bottles*', [DownloadedArtifactFixture{
+		name: 'bottles'
+		url: 'https://example.com/artifact'
+		id: 1
+	}])
+	return brew_runtime.bool_value('bottles' in downloaded_artifacts_for_sha(mut fixture, sha))
+}
+
+pub fn downloaded_artifacts_for_sha(mut fixture TestFormulaeFixture, sha string) []string {
+	if sha !in fixture.downloaded_artifacts {
+		fixture.downloaded_artifacts[sha] = []string{}
+	}
+	return fixture.downloaded_artifacts[sha].clone()
+}
+
+pub fn download_previous_artifact_names(mut fixture TestFormulaeFixture, sha string, pattern string,
+	metadata []DownloadedArtifactFixture) {
+	mut names := downloaded_artifacts_for_sha(mut fixture, sha)
+	for artifact in metadata {
+		if artifact_name_matches(artifact.name, pattern) && artifact.name !in names {
+			names << artifact.name
+		}
+	}
+	fixture.downloaded_artifacts[sha] = names
+}
+
+fn artifact_name_matches(name string, pattern string) bool {
+	if pattern.ends_with('*') {
+		return name.starts_with(pattern.trim_string_right('*'))
+	}
+	return name == pattern
 }
 
 // Original Ruby source (line-for-line):

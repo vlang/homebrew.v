@@ -1,18 +1,69 @@
 module ffi
 
 import brew_runtime
+import os
+
+pub fn foundation_trash_item(path string, trash_directory string) !string {
+	if !os.exists(path) {
+		return ''
+	}
+	os.mkdir_all(trash_directory)!
+	base := os.base(path)
+	mut destination := os.join_path(trash_directory, base)
+	mut suffix := 1
+	for os.exists(destination) {
+		destination = os.join_path(trash_directory, '${base}.${suffix}')
+		suffix++
+	}
+	os.mv(path, destination)!
+	return destination
+}
+
+pub fn foundation_trash_paths(paths []string, trash_directory string) ([]string, []string) {
+	mut trashed := []string{}
+	mut untrashable := []string{}
+	for path in paths {
+		result := foundation_trash_item(path, trash_directory) or {
+			untrashable << path
+			continue
+		}
+		if result != '' { trashed << result } else { untrashable << path }
+	}
+	return trashed, untrashable
+}
 
 // Translated from Homebrew/brew `os/mac/ffi/foundation.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `self.trash_item(path)` at line 12.
 pub fn ruby_foundation_l12_d1_self_trash_item(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.trash_item', ...args)
+	trash_directory := if args.len > 1 {
+		args[1].as_string()
+	} else {
+		os.join_path(os.home_dir(), '.Trash')
+	}
+	result := foundation_trash_item(args[0].as_string(), trash_directory) or {
+		return brew_runtime.object_value('NilClass', 'nil')
+	}
+	if result == '' {
+		return brew_runtime.object_value('NilClass', 'nil')
+	}
+	return brew_runtime.string_value(result)
 }
 
 // Ruby method `self.trash_paths(paths)` at line 49.
 pub fn ruby_foundation_l49_d2_self_trash_paths(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.trash_paths', ...args)
+	paths := args[0].as_array() or { [] }.map(it.as_string())
+	trash_directory := if args.len > 1 {
+		args[1].as_string()
+	} else {
+		os.join_path(os.home_dir(), '.Trash')
+	}
+	trashed, untrashable := foundation_trash_paths(paths, trash_directory)
+	return brew_runtime.array_value([
+		brew_runtime.string_array_value(trashed),
+		brew_runtime.string_array_value(untrashable),
+	])
 }
 
 // Original Ruby source (line-for-line):

@@ -1,13 +1,21 @@
 module ffi
 
-import brew_runtime
+import homebrew.os.mac.ffi as mac_ffi
+import os
 
 // Translated from Homebrew/brew `test/os/mac/ffi/foundation_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "moves a file to the user's Trash" do` at line 8.
-pub fn ruby_foundation_spec_l8_d1_moves(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('moves', ...args)
+pub fn ruby_foundation_spec_l8_d1_moves() !bool {
+	tmpdir := os.join_path(os.temp_dir(), 'brew-v-foundation-${os.getpid()}')
+	trash := os.join_path(tmpdir, '.Trash')
+	path := os.join_path(tmpdir, 'homebrew-trash-ffi-test')
+	os.mkdir_all(tmpdir)!
+	defer { os.rmdir_all(tmpdir) or {} }
+	os.write_file(path, 'trash')!
+	trashed_path := mac_ffi.foundation_trash_item(path, trash)!
+	return !os.exists(path) && trashed_path != '' && os.exists(trashed_path)
 }
 
 // Original Ruby source (line-for-line):

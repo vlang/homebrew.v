@@ -1,13 +1,17 @@
 module ffi
 
-import brew_runtime
-
 // Translated from Homebrew/brew `os/mac/ffi/dyld.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub type DyldSharedCacheChecker = fn(string) bool
+
+pub fn dyld_shared_cache_contains_path(path string, checker DyldSharedCacheChecker) bool {
+	return checker(path)
+}
 
 // Ruby method `self.dyld_shared_cache_contains_path(path)` at line 16.
-pub fn ruby_dyld_l16_d1_self_dyld_shared_cache_contains_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.dyld_shared_cache_contains_path', ...args)
+pub fn ruby_dyld_l16_d1_self_dyld_shared_cache_contains_path(path string,
+	checker DyldSharedCacheChecker) bool {
+	return dyld_shared_cache_contains_path(path, checker)
 }
 
 // Original Ruby source (line-for-line):

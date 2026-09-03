@@ -7,17 +7,29 @@ import brew_runtime
 
 // Ruby method `value_to_binary_string(val)` at line 22.
 pub fn ruby_rest_l22_d1_value_to_binary_string(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('value_to_binary_string', ...args)
+	if args.len == 0 {
+		panic('Rest#value_to_binary_string requires a value')
+	}
+	return args[0]
 }
 
 // Ruby method `read_and_return_value(io)` at line 26.
 pub fn ruby_rest_l26_d2_read_and_return_value(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('read_and_return_value', ...args)
+	if args.len == 0 {
+		panic('Rest#read_and_return_value requires an IO value')
+	}
+	return if args[0].type_name == 'String' {
+		args[0]
+	} else {
+		brew_runtime.string_value(args[0].attribute('all_bytes') or {
+			panic('IO value has no all_bytes attribute')
+		})
+	}
 }
 
 // Ruby method `sensible_default` at line 30.
 pub fn ruby_rest_l30_d3_sensible_default(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sensible_default', ...args)
+	return brew_runtime.string_value('')
 }
 
 // Original Ruby source (line-for-line):

@@ -1,218 +1,428 @@
 module bundle
 
 import brew_runtime
+import homebrew.bundle.extensions
+
+fn uv_spec_bool(value bool) brew_runtime.Value {
+	return brew_runtime.bool_value(value)
+}
+
+fn uv_spec_tool(name string, requirements []string, source string) extensions.UvTool {
+	return extensions.uv_normalized_options(name, requirements, source)
+}
+
+fn uv_spec_entry(name string, requirements []string, source string) extensions.ExtensionEntry {
+	mut options := map[string]brew_runtime.Value{}
+	if requirements.len > 0 {
+		options['with'] = brew_runtime.string_array_value(requirements)
+	}
+	if source != '' {
+		options['source'] = brew_runtime.string_value(source)
+	}
+	return extensions.uv_entry(name, options) or { panic(err) }
+}
+
+fn uv_spec_entries() []extensions.ExtensionEntry {
+	return [
+		uv_spec_entry('ruff', [], ''),
+		uv_spec_entry('mkdocs', ['mkdocs-material<10'], ''),
+		extensions.ExtensionEntry{ entry_type: 'brew', name: 'wget' },
+	]
+}
+
+fn uv_spec_tools_value(tools []extensions.UvTool) brew_runtime.Value {
+	return extensions.uv_tools_value(tools)
+}
+
+fn uv_spec_install(name string, requirements []string, source string) brew_runtime.Value {
+	return extensions.ruby_uv_l330_d29_install(extensions.uv_state_value(extensions.UvState{
+		executable: '/tmp/uv/bin/uv'
+	}), brew_runtime.string_value(name), brew_runtime.string_array_value(requirements), if source == '' {
+		brew_runtime.object_value('NilClass', '')
+	} else {
+		brew_runtime.string_value(source)
+	}, brew_runtime.bool_value(true), brew_runtime.bool_value(false), brew_runtime.bool_value(true))
+}
+
+fn uv_spec_result(value brew_runtime.Value) bool {
+	return value.type_name == 'Hash' && 'result' in value.map_data && (value.map_data['result'].as_bool() or { false })
+}
 
 // Translated from Homebrew/brew `test/bundle/uv_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "accepts a source that resolves on another machine" do` at line 10.
 pub fn ruby_uv_spec_l10_d1_accepts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('accepts', ...args)
+	_ = args
+	entry := uv_spec_entry('ruff', [], 'git+https://github.com/astral-sh/ruff.git')
+	return uv_spec_bool(entry.options.len == 1 && entry.options['source'].as_string() == 'git+https://github.com/astral-sh/ruff.git')
 }
 
 // Ruby it `it "rejects a local path" do` at line 15.
 pub fn ruby_uv_spec_l15_d2_rejects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('rejects', ...args)
+	_ = args
+	if _ := extensions.uv_entry('probetool', {
+		'source': brew_runtime.string_value('/Users/test/src/probetool')
+	}) {
+		return uv_spec_bool(false)
+	} else {
+		return uv_spec_bool(err.msg().contains('local to this machine'))
+	}
 }
 
 // Ruby it `it "rejects the file:// URL uv reports for a directory install" do` at line 20.
 pub fn ruby_uv_spec_l20_d3_rejects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('rejects', ...args)
+	_ = args
+	if _ := extensions.uv_entry('probetool', {
+		'source': brew_runtime.string_value('file:///Users/test/src/probetool')
+	}) {
+		return uv_spec_bool(false)
+	} else {
+		return uv_spec_bool(err.msg().contains('local to this machine'))
+	}
 }
 
 // Ruby it `it "rejects a git+file:// URL" do` at line 25.
 pub fn ruby_uv_spec_l25_d4_rejects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('rejects', ...args)
+	_ = args
+	if _ := extensions.uv_entry('probetool', {
+		'source': brew_runtime.string_value('git+file:///Users/test/src/probetool')
+	}) {
+		return uv_spec_bool(false)
+	} else {
+		return uv_spec_bool(err.msg().contains('local to this machine'))
+	}
 }
 
 // Ruby subject `subject(:checker) { described_class.new }` at line 32.
 pub fn ruby_uv_spec_l32_d5_checker(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('checker', ...args)
+	_ = args
+	return extensions.uv_state_value(extensions.UvState{})
 }
 
 // Ruby it `it "returns false when package is not installed" do` at line 35.
 pub fn ruby_uv_spec_l35_d6_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	package := uv_spec_tool('mkdocs', ['mkdocs-material<10'], '')
+	return uv_spec_bool(!extensions.uv_package_installed([], package.name, package.with, package.source))
 }
 
 // Ruby it `it "returns true when package and options match" do` at line 44.
 pub fn ruby_uv_spec_l44_d7_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	package := uv_spec_tool('mkdocs', ['mkdocs-material<10'], '')
+	return uv_spec_bool(extensions.uv_package_installed([package], package.name, package.with, package.source))
 }
 
 // Ruby it `it "passes the source through when checking a tool installed from a source" do` at line 56.
 pub fn ruby_uv_spec_l56_d8_passes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('passes', ...args)
+	_ = args
+	package := uv_spec_tool('ruff', [], 'git+https://github.com/astral-sh/ruff.git')
+	return uv_spec_bool(extensions.uv_package_installed([package], 'ruff', [], 'git+https://github.com/astral-sh/ruff.git'))
 }
 
 // Ruby it `it "returns a package-specific message" do` at line 71.
 pub fn ruby_uv_spec_l71_d9_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	package := extensions.ExtensionPackage{ name: 'mkdocs' }
+	return uv_spec_bool(extensions.extension_failure_reason(extensions.ExtensionState{
+		definition: extensions.uv_definition()
+	}, package) == 'uv Tool mkdocs needs to be installed.')
 }
 
 // Ruby let `let(:entries) do` at line 79.
 pub fn ruby_uv_spec_l79_d10_entries(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('entries', ...args)
+	_ = args
+	return brew_runtime.array_value(uv_spec_entries().map(extensions.extension_entry_value(it)))
 }
 
 // Ruby it `it "checks uv entries and passes normalized options to installer checks" do` at line 87.
 pub fn ruby_uv_spec_l87_d11_checks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('checks', ...args)
+	_ = args
+	installed := [uv_spec_tool('ruff', [], ''), uv_spec_tool('mkdocs', [
+		'mkdocs-material<10',
+	], '')]
+	missing := uv_spec_entries().filter(it.entry_type == 'uv').filter(!extensions.uv_package_installed(installed, it.name, if 'with' in it.options {
+		it.options['with'].as_string_array() or { [] }
+	} else {
+		[]
+	}, if 'source' in it.options { it.options['source'].as_string() } else { '' }))
+	return uv_spec_bool(missing.len == 0)
 }
 
 // Ruby it `it "returns missing uv tools from full check flow" do` at line 99.
 pub fn ruby_uv_spec_l99_d12_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	installed := [uv_spec_tool('ruff', [], '')]
+	mut actionable := []string{}
+	for entry in uv_spec_entries().filter(it.entry_type == 'uv') {
+		requirements := if 'with' in entry.options {
+			entry.options['with'].as_string_array() or { [] }
+		} else {
+			[]
+		}
+		if !extensions.uv_package_installed(installed, entry.name, requirements, '') {
+			actionable << 'uv Tool ${entry.name} needs to be installed.'
+		}
+	}
+	return uv_spec_bool(actionable == ['uv Tool mkdocs needs to be installed.'])
 }
 
 // Ruby subject `subject(:dumper) { described_class }` at line 111.
 pub fn ruby_uv_spec_l111_d13_dumper(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dumper', ...args)
+	_ = args
+	return brew_runtime.object_value('Homebrew::Bundle::Uv', 'Homebrew::Bundle::Uv')
 }
 
 // Ruby let `let(:uv_tool_list_command) do` at line 113.
 pub fn ruby_uv_spec_l113_d14_uv_tool_list_command(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uv_tool_list_command', ...args)
+	_ = args
+	return brew_runtime.string_value('uv tool list --show-with --show-extras --show-version-specifiers 2>/dev/null')
 }
 
 // Ruby it `it "returns empty packages and dump output" do` at line 129.
 pub fn ruby_uv_spec_l129_d15_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	packages := extensions.uv_parse_tool_list('')
+	return uv_spec_bool(packages.len == 0 && packages.map(extensions.uv_dump_entry(it)).join('\n') == '')
 }
 
 // Ruby it `it "returns normalized package entries sorted by package name" do` at line 141.
 pub fn ruby_uv_spec_l141_d16_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	packages := extensions.uv_parse_tool_list('ruff v0.14.14\n- ruff\nmkdocs v1.6.1 [with: mkdocs-material<10]\n- mkdocs\n')
+	return uv_spec_bool(packages == [
+		uv_spec_tool('mkdocs', ['mkdocs-material<10'], ''),
+		uv_spec_tool('ruff', [], ''),
+	])
 }
 
 // Ruby it `it "parses a git source from the version specifier and dumps it" do` at line 163.
 pub fn ruby_uv_spec_l163_d17_parses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('parses', ...args)
+	_ = args
+	packages := extensions.uv_parse_tool_list('ruff v0.14.14 [required:  git+https://github.com/astral-sh/ruff.git]\n- ruff\n')
+	return uv_spec_bool(packages == [
+		uv_spec_tool('ruff', [], 'git+https://github.com/astral-sh/ruff.git'),
+	] && extensions.uv_dump_entry(packages[0]) == 'uv "ruff", source: "git+https://github.com/astral-sh/ruff.git"')
 }
 
 // Ruby it `it "dumps a tool installed from a directory without a source" do` at line 179.
 pub fn ruby_uv_spec_l179_d18_dumps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dumps', ...args)
+	_ = args
+	packages := extensions.uv_parse_tool_list('probetool v0.1.0 [required: file:///Users/test/src/probetool]\n- probetool\n')
+	return uv_spec_bool(packages.len == 1 && extensions.uv_dump_entry(packages[0]) == 'uv "probetool"')
 }
 
 // Ruby it `it "dumps a tool installed from a git+file:// URL without a source" do` at line 188.
 pub fn ruby_uv_spec_l188_d19_dumps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dumps', ...args)
+	_ = args
+	packages := extensions.uv_parse_tool_list('probetool v0.1.0 [required: git+file:///Users/test/src/probetool]\n- probetool\n')
+	return uv_spec_bool(packages.len == 1 && extensions.uv_dump_entry(packages[0]) == 'uv "probetool"')
 }
 
 // Ruby it `it "dumps a tool installed from a directory named like a git repository without a source" do` at line 197.
 pub fn ruby_uv_spec_l197_d20_dumps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dumps', ...args)
+	_ = args
+	packages := extensions.uv_parse_tool_list('probetool v0.1.0 [required: file:///Users/test/src/probetool.git]\n- probetool\n')
+	return uv_spec_bool(packages.len == 1 && extensions.uv_dump_entry(packages[0]) == 'uv "probetool"')
 }
 
 // Ruby it `it "ignores a bare version constraint in the version specifier" do` at line 206.
 pub fn ruby_uv_spec_l206_d21_ignores(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ignores', ...args)
+	_ = args
+	packages := extensions.uv_parse_tool_list('ruff v0.14.14 [required: >=0.1]\n- ruff\n')
+	return uv_spec_bool(packages.len == 1 && packages[0].source == '' && extensions.uv_dump_entry(packages[0]) == 'uv "ruff"')
 }
 
 // Ruby it `it "dumps both with and source segments" do` at line 216.
 pub fn ruby_uv_spec_l216_d22_dumps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dumps', ...args)
+	_ = args
+	packages := extensions.uv_parse_tool_list('ruff v0.14.14 [with: httpx>=0.27] [required: git+https://github.com/astral-sh/ruff.git]\n- ruff\n')
+	return uv_spec_bool(packages.len == 1 && extensions.uv_dump_entry(packages[0]) == 'uv "ruff", with: ["httpx>=0.27"], source: "git+https://github.com/astral-sh/ruff.git"')
 }
 
 // Ruby it `it "dumps correct Brewfile entries" do` at line 227.
 pub fn ruby_uv_spec_l227_d23_dumps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dumps', ...args)
+	_ = args
+	packages := extensions.uv_parse_tool_list('ruff v0.14.14 [with: httpx>=0.27]\n- ruff\n')
+	return uv_spec_bool(packages.len == 1 && extensions.uv_dump_entry(packages[0]) == 'uv "ruff", with: ["httpx>=0.27"]')
 }
 
 // Ruby it `it "handles tools with no optional metadata" do` at line 236.
 pub fn ruby_uv_spec_l236_d24_handles(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('handles', ...args)
+	_ = args
+	packages := extensions.uv_parse_tool_list('ruff v0.14.14\n- ruff\n')
+	return uv_spec_bool(packages.len == 1 && extensions.uv_dump_entry(packages[0]) == 'uv "ruff"')
 }
 
 // Ruby it `it "returns empty packages when no tools are installed" do` at line 245.
 pub fn ruby_uv_spec_l245_d25_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	return uv_spec_bool(extensions.uv_parse_tool_list('').len == 0)
 }
 
 // Ruby it `it "handles multiple with dependencies" do` at line 252.
 pub fn ruby_uv_spec_l252_d26_handles(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('handles', ...args)
+	_ = args
+	packages := extensions.uv_parse_tool_list('mkdocs v1.6.1 [with: mkdocs-material, mkdocs-awesome-page-plugin]\n- mkdocs\n')
+	return uv_spec_bool(packages.len == 1 && packages[0].with == [
+		'mkdocs-awesome-page-plugin',
+		'mkdocs-material',
+	])
 }
 
 // Ruby it `it "keeps comma-constrained with requirements as a single requirement" do` at line 261.
 pub fn ruby_uv_spec_l261_d27_keeps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('keeps', ...args)
+	_ = args
+	packages := extensions.uv_parse_tool_list('ruff v0.14.14 [with: httpx>=0.27, <0.29]\n- ruff\n')
+	return uv_spec_bool(packages.len == 1 && packages[0].with == ['httpx>=0.27, <0.29'] && extensions.uv_dump_entry(packages[0]) == 'uv "ruff", with: ["httpx>=0.27, <0.29"]')
 }
 
 // Ruby it `it "preserves extras for the main tool requirement" do` at line 271.
 pub fn ruby_uv_spec_l271_d28_preserves(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('preserves', ...args)
+	_ = args
+	packages := extensions.uv_parse_tool_list('fastapi v0.129.0 [extras: all, standard]\n- fastapi\n')
+	return uv_spec_bool(packages.len == 1 && packages[0].name == 'fastapi[all,standard]' && extensions.uv_dump_entry(packages[0]) == 'uv "fastapi[all,standard]"')
 }
 
 // Ruby it `it "tries to install uv" do` at line 290.
 pub fn ruby_uv_spec_l290_d29_tries(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tries', ...args)
+	_ = args
+	result := extensions.ruby_uv_l305_d28_preinstall(extensions.uv_state_value(extensions.UvState{}), brew_runtime.string_value('mkdocs'))
+	return uv_spec_bool(result.type_name == 'RuntimeError' && result.attributes['command'] == 'brew install --formula uv')
 }
 
 // Ruby it `it "skips install" do` at line 314.
 pub fn ruby_uv_spec_l314_d30_skips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skips', ...args)
+	_ = args
+	state := extensions.UvState{
+		executable: 'uv'
+		installed_packages: [uv_spec_tool('mkdocs', ['mkdocs-material<10'], '')]
+	}
+	result := extensions.ruby_uv_l305_d28_preinstall(extensions.uv_state_value(state), brew_runtime.string_value('mkdocs'), brew_runtime.string_array_value([
+		'mkdocs-material<10',
+	]))
+	return uv_spec_bool(result.type_name == 'Bool' && !(result.as_bool() or { true }))
 }
 
 // Ruby it `it "skips install for package with no options" do` at line 319.
 pub fn ruby_uv_spec_l319_d31_skips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skips', ...args)
+	_ = args
+	state := extensions.UvState{
+		executable: 'uv'
+		installed_packages: [uv_spec_tool('ruff', [], '')]
+	}
+	result := extensions.ruby_uv_l305_d28_preinstall(extensions.uv_state_value(state), brew_runtime.string_value('ruff'))
+	return uv_spec_bool(result.type_name == 'Bool' && !(result.as_bool() or { true }))
 }
 
 // Ruby it `it "treats matching with requirements as installed" do` at line 332.
 pub fn ruby_uv_spec_l332_d32_treats(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('treats', ...args)
+	_ = args
+	return uv_spec_bool(extensions.uv_package_installed([
+		uv_spec_tool('ruff', ['httpx>=0.27'], ''),
+	], 'ruff', ['httpx>=0.27'], ''))
 }
 
 // Ruby it `it "treats a matching source as installed" do` at line 349.
 pub fn ruby_uv_spec_l349_d33_treats(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('treats', ...args)
+	_ = args
+	source := 'git+https://github.com/astral-sh/ruff.git'
+	return uv_spec_bool(extensions.uv_package_installed([
+		uv_spec_tool('ruff', [], source),
+	], 'ruff', [], source))
 }
 
 // Ruby it `it "treats extras with different ordering as installed" do` at line 366.
 pub fn ruby_uv_spec_l366_d34_treats(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('treats', ...args)
+	_ = args
+	return uv_spec_bool(extensions.uv_package_installed([uv_spec_tool('fastapi[all,standard]', [], '')], 'fastapi[standard,all]', [], ''))
 }
 
 // Ruby it `it "does not treat mismatched with dependencies as installed" do` at line 394.
 pub fn ruby_uv_spec_l394_d35_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	_ = args
+	return uv_spec_bool(!extensions.uv_package_installed([uv_spec_tool('mkdocs', [
+		'mkdocs-material<10',
+	], '')], 'mkdocs', ['mkdocs-material<9'], ''))
 }
 
 // Ruby it `it "does not treat a different source as installed" do` at line 410.
 pub fn ruby_uv_spec_l410_d36_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	_ = args
+	return uv_spec_bool(!extensions.uv_package_installed([uv_spec_tool('ruff', [], 'git+https://github.com/astral-sh/ruff.git')], 'ruff', [], 'ruff'))
 }
 
 // Ruby it `it "installs package with no options" do` at line 423.
 pub fn ruby_uv_spec_l423_d37_installs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('installs', ...args)
+	_ = args
+	result := uv_spec_install('ruff', [], '')
+	state := extensions.uv_state_from_value(result.map_data['state'])
+	return uv_spec_bool(uv_spec_result(result) && state.commands == [[
+		'/tmp/uv/bin/uv',
+		'tool',
+		'install',
+		'ruff',
+	]])
 }
 
 // Ruby it `it "installs package with all supported options" do` at line 431.
 pub fn ruby_uv_spec_l431_d38_installs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('installs', ...args)
+	_ = args
+	result := uv_spec_install('mkdocs', ['mkdocs-material<10'], '')
+	state := extensions.uv_state_from_value(result.map_data['state'])
+	return uv_spec_bool(uv_spec_result(result) && state.commands == [[
+		'/tmp/uv/bin/uv',
+		'tool',
+		'install',
+		'mkdocs',
+		'--with',
+		'mkdocs-material<10',
+	]])
 }
 
 // Ruby it `it "installs a package from its source" do` at line 441.
 pub fn ruby_uv_spec_l441_d39_installs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('installs', ...args)
+	_ = args
+	source := 'git+https://github.com/astral-sh/ruff.git'
+	result := uv_spec_install('ruff', [], source)
+	state := extensions.uv_state_from_value(result.map_data['state'])
+	return uv_spec_bool(uv_spec_result(result) && state.commands == [[
+		'/tmp/uv/bin/uv',
+		'tool',
+		'install',
+		source,
+	]])
 }
 
 // Ruby it `it "updates dump output after install in the same process" do` at line 450.
 pub fn ruby_uv_spec_l450_d40_updates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('updates', ...args)
+	_ = args
+	result := uv_spec_install('mkdocs', ['mkdocs-material<10'], '')
+	state := extensions.uv_state_from_value(result.map_data['state'])
+	dump_text := state.packages.map(extensions.uv_dump_entry(it)).join('\n')
+	return uv_spec_bool(dump_text == 'uv "mkdocs", with: ["mkdocs-material<10"]')
 }
 
 // Ruby it `it "returns tools not in Brewfile entries" do` at line 479.
 pub fn ruby_uv_spec_l479_d41_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	tools := [uv_spec_tool('ruff', [], ''), uv_spec_tool('mkdocs', [
+		'mkdocs-material<10',
+	], ''), uv_spec_tool('black', [], '')]
+	return uv_spec_bool(extensions.uv_cleanup_items([uv_spec_entry('ruff', [], '')], '/tmp/uv/bin/uv', tools) == [
+		'mkdocs',
+		'black',
+	])
 }
 
 // Ruby it `it "returns frozen empty array when uv is not installed" do` at line 484.
 pub fn ruby_uv_spec_l484_d42_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	tools := [uv_spec_tool('ruff', [], ''), uv_spec_tool('mkdocs', [
+		'mkdocs-material<10',
+	], ''), uv_spec_tool('black', [], '')]
+	return uv_spec_bool(extensions.uv_cleanup_items([uv_spec_entry('ruff', [], '')], '', tools) == [])
 }
 
 // Original Ruby source (line-for-line):

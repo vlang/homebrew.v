@@ -1,48 +1,79 @@
 module dsl
 
 import brew_runtime
+import homebrew.cask.dsl as cask_dsl
 
 // Translated from Homebrew/brew `test/cask/dsl/container_spec.rb`.
-// The original source is retained below until every stub has a typed V body.
+// The executable helpers below retain each RSpec boundary while exercising the
+// translated Cask::DSL::Container implementation.
+
+fn container_spec_symbol(value string) brew_runtime.Value {
+	return brew_runtime.Value{
+		type_name: 'Symbol'
+		repr: value.trim_left(':')
+	}
+}
+
+fn container_spec_container_from(args []brew_runtime.Value, fallback brew_runtime.Value) brew_runtime.Value {
+	params := if args.len > 0 { args[0] } else { fallback }
+	return cask_dsl.ruby_container_l17_d5_initialize(params)
+}
 
 // Ruby subject `subject(:container) { described_class.new(**params) }` at line 7.
 pub fn ruby_container_spec_l7_d1_container(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('container', ...args)
+	return container_spec_container_from(args, ruby_container_spec_l9_d2_params())
 }
 
 // Ruby let `let(:params) { {} }` at line 9.
 pub fn ruby_container_spec_l9_d2_params(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('params', ...args)
+	return brew_runtime.map_value({})
 }
 
 // Ruby let `let(:params) { { nested: "NestedApp.dmg" } }` at line 12.
 pub fn ruby_container_spec_l12_d3_params(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('params', ...args)
+	return brew_runtime.map_value({
+		'nested': brew_runtime.string_value('NestedApp.dmg')
+	})
 }
 
 // Ruby it `it "returns the attributes as a hash" do` at line 14.
 pub fn ruby_container_spec_l14_d4_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	container := container_spec_container_from(args, ruby_container_spec_l12_d3_params())
+	pairs := cask_dsl.ruby_container_l28_d6_pairs(container)
+	nested := pairs.map_data['nested'] or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value(pairs.map_data.len == 1 && nested.type_name == 'String'
+		&& nested.as_string() == 'NestedApp.dmg')
 }
 
 // Ruby let `let(:params) { { nested: "NestedApp.dmg", type: :naked } }` at line 20.
 pub fn ruby_container_spec_l20_d5_params(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('params', ...args)
+	return brew_runtime.map_value({
+		'nested': brew_runtime.string_value('NestedApp.dmg')
+		'type':   container_spec_symbol('naked')
+	})
 }
 
 // Ruby it `it "returns the stringified attributes" do` at line 22.
 pub fn ruby_container_spec_l22_d6_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	params := if args.len > 0 { args[0] } else { ruby_container_spec_l20_d5_params() }
+	container := cask_dsl.ruby_container_l17_d5_initialize(params)
+	actual := cask_dsl.ruby_container_l38_d8_to_s(container)
+	return brew_runtime.bool_value(actual.as_string() == '{:nested=>"NestedApp.dmg", :type=>:naked}')
 }
 
 // Ruby let `let(:params) { { nested: "NestedApp.dmg", type: :naked } }` at line 28.
 pub fn ruby_container_spec_l28_d7_params(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('params', ...args)
+	return brew_runtime.map_value({
+		'nested': brew_runtime.string_value('NestedApp.dmg')
+		'type':   container_spec_symbol('naked')
+	})
 }
 
 // Ruby it `it "returns the attributes in YAML format" do` at line 30.
 pub fn ruby_container_spec_l30_d8_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	container := container_spec_container_from(args, ruby_container_spec_l28_d7_params())
+	actual := cask_dsl.ruby_container_l33_d7_to_yaml(container)
+	return brew_runtime.bool_value(actual.as_string() == '---\n:nested: NestedApp.dmg\n:type: :naked\n')
 }
 
 // Original Ruby source (line-for-line):

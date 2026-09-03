@@ -1,73 +1,177 @@
 module strategy
 
 import brew_runtime
+import homebrew.livecheck
+import homebrew.livecheck.strategy as bitbucket_core
+import homebrew.utils
 
 // Translated from Homebrew/brew `test/livecheck/strategy/bitbucket_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub struct BitbucketSpecMatchData {
+pub:
+	cached         bitbucket_core.PageMatchData
+	cached_default bitbucket_core.PageMatchData
+}
+
+fn bitbucket_spec_scan_block(page string,
+	provided ?bitbucket_core.PageMatchRegex) !livecheck.StrategyBlockValue {
+	match_regex := provided or { return livecheck.StrategyBlockValue{ kind: .nil_value } }
+	versions := bitbucket_core.page_match_scan(page, match_regex)!
+	return livecheck.StrategyBlockValue{
+		kind: .array
+		values: versions.map(livecheck.StrategyBlockItem{
+			kind: .string_value
+			value: it
+		})
+	}
+}
+
+fn bitbucket_spec_unused_fetcher(_ livecheck.StrategyCurlRequest) !utils.CurlCommandResult {
+	return error('cached Bitbucket content unexpectedly fetched')
+}
+
+fn bitbucket_spec_regex_equal(left ?bitbucket_core.PageMatchRegex,
+	right ?bitbucket_core.PageMatchRegex) bool {
+	left_value := left or { bitbucket_core.PageMatchRegex{} }
+	right_value := right or { bitbucket_core.PageMatchRegex{} }
+	return left_value == right_value
+}
+
+fn bitbucket_spec_match_data_equal(left bitbucket_core.PageMatchData,
+	right bitbucket_core.PageMatchData) bool {
+	return left.matches == right.matches && bitbucket_spec_regex_equal(left.regex, right.regex) && left.url == right.url && left.cached == right.cached && left.has_cached == right.has_cached && left.content == right.content && left.has_content == right.has_content && left.final_url == right.final_url && left.has_final_url == right.has_final_url && left.messages == right.messages && left.has_messages == right.has_messages
+}
 
 // Ruby subject `subject(:bitbucket) { described_class }` at line 7.
-pub fn ruby_bitbucket_spec_l7_d1_bitbucket(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('bitbucket', ...args)
+pub fn ruby_bitbucket_spec_l7_d1_bitbucket() brew_runtime.Value {
+	return brew_runtime.object_value('Class', 'Homebrew::Livecheck::Strategy::Bitbucket')
 }
 
 // Ruby let `let(:bitbucket_urls) do` at line 9.
-pub fn ruby_bitbucket_spec_l9_d2_bitbucket_urls(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('bitbucket_urls', ...args)
+pub fn ruby_bitbucket_spec_l9_d2_bitbucket_urls() map[string]string {
+	return {
+		'get':       'https://bitbucket.org/abc/def/get/1.2.3.tar.gz'
+		'downloads': 'https://bitbucket.org/abc/def/downloads/ghi-1.2.3.tar.gz'
+	}
 }
 
 // Ruby let `let(:non_bitbucket_url) { "https://brew.sh/test" }` at line 15.
-pub fn ruby_bitbucket_spec_l15_d3_non_bitbucket_url(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('non_bitbucket_url', ...args)
+pub fn ruby_bitbucket_spec_l15_d3_non_bitbucket_url() string {
+	return 'https://brew.sh/test'
 }
 
 // Ruby let `let(:generated) do` at line 16.
-pub fn ruby_bitbucket_spec_l16_d4_generated(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('generated', ...args)
+pub fn ruby_bitbucket_spec_l16_d4_generated() map[string]bitbucket_core.BitbucketInputValues {
+	return {
+		'get':       bitbucket_core.BitbucketInputValues{
+			present: true
+			url: 'https://bitbucket.org/abc/def/downloads/?tab=tags&iframe=true&spa=0'
+			regex: bitbucket_core.PageMatchRegex{
+				pattern: '<td[^>]*?class="name"[^>]*?>\\s*v?(\\d+(?:\\.\\d+)+)\\s*?<'
+				case_insensitive: true
+			}
+		}
+		'downloads': bitbucket_core.BitbucketInputValues{
+			present: true
+			url: 'https://bitbucket.org/abc/def/downloads/?iframe=true&spa=0'
+			regex: bitbucket_core.PageMatchRegex{
+				pattern: 'href=.*?ghi-v?(\\d+(?:\\.\\d+)+)\\.t'
+				case_insensitive: true
+			}
+		}
+	}
 }
 
 // Ruby let `let(:content) do` at line 29.
-pub fn ruby_bitbucket_spec_l29_d5_content(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('content', ...args)
+pub fn ruby_bitbucket_spec_l29_d5_content() string {
+	return '<!DOCTYPE html>\n<html><body><table id="uploaded-files">\n<a href="/abc/def/downloads/ghi-1.2.3.tar.gz">ghi-1.2.3.tar.gz</a>\n<a href="/abc/def/downloads/ghi-1.2.2.tar.gz">ghi-1.2.2.tar.gz</a>\n<a href="/abc/def/downloads/ghi-1.2.1.tar.gz">ghi-1.2.1.tar.gz</a>\n</table></body></html>\n'
 }
 
 // Ruby let `let(:matches) { ["1.2.3", "1.2.2", "1.2.1"] }` at line 84.
-pub fn ruby_bitbucket_spec_l84_d6_matches(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('matches', ...args)
+pub fn ruby_bitbucket_spec_l84_d6_matches() []string {
+	return ['1.2.3', '1.2.2', '1.2.1']
 }
 
 // Ruby it `it "returns true for a Bitbucket URL" do` at line 87.
-pub fn ruby_bitbucket_spec_l87_d7_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_bitbucket_spec_l87_d7_returns() bool {
+	for url in ruby_bitbucket_spec_l9_d2_bitbucket_urls().values() {
+		if !bitbucket_core.bitbucket_matches_url(url) {
+			return false
+		}
+	}
+	return true
 }
 
 // Ruby it `it "returns false for a non-Bitbucket URL" do` at line 92.
-pub fn ruby_bitbucket_spec_l92_d8_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_bitbucket_spec_l92_d8_returns() bool {
+	return !bitbucket_core.bitbucket_matches_url(ruby_bitbucket_spec_l15_d3_non_bitbucket_url())
 }
 
 // Ruby it `it "returns a hash containing url and regex for a Bitbucket URL" do` at line 98.
-pub fn ruby_bitbucket_spec_l98_d9_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_bitbucket_spec_l98_d9_returns() bool {
+	urls := ruby_bitbucket_spec_l9_d2_bitbucket_urls()
+	generated := ruby_bitbucket_spec_l16_d4_generated()
+	for key, url in urls {
+		if bitbucket_core.bitbucket_generate_input_values(url) != generated[key] {
+			return false
+		}
+	}
+	return true
 }
 
 // Ruby it `it "returns an empty hash for a non-Bitbucket URL" do` at line 103.
-pub fn ruby_bitbucket_spec_l103_d10_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_bitbucket_spec_l103_d10_returns() bool {
+	return !bitbucket_core.bitbucket_generate_input_values(ruby_bitbucket_spec_l15_d3_non_bitbucket_url()).present
 }
 
 // Ruby let `let(:match_data) do` at line 109.
-pub fn ruby_bitbucket_spec_l109_d11_match_data(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('match_data', ...args)
+pub fn ruby_bitbucket_spec_l109_d11_match_data() BitbucketSpecMatchData {
+	generated := ruby_bitbucket_spec_l16_d4_generated()['downloads']
+	base := bitbucket_core.PageMatchData{
+		matches: {
+			'1.2.3': '1.2.3'
+			'1.2.2': '1.2.2'
+			'1.2.1': '1.2.1'
+		}
+		regex: generated.regex
+		url: generated.url
+		cached: true
+		has_cached: true
+	}
+	return BitbucketSpecMatchData{
+		cached: base
+		cached_default: bitbucket_core.PageMatchData{
+			...base
+			matches: map[string]string{}
+		}
+	}
 }
 
 // Ruby it `it "finds versions in provided content" do` at line 123.
-pub fn ruby_bitbucket_spec_l123_d12_finds(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('finds', ...args)
+pub fn ruby_bitbucket_spec_l123_d12_finds() bool {
+	request := bitbucket_core.BitbucketFindRequest{
+		url: ruby_bitbucket_spec_l9_d2_bitbucket_urls()['downloads']
+		content: ruby_bitbucket_spec_l29_d5_content()
+	}
+	plain := bitbucket_core.bitbucket_find_versions(request, bitbucket_spec_unused_fetcher) or {
+		return false
+	}
+	with_block := bitbucket_core.bitbucket_find_versions(bitbucket_core.BitbucketFindRequest{
+		...request
+		has_block: true
+		block: bitbucket_spec_scan_block
+	}, bitbucket_spec_unused_fetcher) or { return false }
+	expected := ruby_bitbucket_spec_l109_d11_match_data().cached
+	return bitbucket_spec_match_data_equal(plain, expected) && bitbucket_spec_match_data_equal(with_block, expected)
 }
 
 // Ruby it `it "returns default match_data when content is blank" do` at line 134.
-pub fn ruby_bitbucket_spec_l134_d13_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_bitbucket_spec_l134_d13_returns() bool {
+	actual := bitbucket_core.bitbucket_find_versions(bitbucket_core.BitbucketFindRequest{
+		url: ruby_bitbucket_spec_l9_d2_bitbucket_urls()['downloads']
+		content: ''
+	}, bitbucket_spec_unused_fetcher) or { return false }
+	return bitbucket_spec_match_data_equal(actual, ruby_bitbucket_spec_l109_d11_match_data().cached_default)
 }
 
 // Original Ruby source (line-for-line):

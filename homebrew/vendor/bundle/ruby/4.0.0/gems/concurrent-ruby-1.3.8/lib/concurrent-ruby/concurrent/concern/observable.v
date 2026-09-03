@@ -1,43 +1,127 @@
 module concern
 
 import brew_runtime
+import sync
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/concern/observable.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub type ObserverCallback = fn([]brew_runtime.Value)
+
+struct ObserverEntry {
+	id        string
+	func_name string
+	callback  ObserverCallback @[required]
+}
+
+@[heap]
+pub struct Observable {
+mut:
+	lock      sync.Mutex
+	observers map[string]ObserverEntry
+}
+
+pub fn new_observable() &Observable {
+	return &Observable{
+		observers: map[string]ObserverEntry{}
+	}
+}
+
+pub fn (mut observable Observable) add_observer(id string, func_name string, callback ObserverCallback) string {
+	if id.len == 0 {
+		panic('ArgumentError: should pass observer as a first argument or block')
+	}
+	observable.lock.lock()
+	mut copied := observable.observers.clone()
+	copied[id] = ObserverEntry{
+		id: id
+		func_name: if func_name.len > 0 { func_name } else { 'update' }
+		callback: callback
+	}
+	observable.observers = copied.clone()
+	observable.lock.unlock()
+	return id
+}
+
+pub fn (mut observable Observable) with_observer(id string, func_name string, callback ObserverCallback) &Observable {
+	observable.add_observer(id, func_name, callback)
+	return observable
+}
+
+pub fn (mut observable Observable) delete_observer(id string) string {
+	observable.lock.lock()
+	mut copied := observable.observers.clone()
+	copied.delete(id)
+	observable.observers = copied.clone()
+	observable.lock.unlock()
+	return id
+}
+
+pub fn (mut observable Observable) delete_observers() &Observable {
+	observable.lock.lock()
+	observable.observers = map[string]ObserverEntry{}
+	observable.lock.unlock()
+	return observable
+}
+
+pub fn (mut observable Observable) count_observers() int {
+	observable.lock.lock()
+	count := observable.observers.len
+	observable.lock.unlock()
+	return count
+}
+
+pub fn (mut observable Observable) notify_observers(args []brew_runtime.Value) &Observable {
+	observable.lock.lock()
+	observers := observable.observers.clone()
+	observable.lock.unlock()
+	for _, observer in observers {
+		observer.callback(args)
+	}
+	return observable
+}
 
 // Ruby method `add_observer(observer = nil, func = :update, &block)` at line 61.
 pub fn ruby_observable_l61_d1_add_observer(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('add_observer', ...args)
+	if args.len == 0 || args[0].type_name == 'NilClass' {
+		panic('ArgumentError: should pass observer as a first argument or block')
+	}
+	return args[0]
 }
 
 // Ruby method `with_observer(observer = nil, func = :update, &block)` at line 70.
 pub fn ruby_observable_l70_d2_with_observer(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('with_observer', ...args)
+	if args.len == 0 || args[0].type_name == 'NilClass' {
+		panic('ArgumentError: should pass observer as a first argument or block')
+	}
+	return brew_runtime.object_value('Observable', '#<Concurrent::Concern::Observable>')
 }
 
 // Ruby method `delete_observer(observer)` at line 82.
 pub fn ruby_observable_l82_d3_delete_observer(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('delete_observer', ...args)
+	return if args.len > 0 { args[0] } else { brew_runtime.object_value('NilClass', 'nil') }
 }
 
 // Ruby method `delete_observers` at line 91.
 pub fn ruby_observable_l91_d4_delete_observers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('delete_observers', ...args)
+	return brew_runtime.object_value('Observable', '#<Concurrent::Concern::Observable>')
 }
 
 // Ruby method `count_observers` at line 101.
 pub fn ruby_observable_l101_d5_count_observers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('count_observers', ...args)
+	if args.len == 1 && args[0].type_name == 'Array' {
+		return brew_runtime.int_value(args[0].as_array() or { panic(err) }.len)
+	}
+	return brew_runtime.int_value(0)
 }
 
 // Ruby attr_accessor `attr_accessor :observers` at line 107.
 pub fn ruby_observable_l107_d6_observers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('observers', ...args)
+	return if args.len > 0 { args[0] } else { brew_runtime.map_value({}) }
 }
 
 // Ruby attr_accessor `attr_accessor :observers` at line 107.
 pub fn ruby_observable_l107_d7_observers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('observers=', ...args)
+	return if args.len > 0 { args[args.len - 1] } else { brew_runtime.map_value({}) }
 }
 
 // Original Ruby source (line-for-line):

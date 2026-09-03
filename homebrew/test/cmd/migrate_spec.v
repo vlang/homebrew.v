@@ -1,13 +1,21 @@
 module cmd
 
-import brew_runtime
+import homebrew.cmd as migrate_core
 
 // Translated from Homebrew/brew `test/cmd/migrate_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "migrates a renamed Formula", :integration_test, :no_api do` at line 10.
-pub fn ruby_migrate_spec_l10_d1_migrates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('migrates', ...args)
+pub fn ruby_migrate_spec_l10_d1_migrates() bool {
+	result := migrate_core.run_migrate_command([migrate_core.MigratePackage{
+		kind: .formula
+		old_name: 'testball1'
+		new_name: 'testball2'
+		installed: true
+	}], migrate_core.MigrateOptions{})
+	return result.output == ['Migrating formula testball1 to testball2'] && result.migrated == [
+		'testball2',
+	]
 }
 
 // Original Ruby source (line-for-line):

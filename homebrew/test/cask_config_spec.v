@@ -1,13 +1,23 @@
 module test
 
-import brew_runtime
+import homebrew.cask as brew_cask
 
 // Translated from Homebrew/brew `test/cask_config_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub type CaskConfigLanguageProvider = fn() []string
 
 // Ruby it `it "uses the current operating system language provider" do` at line 8.
-pub fn ruby_cask_config_spec_l8_d1_uses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uses', ...args)
+pub fn ruby_cask_config_spec_l8_d1_uses(provider CaskConfigLanguageProvider) bool {
+	expected_languages := provider()
+	config := brew_cask.new_cask_config(brew_cask.CaskConfigOptions{
+		default_values: {
+			'languages': brew_cask.CaskConfigValue{
+				kind: .languages
+				values: expected_languages
+			}
+		}
+	}) or { return false }
+	return config.languages() == expected_languages
 }
 
 // Original Ruby source (line-for-line):

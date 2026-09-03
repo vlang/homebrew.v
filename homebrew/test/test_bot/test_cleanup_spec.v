@@ -1,23 +1,101 @@
 module test_bot
 
 import brew_runtime
+import homebrew.test_bot as production_test_bot
+
+fn cleanup_spec_has_command(actions []production_test_bot.CleanupAction, command []string) bool {
+	return actions.any(it.kind == 'command' && it.command == command)
+}
+
+pub fn cleanup_regression_uses_string_repositories() bool {
+	repository := '/opt/homebrew'
+	plan := production_test_bot.cleanup_after_plan(production_test_bot.CleanupAfterInput{
+		shared: production_test_bot.CleanupSharedInput{
+			git: 'git'
+			repository: '/nonexistent-test-tap'
+			homebrew_repository: repository
+			homebrew_prefix: repository
+			homebrew_cellar: '${repository}/Cellar'
+			has_tap: true
+			tap_name: 'homebrew/core'
+			repositories: [production_test_bot.CleanupRepositoryState{
+				repository: repository
+				origin_head: 'origin/main'
+				current_branch: 'feature/test'
+				diff_quiet: false
+				clean_dry_run: 'Would remove generated-file'
+			}]
+		}
+		pkill: production_test_bot.PkillInput{
+			homebrew_cellar: '${repository}/Cellar'
+		}
+	})
+	expected := [
+		['git', '-C', repository, 'checkout', '-f', 'main'],
+		['git', '-C', repository, 'reset', '--hard', 'origin/main'],
+		['git', '-C', repository, 'clean', '-ff', '-dx', '--exclude=/*.bottle*.*',
+			'--exclude=/Library/Taps', '--exclude=/Library/Homebrew/vendor'],
+	]
+	for command in expected {
+		if !cleanup_spec_has_command(plan.actions, command) {
+			return false
+		}
+	}
+	for action in plan.actions {
+		if action.command.len > 3 && action.command[0] == 'git' && action.command[1] == '-C'
+			&& action.repository != repository {
+			return false
+		}
+	}
+	return true
+}
+
+pub fn cleanup_regression_restores_test_tap_trust() bool {
+	tap_name := 'thirdparty/foo'
+	plan := production_test_bot.cleanup_before_plan(production_test_bot.CleanupBeforeInput{
+		shared: production_test_bot.CleanupSharedInput{
+			homebrew_repository: '/opt/homebrew'
+			homebrew_prefix: '/opt/homebrew'
+			homebrew_cellar: '/opt/homebrew/Cellar'
+			tap_name: tap_name
+		}
+		tap_name: tap_name
+	})
+	if plan.actions.len == 0 {
+		return false
+	}
+	last := plan.actions[plan.actions.len - 1]
+	return last.kind == 'trust_tap' && last.paths == [tap_name]
+}
+
+pub fn cleanup_regression_keeps_current_untrusted_tap() bool {
+	actions := production_test_bot.untap_untrusted_taps_plan('current/tap', [
+		production_test_bot.CleanupTap{
+			name: 'current/tap'
+		},
+		production_test_bot.CleanupTap{
+			name: 'other/tap'
+		},
+	])
+	return actions.len == 1 && actions[0].command == ['brew', 'untap', 'other/tap']
+}
 
 // Translated from Homebrew/brew `test/test_bot/test_cleanup_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "passes a String to checkout_branch_if_needed, reset_if_needed, and clean_if_needed when tap is set" do` at line 12.
 pub fn ruby_test_cleanup_spec_l12_d1_passes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('passes', ...args)
+	return brew_runtime.bool_value(cleanup_regression_uses_string_repositories())
 }
 
 // Ruby it `it "restores trust for the tap being tested after cleanup" do` at line 45.
 pub fn ruby_test_cleanup_spec_l45_d2_restores(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('restores', ...args)
+	return brew_runtime.bool_value(cleanup_regression_restores_test_tap_trust())
 }
 
 // Ruby it `it "does not untap the tap being tested" do` at line 78.
 pub fn ruby_test_cleanup_spec_l78_d3_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	return brew_runtime.bool_value(cleanup_regression_keeps_current_untrusted_tap())
 }
 
 // Original Ruby source (line-for-line):

@@ -1,248 +1,827 @@
 module homebrew
 
 import brew_runtime
+import homebrew.api
+import homebrew.download_strategy
+import homebrew.unpack_strategy
+import net.urllib
+import os
+import x.json2
 
 // Translated from Homebrew/brew `bottle.rb`.
 // The original source is retained below until every stub has a typed V body.
 
-// Ruby attr_reader `attr_reader :name, :tag` at line 11.
-pub fn ruby_bottle_l11_d1_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('name', ...args)
+pub struct BottleFilename {
+pub:
+	name    string
+	version PkgVersion
+	tag     string
+	rebuild int
+}
+
+pub struct BottleUrlDecision {
+pub:
+	path              string
+	resolved_basename string
+	url               string
+	github_packages   bool
+}
+
+pub struct BottleManifestPlan {
+pub:
+	descriptor        BottleDescriptor
+	url               string
+	mirrors           []string
+	version_rebuild   string
+	resolved_basename string
+}
+
+pub struct Bottle {
+pub mut:
+	name                  string
+	pkg_version           PkgVersion
+	specification         BottleSpecification
+	tag                   BottleTag
+	cellar                BottleCellar
+	rebuild               int
+	resource              Resource
+	root_url_value        string
+	has_root_url          bool
+	manifest              BottleManifestResource
+	has_manifest          bool
+	fetch_tab_retried     bool
+	bottle_size_value     i64
+	has_bottle_size       bool
+	installed_size_value  i64
+	has_installed_size    bool
+	path_exec_files_value []string
+	has_path_exec_files   bool
+	tab_attributes_value  map[string]json2.Any
+	has_tab_attributes    bool
+}
+
+fn safe_bottle_filename_component(value string) bool {
+	for character in value {
+		if character.ascii_str() in ['/', '\\'] || character < 32 || character == 127 {
+			return false
+		}
+	}
+	return true
+}
+
+pub fn new_bottle_filename(name string, version PkgVersion, tag BottleTag,
+	rebuild int) !BottleFilename {
+	basename := name.replace('\\', '/').all_after_last('/')
+	if !safe_bottle_filename_component(basename) {
+		return error('Invalid bottle name')
+	}
+	if !safe_bottle_filename_component(version.to_s()) {
+		return error('Invalid bottle version')
+	}
+	return BottleFilename{
+		name:    basename
+		version: version
+		tag:     tag.unstandardized_symbol()
+		rebuild: rebuild
+	}
+}
+
+pub fn (filename BottleFilename) extname() string {
+	rebuild_suffix := if filename.rebuild > 0 { '.${filename.rebuild}' } else { '' }
+	return '.${filename.tag}.bottle${rebuild_suffix}.tar.gz'
+}
+
+pub fn (filename BottleFilename) str() string {
+	return '${filename.name}--${filename.version.to_s()}${filename.extname()}'
+}
+
+pub fn (filename BottleFilename) json() string {
+	return '${filename.name}--${filename.version.to_s()}.${filename.tag}.bottle.json'
+}
+
+pub fn (filename BottleFilename) url_encode() string {
+	encoded :=
+		urllib.query_escape('${filename.name}-${filename.version.to_s()}${filename.extname()}')
+	return encoded.replace('+', '%20')
+}
+
+pub fn (filename BottleFilename) github_packages() string {
+	return filename.str()
+}
+
+pub fn bottle_github_image_name(name string) string {
+	return name.replace('@', '/').replace('+', 'x')
+}
+
+// brew.sh supplies this header before Ruby starts. The native V entry point
+// performs the same source-derived setup because it does not execute brew.sh.
+fn github_packages_authorization() ?string {
+	configured := brew_runtime.environment_value('HOMEBREW_GITHUB_PACKAGES_AUTH')
+	if configured != '' {
+		return configured
+	}
+	token := brew_runtime.environment_value('HOMEBREW_DOCKER_REGISTRY_TOKEN')
+	if token != '' {
+		return 'Bearer ${token}'
+	}
+	basic := brew_runtime.environment_value('HOMEBREW_DOCKER_REGISTRY_BASIC_AUTH_TOKEN')
+	if basic != '' {
+		if basic == 'none' {
+			return none
+		}
+		return 'Basic ${basic}'
+	}
+	return 'Bearer QQ=='
+}
+
+fn add_github_packages_authorization(mut resource Resource) ! {
+	url := resource.url() or { return }
+	if !url.starts_with('https://ghcr.io/') {
+		return
+	}
+	authorization := github_packages_authorization() or { return }
+	mut downloader := resource.downloader()!
+	header := 'Authorization: ${authorization}'
+	if header !in downloader.file.base.meta.headers {
+		downloader.file.base.meta.headers << header
+	}
+}
+
+pub fn bottle_version_rebuild(version string, rebuild int, tag string) string {
+	tag_suffix := if tag != '' { '.${tag}' } else { '' }
+	rebuild_suffix := if rebuild > 0 {
+		if tag != '' { '.${rebuild}' } else { '-${rebuild}' }
+	} else {
+		''
+	}
+	return '${version}${tag_suffix}${rebuild_suffix}'
+}
+
+pub fn bottle_path_resolved_basename(root_url string, name string, checksum Checksum,
+	filename BottleFilename) BottleUrlDecision {
+	if github_packages_root_url_if_match(root_url) != none {
+		path := '${bottle_github_image_name(name)}/blobs/sha256:${checksum.hexdigest}'
+		return BottleUrlDecision{
+			path:              path
+			resolved_basename: filename.github_packages()
+			url:               '${root_url.trim_string_right('/')}/${path}'
+			github_packages:   true
+		}
+	}
+	path := filename.url_encode()
+	return BottleUrlDecision{
+		path: path
+		url:  '${root_url.trim_string_right('/')}/${path}'
+	}
+}
+
+pub fn new_bottle(name string, pkg_version PkgVersion, mut specification BottleSpecification,
+	tag BottleTag) !Bottle {
+	tag_specification := specification.tag_specification_for(tag, false) or {
+		return error('${name} tag specification for tag ${tag.symbol()} is nil')
+	}
+	mut resource := new_resource(name)
+	resource.set_version(pkg_version.to_s())!
+	resource.set_checksum(tag_specification.checksum)
+	mut bottle := Bottle{
+		name:                 name
+		pkg_version:          pkg_version
+		specification:        specification
+		tag:                  tag_specification.tag
+		cellar:               tag_specification.cellar
+		rebuild:              specification.rebuild()
+		resource:             resource
+		fetch_tab_retried:    false
+		tab_attributes_value: map[string]json2.Any{}
+	}
+	bottle.set_root_url(specification.root_url(), specification.root_url_specs)!
+	return bottle
+}
+
+fn bottle_root_from_archive_url(value string) string {
+	if root := github_packages_root_url_if_match(value) {
+		return root
+	}
+	trimmed := value.trim_string_right('/')
+	if index := trimmed.last_index('/') {
+		return trimmed[..index]
+	}
+	return trimmed
+}
+
+// api_bottle_for_formula translates Homebrew::API::FormulaBottle.bottle for
+// the PackageReference metadata adapter used by the install command.
+pub fn api_bottle_for_formula(formula api.PackageReference, requested_tag BottleTag) !Bottle {
+	if formula.stable_version == '' || !formula.bottle_available {
+		return error('No stable bottle is available for ${formula.full_name}')
+	}
+	mut specification := new_bottle_specification()
+	specification.set_rebuild(formula.bottle_rebuild)
+	for tag_symbol, file in formula.bottle_files {
+		specification.sha256(tag_symbol, file.sha256, parse_bottle_cellar(file.cellar))!
+	}
+	selected := specification.tag_specification_for(requested_tag, false) or {
+		return error('${formula.full_name} has no bottle for tag ${requested_tag.symbol()}')
+	}
+	selected_file := formula.bottle_files[selected.tag.symbol()] or {
+		return error('${formula.full_name} bottle metadata is missing tag ${selected.tag.symbol()}')
+	}
+	custom_domain_value := custom_bottle_domain() or { '' }
+	root := if custom_domain_value != '' {
+		custom_domain_value
+	} else {
+		bottle_root_from_archive_url(selected_file.url)
+	}
+	specification.set_root_url(root, map[string]string{})
+	version := new_version(formula.stable_version)!
+	pkg_version := new_pkg_version(version, formula.revision)
+	return new_bottle(formula.name, pkg_version, mut specification, requested_tag)
+}
+
+pub fn (bottle Bottle) filename() !BottleFilename {
+	return new_bottle_filename(bottle.name, bottle.pkg_version, bottle.tag, bottle.rebuild)
+}
+
+pub fn (mut bottle Bottle) set_root_url(value string, specs map[string]string) !string {
+	bottle.root_url_value = value.trim_string_right('/')
+	bottle.has_root_url = true
+	filename := bottle.filename()!
+	decision := bottle_path_resolved_basename(bottle.root_url_value, bottle.name,
+		bottle.resource.checksum, filename)
+	mut selected_specs := specs.clone()
+	selected_specs['bottle'] = 'true'
+	bottle.resource.set_url(decision.url, selected_specs)!
+	add_github_packages_authorization(mut bottle.resource)!
+	if decision.resolved_basename != '' {
+		mut downloader := bottle.resource.downloader()!
+		downloader.file.resolved_url_value = decision.url
+		downloader.file.resolved_basename_value = decision.resolved_basename
+		downloader.file.has_resolved_url_basename = true
+	}
+	return bottle.root_url_value
+}
+
+pub fn (bottle Bottle) root_url() ?string {
+	if bottle.has_root_url {
+		return bottle.root_url_value
+	}
+	return none
+}
+
+pub fn (bottle Bottle) compatible_locations(context BottleLocationContext) bool {
+	return bottle.specification.compatible_locations(bottle.tag, context)
+}
+
+pub fn (bottle Bottle) skip_relocation(context BottleLocationContext) bool {
+	return bottle.specification.skip_relocation(bottle.tag, context)
+}
+
+fn custom_bottle_domain() ?string {
+	domain := brew_runtime.environment_value('HOMEBREW_BOTTLE_DOMAIN').trim_string_right('/')
+	default_domain_value :=
+		brew_runtime.environment_value('HOMEBREW_BOTTLE_DEFAULT_DOMAIN').trim_string_right('/')
+	if domain != '' && domain != default_domain_value {
+		return domain
+	}
+	return none
+}
+
+pub fn (bottle Bottle) github_packages_manifest_plan() ?BottleManifestPlan {
+	root := bottle.root_url() or { return none }
+	custom_domain_value := custom_bottle_domain() or { '' }
+	custom_domain := custom_domain_value != '' && root == custom_domain_value
+	if github_packages_root_url_if_match(root) == none && !custom_domain {
+		return none
+	}
+	version_rebuild := bottle_version_rebuild(bottle.pkg_version.to_s(), bottle.rebuild, '')
+	image_name := bottle_github_image_name(bottle.name)
+	manifest_path := '${image_name}/manifests/${version_rebuild}'
+	mut mirrors := []string{}
+	if custom_domain {
+		default_domain_value :=
+			brew_runtime.environment_value('HOMEBREW_BOTTLE_DEFAULT_DOMAIN').trim_string_right('/')
+		default_domain := if default_domain_value != '' {
+			default_domain_value
+		} else {
+			'https://ghcr.io/v2/homebrew/core'
+		}
+		mirrors << '${default_domain}/${manifest_path}'
+	}
+	return BottleManifestPlan{
+		descriptor:        BottleDescriptor{
+			name:     bottle.name
+			version:  bottle.pkg_version.to_s()
+			checksum: bottle.resource.checksum.hexdigest
+			rebuild:  bottle.rebuild
+			tag:      bottle.tag.symbol()
+		}
+		url:               '${root}/${manifest_path}'
+		mirrors:           mirrors
+		version_rebuild:   version_rebuild
+		resolved_basename: '${bottle.name}-${version_rebuild}.bottle_manifest.json'
+	}
+}
+
+pub fn (bottle Bottle) new_manifest_resource() !BottleManifestResource {
+	plan := bottle.github_packages_manifest_plan() or {
+		return error('Bottle manifest is unavailable for ${bottle.name}')
+	}
+	mut manifest := new_bottle_manifest_resource(plan.descriptor)
+	manifest.resource.set_version(plan.version_rebuild)!
+	manifest.resource.set_url(plan.url, {
+		'header': 'Accept: application/vnd.oci.image.index.v1+json'
+	})!
+	add_github_packages_authorization(mut manifest.resource)!
+	for mirror in plan.mirrors {
+		manifest.resource.mirror(mirror)
+	}
+	mut downloader := manifest.resource.downloader()!
+	downloader.file.resolved_url_value = plan.url
+	downloader.file.resolved_basename_value = plan.resolved_basename
+	downloader.file.has_resolved_url_basename = true
+	return manifest
+}
+
+// fetch_tab translates Bottle#fetch_tab using the typed Resource boundary. It
+// deliberately does not enqueue anything; FormulaInstaller owns that decision.
+pub fn (mut bottle Bottle) fetch_tab(timeout ?f64, quiet bool) ! {
+	mut manifest := bottle.new_manifest_resource()!
+	manifest.resource.fetch(false, timeout, quiet, true)!
+	manifest.verify_download_integrity('') or {
+		if bottle.fetch_tab_retried {
+			return err
+		}
+		bottle.fetch_tab_retried = true
+		manifest.clear_cache()!
+		manifest.resource.fetch(false, timeout, quiet, true)!
+		manifest.verify_download_integrity('')!
+	}
+	bottle.apply_manifest_metadata(mut manifest)!
+}
+
+fn (mut bottle Bottle) apply_manifest_metadata(mut manifest BottleManifestResource) ! {
+	bottle.tab_attributes_value = manifest.tab()!
+	bottle.has_tab_attributes = true
+	if value := manifest.bottle_size() {
+		bottle.bottle_size_value = value
+		bottle.has_bottle_size = true
+	}
+	if value := manifest.installed_size() {
+		bottle.installed_size_value = value
+		bottle.has_installed_size = true
+	}
+	if value := manifest.path_exec_files() {
+		bottle.path_exec_files_value = value
+		bottle.has_path_exec_files = true
+	}
+	bottle.manifest = manifest
+	bottle.has_manifest = true
+}
+
+// load_manifest_annotations is the non-network half of Bottle#fetch_tab. It is
+// used for API-provided or already-enqueued OCI manifest metadata.
+pub fn (mut bottle Bottle) load_manifest_annotations(annotations map[string]string) ! {
+	mut manifest := bottle.new_manifest_resource()!
+	manifest.set_manifest_annotations(annotations)
+	bottle.apply_manifest_metadata(mut manifest)!
+}
+
+pub fn (bottle Bottle) tab_attributes() map[string]json2.Any {
+	if bottle.has_tab_attributes {
+		return bottle.tab_attributes_value.clone()
+	}
+	return map[string]json2.Any{}
+}
+
+pub fn (bottle Bottle) bottle_size() ?i64 {
+	if bottle.has_bottle_size {
+		return bottle.bottle_size_value
+	}
+	return none
+}
+
+pub fn (bottle Bottle) installed_size() ?i64 {
+	if bottle.has_installed_size {
+		return bottle.installed_size_value
+	}
+	return none
+}
+
+pub fn (bottle Bottle) path_exec_files() ?[]string {
+	if bottle.has_path_exec_files {
+		return bottle.path_exec_files_value.clone()
+	}
+	return none
+}
+
+// stage translates Bottle#stage through the typed downloader and recursive
+// UnpackStrategy boundary. The explicit destination represents the temporary
+// staging directory supplied by the install orchestration in V.
+pub fn (mut bottle Bottle) stage(destination string) !string {
+	if destination == '' {
+		return error('Bottle staging requires a destination')
+	}
+	if !bottle.resource.downloaded() {
+		bottle.resource.fetch(true, none, false, true)!
+	}
+	return bottle.resource.unpack(destination, false) or {
+		original_error := err.msg()
+		if !ruby_bottle_l179_d26_discard_corrupt_cached_download(mut bottle)! {
+			return error(original_error)
+		}
+		bottle.resource.fetch(true, none, false, true)!
+		return bottle.resource.unpack(destination, false)!
+	}
+}
+
+fn remove_staged_bottle_path(path string) {
+	if path == '' {
+		return
+	}
+	if os.is_link(path) || os.is_file(path) {
+		os.rm(path) or {}
+	} else if os.is_dir(path) {
+		os.rmdir_all(path) or {}
+	}
+}
+
+fn extract_queued_bottle(download string, temporary_cellar string) ! {
+	strategy := unpack_strategy.detect(download, unpack_strategy.DetectOptions{
+		prioritize_extension: true
+	})
+	strategy.extract_nestedly(unpack_strategy.ExtractOptions{
+		destination:          temporary_cellar
+		basename:             os.file_name(download)
+		prioritize_extension: true
+	})!
+}
+
+// stage_from_download_queue translates Bottle#stage_from_download_queue. The
+// symlink marker is created only after the expected name/version directory has
+// been extracted, retaining the source's interruption-safe completion check.
+pub fn (mut bottle Bottle) stage_from_download_queue(download string, pour bool) !string {
+	temporary_cellar_value := brew_runtime.environment_value('HOMEBREW_TEMP_CELLAR')
+	temporary_cellar := if temporary_cellar_value != '' {
+		temporary_cellar_value
+	} else {
+		'/tmp/homebrew/Cellar'
+	}
+	return bottle.stage_from_download_queue_in(download, pour, temporary_cellar)
+}
+
+pub fn (mut bottle Bottle) stage_from_download_queue_in(download string, pour bool,
+	temporary_cellar string) !string {
+	if !pour {
+		return ''
+	}
+	bottle_tmp_keg := bottle.staged_path_in(temporary_cellar)
+	bottle_poured_file := '${bottle_tmp_keg}.poured'
+	os.mkdir_all(temporary_cellar)!
+	if brew_runtime.path_exists(bottle_poured_file) && brew_runtime.is_dir(bottle_tmp_keg) {
+		return bottle_tmp_keg
+	}
+	if os.is_link(bottle_poured_file) {
+		os.rm(bottle_poured_file)!
+	}
+	remove_staged_bottle_path(bottle_tmp_keg)
+	extract_queued_bottle(download, temporary_cellar) or {
+		original_error := err.msg()
+		remove_staged_bottle_path(bottle_tmp_keg)
+		parent := os.dir(bottle_tmp_keg)
+		if os.is_dir(parent) && (os.ls(parent) or { []string{} }).len == 0 {
+			os.rmdir(parent) or {}
+		}
+		bottle.resource.verify_download_integrity(download) or {
+			bottle.clear_cache()!
+			fresh_download := bottle.resource.fetch(true, none, true, true)!
+			extract_queued_bottle(fresh_download, temporary_cellar)!
+			if !brew_runtime.is_dir(bottle_tmp_keg) {
+				return error('Bottle archive did not contain ${bottle.name}/${bottle.pkg_version.to_s()}')
+			}
+			os.symlink(bottle_tmp_keg, bottle_poured_file)!
+			return bottle_tmp_keg
+		}
+		return error(original_error)
+	}
+	if !brew_runtime.is_dir(bottle_tmp_keg) {
+		remove_staged_bottle_path(bottle_tmp_keg)
+		return error('Bottle archive did not contain ${bottle.name}/${bottle.pkg_version.to_s()}')
+	}
+	os.symlink(bottle_tmp_keg, bottle_poured_file)!
+	return bottle_tmp_keg
+}
+
+pub fn (mut bottle Bottle) clear_cache() ! {
+	bottle.resource.clear_cache()!
+	if bottle.has_manifest {
+		bottle.manifest.clear_cache()!
+	}
+	bottle.fetch_tab_retried = false
+	bottle.has_tab_attributes = false
+	bottle.has_bottle_size = false
+	bottle.has_installed_size = false
+	bottle.has_path_exec_files = false
 }
 
 // Ruby attr_reader `attr_reader :name, :tag` at line 11.
-pub fn ruby_bottle_l11_d2_tag(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tag', ...args)
+pub fn ruby_bottle_l11_d1_name(filename &BottleFilename) string {
+	return filename.name
+}
+
+// Ruby attr_reader `attr_reader :name, :tag` at line 11.
+pub fn ruby_bottle_l11_d2_tag(filename &BottleFilename) string {
+	return filename.tag
 }
 
 // Ruby attr_reader `attr_reader :version` at line 14.
-pub fn ruby_bottle_l14_d3_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('version', ...args)
+pub fn ruby_bottle_l14_d3_version(filename &BottleFilename) PkgVersion {
+	return filename.version
 }
 
 // Ruby attr_reader `attr_reader :rebuild` at line 17.
-pub fn ruby_bottle_l17_d4_rebuild(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('rebuild', ...args)
+pub fn ruby_bottle_l17_d4_rebuild(filename &BottleFilename) int {
+	return filename.rebuild
 }
 
 // Ruby method `self.create(formula, tag, rebuild)` at line 20.
-pub fn ruby_bottle_l20_d5_self_create(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.create', ...args)
+pub fn ruby_bottle_l20_d5_self_create(name string, version PkgVersion, tag BottleTag,
+	rebuild int) !BottleFilename {
+	return new_bottle_filename(name, version, tag, rebuild)
 }
 
 // Ruby method `initialize(name, version, tag, rebuild)` at line 25.
-pub fn ruby_bottle_l25_d6_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+pub fn ruby_bottle_l25_d6_initialize(name string, version PkgVersion, tag BottleTag,
+	rebuild int) !BottleFilename {
+	return new_bottle_filename(name, version, tag, rebuild)
 }
 
 // Ruby method `to_str` at line 37.
-pub fn ruby_bottle_l37_d7_to_str(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_str', ...args)
+pub fn ruby_bottle_l37_d7_to_str(filename &BottleFilename) string {
+	return filename.str()
 }
 
 // Ruby method `to_s = to_str` at line 42.
-pub fn ruby_bottle_l42_d8_to_s(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_s', ...args)
+pub fn ruby_bottle_l42_d8_to_s(filename &BottleFilename) string {
+	return filename.str()
 }
 
 // Ruby method `json` at line 45.
-pub fn ruby_bottle_l45_d9_json(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('json', ...args)
+pub fn ruby_bottle_l45_d9_json(filename &BottleFilename) string {
+	return filename.json()
 }
 
 // Ruby method `url_encode` at line 50.
-pub fn ruby_bottle_l50_d10_url_encode(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('url_encode', ...args)
+pub fn ruby_bottle_l50_d10_url_encode(filename &BottleFilename) string {
+	return filename.url_encode()
 }
 
 // Ruby method `github_packages` at line 55.
-pub fn ruby_bottle_l55_d11_github_packages(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('github_packages', ...args)
+pub fn ruby_bottle_l55_d11_github_packages(filename &BottleFilename) string {
+	return filename.github_packages()
 }
 
 // Ruby method `extname` at line 60.
-pub fn ruby_bottle_l60_d12_extname(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('extname', ...args)
+pub fn ruby_bottle_l60_d12_extname(filename &BottleFilename) string {
+	return filename.extname()
 }
 
 // Ruby attr_reader `attr_reader :name` at line 69.
-pub fn ruby_bottle_l69_d13_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('name', ...args)
+pub fn ruby_bottle_l69_d13_name(bottle &Bottle) string {
+	return bottle.name
 }
 
 // Ruby attr_reader `attr_reader :resource` at line 72.
-pub fn ruby_bottle_l72_d14_resource(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('resource', ...args)
+pub fn ruby_bottle_l72_d14_resource(bottle &Bottle) Resource {
+	return bottle.resource
 }
 
 // Ruby attr_reader `attr_reader :tag` at line 75.
-pub fn ruby_bottle_l75_d15_tag(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tag', ...args)
+pub fn ruby_bottle_l75_d15_tag(bottle &Bottle) BottleTag {
+	return bottle.tag
 }
 
 // Ruby attr_reader `attr_reader :cellar` at line 78.
-pub fn ruby_bottle_l78_d16_cellar(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cellar', ...args)
+pub fn ruby_bottle_l78_d16_cellar(bottle &Bottle) BottleCellar {
+	return bottle.cellar
 }
 
 // Ruby attr_reader `attr_reader :rebuild` at line 81.
-pub fn ruby_bottle_l81_d17_rebuild(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('rebuild', ...args)
+pub fn ruby_bottle_l81_d17_rebuild(bottle &Bottle) int {
+	return bottle.rebuild
 }
 
 // Ruby def_delegators `def_delegators :resource, :url, :verify_download_integrity` at line 83.
-pub fn ruby_bottle_l83_d18_url(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('url', ...args)
+pub fn ruby_bottle_l83_d18_url(bottle &Bottle) ?string {
+	return bottle.resource.url()
 }
 
 // Ruby def_delegators `def_delegators :resource, :url, :verify_download_integrity` at line 83.
-pub fn ruby_bottle_l83_d19_verify_download_integrity(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('verify_download_integrity', ...args)
+pub fn ruby_bottle_l83_d19_verify_download_integrity(mut bottle Bottle, filename string) ! {
+	bottle.resource.verify_download_integrity(filename)!
 }
 
 // Ruby def_delegators `def_delegators :resource, :cached_download, :downloader` at line 84.
-pub fn ruby_bottle_l84_d20_cached_download(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cached_download', ...args)
+pub fn ruby_bottle_l84_d20_cached_download(mut bottle Bottle) !string {
+	return bottle.resource.cached_download()
 }
 
 // Ruby def_delegators `def_delegators :resource, :cached_download, :downloader` at line 84.
-pub fn ruby_bottle_l84_d21_downloader(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('downloader', ...args)
+pub fn ruby_bottle_l84_d21_downloader(mut bottle Bottle) !&download_strategy.CurlDownloadStrategy {
+	return bottle.resource.downloader()
 }
 
 // Ruby method `initialize(formula, spec, tag = nil, name: nil, pkg_version: nil)` at line 95.
-pub fn ruby_bottle_l95_d22_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+pub fn ruby_bottle_l95_d22_initialize(name string, pkg_version PkgVersion,
+	mut specification BottleSpecification, tag BottleTag) !Bottle {
+	return new_bottle(name, pkg_version, mut specification, tag)
 }
 
 // Ruby method `fetch(verify_download_integrity: true, timeout: nil, quiet: false)` at line 138.
-pub fn ruby_bottle_l138_d23_fetch(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fetch', ...args)
+pub fn ruby_bottle_l138_d23_fetch(mut bottle Bottle, verify_download_integrity bool,
+	timeout ?f64, quiet bool) !string {
+	return bottle.resource.fetch(verify_download_integrity, timeout, quiet, false)
 }
 
 // Ruby method `downloaded_and_valid?` at line 148.
-pub fn ruby_bottle_l148_d24_downloaded_and_valid(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('downloaded_and_valid?', ...args)
+pub fn ruby_bottle_l148_d24_downloaded_and_valid(mut bottle Bottle) bool {
+	return bottle.resource.downloaded_and_valid()
 }
 
 // Ruby method `with_corrupt_download_retry(quiet: false, &_block)` at line 166.
-pub fn ruby_bottle_l166_d25_with_corrupt_download_retry(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('with_corrupt_download_retry', ...args)
+pub fn ruby_bottle_l166_d25_with_corrupt_download_retry[T](mut bottle Bottle, quiet bool,
+	operation fn () !T) !T {
+	return operation() or {
+		original_error := err.msg()
+		ruby_bottle_l179_d26_discard_corrupt_cached_download(mut bottle)!
+		cached_download := bottle.resource.cached_download() or { '' }
+		if cached_download != '' && brew_runtime.path_exists(cached_download) {
+			return error(original_error)
+		}
+		bottle.resource.fetch(true, none, quiet, false)!
+		return operation()
+	}
 }
 
 // Ruby method `discard_corrupt_cached_download` at line 179.
-pub fn ruby_bottle_l179_d26_discard_corrupt_cached_download(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('discard_corrupt_cached_download', ...args)
+pub fn ruby_bottle_l179_d26_discard_corrupt_cached_download(mut bottle Bottle) !bool {
+	path := bottle.resource.cached_download() or { return false }
+	bottle.resource.verify_download_integrity(path) or {
+		bottle.clear_cache()!
+		return true
+	}
+	return false
 }
 
 // Ruby method `total_size` at line 190.
-pub fn ruby_bottle_l190_d27_total_size(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('total_size', ...args)
+pub fn ruby_bottle_l190_d27_total_size(mut bottle Bottle) ?i64 {
+	if size := bottle.bottle_size() {
+		return size
+	}
+	return bottle.resource.total_size()
 }
 
 // Ruby method `clear_cache` at line 195.
-pub fn ruby_bottle_l195_d28_clear_cache(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('clear_cache', ...args)
+pub fn ruby_bottle_l195_d28_clear_cache(mut bottle Bottle) ! {
+	bottle.clear_cache()!
 }
 
 // Ruby method `compatible_locations?` at line 202.
-pub fn ruby_bottle_l202_d29_compatible_locations(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('compatible_locations?', ...args)
+pub fn ruby_bottle_l202_d29_compatible_locations(bottle &Bottle,
+	context BottleLocationContext) bool {
+	return bottle.compatible_locations(context)
 }
 
 // Ruby method `skip_relocation?` at line 208.
-pub fn ruby_bottle_l208_d30_skip_relocation(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skip_relocation?', ...args)
+pub fn ruby_bottle_l208_d30_skip_relocation(bottle &Bottle,
+	context BottleLocationContext) bool {
+	return bottle.skip_relocation(context)
 }
 
 // Ruby method `stage = with_corrupt_download_retry { downloader.stage }` at line 215.
-pub fn ruby_bottle_l215_d31_stage(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('stage', ...args)
+pub fn ruby_bottle_l215_d31_stage(mut bottle Bottle, destination string) !string {
+	return bottle.stage(destination)
 }
 
 // Ruby method `fetch_tab(timeout: nil, quiet: false)` at line 218.
-pub fn ruby_bottle_l218_d32_fetch_tab(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fetch_tab', ...args)
+pub fn ruby_bottle_l218_d32_fetch_tab(mut bottle Bottle, timeout ?f64, quiet bool) ! {
+	bottle.fetch_tab(timeout, quiet)!
 }
 
 // Ruby method `tab_attributes` at line 234.
-pub fn ruby_bottle_l234_d33_tab_attributes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tab_attributes', ...args)
+pub fn ruby_bottle_l234_d33_tab_attributes(bottle &Bottle) map[string]json2.Any {
+	return bottle.tab_attributes()
 }
 
 // Ruby method `bottle_size` at line 243.
-pub fn ruby_bottle_l243_d34_bottle_size(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('bottle_size', ...args)
+pub fn ruby_bottle_l243_d34_bottle_size(bottle &Bottle) ?i64 {
+	return bottle.bottle_size()
 }
 
 // Ruby method `installed_size` at line 251.
-pub fn ruby_bottle_l251_d35_installed_size(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('installed_size', ...args)
+pub fn ruby_bottle_l251_d35_installed_size(bottle &Bottle) ?i64 {
+	return bottle.installed_size()
 }
 
 // Ruby method `path_exec_files` at line 259.
-pub fn ruby_bottle_l259_d36_path_exec_files(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('path_exec_files', ...args)
+pub fn ruby_bottle_l259_d36_path_exec_files(bottle &Bottle) ?[]string {
+	return bottle.path_exec_files()
 }
 
 // Ruby method `sbom_supplement` at line 267.
-pub fn ruby_bottle_l267_d37_sbom_supplement(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sbom_supplement', ...args)
+pub fn ruby_bottle_l267_d37_sbom_supplement(mut bottle Bottle,
+	current_tag string) ?map[string]json2.Any {
+	if !bottle.has_manifest {
+		return none
+	}
+	return bottle.manifest.sbom_supplement(current_tag)
 }
 
 // Ruby method `filename = Filename.new(@name, @pkg_version, @tag, @spec.rebuild)` at line 275.
-pub fn ruby_bottle_l275_d38_filename(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('filename', ...args)
+pub fn ruby_bottle_l275_d38_filename(bottle &Bottle) !BottleFilename {
+	return bottle.filename()
 }
 
 // Ruby method `staged_path_from_download_queue` at line 278.
-pub fn ruby_bottle_l278_d39_staged_path_from_download_queue(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('staged_path_from_download_queue', ...args)
+pub fn ruby_bottle_l278_d39_staged_path_from_download_queue(bottle &Bottle) string {
+	temporary_cellar := brew_runtime.environment_value('HOMEBREW_TEMP_CELLAR')
+	root := if temporary_cellar != '' { temporary_cellar } else { '/tmp/homebrew/Cellar' }
+	return bottle.staged_path_in(root)
+}
+
+pub fn (bottle Bottle) staged_path_in(temporary_cellar string) string {
+	filename := bottle.filename() or { return temporary_cellar }
+	return '${temporary_cellar}/${filename.name}/${filename.version.to_s()}'
 }
 
 // Ruby method `staged_path_from_download_queue_marker` at line 284.
-pub fn ruby_bottle_l284_d40_staged_path_from_download_queue_marker(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('staged_path_from_download_queue_marker', ...args)
+pub fn ruby_bottle_l284_d40_staged_path_from_download_queue_marker(bottle &Bottle) string {
+	return '${ruby_bottle_l278_d39_staged_path_from_download_queue(bottle)}.poured'
 }
 
 // Ruby method `stage_from_download_queue?(_download, pour:)` at line 289.
-pub fn ruby_bottle_l289_d41_stage_from_download_queue(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('stage_from_download_queue?', ...args)
+pub fn ruby_bottle_l289_d41_stage_from_download_queue(_bottle &Bottle, _download string,
+	pour bool) bool {
+	return pour
 }
 
 // Ruby method `stage_from_download_queue(download, pour:)` at line 294.
-pub fn ruby_bottle_l294_d42_stage_from_download_queue(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('stage_from_download_queue', ...args)
+pub fn ruby_bottle_l294_d42_stage_from_download_queue(mut bottle Bottle, download string,
+	pour bool) !string {
+	return bottle.stage_from_download_queue(download, pour)
 }
 
 // Ruby method `github_packages_manifest_resource` at line 329.
-pub fn ruby_bottle_l329_d43_github_packages_manifest_resource(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('github_packages_manifest_resource', ...args)
+pub fn ruby_bottle_l329_d43_github_packages_manifest_resource(bottle &Bottle) ?BottleManifestPlan {
+	return bottle.github_packages_manifest_plan()
 }
 
 // Ruby method `download_queue_type = "Bottle"` at line 369.
-pub fn ruby_bottle_l369_d44_download_queue_type(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('download_queue_type', ...args)
+pub fn ruby_bottle_l369_d44_download_queue_type(_bottle &Bottle) string {
+	return 'Bottle'
 }
 
 // Ruby method `download_queue_name = "#{name} (#{resource.version})"` at line 372.
-pub fn ruby_bottle_l372_d45_download_queue_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('download_queue_name', ...args)
+pub fn ruby_bottle_l372_d45_download_queue_name(bottle &Bottle) string {
+	return '${bottle.name} (${bottle.pkg_version.to_s()})'
 }
 
 // Ruby method `select_download_strategy(specs)` at line 377.
-pub fn ruby_bottle_l377_d46_select_download_strategy(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('select_download_strategy', ...args)
+pub fn ruby_bottle_l377_d46_select_download_strategy(bottle &Bottle,
+	specs map[string]string) !map[string]string {
+	if !bottle.has_root_url {
+		return error('cannot select download strategy for ${bottle.name} because root_url is nil')
+	}
+	mut selected := specs.clone()
+	selected['bottle'] = 'true'
+	return selected
 }
 
 // Ruby method `fallback_on_error?` at line 385.
-pub fn ruby_bottle_l385_d47_fallback_on_error(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fallback_on_error?', ...args)
+pub fn ruby_bottle_l385_d47_fallback_on_error(mut bottle Bottle) !bool {
+	configured := custom_bottle_domain() or { return false }
+	url := bottle.resource.url() or { return false }
+	if !url.starts_with(configured) {
+		return false
+	}
+	default_domain_value :=
+		brew_runtime.environment_value('HOMEBREW_BOTTLE_DEFAULT_DOMAIN').trim_string_right('/')
+	default_domain := if default_domain_value != '' {
+		default_domain_value
+	} else {
+		'https://ghcr.io/v2/homebrew/core'
+	}
+	bottle.set_root_url(default_domain, map[string]string{})!
+	bottle.has_manifest = false
+	return true
 }
 
 // Ruby method `root_url(val = nil, specs = {})` at line 399.
-pub fn ruby_bottle_l399_d48_root_url(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('root_url', ...args)
+pub fn ruby_bottle_l399_d48_root_url(mut bottle Bottle, value ?string,
+	specs map[string]string) !string {
+	if root := value {
+		return bottle.set_root_url(root, specs)!
+	}
+	return bottle.root_url() or { return error('root_url is nil') }
 }
 
 // Original Ruby source (line-for-line):

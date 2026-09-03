@@ -1,33 +1,90 @@
 module artifact
 
 import brew_runtime
+import os
 
 // Translated from Homebrew/brew `cask/artifact/generated_script.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub struct GeneratedScriptArtifact {
+pub:
+	cask_token  string
+	staged_path string
+	path        string
+	path_string string
+	content     string
+}
+
+pub fn new_generated_script(cask_token string, staged_path string, path string,
+	content string) !GeneratedScriptArtifact {
+	if content.trim_space() == '' {
+		return error("'generated_script' requires content")
+	}
+	if os.is_abs_path(path) || path.split('/').contains('..') {
+		return error("'generated_script' requires a path within the staged cask")
+	}
+	return GeneratedScriptArtifact{
+		cask_token: cask_token
+		staged_path: staged_path
+		path: os.join_path(staged_path, path)
+		path_string: path
+		content: content
+	}
+}
+
+pub fn install_generated_script(artifact GeneratedScriptArtifact) ! {
+	mut path := artifact.path
+	for path != artifact.staged_path {
+		if os.is_link(path) {
+			return error("'generated_script' path contains a symlink")
+		}
+		parent := os.dir(path)
+		if parent == path {
+			break
+		}
+		path = parent
+	}
+	os.mkdir_all(os.dir(artifact.path))!
+	if os.is_link(artifact.path) {
+		return error("'generated_script' path contains a symlink")
+	}
+	os.write_file(artifact.path, artifact.content)!
+	os.chmod(artifact.path, 0o755)!
+}
+
+pub fn generated_script_to_args(artifact GeneratedScriptArtifact) brew_runtime.Value {
+	return brew_runtime.array_value([
+		brew_runtime.string_value(artifact.path_string),
+		brew_runtime.map_value({
+			'content': brew_runtime.string_value(artifact.content)
+		}),
+	])
+}
 
 // Ruby method `self.from_args(cask, path, options = nil)` at line 17.
-pub fn ruby_generated_script_l17_d1_self_from_args(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.from_args', ...args)
+pub fn ruby_generated_script_l17_d1_self_from_args(cask_token string, staged_path string,
+	path string, content string) !GeneratedScriptArtifact {
+	return new_generated_script(cask_token, staged_path, path, content)
 }
 
 // Ruby method `initialize(cask, path, content:)` at line 24.
-pub fn ruby_generated_script_l24_d2_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+pub fn ruby_generated_script_l24_d2_initialize(cask_token string, staged_path string,
+	path string, content string) !GeneratedScriptArtifact {
+	return new_generated_script(cask_token, staged_path, path, content)
 }
 
 // Ruby method `install_phase(**_options)` at line 39.
-pub fn ruby_generated_script_l39_d3_install_phase(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install_phase', ...args)
+pub fn ruby_generated_script_l39_d3_install_phase(artifact GeneratedScriptArtifact) ! {
+	install_generated_script(artifact)!
 }
 
 // Ruby method `to_args` at line 54.
-pub fn ruby_generated_script_l54_d4_to_args(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_args', ...args)
+pub fn ruby_generated_script_l54_d4_to_args(artifact GeneratedScriptArtifact) brew_runtime.Value {
+	return generated_script_to_args(artifact)
 }
 
 // Ruby method `summarize = @path_string` at line 59.
-pub fn ruby_generated_script_l59_d5_summarize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('summarize', ...args)
+pub fn ruby_generated_script_l59_d5_summarize(artifact GeneratedScriptArtifact) string {
+	return artifact.path_string
 }
 
 // Original Ruby source (line-for-line):

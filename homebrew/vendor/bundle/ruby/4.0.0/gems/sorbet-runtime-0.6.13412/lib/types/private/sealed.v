@@ -1,48 +1,213 @@
 module private
 
 import brew_runtime
+import regex
+import sync
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/sorbet-runtime-0.6.13412/lib/types/private/sealed.rb`.
 // The original source is retained below until every stub has a typed V body.
+struct SealedEntry {
+	declaration_file string
+	subclasses       []brew_runtime.Value
+	cached_set       []brew_runtime.Value
+	frozen           bool
+}
+
+@[heap]
+pub struct SealedRegistry {
+	mutex &sync.Mutex = sync.new_mutex()
+mut:
+	entries map[string]SealedEntry
+}
+
+pub fn new_sealed_registry() &SealedRegistry {
+	return &SealedRegistry{}
+}
+
+const sealed_registry_global = new_sealed_registry()
+
+pub fn (mut registry SealedRegistry) declare(id string, name string, is_module bool,
+	is_final bool, declaration_file string) ! {
+	if !is_module {
+		return error('${name} is not a class or module and cannot be declared `sealed!`')
+	}
+	registry.mutex.lock()
+	defer {
+		registry.mutex.unlock()
+	}
+	if id in registry.entries {
+		return error('${name} was already declared `sealed!` and cannot be re-declared `sealed!`')
+	}
+	if is_final {
+		return error('${name} was already declared `final!` and cannot be declared `sealed!`')
+	}
+	if declaration_file == '' {
+		return error("Couldn't determine declaration file for sealed class.")
+	}
+	registry.entries[id] = SealedEntry{
+		declaration_file: declaration_file
+	}
+}
+
+pub fn (mut registry SealedRegistry) sealed_module(id string) bool {
+	registry.mutex.lock()
+	defer {
+		registry.mutex.unlock()
+	}
+	return id in registry.entries
+}
+
+fn sealed_path_matches(pattern string, path string) bool {
+	mut expression := regex.regex_opt(pattern) or { return path.contains(pattern) }
+	return expression.matches_string(path)
+}
+
+pub fn (mut registry SealedRegistry) add_subclass(id string, parent_name string,
+	child brew_runtime.Value, verb string, caller_path string, whitelist []string) ! {
+	registry.mutex.lock()
+	defer {
+		registry.mutex.unlock()
+	}
+	entry := registry.entries[id] or {
+		return error('${parent_name} does not seem to be a sealed module (${verb} by ${child.as_string()})')
+	}
+	if caller_path == '' {
+		return error('Could not use backtrace to determine file for ${verb} child ${child.as_string()}')
+	}
+	if !caller_path.starts_with(entry.declaration_file) && !whitelist.any(sealed_path_matches(it, caller_path)) {
+		return error('${parent_name} was declared sealed and can only be ${verb} in ${entry.declaration_file}, not ${caller_path}')
+	}
+	mut subclasses := entry.subclasses.clone()
+	subclasses << child
+	registry.entries[id] = SealedEntry{
+		declaration_file: entry.declaration_file
+		subclasses: subclasses
+		cached_set: entry.cached_set.clone()
+		frozen: entry.frozen
+	}
+}
+
+pub fn (mut registry SealedRegistry) sealed_subclasses(id string) []brew_runtime.Value {
+	registry.mutex.lock()
+	defer {
+		registry.mutex.unlock()
+	}
+	entry := registry.entries[id] or { return []brew_runtime.Value{} }
+	if entry.frozen {
+		return entry.cached_set.clone()
+	}
+	mut unique := []brew_runtime.Value{}
+	mut seen := map[string]bool{}
+	for subclass in entry.subclasses {
+		key := subclass.attribute('object_id') or { '${subclass.type_name}:${subclass.as_string()}' }
+		if key !in seen {
+			unique << subclass
+			seen[key] = true
+		}
+	}
+	registry.entries[id] = SealedEntry{
+		declaration_file: entry.declaration_file
+		subclasses: entry.subclasses.clone()
+		cached_set: unique.clone()
+		frozen: true
+	}
+	return unique
+}
+
+fn sealed_registry() &SealedRegistry {
+	return unsafe { &SealedRegistry(sealed_registry_global) }
+}
+
+fn sealed_value_id(value brew_runtime.Value) string {
+	return value.attribute('object_id') or { '${value.type_name}:${value.as_string()}' }
+}
+
+fn sealed_value_path(value brew_runtime.Value) string {
+	if value.type_name == 'NilClass' {
+		return ''
+	}
+	return value.attribute('path') or { value.as_string() }
+}
+
+fn sealed_hook(args []brew_runtime.Value, verb string) brew_runtime.Value {
+	if args.len < 2 {
+		panic('sealed ${verb} hook requires parent and child')
+	}
+	parent := args[0]
+	child := args[1]
+	caller_path := if args.len > 2 { sealed_value_path(args[2]) } else { '' }
+	whitelist := if args.len > 3 { args[3].as_string_array() or { []string{} } } else { []string{} }
+	mut registry := sealed_registry()
+	registry.add_subclass(sealed_value_id(parent), parent.as_string(), child, verb, caller_path, whitelist) or { panic(err.msg()) }
+	return brew_runtime.object_value('NilClass', 'nil')
+}
+
+fn sealed_subclasses_boundary(args []brew_runtime.Value) brew_runtime.Value {
+	if args.len == 0 {
+		return brew_runtime.array_value([])
+	}
+	mut registry := sealed_registry()
+	return brew_runtime.array_value(registry.sealed_subclasses(sealed_value_id(args[0])))
+}
 
 // Ruby method `inherited(child)` at line 6.
 pub fn ruby_sealed_l6_d1_inherited(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('inherited', ...args)
+	return sealed_hook(args, 'inherited')
 }
 
 // Ruby method `sealed_subclasses` at line 13.
 pub fn ruby_sealed_l13_d2_sealed_subclasses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sealed_subclasses', ...args)
+	return sealed_subclasses_boundary(args)
 }
 
 // Ruby method `included(child)` at line 23.
 pub fn ruby_sealed_l23_d3_included(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('included', ...args)
+	return sealed_hook(args, 'included')
 }
 
 // Ruby method `extended(child)` at line 30.
 pub fn ruby_sealed_l30_d4_extended(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('extended', ...args)
+	return sealed_hook(args, 'extended')
 }
 
 // Ruby method `sealed_subclasses` at line 37.
 pub fn ruby_sealed_l37_d5_sealed_subclasses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sealed_subclasses', ...args)
+	return sealed_subclasses_boundary(args)
 }
 
 // Ruby method `self.declare(mod, decl_file)` at line 49.
 pub fn ruby_sealed_l49_d6_self_declare(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.declare', ...args)
+	if args.len < 2 {
+		panic('Sealed.declare requires a module and declaration file')
+	}
+	target := args[0]
+	id := sealed_value_id(target)
+	mut final_modules := final_registry()
+	is_final := final_modules.final_module(id)
+	mut registry := sealed_registry()
+	registry.declare(id, target.as_string(), target.type_name in ['Class', 'Module'], is_final, args[1].as_string()) or { panic(err.msg()) }
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Ruby method `self.sealed_module?(mod)` at line 67.
 pub fn ruby_sealed_l67_d7_self_sealed_module(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.sealed_module?', ...args)
+	if args.len == 0 {
+		return brew_runtime.bool_value(false)
+	}
+	mut registry := sealed_registry()
+	return brew_runtime.bool_value(registry.sealed_module(sealed_value_id(args[0])))
 }
 
 // Ruby method `self.validate_inheritance(caller_loc, parent, child, verb)` at line 71.
 pub fn ruby_sealed_l71_d8_self_validate_inheritance(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.validate_inheritance', ...args)
+	if args.len < 4 {
+		panic('Sealed.validate_inheritance requires caller, parent, child, and verb')
+	}
+	parent := args[1]
+	whitelist := if args.len > 4 { args[4].as_string_array() or { []string{} } } else { []string{} }
+	mut registry := sealed_registry()
+	registry.add_subclass(sealed_value_id(parent), parent.as_string(), args[2], args[3].as_string(), sealed_value_path(args[0]), whitelist) or { panic(err.msg()) }
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Original Ruby source (line-for-line):

@@ -1,93 +1,352 @@
 module os
 
 import brew_runtime
+import homebrew.os.mac as sdk
+import os
+
+pub struct MacFormulaRequirement {
+pub:
+	is_xcode bool
+	build    bool
+	test     bool
+}
+
+pub struct MacAppCandidate {
+pub:
+	path           string
+	bundle_version string
+	plist_exists   bool
+}
+
+pub struct MacContext {
+pub mut:
+	full_version         string
+	languages            []string
+	active_developer_dir string
+	clt_installed        bool
+	clt_locator          &sdk.SdkLocator = unsafe { nil }
+	xcode_locator        &sdk.SdkLocator = unsafe { nil }
+	xcode_sdk            sdk.MacSdk
+	mdfind_results       map[string][]string
+	app_candidates       map[string]MacAppCandidate
+	pkgutil_results      map[string]string
+	mdfind_cache         map[string][]string
+	pkgutil_cache        map[string]string
+}
+
+pub fn new_mac_context(version string, languages_output string, system_languages_output string,
+	active_developer_dir string, clt_installed bool, clt_locator &sdk.SdkLocator,
+	xcode_locator &sdk.SdkLocator) &MacContext {
+	selected_languages := if languages_output.trim_space() == '' {
+		mac_parse_languages(system_languages_output)
+	} else {
+		mac_parse_languages(languages_output)
+	}
+	return &MacContext{
+		full_version: version.trim_space()
+		languages: selected_languages
+		active_developer_dir: active_developer_dir.trim_space()
+		clt_installed: clt_installed
+		clt_locator: clt_locator
+		xcode_locator: xcode_locator
+		mdfind_results: map[string][]string{}
+		app_candidates: map[string]MacAppCandidate{}
+		pkgutil_results: map[string]string{}
+		mdfind_cache: map[string][]string{}
+		pkgutil_cache: map[string]string{}
+	}
+}
+
+fn default_mac_context() &MacContext {
+	version := os.getenv_opt('HOMEBREW_FAKE_MACOS') or { os.getenv('HOMEBREW_MACOS_VERSION') }
+	clt := sdk.new_sdk_locator('/Library/Developer/CommandLineTools/SDKs', 'clt')
+	xcode := sdk.new_sdk_locator('', 'xcode')
+	return new_mac_context(version, os.getenv('AppleLanguages'), '', '', false, clt, xcode)
+}
+
+pub fn mac_parse_languages(output string) []string {
+	mut normalized := output
+	for delimiter in ['\n', ' ', '"', '(', ')', ','] {
+		normalized = normalized.replace(delimiter, ' ')
+	}
+	return normalized.fields()
+}
+
+pub fn mac_strip_patch(version string) string {
+	parts := version.trim_space().split('.')
+	return if parts.len > 1 { parts[..2].join('.') } else { version.trim_space() }
+}
+
+fn mac_version_parts(version string) []int {
+	return version.split('.').map(it.int())
+}
+
+fn mac_version_compare(left string, right string) int {
+	a := mac_version_parts(left)
+	b := mac_version_parts(right)
+	maximum := if a.len > b.len { a.len } else { b.len }
+	for index in 0 .. maximum {
+		av := if index < a.len { a[index] } else { 0 }
+		bv := if index < b.len { b[index] } else { 0 }
+		if av < bv {
+			return -1
+		}
+		if av > bv {
+			return 1
+		}
+	}
+	return 0
+}
+
+pub fn (context MacContext) version() string {
+	return mac_strip_patch(context.full_version)
+}
+
+pub fn (mut context MacContext) set_full_version(version string) {
+	context.full_version = version.trim_right('\n')
+}
+
+pub fn (context MacContext) preferred_perl_version() string {
+	if mac_version_compare(context.version(), '14') >= 0 {
+		return '5.34'
+	}
+	if mac_version_compare(context.version(), '11') >= 0 {
+		return '5.30'
+	}
+	return '5.18'
+}
+
+pub fn (context MacContext) language() ?string {
+	if context.languages.len == 0 {
+		return none
+	}
+	return context.languages[0]
+}
+
+pub fn (context MacContext) sdk_locator() &sdk.SdkLocator {
+	return if context.clt_installed { context.clt_locator } else { context.xcode_locator }
+}
+
+pub fn (context MacContext) selected_sdk(version string) ?sdk.MacSdk {
+	mut locator := context.sdk_locator()
+	return locator.sdk_if_applicable(version, context.version())
+}
+
+pub fn (context MacContext) sdk_for_formula(requirements []MacFormulaRequirement, version string,
+	check_only_runtime_requirements bool) ?sdk.MacSdk {
+	for requirement in requirements {
+		if requirement.is_xcode && !(check_only_runtime_requirements && requirement.build && !requirement.test) {
+			if context.xcode_sdk.path == '' {
+				return none
+			}
+			return context.xcode_sdk
+		}
+	}
+	return context.selected_sdk(version)
+}
+
+pub fn (context MacContext) sdk_path(version string) ?string {
+	selected := context.selected_sdk(version) or { return none }
+	return selected.path
+}
+
+pub fn mac_mdfind_query(ids []string) string {
+	return ids.map('kMDItemCFBundleIdentifier == ${it}').join(' || ')
+}
+
+fn mac_ids_key(ids []string) string {
+	return ids.join('\x1f')
+}
+
+pub fn (mut context MacContext) mdfind(ids []string) []string {
+	key := mac_ids_key(ids)
+	if key in context.mdfind_cache {
+		return context.mdfind_cache[key].clone()
+	}
+	results := (context.mdfind_results[key] or { []string{} }).clone()
+	context.mdfind_cache[key] = results.clone()
+	return results
+}
+
+pub fn (mut context MacContext) pkgutil_info(identifier string) string {
+	if identifier in context.pkgutil_cache {
+		return context.pkgutil_cache[identifier]
+	}
+	result := (context.pkgutil_results[identifier] or { '' }).trim_space()
+	context.pkgutil_cache[identifier] = result
+	return result
+}
+
+pub fn (mut context MacContext) app_with_bundle_id(ids []string) ?string {
+	paths := context.mdfind(ids).filter(!it.contains('/Backups.backupdb/'))
+	if paths.len == 0 {
+		return none
+	}
+	if paths.any(!(context.app_candidates[it] or { MacAppCandidate{ path: it } }).plist_exists) {
+		return paths[0]
+	}
+	mut newest := context.app_candidates[paths[0]] or { MacAppCandidate{ path: paths[0] } }
+	for path in paths[1..] {
+		candidate := context.app_candidates[path] or { MacAppCandidate{ path: path } }
+		if mac_version_compare(candidate.bundle_version, newest.bundle_version) > 0 {
+			newest = candidate
+		}
+	}
+	return newest.path
+}
+
+fn mac_context_value(context &MacContext) brew_runtime.Value {
+	return brew_runtime.structured_value('OS::Mac', context.full_version, {
+		'mac_context_address': u64(voidptr(context)).str()
+	})
+}
+
+fn mac_context_from_args(args []brew_runtime.Value) &MacContext {
+	if args.len > 0 && 'mac_context_address' in args[0].attributes {
+		return unsafe { &MacContext(voidptr(args[0].attributes['mac_context_address'].u64())) }
+	}
+	return default_mac_context()
+}
+
+pub fn mac_context_boundary(context &MacContext) brew_runtime.Value {
+	return mac_context_value(context)
+}
+
+fn mac_sdk_value(value sdk.MacSdk) brew_runtime.Value {
+	return brew_runtime.structured_value('OS::Mac::SDK', value.path, {
+		'version': value.version
+		'path':    value.path
+		'source':  value.source
+	})
+}
 
 // Translated from Homebrew/brew `os/mac.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `self.version` at line 32.
 pub fn ruby_mac_l32_d1_self_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.version', ...args)
+	return brew_runtime.string_value(mac_context_from_args(args).version())
 }
 
 // Ruby method `self.full_version` at line 41.
 pub fn ruby_mac_l41_d2_self_full_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.full_version', ...args)
+	return brew_runtime.string_value(mac_context_from_args(args).full_version)
 }
 
 // Ruby method `self.full_version=(version)` at line 54.
 pub fn ruby_mac_l54_d3_self_full_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.full_version=', ...args)
+	mut context := mac_context_from_args(args)
+	value_index := if args.len > 0 && 'mac_context_address' in args[0].attributes { 1 } else { 0 }
+	context.set_full_version(args[value_index].as_string())
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Ruby method `self.latest_sdk_version` at line 60.
 pub fn ruby_mac_l60_d4_self_latest_sdk_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.latest_sdk_version', ...args)
+	return brew_runtime.string_value('26')
 }
 
 // Ruby method `self.preferred_perl_version` at line 67.
 pub fn ruby_mac_l67_d5_self_preferred_perl_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.preferred_perl_version', ...args)
+	return brew_runtime.string_value(mac_context_from_args(args).preferred_perl_version())
 }
 
 // Ruby method `self.languages` at line 78.
 pub fn ruby_mac_l78_d6_self_languages(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.languages', ...args)
+	return brew_runtime.string_array_value(mac_context_from_args(args).languages)
 }
 
 // Ruby method `self.language` at line 93.
 pub fn ruby_mac_l93_d7_self_language(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.language', ...args)
+	language := mac_context_from_args(args).language() or {
+		return brew_runtime.object_value('NilClass', 'nil')
+	}
+	return brew_runtime.string_value(language)
 }
 
 // Ruby method `self.active_developer_dir` at line 98.
 pub fn ruby_mac_l98_d8_self_active_developer_dir(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.active_developer_dir', ...args)
+	return brew_runtime.string_value(mac_context_from_args(args).active_developer_dir)
 }
 
 // Ruby method `self.sdk_locator` at line 106.
 pub fn ruby_mac_l106_d9_self_sdk_locator(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.sdk_locator', ...args)
+	context := mac_context_from_args(args)
+	return brew_runtime.structured_value('OS::Mac::SDKLocator', context.sdk_locator().source, {
+		'source': context.sdk_locator().source
+	})
 }
 
 // Ruby method `self.sdk(version = nil)` at line 124.
 pub fn ruby_mac_l124_d10_self_sdk(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.sdk', ...args)
+	context := mac_context_from_args(args)
+	version_index := if args.len > 0 && 'mac_context_address' in args[0].attributes { 1 } else { 0 }
+	version := if args.len > version_index { args[version_index].as_string() } else { '' }
+	selected := context.selected_sdk(version) or {
+		return brew_runtime.object_value('NilClass', 'nil')
+	}
+	return mac_sdk_value(selected)
 }
 
 // Ruby method `self.sdk_for_formula(formula, version = nil, check_only_runtime_requirements: false)` at line 138.
 pub fn ruby_mac_l138_d11_self_sdk_for_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.sdk_for_formula', ...args)
+	context := mac_context_from_args(args)
+	start := if args.len > 0 && 'mac_context_address' in args[0].attributes { 1 } else { 0 }
+	requirements := (args[start].map_data['requirements'] or { brew_runtime.array_value([]) }).array_data.map(MacFormulaRequirement{
+		is_xcode: it.attributes['is_xcode'] == 'true'
+		build: it.attributes['build'] == 'true'
+		test: it.attributes['test'] == 'true'
+	})
+	version := if args.len > start + 1 { args[start + 1].as_string() } else { '' }
+	runtime_only := if args.len > start + 2 { args[start + 2].bool_data } else { false }
+	selected := context.sdk_for_formula(requirements, version, runtime_only) or {
+		return brew_runtime.object_value('NilClass', 'nil')
+	}
+	return mac_sdk_value(selected)
 }
 
 // Ruby method `self.sdk_path(version = nil)` at line 156.
 pub fn ruby_mac_l156_d12_self_sdk_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.sdk_path', ...args)
+	context := mac_context_from_args(args)
+	start := if args.len > 0 && 'mac_context_address' in args[0].attributes { 1 } else { 0 }
+	version := if args.len > start { args[start].as_string() } else { '' }
+	path := context.sdk_path(version) or { return brew_runtime.object_value('NilClass', 'nil') }
+	return brew_runtime.string_value(path)
 }
 
 // Ruby method `self.sdk_path_if_needed(version = nil)` at line 168.
 pub fn ruby_mac_l168_d13_self_sdk_path_if_needed(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.sdk_path_if_needed', ...args)
+	return ruby_mac_l156_d12_self_sdk_path(...args)
 }
 
 // Ruby method `self.app_with_bundle_id(*ids)` at line 174.
 pub fn ruby_mac_l174_d14_self_app_with_bundle_id(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.app_with_bundle_id', ...args)
+	mut context := mac_context_from_args(args)
+	start := if args.len > 0 && 'mac_context_address' in args[0].attributes { 1 } else { 0 }
+	path := context.app_with_bundle_id(args[start..].map(it.as_string())) or {
+		return brew_runtime.object_value('NilClass', 'nil')
+	}
+	return brew_runtime.string_value(path)
 }
 
 // Ruby method `self.mdfind(*ids)` at line 187.
 pub fn ruby_mac_l187_d15_self_mdfind(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.mdfind', ...args)
+	mut context := mac_context_from_args(args)
+	start := if args.len > 0 && 'mac_context_address' in args[0].attributes { 1 } else { 0 }
+	return brew_runtime.string_array_value(context.mdfind(args[start..].map(it.as_string())))
 }
 
 // Ruby method `self.pkgutil_info(id)` at line 195.
 pub fn ruby_mac_l195_d16_self_pkgutil_info(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.pkgutil_info', ...args)
+	mut context := mac_context_from_args(args)
+	start := if args.len > 0 && 'mac_context_address' in args[0].attributes { 1 } else { 0 }
+	return brew_runtime.string_value(context.pkgutil_info(args[start].as_string()))
 }
 
 // Ruby method `self.mdfind_query(*ids)` at line 203.
 pub fn ruby_mac_l203_d17_self_mdfind_query(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.mdfind_query', ...args)
+	start := if args.len > 0 && 'mac_context_address' in args[0].attributes { 1 } else { 0 }
+	return brew_runtime.string_value(mac_mdfind_query(args[start..].map(it.as_string())))
 }
 
 // Original Ruby source (line-for-line):

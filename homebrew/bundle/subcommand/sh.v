@@ -7,7 +7,22 @@ import brew_runtime
 
 // Ruby method `run` at line 31.
 pub fn ruby_sh_l31_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('run', ...args)
+	options := BundleExecSubcommandOptions{
+		services: if args.len > 0 { args[0].as_bool() or { false } } else { false }
+		check: if args.len > 1 { args[1].as_bool() or { false } } else { false }
+		no_secrets: if args.len > 2 { args[2].as_bool() or { false } } else { false }
+		global: if args.len > 3 { args[3].as_bool() or { false } } else { false }
+		file: if args.len > 4 { args[4].as_string() } else { '' }
+	}
+	return bundle_exec_invocation_value(run_sh_subcommand(options))
+}
+
+pub fn run_sh_subcommand(options BundleExecSubcommandOptions) BundleExecSubcommandInvocation {
+	return BundleExecSubcommandInvocation{
+		command: 'sh'
+		args: ['sh']
+		options: options
+	}
 }
 
 // Original Ruby source (line-for-line):

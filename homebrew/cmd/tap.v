@@ -4,10 +4,137 @@ import brew_runtime
 
 // Translated from Homebrew/brew `cmd/tap.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub struct TapCommandTap {
+pub:
+	name      string
+	installed bool
+}
+
+pub struct TapCommandRequest {
+pub:
+	named         []string
+	installed     []TapCommandTap
+	repair        bool
+	custom_remote bool
+	quiet         bool
+	verify        bool
+	force         bool
+}
+
+pub struct TapCommandResult {
+pub:
+	listed         []string
+	repaired       []string
+	installed      ?string
+	clone_target   ?string
+	custom_remote  bool
+	quiet          bool
+	verify         bool
+	force          bool
+	already_tapped bool
+	output         string
+}
+
+pub fn run_tap_command(request TapCommandRequest) !TapCommandResult {
+	if request.repair {
+		mut repaired := request.installed.map(it.name)
+		repaired.sort()
+		return TapCommandResult{
+			repaired: repaired
+		}
+	}
+	if request.named.len == 0 {
+		mut listed := request.installed.map(it.name)
+		listed.sort()
+		return TapCommandResult{
+			listed: listed
+			output: if listed.len > 0 { listed.join('\n') + '\n' } else { '' }
+		}
+	}
+	name := request.named[0]
+	parts := name.split('/')
+	if parts.len != 2 || parts.any(it == '') {
+		return error('Invalid tap name `${name}`')
+	}
+	mut clone_target := ?string(none)
+	if request.named.len > 1 && request.named[1] != '' {
+		clone_target = request.named[1]
+	}
+	already_tapped := request.installed.any(it.name == name && it.installed)
+	return TapCommandResult{
+		installed: if already_tapped { none } else { name }
+		clone_target: clone_target
+		custom_remote: request.custom_remote
+		quiet: request.quiet
+		verify: request.verify
+		force: request.force
+		already_tapped: already_tapped
+		output: if already_tapped { '' } else { 'Tapped ${name}\n' }
+	}
+}
+
+pub fn tap_command_tap_to_value(tap TapCommandTap) brew_runtime.Value {
+	return brew_runtime.structured_value('Tap', tap.name, {
+		'name':      tap.name
+		'installed': tap.installed.str()
+	})
+}
+
+fn tap_command_tap_from_value(value brew_runtime.Value) TapCommandTap {
+	return TapCommandTap{
+		name: value.attributes['name'] or { value.as_string() }
+		installed: (value.attributes['installed'] or { 'true' }) == 'true'
+	}
+}
+
+pub fn tap_command_result_to_value(result TapCommandResult) brew_runtime.Value {
+	return brew_runtime.map_value({
+		'listed':         brew_runtime.string_array_value(result.listed)
+		'repaired':       brew_runtime.string_array_value(result.repaired)
+		'installed':      if value := result.installed {
+			brew_runtime.string_value(value)
+		} else {
+			brew_runtime.object_value('NilClass', 'nil')
+		}
+		'clone_target':   if value := result.clone_target {
+			brew_runtime.string_value(value)
+		} else {
+			brew_runtime.object_value('NilClass', 'nil')
+		}
+		'already_tapped': brew_runtime.bool_value(result.already_tapped)
+		'output':         brew_runtime.string_value(result.output)
+	})
+}
 
 // Ruby method `run` at line 43.
 pub fn ruby_tap_l43_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('run', ...args)
+	values := if args.len > 0 {
+		args[0].as_map() or { return brew_runtime.object_value('UsageError', err.msg()) }
+	} else {
+		map[string]brew_runtime.Value{}
+	}
+	installed_values := if value := values['installed'] {
+		value.as_array() or { []brew_runtime.Value{} }
+	} else {
+		[]brew_runtime.Value{}
+	}
+	request := TapCommandRequest{
+		named: if value := values['named'] {
+			value.as_string_array() or { []string{} }} else {
+			[]string{}}
+		installed: installed_values.map(tap_command_tap_from_value(it))
+		repair: if value := values['repair'] { value.as_bool() or { false } } else { false }
+		custom_remote: if value := values['custom_remote'] {
+			value.as_bool() or { false }} else {
+			false}
+		quiet: if value := values['quiet'] { value.as_bool() or { false } } else { false }
+		verify: if value := values['eval_all'] { value.as_bool() or { false } } else { false }
+		force: if value := values['force'] { value.as_bool() or { false } } else { false }
+	}
+	result := run_tap_command(request) or {
+		return brew_runtime.object_value('Tap::InvalidNameError', err.msg())
+	}
+	return tap_command_result_to_value(result)
 }
 
 // Original Ruby source (line-for-line):

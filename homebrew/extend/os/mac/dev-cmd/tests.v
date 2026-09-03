@@ -1,18 +1,24 @@
 module dev_cmd
 
-import brew_runtime
-
 // Translated from Homebrew/brew `extend/os/mac/dev-cmd/tests.rb`.
-// The original source is retained below until every stub has a typed V body.
+pub fn mac_dev_tests_os_bundle_args(bundle_args []string) []string {
+	mut result := bundle_args.clone()
+	result << ['--tag', '~needs_linux', '--tag', '~needs_systemd']
+	return result
+}
+
+pub fn mac_dev_tests_os_files(files []string) []string {
+	return files.filter(!(it.starts_with('test/os/linux/') || it == 'test/os/linux_spec.rb'))
+}
 
 // Ruby method `os_bundle_args(bundle_args)` at line 15.
-pub fn ruby_tests_l15_d1_os_bundle_args(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('os_bundle_args', ...args)
+pub fn ruby_tests_l15_d1_os_bundle_args(bundle_args []string) []string {
+	return mac_dev_tests_os_bundle_args(bundle_args)
 }
 
 // Ruby method `os_files(files)` at line 20.
-pub fn ruby_tests_l20_d2_os_files(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('os_files', ...args)
+pub fn ruby_tests_l20_d2_os_files(files []string) []string {
+	return mac_dev_tests_os_files(files)
 }
 
 // Original Ruby source (line-for-line):

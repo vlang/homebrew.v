@@ -1,18 +1,102 @@
 module cmd
 
 import brew_runtime
+import os
+
+pub struct WhichFormulaEntry {
+pub:
+	formula     string
+	version     string
+	executables []string
+}
+
+pub struct WhichFormulaResult {
+pub:
+	stdout      string
+	stderr      string
+	exit_code   int
+	verbose_set bool
+}
 
 // Translated from Homebrew/brew `test/cmd/which-formula_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby let `let(:shell_cellar) do` at line 13.
 pub fn ruby_which_formula_spec_l13_d1_shell_cellar(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('shell_cellar', ...args)
+	library_path := if args.len > 0 { args[0].as_string() } else { '' }
+	cellar := if args.len > 1 { args[1].as_string() } else { '' }
+	return brew_runtime.string_value(which_formula_shell_cellar(library_path, cellar))
 }
 
 // Ruby it `it "finds formulae using the Bash command path" do` at line 41.
 pub fn ruby_which_formula_spec_l41_d2_finds(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('finds', ...args)
+	database := 'foo(1.0.0):foo2 foo3\nbar(1.2.3):\nbaz(10.4):baz\nqux(4.5.6):QUX\nquux:quux\n'
+	entries := parse_which_formula_database(database)
+	found := which_formula_lookup(['foo2', 'baz', 'QUX', 'quux'], entries, false, false)
+	missing := which_formula_lookup(['bar'], entries, false, false)
+	verbose := which_formula_lookup(['bar'], entries, false, true)
+	disabled := which_formula_lookup(['foo2'], [], true, false)
+	return brew_runtime.bool_value(found.stdout == 'foo\nbaz\nqux\nquux\n' && found.stderr == ''
+		&& found.exit_code == 0 && missing.stdout == '' && missing.exit_code == 1
+		&& verbose.verbose_set && verbose.exit_code == 1 && disabled.exit_code == 1
+		&& disabled.stderr == 'Error: HOMEBREW_NO_INSTALL_FROM_API must be unset to use `brew which-formula` or `brew exec`.\n')
+}
+
+pub fn which_formula_shell_cellar(homebrew_library_path string, homebrew_cellar string) string {
+	if homebrew_library_path != '' {
+		candidate := os.real_path(os.join_path(homebrew_library_path, '../..', 'Cellar'))
+		if os.is_dir(candidate) {
+			return candidate
+		}
+	}
+	return homebrew_cellar
+}
+
+pub fn parse_which_formula_database(contents string) []WhichFormulaEntry {
+	mut entries := []WhichFormulaEntry{}
+	for line in contents.split_into_lines() {
+		if line == '' || !line.contains(':') {
+			continue
+		}
+		left := line.all_before(':')
+		formula := left.all_before('(')
+		version := if left.contains('(') { left.all_after('(').trim_string_right(')') } else { '' }
+		executables_text := line.all_after(':').trim_space()
+		entries << WhichFormulaEntry{
+			formula: formula
+			version: version
+			executables: if executables_text == '' {
+				[]string{}
+			} else {
+				executables_text.split(' ')
+			}
+		}
+	}
+	return entries
+}
+
+pub fn which_formula_lookup(commands []string, entries []WhichFormulaEntry,
+	api_disabled_without_database bool, verbose bool) WhichFormulaResult {
+	if api_disabled_without_database && entries.len == 0 {
+		return WhichFormulaResult{
+			stderr: 'Error: HOMEBREW_NO_INSTALL_FROM_API must be unset to use `brew which-formula` or `brew exec`.\n'
+			exit_code: 1
+			verbose_set: verbose
+		}
+	}
+	mut formulae := []string{}
+	for command in commands {
+		for entry in entries {
+			if command in entry.executables && entry.formula !in formulae {
+				formulae << entry.formula
+			}
+		}
+	}
+	return WhichFormulaResult{
+		stdout: if formulae.len > 0 { formulae.join('\n') + '\n' } else { '' }
+		exit_code: if formulae.len > 0 { 0 } else { 1 }
+		verbose_set: verbose
+	}
 }
 
 // Original Ruby source (line-for-line):

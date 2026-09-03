@@ -1,23 +1,27 @@
 module class
 
 import brew_runtime
+import homebrew.rubocops as class_core
 
 // Translated from Homebrew/brew `test/rubocops/class/test_present.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:cop) { RuboCop::Cop::FormulaAuditStrict::TestPresent.new }` at line 7.
 pub fn ruby_test_present_l7_d1_cop(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cop', ...args)
+	return brew_runtime.object_value('RuboCop::Cop::FormulaAuditStrict::TestPresent', 'FormulaAuditStrict/TestPresent')
 }
 
 // Ruby it `it "reports an offense when there is no test block" do` at line 9.
-pub fn ruby_test_present_l9_d2_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_test_present_l9_d2_reports() bool {
+	return class_core.audit_formula_test_present("class Foo < Formula\n  url 'https://brew.sh/foo-1.0.tgz'\nend").map(it.kind) == [
+		'missing_test',
+	]
 }
 
 // Ruby it `it "reports no offenses when there is no test block and formula is disabled" do` at line 18.
-pub fn ruby_test_present_l18_d3_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_test_present_l18_d3_reports() bool {
+	source := 'class Foo < Formula\n  url \'https://brew.sh/foo-1.0.tgz\'\n  disable! date: "2024-07-03", because: :unsupported\nend'
+	return class_core.audit_formula_test_present(source).len == 0
 }
 
 // Original Ruby source (line-for-line):

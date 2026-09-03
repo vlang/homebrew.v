@@ -5,19 +5,119 @@ import brew_runtime
 // Translated from Homebrew/brew `utils/shell_completion.rb`.
 // The original source is retained below until every stub has a typed V body.
 
+pub struct CompletionParameter {
+pub:
+	arguments   []string
+	environment map[string]string
+}
+
+pub fn default_completion_shells(format string) []string {
+	return if format.trim_left(':') in ['cobra', 'typer'] {
+		['bash', 'zsh', 'fish', 'pwsh']
+	} else {
+		['bash', 'zsh', 'fish']
+	}
+}
+
+fn completion_executable_name(path string) string {
+	normalized := path.replace('\\', '/')
+	return normalized.all_after_last('/')
+}
+
+pub fn completion_shell_parameter(format string, shell string, executable string,
+	environment map[string]string) CompletionParameter {
+	mut result_environment := environment.clone()
+	format_name := format.trim_left(':')
+	shell_name := shell.trim_left(':')
+	shell_parameter := if shell_name == 'pwsh' { 'powershell' } else { shell_name }
+	arguments := match format_name {
+		'' {
+			[shell_parameter]
+		}
+		'arg' {
+			['--shell=${shell_parameter}']
+		}
+		'clap' {
+			result_environment['COMPLETE'] = shell_parameter
+			[]string{}
+		}
+		'click' {
+			program_name := completion_executable_name(executable).to_upper().replace('-', '_')
+			result_environment['_${program_name}_COMPLETE'] = '${shell_parameter}_source'
+			[]string{}
+		}
+		'cobra' {
+			['completion', shell_parameter]
+		}
+		'flag' {
+			['--${shell_parameter}']
+		}
+		'none' {
+			[]string{}
+		}
+		'typer' {
+			result_environment['_TYPER_COMPLETE_TEST_DISABLE_SHELL_DETECTION'] = '1'
+			['--show-completion', shell_parameter]
+		}
+		else {
+			['${format}${shell_name}']
+		}
+	}
+	return CompletionParameter{
+		arguments:   arguments
+		environment: result_environment
+	}
+}
+
+pub fn generate_completion_output(commands []string, parameter CompletionParameter) !string {
+	if commands.len == 0 {
+		return error('completion command must not be empty')
+	}
+	mut arguments := commands[1..].clone()
+	arguments << parameter.arguments
+	result := brew_runtime.run_command_with_environment(commands[0], arguments,
+		parameter.environment)
+	if result.exit_code != 0 {
+		return error(result.output.trim_space())
+	}
+	return result.output
+}
+
 // Ruby method `self.default_completion_shells(format)` at line 10.
 pub fn ruby_shell_completion_l10_d1_self_default_completion_shells(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.default_completion_shells', ...args)
+	format := if args.len > 0 { args[0].as_string() } else { '' }
+	return brew_runtime.string_array_value(default_completion_shells(format))
 }
 
 // Ruby method `self.completion_shell_parameter(format, shell, executable, env)` at line 27.
 pub fn ruby_shell_completion_l27_d2_self_completion_shell_parameter(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.completion_shell_parameter', ...args)
+	if args.len < 3 { return brew_runtime.object_value('NilClass', '') }
+	parameter := completion_shell_parameter(args[0].as_string(), args[1].as_string(),
+		args[2].as_string(), map[string]string{})
+	if parameter.arguments.len == 0 {
+		return brew_runtime.structured_value('NilClass', '', parameter.environment)
+	}
+	if parameter.arguments.len == 1 {
+		return brew_runtime.structured_value('String', parameter.arguments[0],
+			parameter.environment)
+	}
+	return brew_runtime.structured_value('Array', parameter.arguments.str(), parameter.environment)
 }
 
 // Ruby method `self.generate_completion_output(commands, shell_parameter, env)` at line 64.
 pub fn ruby_shell_completion_l64_d3_self_generate_completion_output(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.generate_completion_output', ...args)
+	if args.len == 0 { return brew_runtime.string_value('') }
+	commands := args[0].as_string_array() or { return brew_runtime.string_value('') }
+	parameter_arguments := if args.len > 1 { args[1].as_string_array() or {
+			if args[1].type_name == 'NilClass' { []string{} } else { [
+					args[1].as_string()] }
+		}
+	 } else { []string{}
+	 }
+	output := generate_completion_output(commands, CompletionParameter{
+		arguments: parameter_arguments
+	}) or { panic(err) }
+	return brew_runtime.string_value(output)
 }
 
 // Original Ruby source (line-for-line):

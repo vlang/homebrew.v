@@ -1,473 +1,1268 @@
 module test
 
-import brew_runtime
+import homebrew
+import os
+
+const service_spec_prefix = '/opt/homebrew'
+const service_spec_cellar = '/opt/homebrew/Cellar'
+const service_spec_home = '/Users/service-test'
+
+fn service_spec_formula() homebrew.ServiceFormulaPaths {
+	return homebrew.new_service_formula_paths('formula_name', service_spec_prefix, service_spec_cellar, service_spec_home)
+}
+
+fn service_spec_new() !homebrew.BrewService {
+	return homebrew.new_brew_service(service_spec_formula())
+}
+
+fn service_spec_run_value(values []string, scalar bool) homebrew.ServiceRunValue {
+	return homebrew.ServiceRunValue{
+		kind: if scalar { .scalar } else { .array }
+		values: values
+	}
+}
+
+fn service_spec_set_run(mut service homebrew.BrewService, values []string, scalar bool) {
+	homebrew.ruby_service_l113_d9_run(mut service, homebrew.ServiceRunParams{
+		direct: service_spec_run_value(values, scalar)
+	}, .linux)
+}
+
+fn service_spec_set_os_run(mut service homebrew.BrewService, macos []string, linux []string,
+	system homebrew.ServiceOS) {
+	homebrew.ruby_service_l113_d9_run(mut service, homebrew.ServiceRunParams{
+		macos: if macos.len == 0 {
+			homebrew.ServiceRunValue{}} else {
+			service_spec_run_value(macos, false)}
+		linux: if linux.len == 0 {
+			homebrew.ServiceRunValue{}} else {
+			service_spec_run_value(linux, false)}
+		conditional: true
+	}, system)
+}
+
+fn service_spec_set_environment(mut service homebrew.BrewService, values map[string]string,
+	order []string) {
+	homebrew.ruby_service_l435_d31_environment_variables(mut service, homebrew.ServiceEnvironment{
+		values: values
+		order: order
+	})
+}
+
+fn service_spec_empty_config_root(root string) !string {
+	os.mkdir_all(root)!
+	return root
+}
+
+fn service_spec_write_env(root string, contents string, mode int) !string {
+	directory := os.join_path(root, 'services')
+	os.mkdir_all(directory)!
+	path := os.join_path(directory, 'formula_name.env')
+	os.write_file(path, contents)!
+	os.chmod(path, mode)!
+	return path
+}
+
+fn service_spec_plist(body string) string {
+	return '<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n<plist version="1.0">\n<dict>\n${body}</dict>\n</plist>\n'
+}
+
+fn service_spec_sessions() string {
+	return '\t<key>LimitLoadToSessionType</key>\n\t<array>\n\t\t<string>Aqua</string>\n\t\t<string>Background</string>\n\t\t<string>LoginWindow</string>\n\t\t<string>StandardIO</string>\n\t\t<string>System</string>\n\t</array>\n'
+}
+
+fn service_spec_systemd(service_type string, extra string) string {
+	return '[Unit]\nDescription=Homebrew generated unit for formula_name\n\n[Install]\nWantedBy=default.target\n\n[Service]\nType=${service_type}\nExecStart="${service_spec_prefix}/opt/formula_name/bin/beanstalkd"${extra}\n'
+}
+
+fn service_spec_timer(options string) string {
+	return '[Unit]\nDescription=Homebrew generated timer for formula_name\n\n[Install]\nWantedBy=timers.target\n\n[Timer]\nUnit=homebrew.formula_name.service\n${options}\n'
+}
+
+fn service_spec_environment_service(values map[string]string,
+	order []string) !homebrew.BrewService {
+	mut service := service_spec_new()!
+	service_spec_set_run(mut service, [service.formula.opt_bin + '/beanstalkd'], true)
+	service_spec_set_environment(mut service, values, order)
+	return service
+}
 
 // Translated from Homebrew/brew `test/service_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby let `let(:name) { "formula_name" }` at line 8.
-pub fn ruby_service_spec_l8_d1_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('name', ...args)
+pub fn ruby_service_spec_l8_d1_name() string {
+	return 'formula_name'
 }
 
 // Ruby method `stub_formula(&block)` at line 10.
-pub fn ruby_service_spec_l10_d2_stub_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('stub_formula', ...args)
+pub fn ruby_service_spec_l10_d2_stub_formula() !homebrew.BrewService {
+	return service_spec_new()
 }
 
 // Ruby method `stub_formula_with_service_sockets(sockets_var)` at line 19.
-pub fn ruby_service_spec_l19_d3_stub_formula_with_service_sockets(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('stub_formula_with_service_sockets', ...args)
+pub fn ruby_service_spec_l19_d3_stub_formula_with_service_sockets(input homebrew.ServiceSocketsInput) !homebrew.BrewService {
+	mut service := service_spec_new()!
+	service_spec_set_run(mut service, [service.formula.opt_bin + '/beanstalkd'], true)
+	homebrew.ruby_service_l252_d19_sockets(mut service, input)!
+	return service
 }
 
 // Ruby it `it "returns valid std_service_path_env" do` at line 30.
-pub fn ruby_service_spec_l30_d4_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_service_spec_l30_d4_returns() !bool {
+	service := service_spec_new()!
+	return homebrew.ruby_service_l520_d43_std_service_path_env(service) == '${service_spec_prefix}/bin:${service_spec_prefix}/sbin:/usr/bin:/bin:/usr/sbin:/sbin'
 }
 
 // Ruby it `it "is available in service blocks" do` at line 50.
-pub fn ruby_service_spec_l50_d5_is(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('is', ...args)
+pub fn ruby_service_spec_l50_d5_is() bool {
+	return os.join_path(service_spec_prefix, 'opt', 'foo', 'bin', 'foo') == '${service_spec_prefix}/opt/foo/bin/foo'
 }
 
 // Ruby it `it "throws for unexpected type" do` at line 63.
-pub fn ruby_service_spec_l63_d6_throws(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('throws', ...args)
+pub fn ruby_service_spec_l63_d6_throws() !bool {
+	mut service := service_spec_new()!
+	homebrew.ruby_service_l333_d25_process_type(mut service, homebrew.ServiceEnumInput{
+		set: true
+		value: 'cow'
+	}) or {
+		return err.msg() == "Service#process_type allows: 'background'/'standard'/'interactive'/'adaptive'"
+	}
+	return false
 }
 
 // Ruby it `it "accepts a valid throttle_interval value" do` at line 79.
-pub fn ruby_service_spec_l79_d7_accepts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('accepts', ...args)
+pub fn ruby_service_spec_l79_d7_accepts() !bool {
+	mut service := service_spec_new()!
+	set := homebrew.ruby_service_l310_d23_throttle_interval(mut service, 5) or { return false }
+	get := homebrew.ruby_service_l310_d23_throttle_interval(mut service, none) or { return false }
+	return set == 5 && get == 5
 }
 
 // Ruby it `it "includes throttle_interval value in plist output" do` at line 91.
-pub fn ruby_service_spec_l91_d8_includes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('includes', ...args)
+pub fn ruby_service_spec_l91_d8_includes() !bool {
+	mut service := service_spec_new()!
+	service_spec_set_run(mut service, [service.formula.opt_bin + '/beanstalkd'], true)
+	homebrew.ruby_service_l310_d23_throttle_interval(mut service, 15)
+	plist := homebrew.ruby_service_l566_d49_to_plist(service, '/nonexistent', 501)
+	return plist.contains('<key>ThrottleInterval</key>') && plist.contains('<integer>15</integer>')
 }
 
 // Ruby it `it "includes throttle_interval value of zero in plist output" do` at line 107.
-pub fn ruby_service_spec_l107_d9_includes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('includes', ...args)
+pub fn ruby_service_spec_l107_d9_includes() !bool {
+	mut service := service_spec_new()!
+	service_spec_set_run(mut service, [service.formula.opt_bin + '/beanstalkd'], true)
+	homebrew.ruby_service_l310_d23_throttle_interval(mut service, 0)
+	plist := homebrew.ruby_service_l566_d49_to_plist(service, '/nonexistent', 501)
+	return plist.contains('<key>ThrottleInterval</key>') && plist.contains('<integer>0</integer>')
 }
 
 // Ruby it `it "does not include throttle_interval in plist when not set" do` at line 121.
-pub fn ruby_service_spec_l121_d10_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_service_spec_l121_d10_does() !bool {
+	mut service := service_spec_new()!
+	service_spec_set_run(mut service, [service.formula.opt_bin + '/beanstalkd'], true)
+	return !homebrew.ruby_service_l566_d49_to_plist(service, '/nonexistent', 501).contains('<key>ThrottleInterval</key>')
 }
 
 // Ruby it `it "accepts a valid stop_timeout value" do` at line 135.
-pub fn ruby_service_spec_l135_d11_accepts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('accepts', ...args)
+pub fn ruby_service_spec_l135_d11_accepts() !bool {
+	mut service := service_spec_new()!
+	set := homebrew.ruby_service_l320_d24_stop_timeout(mut service, 10)!
+	get := homebrew.ruby_service_l320_d24_stop_timeout(mut service, none)!
+	return set.present && set.value == 10 && get.present && get.value == 10
 }
 
 // Ruby it `it "throws for negative stop_timeout" do` at line 147.
-pub fn ruby_service_spec_l147_d12_throws(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('throws', ...args)
+pub fn ruby_service_spec_l147_d12_throws() !bool {
+	mut service := service_spec_new()!
+	homebrew.ruby_service_l320_d24_stop_timeout(mut service, -5) or {
+		return err.msg() == 'Service#stop_timeout must be a non-negative integer'
+	}
+	return false
 }
 
 // Ruby it `it "includes ExitTimeOut in plist output" do` at line 159.
-pub fn ruby_service_spec_l159_d13_includes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('includes', ...args)
+pub fn ruby_service_spec_l159_d13_includes() !bool {
+	mut service := service_spec_new()!
+	service_spec_set_run(mut service, [service.formula.opt_bin + '/beanstalkd'], true)
+	homebrew.ruby_service_l320_d24_stop_timeout(mut service, 15)!
+	return homebrew.ruby_service_l566_d49_to_plist(service, '/nonexistent', 501).contains('<key>ExitTimeOut</key>\n\t<integer>15</integer>')
 }
 
 // Ruby it `it "does not include ExitTimeOut in plist when not set" do` at line 172.
-pub fn ruby_service_spec_l172_d14_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_service_spec_l172_d14_does() !bool {
+	mut service := service_spec_new()!
+	service_spec_set_run(mut service, [service.formula.opt_bin + '/beanstalkd'], true)
+	return !homebrew.ruby_service_l566_d49_to_plist(service, '/nonexistent', 501).contains('<key>ExitTimeOut</key>')
 }
 
 // Ruby it `it "includes TimeoutStopSec in systemd unit output" do` at line 184.
-pub fn ruby_service_spec_l184_d15_includes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('includes', ...args)
+pub fn ruby_service_spec_l184_d15_includes() !bool {
+	mut service := service_spec_new()!
+	service_spec_set_run(mut service, [service.formula.opt_bin + '/beanstalkd'], true)
+	homebrew.ruby_service_l320_d24_stop_timeout(mut service, 20)!
+	return homebrew.ruby_service_l632_d50_to_systemd_unit(service, '/nonexistent', 501).contains('TimeoutStopSec=20')
 }
 
 // Ruby it `it "does not include TimeoutStopSec in systemd unit when not set" do` at line 197.
-pub fn ruby_service_spec_l197_d16_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_service_spec_l197_d16_does() !bool {
+	mut service := service_spec_new()!
+	service_spec_set_run(mut service, [service.formula.opt_bin + '/beanstalkd'], true)
+	return !homebrew.ruby_service_l632_d50_to_systemd_unit(service, '/nonexistent', 501).contains('TimeoutStopSec=')
 }
 
 // Ruby it `it "accepts a valid nice level" do` at line 211.
-pub fn ruby_service_spec_l211_d17_accepts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('accepts', ...args)
+pub fn ruby_service_spec_l211_d17_accepts() !bool {
+	mut service := service_spec_new()!
+	set := homebrew.ruby_service_l508_d34_nice(mut service, 5)!
+	get := homebrew.ruby_service_l508_d34_nice(mut service, none)!
+	return set.present && set.value == 5 && get.present && get.value == 5
 }
 
 // Ruby it `it "throws error for negative nice values without require_root" do` at line 223.
-pub fn ruby_service_spec_l223_d18_throws(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('throws', ...args)
+pub fn ruby_service_spec_l223_d18_throws() !bool {
+	mut service := service_spec_new()!
+	homebrew.ruby_service_l508_d34_nice(mut service, -10)!
+	homebrew.service_validate(service) or {
+		return err.msg() == 'Service#nice: require_root true is required for negative nice values'
+	}
+	return false
 }
 
 // Ruby it `it "allows negative nice values when require_root is set" do` at line 235.
-pub fn ruby_service_spec_l235_d19_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+pub fn ruby_service_spec_l235_d19_allows() !bool {
+	mut service := service_spec_new()!
+	homebrew.ruby_service_l219_d16_require_root(mut service, true)
+	homebrew.ruby_service_l508_d34_nice(mut service, -10)!
+	homebrew.service_validate(service)!
+	return homebrew.ruby_service_l229_d17_requires_root(service) && homebrew.ruby_service_l566_d49_to_plist(service, '/nonexistent', 501).contains('<integer>-10</integer>')
 }
 
 // Ruby it `it "does not require require_root for positive nice values" do` at line 249.
-pub fn ruby_service_spec_l249_d20_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_service_spec_l249_d20_does() !bool {
+	mut service := service_spec_new()!
+	homebrew.ruby_service_l508_d34_nice(mut service, 10)!
+	homebrew.service_validate(service)!
+	return !homebrew.ruby_service_l229_d17_requires_root(service) && homebrew.ruby_service_l566_d49_to_plist(service, '/nonexistent', 501).contains('<integer>10</integer>')
 }
 
 // Ruby it `it "accepts nice value of zero" do` at line 262.
-pub fn ruby_service_spec_l262_d21_accepts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('accepts', ...args)
+pub fn ruby_service_spec_l262_d21_accepts() !bool {
+	mut service := service_spec_new()!
+	value := homebrew.ruby_service_l508_d34_nice(mut service, 0)!
+	return value.present && value.value == 0 && !homebrew.ruby_service_l229_d17_requires_root(service)
 }
 
 // Ruby it `it "includes nice value in plist output" do` at line 275.
-pub fn ruby_service_spec_l275_d22_includes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('includes', ...args)
+pub fn ruby_service_spec_l275_d22_includes() !bool {
+	mut service := service_spec_new()!
+	homebrew.ruby_service_l508_d34_nice(mut service, 5)!
+	plist := homebrew.ruby_service_l566_d49_to_plist(service, '/nonexistent', 501)
+	return plist.contains('<key>Nice</key>') && plist.contains('<integer>5</integer>')
 }
 
 // Ruby it `it "includes nice value in systemd unit output" do` at line 289.
-pub fn ruby_service_spec_l289_d23_includes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('includes', ...args)
+pub fn ruby_service_spec_l289_d23_includes() !bool {
+	mut service := service_spec_new()!
+	homebrew.ruby_service_l219_d16_require_root(mut service, true)
+	homebrew.ruby_service_l508_d34_nice(mut service, -5)!
+	return homebrew.ruby_service_l632_d50_to_systemd_unit(service, '/nonexistent', 501).contains('Nice=-5')
 }
 
 // Ruby it `it "does not include nice in plist when not set" do` at line 303.
-pub fn ruby_service_spec_l303_d24_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_service_spec_l303_d24_does() !bool {
+	service := service_spec_new()!
+	return !homebrew.ruby_service_l566_d49_to_plist(service, '/nonexistent', 501).contains('<key>Nice</key>')
 }
 
 // Ruby it `it "does not include nice in systemd unit when not set" do` at line 315.
-pub fn ruby_service_spec_l315_d25_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_service_spec_l315_d25_does() !bool {
+	service := service_spec_new()!
+	return !homebrew.ruby_service_l632_d50_to_systemd_unit(service, '/nonexistent', 501).contains('Nice=')
 }
 
 // Ruby it `it "throws for nice too low" do` at line 327.
-pub fn ruby_service_spec_l327_d26_throws(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('throws', ...args)
+pub fn ruby_service_spec_l327_d26_throws() !bool {
+	mut service := service_spec_new()!
+	homebrew.ruby_service_l508_d34_nice(mut service, -21) or {
+		return err.msg() == 'Service#nice value should be in -20..19'
+	}
+	return false
 }
 
 // Ruby it `it "throws for nice too high" do` at line 339.
-pub fn ruby_service_spec_l339_d27_throws(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('throws', ...args)
+pub fn ruby_service_spec_l339_d27_throws() !bool {
+	mut service := service_spec_new()!
+	homebrew.ruby_service_l508_d34_nice(mut service, 20) or {
+		return err.msg() == 'Service#nice value should be in -20..19'
+	}
+	return false
 }
 
 // Ruby it `it "throws for unexpected keys" do` at line 353.
-pub fn ruby_service_spec_l353_d28_throws(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('throws', ...args)
+pub fn ruby_service_spec_l353_d28_throws() !bool {
+	mut service := service_spec_new()!
+	homebrew.ruby_service_l199_d15_keep_alive(mut service, homebrew.ServiceKeepAliveInput{
+		set: true
+		invalid_keys: ['test']
+	}) or {
+		return err.msg() == 'Service#keep_alive only allows: [:always, :successful_exit, :crashed, :path]'
+	}
+	return false
 }
 
 // Ruby it `it "returns status when set" do` at line 369.
-pub fn ruby_service_spec_l369_d29_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_service_spec_l369_d29_returns() !bool {
+	mut service := service_spec_new()!
+	return homebrew.ruby_service_l219_d16_require_root(mut service, true) && homebrew.ruby_service_l229_d17_requires_root(service)
 }
 
 // Ruby it `it "returns status when not set" do` at line 381.
-pub fn ruby_service_spec_l381_d30_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_service_spec_l381_d30_returns() !bool {
+	service := service_spec_new()!
+	return !homebrew.ruby_service_l229_d17_requires_root(service)
 }
 
 // Ruby it `it "throws for unexpected type" do` at line 394.
-pub fn ruby_service_spec_l394_d31_throws(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('throws', ...args)
+pub fn ruby_service_spec_l394_d31_throws() !bool {
+	mut service := service_spec_new()!
+	homebrew.ruby_service_l350_d26_run_type(mut service, homebrew.ServiceEnumInput{
+		set: true
+		value: 'cow'
+	}) or { return err.msg() == "Service#run_type allows: 'immediate'/'interval'/'cron'" }
+	return false
 }
 
 // Ruby let `let(:sockets_type_error_message) { "Service#sockets a formatted socket definition as <type>://<host>:<port>" }` at line 410.
-pub fn ruby_service_spec_l410_d32_sockets_type_error_message(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sockets_type_error_message', ...args)
+pub fn ruby_service_spec_l410_d32_sockets_type_error_message() string {
+	return 'Service#sockets a formatted socket definition as <type>://<host>:<port>'
 }
 
 // Ruby it `it "throws for missing type" do` at line 412.
-pub fn ruby_service_spec_l412_d33_throws(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('throws', ...args)
+pub fn ruby_service_spec_l412_d33_throws() !bool {
+	for values in [{
+		'listeners': '127.0.0.1:80'
+	}, {
+		'socket': '127.0.0.1:80'
+	}] {
+		mut message := ''
+		ruby_service_spec_l19_d3_stub_formula_with_service_sockets(homebrew.ServiceSocketsInput{
+			set: true
+			values: values
+		}) or {
+			message = err.msg()
+		}
+		if message != ruby_service_spec_l410_d32_sockets_type_error_message() {
+			return false
+		}
+	}
+	return true
 }
 
 // Ruby it `it "throws for missing host" do` at line 421.
-pub fn ruby_service_spec_l421_d34_throws(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('throws', ...args)
+pub fn ruby_service_spec_l421_d34_throws() !bool {
+	for values in [{
+		'listeners': 'tcp://:80'
+	}, {
+		'socket': 'tcp://:80'
+	}] {
+		mut message := ''
+		ruby_service_spec_l19_d3_stub_formula_with_service_sockets(homebrew.ServiceSocketsInput{
+			set: true
+			values: values
+		}) or {
+			message = err.msg()
+		}
+		if message != ruby_service_spec_l410_d32_sockets_type_error_message() {
+			return false
+		}
+	}
+	return true
 }
 
 // Ruby it `it "throws for missing port" do` at line 430.
-pub fn ruby_service_spec_l430_d35_throws(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('throws', ...args)
+pub fn ruby_service_spec_l430_d35_throws() !bool {
+	for values in [{
+		'listeners': 'tcp://127.0.0.1'
+	}, {
+		'socket': 'tcp://127.0.0.1'
+	}] {
+		mut message := ''
+		ruby_service_spec_l19_d3_stub_formula_with_service_sockets(homebrew.ServiceSocketsInput{
+			set: true
+			values: values
+		}) or {
+			message = err.msg()
+		}
+		if message != ruby_service_spec_l410_d32_sockets_type_error_message() {
+			return false
+		}
+	}
+	return true
 }
 
 // Ruby it `it "throws for invalid host" do` at line 439.
-pub fn ruby_service_spec_l439_d36_throws(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('throws', ...args)
+pub fn ruby_service_spec_l439_d36_throws() !bool {
+	for values in [{
+		'listeners': 'tcp://300.0.0.1:80'
+	}, {
+		'socket': 'tcp://300.0.0.1:80'
+	}] {
+		mut message := ''
+		ruby_service_spec_l19_d3_stub_formula_with_service_sockets(homebrew.ServiceSocketsInput{
+			set: true
+			values: values
+		}) or {
+			message = err.msg()
+		}
+		if message != 'Service#sockets expects a valid ipv4 or ipv6 host address' {
+			return false
+		}
+	}
+	return true
 }
 
 // Ruby it `it "returns valid manual_command" do` at line 452.
-pub fn ruby_service_spec_l452_d37_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_service_spec_l452_d37_returns() !bool {
+	mut service := service_spec_new()!
+	service_spec_set_run(mut service, ['${service_spec_prefix}/bin/beanstalkd'], true)
+	service_spec_set_environment(mut service, {
+		'PATH':    '${service_spec_prefix}/bin:${service_spec_prefix}/sbin:/usr/bin:/bin:/usr/sbin:/sbin'
+		'ETC_DIR': '${service_spec_prefix}/etc/beanstalkd'
+	}, ['PATH', 'ETC_DIR'])
+	return homebrew.ruby_service_l550_d47_manual_command(service, '/nonexistent', 501) == 'ETC_DIR="${service_spec_prefix}/etc/beanstalkd" ${service_spec_prefix}/bin/beanstalkd'
 }
 
 // Ruby it `it "returns valid manual_command without variables" do` at line 470.
-pub fn ruby_service_spec_l470_d38_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_service_spec_l470_d38_returns() !bool {
+	mut service := service_spec_new()!
+	service_spec_set_run(mut service, [service.formula.opt_bin + '/beanstalkd'], true)
+	service_spec_set_environment(mut service, {
+		'PATH': '${service_spec_prefix}/bin:${service_spec_prefix}/sbin:/usr/bin:/bin:/usr/sbin:/sbin'
+	}, ['PATH'])
+	return homebrew.ruby_service_l550_d47_manual_command(service, '/nonexistent', 501) == '${service_spec_prefix}/opt/formula_name/bin/beanstalkd'
 }
 
 // Ruby it `it "returns directories needed by service paths" do` at line 490.
-pub fn ruby_service_spec_l490_d39_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_service_spec_l490_d39_returns() !bool {
+	mut service := service_spec_new()!
+	homebrew.ruby_service_l184_d14_error_log_path(mut service, '${service_spec_prefix}/var/log/beanstalkd.error.log')
+	homebrew.ruby_service_l172_d13_log_path(mut service, '${service_spec_prefix}/var/log/beanstalkd.log')
+	homebrew.ruby_service_l160_d12_input_path(mut service, '${service_spec_prefix}/var/in/beanstalkd')
+	homebrew.ruby_service_l148_d11_root_dir(mut service, '${service_spec_prefix}/var/root')
+	homebrew.ruby_service_l136_d10_working_dir(mut service, '${service_spec_prefix}/var/work')
+	mut paths := homebrew.ruby_service_l535_d46_path_dirs(service)
+	paths.sort()
+	return paths == ['${service_spec_prefix}/var/in', '${service_spec_prefix}/var/log',
+		'${service_spec_prefix}/var/root', '${service_spec_prefix}/var/work']
 }
 
 // Ruby it `it "returns valid plist" do` at line 513.
-pub fn ruby_service_spec_l513_d40_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_service_spec_l513_d40_returns() !bool {
+	mut service := service_spec_new()!
+	service_spec_set_run(mut service, [service.formula.opt_bin + '/beanstalkd', 'test'], false)
+	service_spec_set_environment(mut service, {
+		'PATH':    '${service_spec_prefix}/bin:${service_spec_prefix}/sbin:/usr/bin:/bin:/usr/sbin:/sbin'
+		'FOO':     'BAR'
+		'ETC_DIR': '${service_spec_prefix}/etc/beanstalkd'
+	}, ['PATH', 'FOO', 'ETC_DIR'])
+	homebrew.ruby_service_l184_d14_error_log_path(mut service, '${service_spec_prefix}/var/log/beanstalkd.error.log')
+	homebrew.ruby_service_l172_d13_log_path(mut service, '${service_spec_prefix}/var/log/beanstalkd.log')
+	homebrew.ruby_service_l160_d12_input_path(mut service, '${service_spec_prefix}/var/in/beanstalkd')
+	homebrew.ruby_service_l219_d16_require_root(mut service, true)
+	homebrew.ruby_service_l148_d11_root_dir(mut service, '${service_spec_prefix}/var')
+	homebrew.ruby_service_l136_d10_working_dir(mut service, '${service_spec_prefix}/var')
+	homebrew.ruby_service_l199_d15_keep_alive(mut service, homebrew.ServiceKeepAliveInput{ set: true, boolean: true })!
+	homebrew.ruby_service_l286_d21_launch_only_once(mut service, true)
+	homebrew.ruby_service_l333_d25_process_type(mut service, homebrew.ServiceEnumInput{ set: true, value: 'interactive' })!
+	homebrew.ruby_service_l298_d22_restart_delay(mut service, 30)
+	homebrew.ruby_service_l310_d23_throttle_interval(mut service, 5)
+	homebrew.ruby_service_l320_d24_stop_timeout(mut service, 60)!
+	homebrew.ruby_service_l508_d34_nice(mut service, 5)!
+	homebrew.ruby_service_l365_d27_interval(mut service, 5)
+	homebrew.ruby_service_l494_d33_macos_legacy_timers(mut service, true)
+	expected := service_spec_plist('\t<key>EnvironmentVariables</key>\n\t<dict>\n\t\t<key>ETC_DIR</key>\n\t\t<string>${service_spec_prefix}/etc/beanstalkd</string>\n\t\t<key>FOO</key>\n\t\t<string>BAR</string>\n\t\t<key>PATH</key>\n\t\t<string>${service_spec_prefix}/bin:${service_spec_prefix}/sbin:/usr/bin:/bin:/usr/sbin:/sbin</string>\n\t</dict>\n\t<key>ExitTimeOut</key>\n\t<integer>60</integer>\n\t<key>KeepAlive</key>\n\t<true/>\n\t<key>Label</key>\n\t<string>homebrew.mxcl.formula_name</string>\n\t<key>LaunchOnlyOnce</key>\n\t<true/>\n\t<key>LegacyTimers</key>\n\t<true/>\n' + service_spec_sessions() + '\t<key>Nice</key>\n\t<integer>5</integer>\n\t<key>ProcessType</key>\n\t<string>Interactive</string>\n\t<key>ProgramArguments</key>\n\t<array>\n\t\t<string>${service_spec_prefix}/opt/formula_name/bin/beanstalkd</string>\n\t\t<string>test</string>\n\t</array>\n\t<key>RootDirectory</key>\n\t<string>${service_spec_prefix}/var</string>\n\t<key>RunAtLoad</key>\n\t<true/>\n\t<key>StandardErrorPath</key>\n\t<string>${service_spec_prefix}/var/log/beanstalkd.error.log</string>\n\t<key>StandardInPath</key>\n\t<string>${service_spec_prefix}/var/in/beanstalkd</string>\n\t<key>StandardOutPath</key>\n\t<string>${service_spec_prefix}/var/log/beanstalkd.log</string>\n\t<key>ThrottleInterval</key>\n\t<integer>5</integer>\n\t<key>TimeOut</key>\n\t<integer>30</integer>\n\t<key>WorkingDirectory</key>\n\t<string>${service_spec_prefix}/var</string>\n')
+	return homebrew.ruby_service_l566_d49_to_plist(service, '/nonexistent', 501) == expected
 }
 
 // Ruby it `it "returns valid plist with socket" do` at line 602.
-pub fn ruby_service_spec_l602_d41_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_service_spec_l602_d41_returns() !bool {
+	expected := service_spec_plist('\t<key>Label</key>\n\t<string>homebrew.mxcl.formula_name</string>\n' + service_spec_sessions() + '\t<key>ProgramArguments</key>\n\t<array>\n\t\t<string>${service_spec_prefix}/opt/formula_name/bin/beanstalkd</string>\n\t</array>\n\t<key>RunAtLoad</key>\n\t<true/>\n\t<key>Sockets</key>\n\t<dict>\n\t\t<key>listeners</key>\n\t\t<dict>\n\t\t\t<key>SockNodeName</key>\n\t\t\t<string>127.0.0.1</string>\n\t\t\t<key>SockProtocol</key>\n\t\t\t<string>TCP</string>\n\t\t\t<key>SockServiceName</key>\n\t\t\t<string>80</string>\n\t\t</dict>\n\t</dict>\n')
+	for input in [homebrew.ServiceSocketsInput{
+		set: true
+		scalar: homebrew.ServiceStringValue{ present: true, value: 'tcp://127.0.0.1:80' }
+	}, homebrew.ServiceSocketsInput{
+		set: true
+		values: {
+			'listeners': 'tcp://127.0.0.1:80'
+		}
+	}] {
+		service := ruby_service_spec_l19_d3_stub_formula_with_service_sockets(input)!
+		if homebrew.ruby_service_l566_d49_to_plist(service, '/nonexistent', 501) != expected {
+			return false
+		}
+	}
+	return true
 }
 
 // Ruby it `it "returns valid plist with multiple sockets" do` at line 649.
-pub fn ruby_service_spec_l649_d42_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_service_spec_l649_d42_returns() !bool {
+	mut service := service_spec_new()!
+	service_spec_set_run(mut service, [service.formula.opt_bin + '/beanstalkd', 'test'], false)
+	homebrew.ruby_service_l252_d19_sockets(mut service, homebrew.ServiceSocketsInput{
+		set: true
+		values: {
+			'socket':     'tcp://0.0.0.0:80'
+			'socket_tls': 'tcp://0.0.0.0:443'
+		}
+	})!
+	expected := service_spec_plist('\t<key>Label</key>\n\t<string>homebrew.mxcl.formula_name</string>\n' + service_spec_sessions() + '\t<key>ProgramArguments</key>\n\t<array>\n\t\t<string>${service_spec_prefix}/opt/formula_name/bin/beanstalkd</string>\n\t\t<string>test</string>\n\t</array>\n\t<key>RunAtLoad</key>\n\t<true/>\n\t<key>Sockets</key>\n\t<dict>\n\t\t<key>socket</key>\n\t\t<dict>\n\t\t\t<key>SockNodeName</key>\n\t\t\t<string>0.0.0.0</string>\n\t\t\t<key>SockProtocol</key>\n\t\t\t<string>TCP</string>\n\t\t\t<key>SockServiceName</key>\n\t\t\t<string>80</string>\n\t\t</dict>\n\t\t<key>socket_tls</key>\n\t\t<dict>\n\t\t\t<key>SockNodeName</key>\n\t\t\t<string>0.0.0.0</string>\n\t\t\t<key>SockProtocol</key>\n\t\t\t<string>TCP</string>\n\t\t\t<key>SockServiceName</key>\n\t\t\t<string>443</string>\n\t\t</dict>\n\t</dict>\n')
+	return homebrew.ruby_service_l566_d49_to_plist(service, '/nonexistent', 501) == expected
 }
 
 // Ruby it `it "returns valid partial plist" do` at line 708.
-pub fn ruby_service_spec_l708_d43_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_service_spec_l708_d43_returns() !bool {
+	mut service := service_spec_new()!
+	service_spec_set_run(mut service, [service.formula.opt_bin + '/beanstalkd'], true)
+	expected := service_spec_plist('\t<key>Label</key>\n\t<string>homebrew.mxcl.formula_name</string>\n' + service_spec_sessions() + '\t<key>ProgramArguments</key>\n\t<array>\n\t\t<string>${service_spec_prefix}/opt/formula_name/bin/beanstalkd</string>\n\t</array>\n\t<key>RunAtLoad</key>\n\t<true/>\n')
+	return homebrew.ruby_service_l566_d49_to_plist(service, '/nonexistent', 501) == expected
 }
 
 // Ruby it `it "returns valid partial plist with run_at_load being false" do` at line 745.
-pub fn ruby_service_spec_l745_d44_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_service_spec_l745_d44_returns() !bool {
+	mut service := service_spec_new()!
+	service_spec_set_run(mut service, [service.formula.opt_bin + '/beanstalkd'], true)
+	homebrew.ruby_service_l237_d18_run_at_load(mut service, false)
+	expected := service_spec_plist('\t<key>Label</key>\n\t<string>homebrew.mxcl.formula_name</string>\n' + service_spec_sessions() + '\t<key>ProgramArguments</key>\n\t<array>\n\t\t<string>${service_spec_prefix}/opt/formula_name/bin/beanstalkd</string>\n\t</array>\n\t<key>RunAtLoad</key>\n\t<false/>\n')
+	return homebrew.ruby_service_l566_d49_to_plist(service, '/nonexistent', 501) == expected
 }
 
 // Ruby it `it "returns valid interval plist" do` at line 783.
-pub fn ruby_service_spec_l783_d45_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_service_spec_l783_d45_returns() !bool {
+	mut service := service_spec_new()!
+	service_spec_set_run(mut service, [service.formula.opt_bin + '/beanstalkd'], true)
+	homebrew.ruby_service_l350_d26_run_type(mut service, homebrew.ServiceEnumInput{ set: true, value: 'interval' })!
+	homebrew.ruby_service_l365_d27_interval(mut service, 5)
+	expected := service_spec_plist('\t<key>Label</key>\n\t<string>homebrew.mxcl.formula_name</string>\n' + service_spec_sessions() + '\t<key>ProgramArguments</key>\n\t<array>\n\t\t<string>${service_spec_prefix}/opt/formula_name/bin/beanstalkd</string>\n\t</array>\n\t<key>RunAtLoad</key>\n\t<true/>\n\t<key>StartInterval</key>\n\t<integer>5</integer>\n')
+	return homebrew.ruby_service_l566_d49_to_plist(service, '/nonexistent', 501) == expected
 }
 
 // Ruby it `it "returns valid cron plist" do` at line 823.
-pub fn ruby_service_spec_l823_d46_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_service_spec_l823_d46_returns() !bool {
+	mut service := service_spec_new()!
+	service_spec_set_run(mut service, [service.formula.opt_bin + '/beanstalkd'], true)
+	homebrew.ruby_service_l350_d26_run_type(mut service, homebrew.ServiceEnumInput{ set: true, value: 'cron' })!
+	homebrew.ruby_service_l377_d28_cron(mut service, '@daily')!
+	expected := service_spec_plist('\t<key>Label</key>\n\t<string>homebrew.mxcl.formula_name</string>\n' + service_spec_sessions() + '\t<key>ProgramArguments</key>\n\t<array>\n\t\t<string>${service_spec_prefix}/opt/formula_name/bin/beanstalkd</string>\n\t</array>\n\t<key>RunAtLoad</key>\n\t<true/>\n\t<key>StartCalendarInterval</key>\n\t<dict>\n\t\t<key>Hour</key>\n\t\t<integer>0</integer>\n\t\t<key>Minute</key>\n\t\t<integer>0</integer>\n\t</dict>\n')
+	return homebrew.ruby_service_l566_d49_to_plist(service, '/nonexistent', 501) == expected
 }
 
 // Ruby it `it "returns valid keepalive-exit plist" do` at line 868.
-pub fn ruby_service_spec_l868_d47_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_service_spec_l868_d47_returns() !bool {
+	mut service := service_spec_new()!
+	service_spec_set_run(mut service, [service.formula.opt_bin + '/beanstalkd'], true)
+	homebrew.ruby_service_l199_d15_keep_alive(mut service, homebrew.ServiceKeepAliveInput{
+		set: true
+		value: homebrew.ServiceKeepAlive{ has_successful_exit: true, successful_exit: false }
+	})!
+	expected := service_spec_plist('\t<key>KeepAlive</key>\n\t<dict>\n\t\t<key>SuccessfulExit</key>\n\t\t<false/>\n\t</dict>\n\t<key>Label</key>\n\t<string>homebrew.mxcl.formula_name</string>\n' + service_spec_sessions() + '\t<key>ProgramArguments</key>\n\t<array>\n\t\t<string>${service_spec_prefix}/opt/formula_name/bin/beanstalkd</string>\n\t</array>\n\t<key>RunAtLoad</key>\n\t<true/>\n')
+	return homebrew.ruby_service_l566_d49_to_plist(service, '/nonexistent', 501) == expected
 }
 
 // Ruby it `it "returns valid keepalive-crashed plist" do` at line 910.
-pub fn ruby_service_spec_l910_d48_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_service_spec_l910_d48_returns() !bool {
+	mut service := service_spec_new()!
+	service_spec_set_run(mut service, [service.formula.opt_bin + '/beanstalkd'], true)
+	homebrew.ruby_service_l199_d15_keep_alive(mut service, homebrew.ServiceKeepAliveInput{
+		set: true
+		value: homebrew.ServiceKeepAlive{ has_crashed: true, crashed: true }
+	})!
+	expected := service_spec_plist('\t<key>KeepAlive</key>\n\t<dict>\n\t\t<key>Crashed</key>\n\t\t<true/>\n\t</dict>\n\t<key>Label</key>\n\t<string>homebrew.mxcl.formula_name</string>\n' + service_spec_sessions() + '\t<key>ProgramArguments</key>\n\t<array>\n\t\t<string>${service_spec_prefix}/opt/formula_name/bin/beanstalkd</string>\n\t</array>\n\t<key>RunAtLoad</key>\n\t<true/>\n')
+	return homebrew.ruby_service_l566_d49_to_plist(service, '/nonexistent', 501) == expected
 }
 
 // Ruby it `it "returns valid keepalive-path plist" do` at line 952.
-pub fn ruby_service_spec_l952_d49_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_service_spec_l952_d49_returns() !bool {
+	mut service := service_spec_new()!
+	service_spec_set_run(mut service, [service.formula.opt_bin + '/beanstalkd'], true)
+	path := service.formula.opt_pkgshare + '/test-path'
+	homebrew.ruby_service_l199_d15_keep_alive(mut service, homebrew.ServiceKeepAliveInput{
+		set: true
+		value: homebrew.ServiceKeepAlive{ path: path }
+	})!
+	expected := service_spec_plist('\t<key>KeepAlive</key>\n\t<dict>\n\t\t<key>PathState</key>\n\t\t<string>${path}</string>\n\t</dict>\n\t<key>Label</key>\n\t<string>homebrew.mxcl.formula_name</string>\n' + service_spec_sessions() + '\t<key>ProgramArguments</key>\n\t<array>\n\t\t<string>${service_spec_prefix}/opt/formula_name/bin/beanstalkd</string>\n\t</array>\n\t<key>RunAtLoad</key>\n\t<true/>\n')
+	return homebrew.ruby_service_l566_d49_to_plist(service, '/nonexistent', 501) == expected
 }
 
 // Ruby it `it "expands paths" do` at line 994.
-pub fn ruby_service_spec_l994_d50_expands(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('expands', ...args)
+pub fn ruby_service_spec_l994_d50_expands() !bool {
+	mut service := service_spec_new()!
+	service_spec_set_run(mut service, [service.formula.opt_sbin + '/sleepwatcher', '-V', '-s',
+		'~/.sleep', '-w', '~/.wakeup'], false)
+	homebrew.ruby_service_l136_d10_working_dir(mut service, '~')
+	plist := homebrew.ruby_service_l566_d49_to_plist(service, '/nonexistent', 501)
+	return plist.contains('<string>${service_spec_home}/.sleep</string>') && plist.contains('<string>${service_spec_home}/.wakeup</string>') && plist.contains('<key>WorkingDirectory</key>\n\t<string>${service_spec_home}</string>')
 }
 
 // Ruby it `it "returns valid unit" do` at line 1040.
-pub fn ruby_service_spec_l1040_d51_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_service_spec_l1040_d51_returns() !bool {
+	mut service := service_spec_new()!
+	service_spec_set_run(mut service, [service.formula.opt_bin + '/beanstalkd', 'test'], false)
+	service_spec_set_environment(mut service, {
+		'PATH': '${service_spec_prefix}/bin:${service_spec_prefix}/sbin:/usr/bin:/bin:/usr/sbin:/sbin'
+		'FOO':  'BAR'
+	}, ['PATH', 'FOO'])
+	homebrew.ruby_service_l184_d14_error_log_path(mut service, '${service_spec_prefix}/var/log/beanstalkd.error.log')
+	homebrew.ruby_service_l172_d13_log_path(mut service, '${service_spec_prefix}/var/log/beanstalkd.log')
+	homebrew.ruby_service_l160_d12_input_path(mut service, '${service_spec_prefix}/var/in/beanstalkd')
+	homebrew.ruby_service_l219_d16_require_root(mut service, true)
+	homebrew.ruby_service_l148_d11_root_dir(mut service, '${service_spec_prefix}/var')
+	homebrew.ruby_service_l136_d10_working_dir(mut service, '${service_spec_prefix}/var')
+	homebrew.ruby_service_l199_d15_keep_alive(mut service, homebrew.ServiceKeepAliveInput{ set: true, boolean: true })!
+	homebrew.ruby_service_l333_d25_process_type(mut service, homebrew.ServiceEnumInput{ set: true, value: 'interactive' })!
+	homebrew.ruby_service_l298_d22_restart_delay(mut service, 30)
+	homebrew.ruby_service_l320_d24_stop_timeout(mut service, 45)!
+	homebrew.ruby_service_l508_d34_nice(mut service, -15)!
+	homebrew.ruby_service_l494_d33_macos_legacy_timers(mut service, true)
+	expected := '[Unit]\nDescription=Homebrew generated unit for formula_name\n\n[Install]\nWantedBy=default.target\n\n[Service]\nType=simple\nExecStart="${service_spec_prefix}/opt/formula_name/bin/beanstalkd" "test"\nRestart=on-failure\nRestartSec=30\nTimeoutStopSec=45\nNice=-15\nWorkingDirectory=${service_spec_prefix}/var\nRootDirectory=${service_spec_prefix}/var\nStandardInput=file:${service_spec_prefix}/var/in/beanstalkd\nStandardOutput=append:${service_spec_prefix}/var/log/beanstalkd.log\nStandardError=append:${service_spec_prefix}/var/log/beanstalkd.error.log\nEnvironment="PATH=${service_spec_prefix}/bin:${service_spec_prefix}/sbin:/usr/bin:/bin:/usr/sbin:/sbin"\nEnvironment="FOO=BAR"\n'
+	return homebrew.ruby_service_l632_d50_to_systemd_unit(service, '/nonexistent', 501) == expected
 }
 
 // Ruby it `it "returns valid partial oneshot unit" do` at line 1089.
-pub fn ruby_service_spec_l1089_d52_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_service_spec_l1089_d52_returns() !bool {
+	mut service := service_spec_new()!
+	service_spec_set_run(mut service, [service.formula.opt_bin + '/beanstalkd'], true)
+	homebrew.ruby_service_l286_d21_launch_only_once(mut service, true)
+	return homebrew.ruby_service_l632_d50_to_systemd_unit(service, '/nonexistent', 501) == service_spec_systemd('oneshot', '')
 }
 
 // Ruby it `it "expands paths" do` at line 1114.
-pub fn ruby_service_spec_l1114_d53_expands(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('expands', ...args)
+pub fn ruby_service_spec_l1114_d53_expands() !bool {
+	mut service := service_spec_new()!
+	service_spec_set_run(mut service, [service.formula.opt_bin + '/beanstalkd'], true)
+	homebrew.ruby_service_l136_d10_working_dir(mut service, '~')
+	return homebrew.ruby_service_l632_d50_to_systemd_unit(service, '/nonexistent', 501) == service_spec_systemd('simple', '\nWorkingDirectory=${service_spec_home}')
 }
 
 // Ruby it `it "returns valid unit with keep_alive crashed" do` at line 1139.
-pub fn ruby_service_spec_l1139_d54_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_service_spec_l1139_d54_returns() !bool {
+	mut service := service_spec_new()!
+	service_spec_set_run(mut service, [service.formula.opt_bin + '/beanstalkd'], true)
+	homebrew.ruby_service_l199_d15_keep_alive(mut service, homebrew.ServiceKeepAliveInput{
+		set: true
+		value: homebrew.ServiceKeepAlive{ has_crashed: true, crashed: true }
+	})!
+	return homebrew.ruby_service_l632_d50_to_systemd_unit(service, '/nonexistent', 501) == service_spec_systemd('simple', '\nRestart=on-failure')
 }
 
 // Ruby it `it "returns valid unit with keep_alive successful_exit" do` at line 1164.
-pub fn ruby_service_spec_l1164_d55_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_service_spec_l1164_d55_returns() !bool {
+	mut service := service_spec_new()!
+	service_spec_set_run(mut service, [service.formula.opt_bin + '/beanstalkd'], true)
+	homebrew.ruby_service_l199_d15_keep_alive(mut service, homebrew.ServiceKeepAliveInput{
+		set: true
+		value: homebrew.ServiceKeepAlive{ has_successful_exit: true, successful_exit: true }
+	})!
+	return homebrew.ruby_service_l632_d50_to_systemd_unit(service, '/nonexistent', 501) == service_spec_systemd('simple', '\nRestart=on-success')
 }
 
 // Ruby it `it "returns valid unit with stop_timeout" do` at line 1189.
-pub fn ruby_service_spec_l1189_d56_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_service_spec_l1189_d56_returns() !bool {
+	mut service := service_spec_new()!
+	service_spec_set_run(mut service, [service.formula.opt_bin + '/beanstalkd'], true)
+	homebrew.ruby_service_l320_d24_stop_timeout(mut service, 25)!
+	return homebrew.ruby_service_l632_d50_to_systemd_unit(service, '/nonexistent', 501) == service_spec_systemd('simple', '\nTimeoutStopSec=25')
 }
 
 // Ruby it `it "returns valid unit without restart when keep_alive is false" do` at line 1214.
-pub fn ruby_service_spec_l1214_d57_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_service_spec_l1214_d57_returns() !bool {
+	mut service := service_spec_new()!
+	service_spec_set_run(mut service, [service.formula.opt_bin + '/beanstalkd'], true)
+	homebrew.ruby_service_l199_d15_keep_alive(mut service, homebrew.ServiceKeepAliveInput{ set: true, boolean: false })!
+	return homebrew.ruby_service_l632_d50_to_systemd_unit(service, '/nonexistent', 501) == service_spec_systemd('simple', '')
 }
 
 // Ruby it `it "returns valid timer" do` at line 1240.
-pub fn ruby_service_spec_l1240_d58_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_service_spec_l1240_d58_returns() !bool {
+	mut service := service_spec_new()!
+	homebrew.ruby_service_l350_d26_run_type(mut service, homebrew.ServiceEnumInput{ set: true, value: 'interval' })!
+	homebrew.ruby_service_l365_d27_interval(mut service, 5)
+	return homebrew.ruby_service_l688_d52_to_systemd_timer(service) == service_spec_timer('OnUnitActiveSec=5')
 }
 
 // Ruby it `it "returns valid partial timer" do` at line 1265.
-pub fn ruby_service_spec_l1265_d59_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_service_spec_l1265_d59_returns() !bool {
+	service := service_spec_new()!
+	return homebrew.ruby_service_l688_d52_to_systemd_timer(service) == service_spec_timer('')
 }
 
 // Ruby it `it "throws on incomplete cron" do` at line 1289.
-pub fn ruby_service_spec_l1289_d60_throws(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('throws', ...args)
+pub fn ruby_service_spec_l1289_d60_throws() !bool {
+	mut service := service_spec_new()!
+	homebrew.ruby_service_l377_d28_cron(mut service, '1 2 3 4') or {
+		return err.msg() == 'Service#parse_cron expects a valid cron syntax'
+	}
+	return false
 }
 
 // Ruby it `it "returns valid cron timers" do` at line 1304.
-pub fn ruby_service_spec_l1304_d61_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_service_spec_l1304_d61_returns() !bool {
+	styles := {
+		'@hourly':   '*-*-* *:00:00'
+		'@daily':    '*-*-* 00:00:00'
+		'@weekly':   'Sun *-*-* 00:00:00'
+		'@monthly':  '*-*-1 00:00:00'
+		'@yearly':   '*-1-1 00:00:00'
+		'@annually': '*-1-1 00:00:00'
+		'5 5 5 5 5': 'Fri *-5-5 05:05:00'
+	}
+	for cron, calendar in styles {
+		mut service := service_spec_new()!
+		homebrew.ruby_service_l350_d26_run_type(mut service, homebrew.ServiceEnumInput{ set: true, value: 'cron' })!
+		homebrew.ruby_service_l377_d28_cron(mut service, cron)!
+		if homebrew.ruby_service_l688_d52_to_systemd_timer(service) != service_spec_timer('Persistent=true\nOnCalendar=${calendar}') {
+			return false
+		}
+	}
+	return true
 }
 
 // Ruby it `it "returns false for immediate" do` at line 1344.
-pub fn ruby_service_spec_l1344_d62_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_service_spec_l1344_d62_returns() !bool {
+	service := service_spec_new()!
+	return !homebrew.ruby_service_l560_d48_timed(service)
 }
 
 // Ruby it `it "returns true for interval" do` at line 1356.
-pub fn ruby_service_spec_l1356_d63_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_service_spec_l1356_d63_returns() !bool {
+	mut service := service_spec_new()!
+	homebrew.ruby_service_l350_d26_run_type(mut service, homebrew.ServiceEnumInput{ set: true, value: 'interval' })!
+	return homebrew.ruby_service_l560_d48_timed(service)
 }
 
 // Ruby it `it "returns true when keep_alive set to hash" do` at line 1370.
-pub fn ruby_service_spec_l1370_d64_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_service_spec_l1370_d64_returns() !bool {
+	mut service := service_spec_new()!
+	homebrew.ruby_service_l199_d15_keep_alive(mut service, homebrew.ServiceKeepAliveInput{
+		set: true
+		value: homebrew.ServiceKeepAlive{ has_crashed: true, crashed: true }
+	})!
+	return homebrew.ruby_service_l278_d20_keep_alive(service)
 }
 
 // Ruby it `it "returns true when keep_alive set to true" do` at line 1382.
-pub fn ruby_service_spec_l1382_d65_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_service_spec_l1382_d65_returns() !bool {
+	mut service := service_spec_new()!
+	homebrew.ruby_service_l199_d15_keep_alive(mut service, homebrew.ServiceKeepAliveInput{ set: true, boolean: true })!
+	return homebrew.ruby_service_l278_d20_keep_alive(service)
 }
 
 // Ruby it `it "returns false when keep_alive not set" do` at line 1394.
-pub fn ruby_service_spec_l1394_d66_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_service_spec_l1394_d66_returns() !bool {
+	service := service_spec_new()!
+	return !homebrew.ruby_service_l278_d20_keep_alive(service)
 }
 
 // Ruby it `it "returns false when keep_alive set to false" do` at line 1405.
-pub fn ruby_service_spec_l1405_d67_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_service_spec_l1405_d67_returns() !bool {
+	mut service := service_spec_new()!
+	homebrew.ruby_service_l199_d15_keep_alive(mut service, homebrew.ServiceKeepAliveInput{ set: true, boolean: false })!
+	return !homebrew.ruby_service_l278_d20_keep_alive(service)
 }
 
 // Ruby it `it "returns @run data" do` at line 1419.
-pub fn ruby_service_spec_l1419_d68_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_service_spec_l1419_d68_returns() !bool {
+	mut service := service_spec_new()!
+	service_spec_set_run(mut service, [service.formula.opt_bin + '/beanstalkd', 'test'], false)
+	return homebrew.ruby_service_l525_d44_command(service) == [
+		'${service_spec_prefix}/opt/formula_name/bin/beanstalkd',
+		'test',
+	]
 }
 
 // Ruby it `it "returns @run data" do` at line 1439.
-pub fn ruby_service_spec_l1439_d69_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_service_spec_l1439_d69_returns() !bool {
+	mut service := service_spec_new()!
+	service_spec_set_os_run(mut service, [], [service.formula.opt_bin + '/beanstalkd', 'test'], .linux)
+	return homebrew.ruby_service_l525_d44_command(service) == [
+		'${service_spec_prefix}/opt/formula_name/bin/beanstalkd',
+		'test',
+	]
 }
 
 // Ruby it `it "returns empty for macOS-only commands" do` at line 1452.
-pub fn ruby_service_spec_l1452_d70_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_service_spec_l1452_d70_returns() !bool {
+	mut service := service_spec_new()!
+	service_spec_set_os_run(mut service, [service.formula.opt_bin + '/beanstalkd', 'test'], [], .linux)
+	return homebrew.ruby_service_l525_d44_command(service).len == 0
 }
 
 // Ruby it `it "returns the Linux command when both OS commands are defined" do` at line 1465.
-pub fn ruby_service_spec_l1465_d71_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_service_spec_l1465_d71_returns() !bool {
+	mut service := service_spec_new()!
+	service_spec_set_os_run(mut service, [service.formula.opt_bin + '/beanstalkd', 'test', 'macos'], [
+		service.formula.opt_bin + '/beanstalkd',
+		'test',
+		'linux',
+	], .linux)
+	return homebrew.ruby_service_l525_d44_command(service) == [
+		'${service_spec_prefix}/opt/formula_name/bin/beanstalkd',
+		'test',
+		'linux',
+	]
 }
 
 // Ruby it `it "returns @run data" do` at line 1486.
-pub fn ruby_service_spec_l1486_d72_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_service_spec_l1486_d72_returns() !bool {
+	mut service := service_spec_new()!
+	service_spec_set_os_run(mut service, [service.formula.opt_bin + '/beanstalkd', 'test'], [], .macos)
+	return homebrew.ruby_service_l525_d44_command(service) == [
+		'${service_spec_prefix}/opt/formula_name/bin/beanstalkd',
+		'test',
+	]
 }
 
 // Ruby it `it "returns empty for Linux-only commands" do` at line 1499.
-pub fn ruby_service_spec_l1499_d73_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_service_spec_l1499_d73_returns() !bool {
+	mut service := service_spec_new()!
+	service_spec_set_os_run(mut service, [], [service.formula.opt_bin + '/beanstalkd', 'test'], .macos)
+	return homebrew.ruby_service_l525_d44_command(service).len == 0
 }
 
 // Ruby it `it "returns the macOS command when both OS commands are defined" do` at line 1512.
-pub fn ruby_service_spec_l1512_d74_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_service_spec_l1512_d74_returns() !bool {
+	mut service := service_spec_new()!
+	service_spec_set_os_run(mut service, [service.formula.opt_bin + '/beanstalkd', 'test', 'macos'], [
+		service.formula.opt_bin + '/beanstalkd',
+		'test',
+		'linux',
+	], .macos)
+	return homebrew.ruby_service_l525_d44_command(service) == [
+		'${service_spec_prefix}/opt/formula_name/bin/beanstalkd',
+		'test',
+		'macos',
+	]
 }
 
 // Ruby let `let(:serialized_hash) do` at line 1528.
-pub fn ruby_service_spec_l1528_d75_serialized_hash(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('serialized_hash', ...args)
+pub fn ruby_service_spec_l1528_d75_serialized_hash() homebrew.ServiceHash {
+	return homebrew.ServiceHash{
+		has_run: true
+		run: homebrew.ServiceRunParams{
+			direct: service_spec_run_value([
+				'\$HOMEBREW_PREFIX/opt/formula_name/bin/beanstalkd',
+				'test',
+			], false)
+		}
+		has_run_type: true
+		run_type: 'immediate'
+		cron: '0 0 * * 0'
+		has_environment_variables: true
+		environment_variables: homebrew.ServiceEnvironment{
+			values: {
+				'PATH': '\$HOMEBREW_PREFIX/bin:\$HOMEBREW_PREFIX/sbin:/usr/bin:/bin:/usr/sbin:/sbin'
+			}
+			order: ['PATH']
+		}
+		working_dir: '/\$HOME'
+		has_stop_timeout: true
+		stop_timeout: 15
+		has_sockets: true
+		sockets: {
+			'listeners': 'tcp://0.0.0.0:80'
+		}
+		sockets_scalar: true
+	}
 }
 
 // Ruby it `it "replaces local paths with placeholders" do` at line 1544.
-pub fn ruby_service_spec_l1544_d76_replaces(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('replaces', ...args)
+pub fn ruby_service_spec_l1544_d76_replaces() !bool {
+	formula := homebrew.new_service_formula_paths('formula_name', '\$HOMEBREW_PREFIX', '\$HOMEBREW_CELLAR', '/\$HOME')
+	mut service := homebrew.new_brew_service(formula)!
+	service_spec_set_run(mut service, [formula.opt_bin + '/beanstalkd', 'test'], false)
+	service_spec_set_environment(mut service, {
+		'PATH': '\$HOMEBREW_PREFIX/bin:\$HOMEBREW_PREFIX/sbin:/usr/bin:/bin:/usr/sbin:/sbin'
+	}, ['PATH'])
+	homebrew.ruby_service_l136_d10_working_dir(mut service, '/\$HOME')
+	homebrew.ruby_service_l377_d28_cron(mut service, '@weekly')!
+	homebrew.ruby_service_l320_d24_stop_timeout(mut service, 15)!
+	homebrew.ruby_service_l252_d19_sockets(mut service, homebrew.ServiceSocketsInput{
+		set: true
+		values: {
+			'listeners': 'tcp://0.0.0.0:80'
+		}
+	})!
+	actual := homebrew.ruby_service_l715_d53_to_hash(service)
+	expected := ruby_service_spec_l1528_d75_serialized_hash()
+	return actual.has_run && actual.run == expected.run && actual.run_type == expected.run_type && actual.environment_variables == expected.environment_variables && actual.working_dir == expected.working_dir && actual.cron == expected.cron && actual.has_stop_timeout && actual.stop_timeout == 15 && actual.sockets == expected.sockets && actual.sockets_scalar
 }
 
 // Ruby let `let(:serialized_hash) do` at line 1564.
-pub fn ruby_service_spec_l1564_d77_serialized_hash(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('serialized_hash', ...args)
+pub fn ruby_service_spec_l1564_d77_serialized_hash() homebrew.ServiceHash {
+	return homebrew.ServiceHash{
+		has_name: true
+		name: {
+			'linux': 'custom.systemd.name'
+			'macos': 'custom.launchd.name'
+		}
+		has_run: true
+		run: homebrew.ServiceRunParams{
+			direct: service_spec_run_value([
+				'\$HOMEBREW_PREFIX/opt/formula_name/bin/beanstalkd',
+				'test',
+			], false)
+		}
+		has_run_type: true
+		run_type: 'immediate'
+		has_environment_variables: true
+		environment_variables: homebrew.ServiceEnvironment{
+			values: {
+				'PATH': '\$HOMEBREW_PREFIX/bin:\$HOMEBREW_PREFIX/sbin:/usr/bin:/bin:/usr/sbin:/sbin'
+			}
+			order: ['PATH']
+		}
+		working_dir: '/\$HOME'
+		has_keep_alive: true
+		keep_alive: homebrew.ServiceKeepAlive{ has_successful_exit: true, successful_exit: false }
+	}
 }
 
 // Ruby let `let(:deserialized_hash) do` at line 1580.
-pub fn ruby_service_spec_l1580_d78_deserialized_hash(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('deserialized_hash', ...args)
+pub fn ruby_service_spec_l1580_d78_deserialized_hash() homebrew.ServiceHash {
+	return homebrew.ServiceHash{
+		...ruby_service_spec_l1564_d77_serialized_hash()
+		run: homebrew.ServiceRunParams{
+			direct: service_spec_run_value([
+				'${service_spec_prefix}/opt/formula_name/bin/beanstalkd',
+				'test',
+			], false)
+		}
+		environment_variables: homebrew.ServiceEnvironment{
+			values: {
+				'PATH': '${service_spec_prefix}/bin:${service_spec_prefix}/sbin:/usr/bin:/bin:/usr/sbin:/sbin'
+			}
+			order: ['PATH']
+		}
+		working_dir: service_spec_home
+	}
 }
 
 // Ruby it `it "replaces placeholders with local paths" do` at line 1596.
-pub fn ruby_service_spec_l1596_d79_replaces(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('replaces', ...args)
+pub fn ruby_service_spec_l1596_d79_replaces() !bool {
+	actual := homebrew.ruby_service_l771_d54_self_from_hash(ruby_service_spec_l1564_d77_serialized_hash(), service_spec_prefix, service_spec_cellar, service_spec_home)!
+	expected := ruby_service_spec_l1580_d78_deserialized_hash()
+	return actual.name == expected.name && actual.run == expected.run && actual.environment_variables == expected.environment_variables && actual.run_type == 'immediate' && actual.working_dir == service_spec_home && actual.keep_alive == expected.keep_alive
 }
 
 // Ruby it `it "handles String argument correctly" do` at line 1601.
-pub fn ruby_service_spec_l1601_d80_handles(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('handles', ...args)
+pub fn ruby_service_spec_l1601_d80_handles() !bool {
+	input := homebrew.ServiceHash{
+		has_run: true
+		run: homebrew.ServiceRunParams{
+			direct: service_spec_run_value([
+				'\$HOMEBREW_PREFIX/opt/formula_name/bin/beanstalkd',
+			], true)
+		}
+	}
+	actual := homebrew.ruby_service_l771_d54_self_from_hash(input, service_spec_prefix, service_spec_cellar, service_spec_home)!
+	return actual.run.direct.kind == .scalar && actual.run.direct.values == [
+		'${service_spec_prefix}/opt/formula_name/bin/beanstalkd',
+	]
 }
 
 // Ruby it `it "handles Array argument correctly" do` at line 1609.
-pub fn ruby_service_spec_l1609_d81_handles(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('handles', ...args)
+pub fn ruby_service_spec_l1609_d81_handles() !bool {
+	input := homebrew.ServiceHash{
+		has_run: true
+		run: homebrew.ServiceRunParams{
+			direct: service_spec_run_value([
+				'\$HOMEBREW_PREFIX/opt/formula_name/bin/beanstalkd',
+				'--option',
+			], false)
+		}
+	}
+	actual := homebrew.ruby_service_l771_d54_self_from_hash(input, service_spec_prefix, service_spec_cellar, service_spec_home)!
+	return actual.run.direct.kind == .array && actual.run.direct.values == [
+		'${service_spec_prefix}/opt/formula_name/bin/beanstalkd',
+		'--option',
+	]
 }
 
 // Ruby it `it "handles Hash argument correctly" do` at line 1617.
-pub fn ruby_service_spec_l1617_d82_handles(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('handles', ...args)
+pub fn ruby_service_spec_l1617_d82_handles() !bool {
+	input := homebrew.ServiceHash{
+		has_run: true
+		run: homebrew.ServiceRunParams{
+			linux: service_spec_run_value([
+				'\$HOMEBREW_PREFIX/opt/formula_name/bin/beanstalkd',
+			], true)
+			macos: service_spec_run_value([
+				'\$HOMEBREW_PREFIX/opt/formula_name/bin/beanstalkd',
+				'--option',
+			], false)
+			conditional: true
+		}
+	}
+	actual := homebrew.ruby_service_l771_d54_self_from_hash(input, service_spec_prefix, service_spec_cellar, service_spec_home)!
+	return actual.run.conditional && actual.run.linux.kind == .scalar && actual.run.linux.values == [
+		'${service_spec_prefix}/opt/formula_name/bin/beanstalkd',
+	] && actual.run.macos.kind == .array && actual.run.macos.values == [
+		'${service_spec_prefix}/opt/formula_name/bin/beanstalkd',
+		'--option',
+	]
 }
 
 // Ruby it `it "handles stop_timeout argument correctly" do` at line 1631.
-pub fn ruby_service_spec_l1631_d83_handles(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('handles', ...args)
+pub fn ruby_service_spec_l1631_d83_handles() !bool {
+	input := homebrew.ServiceHash{
+		has_run: true
+		run: homebrew.ServiceRunParams{
+			direct: service_spec_run_value([
+				'\$HOMEBREW_PREFIX/opt/formula_name/bin/beanstalkd',
+			], true)
+		}
+		has_stop_timeout: true
+		stop_timeout: 30
+	}
+	actual := homebrew.ruby_service_l771_d54_self_from_hash(input, service_spec_prefix, service_spec_cellar, service_spec_home)!
+	return actual.run.direct.values == [
+		'${service_spec_prefix}/opt/formula_name/bin/beanstalkd',
+	] && actual.has_stop_timeout && actual.stop_timeout == 30
 }
 
 // Ruby it `it "returns formula vars when no env override file exists" do` at line 1644.
-pub fn ruby_service_spec_l1644_d84_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_service_spec_l1644_d84_returns(root string) !bool {
+	service := service_spec_environment_service({
+		'FOO': 'BAR'
+	}, ['FOO'])!
+	result := homebrew.ruby_service_l443_d32_effective_environment_variables(service, service_spec_empty_config_root(root)!, 501)
+	return result.environment.values == {
+		'FOO': 'BAR'
+	} && result.warnings.len == 0
 }
 
 // Ruby it `it "merges user env overrides with formula vars" do` at line 1656.
-pub fn ruby_service_spec_l1656_d85_merges(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('merges', ...args)
+pub fn ruby_service_spec_l1656_d85_merges(root string) !bool {
+	service := service_spec_environment_service({
+		'FOO': 'BAR'
+	}, ['FOO'])!
+	service_spec_write_env(root, 'OLLAMA_HOST=0.0.0.0\n', 0o644)!
+	result := homebrew.ruby_service_l443_d32_effective_environment_variables(service, root, 501)
+	return result.environment.values == {
+		'FOO':         'BAR'
+		'OLLAMA_HOST': '0.0.0.0'
+	}
 }
 
 // Ruby it `it "user env overrides take precedence over formula vars" do` at line 1677.
-pub fn ruby_service_spec_l1677_d86_user(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('user', ...args)
+pub fn ruby_service_spec_l1677_d86_user(root string) !bool {
+	service := service_spec_environment_service({
+		'FOO': 'BAR'
+	}, ['FOO'])!
+	service_spec_write_env(root, 'FOO=QUX\n', 0o644)!
+	result := homebrew.ruby_service_l443_d32_effective_environment_variables(service, root, 501)
+	return result.environment.values == {
+		'FOO': 'QUX'
+	}
 }
 
 // Ruby it `it "ignores comments and blank lines in env file" do` at line 1698.
-pub fn ruby_service_spec_l1698_d87_ignores(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ignores', ...args)
+pub fn ruby_service_spec_l1698_d87_ignores(root string) !bool {
+	service := service_spec_environment_service({
+		'FOO': 'BAR'
+	}, ['FOO'])!
+	service_spec_write_env(root, '# This is a comment\n\nOLLAMA_HOST=0.0.0.0\n# Another comment\nOLLAMA_ORIGINS=*\n', 0o644)!
+	result := homebrew.ruby_service_l443_d32_effective_environment_variables(service, root, 501)
+	return result.environment.values == {
+		'FOO':            'BAR'
+		'OLLAMA_HOST':    '0.0.0.0'
+		'OLLAMA_ORIGINS': '*'
+	}
 }
 
 // Ruby it `it "skips lines without = and strips whitespace around =" do` at line 1723.
-pub fn ruby_service_spec_l1723_d88_skips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skips', ...args)
+pub fn ruby_service_spec_l1723_d88_skips(root string) !bool {
+	service := service_spec_environment_service(map[string]string{}, [])!
+	service_spec_write_env(root, '# comment\nMALFORMED_LINE\nFOO = BAR\nBLANK_KEY = value\nKEY_WITH_NO_VALUE\nNORMAL=BAZ\nKEY_EMPTY_VALUE=\n', 0o644)!
+	result := homebrew.ruby_service_l443_d32_effective_environment_variables(service, root, 501)
+	return result.warnings.len == 2 && result.warnings[0].contains('invalid line') && result.warnings[0].contains('MALFORMED_LINE') && result.warnings[1].contains('KEY_WITH_NO_VALUE') && result.environment.values == {
+		'FOO':             'BAR'
+		'BLANK_KEY':       'value'
+		'NORMAL':          'BAZ'
+		'KEY_EMPTY_VALUE': ''
+	}
 }
 
 // Ruby it `it "includes user env overrides in to_plist" do` at line 1753.
-pub fn ruby_service_spec_l1753_d89_includes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('includes', ...args)
+pub fn ruby_service_spec_l1753_d89_includes(root string) !bool {
+	service := service_spec_environment_service({
+		'FOO': 'BAR'
+	}, ['FOO'])!
+	service_spec_write_env(root, 'OLLAMA_HOST=0.0.0.0\n', 0o644)!
+	plist := homebrew.ruby_service_l566_d49_to_plist(service, root, 501)
+	return plist.contains('<key>OLLAMA_HOST</key>') && plist.contains('<string>0.0.0.0</string>') && plist.contains('<key>FOO</key>') && plist.contains('<string>BAR</string>')
 }
 
 // Ruby it `it "includes user env overrides in to_systemd_unit" do` at line 1777.
-pub fn ruby_service_spec_l1777_d90_includes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('includes', ...args)
+pub fn ruby_service_spec_l1777_d90_includes(root string) !bool {
+	service := service_spec_environment_service({
+		'FOO': 'BAR'
+	}, ['FOO'])!
+	service_spec_write_env(root, 'OLLAMA_HOST=0.0.0.0\n', 0o644)!
+	unit := homebrew.ruby_service_l632_d50_to_systemd_unit(service, root, 501)
+	return unit.contains('Environment="FOO=BAR"') && unit.contains('Environment="OLLAMA_HOST=0.0.0.0"')
 }
 
 // Ruby it `it "skips world-writable env files" do` at line 1799.
-pub fn ruby_service_spec_l1799_d91_skips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skips', ...args)
+pub fn ruby_service_spec_l1799_d91_skips(root string) !bool {
+	service := service_spec_environment_service({
+		'FOO': 'BAR'
+	}, ['FOO'])!
+	service_spec_write_env(root, 'OLLAMA_HOST=0.0.0.0', 0o666)!
+	result := homebrew.ruby_service_l443_d32_effective_environment_variables(service, root, 501)
+	return result.environment.values == {
+		'FOO': 'BAR'
+	} && result.warnings.len == 1 && result.warnings[0].contains('world-writable')
 }
 
 // Ruby it `it "skips group-writable env files" do` at line 1820.
-pub fn ruby_service_spec_l1820_d92_skips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skips', ...args)
+pub fn ruby_service_spec_l1820_d92_skips(root string) !bool {
+	service := service_spec_environment_service({
+		'FOO': 'BAR'
+	}, ['FOO'])!
+	service_spec_write_env(root, 'OLLAMA_HOST=0.0.0.0', 0o664)!
+	result := homebrew.ruby_service_l443_d32_effective_environment_variables(service, root, 501)
+	return result.environment.values == {
+		'FOO': 'BAR'
+	} && result.warnings.len == 1 && result.warnings[0].contains('group-writable')
 }
 
 // Ruby it `it "follows symlinks to a safe target" do` at line 1841.
-pub fn ruby_service_spec_l1841_d93_follows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('follows', ...args)
+pub fn ruby_service_spec_l1841_d93_follows(root string) !bool {
+	service := service_spec_environment_service({
+		'FOO': 'BAR'
+	}, ['FOO'])!
+	directory := os.join_path(root, 'services')
+	os.mkdir_all(directory)!
+	target := os.join_path(directory, 'actual.env')
+	os.write_file(target, 'OLLAMA_HOST=0.0.0.0')!
+	os.chmod(target, 0o644)!
+	os.symlink(target, os.join_path(directory, 'formula_name.env'))!
+	result := homebrew.ruby_service_l443_d32_effective_environment_variables(service, root, 501)
+	return result.environment.values == {
+		'FOO':         'BAR'
+		'OLLAMA_HOST': '0.0.0.0'
+	}
+}
+
+pub struct ServiceSpecBoundary {
+pub:
+	line   int
+	passed bool
+}
+
+pub fn service_spec_all_boundaries(root string) ![]ServiceSpecBoundary {
+	mut boundaries := []ServiceSpecBoundary{}
+	boundaries << ServiceSpecBoundary{ line: 8, passed: ruby_service_spec_l8_d1_name() == 'formula_name' }
+	boundaries << ServiceSpecBoundary{ line: 10, passed: ruby_service_spec_l10_d2_stub_formula()!.formula.name == 'formula_name' }
+	boundaries << ServiceSpecBoundary{
+		line: 19
+		passed: ruby_service_spec_l19_d3_stub_formula_with_service_sockets(homebrew.ServiceSocketsInput{
+			set: true
+			scalar: homebrew.ServiceStringValue{ present: true, value: 'tcp://127.0.0.1:80' }
+		})!.sockets.len == 1
+	}
+	boundaries << ServiceSpecBoundary{ line: 30, passed: ruby_service_spec_l30_d4_returns()! }
+	boundaries << ServiceSpecBoundary{ line: 50, passed: ruby_service_spec_l50_d5_is() }
+	boundaries << ServiceSpecBoundary{ line: 63, passed: ruby_service_spec_l63_d6_throws()! }
+	boundaries << ServiceSpecBoundary{ line: 79, passed: ruby_service_spec_l79_d7_accepts()! }
+	boundaries << ServiceSpecBoundary{ line: 91, passed: ruby_service_spec_l91_d8_includes()! }
+	boundaries << ServiceSpecBoundary{ line: 107, passed: ruby_service_spec_l107_d9_includes()! }
+	boundaries << ServiceSpecBoundary{ line: 121, passed: ruby_service_spec_l121_d10_does()! }
+	boundaries << ServiceSpecBoundary{ line: 135, passed: ruby_service_spec_l135_d11_accepts()! }
+	boundaries << ServiceSpecBoundary{ line: 147, passed: ruby_service_spec_l147_d12_throws()! }
+	boundaries << ServiceSpecBoundary{ line: 159, passed: ruby_service_spec_l159_d13_includes()! }
+	boundaries << ServiceSpecBoundary{ line: 172, passed: ruby_service_spec_l172_d14_does()! }
+	boundaries << ServiceSpecBoundary{ line: 184, passed: ruby_service_spec_l184_d15_includes()! }
+	boundaries << ServiceSpecBoundary{ line: 197, passed: ruby_service_spec_l197_d16_does()! }
+	boundaries << ServiceSpecBoundary{ line: 211, passed: ruby_service_spec_l211_d17_accepts()! }
+	boundaries << ServiceSpecBoundary{ line: 223, passed: ruby_service_spec_l223_d18_throws()! }
+	boundaries << ServiceSpecBoundary{ line: 235, passed: ruby_service_spec_l235_d19_allows()! }
+	boundaries << ServiceSpecBoundary{ line: 249, passed: ruby_service_spec_l249_d20_does()! }
+	boundaries << ServiceSpecBoundary{ line: 262, passed: ruby_service_spec_l262_d21_accepts()! }
+	boundaries << ServiceSpecBoundary{ line: 275, passed: ruby_service_spec_l275_d22_includes()! }
+	boundaries << ServiceSpecBoundary{ line: 289, passed: ruby_service_spec_l289_d23_includes()! }
+	boundaries << ServiceSpecBoundary{ line: 303, passed: ruby_service_spec_l303_d24_does()! }
+	boundaries << ServiceSpecBoundary{ line: 315, passed: ruby_service_spec_l315_d25_does()! }
+	boundaries << ServiceSpecBoundary{ line: 327, passed: ruby_service_spec_l327_d26_throws()! }
+	boundaries << ServiceSpecBoundary{ line: 339, passed: ruby_service_spec_l339_d27_throws()! }
+	boundaries << ServiceSpecBoundary{ line: 353, passed: ruby_service_spec_l353_d28_throws()! }
+	boundaries << ServiceSpecBoundary{ line: 369, passed: ruby_service_spec_l369_d29_returns()! }
+	boundaries << ServiceSpecBoundary{ line: 381, passed: ruby_service_spec_l381_d30_returns()! }
+	boundaries << ServiceSpecBoundary{ line: 394, passed: ruby_service_spec_l394_d31_throws()! }
+	boundaries << ServiceSpecBoundary{ line: 410, passed: ruby_service_spec_l410_d32_sockets_type_error_message().contains('<type>') }
+	boundaries << ServiceSpecBoundary{ line: 412, passed: ruby_service_spec_l412_d33_throws()! }
+	boundaries << ServiceSpecBoundary{ line: 421, passed: ruby_service_spec_l421_d34_throws()! }
+	boundaries << ServiceSpecBoundary{ line: 430, passed: ruby_service_spec_l430_d35_throws()! }
+	boundaries << ServiceSpecBoundary{ line: 439, passed: ruby_service_spec_l439_d36_throws()! }
+	boundaries << ServiceSpecBoundary{ line: 452, passed: ruby_service_spec_l452_d37_returns()! }
+	boundaries << ServiceSpecBoundary{ line: 470, passed: ruby_service_spec_l470_d38_returns()! }
+	boundaries << ServiceSpecBoundary{ line: 490, passed: ruby_service_spec_l490_d39_returns()! }
+	boundaries << ServiceSpecBoundary{ line: 513, passed: ruby_service_spec_l513_d40_returns()! }
+	boundaries << ServiceSpecBoundary{ line: 602, passed: ruby_service_spec_l602_d41_returns()! }
+	boundaries << ServiceSpecBoundary{ line: 649, passed: ruby_service_spec_l649_d42_returns()! }
+	boundaries << ServiceSpecBoundary{ line: 708, passed: ruby_service_spec_l708_d43_returns()! }
+	boundaries << ServiceSpecBoundary{ line: 745, passed: ruby_service_spec_l745_d44_returns()! }
+	boundaries << ServiceSpecBoundary{ line: 783, passed: ruby_service_spec_l783_d45_returns()! }
+	boundaries << ServiceSpecBoundary{ line: 823, passed: ruby_service_spec_l823_d46_returns()! }
+	boundaries << ServiceSpecBoundary{ line: 868, passed: ruby_service_spec_l868_d47_returns()! }
+	boundaries << ServiceSpecBoundary{ line: 910, passed: ruby_service_spec_l910_d48_returns()! }
+	boundaries << ServiceSpecBoundary{ line: 952, passed: ruby_service_spec_l952_d49_returns()! }
+	boundaries << ServiceSpecBoundary{ line: 994, passed: ruby_service_spec_l994_d50_expands()! }
+	boundaries << ServiceSpecBoundary{ line: 1040, passed: ruby_service_spec_l1040_d51_returns()! }
+	boundaries << ServiceSpecBoundary{ line: 1089, passed: ruby_service_spec_l1089_d52_returns()! }
+	boundaries << ServiceSpecBoundary{ line: 1114, passed: ruby_service_spec_l1114_d53_expands()! }
+	boundaries << ServiceSpecBoundary{ line: 1139, passed: ruby_service_spec_l1139_d54_returns()! }
+	boundaries << ServiceSpecBoundary{ line: 1164, passed: ruby_service_spec_l1164_d55_returns()! }
+	boundaries << ServiceSpecBoundary{ line: 1189, passed: ruby_service_spec_l1189_d56_returns()! }
+	boundaries << ServiceSpecBoundary{ line: 1214, passed: ruby_service_spec_l1214_d57_returns()! }
+	boundaries << ServiceSpecBoundary{ line: 1240, passed: ruby_service_spec_l1240_d58_returns()! }
+	boundaries << ServiceSpecBoundary{ line: 1265, passed: ruby_service_spec_l1265_d59_returns()! }
+	boundaries << ServiceSpecBoundary{ line: 1289, passed: ruby_service_spec_l1289_d60_throws()! }
+	boundaries << ServiceSpecBoundary{ line: 1304, passed: ruby_service_spec_l1304_d61_returns()! }
+	boundaries << ServiceSpecBoundary{ line: 1344, passed: ruby_service_spec_l1344_d62_returns()! }
+	boundaries << ServiceSpecBoundary{ line: 1356, passed: ruby_service_spec_l1356_d63_returns()! }
+	boundaries << ServiceSpecBoundary{ line: 1370, passed: ruby_service_spec_l1370_d64_returns()! }
+	boundaries << ServiceSpecBoundary{ line: 1382, passed: ruby_service_spec_l1382_d65_returns()! }
+	boundaries << ServiceSpecBoundary{ line: 1394, passed: ruby_service_spec_l1394_d66_returns()! }
+	boundaries << ServiceSpecBoundary{ line: 1405, passed: ruby_service_spec_l1405_d67_returns()! }
+	boundaries << ServiceSpecBoundary{ line: 1419, passed: ruby_service_spec_l1419_d68_returns()! }
+	boundaries << ServiceSpecBoundary{ line: 1439, passed: ruby_service_spec_l1439_d69_returns()! }
+	boundaries << ServiceSpecBoundary{ line: 1452, passed: ruby_service_spec_l1452_d70_returns()! }
+	boundaries << ServiceSpecBoundary{ line: 1465, passed: ruby_service_spec_l1465_d71_returns()! }
+	boundaries << ServiceSpecBoundary{ line: 1486, passed: ruby_service_spec_l1486_d72_returns()! }
+	boundaries << ServiceSpecBoundary{ line: 1499, passed: ruby_service_spec_l1499_d73_returns()! }
+	boundaries << ServiceSpecBoundary{ line: 1512, passed: ruby_service_spec_l1512_d74_returns()! }
+	boundaries << ServiceSpecBoundary{ line: 1528, passed: ruby_service_spec_l1528_d75_serialized_hash().has_run }
+	boundaries << ServiceSpecBoundary{ line: 1544, passed: ruby_service_spec_l1544_d76_replaces()! }
+	boundaries << ServiceSpecBoundary{ line: 1564, passed: ruby_service_spec_l1564_d77_serialized_hash().has_name }
+	boundaries << ServiceSpecBoundary{ line: 1580, passed: ruby_service_spec_l1580_d78_deserialized_hash().working_dir == service_spec_home }
+	boundaries << ServiceSpecBoundary{ line: 1596, passed: ruby_service_spec_l1596_d79_replaces()! }
+	boundaries << ServiceSpecBoundary{ line: 1601, passed: ruby_service_spec_l1601_d80_handles()! }
+	boundaries << ServiceSpecBoundary{ line: 1609, passed: ruby_service_spec_l1609_d81_handles()! }
+	boundaries << ServiceSpecBoundary{ line: 1617, passed: ruby_service_spec_l1617_d82_handles()! }
+	boundaries << ServiceSpecBoundary{ line: 1631, passed: ruby_service_spec_l1631_d83_handles()! }
+	boundaries << ServiceSpecBoundary{ line: 1644, passed: ruby_service_spec_l1644_d84_returns(os.join_path(root, 'env84'))! }
+	boundaries << ServiceSpecBoundary{ line: 1656, passed: ruby_service_spec_l1656_d85_merges(os.join_path(root, 'env85'))! }
+	boundaries << ServiceSpecBoundary{ line: 1677, passed: ruby_service_spec_l1677_d86_user(os.join_path(root, 'env86'))! }
+	boundaries << ServiceSpecBoundary{ line: 1698, passed: ruby_service_spec_l1698_d87_ignores(os.join_path(root, 'env87'))! }
+	boundaries << ServiceSpecBoundary{ line: 1723, passed: ruby_service_spec_l1723_d88_skips(os.join_path(root, 'env88'))! }
+	boundaries << ServiceSpecBoundary{ line: 1753, passed: ruby_service_spec_l1753_d89_includes(os.join_path(root, 'env89'))! }
+	boundaries << ServiceSpecBoundary{ line: 1777, passed: ruby_service_spec_l1777_d90_includes(os.join_path(root, 'env90'))! }
+	boundaries << ServiceSpecBoundary{ line: 1799, passed: ruby_service_spec_l1799_d91_skips(os.join_path(root, 'env91'))! }
+	boundaries << ServiceSpecBoundary{ line: 1820, passed: ruby_service_spec_l1820_d92_skips(os.join_path(root, 'env92'))! }
+	boundaries << ServiceSpecBoundary{ line: 1841, passed: ruby_service_spec_l1841_d93_follows(os.join_path(root, 'env93'))! }
+	return boundaries
 }
 
 // Original Ruby source (line-for-line):

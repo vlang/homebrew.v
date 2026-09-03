@@ -1,108 +1,689 @@
 module utils
 
 import brew_runtime
+import x.json2
 
 // Translated from Homebrew/brew `utils/pypi.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub const pythonhosted_url_prefix = 'https://files.pythonhosted.org/packages/'
+
+pub struct PypiReleaseInfo {
+pub:
+	name          string
+	download_url  string
+	checksum      string
+	version       string
+	package_error string
+}
+
+pub struct PypiInfoLookup {
+pub:
+	found bool
+	info  PypiReleaseInfo
+}
+
+pub type PypiMetadataFetch = fn(string) !string
+
+@[heap]
+pub struct PypiPackage {
+pub:
+	package_string string
+	is_url         bool
+	is_pypi_url    bool
+	python_name    string
+mut:
+	name_cache       string
+	extras_cache     []string
+	version_cache    string
+	metadata_ready   bool
+	info_cache       ?PypiReleaseInfo
+	external_name    string
+	external_version string
+}
+
+struct PypiDigestDocument {
+pub:
+	sha256 string
+}
+
+struct PypiDistributionDocument {
+pub:
+	packagetype string
+	filename    string
+	url         string
+	digests     PypiDigestDocument
+}
+
+struct PypiProjectDocument {
+pub:
+	name    string
+	version string
+}
+
+struct PypiMetadataDocument {
+pub:
+	info PypiProjectDocument
+	urls []PypiDistributionDocument
+}
+
+struct PipInstallMetadataDocument {
+pub:
+	metadata PypiProjectDocument
+}
+
+struct PipReportDocument {
+pub:
+	install []PipInstallMetadataDocument
+}
+
+pub fn normalize_python_package(name string) string {
+	mut output := []u8{cap: name.len}
+	mut separator := false
+	for character in name.to_lower().bytes() {
+		if character in [`-`, `_`, `.`] {
+			if !separator {
+				output << `-`
+				separator = true
+			}
+		} else {
+			output << character
+			separator = false
+		}
+	}
+	return output.bytestr()
+}
+
+pub fn new_pypi_package(package_string string, is_url bool,
+	python_name string) &PypiPackage {
+	return &PypiPackage{
+		package_string: package_string
+		is_url: is_url
+		is_pypi_url: package_string.starts_with(pythonhosted_url_prefix)
+		python_name: if python_name.len > 0 { python_name } else { 'python' }
+	}
+}
+
+pub fn (mut package PypiPackage) set_external_metadata(name string, version string) {
+	package.external_name = name
+	package.external_version = version
+	package.metadata_ready = false
+}
+
+fn pypi_url_metadata(package_string string) !(string, string) {
+	filename := package_string.all_after_last('/')
+	stem := if filename.ends_with('.tar.gz') {
+		filename[..filename.len - 7]
+	} else if filename.ends_with('.zip') {
+		filename[..filename.len - 4]
+	} else {
+		return error('Package should be a valid PyPI URL')
+	}
+	separator := stem.last_index('-') or { return error('Package should be a valid PyPI URL') }
+	name := stem[..separator]
+	version := stem[separator + 1..]
+	if name.len == 0 || version.len == 0 {
+		return error('Package should be a valid PyPI URL')
+	}
+	for character in version {
+		if !(character.is_letter() || character.is_digit() || character == `.`) {
+			return error('Package should be a valid PyPI URL')
+		}
+	}
+	return normalize_python_package(name), version
+}
+
+pub fn (mut package PypiPackage) resolve_basic_metadata() ! {
+	if package.metadata_ready {
+		return
+	}
+	if package.is_pypi_url {
+		name, version := pypi_url_metadata(package.package_string)!
+		package.name_cache = name
+		package.version_cache = version
+		package.extras_cache = []string{}
+	} else if package.is_url {
+		if package.external_name.len == 0 {
+			return error('Unable to determine metadata for "${package.package_string}" because pip metadata was not supplied.')
+		}
+		package.name_cache = normalize_python_package(package.external_name)
+		package.version_cache = package.external_version
+		package.extras_cache = []string{}
+	} else {
+		mut specification := package.package_string
+		mut version := ''
+		if specification.contains('==') {
+			parts := specification.split_nth('==', 2)
+			specification = parts[0]
+			version = parts[1]
+		}
+		mut extras := []string{}
+		if open := specification.index('[') {
+			if specification.ends_with(']') {
+				extras = specification[open + 1..specification.len - 1].split(',').filter(it.len > 0)
+				specification = specification[..open]
+			}
+		}
+		package.name_cache = normalize_python_package(specification)
+		package.version_cache = version
+		package.extras_cache = extras
+	}
+	package.metadata_ready = true
+}
+
+pub fn (mut package PypiPackage) name() !string {
+	package.resolve_basic_metadata()!
+	return package.name_cache
+}
+
+pub fn (mut package PypiPackage) extras() ![]string {
+	package.resolve_basic_metadata()!
+	return package.extras_cache.clone()
+}
+
+pub fn (mut package PypiPackage) version() !string {
+	package.resolve_basic_metadata()!
+	return package.version_cache
+}
+
+pub fn (mut package PypiPackage) set_version(version string) ! {
+	if !package.valid() {
+		return error("can't update version for non-PyPI packages")
+	}
+	package.resolve_basic_metadata()!
+	package.version_cache = version
+}
+
+pub fn (package &PypiPackage) valid() bool {
+	return package.is_pypi_url || !package.is_url
+}
+
+fn pypi_wheel_suitable(filename string) bool {
+	return filename.ends_with('-none-any.whl') && (filename.contains('-py3') || filename.contains('.py3'))
+}
+
+pub fn (mut package PypiPackage) pypi_info(new_version ?string, ignore_errors bool,
+	fetch PypiMetadataFetch) !PypiInfoLookup {
+	if !package.valid() {
+		return PypiInfoLookup{}
+	}
+	if cached := package.info_cache {
+		if new_version == none {
+			return PypiInfoLookup{
+				found: true
+				info: cached
+			}
+		}
+	}
+	name := package.name()!
+	requested_version := if supplied := new_version {
+		supplied
+	} else {
+		package.version() or { '' }
+	}
+	metadata_url := if requested_version.len > 0 {
+		'https://pypi.org/pypi/${name}/${requested_version}/json'
+	} else {
+		'https://pypi.org/pypi/${name}/json'
+	}
+	payload := fetch(metadata_url) or { return PypiInfoLookup{} }
+	document := json2.decode[PypiMetadataDocument](payload) or { return PypiInfoLookup{} }
+	mut selected := ?PypiDistributionDocument(none)
+	for distribution in document.urls {
+		if distribution.packagetype == 'sdist' {
+			selected = distribution
+			break
+		}
+	}
+	if selected == none {
+		for distribution in document.urls {
+			if pypi_wheel_suitable(distribution.filename) {
+				selected = distribution
+				break
+			}
+		}
+	}
+	if distribution := selected {
+		info := PypiReleaseInfo{
+			name: normalize_python_package(document.info.name)
+			download_url: distribution.url
+			checksum: distribution.digests.sha256
+			version: document.info.version
+		}
+		package.info_cache = info
+		return PypiInfoLookup{
+			found: true
+			info: info
+		}
+	}
+	if ignore_errors {
+		return PypiInfoLookup{
+			found: true
+			info: PypiReleaseInfo{
+				package_error: 'no suitable source distribution on PyPI'
+			}
+		}
+	}
+	return PypiInfoLookup{}
+}
+
+pub fn (mut package PypiPackage) string() !string {
+	if !package.valid() {
+		return package.package_string
+	}
+	mut output := package.name()!
+	extras := package.extras()!
+	if extras.len > 0 {
+		output += '[${extras.join(',')}]'
+	}
+	version := package.version()!
+	if version.len > 0 {
+		output += '==${version}'
+	}
+	return output
+}
+
+pub fn (mut package PypiPackage) same_package(mut other PypiPackage) !bool {
+	return package.name()! == other.name()!
+}
+
+pub fn (mut package PypiPackage) hash_value() !i64 {
+	mut hash := u64(14695981039346656037)
+	for character in package.name()!.bytes() {
+		hash = (hash ^ u64(character)) * u64(1099511628211)
+	}
+	return i64(hash)
+}
+
+pub fn pypi_resource_blocks_from_formula(contents string) map[string]string {
+	lines := contents.split_into_lines()
+	mut blocks := map[string]string{}
+	mut index := 0
+	for index < lines.len {
+		line := lines[index]
+		trimmed := line.trim_space()
+		if trimmed.starts_with('resource "') && trimmed.ends_with(' do') {
+			name := trimmed.all_after('resource "').all_before('"')
+			mut block := [line]
+			index++
+			mut depth := 1
+			for index < lines.len && depth > 0 {
+				current := lines[index]
+				text := current.trim_space()
+				if text.ends_with(' do') {
+					depth++
+				}
+				if text == 'end' {
+					depth--
+				}
+				block << current
+				index++
+			}
+			blocks[name] = block.join('').trim_space()
+			continue
+		}
+		index++
+	}
+	return blocks
+}
+
+pub fn pip_report_to_packages(report string) ![]&PypiPackage {
+	if report.trim_space().len == 0 {
+		return []&PypiPackage{}
+	}
+	document := json2.decode[PipReportDocument](report)!
+	mut packages := []&PypiPackage{}
+	mut seen := []string{}
+	for installation in document.install {
+		name := normalize_python_package(installation.metadata.name)
+		key := '${name}\0${installation.metadata.version}'
+		if key in seen {
+			continue
+		}
+		seen << key
+		packages << new_pypi_package('${name}==${installation.metadata.version}', false, 'python')
+	}
+	return packages
+}
+
+pub struct PipReportPlan {
+pub:
+	python_name  string
+	requirements []string
+	command      []string
+	print_stderr bool
+}
+
+pub fn build_pip_report_plan(mut packages []&PypiPackage, python_name string,
+	print_stderr bool, ignore_cooldown_package ?&PypiPackage) !PipReportPlan {
+	mut requirements := []string{cap: packages.len}
+	for mut package in packages {
+		mut requirement := package.string()!
+		if exempt := ignore_cooldown_package {
+			if package == exempt && package.valid() {
+				if cached := package.info_cache {
+					extras := package.extras()!
+					requirement = if extras.len > 0 {
+						'${cached.name}[${extras.join(',')}] @ ${cached.download_url}'
+					} else {
+						cached.download_url
+					}
+				}
+			}
+		}
+		requirements << requirement
+	}
+	python := if python_name.len > 0 { python_name } else { 'python' }
+	mut command := ['/opt/homebrew/opt/${python}/libexec/bin/python', '-m', 'pip', 'install', '-q',
+		'--disable-pip-version-check', '--dry-run', '--ignore-installed', '--uploaded-prior-to=P1D',
+		'--report=/dev/stdout']
+	command << requirements
+	return PipReportPlan{
+		python_name: python
+		requirements: requirements
+		command: command
+		print_stderr: print_stderr
+	}
+}
+
+pub struct PythonResourcesPlan {
+pub:
+	main_package      string
+	extra_packages    []string
+	excluded_packages []string
+	pip_plan          PipReportPlan
+}
+
+pub fn plan_python_resources(package_name string, version string, extra_packages []string,
+	exclude_packages []string, python_name string) !PythonResourcesPlan {
+	mut inputs := []&PypiPackage{}
+	if package_name.len > 0 {
+		main_spec := if version.len > 0 {
+			'${package_name}==${version}'
+		} else {
+			package_name
+		}
+		inputs << new_pypi_package(main_spec, false, python_name)
+	}
+	for specification in extra_packages {
+		mut candidate := new_pypi_package(specification, false, python_name)
+		mut duplicate := false
+		for mut existing in inputs {
+			if existing.same_package(mut candidate)! {
+				existing_version := existing.version() or { '' }
+				candidate_version := candidate.version() or { '' }
+				if existing_version != candidate_version {
+					return error('Conflicting versions specified for the `${candidate.name()!}` package: ${existing_version}, ${candidate_version}')
+				}
+				duplicate = true
+			}
+		}
+		if !duplicate {
+			inputs << candidate
+		}
+	}
+	plan := build_pip_report_plan(mut inputs, python_name, false, none)!
+	mut excluded := exclude_packages.clone()
+	excluded << ['argparse', 'pip', 'wsgiref']
+	return PythonResourcesPlan{
+		main_package: if inputs.len > 0 { inputs[0].string()! } else { '' }
+		extra_packages: extra_packages.clone()
+		excluded_packages: excluded
+		pip_plan: plan
+	}
+}
+
+fn pypi_package_value(package &PypiPackage) brew_runtime.Value {
+	return brew_runtime.structured_value('PyPI::Package', package.package_string, {
+		'pypi_package_address': u64(voidptr(package)).str()
+		'package_string':       package.package_string
+		'is_url':               package.is_url.str()
+		'python_name':          package.python_name
+	})
+}
+
+fn pypi_package_from_value(value brew_runtime.Value) &PypiPackage {
+	address := value.attribute('pypi_package_address') or { panic('invalid PyPI::Package receiver') }
+	return unsafe { &PypiPackage(voidptr(address.u64())) }
+}
+
+fn pypi_nil_value() brew_runtime.Value {
+	return brew_runtime.object_value('NilClass', 'nil')
+}
+
+fn pypi_info_value(lookup PypiInfoLookup) brew_runtime.Value {
+	if !lookup.found {
+		return pypi_nil_value()
+	}
+	return brew_runtime.string_array_value([lookup.info.name, lookup.info.download_url,
+		lookup.info.checksum, lookup.info.version, lookup.info.package_error])
+}
+
+fn pypi_boundary_fetch(_ string) !string {
+	return error('PyPI response was not supplied')
+}
 
 // Ruby method `initialize(package_string, is_url: false, python_name: "python")` at line 24.
 pub fn ruby_pypi_l24_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	if args.len == 0 {
+		panic('PyPI::Package#initialize requires a package string')
+	}
+	package_string := args[0].as_string()
+	options := if args.len > 1 { args[1].map_data } else { map[string]brew_runtime.Value{} }
+	is_url := options['is_url'] or { brew_runtime.bool_value(false) }
+	python_name := options['python_name'] or { brew_runtime.string_value('python') }
+	return pypi_package_value(new_pypi_package(package_string, is_url.bool_data, python_name.as_string()))
 }
 
 // Ruby method `name` at line 33.
 pub fn ruby_pypi_l33_d2_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('name', ...args)
+	mut package := pypi_package_from_value(args[0])
+	return brew_runtime.string_value(package.name() or { panic(err) })
 }
 
 // Ruby method `extras` at line 39.
 pub fn ruby_pypi_l39_d3_extras(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('extras', ...args)
+	mut package := pypi_package_from_value(args[0])
+	return brew_runtime.string_array_value(package.extras() or { panic(err) })
 }
 
 // Ruby method `version` at line 45.
 pub fn ruby_pypi_l45_d4_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('version', ...args)
+	mut package := pypi_package_from_value(args[0])
+	version := package.version() or { panic(err) }
+	if version.len > 0 {
+		return brew_runtime.string_value(version)
+	}
+	return pypi_nil_value()
 }
 
 // Ruby method `version=(new_version)` at line 51.
 pub fn ruby_pypi_l51_d5_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('version=', ...args)
+	if args.len < 2 {
+		panic('PyPI::Package#version= requires a version')
+	}
+	mut package := pypi_package_from_value(args[0])
+	package.set_version(args[1].as_string()) or { panic(err) }
+	return args[1]
 }
 
 // Ruby method `valid_pypi_package?` at line 58.
 pub fn ruby_pypi_l58_d6_valid_pypi_package(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('valid_pypi_package?', ...args)
+	return brew_runtime.bool_value(pypi_package_from_value(args[0]).valid())
 }
 
 // Ruby method `pypi_info(new_version: nil, ignore_errors: false)` at line 69.
 pub fn ruby_pypi_l69_d7_pypi_info(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('pypi_info', ...args)
+	mut package := pypi_package_from_value(args[0])
+	options := if args.len > 1 { args[1].map_data } else { map[string]brew_runtime.Value{} }
+	new_version := if value := options['new_version'] {
+		if value.type_name == 'NilClass' { none } else { ?string(value.as_string()) }
+	} else {
+		none
+	}
+	ignore_errors := options['ignore_errors'] or { brew_runtime.bool_value(false) }.bool_data
+	if args.len > 2 {
+		payload := args[2].as_string()
+		return pypi_info_value(package.pypi_info(new_version, ignore_errors, fn [payload] (_ string) !string {
+			return payload
+		}) or { PypiInfoLookup{} })
+	}
+	return pypi_info_value(package.pypi_info(new_version, ignore_errors, pypi_boundary_fetch) or {
+		PypiInfoLookup{}
+	})
 }
 
 // Ruby method `to_s` at line 114.
 pub fn ruby_pypi_l114_d8_to_s(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_s', ...args)
+	mut package := pypi_package_from_value(args[0])
+	return brew_runtime.string_value(package.string() or { panic(err) })
 }
 
 // Ruby method `same_package?(other)` at line 128.
 pub fn ruby_pypi_l128_d9_same_package(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('same_package?', ...args)
+	mut left := pypi_package_from_value(args[0])
+	mut right := pypi_package_from_value(args[1])
+	return brew_runtime.bool_value(left.same_package(mut right) or { panic(err) })
 }
 
 // Ruby method `==(other)` at line 135.
 pub fn ruby_pypi_l135_d10_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('==', ...args)
+	if args.len < 2 || args[1].type_name != 'PyPI::Package' {
+		return brew_runtime.bool_value(false)
+	}
+	return ruby_pypi_l128_d9_same_package(args[0], args[1])
 }
 
 // Ruby alias `alias eql? ==` at line 143.
 pub fn ruby_pypi_l143_d11_eql(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('eql?', ...args)
+	return ruby_pypi_l135_d10_anonymous(...args)
 }
 
 // Ruby method `hash` at line 146.
 pub fn ruby_pypi_l146_d12_hash(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('hash', ...args)
+	mut package := pypi_package_from_value(args[0])
+	return brew_runtime.int_value(package.hash_value() or { panic(err) })
 }
 
 // Ruby method `<=>(other)` at line 151.
 pub fn ruby_pypi_l151_d13_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('<=>', ...args)
+	mut left := pypi_package_from_value(args[0])
+	mut right := pypi_package_from_value(args[1])
+	left_name := left.name() or { panic(err) }
+	right_name := right.name() or { panic(err) }
+	return brew_runtime.int_value(if left_name < right_name {
+		-1
+	} else if left_name > right_name { 1 } else { 0 })
 }
 
 // Ruby method `basic_metadata` at line 159.
 pub fn ruby_pypi_l159_d14_basic_metadata(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('basic_metadata', ...args)
+	mut package := pypi_package_from_value(args[0])
+	package.resolve_basic_metadata() or { panic(err) }
+	return brew_runtime.array_value([
+		brew_runtime.string_value(package.name_cache),
+		brew_runtime.string_array_value(package.extras_cache),
+		if package.version_cache.len > 0 {
+			brew_runtime.string_value(package.version_cache)
+		} else {
+			pypi_nil_value()
+		},
+	])
 }
 
 // Ruby method `self.update_pypi_url(url, version)` at line 216.
 pub fn ruby_pypi_l216_d15_self_update_pypi_url(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.update_pypi_url', ...args)
+	if args.len < 2 {
+		return pypi_nil_value()
+	}
+	mut package := new_pypi_package(args[0].as_string(), true, 'python')
+	payload := if args.len > 2 { args[2].as_string() } else { '' }
+	lookup := package.pypi_info(args[1].as_string(), false, fn [payload] (_ string) !string {
+		if payload.len == 0 {
+			return error('PyPI response was not supplied')
+		}
+		return payload
+	}) or { return pypi_nil_value() }
+	return if lookup.found {
+		brew_runtime.string_value(lookup.info.download_url)
+	} else {
+		pypi_nil_value()
+	}
 }
 
 // Ruby method `self.update_python_resources!(formula, version: nil, package_name: nil, extra_packages: nil,` at line 245.
 pub fn ruby_pypi_l245_d16_self_update_python_resources(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.update_python_resources!', ...args)
+	options := if args.len > 0 {
+		args[args.len - 1].map_data
+	} else {
+		map[string]brew_runtime.Value{}
+	}
+	package_name := options['package_name'] or { brew_runtime.string_value('') }
+	version := options['version'] or { brew_runtime.string_value('') }
+	extra := options['extra_packages'] or { brew_runtime.string_array_value([]string{}) }
+	excluded := options['exclude_packages'] or { brew_runtime.string_array_value([]string{}) }
+	python := options['python_name'] or { brew_runtime.string_value('python') }
+	plan := plan_python_resources(package_name.as_string(), version.as_string(), extra.string_array_data, excluded.string_array_data, python.as_string()) or { panic(err) }
+	return brew_runtime.Value{
+		type_name: 'PyPI::UpdatePlan'
+		repr: plan.pip_plan.command.join(' ')
+		string_array_data: plan.pip_plan.requirements.clone()
+		map_data: {
+			'excluded_packages': brew_runtime.string_array_value(plan.excluded_packages)
+			'extra_packages':    brew_runtime.string_array_value(plan.extra_packages)
+		}
+		attributes: {
+			'main_package': plan.main_package
+			'python_name':  plan.pip_plan.python_name
+		}
+	}
 }
 
 // Ruby method `self.resource_blocks_from_formula(contents)` at line 466.
 pub fn ruby_pypi_l466_d17_self_resource_blocks_from_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.resource_blocks_from_formula', ...args)
+	if args.len == 0 {
+		return brew_runtime.map_value(map[string]brew_runtime.Value{})
+	}
+	blocks := pypi_resource_blocks_from_formula(args[args.len - 1].as_string())
+	mut values := map[string]brew_runtime.Value{}
+	for name, block in blocks {
+		values[name] = brew_runtime.string_value(block)
+	}
+	return brew_runtime.map_value(values)
 }
 
 // Ruby method `self.normalize_python_package(name)` at line 486.
 pub fn ruby_pypi_l486_d18_self_normalize_python_package(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.normalize_python_package', ...args)
+	return brew_runtime.string_value(normalize_python_package(args[args.len - 1].as_string()))
 }
 
 // Ruby method `self.pip_report(packages, python_name: "python", print_stderr: false, ignore_cooldown_package: nil)` at line 498.
 pub fn ruby_pypi_l498_d19_self_pip_report(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.pip_report', ...args)
+	packages_value := if args.len > 0 {
+		args[0]
+	} else {
+		brew_runtime.array_value([]brew_runtime.Value{})
+	}
+	mut packages := packages_value.array_data.map(pypi_package_from_value(it))
+	options := if args.len > 1 { args[1].map_data } else { map[string]brew_runtime.Value{} }
+	python := options['python_name'] or { brew_runtime.string_value('python') }
+	print_stderr := options['print_stderr'] or { brew_runtime.bool_value(false) }
+	plan := build_pip_report_plan(mut packages, python.as_string(), print_stderr.bool_data, none) or {
+		panic(err)
+	}
+	return brew_runtime.Value{
+		type_name: 'PyPI::PipReportPlan'
+		repr: plan.command.join(' ')
+		string_array_data: plan.requirements.clone()
+	}
 }
 
 // Ruby method `self.pip_report_to_packages(report)` at line 542.
 pub fn ruby_pypi_l542_d20_self_pip_report_to_packages(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.pip_report_to_packages', ...args)
+	if args.len == 0 {
+		return brew_runtime.array_value([]brew_runtime.Value{})
+	}
+	packages := pip_report_to_packages(args[args.len - 1].as_string()) or { panic(err) }
+	return brew_runtime.array_value(packages.map(pypi_package_value(it)))
 }
 
 // Original Ruby source (line-for-line):

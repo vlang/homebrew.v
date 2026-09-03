@@ -1,18 +1,40 @@
 module compilers
 
 import brew_runtime
+import homebrew.api
 
 // Translated from Homebrew/brew `sorbet/tapioca/compilers/api_structs.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub fn api_structs_compiler_decoration(constant_name string) TapiocaDecoration {
+	predicates := if constant_name.ends_with('CaskStruct') {
+		api.cask_struct_predicate_names
+	} else {
+		api.formula_struct_predicate_names
+	}
+	return TapiocaDecoration{
+		constant_name: constant_name
+		kind: 'class'
+		methods: predicates.map(TapiocaGeneratedMethod{
+			name: '${it}?'
+			return_type: 'T::Boolean'
+			class_method: false
+		})
+	}
+}
 
 // Ruby method `self.gather_constants = [::Homebrew::API::FormulaStruct, ::Homebrew::API::CaskStruct]` at line 14.
 pub fn ruby_api_structs_l14_d1_self_gather_constants(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.gather_constants', ...args)
+	_ = args
+	return brew_runtime.array_value([
+		brew_runtime.object_value('Class', 'Homebrew::API::FormulaStruct'),
+		brew_runtime.object_value('Class', 'Homebrew::API::CaskStruct'),
+	])
 }
 
 // Ruby method `decorate` at line 17.
 pub fn ruby_api_structs_l17_d2_decorate(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('decorate', ...args)
+	constant_name := if args.len > 0 { args[0].as_string() } else { 'Homebrew::API::FormulaStruct' }
+	return tapioca_decoration_value(api_structs_compiler_decoration(constant_name))
 }
 
 // Original Ruby source (line-for-line):

@@ -1,13 +1,25 @@
 module cmd
 
 import brew_runtime
+import homebrew.cmd as brew_cmd
 
 // Translated from Homebrew/brew `test/cmd/--repository_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "prints Homebrew and Tap repositories" do` at line 7.
 pub fn ruby_repository_spec_l7_d1_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+	repository := if args.len > 0 { args[0].as_string() } else { '/homebrew' }
+	library := if args.len > 1 { args[1].as_string() } else { '${repository}/Library' }
+	mut lines := brew_cmd.repository_lines([]string{}, repository, library) or {
+		return brew_runtime.bool_value(false)
+	}
+	tap_lines := brew_cmd.repository_lines(['foo/bar', 'foo/homebrew-bar'], repository, library) or { return brew_runtime.bool_value(false) }
+	lines << tap_lines
+	return brew_runtime.bool_value(lines == [
+		repository,
+		'${library}/Taps/foo/homebrew-bar',
+		'${library}/Taps/foo/homebrew-bar',
+	])
 }
 
 // Original Ruby source (line-for-line):

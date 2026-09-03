@@ -1,153 +1,253 @@
 module mac
 
-import brew_runtime
+import homebrew.extend.os.mac as diagnostic
+import homebrew.os.mac as sdk
+
+fn diagnostic_spec_context() &diagnostic.MacDiagnosticContext {
+	return diagnostic.new_mac_diagnostic_context()
+}
+
+pub struct PkgconfFormulaFixture {
+pub:
+	any_version_installed bool
+}
 
 // Translated from Homebrew/brew `test/os/mac/diagnostic_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:checks) { described_class.new }` at line 7.
-pub fn ruby_diagnostic_spec_l7_d1_checks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('checks', ...args)
+pub fn ruby_diagnostic_spec_l7_d1_checks() &diagnostic.MacDiagnosticContext {
+	return diagnostic_spec_context()
 }
 
 // Ruby specify `specify "#check_for_unsupported_macos" do` at line 9.
-pub fn ruby_diagnostic_spec_l9_d2_check_for_unsupported_macos(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#check_for_unsupported_macos', ...args)
+pub fn ruby_diagnostic_spec_l9_d2_check_for_unsupported_macos() bool {
+	result := diagnostic.mac_check_unsupported(diagnostic.MacDiagnosticContext{
+		macos_version: '30'
+		macos_pre_release: true
+	}) or { return false }
+	return result.string().contains('We do not provide support for this pre-release version.')
 }
 
 // Ruby let `let(:macos_version) { MacOSVersion.new("13") }` at line 21.
-pub fn ruby_diagnostic_spec_l21_d3_macos_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('macos_version', ...args)
+pub fn ruby_diagnostic_spec_l21_d3_macos_version() string {
+	return '13'
 }
 
 // Ruby it `it "reports Tier 2 on a modern CPU running a supported macOS" do` at line 34.
-pub fn ruby_diagnostic_spec_l34_d4_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_diagnostic_spec_l34_d4_reports() bool {
+	result := diagnostic.mac_check_opencore(diagnostic.MacDiagnosticContext{
+		macos_version: ruby_diagnostic_spec_l21_d3_macos_version()
+		cpu_features: ['pclmulqdq']
+		opencore_version: '1.0.0'
+		oclp_version: '2.0.0'
+	}) or { return false }
+	return result.tier == '2'
 }
 
 // Ruby it `it "reports Tier 3 on an old CPU" do` at line 41.
-pub fn ruby_diagnostic_spec_l41_d5_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_diagnostic_spec_l41_d5_reports() bool {
+	result := diagnostic.mac_check_opencore(diagnostic.MacDiagnosticContext{
+		macos_version: ruby_diagnostic_spec_l21_d3_macos_version()
+		opencore_version: '1.0.0'
+		oclp_version: '2.0.0'
+	}) or { return false }
+	return result.tier == '3'
 }
 
 // Ruby it `it "reports Tier 3 on a modern CPU running an outdated macOS" do` at line 48.
-pub fn ruby_diagnostic_spec_l48_d6_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_diagnostic_spec_l48_d6_reports() bool {
+	result := diagnostic.mac_check_opencore(diagnostic.MacDiagnosticContext{
+		macos_version: ruby_diagnostic_spec_l21_d3_macos_version()
+		macos_outdated: true
+		cpu_features: ['pclmulqdq']
+		opencore_version: '1.0.0'
+		oclp_version: '2.0.0'
+	}) or { return false }
+	return result.tier == '3'
 }
 
 // Ruby specify `specify "#check_if_xcode_needs_clt_installed" do` at line 56.
-pub fn ruby_diagnostic_spec_l56_d7_check_if_xcode_needs_clt_installed(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#check_if_xcode_needs_clt_installed', ...args)
+pub fn ruby_diagnostic_spec_l56_d7_check_if_xcode_needs_clt_installed() bool {
+	result := diagnostic.mac_check_xcode_needs_clt(diagnostic.MacDiagnosticContext{
+		macos_version: '11'
+		xcode_installed: true
+		xcode_version: '8.0'
+		xcode_needs_clt: true
+	}) or { return false }
+	return result.string().contains('Xcode alone is not sufficient on Big Sur')
 }
 
 // Ruby it `it "doesn't require developer tools on Apple Silicon" do` at line 66.
-pub fn ruby_diagnostic_spec_l66_d8_doesn(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('doesn', ...args)
+pub fn ruby_diagnostic_spec_l66_d8_doesn() bool {
+	return 'check_for_installed_developer_tools' !in diagnostic.mac_fatal_preinstall_checks(true)
 }
 
 // Ruby it `it "requires developer tools on Intel" do` at line 72.
-pub fn ruby_diagnostic_spec_l72_d9_requires(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('requires', ...args)
+pub fn ruby_diagnostic_spec_l72_d9_requires() bool {
+	return 'check_for_installed_developer_tools' in diagnostic.mac_fatal_preinstall_checks(false)
 }
 
 // Ruby it `it "requires developer tools" do` at line 80.
-pub fn ruby_diagnostic_spec_l80_d10_requires(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('requires', ...args)
+pub fn ruby_diagnostic_spec_l80_d10_requires() bool {
+	return 'check_for_installed_developer_tools' in diagnostic.mac_fatal_build_from_source_checks()
 }
 
 // Ruby it `it "warns about missing developer tools" do` at line 86.
-pub fn ruby_diagnostic_spec_l86_d11_warns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('warns', ...args)
+pub fn ruby_diagnostic_spec_l86_d11_warns() bool {
+	return 'check_for_installed_developer_tools' in diagnostic.mac_build_from_source_checks()
 }
 
 // Ruby let `let(:macos_version) { MacOSVersion.new("11") }` at line 92.
-pub fn ruby_diagnostic_spec_l92_d12_macos_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('macos_version', ...args)
+pub fn ruby_diagnostic_spec_l92_d12_macos_version() string {
+	return '11'
 }
 
 // Ruby it `it "doesn't trigger when a valid SDK is present" do` at line 101.
-pub fn ruby_diagnostic_spec_l101_d13_doesn(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('doesn', ...args)
+pub fn ruby_diagnostic_spec_l101_d13_doesn() bool {
+	return diagnostic.mac_check_supported_sdk(diagnostic.MacDiagnosticContext{
+		macos_version: ruby_diagnostic_spec_l92_d12_macos_version()
+		sdk_present: true
+	}) == none
 }
 
 // Ruby it `it "triggers when a valid SDK is not present on CLT systems" do` at line 109.
-pub fn ruby_diagnostic_spec_l109_d14_triggers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('triggers', ...args)
+pub fn ruby_diagnostic_spec_l109_d14_triggers() bool {
+	result := diagnostic.mac_check_supported_sdk(diagnostic.MacDiagnosticContext{
+		macos_version: ruby_diagnostic_spec_l92_d12_macos_version()
+		sdk_locator_source: 'clt'
+	}) or { return false }
+	return result.string().contains('Your Command Line Tools (CLT) does not support macOS 11')
 }
 
 // Ruby it `it "triggers when a valid SDK is not present on Xcode systems" do` at line 116.
-pub fn ruby_diagnostic_spec_l116_d15_triggers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('triggers', ...args)
+pub fn ruby_diagnostic_spec_l116_d15_triggers() bool {
+	result := diagnostic.mac_check_supported_sdk(diagnostic.MacDiagnosticContext{
+		macos_version: ruby_diagnostic_spec_l92_d12_macos_version()
+		sdk_locator_source: 'xcode'
+	}) or { return false }
+	return result.string().contains('Your Xcode does not support macOS 11')
 }
 
 // Ruby it `it "doesn't trigger when SDK versions are as expected" do` at line 125.
-pub fn ruby_diagnostic_spec_l125_d16_doesn(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('doesn', ...args)
+pub fn ruby_diagnostic_spec_l125_d16_doesn() bool {
+	return diagnostic.mac_check_broken_sdks(diagnostic.MacDiagnosticContext{
+		sdks: [
+			sdk.MacSdk{ version: '11', path: '/some/path/MacOSX.sdk', source: 'clt' },
+			sdk.MacSdk{ version: '10.15', path: '/some/path/MacOSX10.15.sdk', source: 'clt' },
+		]
+	}) == none
 }
 
 // Ruby it `it "triggers when the CLT SDK version doesn't match the folder name" do` at line 135.
-pub fn ruby_diagnostic_spec_l135_d17_triggers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('triggers', ...args)
+pub fn ruby_diagnostic_spec_l135_d17_triggers() bool {
+	result := diagnostic.mac_check_broken_sdks(diagnostic.MacDiagnosticContext{
+		sdk_locator_source: 'clt'
+		sdks: [
+			sdk.MacSdk{ version: '10.14', path: '/some/path/MacOSX10.15.sdk', source: 'clt' },
+		]
+	}) or { return false }
+	return result.string().contains('SDKs in your Command Line Tools (CLT) installation do not match the SDK folder names')
 }
 
 // Ruby it `it "triggers when the Xcode SDK version doesn't match the folder name" do` at line 144.
-pub fn ruby_diagnostic_spec_l144_d18_triggers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('triggers', ...args)
+pub fn ruby_diagnostic_spec_l144_d18_triggers() bool {
+	result := diagnostic.mac_check_broken_sdks(diagnostic.MacDiagnosticContext{
+		sdk_locator_source: 'xcode'
+		sdks: [
+			sdk.MacSdk{ version: '10.14', path: '/some/path/MacOSX10.15.sdk', source: 'xcode' },
+		]
+	}) or { return false }
+	return result.string().contains('The contents of the SDKs in your Xcode installation do not match the SDK folder names')
 }
 
 // Ruby let `let(:pkg_config_formula) { instance_double(Formula, any_version_installed?: true) }` at line 156.
-pub fn ruby_diagnostic_spec_l156_d19_pkg_config_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('pkg_config_formula', ...args)
+pub fn ruby_diagnostic_spec_l156_d19_pkg_config_formula() PkgconfFormulaFixture {
+	return PkgconfFormulaFixture{ any_version_installed: true }
 }
 
 // Ruby let `let(:tab) { instance_double(Tab, built_on: { "os_version" => "13" }) }` at line 157.
-pub fn ruby_diagnostic_spec_l157_d20_tab(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tab', ...args)
+pub fn ruby_diagnostic_spec_l157_d20_tab() map[string]string {
+	return {
+		'os_version': '13'
+	}
 }
 
 // Ruby it `it "doesn't trigger when pkgconf is not installed" do` at line 164.
-pub fn ruby_diagnostic_spec_l164_d21_doesn(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('doesn', ...args)
+pub fn ruby_diagnostic_spec_l164_d21_doesn() bool {
+	return diagnostic.mac_check_pkgconf(diagnostic.MacDiagnosticContext{
+		pkgconf_available: false
+	}) == none
 }
 
 // Ruby it `it "doesn't trigger when no versions are installed" do` at line 170.
-pub fn ruby_diagnostic_spec_l170_d22_doesn(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('doesn', ...args)
+pub fn ruby_diagnostic_spec_l170_d22_doesn() bool {
+	return diagnostic.mac_check_pkgconf(diagnostic.MacDiagnosticContext{
+		pkgconf_installed: false
+	}) == none
 }
 
 // Ruby it `it "doesn't trigger when built_on information is missing" do` at line 176.
-pub fn ruby_diagnostic_spec_l176_d23_doesn(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('doesn', ...args)
+pub fn ruby_diagnostic_spec_l176_d23_doesn() bool {
+	return diagnostic.mac_check_pkgconf(diagnostic.MacDiagnosticContext{
+		pkgconf_installed: true
+		pkgconf_built_on: map[string]string{}
+	}) == none
 }
 
 // Ruby it `it "doesn't trigger when os_version information is missing" do` at line 182.
-pub fn ruby_diagnostic_spec_l182_d24_doesn(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('doesn', ...args)
+pub fn ruby_diagnostic_spec_l182_d24_doesn() bool {
+	return diagnostic.mac_check_pkgconf(diagnostic.MacDiagnosticContext{
+		pkgconf_installed: true
+		pkgconf_built_on: {
+			'cpu_family': 'x86_64'
+		}
+	}) == none
 }
 
 // Ruby it `it "doesn't trigger when versions match" do` at line 188.
-pub fn ruby_diagnostic_spec_l188_d25_doesn(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('doesn', ...args)
+pub fn ruby_diagnostic_spec_l188_d25_doesn() bool {
+	return diagnostic.mac_check_pkgconf(diagnostic.MacDiagnosticContext{
+		macos_version: '13'
+		pkgconf_installed: true
+		pkgconf_built_on: {
+			'os_version': '13'
+		}
+	}) == none
 }
 
 // Ruby it `it "triggers when built_on version differs from current macOS version" do` at line 195.
-pub fn ruby_diagnostic_spec_l195_d26_triggers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('triggers', ...args)
+pub fn ruby_diagnostic_spec_l195_d26_triggers() bool {
+	result := diagnostic.mac_check_pkgconf(diagnostic.MacDiagnosticContext{
+		macos_version: '14'
+		pkgconf_installed: true
+		pkgconf_built_on: ruby_diagnostic_spec_l157_d20_tab()
+	}) or { return false }
+	return result.string().contains('brew reinstall pkgconf')
 }
 
 // Ruby it `it "returns nil when quarantine is available" do` at line 204.
-pub fn ruby_diagnostic_spec_l204_d27_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_diagnostic_spec_l204_d27_returns() bool {
+	return diagnostic.mac_check_quarantine(diagnostic.MacDiagnosticContext{
+		quarantine_status: 'quarantine_available'
+	}) == none
 }
 
 // Ruby it `it "returns error when xattr is broken" do` at line 209.
-pub fn ruby_diagnostic_spec_l209_d28_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_diagnostic_spec_l209_d28_returns() bool {
+	result := diagnostic.mac_check_quarantine(diagnostic.MacDiagnosticContext{
+		quarantine_status: 'xattr_broken'
+	}) or { return false }
+	return result.string().contains("there's no working version of `xattr` on this system")
 }
 
 // Ruby it `it "returns error for an unknown status" do` at line 215.
-pub fn ruby_diagnostic_spec_l215_d29_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_diagnostic_spec_l215_d29_returns() bool {
+	result := diagnostic.mac_check_quarantine(diagnostic.MacDiagnosticContext{
+		quarantine_status: 'unknown'
+		quarantine_output: 'whoopsie'
+	}) or { return false }
+	return result.string().contains('whoopsie')
 }
 
 // Original Ruby source (line-for-line):

@@ -1,13 +1,22 @@
 module api
 
-import brew_runtime
+import homebrew.api as brew_api
 
 // Translated from Homebrew/brew `test/api/cask_download_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "preserves rename operations so staging can perform them" do` at line 8.
-pub fn ruby_cask_download_spec_l8_d1_preserves(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('preserves', ...args)
+pub fn ruby_cask_download_spec_l8_d1_preserves() bool {
+	download := brew_api.cask_download('test-cask', brew_api.CaskDownloadStruct{
+		version: '1.0.0'
+		sha256: 'abc123'
+		url_args: ['https://example.com/file.zip']
+		renames: [brew_api.CaskDownloadRename{ from: 'Test *.pkg', to: 'Test.pkg' }]
+	}, [], [], false) or { return false }
+	return download.cask.renames == [brew_api.CaskDownloadRename{
+		from: 'Test *.pkg'
+		to: 'Test.pkg'
+	}]
 }
 
 // Original Ruby source (line-for-line):

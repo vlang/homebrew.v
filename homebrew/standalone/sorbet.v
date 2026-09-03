@@ -4,85 +4,98 @@ import brew_runtime
 
 // Translated from Homebrew/brew `standalone/sorbet.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub type RecursiveValidator = fn(brew_runtime.Value) bool
+
+fn recursively_valid(value brew_runtime.Value, validator RecursiveValidator) bool {
+	return validator(value)
+}
+
+fn no_checks_value(value brew_runtime.Value, _type brew_runtime.Value, _checked bool) brew_runtime.Value {
+	return value
+}
 
 // Ruby method `valid?(obj) = recursively_valid?(obj)` at line 17.
-pub fn ruby_sorbet_l17_d1_valid(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('valid?', ...args)
+pub fn ruby_sorbet_l17_d1_valid(obj brew_runtime.Value, validator RecursiveValidator) bool {
+	return recursively_valid(obj, validator)
 }
 
 // Ruby method `valid?(obj) = recursively_valid?(obj)` at line 21.
-pub fn ruby_sorbet_l21_d2_valid(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('valid?', ...args)
+pub fn ruby_sorbet_l21_d2_valid(obj brew_runtime.Value, validator RecursiveValidator) bool {
+	return recursively_valid(obj, validator)
 }
 
 // Ruby method `valid?(obj) = recursively_valid?(obj)` at line 25.
-pub fn ruby_sorbet_l25_d3_valid(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('valid?', ...args)
+pub fn ruby_sorbet_l25_d3_valid(obj brew_runtime.Value, validator RecursiveValidator) bool {
+	return recursively_valid(obj, validator)
 }
 
 // Ruby method `valid?(obj) = recursively_valid?(obj)` at line 29.
-pub fn ruby_sorbet_l29_d4_valid(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('valid?', ...args)
+pub fn ruby_sorbet_l29_d4_valid(obj brew_runtime.Value, validator RecursiveValidator) bool {
+	return recursively_valid(obj, validator)
 }
 
 // Ruby method `valid?(obj) = recursively_valid?(obj)` at line 33.
-pub fn ruby_sorbet_l33_d5_valid(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('valid?', ...args)
+pub fn ruby_sorbet_l33_d5_valid(obj brew_runtime.Value, validator RecursiveValidator) bool {
+	return recursively_valid(obj, validator)
 }
 
 // Ruby method `valid?(obj) = recursively_valid?(obj)` at line 37.
-pub fn ruby_sorbet_l37_d6_valid(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('valid?', ...args)
+pub fn ruby_sorbet_l37_d6_valid(obj brew_runtime.Value, validator RecursiveValidator) bool {
+	return recursively_valid(obj, validator)
 }
 
 // Ruby method `valid?(obj) = recursively_valid?(obj)` at line 41.
-pub fn ruby_sorbet_l41_d7_valid(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('valid?', ...args)
+pub fn ruby_sorbet_l41_d7_valid(obj brew_runtime.Value, validator RecursiveValidator) bool {
+	return recursively_valid(obj, validator)
 }
 
 // Ruby method `valid?(obj) = recursively_valid?(obj)` at line 45.
-pub fn ruby_sorbet_l45_d8_valid(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('valid?', ...args)
+pub fn ruby_sorbet_l45_d8_valid(obj brew_runtime.Value, validator RecursiveValidator) bool {
+	return recursively_valid(obj, validator)
 }
 
 // Ruby method `valid?(obj) = recursively_valid?(obj)` at line 49.
-pub fn ruby_sorbet_l49_d9_valid(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('valid?', ...args)
+pub fn ruby_sorbet_l49_d9_valid(obj brew_runtime.Value, validator RecursiveValidator) bool {
+	return recursively_valid(obj, validator)
 }
 
 // Ruby method `valid?(obj) = recursively_valid?(obj)` at line 53.
-pub fn ruby_sorbet_l53_d10_valid(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('valid?', ...args)
+pub fn ruby_sorbet_l53_d10_valid(obj brew_runtime.Value, validator RecursiveValidator) bool {
+	return recursively_valid(obj, validator)
 }
 
 // Ruby method `valid?(obj) = recursively_valid?(obj)` at line 57.
-pub fn ruby_sorbet_l57_d11_valid(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('valid?', ...args)
+pub fn ruby_sorbet_l57_d11_valid(obj brew_runtime.Value, validator RecursiveValidator) bool {
+	return recursively_valid(obj, validator)
 }
 
 // Ruby method `cast(value, _type, checked: false)` at line 69.
-pub fn ruby_sorbet_l69_d12_cast(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cast', ...args)
+pub fn ruby_sorbet_l69_d12_cast(value brew_runtime.Value, type_value brew_runtime.Value,
+	checked bool) brew_runtime.Value {
+	return no_checks_value(value, type_value, checked)
 }
 
 // Ruby method `let(value, _type, checked: false)` at line 73.
-pub fn ruby_sorbet_l73_d13_let(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('let', ...args)
+pub fn ruby_sorbet_l73_d13_let(value brew_runtime.Value, type_value brew_runtime.Value,
+	checked bool) brew_runtime.Value {
+	return no_checks_value(value, type_value, checked)
 }
 
 // Ruby method `bind(value, _type, checked: false)` at line 77.
-pub fn ruby_sorbet_l77_d14_bind(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('bind', ...args)
+pub fn ruby_sorbet_l77_d14_bind(value brew_runtime.Value, type_value brew_runtime.Value,
+	checked bool) brew_runtime.Value {
+	return no_checks_value(value, type_value, checked)
 }
 
 // Ruby method `assert_type!(value, _type, checked: false)` at line 81.
-pub fn ruby_sorbet_l81_d15_assert_type(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('assert_type!', ...args)
+pub fn ruby_sorbet_l81_d15_assert_type(value brew_runtime.Value, type_value brew_runtime.Value,
+	checked bool) brew_runtime.Value {
+	return no_checks_value(value, type_value, checked)
 }
 
 // Ruby method `sig(arg0 = nil, &blk); end` at line 94.
-pub fn ruby_sorbet_l94_d16_sig(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sig', ...args)
+pub fn ruby_sorbet_l94_d16_sig(_arg0 ?brew_runtime.Value) brew_runtime.Value {
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Original Ruby source (line-for-line):

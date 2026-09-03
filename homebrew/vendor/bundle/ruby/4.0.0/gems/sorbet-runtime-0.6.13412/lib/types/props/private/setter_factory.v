@@ -4,35 +4,332 @@ import brew_runtime
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/sorbet-runtime-0.6.13412/lib/types/props/private/setter_factory.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub enum SetterMode {
+	simple_non_nil
+	recursive_non_nil
+	simple_nilable
+	recursive_nilable
+}
+
+pub struct SetterDescriptor {
+pub:
+	class_name      string
+	prop            string
+	accessor_key    string
+	type_value      brew_runtime.Value
+	non_nil_type    brew_runtime.Value
+	mode            SetterMode
+	validator_error string
+}
+
+pub struct SetterInstance {
+pub mut:
+	values map[string]brew_runtime.Value
+}
+
+pub struct SetterFailure {
+pub:
+	message        string
+	pretty_message string
+	kind           string
+	name           string
+	type_value     brew_runtime.Value
+	value          brew_runtime.Value
+	location       string
+}
+
+pub type SetterErrorHandler = fn(SetterFailure) !
+
+fn private_nil_value() brew_runtime.Value {
+	return brew_runtime.object_value('NilClass', 'nil')
+}
+
+fn private_truthy(value brew_runtime.Value) bool {
+	return value.type_name != 'NilClass' && (value.type_name != 'Bool' || value.bool_data)
+}
+
+fn private_rule(rules map[string]brew_runtime.Value, key string) ?brew_runtime.Value {
+	if value := rules[key] {
+		return value
+	}
+	if value := rules[':${key}'] {
+		return value
+	}
+	return none
+}
+
+fn private_rule_enabled(rules map[string]brew_runtime.Value, key string) bool {
+	return private_truthy(private_rule(rules, key) or { return false })
+}
+
+fn setter_need_nil_read_check(rules map[string]brew_runtime.Value) bool {
+	optional := private_rule(rules, 'optional') or { private_nil_value() }
+	return optional.as_string() in ['on_load', ':on_load'] || private_rule_enabled(rules, 'raise_on_nil_write')
+}
+
+fn setter_need_nil_write_check(rules map[string]brew_runtime.Value) bool {
+	return setter_need_nil_read_check(rules) || !private_rule_enabled(rules, '_tnilable')
+}
+
+fn unwrap_setter_nilable(type_value brew_runtime.Value) brew_runtime.Value {
+	if underlying := type_value.map_data['underlying_type'] {
+		return underlying
+	}
+	if type_value.type_name == 'T::Types::Union' {
+		members := type_value.array_data.filter(it.type_name != 'NilClass' && it.as_string() != 'NilClass')
+		if members.len == 1 {
+			return members[0]
+		}
+	}
+	return type_value
+}
+
+fn setter_type_name(type_value brew_runtime.Value) string {
+	return type_value.attribute('raw_type') or { type_value.as_string() }
+}
+
+fn setter_value_is_a(value brew_runtime.Value, expected string) bool {
+	if expected in ['T.untyped', 'T::Types::Untyped', 'BasicObject'] {
+		return true
+	}
+	if value.type_name == expected {
+		return true
+	}
+	return expected in (value.attribute('class_ancestors') or { '' }).split(',')
+}
+
+fn setter_recursively_valid(type_value brew_runtime.Value, value brew_runtime.Value) bool {
+	if validity := value.attributes['recursively_valid'] {
+		return validity == 'true'
+	}
+	match type_value.type_name {
+		'T::Types::Simple' {
+			return setter_value_is_a(value, setter_type_name(type_value))
+		}
+		'T::Types::TypedArray', 'T::Types::TypedSet' {
+			if value.type_name !in ['Array', 'Set'] {
+				return false
+			}
+			inner := type_value.map_data['type'] or { return true }
+			return value.array_data.all(setter_recursively_valid(inner, it))
+		}
+		'T::Types::TypedHash' {
+			if value.type_name != 'Hash' {
+				return false
+			}
+			value_type := type_value.map_data['values'] or { return true }
+			return value.map_data.values().all(setter_recursively_valid(value_type, it))
+		}
+		'T::Types::Union' {
+			return type_value.array_data.any(setter_recursively_valid(it, value))
+		}
+		else {
+			return setter_value_is_a(value, setter_type_name(type_value))
+		}
+	}
+}
+
+fn setter_is_nilable(mode SetterMode) bool {
+	return mode in [.simple_nilable, .recursive_nilable]
+}
+
+fn setter_is_simple(mode SetterMode) bool {
+	return mode in [.simple_non_nil, .simple_nilable]
+}
+
+pub fn build_setter_descriptor(class_name string, prop string,
+	rules map[string]brew_runtime.Value) !SetterDescriptor {
+	type_object := private_rule(rules, 'type_object') or {
+		return error('key not found: type_object')
+	}
+	non_nil_type := unwrap_setter_nilable(type_object)
+	accessor_key := (private_rule(rules, 'accessor_key') or {
+		return error('key not found: accessor_key')
+	}).as_string()
+	has_validator := private_rule(rules, 'setter_validate') != none
+	has_explicit_nil_default := if default_value := private_rule(rules, 'default') {
+		default_value.type_name == 'NilClass'
+	} else {
+		false
+	}
+	nilable := !setter_need_nil_write_check(rules) || has_explicit_nil_default
+	simple := !has_validator && non_nil_type.type_name == 'T::Types::Simple'
+	mode := if nilable {
+		if simple { SetterMode.simple_nilable } else { SetterMode.recursive_nilable }
+	} else if simple {
+		SetterMode.simple_non_nil
+	} else {
+		SetterMode.recursive_non_nil
+	}
+	return SetterDescriptor{
+		class_name: class_name
+		prop: prop
+		accessor_key: accessor_key
+		type_value: type_object
+		non_nil_type: non_nil_type
+		mode: mode
+		validator_error: (private_rule(rules, 'setter_validate') or { private_nil_value() }).attribute('error') or {
+			''}
+	}
+}
+
+pub fn setter_failure(class_name string, prop string, type_value brew_runtime.Value,
+	value brew_runtime.Value, location string) SetterFailure {
+	base := "Can't set ${class_name}.${prop} to ${value.as_string()} (instance of ${value.type_name}) - need a ${type_value.as_string()}"
+	mut pretty := "Parameter '${prop}': ${base}\n"
+	if location != '' {
+		pretty += 'Caller: ${location}\n'
+	}
+	return SetterFailure{
+		message: base
+		pretty_message: pretty
+		kind: 'Parameter'
+		name: prop
+		type_value: type_value
+		value: value
+		location: location
+	}
+}
+
+pub fn raising_setter_error_handler(failure SetterFailure) ! {
+	return error(failure.message)
+}
+
+pub fn soft_setter_error_handler(_ SetterFailure) ! {}
+
+pub fn validate_setter_value(descriptor SetterDescriptor, value brew_runtime.Value,
+	error_handler SetterErrorHandler) ! {
+	if value.type_name == 'NilClass' && setter_is_nilable(descriptor.mode) {
+		return
+	}
+	valid := if setter_is_simple(descriptor.mode) {
+		setter_value_is_a(value, setter_type_name(descriptor.non_nil_type))
+	} else {
+		setter_recursively_valid(descriptor.non_nil_type, value)
+	}
+	if !valid {
+		error_handler(setter_failure(descriptor.class_name, descriptor.prop, descriptor.non_nil_type, value, ''))!
+		return
+	}
+	if descriptor.validator_error != '' {
+		return error(descriptor.validator_error)
+	}
+}
+
+// Assignment is intentionally unconditional after a soft type error, matching
+// all three Ruby procs. A handler that raises prevents assignment naturally.
+pub fn apply_bound_setter(descriptor SetterDescriptor, mut instance SetterInstance,
+	value brew_runtime.Value, error_handler SetterErrorHandler) ! {
+	validate_setter_value(descriptor, value, error_handler)!
+	instance.values[descriptor.accessor_key] = value
+}
+
+fn setter_descriptor_value(descriptor &SetterDescriptor) brew_runtime.Value {
+	return brew_runtime.Value{
+		type_name: 'T::Props::Private::SetterFactory::Descriptor'
+		repr: descriptor.prop
+		map_data: {
+			'type': descriptor.type_value
+		}
+		attributes: {
+			'setter_descriptor_address': u64(voidptr(descriptor)).str()
+			'class_name':                descriptor.class_name
+			'prop':                      descriptor.prop
+			'accessor_key':              descriptor.accessor_key
+			'mode':                      descriptor.mode.str()
+		}
+	}
+}
+
+fn setter_descriptor_from_value(value brew_runtime.Value) &SetterDescriptor {
+	address := value.attribute('setter_descriptor_address') or {
+		panic('invalid SetterFactory descriptor')
+	}
+	return unsafe { &SetterDescriptor(voidptr(address.u64())) }
+}
+
+fn setter_proc_triplet(descriptor SetterDescriptor) brew_runtime.Value {
+	heap_descriptor := &SetterDescriptor{
+		...descriptor
+	}
+	base := setter_descriptor_value(heap_descriptor)
+	mut setter_attributes := base.attributes.clone()
+	setter_attributes['entry_point'] = 'setter'
+	mut validator_attributes := base.attributes.clone()
+	validator_attributes['entry_point'] = 'validator'
+	mut bound_attributes := base.attributes.clone()
+	bound_attributes['entry_point'] = 'bound_setter'
+	return brew_runtime.array_value([
+		brew_runtime.Value{
+			...base
+			type_name: 'SetterProc'
+			attributes: setter_attributes
+		},
+		brew_runtime.Value{
+			...base
+			type_name: 'ValueValidationProc'
+			attributes: validator_attributes
+		},
+		brew_runtime.Value{
+			...base
+			type_name: 'BoundSetterProc'
+			attributes: bound_attributes
+		},
+	])
+}
+
+fn explicit_setter_descriptor(args []brew_runtime.Value, mode SetterMode) SetterDescriptor {
+	minimum := if setter_is_simple(mode) { 4 } else { 5 }
+	if args.len < minimum {
+		panic('SetterFactory proc builder received too few arguments')
+	}
+	return SetterDescriptor{
+		prop: args[0].as_string()
+		accessor_key: args[1].as_string()
+		type_value: args[2]
+		non_nil_type: args[2]
+		class_name: args[3].attribute('name') or { args[3].as_string() }
+		mode: mode
+		validator_error: if args.len > 4 { args[4].attribute('error') or { '' } } else { '' }
+	}
+}
 
 // Ruby method `self.build_setter_proc(klass, prop, rules)` at line 26.
 pub fn ruby_setter_factory_l26_d1_self_build_setter_proc(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.build_setter_proc', ...args)
+	if args.len < 3 {
+		panic('SetterFactory.build_setter_proc requires class, prop, and rules')
+	}
+	descriptor := build_setter_descriptor(args[0].attribute('name') or { args[0].as_string() }, args[1].as_string(), args[2].as_map() or { panic(err) }) or { panic(err) }
+	return setter_proc_triplet(descriptor)
 }
 
 // Ruby method `self.simple_non_nil_proc(prop, accessor_key, non_nil_type, klass)` at line 65.
 pub fn ruby_setter_factory_l65_d2_self_simple_non_nil_proc(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.simple_non_nil_proc', ...args)
+	return setter_proc_triplet(explicit_setter_descriptor(args, .simple_non_nil))
 }
 
 // Ruby method `self.non_nil_proc(prop, accessor_key, non_nil_type, klass, validate)` at line 114.
 pub fn ruby_setter_factory_l114_d3_self_non_nil_proc(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.non_nil_proc', ...args)
+	return setter_proc_triplet(explicit_setter_descriptor(args, .recursive_non_nil))
 }
 
 // Ruby method `self.simple_nilable_proc(prop, accessor_key, non_nil_type, klass)` at line 178.
 pub fn ruby_setter_factory_l178_d4_self_simple_nilable_proc(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.simple_nilable_proc', ...args)
+	return setter_proc_triplet(explicit_setter_descriptor(args, .simple_nilable))
 }
 
 // Ruby method `self.nilable_proc(prop, accessor_key, non_nil_type, klass, validate)` at line 227.
 pub fn ruby_setter_factory_l227_d5_self_nilable_proc(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.nilable_proc', ...args)
+	return setter_proc_triplet(explicit_setter_descriptor(args, .recursive_nilable))
 }
 
 // Ruby method `self.raise_pretty_error(klass, prop, type, val)` at line 298.
 pub fn ruby_setter_factory_l298_d6_self_raise_pretty_error(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.raise_pretty_error', ...args)
+	if args.len < 4 {
+		panic('SetterFactory.raise_pretty_error requires class, prop, type, and value')
+	}
+	failure := setter_failure(args[0].attribute('name') or { args[0].as_string() }, args[1].as_string(), args[2], args[3], args[3].attribute('caller') or { '' })
+	panic(failure.message)
 }
 
 // Original Ruby source (line-for-line):

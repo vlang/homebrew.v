@@ -1,38 +1,113 @@
 module download_strategy
 
-import brew_runtime
+import crypto.sha256
+import os
 
 // Translated from Homebrew/brew `download_strategy/curl_github_packages_download_strategy.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby attr_writer `attr_writer :resolved_basename` at line 9.
-pub fn ruby_curl_github_packages_download_strategy_l9_d1_resolved_basename(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('resolved_basename=', ...args)
+pub fn ruby_curl_github_packages_download_strategy_l9_d1_resolved_basename(mut strategy CurlGitHubPackagesDownloadStrategy, resolved_basename string) string {
+	strategy.set_resolved_basename(resolved_basename)
+	return resolved_basename
 }
 
 // Ruby method `initialize(url, name, version, **meta)` at line 12.
-pub fn ruby_curl_github_packages_download_strategy_l12_d2_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+pub fn ruby_curl_github_packages_download_strategy_l12_d2_initialize(url string, name string, version string, meta DownloadMeta, bottle bool) CurlGitHubPackagesDownloadStrategy {
+	return new_curl_github_packages_download_strategy(url, name, version, meta, bottle)
 }
 
 // Ruby method `cached_location` at line 29.
-pub fn ruby_curl_github_packages_download_strategy_l29_d3_cached_location(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cached_location', ...args)
+pub fn ruby_curl_github_packages_download_strategy_l29_d3_cached_location(mut strategy CurlGitHubPackagesDownloadStrategy) string {
+	return strategy.cached_location()
 }
 
 // Ruby method `immutable_bottle_blob?` at line 39.
-pub fn ruby_curl_github_packages_download_strategy_l39_d4_immutable_bottle_blob(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('immutable_bottle_blob?', ...args)
+pub fn ruby_curl_github_packages_download_strategy_l39_d4_immutable_bottle_blob(strategy &CurlGitHubPackagesDownloadStrategy) bool {
+	return strategy.immutable_bottle_blob()
 }
 
 // Ruby method `bottle_blob_sha256` at line 48.
-pub fn ruby_curl_github_packages_download_strategy_l48_d5_bottle_blob_sha256(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('bottle_blob_sha256', ...args)
+pub fn ruby_curl_github_packages_download_strategy_l48_d5_bottle_blob_sha256(strategy &CurlGitHubPackagesDownloadStrategy) ?string {
+	return strategy.bottle_blob_sha256()
 }
 
 // Ruby method `resolve_url_basename_time_file_size(url, timeout: nil)` at line 55.
-pub fn ruby_curl_github_packages_download_strategy_l55_d6_resolve_url_basename_time_file_size(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('resolve_url_basename_time_file_size', ...args)
+pub fn ruby_curl_github_packages_download_strategy_l55_d6_resolve_url_basename_time_file_size(mut strategy CurlGitHubPackagesDownloadStrategy, url string, timeout ?f64) UrlMetadata {
+	return strategy.resolve_url_basename_time_file_size(url, timeout)
+}
+
+pub struct CurlGitHubPackagesDownloadStrategy {
+pub mut:
+	curl              CurlDownloadStrategy
+	resolved_basename string
+	bottle            bool
+}
+
+pub fn new_curl_github_packages_download_strategy(url string, name string, version string, source_meta DownloadMeta, bottle bool) CurlGitHubPackagesDownloadStrategy {
+	mut meta := source_meta
+	authorization := os.getenv('HOMEBREW_GITHUB_PACKAGES_AUTH').trim_space()
+	artifact_domain := if meta.artifact_domain != '' {
+		meta.artifact_domain
+	} else {
+		os.getenv('HOMEBREW_ARTIFACT_DOMAIN')
+	}
+	has_registry_auth := os.getenv('HOMEBREW_DOCKER_REGISTRY_BASIC_AUTH_TOKEN').trim_space() != '' || os.getenv('HOMEBREW_DOCKER_REGISTRY_TOKEN').trim_space() != ''
+	if authorization != '' && (artifact_domain.trim_space() == '' || has_registry_auth) {
+		meta.headers << 'Authorization: ${authorization}'
+	}
+	return CurlGitHubPackagesDownloadStrategy{
+		curl: new_curl_download_strategy(url, name, version, meta)
+		bottle: bottle
+	}
+}
+
+pub fn (mut strategy CurlGitHubPackagesDownloadStrategy) set_resolved_basename(resolved_basename string) {
+	strategy.resolved_basename = resolved_basename
+}
+
+pub fn (mut strategy CurlGitHubPackagesDownloadStrategy) cached_location() string {
+	if !strategy.immutable_bottle_blob() {
+		return strategy.curl.cached_location()
+	}
+	if strategy.curl.file.cached_location_value != '' {
+		return strategy.curl.file.cached_location_value
+	}
+	digest := sha256.sum256(strategy.curl.file.base.url.bytes()).hex()
+	strategy.curl.file.cached_location_value = os.join_path(default_homebrew_cache(), 'downloads', '${digest}--${safe_filename(strategy.resolved_basename)}')
+	return strategy.curl.file.cached_location_value
+}
+
+pub fn (strategy &CurlGitHubPackagesDownloadStrategy) immutable_bottle_blob() bool {
+	return strategy.bottle && strategy.curl.mirrors.len == 0 && strategy.resolved_basename.trim_space() != '' && strategy.bottle_blob_sha256() != none
+}
+
+pub fn (strategy &CurlGitHubPackagesDownloadStrategy) bottle_blob_sha256() ?string {
+	lower_url := strategy.curl.file.base.url.to_lower()
+	marker := '/blobs/sha256:'
+	marker_index := lower_url.index(marker) or { return none }
+	start := marker_index + marker.len
+	if start + 64 > lower_url.len {
+		return none
+	}
+	digest := lower_url[start..start + 64]
+	if !digest.bytes().all(it.is_hex_digit()) {
+		return none
+	}
+	if start + 64 < lower_url.len && lower_url[start + 64] !in [`?`, `#`] {
+		return none
+	}
+	return digest
+}
+
+pub fn (mut strategy CurlGitHubPackagesDownloadStrategy) resolve_url_basename_time_file_size(url string, timeout ?f64) UrlMetadata {
+	if strategy.resolved_basename.trim_space() == '' {
+		return strategy.curl.resolve_url_basename_time_file_size(url, timeout)
+	}
+	return UrlMetadata{
+		url: url
+		basename: strategy.resolved_basename
+	}
 }
 
 // Original Ruby source (line-for-line):

@@ -1,73 +1,346 @@
 module livecheck
 
-import brew_runtime
-
 // Translated from Homebrew/brew `livecheck/skip_conditions.rb`.
-// The original source is retained below until every stub has a typed V body.
+pub enum SkipConditionsPackageKind {
+	formula
+	cask
+	resource
+}
+
+// SkipConditionsPackage is the source-shaped adapter for the Formula,
+// Cask::Cask and Resource predicates consumed by this module.
+pub struct SkipConditionsPackage {
+pub:
+	kind                   SkipConditionsPackageKind
+	name                   string
+	full_name              string
+	stable_url             string
+	livecheck_defined      bool
+	livecheck_skip         bool
+	livecheck_skip_message string
+	head_only              bool
+	any_version_installed  bool
+	deprecated             bool
+	disabled               bool
+	versioned              bool
+	has_disable_date       bool
+	deprecation_reason     string
+	present                bool
+	version_latest         bool
+	url_unversioned        bool
+	livecheck_strategy     string
+}
+
+pub struct SkipConditionsMeta {
+pub:
+	livecheck_defined bool
+	head_only         bool
+}
+
+pub struct SkipInformation {
+pub mut:
+	present      bool
+	package_kind SkipConditionsPackageKind
+	package_name string
+	status       string
+	messages     []string
+	has_messages bool
+	meta         SkipConditionsMeta
+}
+
+pub struct ReferencedSkipInformation {
+pub:
+	has_information bool
+	information     SkipInformation
+}
+
+// SkipConditionsOutput is the injected `puts`/Tty collaborator.
+pub struct SkipConditionsOutput {
+pub:
+	red   string
+	reset string
+pub mut:
+	lines []string
+}
+
+pub fn (output SkipConditionsOutput) text() string {
+	if output.lines.len == 0 {
+		return ''
+	}
+	return '${output.lines.join('\n')}\n'
+}
+
+pub fn skip_conditions_package_from_livecheck(package LivecheckPackage) SkipConditionsPackage {
+	return SkipConditionsPackage{
+		kind: match package.kind {
+			'cask' { .cask }
+			'resource' { .resource }
+			else { .formula }
+		}
+		name: package.name
+		full_name: package.full_name
+		stable_url: package.stable_url
+		livecheck_defined: package.livecheck_defined
+		livecheck_skip: package.livecheck_strategy == 'skip'
+		livecheck_skip_message: if package.livecheck_strategy == 'skip' && package.livecheck_messages.len > 0 {
+			package.livecheck_messages[0]} else {
+			''}
+		head_only: package.head_only
+		any_version_installed: package.installed_head_commit != ''
+		versioned: package.kind != 'cask' && package.name.contains('@')
+		present: package.name != ''
+		version_latest: package.version == 'latest'
+	}
+}
+
+fn skip_empty() SkipInformation {
+	return SkipInformation{}
+}
+
+fn skip_name(package SkipConditionsPackage, full_name bool) string {
+	if full_name && package.kind != .resource && package.full_name != '' {
+		return package.full_name
+	}
+	return package.name
+}
+
+fn skip_status(package SkipConditionsPackage, status string, messages []string,
+	has_messages bool, full_name bool) SkipInformation {
+	return SkipInformation{
+		present: true
+		package_kind: package.kind
+		package_name: skip_name(package, full_name)
+		status: status
+		messages: messages.clone()
+		has_messages: has_messages
+		meta: SkipConditionsMeta{
+			livecheck_defined: package.livecheck_defined
+			head_only: package.kind == .formula && package.head_only
+		}
+	}
+}
+
+pub fn skip_information_equal(left SkipInformation, right SkipInformation) bool {
+	return left.present == right.present && left.package_kind == right.package_kind && left.package_name == right.package_name && left.status == right.status && left.messages == right.messages && left.has_messages == right.has_messages && left.meta.livecheck_defined == right.meta.livecheck_defined && left.meta.head_only == right.meta.head_only
+}
+
+fn gist_url(url string) bool {
+	lower := url.to_lower()
+	return lower.contains('http://gist.github.com/') || lower.contains('https://gist.github.com/') || lower.contains('http://gist.githubusercontent.com/') || lower.contains('https://gist.githubusercontent.com/')
+}
 
 // Ruby method `self.package_or_resource_skip(` at line 17.
-pub fn ruby_skip_conditions_l17_d1_self_package_or_resource_skip(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.package_or_resource_skip', ...args)
+pub fn ruby_skip_conditions_l17_d1_self_package_or_resource_skip(package SkipConditionsPackage,
+	livecheck_defined bool, full_name bool, verbose bool) SkipInformation {
+	_ = verbose
+	mut skip_message := ''
+	if package.livecheck_skip_message.trim_space() != '' {
+		skip_message = package.livecheck_skip_message
+	} else if !livecheck_defined && package.kind == .formula {
+		stable_url := package.stable_url.to_lower()
+		if stable_url.contains('http://storage.googleapis.com/google-code-archive-downloads/') || stable_url.contains('https://storage.googleapis.com/google-code-archive-downloads/') {
+			skip_message = 'Stable URL is from Google Code Archive'
+		} else if stable_url.contains('http://web.archive.org/') || stable_url.contains('https://web.archive.org/') {
+			skip_message = 'Stable URL is from Internet Archive'
+		} else if gist_url(package.stable_url) {
+			skip_message = 'Stable URL is a GitHub Gist'
+		}
+	}
+	if !package.livecheck_skip && skip_message.trim_space() == '' {
+		return skip_empty()
+	}
+	if skip_message != '' {
+		return skip_status(package, 'skipped', [skip_message], true, full_name)
+	}
+	return skip_status(package, 'skipped', []string{}, false, full_name)
 }
 
 // Ruby method `self.formula_head_only(formula, _livecheck_defined, full_name: false, verbose: false)` at line 59.
-pub fn ruby_skip_conditions_l59_d2_self_formula_head_only(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.formula_head_only', ...args)
+pub fn ruby_skip_conditions_l59_d2_self_formula_head_only(formula SkipConditionsPackage,
+	_livecheck_defined bool, full_name bool, verbose bool) SkipInformation {
+	_ = verbose
+	if !formula.head_only || formula.any_version_installed {
+		return skip_empty()
+	}
+	return skip_status(formula, 'error', [
+		'HEAD only formula must be installed to be checkable',
+	], true, full_name)
 }
 
 // Ruby method `self.formula_deprecated(formula, livecheck_defined, full_name: false, verbose: false)` at line 79.
-pub fn ruby_skip_conditions_l79_d3_self_formula_deprecated(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.formula_deprecated', ...args)
+pub fn ruby_skip_conditions_l79_d3_self_formula_deprecated(formula SkipConditionsPackage,
+	livecheck_defined bool, full_name bool, verbose bool) SkipInformation {
+	_ = verbose
+	if !formula.deprecated || livecheck_defined {
+		return skip_empty()
+	}
+	return skip_status(formula, 'deprecated', []string{}, false, full_name)
 }
 
 // Ruby method `self.formula_disabled(formula, livecheck_defined, full_name: false, verbose: false)` at line 93.
-pub fn ruby_skip_conditions_l93_d4_self_formula_disabled(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.formula_disabled', ...args)
+pub fn ruby_skip_conditions_l93_d4_self_formula_disabled(formula SkipConditionsPackage,
+	livecheck_defined bool, full_name bool, verbose bool) SkipInformation {
+	_ = verbose
+	if !formula.disabled || livecheck_defined {
+		return skip_empty()
+	}
+	return skip_status(formula, 'disabled', []string{}, false, full_name)
 }
 
 // Ruby method `self.formula_versioned(formula, livecheck_defined, full_name: false, verbose: false)` at line 107.
-pub fn ruby_skip_conditions_l107_d5_self_formula_versioned(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.formula_versioned', ...args)
+pub fn ruby_skip_conditions_l107_d5_self_formula_versioned(formula SkipConditionsPackage,
+	livecheck_defined bool, full_name bool, verbose bool) SkipInformation {
+	_ = verbose
+	if !formula.versioned || livecheck_defined {
+		return skip_empty()
+	}
+	return skip_status(formula, 'versioned', []string{}, false, full_name)
 }
 
 // Ruby method `self.cask_deprecated(cask, livecheck_defined, full_name: false, verbose: false)` at line 121.
-pub fn ruby_skip_conditions_l121_d6_self_cask_deprecated(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.cask_deprecated', ...args)
+pub fn ruby_skip_conditions_l121_d6_self_cask_deprecated(cask SkipConditionsPackage,
+	livecheck_defined bool, full_name bool, verbose bool) SkipInformation {
+	_ = verbose
+	if !cask.deprecated || livecheck_defined {
+		return skip_empty()
+	}
+	if cask.has_disable_date && cask.deprecation_reason == 'fails_gatekeeper_check' {
+		return skip_empty()
+	}
+	return skip_status(cask, 'deprecated', []string{}, false, full_name)
 }
 
 // Ruby method `self.cask_disabled(cask, livecheck_defined, full_name: false, verbose: false)` at line 136.
-pub fn ruby_skip_conditions_l136_d7_self_cask_disabled(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.cask_disabled', ...args)
+pub fn ruby_skip_conditions_l136_d7_self_cask_disabled(cask SkipConditionsPackage,
+	livecheck_defined bool, full_name bool, verbose bool) SkipInformation {
+	_ = verbose
+	if !cask.disabled || livecheck_defined {
+		return skip_empty()
+	}
+	return skip_status(cask, 'disabled', []string{}, false, full_name)
 }
 
 // Ruby method `self.cask_extract_plist(` at line 151.
-pub fn ruby_skip_conditions_l151_d8_self_cask_extract_plist(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.cask_extract_plist', ...args)
+pub fn ruby_skip_conditions_l151_d8_self_cask_extract_plist(cask SkipConditionsPackage,
+	_livecheck_defined bool, full_name bool, verbose bool, extract_plist bool) SkipInformation {
+	_ = verbose
+	if extract_plist || cask.livecheck_strategy != 'extract_plist' {
+		return skip_empty()
+	}
+	return skip_status(cask, 'skipped', [
+		'Use `--extract-plist` to enable checking multiple casks with ExtractPlist strategy',
+	], true, full_name)
 }
 
 // Ruby method `self.cask_version_latest(cask, livecheck_defined, full_name: false, verbose: false)` at line 177.
-pub fn ruby_skip_conditions_l177_d9_self_cask_version_latest(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.cask_version_latest', ...args)
+pub fn ruby_skip_conditions_l177_d9_self_cask_version_latest(cask SkipConditionsPackage,
+	livecheck_defined bool, full_name bool, verbose bool) SkipInformation {
+	_ = verbose
+	if !(cask.present && cask.version_latest) || livecheck_defined {
+		return skip_empty()
+	}
+	return skip_status(cask, 'latest', []string{}, false, full_name)
 }
 
 // Ruby method `self.cask_url_unversioned(cask, livecheck_defined, full_name: false, verbose: false)` at line 191.
-pub fn ruby_skip_conditions_l191_d10_self_cask_url_unversioned(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.cask_url_unversioned', ...args)
+pub fn ruby_skip_conditions_l191_d10_self_cask_url_unversioned(cask SkipConditionsPackage,
+	livecheck_defined bool, full_name bool, verbose bool) SkipInformation {
+	_ = verbose
+	if !(cask.present && cask.url_unversioned) || livecheck_defined {
+		return skip_empty()
+	}
+	return skip_status(cask, 'unversioned', []string{}, false, full_name)
 }
 
 // Ruby method `self.skip_information(package_or_resource, full_name: false, verbose: false, extract_plist: true)` at line 235.
-pub fn ruby_skip_conditions_l235_d11_self_skip_information(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.skip_information', ...args)
+pub fn ruby_skip_conditions_l235_d11_self_skip_information(package SkipConditionsPackage,
+	full_name bool, verbose bool, extract_plist bool) SkipInformation {
+	livecheck_defined := package.livecheck_defined
+	first := ruby_skip_conditions_l17_d1_self_package_or_resource_skip(package, livecheck_defined, full_name, verbose)
+	if first.present {
+		return first
+	}
+	match package.kind {
+		.formula {
+			for result in [
+				ruby_skip_conditions_l59_d2_self_formula_head_only(package, livecheck_defined, full_name, verbose),
+				ruby_skip_conditions_l93_d4_self_formula_disabled(package, livecheck_defined, full_name, verbose),
+				ruby_skip_conditions_l79_d3_self_formula_deprecated(package, livecheck_defined, full_name, verbose),
+				ruby_skip_conditions_l107_d5_self_formula_versioned(package, livecheck_defined, full_name, verbose),
+			] {
+				if result.present {
+					return result
+				}
+			}
+		}
+		.cask {
+			for result in [
+				ruby_skip_conditions_l136_d7_self_cask_disabled(package, livecheck_defined, full_name, verbose),
+				ruby_skip_conditions_l121_d6_self_cask_deprecated(package, livecheck_defined, full_name, verbose),
+				ruby_skip_conditions_l151_d8_self_cask_extract_plist(package, livecheck_defined, full_name, verbose, extract_plist),
+				ruby_skip_conditions_l177_d9_self_cask_version_latest(package, livecheck_defined, full_name, verbose),
+				ruby_skip_conditions_l191_d10_self_cask_url_unversioned(package, livecheck_defined, full_name, verbose),
+			] {
+				if result.present {
+					return result
+				}
+			}
+		}
+		.resource {}
+	}
+	return skip_empty()
 }
 
 // Ruby method `self.referenced_skip_information(` at line 273.
-pub fn ruby_skip_conditions_l273_d12_self_referenced_skip_information(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.referenced_skip_information', ...args)
+pub fn ruby_skip_conditions_l273_d12_self_referenced_skip_information(package SkipConditionsPackage,
+	original_name string, full_name bool, verbose bool,
+	extract_plist bool) !ReferencedSkipInformation {
+	mut information := ruby_skip_conditions_l235_d11_self_skip_information(package, full_name, verbose, extract_plist)
+	if !information.present {
+		return ReferencedSkipInformation{}
+	}
+	referenced_name := skip_name(package, full_name)
+	referenced_type := match package.kind {
+		.formula { 'formula' }
+		.cask { 'cask' }
+		.resource { 'resource' }
+	}
+	if information.status != 'error' && !(information.status == 'skipped' && package.livecheck_skip) {
+		ending := if information.status == 'skipped' {
+			'automatically skipped'
+		} else {
+			'skipped as ${information.status}'
+		}
+		return error('Referenced ${referenced_type} (${referenced_name}) is ${ending}')
+	}
+	information.package_name = original_name
+	return ReferencedSkipInformation{
+		has_information: true
+		information: information
+	}
 }
 
 // Ruby method `self.print_skip_information(skip_hash)` at line 315.
-pub fn ruby_skip_conditions_l315_d13_self_print_skip_information(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.print_skip_information', ...args)
+pub fn ruby_skip_conditions_l315_d13_self_print_skip_information(information SkipInformation,
+	mut output SkipConditionsOutput) {
+	if !information.present || information.package_name == '' {
+		return
+	}
+	name := if information.package_kind == .resource {
+		'  ${information.package_name}'
+	} else {
+		information.package_name
+	}
+	if information.has_messages && information.messages.len > 0 {
+		messages := information.messages.join('; ')
+		if information.status == 'skipped' {
+			output.lines << '${output.red}${name}${output.reset}: skipped - ${messages}'
+		} else {
+			output.lines << '${output.red}${name}${output.reset}: ${messages}'
+		}
+	} else if information.status.trim_space() != '' {
+		output.lines << '${output.red}${name}${output.reset}: ${information.status}'
+	}
 }
 
 // Original Ruby source (line-for-line):

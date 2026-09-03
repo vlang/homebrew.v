@@ -1,63 +1,308 @@
 module concurrent
 
 import brew_runtime
+import math
+import sync
+import time
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/atom.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub type AtomValidator = fn(brew_runtime.Value) !bool
+
+pub type AtomUpdate = fn(brew_runtime.Value, []brew_runtime.Value) !brew_runtime.Value
+
+pub type AtomObserver = fn(i64, brew_runtime.Value, brew_runtime.Value)
+
+struct AtomObserverEntry {
+	id       string
+	callback AtomObserver @[required]
+}
+
+@[heap]
+pub struct Atom {
+	mutex     &sync.Mutex
+	validator AtomValidator @[required]
+mut:
+	value     brew_runtime.Value
+	observers []AtomObserverEntry
+}
+
+fn atom_accept_all(_ brew_runtime.Value) !bool {
+	return true
+}
+
+pub fn new_atom(value brew_runtime.Value) &Atom {
+	return new_atom_with_validator(value, atom_accept_all)
+}
+
+pub fn new_atom_with_validator(value brew_runtime.Value, validator AtomValidator) &Atom {
+	return &Atom{
+		mutex: sync.new_mutex()
+		validator: validator
+		value: value
+	}
+}
+
+fn atom_numeric_value(value brew_runtime.Value) ?f64 {
+	if value.type_name !in ['Integer', 'Float'] {
+		return none
+	}
+	return value.as_float() or { return none }
+}
+
+fn atom_values_identical(actual brew_runtime.Value, expected brew_runtime.Value) bool {
+	if expected_number := atom_numeric_value(expected) {
+		actual_number := atom_numeric_value(actual) or { return false }
+		if math.is_nan(expected_number) {
+			return math.is_nan(actual_number)
+		}
+		return actual_number == expected_number
+	}
+	return actual.type_name == expected.type_name && actual.repr == expected.repr
+}
+
+pub fn (mut atom Atom) get() brew_runtime.Value {
+	atom.mutex.lock()
+	value := atom.value
+	atom.mutex.unlock()
+	return value
+}
+
+pub fn (mut atom Atom) add_observer(id string, callback AtomObserver) string {
+	if id.len == 0 {
+		panic('ArgumentError: should pass observer as a first argument or block')
+	}
+	atom.mutex.lock()
+	entry := AtomObserverEntry{
+		id: id
+		callback: callback
+	}
+	mut replaced := false
+	for index, observer in atom.observers {
+		if observer.id == id {
+			atom.observers[index] = entry
+			replaced = true
+			break
+		}
+	}
+	if !replaced {
+		atom.observers << entry
+	}
+	atom.mutex.unlock()
+	return id
+}
+
+pub fn (mut atom Atom) delete_observer(id string) bool {
+	atom.mutex.lock()
+	for index, observer in atom.observers {
+		if observer.id == id {
+			atom.observers.delete(index)
+			atom.mutex.unlock()
+			return true
+		}
+	}
+	atom.mutex.unlock()
+	return false
+}
+
+fn (mut atom Atom) notify(old_value brew_runtime.Value, new_value brew_runtime.Value, observers []AtomObserverEntry) {
+	changed_at := time.now().unix_nano()
+	for observer in observers {
+		observer.callback(changed_at, old_value, new_value)
+	}
+}
+
+pub fn (mut atom Atom) valid(value brew_runtime.Value) bool {
+	return atom.validator(value) or { false }
+}
+
+fn (mut atom Atom) compare_and_set_value(old_value brew_runtime.Value, new_value brew_runtime.Value) bool {
+	atom.mutex.lock()
+	if !atom_values_identical(atom.value, old_value) {
+		atom.mutex.unlock()
+		return false
+	}
+	atom.value = new_value
+	atom.mutex.unlock()
+	return true
+}
+
+fn (mut atom Atom) set_value(new_value brew_runtime.Value) brew_runtime.Value {
+	atom.mutex.lock()
+	atom.value = new_value
+	atom.mutex.unlock()
+	return new_value
+}
+
+fn (mut atom Atom) swap_value(new_value brew_runtime.Value) brew_runtime.Value {
+	atom.mutex.lock()
+	old_value := atom.value
+	atom.value = new_value
+	atom.mutex.unlock()
+	return old_value
+}
+
+fn (mut atom Atom) update_value(update AtomUpdate, args []brew_runtime.Value) !brew_runtime.Value {
+	for {
+		old_value := atom.get()
+		new_value := update(old_value, args)!
+		if atom.compare_and_set_value(old_value, new_value) {
+			return new_value
+		}
+	}
+	return atom.get()
+}
+
+pub fn (mut atom Atom) compare_and_set(old_value brew_runtime.Value, new_value brew_runtime.Value) bool {
+	if !atom.valid(new_value) || !atom.compare_and_set_value(old_value, new_value) {
+		return false
+	}
+	atom.mutex.lock()
+	observers := atom.observers.clone()
+	atom.mutex.unlock()
+	atom.notify(old_value, new_value, observers)
+	return true
+}
+
+pub fn (mut atom Atom) swap(update AtomUpdate, args []brew_runtime.Value) !brew_runtime.Value {
+	for {
+		old_value := atom.get()
+		new_value := update(old_value, args)!
+		if !atom.valid(new_value) {
+			return old_value
+		}
+		if atom.compare_and_set(old_value, new_value) {
+			return new_value
+		}
+	}
+	return atom.get()
+}
+
+pub fn (mut atom Atom) reset(new_value brew_runtime.Value) brew_runtime.Value {
+	old_value := atom.get()
+	if !atom.valid(new_value) {
+		return old_value
+	}
+	atom.set_value(new_value)
+	atom.mutex.lock()
+	observers := atom.observers.clone()
+	atom.mutex.unlock()
+	atom.notify(old_value, new_value, observers)
+	return new_value
+}
+
+fn atom_boundary_value(atom &Atom) brew_runtime.Value {
+	return brew_runtime.structured_value('Concurrent::Atom', '#<Concurrent::Atom>', {
+		'atom_address': u64(voidptr(atom)).str()
+	})
+}
+
+fn atom_boundary_receiver(args []brew_runtime.Value) &Atom {
+	if args.len == 0 {
+		panic('Atom method requires a receiver')
+	}
+	address := (args[0].attribute('atom_address') or {
+		panic('${args[0].type_name} has no translated Atom state')
+	}).u64()
+	return unsafe { &Atom(voidptr(address)) }
+}
+
+fn atom_boundary_update(_ brew_runtime.Value, args []brew_runtime.Value) !brew_runtime.Value {
+	if args.len == 0 {
+		return error('ArgumentError: no translated block result given')
+	}
+	return args[args.len - 1]
+}
 
 // Ruby attr_atomic `attr_atomic(:value)` at line 99.
 pub fn ruby_atom_l99_d1_value(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('value', ...args)
+	mut atom := atom_boundary_receiver(args)
+	return atom.get()
 }
 
 // Ruby attr_atomic `attr_atomic(:value)` at line 99.
 pub fn ruby_atom_l99_d2_value(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('value=', ...args)
+	mut atom := atom_boundary_receiver(args)
+	if args.len < 2 {
+		panic('value= requires a value')
+	}
+	return atom.set_value(args[1])
 }
 
 // Ruby attr_atomic `attr_atomic(:value)` at line 99.
 pub fn ruby_atom_l99_d3_compare_and_set_value(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('compare_and_set_value', ...args)
+	mut atom := atom_boundary_receiver(args)
+	if args.len < 3 {
+		panic('compare_and_set_value requires old and new values')
+	}
+	return brew_runtime.bool_value(atom.compare_and_set_value(args[1], args[2]))
 }
 
 // Ruby attr_atomic `attr_atomic(:value)` at line 99.
 pub fn ruby_atom_l99_d4_swap_value(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('swap_value', ...args)
+	mut atom := atom_boundary_receiver(args)
+	if args.len < 2 {
+		panic('swap_value requires a value')
+	}
+	return atom.swap_value(args[1])
 }
 
 // Ruby attr_atomic `attr_atomic(:value)` at line 99.
 pub fn ruby_atom_l99_d5_update_value(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('update_value', ...args)
+	mut atom := atom_boundary_receiver(args)
+	if args.len < 2 {
+		panic('update_value requires a translated block result')
+	}
+	return atom.update_value(atom_boundary_update, args[1..]) or { panic(err) }
 }
 
 // Ruby alias_method `alias_method :deref, :value` at line 102.
 pub fn ruby_atom_l102_d6_deref(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('deref', ...args)
+	return ruby_atom_l99_d1_value(...args)
 }
 
 // Ruby method `initialize(value, opts = {})` at line 121.
 pub fn ruby_atom_l121_d7_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	if args.len == 0 {
+		panic('initialize requires a value')
+	}
+	return atom_boundary_value(new_atom(args[0]))
 }
 
 // Ruby method `swap(*args)` at line 157.
 pub fn ruby_atom_l157_d8_swap(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('swap', ...args)
+	mut atom := atom_boundary_receiver(args)
+	if args.len < 2 {
+		panic('ArgumentError: no block given')
+	}
+	return atom.swap(atom_boundary_update, args[1..]) or { panic(err) }
 }
 
 // Ruby method `compare_and_set(old_value, new_value)` at line 181.
 pub fn ruby_atom_l181_d9_compare_and_set(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('compare_and_set', ...args)
+	mut atom := atom_boundary_receiver(args)
+	if args.len < 3 {
+		panic('compare_and_set requires old and new values')
+	}
+	return brew_runtime.bool_value(atom.compare_and_set(args[1], args[2]))
 }
 
 // Ruby method `reset(new_value)` at line 198.
 pub fn ruby_atom_l198_d10_reset(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reset', ...args)
+	mut atom := atom_boundary_receiver(args)
+	if args.len < 2 {
+		panic('reset requires a value')
+	}
+	return atom.reset(args[1])
 }
 
 // Ruby method `valid?(new_value)` at line 216.
 pub fn ruby_atom_l216_d11_valid(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('valid?', ...args)
+	mut atom := atom_boundary_receiver(args)
+	if args.len < 2 {
+		panic('valid? requires a value')
+	}
+	return brew_runtime.bool_value(atom.valid(args[1]))
 }
 
 // Original Ruby source (line-for-line):

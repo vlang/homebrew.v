@@ -4,15 +4,49 @@ import brew_runtime
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/options.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub fn executor_from_identifier(identifier brew_runtime.Value) !brew_runtime.Value {
+	name := identifier.as_string().trim_left(':').to_lower()
+	return match name {
+		'fast' { brew_runtime.object_value('Concurrent::ExecutorService', 'global_fast_executor') }
+		'io' { brew_runtime.object_value('Concurrent::ExecutorService', 'global_io_executor') }
+		'immediate' {
+			brew_runtime.object_value('Concurrent::ImmediateExecutor', 'global_immediate_executor')
+		}
+		else {
+			if identifier.type_name.ends_with('ExecutorService') || identifier.type_name == 'Concurrent::ImmediateExecutor' {
+				identifier
+			} else {
+				return error("executor not recognized by '${identifier.as_string()}'")
+			}
+		}
+	}
+}
+
+pub fn executor_from_options(options map[string]brew_runtime.Value) !brew_runtime.Value {
+	if 'executor' !in options || options['executor'].type_name == 'NilClass' {
+		return brew_runtime.object_value('NilClass', 'nil')
+	}
+	return executor_from_identifier(options['executor'])!
+}
 
 // Ruby method `self.executor_from_options(opts = {}) # :nodoc:` at line 19.
 pub fn ruby_options_l19_d1_self_executor_from_options(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.executor_from_options', ...args)
+	options := if args.len == 0 {
+		map[string]brew_runtime.Value{}
+	} else {
+		args[0].as_map() or {
+			panic(err)
+		}
+	}
+	return executor_from_options(options) or { panic(err) }
 }
 
 // Ruby method `self.executor(executor_identifier)` at line 27.
 pub fn ruby_options_l27_d2_self_executor(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.executor', ...args)
+	if args.len == 0 {
+		panic('Concurrent::Options.executor requires an identifier')
+	}
+	return executor_from_identifier(args[0]) or { panic(err) }
 }
 
 // Original Ruby source (line-for-line):

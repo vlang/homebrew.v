@@ -1,193 +1,794 @@
 module lib
 
 import brew_runtime
+import os
+import sync
+import time
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/logger-1.7.0/lib/logger.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub const logger_debug = 0
+pub const logger_info = 1
+pub const logger_warn = 2
+pub const logger_error = 3
+pub const logger_fatal = 4
+pub const logger_unknown = 5
+pub const logger_version = '1.7.0'
+
+const severity_labels = ['DEBUG', 'INFO', 'WARN', 'ERROR', 'FATAL', 'ANY']
+const logger_datetime_format = '%Y-%m-%dT%H:%M:%S.%6N'
+
+pub type LoggerFormatter = fn(string, time.Time, string, brew_runtime.Value) string
+
+pub struct LoggerOptions {
+pub:
+	level                int
+	progname             string
+	datetime_format      string
+	formatter            ?LoggerFormatter
+	shift_age            int
+	shift_period         string
+	shift_size           u64 = 1_048_576
+	shift_period_suffix  string = '%Y%m%d'
+	binmode              bool
+	reraise_write_errors bool
+	skip_header          bool
+}
+
+pub struct Logger {
+pub mut:
+	base_level           int
+	progname             string
+	datetime_format      string
+	formatter            ?LoggerFormatter
+	logdev               string
+	shift_age            int
+	shift_period         string
+	shift_size           u64
+	shift_period_suffix  string
+	binmode              bool
+	reraise_write_errors bool
+	skip_header          bool
+	closed               bool
+	next_rotate_time     time.Time
+mut:
+	level_overrides map[u64][]int
+	monitor         sync.Mutex
+}
+
+pub fn new_logger(logdev string, options LoggerOptions) !Logger {
+	mut logger := Logger{
+		base_level: options.level
+		progname: options.progname
+		datetime_format: options.datetime_format
+		formatter: options.formatter
+		logdev: logdev
+		shift_age: options.shift_age
+		shift_period: options.shift_period
+		shift_size: options.shift_size
+		shift_period_suffix: options.shift_period_suffix
+		binmode: options.binmode
+		reraise_write_errors: options.reraise_write_errors
+		skip_header: options.skip_header
+	}
+	if logdev.len > 0 && logdev != os.path_devnull {
+		logger.open_logfile()!
+		if options.shift_period.len > 0 {
+			base := if os.exists(logdev) {
+				time.unix(os.file_last_mod_unix(logdev))
+			} else {
+				time.now()
+			}
+			logger.next_rotate_time = logger_next_rotate_time(base, options.shift_period)!
+		}
+	}
+	return logger
+}
+
+pub fn (logger &Logger) level() int {
+	key := sync.thread_id()
+	if key in logger.level_overrides && logger.level_overrides[key].len > 0 {
+		return logger.level_overrides[key].last()
+	}
+	return logger.base_level
+}
+
+pub fn (mut logger Logger) set_level(severity int) int {
+	logger.base_level = severity
+	return severity
+}
+
+pub fn (mut logger Logger) with_level(severity int, action fn(mut Logger)) {
+	key := sync.thread_id()
+	mut overrides := logger.level_overrides[key].clone()
+	overrides << severity
+	logger.level_overrides[key] = overrides
+	defer {
+		mut restored := logger.level_overrides[key].clone()
+		restored.delete_last()
+		if restored.len == 0 {
+			logger.level_overrides.delete(key)
+		} else {
+			logger.level_overrides[key] = restored
+		}
+	}
+	action(mut logger)
+}
+
+pub fn (logger &Logger) debug_enabled() bool {
+	return logger.level() <= logger_debug
+}
+
+pub fn (logger &Logger) info_enabled() bool {
+	return logger.level() <= logger_info
+}
+
+pub fn (logger &Logger) warn_enabled() bool {
+	return logger.level() <= logger_warn
+}
+
+pub fn (logger &Logger) error_enabled() bool {
+	return logger.level() <= logger_error
+}
+
+pub fn (logger &Logger) fatal_enabled() bool {
+	return logger.level() <= logger_fatal
+}
+
+pub fn (mut logger Logger) debug_bang() int {
+	return logger.set_level(logger_debug)
+}
+
+pub fn (mut logger Logger) info_bang() int {
+	return logger.set_level(logger_info)
+}
+
+pub fn (mut logger Logger) warn_bang() int {
+	return logger.set_level(logger_warn)
+}
+
+pub fn (mut logger Logger) error_bang() int {
+	return logger.set_level(logger_error)
+}
+
+pub fn (mut logger Logger) fatal_bang() int {
+	return logger.set_level(logger_fatal)
+}
+
+pub fn (logger &Logger) format_severity(severity int) string {
+	if severity >= 0 && severity < severity_labels.len {
+		return severity_labels[severity]
+	}
+	return 'ANY'
+}
+
+fn format_logger_time(value time.Time, format string) string {
+	selected := if format.len > 0 { format } else { logger_datetime_format }
+	placeholder := '__LOGGER_MICROSECONDS__'
+	return value.strftime(selected.replace('%6N', placeholder)).replace(placeholder, '${value.nanosecond / 1_000:06}')
+}
+
+fn logger_message_string(message brew_runtime.Value) string {
+	if message.type_name == 'String' {
+		return message.as_string()
+	}
+	if message.type_name == 'Exception' {
+		text := message.attribute('message') or { message.as_string() }
+		class_name := message.attribute('class') or { 'Exception' }
+		backtrace := message.attribute('backtrace') or { '' }
+		return '${text} (${class_name})\n${backtrace}'
+	}
+	return message.as_string()
+}
+
+fn (logger &Logger) default_format_message(severity string, at time.Time, progname string, message brew_runtime.Value) string {
+	initial := if severity.len > 0 { severity[..1] } else { '' }
+	return '${initial}, [${format_logger_time(at, logger.datetime_format)} #${os.getpid()}] ${severity:5} -- ${progname}: ${logger_message_string(message)}\n'
+}
+
+pub fn (logger &Logger) format_message(severity string, at time.Time, progname string, message brew_runtime.Value) string {
+	if formatter := logger.formatter {
+		return formatter(severity, at, progname, message)
+	}
+	return logger.default_format_message(severity, at, progname, message)
+}
+
+fn (mut logger Logger) open_logfile() ! {
+	if logger.logdev.len == 0 {
+		return
+	}
+	parent := os.dir(logger.logdev)
+	if parent.len > 0 && parent != '.' {
+		os.mkdir_all(parent)!
+	}
+	is_new := !os.exists(logger.logdev)
+	mut file := os.open_append(logger.logdev)!
+	if is_new && !logger.skip_header {
+		file.write_string('# Logfile created on ${time.now()} by logger.rb/v${logger_version}\n')!
+	}
+	file.flush()
+	file.close()
+}
+
+pub fn (mut logger Logger) reopen(logdev string, shift_age int, shift_size u64, shift_period string, shift_period_suffix string, binmode bool) !&Logger {
+	target := if logdev.len > 0 { logdev } else { logger.logdev }
+	if target.len == 0 {
+		return &logger
+	}
+	logger.logdev = target
+	logger.shift_age = shift_age
+	logger.shift_size = if shift_size > 0 { shift_size } else { logger.shift_size }
+	logger.shift_period = shift_period
+	if shift_period_suffix.len > 0 {
+		logger.shift_period_suffix = shift_period_suffix
+	}
+	logger.binmode = binmode
+	logger.closed = false
+	logger.open_logfile()!
+	if shift_period.len > 0 {
+		logger.next_rotate_time = logger_next_rotate_time(time.now(), shift_period)!
+	}
+	return &logger
+}
+
+pub fn (mut logger Logger) add(severity int, message ?brew_runtime.Value, entry_progname ?string) bool {
+	if logger.logdev.len == 0 || logger.closed || severity < logger.level() {
+		return true
+	}
+	mut progname := logger.progname
+	if supplied_progname := entry_progname {
+		progname = supplied_progname
+	}
+	mut actual_message := brew_runtime.string_value(progname)
+	if supplied_message := message {
+		actual_message = supplied_message
+	} else if _ := entry_progname {
+		// Ruby uses the explicit progname as the message, then restores the
+		// logger's default program name.
+		actual_message = brew_runtime.string_value(progname)
+		progname = logger.progname
+	}
+	line := logger.format_message(logger.format_severity(severity), time.now(), progname, actual_message)
+	logger.monitor.lock()
+	defer {
+		logger.monitor.unlock()
+	}
+	logger.rotate_if_needed() or {
+		if logger.reraise_write_errors { panic(err) }
+		eprintln('log shifting failed. ${err}')
+	}
+	mut file := os.open_append(logger.logdev) or {
+		if logger.reraise_write_errors { panic(err) }
+		eprintln('log writing failed. ${err}')
+		return true
+	}
+	file.write_string(line) or {
+		file.close()
+		if logger.reraise_write_errors { panic(err) }
+		eprintln('log writing failed. ${err}')
+		return true
+	}
+	file.flush()
+	file.close()
+	return true
+}
+
+pub fn (mut logger Logger) add_lazy(severity int, entry_progname ?string, producer fn() brew_runtime.Value) bool {
+	if logger.logdev.len == 0 || logger.closed || severity < logger.level() {
+		return true
+	}
+	return logger.add(severity, producer(), entry_progname)
+}
+
+pub fn (mut logger Logger) log(severity int, message ?brew_runtime.Value, progname ?string) bool {
+	return logger.add(severity, message, progname)
+}
+
+pub fn (mut logger Logger) write_raw(message string) int {
+	if logger.logdev.len == 0 || logger.closed {
+		return 0
+	}
+	mut file := os.open_append(logger.logdev) or { return 0 }
+	written := file.write_string(message) or {
+		file.close()
+		return 0
+	}
+	file.flush()
+	file.close()
+	return written
+}
+
+pub fn (mut logger Logger) debug(message ?brew_runtime.Value, progname ?string) bool {
+	return logger.add(logger_debug, message, progname)
+}
+
+pub fn (mut logger Logger) info(message ?brew_runtime.Value, progname ?string) bool {
+	return logger.add(logger_info, message, progname)
+}
+
+pub fn (mut logger Logger) warn(message ?brew_runtime.Value, progname ?string) bool {
+	return logger.add(logger_warn, message, progname)
+}
+
+pub fn (mut logger Logger) error(message ?brew_runtime.Value, progname ?string) bool {
+	return logger.add(logger_error, message, progname)
+}
+
+pub fn (mut logger Logger) fatal(message ?brew_runtime.Value, progname ?string) bool {
+	return logger.add(logger_fatal, message, progname)
+}
+
+pub fn (mut logger Logger) unknown(message ?brew_runtime.Value, progname ?string) bool {
+	return logger.add(logger_unknown, message, progname)
+}
+
+pub fn (mut logger Logger) close() {
+	logger.closed = true
+}
+
+fn (mut logger Logger) rotate_if_needed() ! {
+	if logger.shift_age > 0 && os.file_size(logger.logdev) > logger.shift_size {
+		mut index := logger.shift_age - 3
+		for index >= 0 {
+			from := '${logger.logdev}.${index}'
+			if os.exists(from) {
+				os.rename(from, '${logger.logdev}.${index + 1}')!
+			}
+			index--
+		}
+		logger.rotate_to('${logger.logdev}.0')!
+		return
+	}
+	if logger.shift_period.len > 0 && time.now().unix() >= logger.next_rotate_time.unix() {
+		now := time.now()
+		logger.next_rotate_time = logger_next_rotate_time(now, logger.shift_period)!
+		period_end := logger_previous_period_end(now, logger.shift_period)!
+		suffix := period_end.strftime(logger.shift_period_suffix)
+		mut rotated := '${logger.logdev}.${suffix}'
+		if os.exists(rotated) {
+			for index in 1 .. 100 {
+				rotated = '${logger.logdev}.${suffix}.${index}'
+				if !os.exists(rotated) {
+					break
+				}
+			}
+		}
+		logger.rotate_to(rotated)!
+	}
+}
+
+fn (mut logger Logger) rotate_to(rotated string) ! {
+	metadata := os.stat(logger.logdev)!
+	os.rename(logger.logdev, rotated)!
+	logger.open_logfile()!
+	os.chmod(logger.logdev, int(metadata.mode)) or {}
+	os.chown(logger.logdev, int(metadata.uid), int(metadata.gid)) or {}
+}
+
+fn logger_midnight(value time.Time) time.Time {
+	return time.new(time.Time{
+		year: value.year
+		month: value.month
+		day: value.day
+		is_local: value.is_local
+	})
+}
+
+fn logger_next_rotate_time(now time.Time, shift_age string) !time.Time {
+	return match shift_age.to_lower() {
+		'daily' { logger_midnight(now).add_days(1) }
+		'weekly' { logger_midnight(now).add_days(7 - now.day_of_week() % 7) }
+		'monthly' {
+			probe := time.new(time.Time{
+				year: now.year
+				month: now.month
+				day: 1
+				is_local: now.is_local
+			}).add_days(32)
+			time.new(time.Time{
+				year: probe.year
+				month: probe.month
+				day: 1
+				is_local: now.is_local
+			})
+		}
+		'now', 'everytime' { now }
+		else {
+			return error('invalid :shift_age `${shift_age}`, should be daily, weekly, monthly, or everytime')
+		}
+	}
+}
+
+fn logger_previous_period_end(now time.Time, shift_age string) !time.Time {
+	if shift_age in ['now', 'everytime'] {
+		return now
+	}
+	seconds_in_day := 86_400
+	base := match shift_age.to_lower() {
+		'daily' { logger_midnight(now).add_seconds(-seconds_in_day / 2) }
+		'weekly' {
+			logger_midnight(now).add_seconds(-(seconds_in_day * (now.day_of_week() % 7) + seconds_in_day / 2))
+		}
+		'monthly' {
+			time.new(time.Time{
+				year: now.year
+				month: now.month
+				day: 1
+				is_local: now.is_local
+			}).add_seconds(-seconds_in_day / 2)
+		}
+		else {
+			return error('invalid :shift_age `${shift_age}`, should be daily, weekly, monthly, or everytime')
+		}
+	}
+	return time.new(time.Time{
+		year: base.year
+		month: base.month
+		day: base.day
+		hour: 23
+		minute: 59
+		second: 59
+		is_local: now.is_local
+	})
+}
+
+fn coerce_logger_severity(value brew_runtime.Value) !int {
+	if value.type_name == 'Integer' {
+		return int(value.as_int()!)
+	}
+	return match value.as_string().to_lower() {
+		'debug' { logger_debug }
+		'info' { logger_info }
+		'warn' { logger_warn }
+		'error' { logger_error }
+		'fatal' { logger_fatal }
+		'unknown' { logger_unknown }
+		else { error('invalid log level: ${value.as_string()}') }
+	}
+}
+
+fn logger_from_value(value brew_runtime.Value) Logger {
+	return Logger{
+		base_level: (value.attribute('level') or { '0' }).int()
+		progname: value.attribute('progname') or { '' }
+		datetime_format: value.attribute('datetime_format') or { '' }
+		logdev: value.attribute('logdev') or { '' }
+		shift_age: (value.attribute('shift_age') or { '0' }).int()
+		shift_period: value.attribute('shift_period') or { '' }
+		shift_size: u64((value.attribute('shift_size') or { '1048576' }).i64())
+		shift_period_suffix: value.attribute('shift_period_suffix') or { '%Y%m%d' }
+		binmode: (value.attribute('binmode') or { 'false' }).bool()
+		reraise_write_errors: (value.attribute('reraise_write_errors') or { 'false' }).bool()
+		skip_header: (value.attribute('skip_header') or { 'false' }).bool()
+		closed: (value.attribute('closed') or { 'false' }).bool()
+		next_rotate_time: time.unix((value.attribute('next_rotate_time') or { '0' }).i64())
+	}
+}
+
+fn logger_value(logger &Logger) brew_runtime.Value {
+	return brew_runtime.structured_value('Logger', '#<Logger>', {
+		'level':                logger.base_level.str()
+		'progname':             logger.progname
+		'datetime_format':      logger.datetime_format
+		'logdev':               logger.logdev
+		'shift_age':            logger.shift_age.str()
+		'shift_period':         logger.shift_period
+		'shift_size':           logger.shift_size.str()
+		'shift_period_suffix':  logger.shift_period_suffix
+		'binmode':              logger.binmode.str()
+		'reraise_write_errors': logger.reraise_write_errors.str()
+		'skip_header':          logger.skip_header.str()
+		'closed':               logger.closed.str()
+		'next_rotate_time':     logger.next_rotate_time.unix().str()
+	})
+}
+
+fn wrapper_logger(args []brew_runtime.Value) Logger {
+	if args.len == 0 { panic('Logger method requires a logger') }
+	return logger_from_value(args[0])
+}
+
+fn wrapper_optional_value(args []brew_runtime.Value, index int) ?brew_runtime.Value {
+	if args.len <= index || args[index].type_name == 'NilClass' {
+		return none
+	}
+	return args[index]
+}
+
+fn wrapper_optional_string(args []brew_runtime.Value, index int) ?string {
+	if args.len <= index || args[index].type_name == 'NilClass' {
+		return none
+	}
+	return args[index].as_string()
+}
+
+fn logger_shorthand(args []brew_runtime.Value, severity int) brew_runtime.Value {
+	if args.len == 0 { panic('Logger severity method requires a logger') }
+	mut logger := logger_from_value(args[0])
+	// Ruby's shorthand argument is a progname and its block supplies the
+	// message. Boundary callers may pass the block result as the second value.
+	message := wrapper_optional_value(args, 1)
+	return brew_runtime.bool_value(logger.add(severity, message, none))
+}
 
 // Ruby method `level` at line 383.
 pub fn ruby_logger_l383_d1_level(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('level', ...args)
+	return brew_runtime.int_value(wrapper_logger(args).level())
 }
 
 // Ruby method `level=(severity)` at line 399.
 pub fn ruby_logger_l399_d2_level(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('level=', ...args)
+	if args.len < 2 { panic('Logger#level= requires a logger and severity') }
+	mut logger := logger_from_value(args[0])
+	logger.set_level(coerce_logger_severity(args[1]) or { panic(err) })
+	return logger_value(&logger)
 }
 
 // Ruby method `with_level(severity)` at line 408.
 pub fn ruby_logger_l408_d3_with_level(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('with_level', ...args)
+	if args.len < 2 { panic('Logger#with_level requires a logger and severity') }
+	// Boundary calls carry an already evaluated block result. The typed API
+	// above performs the scoped override while executing its callback.
+	coerce_logger_severity(args[1]) or { panic(err) }
+	return if args.len > 2 { args[2] } else { args[0] }
 }
 
 // Ruby attr_accessor `attr_accessor :progname` at line 422.
 pub fn ruby_logger_l422_d4_progname(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('progname', ...args)
+	return brew_runtime.string_value(wrapper_logger(args).progname)
 }
 
 // Ruby attr_accessor `attr_accessor :progname` at line 422.
 pub fn ruby_logger_l422_d5_progname(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('progname=', ...args)
+	if args.len < 2 { panic('Logger#progname= requires a logger and program name') }
+	mut logger := logger_from_value(args[0])
+	logger.progname = args[1].as_string()
+	return logger_value(&logger)
 }
 
 // Ruby method `datetime_format=(datetime_format)` at line 432.
 pub fn ruby_logger_l432_d6_datetime_format(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('datetime_format=', ...args)
+	if args.len < 2 { panic('Logger#datetime_format= requires a logger and format') }
+	mut logger := logger_from_value(args[0])
+	logger.datetime_format = args[1].as_string()
+	return logger_value(&logger)
 }
 
 // Ruby method `datetime_format` at line 438.
 pub fn ruby_logger_l438_d7_datetime_format(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('datetime_format', ...args)
+	return brew_runtime.string_value(wrapper_logger(args).datetime_format)
 }
 
 // Ruby attr_accessor `attr_accessor :formatter` at line 473.
 pub fn ruby_logger_l473_d8_formatter(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formatter', ...args)
+	logger := wrapper_logger(args)
+	if _ := logger.formatter {
+		return brew_runtime.object_value('Proc', '#<Proc:Logger::formatter>')
+	}
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Ruby attr_accessor `attr_accessor :formatter` at line 473.
 pub fn ruby_logger_l473_d9_formatter(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formatter=', ...args)
+	if args.len < 2 { panic('Logger#formatter= requires a logger and formatter') }
+	// Function values cannot cross Value; typed callers set `Logger.formatter`
+	// directly. Retain the logger state for nil/default boundary assignments.
+	return args[0]
 }
 
 // Ruby alias `alias sev_threshold level` at line 475.
 pub fn ruby_logger_l475_d10_sev_threshold(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sev_threshold', ...args)
+	return ruby_logger_l383_d1_level(...args)
 }
 
 // Ruby alias `alias sev_threshold= level=` at line 476.
 pub fn ruby_logger_l476_d11_sev_threshold(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sev_threshold=', ...args)
+	return ruby_logger_l399_d2_level(...args)
 }
 
 // Ruby method `debug?; level <= DEBUG; end` at line 482.
 pub fn ruby_logger_l482_d12_debug(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('debug?', ...args)
+	return brew_runtime.bool_value(wrapper_logger(args).debug_enabled())
 }
 
 // Ruby method `debug!; self.level = DEBUG; end` at line 487.
 pub fn ruby_logger_l487_d13_debug(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('debug!', ...args)
+	mut logger := wrapper_logger(args)
+	logger.debug_bang()
+	return logger_value(&logger)
 }
 
 // Ruby method `info?; level <= INFO; end` at line 493.
 pub fn ruby_logger_l493_d14_info(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('info?', ...args)
+	return brew_runtime.bool_value(wrapper_logger(args).info_enabled())
 }
 
 // Ruby method `info!; self.level = INFO; end` at line 498.
 pub fn ruby_logger_l498_d15_info(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('info!', ...args)
+	mut logger := wrapper_logger(args)
+	logger.info_bang()
+	return logger_value(&logger)
 }
 
 // Ruby method `warn?; level <= WARN; end` at line 504.
 pub fn ruby_logger_l504_d16_warn(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('warn?', ...args)
+	return brew_runtime.bool_value(wrapper_logger(args).warn_enabled())
 }
 
 // Ruby method `warn!; self.level = WARN; end` at line 509.
 pub fn ruby_logger_l509_d17_warn(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('warn!', ...args)
+	mut logger := wrapper_logger(args)
+	logger.warn_bang()
+	return logger_value(&logger)
 }
 
 // Ruby method `error?; level <= ERROR; end` at line 515.
 pub fn ruby_logger_l515_d18_error(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('error?', ...args)
+	return brew_runtime.bool_value(wrapper_logger(args).error_enabled())
 }
 
 // Ruby method `error!; self.level = ERROR; end` at line 520.
 pub fn ruby_logger_l520_d19_error(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('error!', ...args)
+	mut logger := wrapper_logger(args)
+	logger.error_bang()
+	return logger_value(&logger)
 }
 
 // Ruby method `fatal?; level <= FATAL; end` at line 526.
 pub fn ruby_logger_l526_d20_fatal(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fatal?', ...args)
+	return brew_runtime.bool_value(wrapper_logger(args).fatal_enabled())
 }
 
 // Ruby method `fatal!; self.level = FATAL; end` at line 531.
 pub fn ruby_logger_l531_d21_fatal(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fatal!', ...args)
+	mut logger := wrapper_logger(args)
+	logger.fatal_bang()
+	return logger_value(&logger)
 }
 
 // Ruby method `initialize(logdev, shift_age = 0, shift_size = 1048576, level: DEBUG,` at line 598.
 pub fn ruby_logger_l598_d22_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	logdev := if args.len > 0 { args[0].as_string() } else { '' }
+	shift_age_value := if args.len > 1 { args[1] } else { brew_runtime.int_value(0) }
+	shift_age := if shift_age_value.type_name == 'Integer' {
+		int(shift_age_value.as_int() or { 0 })
+	} else {
+		0
+	}
+	shift_period := if shift_age_value.type_name == 'Integer' {
+		''
+	} else {
+		shift_age_value.as_string()
+	}
+	shift_size := if args.len > 2 { u64(args[2].as_int() or { 1_048_576 }) } else { 1_048_576 }
+	level := if args.len > 3 {
+		coerce_logger_severity(args[3]) or { panic(err) }
+	} else {
+		logger_debug
+	}
+	progname := if args.len > 4 { args[4].as_string() } else { '' }
+	logger := new_logger(logdev, LoggerOptions{
+		level: level
+		progname: progname
+		shift_age: shift_age
+		shift_period: shift_period
+		shift_size: shift_size
+	}) or { panic(err) }
+	return logger_value(&logger)
 }
 
 // Ruby method `reopen(logdev = nil, shift_age = nil, shift_size = nil, shift_period_suffix: nil, binmode: nil)` at line 642.
 pub fn ruby_logger_l642_d23_reopen(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reopen', ...args)
+	mut logger := wrapper_logger(args)
+	logdev := if args.len > 1 { args[1].as_string() } else { '' }
+	shift_age := if args.len > 2 {
+		int(args[2].as_int() or { logger.shift_age })
+	} else {
+		logger.shift_age
+	}
+	shift_size := if args.len > 3 {
+		u64(args[3].as_int() or { i64(logger.shift_size) })
+	} else {
+		logger.shift_size
+	}
+	shift_period := if args.len > 4 { args[4].as_string() } else { logger.shift_period }
+	binmode := if args.len > 5 { args[5].as_bool() or { logger.binmode } } else { logger.binmode }
+	logger.reopen(logdev, shift_age, shift_size, shift_period, logger.shift_period_suffix, binmode) or { panic(err) }
+	return logger_value(&logger)
 }
 
 // Ruby method `add(severity, message = nil, progname = nil)` at line 675.
 pub fn ruby_logger_l675_d24_add(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('add', ...args)
+	if args.len < 2 { panic('Logger#add requires a logger and severity') }
+	mut logger := logger_from_value(args[0])
+	severity := int(args[1].as_int() or { logger_unknown })
+	return brew_runtime.bool_value(logger.add(severity, wrapper_optional_value(args, 2), wrapper_optional_string(args, 3)))
 }
 
 // Ruby alias `alias log add` at line 695.
 pub fn ruby_logger_l695_d25_log(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('log', ...args)
+	return ruby_logger_l675_d24_add(...args)
 }
 
 // Ruby method `<<(msg)` at line 708.
 pub fn ruby_logger_l708_d26_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('<<', ...args)
+	if args.len < 2 { panic('Logger#<< requires a logger and message') }
+	mut logger := logger_from_value(args[0])
+	return brew_runtime.int_value(logger.write_raw(args[1].as_string()))
 }
 
 // Ruby method `debug(progname = nil, &block)` at line 714.
 pub fn ruby_logger_l714_d27_debug(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('debug', ...args)
+	return logger_shorthand(args, logger_debug)
 }
 
 // Ruby method `info(progname = nil, &block)` at line 720.
 pub fn ruby_logger_l720_d28_info(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('info', ...args)
+	return logger_shorthand(args, logger_info)
 }
 
 // Ruby method `warn(progname = nil, &block)` at line 726.
 pub fn ruby_logger_l726_d29_warn(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('warn', ...args)
+	return logger_shorthand(args, logger_warn)
 }
 
 // Ruby method `error(progname = nil, &block)` at line 732.
 pub fn ruby_logger_l732_d30_error(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('error', ...args)
+	return logger_shorthand(args, logger_error)
 }
 
 // Ruby method `fatal(progname = nil, &block)` at line 738.
 pub fn ruby_logger_l738_d31_fatal(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fatal', ...args)
+	return logger_shorthand(args, logger_fatal)
 }
 
 // Ruby method `unknown(progname = nil, &block)` at line 744.
 pub fn ruby_logger_l744_d32_unknown(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('unknown', ...args)
+	return logger_shorthand(args, logger_unknown)
 }
 
 // Ruby method `close` at line 755.
 pub fn ruby_logger_l755_d33_close(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('close', ...args)
+	mut logger := wrapper_logger(args)
+	logger.close()
+	return logger_value(&logger)
 }
 
 // Ruby method `format_severity(severity)` at line 764.
 pub fn ruby_logger_l764_d34_format_severity(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('format_severity', ...args)
+	if args.len == 0 { panic('Logger#format_severity requires a severity') }
+	if args.len == 1 {
+		return brew_runtime.string_value(Logger{}.format_severity(int(args[0].as_int() or { logger_unknown })))
+	}
+	return brew_runtime.string_value(wrapper_logger(args).format_severity(int(args[1].as_int() or {
+		logger_unknown
+	})))
 }
 
 // Ruby method `level_override` at line 769.
 pub fn ruby_logger_l769_d35_level_override(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('level_override', ...args)
+	logger := wrapper_logger(args)
+	overrides := logger.level_overrides[sync.thread_id()]
+	return brew_runtime.array_value(overrides.map(brew_runtime.int_value(it)))
 }
 
 // Ruby method `level_key` at line 782.
 pub fn ruby_logger_l782_d36_level_key(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('level_key', ...args)
+	return brew_runtime.int_value(i64(sync.thread_id()))
 }
 
 // Ruby method `format_message(severity, datetime, progname, msg)` at line 786.
 pub fn ruby_logger_l786_d37_format_message(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('format_message', ...args)
+	if args.len < 5 {
+		panic('Logger#format_message requires a logger, severity, time, progname, and message')
+	}
+	logger := logger_from_value(args[0])
+	at := if args[2].type_name == 'Integer' {
+		time.unix(args[2].as_int() or { 0 })
+	} else {
+		time.parse_iso8601(args[2].as_string()) or { panic(err) }
+	}
+	return brew_runtime.string_value(logger.format_message(args[1].as_string(), at, args[3].as_string(), args[4]))
 }
 
 // Original Ruby source (line-for-line):

@@ -1,18 +1,42 @@
 module dev_cmd
 
 import brew_runtime
+import os
 
 // Translated from Homebrew/brew `test/dev-cmd/cat_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "uses a system bat when configured" do` at line 10.
 pub fn ruby_cat_spec_l10_d1_uses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uses', ...args)
+	if args.len == 0 {
+		return brew_runtime.object_value('ArgumentError', 'formula path is required')
+	}
+	path := args[0].as_string()
+	result := run_cat(CatOptions{
+		repository: os.dir(path)
+		named: ['testball']
+		paths: [path]
+		bat: true
+		bat_path: '/usr/bin/bat'
+		bat_config_path: '/tmp/bat.conf'
+		bat_theme: 'ansi'
+	}) or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value(result.command == ['/usr/bin/bat', path] && result.environment['BAT_CONFIG_PATH'] == '/tmp/bat.conf' && result.environment['BAT_THEME'] == 'ansi')
 }
 
 // Ruby it `it "prints the content of a given Formula", :integration_test do` at line 36.
 pub fn ruby_cat_spec_l36_d2_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+	if args.len == 0 {
+		return brew_runtime.object_value('ArgumentError', 'formula path is required')
+	}
+	path := args[0].as_string()
+	content := os.read_file(path) or { return brew_runtime.bool_value(false) }
+	result := run_cat(CatOptions{
+		repository: os.dir(path)
+		named: ['testball']
+		paths: [path]
+	}) or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value(result.stdout == content && result.stderr == '' && result.success)
 }
 
 // Original Ruby source (line-for-line):

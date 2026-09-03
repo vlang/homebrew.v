@@ -1,48 +1,63 @@
 module urls
 
 import brew_runtime
+import homebrew.rubocops as urls_core
 
 // Translated from Homebrew/brew `test/rubocops/urls/git_strict_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+fn git_strict_spec_audit(body string, tap string) urls_core.FormulaUrlsAnalysis {
+	source := 'class Foo < Formula\n  desc "foo"\n${body}\nend'
+	return urls_core.audit_formula_git_strict_urls(urls_core.FormulaUrlsContext{
+		source: source
+		formula_tap: tap
+	})
+}
 
 // Ruby subject `subject(:cop) { described_class.new }` at line 7.
 pub fn ruby_git_strict_spec_l7_d1_cop(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cop', ...args)
+	return brew_runtime.object_value('RuboCop::Cop::FormulaAuditStrict::GitUrls', 'FormulaAuditStrict/GitUrls')
 }
 
 // Ruby it `it "reports no offenses with both a tag and a revision" do` at line 10.
 pub fn ruby_git_strict_spec_l10_d2_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	body := '  url "https://github.com/foo/bar.git",\n      tag:      "v1.0.0",\n      revision: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"'
+	return brew_runtime.bool_value(git_strict_spec_audit(body, 'homebrew-core').offenses.len == 0)
 }
 
 // Ruby it `it "reports no offenses with both a tag, revision and `shallow` before" do` at line 21.
 pub fn ruby_git_strict_spec_l21_d3_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	body := '  url "https://github.com/foo/bar.git",\n      shallow:  false,\n      tag:      "v1.0.0",\n      revision: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"'
+	return brew_runtime.bool_value(git_strict_spec_audit(body, 'homebrew-core').offenses.len == 0)
 }
 
 // Ruby it `it "reports no offenses with both a tag, revision and `shallow` after" do` at line 33.
 pub fn ruby_git_strict_spec_l33_d4_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	body := '  url "https://github.com/foo/bar.git",\n      tag:      "v1.0.0",\n      revision: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",\n      shallow:  false'
+	return brew_runtime.bool_value(git_strict_spec_audit(body, 'homebrew-core').offenses.len == 0)
 }
 
 // Ruby it `it "reports an offense with no `tag`" do` at line 45.
 pub fn ruby_git_strict_spec_l45_d5_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	body := '  url "https://github.com/foo/bar.git",\n      revision: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"'
+	offenses := git_strict_spec_audit(body, 'homebrew-core').offenses
+	return brew_runtime.bool_value(offenses.len == 1 && offenses[0].message == 'Formulae in homebrew/core should specify a tag for Git URLs')
 }
 
 // Ruby it `it "reports an offense with no `tag` and `shallow`" do` at line 56.
 pub fn ruby_git_strict_spec_l56_d6_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	body := '  url "https://github.com/foo/bar.git",\n      revision: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",\n      shallow:  false'
+	return brew_runtime.bool_value(git_strict_spec_audit(body, 'homebrew-core').offenses.len == 1)
 }
 
 // Ruby it `it "reports no offenses with missing arguments in `head`" do` at line 68.
 pub fn ruby_git_strict_spec_l68_d7_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	body := '  url "https://foo.com"\n  head do\n    url "https://github.com/foo/bar.git"\n  end'
+	return brew_runtime.bool_value(git_strict_spec_audit(body, 'homebrew-core').offenses.len == 0)
 }
 
 // Ruby it `it "reports no offenses for non-core taps" do` at line 80.
 pub fn ruby_git_strict_spec_l80_d8_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	return brew_runtime.bool_value(git_strict_spec_audit('  url "https://github.com/foo/bar.git"', '').offenses.len == 0)
 }
 
 // Original Ruby source (line-for-line):

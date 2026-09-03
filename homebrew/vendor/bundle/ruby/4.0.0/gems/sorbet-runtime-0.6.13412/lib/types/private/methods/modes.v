@@ -4,35 +4,41 @@ import brew_runtime
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/sorbet-runtime-0.6.13412/lib/types/private/methods/modes.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub const method_modes = ['standard', 'abstract', 'overridable', 'override', 'overridable_override',
+	'untyped']
+pub const overridable_modes = ['override', 'overridable', 'overridable_override', 'untyped',
+	'abstract']
+pub const override_modes = ['override', 'overridable_override']
+pub const non_override_modes = ['standard', 'abstract', 'overridable', 'untyped']
 
 // Ruby method `self.standard` at line 5.
 pub fn ruby_modes_l5_d1_self_standard(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.standard', ...args)
+	return brew_runtime.string_value('standard')
 }
 
 // Ruby method `self.abstract` at line 8.
 pub fn ruby_modes_l8_d2_self_abstract(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.abstract', ...args)
+	return brew_runtime.string_value('abstract')
 }
 
 // Ruby method `self.overridable` at line 11.
 pub fn ruby_modes_l11_d3_self_overridable(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.overridable', ...args)
+	return brew_runtime.string_value('overridable')
 }
 
 // Ruby method `self.override` at line 14.
 pub fn ruby_modes_l14_d4_self_override(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.override', ...args)
+	return brew_runtime.string_value('override')
 }
 
 // Ruby method `self.overridable_override` at line 17.
 pub fn ruby_modes_l17_d5_self_overridable_override(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.overridable_override', ...args)
+	return brew_runtime.string_value('overridable_override')
 }
 
 // Ruby method `self.untyped` at line 20.
 pub fn ruby_modes_l20_d6_self_untyped(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.untyped', ...args)
+	return brew_runtime.string_value('untyped')
 }
 
 // Original Ruby source (line-for-line):

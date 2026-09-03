@@ -1,168 +1,410 @@
 module utils
 
 import brew_runtime
+import homebrew.utils as git_utils
+import os
 
 // Translated from Homebrew/brew `test/utils/git_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby let `let(:file) { "README.md" }` at line 7.
 pub fn ruby_git_spec_l7_d1_file(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('file', ...args)
+	return brew_runtime.string_value('README.md')
 }
 
 // Ruby let `let(:file_hash_one) { @h1[0..6] }` at line 10.
 pub fn ruby_git_spec_l10_d2_file_hash_one(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('file_hash_one', ...args)
+	value := if args.len > 0 {
+		args[0].as_string()
+	} else {
+		'1111111111111111111111111111111111111111'
+	}
+	return brew_runtime.string_value(value[..7])
 }
 
 // Ruby let `let(:file_hash_two) { @h2[0..6] }` at line 11.
 pub fn ruby_git_spec_l11_d3_file_hash_two(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('file_hash_two', ...args)
+	value := if args.len > 0 {
+		args[0].as_string()
+	} else {
+		'2222222222222222222222222222222222222222'
+	}
+	return brew_runtime.string_value(value[..7])
 }
 
 // Ruby let `let(:files) { ["README.md", "LICENSE.txt"] }` at line 12.
 pub fn ruby_git_spec_l12_d4_files(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('files', ...args)
+	return brew_runtime.string_array_value(['README.md', 'LICENSE.txt'])
 }
 
 // Ruby let `let(:files_hash_one) { [@h3[0..6], ["LICENSE.txt"]] }` at line 13.
 pub fn ruby_git_spec_l13_d5_files_hash_one(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('files_hash_one', ...args)
+	value := if args.len > 0 {
+		args[0].as_string()
+	} else {
+		'3333333333333333333333333333333333333333'
+	}
+	return git_spec_revision_value(value[..7], ['LICENSE.txt'])
 }
 
 // Ruby let `let(:files_hash_two) { [@h2[0..6], ["README.md"]] }` at line 14.
 pub fn ruby_git_spec_l14_d6_files_hash_two(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('files_hash_two', ...args)
+	value := if args.len > 0 {
+		args[0].as_string()
+	} else {
+		'2222222222222222222222222222222222222222'
+	}
+	return git_spec_revision_value(value[..7], ['README.md'])
 }
 
 // Ruby let `let(:cherry_pick_commit) { @cherry_pick_commit[0..6] }` at line 15.
 pub fn ruby_git_spec_l15_d7_cherry_pick_commit(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cherry_pick_commit', ...args)
+	value := if args.len > 0 {
+		args[0].as_string()
+	} else {
+		'4444444444444444444444444444444444444444'
+	}
+	return brew_runtime.string_value(value[..7])
 }
 
 // Ruby it `it "can cherry pick a commit" do` at line 60.
 pub fn ruby_git_spec_l60_d8_can(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('can', ...args)
+	fixture := git_spec_fixture('cherry-success') or { return git_spec_bool(false) }
+	defer { os.rmdir_all(fixture.root) or {} }
+	output := git_utils.git_cherry_pick(git_spec_executable(), fixture.root, [
+		fixture.cherry[..7],
+	], false, false, git_spec_run) or { return git_spec_bool(false) }
+	return git_spec_bool(output != '' && os.read_file(os.join_path(fixture.root, 'LICENSE.txt')) or {
+		''
+	} == 'test')
 }
 
 // Ruby it `it "aborts when cherry picking an existing hash" do` at line 64.
 pub fn ruby_git_spec_l64_d9_aborts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('aborts', ...args)
+	fixture := git_spec_fixture('cherry-conflict') or { return git_spec_bool(false) }
+	defer { os.rmdir_all(fixture.root) or {} }
+	git_utils.git_cherry_pick(git_spec_executable(), fixture.root, [fixture.h1[..7]], false, false, git_spec_run) or {
+		return git_spec_bool(err.msg().contains('ErrorDuringExecution') && !os.exists(os.join_path(fixture.root, '.git', 'CHERRY_PICK_HEAD')))
+	}
+	return git_spec_bool(false)
 }
 
 // Ruby it `it "gives last revision commit when before_commit is nil" do` at line 73.
 pub fn ruby_git_spec_l73_d10_gives(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('gives', ...args)
+	fixture := git_spec_fixture('last-file-skip') or { return git_spec_bool(false) }
+	defer { os.rmdir_all(fixture.root) or {} }
+	result := git_utils.git_last_revision_commit_of_file(git_spec_executable(), fixture.root, 'README.md', '', git_spec_run) or { return git_spec_bool(false) }
+	return git_spec_bool(result == fixture.h1[..7])
 }
 
 // Ruby it `it "gives revision commit based on before_commit when it is not nil" do` at line 79.
 pub fn ruby_git_spec_l79_d11_gives(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('gives', ...args)
+	fixture := git_spec_fixture('last-file-before') or { return git_spec_bool(false) }
+	defer { os.rmdir_all(fixture.root) or {} }
+	result := git_utils.git_last_revision_commit_of_file(git_spec_executable(), fixture.root, 'README.md', fixture.h2[..7], git_spec_run) or { return git_spec_bool(false) }
+	return git_spec_bool(result == fixture.h2[..7])
 }
 
 // Ruby it `it "returns file contents when file exists" do` at line 89.
 pub fn ruby_git_spec_l89_d12_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	fixture := git_spec_fixture('show-file') or { return git_spec_bool(false) }
+	defer { os.rmdir_all(fixture.root) or {} }
+	result := git_utils.git_file_at_commit(git_spec_executable(), fixture.root, 'README.md', fixture.h1[..7], git_spec_run) or { return git_spec_bool(false) }
+	return git_spec_bool(result == 'README')
 }
 
 // Ruby it `it "returns empty when file doesn't exist" do` at line 93.
 pub fn ruby_git_spec_l93_d13_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	fixture := git_spec_fixture('show-missing') or { return git_spec_bool(false) }
+	defer { os.rmdir_all(fixture.root) or {} }
+	first := git_utils.git_file_at_commit(git_spec_executable(), fixture.root, 'foo.txt', fixture.h1[..7], git_spec_run) or { return git_spec_bool(false) }
+	second := git_utils.git_file_at_commit(git_spec_executable(), fixture.root, 'LICENSE.txt', fixture.h1[..7], git_spec_run) or { return git_spec_bool(false) }
+	return git_spec_bool(first == '' && second == '')
 }
 
 // Ruby it `it "diffs against the `origin/HEAD` merge-base, ignoring a stale local default branch" do` at line 100.
 pub fn ruby_git_spec_l100_d14_diffs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('diffs', ...args)
+	fixture := git_spec_fixture('changed-files') or { return git_spec_bool(false) }
+	defer { os.rmdir_all(fixture.root) or {} }
+	git_spec_must_run([git_spec_executable(), '-C', fixture.root, 'checkout', '--quiet', '-b',
+		'feature']) or { return git_spec_bool(false) }
+	git_spec_must_run([git_spec_executable(), '-C', fixture.root, 'update-ref',
+		'refs/remotes/origin/HEAD', 'HEAD']) or { return git_spec_bool(false) }
+	git_spec_must_run([git_spec_executable(), '-C', fixture.root, 'branch', '--force', 'main',
+		'HEAD~2']) or { return git_spec_bool(false) }
+	os.write_file(os.join_path(fixture.root, 'README.md'), 'changed') or { return git_spec_bool(false) }
+	changed := git_utils.git_changed_files(git_spec_executable(), fixture.root, git_spec_run) or {
+		return git_spec_bool(false)
+	}
+	return git_spec_bool(changed == ['README.md'])
 }
 
 // Ruby it `it "gives last revision commit" do` at line 115.
 pub fn ruby_git_spec_l115_d15_gives(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('gives', ...args)
+	fixture := git_spec_fixture('last-files-skip') or { return git_spec_bool(false) }
+	defer { os.rmdir_all(fixture.root) or {} }
+	result := git_utils.git_last_revision_commit_of_files(git_spec_executable(), fixture.root, [
+		'README.md',
+		'LICENSE.txt',
+	], '', git_spec_run) or { return git_spec_bool(false) }
+	return git_spec_bool(result.commit == fixture.h3[..7] && result.paths == [
+		'LICENSE.txt',
+	])
 }
 
 // Ruby it `it "gives last revision commit" do` at line 123.
 pub fn ruby_git_spec_l123_d16_gives(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('gives', ...args)
+	fixture := git_spec_fixture('last-files-before') or { return git_spec_bool(false) }
+	defer { os.rmdir_all(fixture.root) or {} }
+	result := git_utils.git_last_revision_commit_of_files(git_spec_executable(), fixture.root, [
+		'README.md',
+		'LICENSE.txt',
+	], fixture.h2[..7], git_spec_run) or {
+		return git_spec_bool(false)
+	}
+	return git_spec_bool(result.commit == fixture.h2[..7] && result.paths == [
+		'README.md',
+	])
 }
 
 // Ruby it `it "returns last revision of file" do` at line 134.
 pub fn ruby_git_spec_l134_d17_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	fixture := git_spec_fixture('revision-content') or { return git_spec_bool(false) }
+	defer { os.rmdir_all(fixture.root) or {} }
+	result := git_utils.git_last_revision_of_file(git_spec_executable(), fixture.root, os.join_path(fixture.root, 'README.md'), '', git_spec_run) or { return git_spec_bool(false) }
+	return git_spec_bool(result == 'README')
 }
 
 // Ruby it `it "returns last revision of file based on before_commit" do` at line 141.
 pub fn ruby_git_spec_l141_d18_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	result := git_utils.git_last_revision_of_file('git', '/repo', '/repo/README.md', '0..3', git_spec_zero_range_run) or { return git_spec_bool(false) }
+	return git_spec_bool(result == '# README')
 }
 
 // Ruby it `it "returns true if git --version command succeeds" do` at line 150.
 pub fn ruby_git_spec_l150_d19_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	mut client := git_utils.git_client_with_runner('/shim/git', git_spec_available_run)
+	return git_spec_bool(git_utils.git_client_available(mut client))
 }
 
 // Ruby it `it "returns false if git --version command does not succeed" do` at line 154.
 pub fn ruby_git_spec_l154_d20_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	mut client := git_utils.git_client_with_runner('/missing/git', git_spec_unavailable_run)
+	return git_spec_bool(!git_utils.git_client_available(mut client))
 }
 
 // Ruby it `it "returns nil when git is not available" do` at line 161.
 pub fn ruby_git_spec_l161_d21_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	mut client := git_utils.git_client_with_runner('/missing/git', git_spec_unavailable_run)
+	return git_spec_bool(git_utils.git_client_path(mut client) == none)
 }
 
 // Ruby it `it "returns path of git when git is available" do` at line 166.
 pub fn ruby_git_spec_l166_d22_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	mut client := git_utils.git_client_with_runner('/shim/git', git_spec_available_run)
+	return git_spec_bool((git_utils.git_client_path(mut client) or { '' }).ends_with('git'))
 }
 
 // Ruby it `it "returns null when git is not available" do` at line 172.
 pub fn ruby_git_spec_l172_d23_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	mut client := git_utils.git_client_with_runner('/missing/git', git_spec_unavailable_run)
+	return git_spec_bool(git_utils.git_client_version(mut client) == '')
 }
 
 // Ruby it `it "returns version of git when git is available" do` at line 177.
 pub fn ruby_git_spec_l177_d24_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	mut client := git_utils.git_client_with_runner('/shim/git', git_spec_available_run)
+	return git_spec_bool(git_utils.git_client_version(mut client) != '')
 }
 
 // Ruby it `it "doesn't fail if git already available" do` at line 183.
 pub fn ruby_git_spec_l183_d25_doesn(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('doesn', ...args)
+	mut client := git_utils.git_client_with_runner('/shim/git', git_spec_available_run)
+	git_utils.git_ensure_installed(mut client, git_utils.GitInstallOptions{}) or {
+		return git_spec_bool(false)
+	}
+	return git_spec_bool(true)
 }
 
 // Ruby it `it "can't install brewed git if homebrew/core is unavailable" do` at line 192.
 pub fn ruby_git_spec_l192_d26_can(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('can', ...args)
+	mut client := git_utils.git_client_with_runner('/missing/git', git_spec_unavailable_run)
+	git_utils.git_ensure_installed(mut client, git_utils.GitInstallOptions{}) or {
+		return git_spec_bool(err.msg() == 'Git is unavailable')
+	}
+	return git_spec_bool(false)
 }
 
 // Ruby it `it "raises error if can't install git" do` at line 197.
 pub fn ruby_git_spec_l197_d27_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+	mut client := git_utils.git_client_with_runner('/missing/git', git_spec_unavailable_run)
+	git_utils.git_ensure_installed(mut client, git_utils.GitInstallOptions{
+		core_tap_installed: true
+		installer: git_spec_failing_installer
+	}) or { return git_spec_bool(err.msg() == 'Git is unavailable') }
+	return git_spec_bool(false)
 }
 
 // Ruby it `it "keeps using the git shim after the formula install helper" do` at line 207.
 pub fn ruby_git_spec_l207_d28_keeps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('keeps', ...args)
+	mut client := git_utils.git_client_with_runner('/shim/git', git_spec_unavailable_run)
+	git_utils.git_ensure_installed(mut client, git_utils.GitInstallOptions{
+		core_tap_installed: true
+		installer: git_spec_successful_installer
+		post_install_runner: git_spec_available_run
+	}) or { return git_spec_bool(false) }
+	return git_spec_bool(client.git == '/shim/git' && git_utils.git_client_available(mut client))
 }
 
 // Ruby it `it "returns true when git is not available" do` at line 225.
 pub fn ruby_git_spec_l225_d29_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	mut client := git_utils.git_client_with_runner('/missing/git', git_spec_unavailable_run)
+	return git_spec_bool(git_utils.git_client_remote_exists(mut client, 'blah'))
 }
 
 // Ruby it `it "terminates options before the URL" do` at line 231.
 pub fn ruby_git_spec_l231_d30_terminates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('terminates', ...args)
+	mut client := git_utils.git_client_with_runner('/shim/git', git_spec_option_terminator_run)
+	return git_spec_bool(!git_utils.git_client_remote_exists(mut client, '-u:evil'))
 }
 
 // Ruby it `it "returns true when git remote exists", :needs_network do` at line 239.
 pub fn ruby_git_spec_l239_d31_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	root := git_spec_root('local-remote')
+	defer { os.rmdir_all(root) or {} }
+	remote := os.join_path(root, 'remote.git')
+	git_spec_must_run([git_spec_executable(), 'init', '--bare', '--quiet', remote]) or {
+		return git_spec_bool(false)
+	}
+	mut client := git_utils.git_client_with_runner(git_spec_executable(), git_spec_run)
+	return git_spec_bool(git_utils.git_client_remote_exists(mut client, remote))
 }
 
 // Ruby it `it "returns false when git remote does not exist" do` at line 253.
 pub fn ruby_git_spec_l253_d32_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	mut client := git_utils.git_client_with_runner(git_spec_executable(), git_spec_run)
+	missing := os.join_path(os.temp_dir(), 'brew-v-no-such-remote')
+	return git_spec_bool(!git_utils.git_client_remote_exists(mut client, missing))
+}
+
+struct GitSpecFixture {
+	root   string
+	h1     string
+	h2     string
+	h3     string
+	cherry string
+}
+
+fn git_spec_bool(value bool) brew_runtime.Value {
+	return brew_runtime.bool_value(value)
+}
+
+fn git_spec_revision_value(commit string, paths []string) brew_runtime.Value {
+	return brew_runtime.map_value({
+		'commit': brew_runtime.string_value(commit)
+		'paths':  brew_runtime.string_array_value(paths)
+	})
+}
+
+fn git_spec_fixture(name string) !GitSpecFixture {
+	root := git_spec_root(name)
+	git := git_spec_executable()
+	git_spec_must_run([git, 'init', '--quiet', root])!
+	git_spec_must_run([git, '-C', root, 'config', 'user.name', 'Brew V'])!
+	git_spec_must_run([git, '-C', root, 'config', 'user.email', 'brew-v@example.test'])!
+	os.write_file(os.join_path(root, 'README.md'), 'README')!
+	git_spec_commit(root, 'README.md', 'File added')!
+	h1 := git_spec_hash(root)!
+	os.write_file(os.join_path(root, 'README.md'), '# README')!
+	git_spec_commit(root, 'README.md', 'written to File')!
+	h2 := git_spec_hash(root)!
+	os.write_file(os.join_path(root, 'LICENSE.txt'), 'LICENCE')!
+	git_spec_commit(root, 'LICENSE.txt', 'File added')!
+	h3 := git_spec_hash(root)!
+	os.write_file(os.join_path(root, 'LICENSE.txt'), 'LICENSE')!
+	git_spec_commit(root, 'LICENSE.txt', 'written to File')!
+	os.write_file(os.join_path(root, 'LICENSE.txt'), 'test')!
+	git_spec_commit(root, 'LICENSE.txt', 'written to File')!
+	cherry := git_spec_hash(root)!
+	git_spec_must_run([git, '-C', root, 'reset', '--hard', 'HEAD^'])!
+	return GitSpecFixture{ root: root, h1: h1, h2: h2, h3: h3, cherry: cherry }
+}
+
+fn git_spec_commit(root string, file string, message string) ! {
+	git_spec_must_run([git_spec_executable(), '-C', root, 'add', file])!
+	git_spec_must_run([git_spec_executable(), '-C', root, 'commit', '--quiet', '-m', message])!
+}
+
+fn git_spec_hash(root string) !string {
+	return git_spec_must_run([git_spec_executable(), '-C', root, 'rev-parse', 'HEAD'])!.trim_space()
+}
+
+fn git_spec_must_run(command []string) !string {
+	result := git_spec_run(command)!
+	if result.exit_code != 0 {
+		return error(result.stderr)
+	}
+	return result.stdout
+}
+
+fn git_spec_run(command []string) !git_utils.GitCommandResult {
+	result := brew_runtime.run_captured_command(command, brew_runtime.CapturedCommandOptions{
+		environment: brew_runtime.environment()
+	})!
+	return git_utils.GitCommandResult{ exit_code: result.exit_code, stdout: result.stdout, stderr: result.stderr }
+}
+
+fn git_spec_available_run(command []string) !git_utils.GitCommandResult {
+	if '--version' in command {
+		return git_utils.GitCommandResult{ stdout: 'git version 2.50.1\n' }
+	}
+	if '--homebrew=print-path' in command {
+		return git_utils.GitCommandResult{ stdout: '/usr/bin/git\n' }
+	}
+	return git_utils.GitCommandResult{}
+}
+
+fn git_spec_unavailable_run(_command []string) !git_utils.GitCommandResult {
+	return git_utils.GitCommandResult{ exit_code: 1, stderr: 'unavailable' }
+}
+
+fn git_spec_option_terminator_run(command []string) !git_utils.GitCommandResult {
+	if '--version' in command {
+		return git_utils.GitCommandResult{ stdout: 'git version 2.50.1\n' }
+	}
+	if command == ['git', 'ls-remote', '--end-of-options', '-u:evil'] {
+		return git_utils.GitCommandResult{ exit_code: 1 }
+	}
+	return error('unexpected command: ${command}')
+}
+
+fn git_spec_zero_range_run(command []string) !git_utils.GitCommandResult {
+	if 'log' in command && '0' in command {
+		return git_utils.GitCommandResult{ stdout: '2222222\n' }
+	}
+	if 'show' in command && command.last().starts_with('2222222:README.md') {
+		return git_utils.GitCommandResult{ stdout: '# README' }
+	}
+	return error('unexpected zero-range command: ${command}')
+}
+
+fn git_spec_successful_installer() !string {
+	return '/usr/bin/git'
+}
+
+fn git_spec_failing_installer() !string {
+	return error('install failed')
+}
+
+fn git_spec_executable() string {
+	return os.find_abs_path_of_executable('git') or { 'git' }
+}
+
+fn git_spec_root(name string) string {
+	root := os.join_path(os.temp_dir(), 'brew-v-utils-git-${name}')
+	os.rmdir_all(root) or {}
+	os.mkdir_all(root) or { panic(err) }
+	return root
 }
 
 // Original Ruby source (line-for-line):

@@ -1,358 +1,748 @@
 module test
 
-import brew_runtime
+import homebrew
+import os
+
+pub struct SandboxSharedExecutableState {
+pub mut:
+	test_executable_name string
+	unsuitable           []string
+}
+
+fn sandbox_shared_paths(root string) !homebrew.SandboxPaths {
+	home := os.join_path(root, 'home')
+	prefix := os.join_path(root, 'prefix')
+	repository := os.join_path(root, 'repository')
+	cache := os.join_path(root, 'cache')
+	logs := os.join_path(root, 'logs')
+	temp := os.join_path(root, 'tmp')
+	for path in [home, prefix, repository, cache, logs, temp] {
+		os.mkdir_all(path)!
+	}
+	return homebrew.SandboxPaths{
+		home: home
+		prefix: prefix
+		repository: repository
+		cache: cache
+		logs: logs
+		temp: temp
+		library: os.join_path(repository, 'Library')
+		original_brew_file: os.join_path(repository, 'bin/brew')
+	}
+}
+
+fn sandbox_shared_new(root string) !homebrew.Sandbox {
+	return homebrew.ruby_sandbox_l283_d31_initialize(sandbox_shared_paths(root)!)
+}
+
+fn sandbox_shared_make_executable(path string) ! {
+	os.mkdir_all(os.dir(path))!
+	os.write_file(path, '#!/bin/sh\nexit 0\n')!
+	os.chmod(path, 0o755)!
+}
+
+fn sandbox_shared_executable_context(name string, original []string, environment string, brew_file string,
+	unsuitable []string) homebrew.SandboxExecutableContext {
+	return homebrew.SandboxExecutableContext{
+		executable_name: name
+		original_paths: original
+		environment_path: environment
+		original_brew_file: brew_file
+		unsuitable: unsuitable
+	}
+}
+
+fn sandbox_shared_denied_paths(value homebrew.Sandbox) []string {
+	mut paths := []string{}
+	for rule in value.profile.rules {
+		if !rule.allow && rule.operation == 'file-read*' && rule.has_filter { paths << rule.filter.path }
+	}
+	return paths
+}
+
+fn sandbox_shared_inside_home_paths(base homebrew.SandboxPaths, home string, cache string,
+	trust_file string, github string, runner_workspace string, runner_temp string,
+	home_write_paths []string) homebrew.SandboxPaths {
+	return homebrew.SandboxPaths{
+		home: home
+		prefix: base.prefix
+		repository: base.repository
+		cache: cache
+		logs: base.logs
+		temp: base.temp
+		library: base.library
+		original_brew_file: base.original_brew_file
+		trust_file: trust_file
+		github_workspace: github
+		runner_workspace: runner_workspace
+		runner_temp: runner_temp
+		home_write_paths: home_write_paths
+	}
+}
+
+fn sandbox_shared_replace_paths(base homebrew.SandboxPaths, prefix string, logs string) homebrew.SandboxPaths {
+	return homebrew.SandboxPaths{
+		home: base.home
+		prefix: prefix
+		repository: base.repository
+		cache: base.cache
+		logs: logs
+		temp: base.temp
+		library: base.library
+		original_brew_file: base.original_brew_file
+		trust_file: base.trust_file
+		github_workspace: base.github_workspace
+		runner_workspace: base.runner_workspace
+		runner_temp: base.runner_temp
+		home_write_paths: base.home_write_paths
+	}
+}
 
 // Translated from Homebrew/brew `test/sandbox_shared_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:sandbox) { described_class.new }` at line 7.
-pub fn ruby_sandbox_shared_spec_l7_d1_sandbox(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sandbox', ...args)
+pub fn ruby_sandbox_shared_spec_l7_d1_sandbox(root string) !homebrew.Sandbox {
+	return sandbox_shared_new(root)
 }
 
 // Ruby it `it "uses an available non-nested sandbox" do` at line 10.
-pub fn ruby_sandbox_shared_spec_l10_d2_uses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uses', ...args)
+pub fn ruby_sandbox_shared_spec_l10_d2_uses() bool {
+	decision := homebrew.ruby_sandbox_l124_d16_self_use_for('running install hooks', true, homebrew.SandboxUseContext{ available: true })
+	return decision.use && decision.warning == ''
 }
 
 // Ruby it `it "warns when the sandbox is unavailable" do` at line 16.
-pub fn ruby_sandbox_shared_spec_l16_d3_warns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('warns', ...args)
+pub fn ruby_sandbox_shared_spec_l16_d3_warns() bool {
+	decision := homebrew.ruby_sandbox_l124_d16_self_use_for('running install hooks', true, homebrew.SandboxUseContext{})
+	return !decision.use && decision.warning == 'Sandbox unavailable: running install hooks without sandboxing!'
 }
 
 // Ruby it `it "can quietly fall back when the sandbox is unavailable" do` at line 23.
-pub fn ruby_sandbox_shared_spec_l23_d4_can(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('can', ...args)
+pub fn ruby_sandbox_shared_spec_l23_d4_can() bool {
+	decision := homebrew.ruby_sandbox_l124_d16_self_use_for('testing a formula', false, homebrew.SandboxUseContext{})
+	return !decision.use && decision.warning == ''
 }
 
 // Ruby it `it "warns when relying on an outer sandbox" do` at line 30.
-pub fn ruby_sandbox_shared_spec_l30_d5_warns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('warns', ...args)
+pub fn ruby_sandbox_shared_spec_l30_d5_warns() bool {
+	decision := homebrew.ruby_sandbox_l124_d16_self_use_for('running install hooks', true, homebrew.SandboxUseContext{ available: true, avoid_nested: true })
+	return !decision.use && decision.warning == "Running install hooks without Homebrew's sandbox; relying on the outer sandbox."
 }
 
 // Ruby let `let(:command_sandbox) { instance_double(described_class) }` at line 40.
-pub fn ruby_sandbox_shared_spec_l40_d6_command_sandbox(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('command_sandbox', ...args)
+pub fn ruby_sandbox_shared_spec_l40_d6_command_sandbox(root string) !homebrew.Sandbox {
+	return sandbox_shared_new(root)
 }
 
 // Ruby it `it "configures and uses the sandbox when available" do` at line 42.
-pub fn ruby_sandbox_shared_spec_l42_d7_configures(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('configures', ...args)
+pub fn ruby_sandbox_shared_spec_l42_d7_configures() bool {
+	result := homebrew.ruby_sandbox_l146_d17_self_run_or_fork(['command', 'argument'], 'running a command', true, homebrew.SandboxUseContext{ available: true })
+	return result.sandboxed && !result.forked && result.command == ['command', 'argument']
 }
 
 // Ruby it `it "forks without configuring a sandbox when unavailable" do` at line 51.
-pub fn ruby_sandbox_shared_spec_l51_d8_forks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('forks', ...args)
+pub fn ruby_sandbox_shared_spec_l51_d8_forks() bool {
+	result := homebrew.ruby_sandbox_l146_d17_self_run_or_fork(['command'], 'running a command', true, homebrew.SandboxUseContext{})
+	return !result.sandboxed && result.forked && result.command == ['command']
 }
 
 // Ruby it `it "restores bin/brew after a sandboxed process replaces it" do` at line 63.
-pub fn ruby_sandbox_shared_spec_l63_d9_restores(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('restores', ...args)
+pub fn ruby_sandbox_shared_spec_l63_d9_restores(root string) !bool {
+	prefix := os.join_path(root, 'prefix')
+	brew_file := os.join_path(prefix, 'bin/brew')
+	original := os.join_path(prefix, 'Homebrew/bin/brew')
+	os.mkdir_all(os.dir(original))!
+	os.mkdir_all(os.dir(brew_file))!
+	os.write_file(original, '#!/bin/sh\n')!
+	os.symlink('../../Homebrew/bin/brew', brew_file)!
+	target := os.readlink(brew_file)!
+	mode := os.stat(os.dir(brew_file))!.mode & 0o7777
+	homebrew.ruby_sandbox_l159_d18_self_with_preserved_brew_file(prefix, false, homebrew.SandboxBrewMutation{ replacement: 'malicious\n', directory_mode: 0o500 })!
+	return os.is_link(brew_file) && os.readlink(brew_file)! == target && (os.stat(os.dir(brew_file))!.mode & 0o7777) == mode
 }
 
 // Ruby it `it "applies common install hook restrictions" do` at line 89.
-pub fn ruby_sandbox_shared_spec_l89_d10_applies(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('applies', ...args)
+pub fn ruby_sandbox_shared_spec_l89_d10_applies(root string) !bool {
+	mut value := sandbox_shared_new(root)!
+	homebrew.ruby_sandbox_l497_d46_add_install_hook_rules(mut value, false)!
+	operations := value.profile.rules.map(it.operation)
+	return operations[..3] == ['file-write*', 'file-write-setugid', 'file-write-mode'] && operations[3..6] == [
+		'file-write*',
+		'file-write-setugid',
+		'file-write-mode',
+	] && operations.contains('file-read*') && operations.last() == 'network*'
 }
 
 // Ruby it `it "allows network access when requested" do` at line 98.
-pub fn ruby_sandbox_shared_spec_l98_d11_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+pub fn ruby_sandbox_shared_spec_l98_d11_allows(root string) !bool {
+	mut value := sandbox_shared_new(root)!
+	homebrew.ruby_sandbox_l497_d46_add_install_hook_rules(mut value, true)!
+	return !value.profile.rules.any(it.operation == 'network*')
 }
 
 // Ruby let `let(:command_sandbox) { instance_double(described_class) }` at line 111.
-pub fn ruby_sandbox_shared_spec_l111_d12_command_sandbox(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('command_sandbox', ...args)
+pub fn ruby_sandbox_shared_spec_l111_d12_command_sandbox(root string) !homebrew.Sandbox {
+	return sandbox_shared_new(root)
 }
 
 // Ruby let `let(:writable_path) { mktmpdir }` at line 112.
-pub fn ruby_sandbox_shared_spec_l112_d13_writable_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('writable_path', ...args)
+pub fn ruby_sandbox_shared_spec_l112_d13_writable_path(root string) !string {
+	path := os.join_path(root, 'writable')
+	os.mkdir_all(path)!
+	return path
 }
 
 // Ruby it `it "runs a command with the requested writable path" do` at line 128.
-pub fn ruby_sandbox_shared_spec_l128_d14_runs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('runs', ...args)
+pub fn ruby_sandbox_shared_spec_l128_d14_runs(root string) !bool {
+	paths := sandbox_shared_paths(root)!
+	writable := os.join_path(root, 'writable')
+	os.mkdir_all(writable)!
+	plan := homebrew.ruby_sandbox_l209_d23_self_run_command(['make', 'test'], writable, false, true, '', paths)!
+	return plan.command == ['/bin/sh', '-c', 'cd "\$1" && shift && exec "\$@"', 'brew-sandbox-exec',
+		os.real_path(writable), 'make', 'test'] && plan.writable_path == os.real_path(writable) && !plan.sandbox.profile.rules.any(it.operation == 'network*')
 }
 
 // Ruby it `it "can deny network access" do` at line 146.
-pub fn ruby_sandbox_shared_spec_l146_d15_can(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('can', ...args)
+pub fn ruby_sandbox_shared_spec_l146_d15_can(root string) !bool {
+	paths := sandbox_shared_paths(root)!
+	writable := os.join_path(root, 'writable')
+	os.mkdir_all(writable)!
+	plan := homebrew.ruby_sandbox_l209_d23_self_run_command(['make'], writable, true, true, '', paths)!
+	return plan.sandbox.profile.rules.any(!it.allow && it.operation == 'network*' && !it.has_filter)
 }
 
 // Ruby it `it "does not run unsandboxed when sandboxing is unavailable" do` at line 152.
-pub fn ruby_sandbox_shared_spec_l152_d16_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_sandbox_shared_spec_l152_d16_does(root string) !bool {
+	paths := sandbox_shared_paths(root)!
+	writable := os.join_path(root, 'writable')
+	os.mkdir_all(writable)!
+	homebrew.ruby_sandbox_l209_d23_self_run_command(['make'], writable, false, false, 'sandbox unavailable', paths) or { return err.msg() == 'sandbox unavailable' }
+	return false
 }
 
 // Ruby it `it "raises a usage error when the writable path does not exist" do` at line 160.
-pub fn ruby_sandbox_shared_spec_l160_d17_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+pub fn ruby_sandbox_shared_spec_l160_d17_raises(root string) !bool {
+	paths := sandbox_shared_paths(root)!
+	missing := os.join_path(root, 'missing')
+	homebrew.ruby_sandbox_l209_d23_self_run_command(['make'], missing, false, true, '', paths) or {
+		return err.msg() == 'Invalid usage: `${os.abs_path(missing)}` is not a writable directory.'
+	}
+	return false
 }
 
 // Ruby it `it "raises a usage error when the writable path is not a directory" do` at line 168.
-pub fn ruby_sandbox_shared_spec_l168_d18_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+pub fn ruby_sandbox_shared_spec_l168_d18_raises(root string) !bool {
+	paths := sandbox_shared_paths(root)!
+	file := os.join_path(root, 'file')
+	os.write_file(file, '')!
+	homebrew.ruby_sandbox_l209_d23_self_run_command(['make'], file, false, true, '', paths) or {
+		return err.msg() == 'Invalid usage: `${os.abs_path(file)}` is not a writable directory.'
+	}
+	return false
 }
 
 // Ruby it `it "treats a PTY EIO as EOF" do` at line 179.
-pub fn ruby_sandbox_shared_spec_l179_d19_treats(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('treats', ...args)
+pub fn ruby_sandbox_shared_spec_l179_d19_treats() bool {
+	return homebrew.ruby_sandbox_l684_d58_copy_pty_output('', true) == ''
 }
 
 // Ruby let `let(:sandbox_class) { Class.new(described_class) }` at line 188.
-pub fn ruby_sandbox_shared_spec_l188_d20_sandbox_class(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sandbox_class', ...args)
+pub fn ruby_sandbox_shared_spec_l188_d20_sandbox_class() homebrew.SandboxState {
+	return .unavailable
 }
 
 // Ruby it `it "returns nil if the sandbox is available" do` at line 190.
-pub fn ruby_sandbox_shared_spec_l190_d21_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_sandbox_shared_spec_l190_d21_returns() bool {
+	return homebrew.ruby_sandbox_l199_d21_self_failure_reason(.available) == none
 }
 
 // Ruby it `it "returns a sandbox failure reason if the sandbox is unavailable" do` at line 196.
-pub fn ruby_sandbox_shared_spec_l196_d22_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_sandbox_shared_spec_l196_d22_returns() bool {
+	return (homebrew.ruby_sandbox_l199_d21_self_failure_reason(.unavailable) or { '' }).to_lower().contains('sandbox')
 }
 
 // Ruby let `let(:sandbox_class) do` at line 204.
-pub fn ruby_sandbox_shared_spec_l204_d23_sandbox_class(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sandbox_class', ...args)
+pub fn ruby_sandbox_shared_spec_l204_d23_sandbox_class() SandboxSharedExecutableState {
+	return SandboxSharedExecutableState{ test_executable_name: 'sandbox-tool' }
 }
 
 // Ruby attr_accessor `attr_accessor :test_executable_name, :unsuitable_executables` at line 207.
-pub fn ruby_sandbox_shared_spec_l207_d24_test_executable_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('test_executable_name', ...args)
+pub fn ruby_sandbox_shared_spec_l207_d24_test_executable_name(state SandboxSharedExecutableState) string {
+	return state.test_executable_name
 }
 
 // Ruby attr_accessor `attr_accessor :test_executable_name, :unsuitable_executables` at line 207.
-pub fn ruby_sandbox_shared_spec_l207_d25_test_executable_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('test_executable_name=', ...args)
+pub fn ruby_sandbox_shared_spec_l207_d25_test_executable_name(mut state SandboxSharedExecutableState, value string) string {
+	state.test_executable_name = value
+	return state.test_executable_name
 }
 
 // Ruby attr_accessor `attr_accessor :test_executable_name, :unsuitable_executables` at line 207.
-pub fn ruby_sandbox_shared_spec_l207_d26_unsuitable_executables(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('unsuitable_executables', ...args)
+pub fn ruby_sandbox_shared_spec_l207_d26_unsuitable_executables(state SandboxSharedExecutableState) []string {
+	return state.unsuitable.clone()
 }
 
 // Ruby attr_accessor `attr_accessor :test_executable_name, :unsuitable_executables` at line 207.
-pub fn ruby_sandbox_shared_spec_l207_d27_unsuitable_executables(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('unsuitable_executables=', ...args)
+pub fn ruby_sandbox_shared_spec_l207_d27_unsuitable_executables(mut state SandboxSharedExecutableState, value []string) []string {
+	state.unsuitable = value.clone()
+	return state.unsuitable.clone()
 }
 
 // Ruby method `executable_name = test_executable_name` at line 209.
-pub fn ruby_sandbox_shared_spec_l209_d28_executable_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('executable_name', ...args)
+pub fn ruby_sandbox_shared_spec_l209_d28_executable_name(state SandboxSharedExecutableState) string {
+	return state.test_executable_name
 }
 
 // Ruby method `executable_usable?(candidate)` at line 211.
-pub fn ruby_sandbox_shared_spec_l211_d29_executable_usable(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('executable_usable?', ...args)
+pub fn ruby_sandbox_shared_spec_l211_d29_executable_usable(state SandboxSharedExecutableState, candidate string) bool {
+	return candidate !in state.unsuitable
 }
 
 // Ruby let `let(:first_dir) { mktmpdir }` at line 217.
-pub fn ruby_sandbox_shared_spec_l217_d30_first_dir(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('first_dir', ...args)
+pub fn ruby_sandbox_shared_spec_l217_d30_first_dir(root string) !string {
+	path := os.join_path(root, 'first')
+	os.mkdir_all(path)!
+	return path
 }
 
 // Ruby let `let(:second_dir) { mktmpdir }` at line 218.
-pub fn ruby_sandbox_shared_spec_l218_d31_second_dir(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('second_dir', ...args)
+pub fn ruby_sandbox_shared_spec_l218_d31_second_dir(root string) !string {
+	path := os.join_path(root, 'second')
+	os.mkdir_all(path)!
+	return path
 }
 
 // Ruby let `let(:homebrew_bin) { mktmpdir }` at line 219.
-pub fn ruby_sandbox_shared_spec_l219_d32_homebrew_bin(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('homebrew_bin', ...args)
+pub fn ruby_sandbox_shared_spec_l219_d32_homebrew_bin(root string) !string {
+	path := os.join_path(root, 'homebrew-bin')
+	os.mkdir_all(path)!
+	return path
 }
 
 // Ruby let `let(:executable_name) { "sandbox-tool" }` at line 220.
-pub fn ruby_sandbox_shared_spec_l220_d33_executable_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('executable_name', ...args)
+pub fn ruby_sandbox_shared_spec_l220_d33_executable_name() string {
+	return 'sandbox-tool'
 }
 
 // Ruby let `let(:first_executable) { first_dir/executable_name }` at line 221.
-pub fn ruby_sandbox_shared_spec_l221_d34_first_executable(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('first_executable', ...args)
+pub fn ruby_sandbox_shared_spec_l221_d34_first_executable(first_dir string) string {
+	return os.join_path(first_dir, 'sandbox-tool')
 }
 
 // Ruby let `let(:second_executable) { second_dir/executable_name }` at line 222.
-pub fn ruby_sandbox_shared_spec_l222_d35_second_executable(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('second_executable', ...args)
+pub fn ruby_sandbox_shared_spec_l222_d35_second_executable(second_dir string) string {
+	return os.join_path(second_dir, 'sandbox-tool')
 }
 
 // Ruby let `let(:homebrew_executable) { homebrew_bin/executable_name }` at line 223.
-pub fn ruby_sandbox_shared_spec_l223_d36_homebrew_executable(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('homebrew_executable', ...args)
+pub fn ruby_sandbox_shared_spec_l223_d36_homebrew_executable(homebrew_bin string) string {
+	return os.join_path(homebrew_bin, 'sandbox-tool')
 }
 
 // Ruby it `it "uses the first suitable executable candidate" do` at line 231.
-pub fn ruby_sandbox_shared_spec_l231_d37_uses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uses', ...args)
+pub fn ruby_sandbox_shared_spec_l231_d37_uses(root string) !bool {
+	first := os.join_path(root, 'first/sandbox-tool')
+	second := os.join_path(root, 'second/sandbox-tool')
+	sandbox_shared_make_executable(first)!
+	sandbox_shared_make_executable(second)!
+	context := sandbox_shared_executable_context('sandbox-tool', [os.dir(first)], os.dir(second), os.join_path(root, 'homebrew-bin/brew'), [])
+	return (homebrew.ruby_sandbox_l241_d26_self_executable(context) or { return false }) == first
 }
 
 // Ruby it `it "skips unsuitable executable candidates" do` at line 243.
-pub fn ruby_sandbox_shared_spec_l243_d38_skips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skips', ...args)
+pub fn ruby_sandbox_shared_spec_l243_d38_skips(root string) !bool {
+	first := os.join_path(root, 'first/sandbox-tool')
+	second := os.join_path(root, 'second/sandbox-tool')
+	sandbox_shared_make_executable(first)!
+	sandbox_shared_make_executable(second)!
+	context := sandbox_shared_executable_context('sandbox-tool', [os.dir(first)], os.dir(second), os.join_path(root, 'homebrew-bin/brew'), [
+		first,
+	])
+	return (homebrew.ruby_sandbox_l241_d26_self_executable(context) or { return false }) == second
 }
 
 // Ruby it `it "falls back to the original Homebrew bin directory" do` at line 256.
-pub fn ruby_sandbox_shared_spec_l256_d39_falls(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('falls', ...args)
+pub fn ruby_sandbox_shared_spec_l256_d39_falls(root string) !bool {
+	homebrew_executable := os.join_path(root, 'homebrew-bin/sandbox-tool')
+	sandbox_shared_make_executable(homebrew_executable)!
+	context := sandbox_shared_executable_context('sandbox-tool', [], os.join_path(root, 'empty'), os.join_path(root, 'homebrew-bin/brew'), [])
+	return (homebrew.ruby_sandbox_l241_d26_self_executable(context) or { return false }) == homebrew_executable
 }
 
 // Ruby it `it "checks absolute executable paths directly" do` at line 266.
-pub fn ruby_sandbox_shared_spec_l266_d40_checks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('checks', ...args)
+pub fn ruby_sandbox_shared_spec_l266_d40_checks(root string) !bool {
+	executable := os.join_path(root, 'first/sandbox-tool')
+	sandbox_shared_make_executable(executable)!
+	context := sandbox_shared_executable_context(executable, [], os.join_path(root, 'empty'), os.join_path(root, 'homebrew-bin/brew'), [])
+	return (homebrew.ruby_sandbox_l241_d26_self_executable(context) or { return false }) == executable
 }
 
 // Ruby it `it "raises when no executable candidate exists" do` at line 277.
-pub fn ruby_sandbox_shared_spec_l277_d41_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+pub fn ruby_sandbox_shared_spec_l277_d41_raises(root string) bool {
+	context := sandbox_shared_executable_context('sandbox-tool', [], os.join_path(root, 'empty'), os.join_path(root, 'homebrew-bin/brew'), [])
+	homebrew.ruby_sandbox_l259_d27_self_executable(context) or {
+		return err.msg() == 'sandbox-tool is required to use the sandbox.'
+	}
+	return false
 }
 
 // Ruby it `it "allows paths containing` at line 290.
-pub fn ruby_sandbox_shared_spec_l290_d42_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+pub fn ruby_sandbox_shared_spec_l290_d42_allows(root string) !bool {
+	os.mkdir_all(root)!
+	for character in ["'", '"', '(', ')', '\\', ' ', ';', '#', '\n'] {
+		filter := homebrew.ruby_sandbox_l665_d56_path_filter(os.join_path(root, 'foo${character}bar'), .subpath)!
+		if filter.type_name != .subpath {
+			return false
+		}
+	}
+	return true
 }
 
 // Ruby it `it "allows reads for existing paths" do` at line 297.
-pub fn ruby_sandbox_shared_spec_l297_d43_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+pub fn ruby_sandbox_shared_spec_l297_d43_allows(root string) !bool {
+	mut value := sandbox_shared_new(root)!
+	file := os.join_path(root, 'foo.rb')
+	os.write_file(file, '')!
+	homebrew.ruby_sandbox_l453_d39_allow_read_if_exists(mut value, file, .literal)!
+	rule := value.profile.rules.last()
+	return rule.allow && rule.operation == 'file-read*' && rule.filter.path == os.real_path(file) && rule.filter.type_name == .literal
 }
 
 // Ruby it `it "skips missing paths" do` at line 308.
-pub fn ruby_sandbox_shared_spec_l308_d44_skips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skips', ...args)
+pub fn ruby_sandbox_shared_spec_l308_d44_skips(root string) !bool {
+	mut value := sandbox_shared_new(root)!
+	homebrew.ruby_sandbox_l453_d39_allow_read_if_exists(mut value, os.join_path(root, 'missing.rb'), .literal)!
+	return value.profile.rules.len == 0
 }
 
 // Ruby it `it "skips nil paths" do` at line 314.
-pub fn ruby_sandbox_shared_spec_l314_d45_skips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skips', ...args)
+pub fn ruby_sandbox_shared_spec_l314_d45_skips(root string) !bool {
+	mut value := sandbox_shared_new(root)!
+	homebrew.ruby_sandbox_l453_d39_allow_read_if_exists(mut value, none, .literal)!
+	return value.profile.rules.len == 0
 }
 
 // Ruby it `it "allows a process to run outside the sandbox when requested" do` at line 322.
-pub fn ruby_sandbox_shared_spec_l322_d46_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+pub fn ruby_sandbox_shared_spec_l322_d46_allows(root string) !bool {
+	mut value := sandbox_shared_new(root)!
+	homebrew.ruby_sandbox_l310_d35_allow_process_exec(mut value, '/usr/bin/sudo', true)!
+	rule := value.profile.rules.last()
+	return rule.allow && rule.operation == 'process-exec' && rule.modifier == 'no-sandbox' && rule.filter.path == '/usr/bin/sudo' && rule.filter.type_name == .literal
 }
 
 // Ruby it `it "denies reads for a subpath" do` at line 332.
-pub fn ruby_sandbox_shared_spec_l332_d47_denies(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('denies', ...args)
+pub fn ruby_sandbox_shared_spec_l332_d47_denies(root string) !bool {
+	mut value := sandbox_shared_new(root)!
+	directory := os.join_path(root, 'foo')
+	os.mkdir_all(directory)!
+	homebrew.ruby_sandbox_l321_d37_deny_read_path(mut value, directory)!
+	rule := value.profile.rules.last()
+	return !rule.allow && rule.operation == 'file-read*' && rule.filter.path == os.real_path(directory) && rule.filter.type_name == .subpath
 }
 
 // Ruby let `let(:home) { mktmpdir/"home" }` at line 345.
-pub fn ruby_sandbox_shared_spec_l345_d48_home(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('home', ...args)
+pub fn ruby_sandbox_shared_spec_l345_d48_home(root string) !string {
+	return (sandbox_shared_paths(root)!).home
 }
 
 // Ruby let `let(:prefix) { mktmpdir/"prefix" }` at line 346.
-pub fn ruby_sandbox_shared_spec_l346_d49_prefix(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prefix', ...args)
+pub fn ruby_sandbox_shared_spec_l346_d49_prefix(root string) !string {
+	return (sandbox_shared_paths(root)!).prefix
 }
 
 // Ruby let `let(:repository) { mktmpdir/"repository" }` at line 347.
-pub fn ruby_sandbox_shared_spec_l347_d50_repository(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('repository', ...args)
+pub fn ruby_sandbox_shared_spec_l347_d50_repository(root string) !string {
+	return (sandbox_shared_paths(root)!).repository
 }
 
 // Ruby let `let(:temp) { mktmpdir/"tmp" }` at line 348.
-pub fn ruby_sandbox_shared_spec_l348_d51_temp(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('temp', ...args)
+pub fn ruby_sandbox_shared_spec_l348_d51_temp(root string) !string {
+	return (sandbox_shared_paths(root)!).temp
 }
 
 // Ruby let `let(:cache) { mktmpdir/"cache" }` at line 349.
-pub fn ruby_sandbox_shared_spec_l349_d52_cache(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cache', ...args)
+pub fn ruby_sandbox_shared_spec_l349_d52_cache(root string) !string {
+	return (sandbox_shared_paths(root)!).cache
 }
 
 // Ruby let `let(:logs) { mktmpdir/"logs" }` at line 350.
-pub fn ruby_sandbox_shared_spec_l350_d53_logs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('logs', ...args)
+pub fn ruby_sandbox_shared_spec_l350_d53_logs(root string) !string {
+	return (sandbox_shared_paths(root)!).logs
 }
 
 // Ruby it `it "denies reads from the real home" do` at line 362.
-pub fn ruby_sandbox_shared_spec_l362_d54_denies(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('denies', ...args)
+pub fn ruby_sandbox_shared_spec_l362_d54_denies(root string) !bool {
+	mut value := sandbox_shared_new(root)!
+	homebrew.ruby_sandbox_l326_d38_deny_read_home(mut value)!
+	rule := value.profile.rules.last()
+	return !rule.allow && rule.operation == 'file-read*' && rule.filter.path == os.real_path(value.paths.home) && rule.filter.type_name == .subpath
 }
 
 // Ruby it `it "skips the deny when` at line 377.
-pub fn ruby_sandbox_shared_spec_l377_d55_skips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skips', ...args)
+pub fn ruby_sandbox_shared_spec_l377_d55_skips(root string) !bool {
+	for index, field in ['prefix', 'repository', 'cache', 'temp', 'logs'] {
+		case_root := os.join_path(root, index.str())
+		base := sandbox_shared_paths(case_root)!
+		inside := os.join_path(base.home, if field == 'logs' {
+			'Library/Logs/Homebrew'
+		} else {
+			field
+		})
+		os.mkdir_all(inside)!
+		paths := homebrew.SandboxPaths{
+			home: base.home
+			prefix: if field == 'prefix' { inside } else { base.prefix }
+			repository: if field == 'repository' { inside } else { base.repository }
+			cache: if field == 'cache' { inside } else { base.cache }
+			logs: if field == 'logs' { inside } else { base.logs }
+			temp: if field == 'temp' { inside } else { base.temp }
+			library: base.library
+			original_brew_file: base.original_brew_file
+		}
+		mut value := homebrew.ruby_sandbox_l283_d31_initialize(paths)
+		homebrew.ruby_sandbox_l326_d38_deny_read_home(mut value)!
+		if value.profile.rules.len != 0 {
+			return false
+		}
+	}
+	return true
 }
 
 // Ruby it `it "skips the deny when` at line 395.
-pub fn ruby_sandbox_shared_spec_l395_d56_skips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skips', ...args)
+pub fn ruby_sandbox_shared_spec_l395_d56_skips(root string) !bool {
+	for index, field in ['github', 'runner-workspace', 'runner-temp'] {
+		case_root := os.join_path(root, index.str())
+		base := sandbox_shared_paths(case_root)!
+		inside := os.join_path(base.home, field)
+		os.mkdir_all(inside)!
+		paths := sandbox_shared_inside_home_paths(base, base.home, base.cache, '', if field == 'github' {
+			inside
+		} else {
+			''
+		}, if field == 'runner-workspace' { inside } else { '' }, if field == 'runner-temp' {
+			inside
+		} else {
+			''
+		}, [])
+		mut value := homebrew.ruby_sandbox_l283_d31_initialize(paths)
+		homebrew.ruby_sandbox_l326_d38_deny_read_home(mut value)!
+		if value.profile.rules.len != 0 {
+			return false
+		}
+	}
+	return true
 }
 
 // Ruby it `it "skips the deny when a runner path resolves inside the real home" do` at line 406.
-pub fn ruby_sandbox_shared_spec_l406_d57_skips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skips', ...args)
+pub fn ruby_sandbox_shared_spec_l406_d57_skips(root string) !bool {
+	base := sandbox_shared_paths(root)!
+	workspace := os.join_path(base.home, 'workspace')
+	link := os.join_path(root, 'workspace-link')
+	os.mkdir_all(workspace)!
+	os.symlink(workspace, link)!
+	paths := sandbox_shared_inside_home_paths(base, base.home, base.cache, '', link, '', '', [])
+	mut value := homebrew.ruby_sandbox_l283_d31_initialize(paths)
+	homebrew.ruby_sandbox_l326_d38_deny_read_home(mut value)!
+	return value.profile.rules.len == 0
 }
 
 // Ruby it `it "denies known sensitive home paths when Homebrew needs home access" do` at line 418.
-pub fn ruby_sandbox_shared_spec_l418_d58_denies(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('denies', ...args)
+pub fn ruby_sandbox_shared_spec_l418_d58_denies(root string) !bool {
+	base := sandbox_shared_paths(root)!
+	home := base.home
+	cache := os.join_path(home, 'Library/Caches/Homebrew')
+	allowed_dirs := [cache, os.join_path(home, 'Library/Preferences'), os.join_path(home, '.config'),
+		os.join_path(home, '.config/homebrew'), os.join_path(home, 'src')]
+	sensitive_dirs := [os.join_path(home, '.claude'), os.join_path(home, '.config/gcloud'),
+		os.join_path(home, '.config/gh'), os.join_path(home, '.config/fish'),
+		os.join_path(home, '.config/huggingface'), os.join_path(home, '.config/pip'),
+		os.join_path(home, '.config/pypoetry'), os.join_path(home, '.config/rclone'),
+		os.join_path(home, '.kiro'), os.join_path(home, '.pip'), os.join_path(home, '.ssh'),
+		os.join_path(home, 'Documents')]
+	sensitive_files := ['.bash_login', '.bash_logout', '.bash_profile', '.bashrc', '.bash_history',
+		'.cache/huggingface/token', '.claude.json', '.config/composer/auth.json',
+		'.config/containers/auth.json', '.config/sops/age/keys.txt', '.cargo/credentials.toml',
+		'.gem/credentials', '.git-credentials', '.mysql_history', '.netrc', '.npmrc', '.profile',
+		'.psql_history', '.pypirc', '.python_history', '.terraform.d/credentials.tfrc.json', '.zlogin',
+		'.zlogout', '.zprofile', '.zshenv', '.zshrc', '.zsh_history'].map(os.join_path(home, it))
+	for path in allowed_dirs {
+		os.mkdir_all(path)!
+	}
+	for path in sensitive_dirs {
+		os.mkdir_all(path)!
+	}
+	for path in sensitive_files {
+		os.mkdir_all(os.dir(path))!
+		os.write_file(path, '')!
+	}
+	paths := sandbox_shared_inside_home_paths(base, home, cache, '', '', '', '', [])
+	mut value := homebrew.ruby_sandbox_l283_d31_initialize(paths)
+	homebrew.ruby_sandbox_l326_d38_deny_read_home(mut value)!
+	denied := sandbox_shared_denied_paths(value)
+	return sensitive_dirs.all(os.real_path(it) in denied) && sensitive_files.all(os.real_path(it) in denied) && allowed_dirs.all(os.real_path(it) !in denied)
 }
 
 // Ruby it `it "keeps Homebrew readable inside a sensitive home path" do` at line 485.
-pub fn ruby_sandbox_shared_spec_l485_d59_keeps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('keeps', ...args)
+pub fn ruby_sandbox_shared_spec_l485_d59_keeps(root string) !bool {
+	base := sandbox_shared_paths(root)!
+	prefix := os.join_path(base.home, 'Documents/homebrew')
+	ssh := os.join_path(base.home, '.ssh')
+	for path in [prefix, ssh] {
+		os.mkdir_all(path)!
+	}
+	paths := sandbox_shared_replace_paths(base, prefix, base.logs)
+	mut value := homebrew.ruby_sandbox_l283_d31_initialize(paths)
+	homebrew.ruby_sandbox_l326_d38_deny_read_home(mut value)!
+	return sandbox_shared_denied_paths(value) == [os.real_path(ssh)]
 }
 
 // Ruby it `it "warns when Homebrew is inside a sensitive home path" do` at line 495.
-pub fn ruby_sandbox_shared_spec_l495_d60_warns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('warns', ...args)
+pub fn ruby_sandbox_shared_spec_l495_d60_warns(root string) !bool {
+	base := sandbox_shared_paths(root)!
+	prefix := os.join_path(base.home, 'Documents/homebrew')
+	os.mkdir_all(prefix)!
+	paths := sandbox_shared_replace_paths(base, prefix, base.logs)
+	mut value := homebrew.ruby_sandbox_l283_d31_initialize(paths)
+	homebrew.ruby_sandbox_l326_d38_deny_read_home(mut value)!
+	return value.warnings == [
+		'The sandbox cannot prevent formulae from reading:\n  ${os.real_path(os.join_path(base.home, 'Documents'))}\nbecause this required path is inside it:\n  ${os.real_path(prefix)}\nFormulae may access personal data in this directory.\n',
+	]
 }
 
 // Ruby it `it "does not deny arbitrary home entries whose names contain parentheses or backslashes" do` at line 510.
-pub fn ruby_sandbox_shared_spec_l510_d61_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_sandbox_shared_spec_l510_d61_does(root string) !bool {
+	base := sandbox_shared_paths(root)!
+	logs := os.join_path(base.home, 'Library/Logs/Homebrew')
+	teams := os.join_path(base.home, 'Library/Logs/Microsoft Teams Helper (Renderer)')
+	backslash := os.join_path(base.home, 'I:\\')
+	ssh := os.join_path(base.home, '.ssh')
+	for path in [logs, teams, backslash, ssh] {
+		os.mkdir_all(path)!
+	}
+	paths := sandbox_shared_replace_paths(base, base.prefix, logs)
+	mut value := homebrew.ruby_sandbox_l283_d31_initialize(paths)
+	homebrew.ruby_sandbox_l326_d38_deny_read_home(mut value)!
+	denied := sandbox_shared_denied_paths(value)
+	return os.real_path(ssh) in denied && os.real_path(teams) !in denied && os.real_path(backslash) !in denied
 }
 
 // Ruby it `it "does not deny sensitive symlinks that resolve outside home" do` at line 523.
-pub fn ruby_sandbox_shared_spec_l523_d62_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_sandbox_shared_spec_l523_d62_does(root string) !bool {
+	base := sandbox_shared_paths(root)!
+	cache := os.join_path(base.home, 'Library/Caches/Homebrew')
+	os.mkdir_all(cache)!
+	os.symlink(os.path_devnull, os.join_path(base.home, '.mysql_history'))!
+	paths := sandbox_shared_inside_home_paths(base, base.home, cache, '', '', '', '', [])
+	mut value := homebrew.ruby_sandbox_l283_d31_initialize(paths)
+	homebrew.ruby_sandbox_l326_d38_deny_read_home(mut value)!
+	return os.path_devnull !in sandbox_shared_denied_paths(value)
 }
 
 // Ruby it `it "passes resolved sensitive paths to deny_read_path" do` at line 534.
-pub fn ruby_sandbox_shared_spec_l534_d63_passes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('passes', ...args)
+pub fn ruby_sandbox_shared_spec_l534_d63_passes(root string) !bool {
+	base := sandbox_shared_paths(root)!
+	cache := os.join_path(base.home, 'Library/Caches/Homebrew')
+	target := os.join_path(base.home, 'history')
+	os.mkdir_all(cache)!
+	os.write_file(target, '')!
+	os.symlink(target, os.join_path(base.home, '.mysql_history'))!
+	paths := sandbox_shared_inside_home_paths(base, base.home, cache, '', '', '', '', [])
+	mut value := homebrew.ruby_sandbox_l283_d31_initialize(paths)
+	homebrew.ruby_sandbox_l326_d38_deny_read_home(mut value)!
+	return os.real_path(target) in sandbox_shared_denied_paths(value)
 }
 
 // Ruby it `it "ignores broken sensitive symlinks" do` at line 546.
-pub fn ruby_sandbox_shared_spec_l546_d64_ignores(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ignores', ...args)
+pub fn ruby_sandbox_shared_spec_l546_d64_ignores(root string) !bool {
+	base := sandbox_shared_paths(root)!
+	cache := os.join_path(base.home, 'Library/Caches/Homebrew')
+	os.mkdir_all(cache)!
+	os.symlink(os.join_path(base.home, 'missing'), os.join_path(base.home, '.mysql_history'))!
+	paths := sandbox_shared_inside_home_paths(base, base.home, cache, '', '', '', '', [])
+	mut value := homebrew.ruby_sandbox_l283_d31_initialize(paths)
+	homebrew.ruby_sandbox_l326_d38_deny_read_home(mut value)!
+	return true
 }
 
 // Ruby it `it "keeps the trust store readable so sandboxed builds can re-check tap trust" do` at line 554.
-pub fn ruby_sandbox_shared_spec_l554_d65_keeps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('keeps', ...args)
+pub fn ruby_sandbox_shared_spec_l554_d65_keeps(root string) !bool {
+	base := sandbox_shared_paths(root)!
+	cache := os.join_path(base.home, 'Library/Caches/Homebrew')
+	config := os.join_path(base.home, '.homebrew')
+	ssh := os.join_path(base.home, '.ssh')
+	trust := os.join_path(config, 'trust.json')
+	for path in [cache, config, ssh] {
+		os.mkdir_all(path)!
+	}
+	os.write_file(trust, '')!
+	paths := sandbox_shared_inside_home_paths(base, base.home, cache, trust, '', '', '', [])
+	mut value := homebrew.ruby_sandbox_l283_d31_initialize(paths)
+	homebrew.ruby_sandbox_l326_d38_deny_read_home(mut value)!
+	denied := sandbox_shared_denied_paths(value)
+	return os.real_path(ssh) in denied && os.real_path(trust) !in denied
 }
 
 // Ruby it `it "keeps the XDG trust store readable so sandboxed builds can re-check tap trust" do` at line 570.
-pub fn ruby_sandbox_shared_spec_l570_d66_keeps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('keeps', ...args)
+pub fn ruby_sandbox_shared_spec_l570_d66_keeps(root string) !bool {
+	base := sandbox_shared_paths(root)!
+	cache := os.join_path(base.home, 'Library/Caches/Homebrew')
+	config := os.join_path(base.home, '.config/homebrew')
+	gh := os.join_path(base.home, '.config/gh')
+	ssh := os.join_path(base.home, '.ssh')
+	trust := os.join_path(config, 'trust.json')
+	for path in [cache, config, gh, ssh] {
+		os.mkdir_all(path)!
+	}
+	os.write_file(trust, '')!
+	paths := sandbox_shared_inside_home_paths(base, base.home, cache, trust, '', '', '', [])
+	mut value := homebrew.ruby_sandbox_l283_d31_initialize(paths)
+	homebrew.ruby_sandbox_l326_d38_deny_read_home(mut value)!
+	denied := sandbox_shared_denied_paths(value)
+	return os.real_path(gh) in denied && os.real_path(ssh) in denied && os.real_path(os.join_path(base.home, '.config')) !in denied && os.real_path(trust) !in denied
 }
 
 // Ruby it `it "keeps the Xcode directories readable so builds can use them", :needs_macos do` at line 589.
-pub fn ruby_sandbox_shared_spec_l589_d67_keeps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('keeps', ...args)
+pub fn ruby_sandbox_shared_spec_l589_d67_keeps(root string) !bool {
+	base := sandbox_shared_paths(root)!
+	developer := os.join_path(base.home, 'Library/Developer')
+	swiftpm := os.join_path(base.home, 'Library/Caches/org.swift.swiftpm')
+	ssh := os.join_path(base.home, '.ssh')
+	for path in [developer, swiftpm, ssh] {
+		os.mkdir_all(path)!
+	}
+	paths := sandbox_shared_inside_home_paths(base, base.home, base.cache, '', '', '', '', [
+		developer,
+		swiftpm,
+	])
+	mut value := homebrew.ruby_sandbox_l283_d31_initialize(paths)
+	homebrew.ruby_sandbox_l326_d38_deny_read_home(mut value)!
+	denied := sandbox_shared_denied_paths(value)
+	return os.real_path(developer) !in denied && os.real_path(swiftpm) !in denied && os.real_path(ssh) in denied
 }
 
 // Ruby it `it "allows writes for existing paths" do` at line 603.
-pub fn ruby_sandbox_shared_spec_l603_d68_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+pub fn ruby_sandbox_shared_spec_l603_d68_allows(root string) !bool {
+	mut value := sandbox_shared_new(root)!
+	directory := os.join_path(root, 'foo')
+	os.mkdir_all(directory)!
+	homebrew.ruby_sandbox_l478_d43_allow_write_path_if_exists(mut value, directory)!
+	rule := value.profile.rules[0]
+	return rule.allow && rule.operation == 'file-write*' && rule.filter.path == os.real_path(directory) && rule.filter.type_name == .subpath
 }
 
 // Ruby it `it "skips missing paths" do` at line 614.
-pub fn ruby_sandbox_shared_spec_l614_d69_skips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skips', ...args)
+pub fn ruby_sandbox_shared_spec_l614_d69_skips(root string) !bool {
+	mut value := sandbox_shared_new(root)!
+	homebrew.ruby_sandbox_l478_d43_allow_write_path_if_exists(mut value, os.join_path(root, 'missing'))!
+	return value.profile.rules.len == 0
 }
 
 // Ruby it `it "skips nil paths" do` at line 620.
-pub fn ruby_sandbox_shared_spec_l620_d70_skips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skips', ...args)
+pub fn ruby_sandbox_shared_spec_l620_d70_skips(root string) !bool {
+	mut value := sandbox_shared_new(root)!
+	homebrew.ruby_sandbox_l478_d43_allow_write_path_if_exists(mut value, none)!
+	return value.profile.rules.len == 0
 }
 
 // Original Ruby source (line-for-line):

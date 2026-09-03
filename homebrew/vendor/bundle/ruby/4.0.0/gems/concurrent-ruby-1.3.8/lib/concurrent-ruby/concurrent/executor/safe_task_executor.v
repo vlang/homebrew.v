@@ -1,18 +1,84 @@
 module executor
 
 import brew_runtime
+import sync
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/executor/safe_task_executor.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub type SafeTask = fn([]brew_runtime.Value) !brew_runtime.Value
+
+pub struct SafeTaskResult {
+pub:
+	success bool
+	value   brew_runtime.Value
+	reason  string
+}
+
+@[heap]
+pub struct SafeTaskExecutor {
+mut:
+	lock sync.Mutex
+pub:
+	task             SafeTask @[required]
+	rescue_exception bool
+}
+
+pub fn new_safe_task_executor(task SafeTask, rescue_exception bool) &SafeTaskExecutor {
+	return &SafeTaskExecutor{
+		task: task
+		rescue_exception: rescue_exception
+	}
+}
+
+pub fn (mut executor SafeTaskExecutor) execute(args []brew_runtime.Value) SafeTaskResult {
+	executor.lock.lock()
+	value := executor.task(args) or {
+		executor.lock.unlock()
+		return SafeTaskResult{
+			success: false
+			value: brew_runtime.object_value('NilClass', 'nil')
+			reason: err.msg()
+		}
+	}
+	executor.lock.unlock()
+	return SafeTaskResult{
+		success: true
+		value: value
+	}
+}
+
+fn safe_task_result_value(result SafeTaskResult) brew_runtime.Value {
+	return brew_runtime.array_value([
+		brew_runtime.bool_value(result.success),
+		result.value,
+		if result.reason.len > 0 {
+			brew_runtime.object_value('StandardError', result.reason)
+		} else {
+			brew_runtime.object_value('NilClass', 'nil')
+		},
+	])
+}
 
 // Ruby method `initialize(task, opts = {})` at line 11.
 pub fn ruby_safe_task_executor_l11_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	return brew_runtime.structured_value('SafeTaskExecutor', '#<Concurrent::SafeTaskExecutor>', {
+		'rescue_exception': (args.len > 1 && args[1].type_name == 'Bool' && args[1].as_bool() or { false }).str()
+	})
 }
 
 // Ruby method `execute(*args)` at line 18.
 pub fn ruby_safe_task_executor_l18_d2_execute(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('execute', ...args)
+	if args.len > 0 && args[0].type_name.ends_with('Error') {
+		return safe_task_result_value(SafeTaskResult{
+			success: false
+			value: brew_runtime.object_value('NilClass', 'nil')
+			reason: args[0].as_string()
+		})
+	}
+	return safe_task_result_value(SafeTaskResult{
+		success: true
+		value: if args.len > 0 { args[0] } else { brew_runtime.object_value('NilClass', 'nil') }
+	})
 }
 
 // Original Ruby source (line-for-line):

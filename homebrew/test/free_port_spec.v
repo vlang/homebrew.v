@@ -1,18 +1,28 @@
 module test
 
 import brew_runtime
+import homebrew
+import net
 
 // Translated from Homebrew/brew `test/free_port_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:instance) { Object.new.extend(described_class) }` at line 8.
 pub fn ruby_free_port_spec_l8_d1_instance(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('instance', ...args)
+	return brew_runtime.object_value('Homebrew::FreePort', 'instance')
 }
 
 // Ruby it `it "returns a free TCP/IP port" do` at line 11.
 pub fn ruby_free_port_spec_l11_d2_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	port := homebrew.free_port() or { return brew_runtime.bool_value(false) }
+	if port < 1024 || port > 65535 {
+		return brew_runtime.bool_value(false)
+	}
+	mut server := net.listen_tcp(.ip, '127.0.0.1:${port}') or {
+		return brew_runtime.bool_value(false)
+	}
+	server.close() or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value(true)
 }
 
 // Original Ruby source (line-for-line):

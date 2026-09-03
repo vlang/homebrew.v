@@ -1,113 +1,152 @@
 module cask
 
-import brew_runtime
+import homebrew.rubocops.cask as uninstall_methods_order_core
 
 // Translated from Homebrew/brew `test/rubocops/cask/uninstall_methods_order_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+fn uninstall_methods_order_corrects(source string, expected string, methods []string) bool {
+	offenses := uninstall_methods_order_core.audit_uninstall_methods_order(source)
+	return offenses.filter(it.kind == 'ordering').map(it.method) == methods && uninstall_methods_order_core.correct_uninstall_methods_order(source) == expected
+}
 
 // Ruby it `it "detects and corrects ordering offenses in the uninstall block when each method contains a single item" do` at line 8.
-pub fn ruby_uninstall_methods_order_spec_l8_d1_detects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('detects', ...args)
+pub fn ruby_uninstall_methods_order_spec_l8_d1_detects() bool {
+	source := 'cask \'foo\' do\n  uninstall quit:      "com.example.foo",\n            launchctl: "com.example.foo"\nend'
+	expected := 'cask \'foo\' do\n  uninstall launchctl: "com.example.foo",\n            quit:      "com.example.foo"\nend'
+	return uninstall_methods_order_corrects(source, expected, ['quit', 'launchctl'])
 }
 
 // Ruby it `it "detects and corrects ordering offenses in the uninstall block when methods contain arrays" do` at line 26.
-pub fn ruby_uninstall_methods_order_spec_l26_d2_detects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('detects', ...args)
+pub fn ruby_uninstall_methods_order_spec_l26_d2_detects() bool {
+	source := 'cask "foo" do\n  url "https://example.com/foo.zip"\n\nuninstall delete:  [\n          "/usr/local/bin/foo",\n          "/usr/local/bin/foobar",\n        ],\n        script:  {\n          executable: "/usr/local/bin/foo",\n          sudo:       false,\n        },\n        pkgutil: "org.foo.bar"\nend'
+	expected := 'cask "foo" do\n  url "https://example.com/foo.zip"\n\nuninstall script:  {\n          executable: "/usr/local/bin/foo",\n          sudo:       false,\n        },\n        pkgutil: "org.foo.bar",\n        delete:  [\n          "/usr/local/bin/foo",\n          "/usr/local/bin/foobar",\n        ]\nend'
+	return uninstall_methods_order_corrects(source, expected, ['delete', 'script', 'pkgutil'])
 }
 
 // Ruby it `it "does not report an offense" do` at line 65.
-pub fn ruby_uninstall_methods_order_spec_l65_d3_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_uninstall_methods_order_spec_l65_d3_does() bool {
+	source := 'cask "foo" do\n  url "https://example.com/foo.zip"\n\n  uninstall script:  {\n              executable: "/usr/local/bin/foo",\n              sudo:       false,\n            },\n            pkgutil: "org.foo.bar",\n            delete:  [\n              "/usr/local/bin/foo",\n              "/usr/local/bin/foobar",\n            ]\nend'
+	return uninstall_methods_order_core.audit_uninstall_methods_order(source).len == 0
 }
 
 // Ruby it `it "ignores on_upgrade when checking method order" do` at line 84.
-pub fn ruby_uninstall_methods_order_spec_l84_d4_ignores(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ignores', ...args)
+pub fn ruby_uninstall_methods_order_spec_l84_d4_ignores() bool {
+	source := 'cask "foo" do\n  url "https://example.com/foo.zip"\n\n  uninstall quit:       "com.example.foo",\n            signal:     ["TERM", "com.example.foo"],\n            on_upgrade: :signal,\n            script:     {\n              executable: "/usr/local/bin/foo",\n              sudo:       false,\n            },\n            pkgutil:    "org.foo.bar",\n            delete:     [\n              "/usr/local/bin/foo",\n              "/usr/local/bin/foobar",\n            ]\nend'
+	return uninstall_methods_order_core.audit_uninstall_methods_order(source).len == 0
 }
 
 // Ruby it `it "registers offense and autocorrects to remove on_upgrade when 1 other key exists" do` at line 107.
-pub fn ruby_uninstall_methods_order_spec_l107_d5_registers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('registers', ...args)
+pub fn ruby_uninstall_methods_order_spec_l107_d5_registers() bool {
+	source := 'cask "foo" do\n  url "https://example.com/foo.zip"\n\n  uninstall pkgutil:    "org.foo.bar",\n            on_upgrade: :quit\nend'
+	expected := 'cask "foo" do\n  url "https://example.com/foo.zip"\n\n  uninstall pkgutil:    "org.foo.bar"\nend'
+	offenses := uninstall_methods_order_core.audit_uninstall_methods_order(source)
+	return offenses.len == 1 && offenses[0].kind == 'useless_metadata' && offenses[0].has_correction && uninstall_methods_order_core.correct_uninstall_methods_order(source) == expected
 }
 
 // Ruby it `it "registers offense and autocorrects to remove on_upgrade when between other keys" do` at line 128.
-pub fn ruby_uninstall_methods_order_spec_l128_d6_registers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('registers', ...args)
+pub fn ruby_uninstall_methods_order_spec_l128_d6_registers() bool {
+	source := 'cask "foo" do\n  url "https://example.com/foo.zip"\n\n  uninstall login_item: "FooApp",\n            on_upgrade: :quit,\n            pkgutil:    "org.foo.bar"\nend'
+	expected := 'cask "foo" do\n  url "https://example.com/foo.zip"\n\n  uninstall login_item: "FooApp",\n            pkgutil:    "org.foo.bar"\nend'
+	offenses := uninstall_methods_order_core.audit_uninstall_methods_order(source)
+	return offenses.len == 1 && offenses[0].kind == 'useless_metadata' && uninstall_methods_order_core.correct_uninstall_methods_order(source) == expected
 }
 
 // Ruby it `it "registers offense but does not autocorrect when on_upgrade is the only key" do` at line 151.
-pub fn ruby_uninstall_methods_order_spec_l151_d7_registers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('registers', ...args)
+pub fn ruby_uninstall_methods_order_spec_l151_d7_registers() bool {
+	source := 'cask "foo" do\n  url "https://example.com/foo.zip"\n\n  uninstall on_upgrade: :quit\nend'
+	offenses := uninstall_methods_order_core.audit_uninstall_methods_order(source)
+	return offenses.len == 1 && offenses[0].kind == 'useless_metadata' && !offenses[0].has_correction && uninstall_methods_order_core.correct_uninstall_methods_order(source) == source
 }
 
 // Ruby it `it "registers offense but does not autocorrect" do` at line 163.
-pub fn ruby_uninstall_methods_order_spec_l163_d8_registers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('registers', ...args)
+pub fn ruby_uninstall_methods_order_spec_l163_d8_registers() bool {
+	return ruby_uninstall_methods_order_spec_l151_d7_registers()
 }
 
 // Ruby it `it "registers offense on the value but does not autocorrect" do` at line 176.
-pub fn ruby_uninstall_methods_order_spec_l176_d9_registers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('registers', ...args)
+pub fn ruby_uninstall_methods_order_spec_l176_d9_registers() bool {
+	source := 'cask "foo" do\n  url "https://example.com/foo.zip"\n\n  uninstall signal:     [["TERM", "com.example.foo"]],\n            on_upgrade: [:quit, :signal]\nend'
+	offenses := uninstall_methods_order_core.audit_uninstall_methods_order(source)
+	return offenses.len == 1 && offenses[0].kind == 'partially_invalid_metadata' && source[offenses[0].begin_pos..offenses[0].end_pos] == '[:quit, :signal]' && offenses[0].message == '`on_upgrade` lists :quit without matching `uninstall` directives' && !offenses[0].has_correction
 }
 
 // Ruby it `it "does not register offense for :signal" do` at line 190.
-pub fn ruby_uninstall_methods_order_spec_l190_d10_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_uninstall_methods_order_spec_l190_d10_does() bool {
+	source := 'cask "foo" do\n  url "https://example.com/foo.zip"\n\n  uninstall signal:     [["TERM", "com.example.app"]],\n            on_upgrade: :signal\nend'
+	return uninstall_methods_order_core.audit_uninstall_methods_order(source).len == 0
 }
 
 // Ruby it `it "does not report an offense when a single item is present in the method" do` at line 203.
-pub fn ruby_uninstall_methods_order_spec_l203_d11_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_uninstall_methods_order_spec_l203_d11_does() bool {
+	source := 'cask "foo" do\n  url "https://example.com/foo.zip"\n\n  uninstall delete: "/usr/local/bin/foo"\nend'
+	return uninstall_methods_order_core.audit_uninstall_methods_order(source).len == 0
 }
 
 // Ruby it `it "does not report an offense when the method contains an array" do` at line 213.
-pub fn ruby_uninstall_methods_order_spec_l213_d12_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_uninstall_methods_order_spec_l213_d12_does() bool {
+	source := 'cask "foo" do\n  url "https://example.com/foo.zip"\n\n  uninstall pkgutil: [\n    "org.foo.bar",\n    "org.foobar.bar",\n  ]\nend'
+	return uninstall_methods_order_core.audit_uninstall_methods_order(source).len == 0
 }
 
 // Ruby it `it "detects and corrects ordering offenses in the zap block when each method contains a single item" do` at line 230.
-pub fn ruby_uninstall_methods_order_spec_l230_d13_detects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('detects', ...args)
+pub fn ruby_uninstall_methods_order_spec_l230_d13_detects() bool {
+	source := 'cask \'foo\' do\n  zap rmdir: "/Library/Foo",\n      trash: "com.example.foo"\nend'
+	expected := 'cask \'foo\' do\n  zap trash: "com.example.foo",\n      rmdir: "/Library/Foo"\nend'
+	return uninstall_methods_order_corrects(source, expected, ['rmdir', 'trash'])
 }
 
 // Ruby it `it "detects and corrects ordering offenses in the zap block when methods contain arrays" do` at line 248.
-pub fn ruby_uninstall_methods_order_spec_l248_d14_detects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('detects', ...args)
+pub fn ruby_uninstall_methods_order_spec_l248_d14_detects() bool {
+	source := 'cask "foo" do\n  url "https://example.com/foo.zip"\n\n  zap delete: [\n        "~/Library/Application Support/Foo",\n        "~/Library/Application Support/Bar",\n      ],\n      rmdir: "~/Library/Application Support",\n      trash: "~/Library/Application Support/FooBar"\nend'
+	expected := 'cask "foo" do\n  url "https://example.com/foo.zip"\n\n  zap delete: [\n        "~/Library/Application Support/Foo",\n        "~/Library/Application Support/Bar",\n      ],\n      trash: "~/Library/Application Support/FooBar",\n      rmdir: "~/Library/Application Support"\nend'
+	return uninstall_methods_order_corrects(source, expected, ['rmdir', 'trash'])
 }
 
 // Ruby it `it "does not report an offense" do` at line 280.
-pub fn ruby_uninstall_methods_order_spec_l280_d15_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_uninstall_methods_order_spec_l280_d15_does() bool {
+	source := 'cask "foo" do\n  url "https://example.com/foo.zip"\n\n  zap delete: [\n        "~/Library/Application Support/Bar",\n        "~/Library/Application Support/Foo",\n      ],\n      trash:  "~/Library/Application Support/FooBar",\n      rmdir:  "~/Library/Application Support"\nend'
+	return uninstall_methods_order_core.audit_uninstall_methods_order(source).len == 0
 }
 
 // Ruby it `it "does not report an offense when a single item is present in the method" do` at line 297.
-pub fn ruby_uninstall_methods_order_spec_l297_d16_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_uninstall_methods_order_spec_l297_d16_does() bool {
+	source := 'cask "foo" do\n  url "https://example.com/foo.zip"\n\n  zap trash:  "~/Library/Application Support/FooBar"\nend'
+	return uninstall_methods_order_core.audit_uninstall_methods_order(source).len == 0
 }
 
 // Ruby it `it "does not report an offense when the method contains an array" do` at line 307.
-pub fn ruby_uninstall_methods_order_spec_l307_d17_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_uninstall_methods_order_spec_l307_d17_does() bool {
+	source := 'cask "foo" do\n  url "https://example.com/foo.zip"\n\n  zap trash: [\n    "~/Library/Application Support/FooBar",\n    "~/Library/Application Support/FooBarBar",\n  ]\nend'
+	return uninstall_methods_order_core.audit_uninstall_methods_order(source).len == 0
 }
 
 // Ruby it `it "detects offenses and auto-corrects to the correct order" do` at line 324.
-pub fn ruby_uninstall_methods_order_spec_l324_d18_detects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('detects', ...args)
+pub fn ruby_uninstall_methods_order_spec_l324_d18_detects() bool {
+	source := 'cask "foo" do\n  url "https://example.com/foo.zip"\n\n  uninstall delete:  [\n            "/usr/local/bin/foo",\n            "/usr/local/bin/foobar",\n          ],\n          script:  {\n            executable: "/usr/local/bin/foo",\n            sudo:       false,\n          },\n          pkgutil: "org.foo.bar"\n\n  zap delete: [\n        "~/Library/Application Support/Bar",\n        "~/Library/Application Support/Foo",\n      ],\n      rmdir:  "~/Library/Application Support",\n      trash:  "~/Library/Application Support/FooBar"\nend'
+	expected := 'cask "foo" do\n  url "https://example.com/foo.zip"\n\n  uninstall script:  {\n            executable: "/usr/local/bin/foo",\n            sudo:       false,\n          },\n          pkgutil: "org.foo.bar",\n          delete:  [\n            "/usr/local/bin/foo",\n            "/usr/local/bin/foobar",\n          ]\n\n  zap delete: [\n        "~/Library/Application Support/Bar",\n        "~/Library/Application Support/Foo",\n      ],\n      trash:  "~/Library/Application Support/FooBar",\n      rmdir:  "~/Library/Application Support"\nend'
+	return uninstall_methods_order_corrects(source, expected, ['delete', 'script', 'pkgutil', 'rmdir',
+		'trash'])
 }
 
 // Ruby it `it "does not report an offense" do` at line 379.
-pub fn ruby_uninstall_methods_order_spec_l379_d19_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_uninstall_methods_order_spec_l379_d19_does() bool {
+	source := 'cask \'foo\' do\n  uninstall early_script: {\n              executable: "foo.sh",\n              args:       ["--unattended"],\n            },\n            launchctl:    "com.example.foo",\n            quit:         "com.example.foo",\n            signal:       ["TERM", "com.example.foo"],\n            login_item:   "FooApp",\n            kext:         "com.example.foo",\n            script:       {\n              executable: "foo.sh",\n              args:       ["--unattended"],\n            },\n            pkgutil:      "com.example.foo",\n            delete:       "~/Library/Preferences/com.example.foo",\n            trash:        "~/Library/Preferences/com.example.foo",\n            rmdir:        "~/Library/Foo"\n\n  zap early_script: {\n        executable: "foo.sh",\n        args:       ["--unattended"],\n      },\n      launchctl:    "com.example.foo",\n      quit:         "com.example.foo",\n      signal:       ["TERM", "com.example.foo"],\n      login_item:   "FooApp",\n      kext:         "com.example.foo",\n      script:       {\n        executable: "foo.sh",\n        args:       ["--unattended"],\n      },\n      pkgutil:      "com.example.foo",\n      delete:       "~/Library/Preferences/com.example.foo",\n      trash:        "~/Library/Preferences/com.example.foo",\n      rmdir:        "~/Library/Foo"\nend'
+	return uninstall_methods_order_core.audit_uninstall_methods_order(source).len == 0
 }
 
 // Ruby it `it "keeps associated comments when auto-correcting" do` at line 424.
-pub fn ruby_uninstall_methods_order_spec_l424_d20_keeps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('keeps', ...args)
+pub fn ruby_uninstall_methods_order_spec_l424_d20_keeps() bool {
+	source := 'cask \'foo\' do\n  uninstall quit:      "com.example.foo", # comment on same line\n            launchctl: "com.example.foo"\nend'
+	expected := 'cask \'foo\' do\n  uninstall launchctl: "com.example.foo",\n            quit:      "com.example.foo" # comment on same line\nend'
+	return uninstall_methods_order_corrects(source, expected, ['quit', 'launchctl'])
 }
 
 // Ruby it `it "detects and corrects offenses within OS-specific blocks" do` at line 444.
-pub fn ruby_uninstall_methods_order_spec_l444_d21_detects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('detects', ...args)
+pub fn ruby_uninstall_methods_order_spec_l444_d21_detects() bool {
+	source := 'cask "foo" do\n  on_catalina do\n    uninstall trash:     "com.example.foo",\n              launchctl: "com.example.foo"\n  end\n  on_ventura do\n    uninstall quit:      "com.example.foo",\n              launchctl: "com.example.foo"\n  end\nend'
+	expected := 'cask "foo" do\n  on_catalina do\n    uninstall launchctl: "com.example.foo",\n              trash:     "com.example.foo"\n  end\n  on_ventura do\n    uninstall launchctl: "com.example.foo",\n              quit:      "com.example.foo"\n  end\nend'
+	return uninstall_methods_order_corrects(source, expected, ['trash', 'launchctl', 'quit',
+		'launchctl'])
 }
 
 // Original Ruby source (line-for-line):

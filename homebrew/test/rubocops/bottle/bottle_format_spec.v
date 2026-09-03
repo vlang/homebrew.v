@@ -1,28 +1,43 @@
 module bottle
 
 import brew_runtime
+import homebrew.rubocops as bottle_core
 
 // Translated from Homebrew/brew `test/rubocops/bottle/bottle_format_spec.rb`.
-// The original source is retained below until every stub has a typed V body.
+// The original source is retained below for line-by-line provenance.
+fn bottle_spec_formula(body string) string {
+	return 'class Foo < Formula\n  url "https://brew.sh/foo-1.0.tgz"\n\n${body}\nend\n'
+}
 
 // Ruby subject `subject(:cop) { described_class.new }` at line 7.
 pub fn ruby_bottle_format_spec_l7_d1_cop(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cop', ...args)
+	return brew_runtime.object_value('RuboCop::Cop::FormulaAudit::BottleFormat', 'FormulaAudit/BottleFormat')
 }
 
 // Ruby it `it "reports no offenses for `bottle :unneeded`" do` at line 9.
-pub fn ruby_bottle_format_spec_l9_d2_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_bottle_format_spec_l9_d2_reports() bool {
+	return bottle_core.audit_bottle_format(bottle_spec_formula('  bottle :unneeded')).len == 0
 }
 
 // Ruby it `it "reports and corrects old `sha256` syntax in `bottle` block without cellars" do` at line 19.
-pub fn ruby_bottle_format_spec_l19_d3_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_bottle_format_spec_l19_d3_reports() bool {
+	first := bottle_spec_formula('  bottle do\n    sha256 "faceb00c" => :big_sur\n  end')
+	first_expected := bottle_spec_formula('  bottle do\n    sha256 big_sur: "faceb00c"\n  end')
+	second := bottle_spec_formula('  bottle do\n    rebuild 4\n    sha256 "faceb00c" => :big_sur\n    sha256 "deadbeef" => :catalina\n  end')
+	second_expected := bottle_spec_formula('  bottle do\n    rebuild 4\n    sha256 big_sur: "faceb00c"\n    sha256 catalina: "deadbeef"\n  end')
+	first_problems := bottle_core.audit_bottle_format(first)
+	second_problems := bottle_core.audit_bottle_format(second)
+	return first_problems.len == 1 && first_problems[0].message == bottle_core.bottle_format_sha256_message && first[first_problems[0].begin_pos..first_problems[0].end_pos] == 'sha256 "faceb00c" => :big_sur' && bottle_core.correct_bottle_format(first) == first_expected && second_problems.len == 2 && bottle_core.correct_bottle_format(second) == second_expected
 }
 
 // Ruby it `it "reports and corrects old `sha256` syntax in `bottle` block with cellars" do` at line 68.
-pub fn ruby_bottle_format_spec_l68_d4_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_bottle_format_spec_l68_d4_reports() bool {
+	symbol_source := bottle_spec_formula('  bottle do\n    cellar :any\n    rebuild 4\n    sha256 "faceb00c" => :big_sur\n    sha256 "deadbeef" => :catalina\n  end')
+	symbol_expected := bottle_spec_formula('  bottle do\n    rebuild 4\n    sha256 cellar: :any, big_sur: "faceb00c"\n    sha256 cellar: :any, catalina: "deadbeef"\n  end')
+	path_source := bottle_spec_formula('  bottle do\n    cellar "/usr/local/Cellar"\n    rebuild 4\n    sha256 "faceb00c" => :big_sur\n    sha256 "deadbeef" => :catalina\n  end')
+	path_expected := bottle_spec_formula('  bottle do\n    rebuild 4\n    sha256 cellar: "/usr/local/Cellar", big_sur: "faceb00c"\n    sha256 cellar: "/usr/local/Cellar", catalina: "deadbeef"\n  end')
+	problems := bottle_core.audit_bottle_format(symbol_source)
+	return problems.len == 3 && problems[0].message == bottle_core.bottle_format_cellar_message && symbol_source[problems[0].begin_pos..problems[0].end_pos] == 'cellar :any' && bottle_core.correct_bottle_format(symbol_source) == symbol_expected && bottle_core.correct_bottle_format(path_source) == path_expected
 }
 
 // Original Ruby source (line-for-line):

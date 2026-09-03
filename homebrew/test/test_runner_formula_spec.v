@@ -1,283 +1,488 @@
 module test
 
-import brew_runtime
+import homebrew
 
 // Translated from Homebrew/brew `test/test_runner_formula_spec.rb`.
-// The original source is retained below until every stub has a typed V body.
+fn test_runner_spec_setup_formula(name string, dependencies []string,
+	rules []homebrew.TestRunnerDependencyRule) homebrew.TestRunnerFormulaDefinition {
+	mut requirements := []homebrew.TestRunnerRequirement{}
+	mut formula_dependencies := []string{}
+	mut supports_macos := true
+	mut supports_linux := true
+	for dependency in dependencies {
+		match dependency {
+			'macos' {
+				requirements << homebrew.TestRunnerRequirement{ kind: .macos }
+				supports_linux = false
+			}
+			'linux' {
+				requirements << homebrew.TestRunnerRequirement{ kind: .linux }
+				supports_macos = false
+			}
+			'x86_64', 'arm64' {
+				requirements << homebrew.TestRunnerRequirement{
+					kind: .arch
+					arch: dependency
+				}
+			}
+			else { formula_dependencies << dependency }
+		}
+	}
+	for rule in rules {
+		if rule.name == 'macos:ventura' {
+			requirements << homebrew.TestRunnerRequirement{
+				kind: .macos
+				version: '13'
+				version_specified: true
+			}
+			supports_linux = false
+		}
+	}
+	return homebrew.TestRunnerFormulaDefinition{
+		name: name
+		supports_macos: supports_macos
+		supports_linux: supports_linux
+		requirements: requirements
+		dependencies: formula_dependencies
+		conditional_deps: rules.filter(it.name != 'macos:ventura')
+	}
+}
+
+fn test_runner_spec_wrap(formula homebrew.TestRunnerFormulaDefinition) homebrew.TestRunnerFormula {
+	return homebrew.new_test_runner_formula(formula, false)
+}
 
 // Ruby let `let(:testball) { Testball.new }` at line 8.
-pub fn ruby_test_runner_formula_spec_l8_d1_testball(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('testball', ...args)
+pub fn ruby_test_runner_formula_spec_l8_d1_testball() homebrew.TestRunnerFormulaDefinition {
+	return test_runner_spec_setup_formula('testball', [], [])
 }
 
 // Ruby let `let(:xcode_helper) { setup_test_runner_formula("xcode-helper", [:macos]) }` at line 9.
-pub fn ruby_test_runner_formula_spec_l9_d2_xcode_helper(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('xcode_helper', ...args)
+pub fn ruby_test_runner_formula_spec_l9_d2_xcode_helper() homebrew.TestRunnerFormulaDefinition {
+	return test_runner_spec_setup_formula('xcode-helper', ['macos'], [])
 }
 
 // Ruby let `let(:linux_kernel_requirer) { setup_test_runner_formula("linux-kernel-requirer", [:linux]) }` at line 10.
-pub fn ruby_test_runner_formula_spec_l10_d3_linux_kernel_requirer(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('linux_kernel_requirer', ...args)
+pub fn ruby_test_runner_formula_spec_l10_d3_linux_kernel_requirer() homebrew.TestRunnerFormulaDefinition {
+	return test_runner_spec_setup_formula('linux-kernel-requirer', ['linux'], [])
 }
 
 // Ruby let `let(:old_non_portable_software) { setup_test_runner_formula("old-non-portable-software", [{ arch: :x86_64 }]) }` at line 11.
-pub fn ruby_test_runner_formula_spec_l11_d4_old_non_portable_software(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('old_non_portable_software', ...args)
+pub fn ruby_test_runner_formula_spec_l11_d4_old_non_portable_software() homebrew.TestRunnerFormulaDefinition {
+	return test_runner_spec_setup_formula('old-non-portable-software', ['x86_64'], [])
 }
 
 // Ruby let `let(:fancy_new_software) { setup_test_runner_formula("fancy-new-software", [{ arch: :arm64 }]) }` at line 12.
-pub fn ruby_test_runner_formula_spec_l12_d5_fancy_new_software(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fancy_new_software', ...args)
+pub fn ruby_test_runner_formula_spec_l12_d5_fancy_new_software() homebrew.TestRunnerFormulaDefinition {
+	return test_runner_spec_setup_formula('fancy-new-software', ['arm64'], [])
 }
 
 // Ruby let `let(:needs_modern_compiler) { setup_test_runner_formula("needs-modern-compiler", [{ macos: :ventura }]) }` at line 13.
-pub fn ruby_test_runner_formula_spec_l13_d6_needs_modern_compiler(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('needs_modern_compiler', ...args)
+pub fn ruby_test_runner_formula_spec_l13_d6_needs_modern_compiler() homebrew.TestRunnerFormulaDefinition {
+	return test_runner_spec_setup_formula('needs-modern-compiler', [], [
+		homebrew.TestRunnerDependencyRule{ name: 'macos:ventura' },
+	])
 }
 
 // Ruby it `it "enables the Formulary factory cache" do` at line 16.
-pub fn ruby_test_runner_formula_spec_l16_d7_enables(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('enables', ...args)
+pub fn ruby_test_runner_formula_spec_l16_d7_enables() bool {
+	return test_runner_spec_wrap(ruby_test_runner_formula_spec_l8_d1_testball()).factory_cache_enabled
 }
 
 // Ruby it `it "returns the wrapped Formula's name" do` at line 23.
-pub fn ruby_test_runner_formula_spec_l23_d8_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_test_runner_formula_spec_l23_d8_returns() bool {
+	formula := ruby_test_runner_formula_spec_l8_d1_testball()
+	return test_runner_spec_wrap(formula).name == formula.name
 }
 
 // Ruby specify `specify do` at line 29.
-pub fn ruby_test_runner_formula_spec_l29_d9_do(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('do', ...args)
+pub fn ruby_test_runner_formula_spec_l29_d9_do() bool {
+	formula := ruby_test_runner_formula_spec_l8_d1_testball()
+	return !homebrew.new_test_runner_formula(formula, false).eval_all && homebrew.new_test_runner_formula(formula, true).eval_all
 }
 
 // Ruby it `it "returns the wrapped Formula" do` at line 36.
-pub fn ruby_test_runner_formula_spec_l36_d10_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_test_runner_formula_spec_l36_d10_returns() bool {
+	formula := ruby_test_runner_formula_spec_l8_d1_testball()
+	return test_runner_spec_wrap(formula).formula == formula
 }
 
 // Ruby it `it "returns true" do` at line 43.
-pub fn ruby_test_runner_formula_spec_l43_d11_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_test_runner_formula_spec_l43_d11_returns() bool {
+	return test_runner_spec_wrap(ruby_test_runner_formula_spec_l9_d2_xcode_helper()).macos_only()
 }
 
 // Ruby it `it "returns false" do` at line 49.
-pub fn ruby_test_runner_formula_spec_l49_d12_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_test_runner_formula_spec_l49_d12_returns() bool {
+	for formula in [ruby_test_runner_formula_spec_l8_d1_testball(),
+		ruby_test_runner_formula_spec_l10_d3_linux_kernel_requirer(),
+		ruby_test_runner_formula_spec_l11_d4_old_non_portable_software(),
+		ruby_test_runner_formula_spec_l12_d5_fancy_new_software()] {
+		if test_runner_spec_wrap(formula).macos_only() {
+			return false
+		}
+	}
+	return true
 }
 
 // Ruby it `it "returns true" do` at line 58.
-pub fn ruby_test_runner_formula_spec_l58_d13_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_test_runner_formula_spec_l58_d13_returns() bool {
+	return test_runner_spec_wrap(ruby_test_runner_formula_spec_l13_d6_needs_modern_compiler()).macos_only()
 }
 
 // Ruby it `it "returns true" do` at line 66.
-pub fn ruby_test_runner_formula_spec_l66_d14_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_test_runner_formula_spec_l66_d14_returns() bool {
+	for formula in [ruby_test_runner_formula_spec_l8_d1_testball(),
+		ruby_test_runner_formula_spec_l9_d2_xcode_helper(),
+		ruby_test_runner_formula_spec_l11_d4_old_non_portable_software(),
+		ruby_test_runner_formula_spec_l12_d5_fancy_new_software()] {
+		if !test_runner_spec_wrap(formula).macos_compatible() {
+			return false
+		}
+	}
+	return true
 }
 
 // Ruby it `it "returns false" do` at line 75.
-pub fn ruby_test_runner_formula_spec_l75_d15_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_test_runner_formula_spec_l75_d15_returns() bool {
+	return test_runner_spec_wrap(ruby_test_runner_formula_spec_l13_d6_needs_modern_compiler()).macos_compatible()
 }
 
 // Ruby it `it "returns false" do` at line 81.
-pub fn ruby_test_runner_formula_spec_l81_d16_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_test_runner_formula_spec_l81_d16_returns() bool {
+	return !test_runner_spec_wrap(ruby_test_runner_formula_spec_l10_d3_linux_kernel_requirer()).macos_compatible()
 }
 
 // Ruby it `it "returns true" do` at line 89.
-pub fn ruby_test_runner_formula_spec_l89_d17_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_test_runner_formula_spec_l89_d17_returns() bool {
+	return test_runner_spec_wrap(ruby_test_runner_formula_spec_l10_d3_linux_kernel_requirer()).linux_only()
 }
 
 // Ruby it `it "returns false" do` at line 95.
-pub fn ruby_test_runner_formula_spec_l95_d18_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_test_runner_formula_spec_l95_d18_returns() bool {
+	for formula in [ruby_test_runner_formula_spec_l8_d1_testball(),
+		ruby_test_runner_formula_spec_l9_d2_xcode_helper(),
+		ruby_test_runner_formula_spec_l11_d4_old_non_portable_software(),
+		ruby_test_runner_formula_spec_l12_d5_fancy_new_software(),
+		ruby_test_runner_formula_spec_l13_d6_needs_modern_compiler()] {
+		if test_runner_spec_wrap(formula).linux_only() {
+			return false
+		}
+	}
+	return true
 }
 
 // Ruby it `it "returns true" do` at line 107.
-pub fn ruby_test_runner_formula_spec_l107_d19_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_test_runner_formula_spec_l107_d19_returns() bool {
+	for formula in [ruby_test_runner_formula_spec_l8_d1_testball(),
+		ruby_test_runner_formula_spec_l10_d3_linux_kernel_requirer(),
+		ruby_test_runner_formula_spec_l11_d4_old_non_portable_software(),
+		ruby_test_runner_formula_spec_l12_d5_fancy_new_software()] {
+		if !test_runner_spec_wrap(formula).linux_compatible() {
+			return false
+		}
+	}
+	return true
 }
 
 // Ruby it `it "returns false" do` at line 116.
-pub fn ruby_test_runner_formula_spec_l116_d20_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_test_runner_formula_spec_l116_d20_returns() bool {
+	return !test_runner_spec_wrap(ruby_test_runner_formula_spec_l9_d2_xcode_helper()).linux_compatible() && !test_runner_spec_wrap(ruby_test_runner_formula_spec_l13_d6_needs_modern_compiler()).linux_compatible()
 }
 
 // Ruby it `it "returns true" do` at line 125.
-pub fn ruby_test_runner_formula_spec_l125_d21_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_test_runner_formula_spec_l125_d21_returns() bool {
+	return test_runner_spec_wrap(ruby_test_runner_formula_spec_l11_d4_old_non_portable_software()).x86_64_only()
 }
 
 // Ruby it `it "returns false" do` at line 131.
-pub fn ruby_test_runner_formula_spec_l131_d22_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_test_runner_formula_spec_l131_d22_returns() bool {
+	return !test_runner_spec_wrap(ruby_test_runner_formula_spec_l12_d5_fancy_new_software()).x86_64_only()
 }
 
 // Ruby it `it "returns false" do` at line 137.
-pub fn ruby_test_runner_formula_spec_l137_d23_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_test_runner_formula_spec_l137_d23_returns() bool {
+	for formula in [ruby_test_runner_formula_spec_l8_d1_testball(),
+		ruby_test_runner_formula_spec_l9_d2_xcode_helper(),
+		ruby_test_runner_formula_spec_l10_d3_linux_kernel_requirer(),
+		ruby_test_runner_formula_spec_l13_d6_needs_modern_compiler()] {
+		if test_runner_spec_wrap(formula).x86_64_only() {
+			return false
+		}
+	}
+	return true
 }
 
 // Ruby it `it "returns true" do` at line 148.
-pub fn ruby_test_runner_formula_spec_l148_d24_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_test_runner_formula_spec_l148_d24_returns() bool {
+	for formula in [ruby_test_runner_formula_spec_l8_d1_testball(),
+		ruby_test_runner_formula_spec_l9_d2_xcode_helper(),
+		ruby_test_runner_formula_spec_l10_d3_linux_kernel_requirer(),
+		ruby_test_runner_formula_spec_l11_d4_old_non_portable_software(),
+		ruby_test_runner_formula_spec_l13_d6_needs_modern_compiler()] {
+		if !test_runner_spec_wrap(formula).x86_64_compatible() {
+			return false
+		}
+	}
+	return true
 }
 
 // Ruby it `it "returns false" do` at line 158.
-pub fn ruby_test_runner_formula_spec_l158_d25_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_test_runner_formula_spec_l158_d25_returns() bool {
+	return !test_runner_spec_wrap(ruby_test_runner_formula_spec_l12_d5_fancy_new_software()).x86_64_compatible()
 }
 
 // Ruby it `it "returns true" do` at line 166.
-pub fn ruby_test_runner_formula_spec_l166_d26_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_test_runner_formula_spec_l166_d26_returns() bool {
+	return test_runner_spec_wrap(ruby_test_runner_formula_spec_l12_d5_fancy_new_software()).arm64_only()
 }
 
 // Ruby it `it "returns false" do` at line 172.
-pub fn ruby_test_runner_formula_spec_l172_d27_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_test_runner_formula_spec_l172_d27_returns() bool {
+	return !test_runner_spec_wrap(ruby_test_runner_formula_spec_l11_d4_old_non_portable_software()).arm64_only()
 }
 
 // Ruby it `it "returns false" do` at line 178.
-pub fn ruby_test_runner_formula_spec_l178_d28_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_test_runner_formula_spec_l178_d28_returns() bool {
+	for formula in [ruby_test_runner_formula_spec_l8_d1_testball(),
+		ruby_test_runner_formula_spec_l9_d2_xcode_helper(),
+		ruby_test_runner_formula_spec_l10_d3_linux_kernel_requirer(),
+		ruby_test_runner_formula_spec_l13_d6_needs_modern_compiler()] {
+		if test_runner_spec_wrap(formula).arm64_only() {
+			return false
+		}
+	}
+	return true
 }
 
 // Ruby it `it "returns true" do` at line 189.
-pub fn ruby_test_runner_formula_spec_l189_d29_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_test_runner_formula_spec_l189_d29_returns() bool {
+	for formula in [ruby_test_runner_formula_spec_l8_d1_testball(),
+		ruby_test_runner_formula_spec_l9_d2_xcode_helper(),
+		ruby_test_runner_formula_spec_l10_d3_linux_kernel_requirer(),
+		ruby_test_runner_formula_spec_l12_d5_fancy_new_software(),
+		ruby_test_runner_formula_spec_l13_d6_needs_modern_compiler()] {
+		if !test_runner_spec_wrap(formula).arm64_compatible() {
+			return false
+		}
+	}
+	return true
 }
 
 // Ruby it `it "returns false" do` at line 199.
-pub fn ruby_test_runner_formula_spec_l199_d30_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_test_runner_formula_spec_l199_d30_returns() bool {
+	return !test_runner_spec_wrap(ruby_test_runner_formula_spec_l11_d4_old_non_portable_software()).arm64_compatible()
 }
 
 // Ruby let `let(:requirement) { described_class.new(needs_modern_compiler).versioned_macos_requirement }` at line 206.
-pub fn ruby_test_runner_formula_spec_l206_d31_requirement(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('requirement', ...args)
+pub fn ruby_test_runner_formula_spec_l206_d31_requirement() ?homebrew.TestRunnerRequirement {
+	return test_runner_spec_wrap(ruby_test_runner_formula_spec_l13_d6_needs_modern_compiler()).versioned_macos_requirement()
 }
 
 // Ruby it `it "returns a MacOSRequirement with a specified version" do` at line 208.
-pub fn ruby_test_runner_formula_spec_l208_d32_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_test_runner_formula_spec_l208_d32_returns() bool {
+	requirement := ruby_test_runner_formula_spec_l206_d31_requirement() or { return false }
+	return requirement.kind == .macos && requirement.version_specified && requirement.version == '13'
 }
 
 // Ruby it `it "returns nil" do` at line 214.
-pub fn ruby_test_runner_formula_spec_l214_d33_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_test_runner_formula_spec_l214_d33_returns() bool {
+	return test_runner_spec_wrap(ruby_test_runner_formula_spec_l9_d2_xcode_helper()).versioned_macos_requirement() == none
 }
 
 // Ruby it `it "returns nil" do` at line 220.
-pub fn ruby_test_runner_formula_spec_l220_d34_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_test_runner_formula_spec_l220_d34_returns() bool {
+	for formula in [ruby_test_runner_formula_spec_l8_d1_testball(),
+		ruby_test_runner_formula_spec_l10_d3_linux_kernel_requirer(),
+		ruby_test_runner_formula_spec_l11_d4_old_non_portable_software(),
+		ruby_test_runner_formula_spec_l12_d5_fancy_new_software()] {
+		if test_runner_spec_wrap(formula).versioned_macos_requirement() != none {
+			return false
+		}
+	}
+	return true
 }
 
 // Ruby it `it "returns true" do` at line 232.
-pub fn ruby_test_runner_formula_spec_l232_d35_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_test_runner_formula_spec_l232_d35_returns() bool {
+	return test_runner_spec_wrap(ruby_test_runner_formula_spec_l13_d6_needs_modern_compiler()).compatible_with('13')
 }
 
 // Ruby it `it "returns false" do` at line 239.
-pub fn ruby_test_runner_formula_spec_l239_d36_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_test_runner_formula_spec_l239_d36_returns() bool {
+	return !test_runner_spec_wrap(ruby_test_runner_formula_spec_l13_d6_needs_modern_compiler()).compatible_with('11')
 }
 
 // Ruby it `it "returns true" do` at line 247.
-pub fn ruby_test_runner_formula_spec_l247_d37_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_test_runner_formula_spec_l247_d37_returns() bool {
+	for version in ['10.15', '11', '12', '13', '14', '15'] {
+		if !test_runner_spec_wrap(ruby_test_runner_formula_spec_l9_d2_xcode_helper()).compatible_with(version) {
+			return false
+		}
+	}
+	return true
 }
 
 // Ruby it `it "returns true" do` at line 256.
-pub fn ruby_test_runner_formula_spec_l256_d38_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_test_runner_formula_spec_l256_d38_returns() bool {
+	for version in ['10.15', '11', '12', '13', '14', '15'] {
+		for formula in [ruby_test_runner_formula_spec_l8_d1_testball(),
+			ruby_test_runner_formula_spec_l10_d3_linux_kernel_requirer(),
+			ruby_test_runner_formula_spec_l11_d4_old_non_portable_software(),
+			ruby_test_runner_formula_spec_l12_d5_fancy_new_software()] {
+			if !test_runner_spec_wrap(formula).compatible_with(version) {
+				return false
+			}
+		}
+	}
+	return true
 }
 
 // Ruby let `let(:current_system) do` at line 269.
-pub fn ruby_test_runner_formula_spec_l269_d39_current_system(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('current_system', ...args)
+pub fn ruby_test_runner_formula_spec_l269_d39_current_system() homebrew.TestRunnerSystem {
+	return homebrew.TestRunnerSystem{ platform: 'linux', arch: 'x86_64' }
 }
 
 // Ruby it `it "returns an empty array" do` at line 288.
-pub fn ruby_test_runner_formula_spec_l288_d40_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_test_runner_formula_spec_l288_d40_returns() bool {
+	for formula in [ruby_test_runner_formula_spec_l8_d1_testball(),
+		ruby_test_runner_formula_spec_l9_d2_xcode_helper(),
+		ruby_test_runner_formula_spec_l10_d3_linux_kernel_requirer(),
+		ruby_test_runner_formula_spec_l11_d4_old_non_portable_software(),
+		ruby_test_runner_formula_spec_l12_d5_fancy_new_software(),
+		ruby_test_runner_formula_spec_l13_d6_needs_modern_compiler()] {
+		if test_runner_spec_wrap(formula).dependents([], ruby_test_runner_formula_spec_l269_d39_current_system()).len != 0 {
+			return false
+		}
+	}
+	return true
 }
 
 // Ruby let `let(:testball_user) { setup_test_runner_formula("testball_user", ["testball"]) }` at line 299.
-pub fn ruby_test_runner_formula_spec_l299_d41_testball_user(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('testball_user', ...args)
+pub fn ruby_test_runner_formula_spec_l299_d41_testball_user() homebrew.TestRunnerFormulaDefinition {
+	return test_runner_spec_setup_formula('testball_user', ['testball'], [])
 }
 
 // Ruby let `let(:recursive_testball_dependent) do` at line 300.
-pub fn ruby_test_runner_formula_spec_l300_d42_recursive_testball_dependent(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('recursive_testball_dependent', ...args)
+pub fn ruby_test_runner_formula_spec_l300_d42_recursive_testball_dependent() homebrew.TestRunnerFormulaDefinition {
+	return test_runner_spec_setup_formula('recursive_testball_dependent', [
+		'testball_user',
+	], [])
 }
 
 // Ruby it `it "returns an array of direct dependents" do` at line 304.
-pub fn ruby_test_runner_formula_spec_l304_d43_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_test_runner_formula_spec_l304_d43_returns() bool {
+	candidates := [ruby_test_runner_formula_spec_l299_d41_testball_user(),
+		ruby_test_runner_formula_spec_l300_d42_recursive_testball_dependent()]
+	system := ruby_test_runner_formula_spec_l269_d39_current_system()
+	testball_dependents := homebrew.new_test_runner_formula(ruby_test_runner_formula_spec_l8_d1_testball(), true).dependents(candidates, system).map(it.name)
+	user_dependents := homebrew.new_test_runner_formula(ruby_test_runner_formula_spec_l299_d41_testball_user(), true).dependents(candidates, system).map(it.name)
+	return testball_dependents == ['testball_user'] && user_dependents == [
+		'recursive_testball_dependent',
+	]
 }
 
 // Ruby let `let(:testball_user_intel) { setup_test_runner_formula("testball_user-intel", intel: ["testball"]) }` at line 318.
-pub fn ruby_test_runner_formula_spec_l318_d44_testball_user_intel(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('testball_user_intel', ...args)
+pub fn ruby_test_runner_formula_spec_l318_d44_testball_user_intel() homebrew.TestRunnerFormulaDefinition {
+	return test_runner_spec_setup_formula('testball_user-intel', [], [
+		homebrew.TestRunnerDependencyRule{ name: 'testball', arch: 'x86_64' },
+	])
 }
 
 // Ruby let `let(:testball_user_arm) { setup_test_runner_formula("testball_user-arm", arm: ["testball"]) }` at line 319.
-pub fn ruby_test_runner_formula_spec_l319_d45_testball_user_arm(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('testball_user_arm', ...args)
+pub fn ruby_test_runner_formula_spec_l319_d45_testball_user_arm() homebrew.TestRunnerFormulaDefinition {
+	return test_runner_spec_setup_formula('testball_user-arm', [], [
+		homebrew.TestRunnerDependencyRule{ name: 'testball', arch: 'arm64' },
+	])
 }
 
 // Ruby let `let(:testball_user_macos) { setup_test_runner_formula("testball_user-macos", macos: ["testball"]) }` at line 320.
-pub fn ruby_test_runner_formula_spec_l320_d46_testball_user_macos(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('testball_user_macos', ...args)
+pub fn ruby_test_runner_formula_spec_l320_d46_testball_user_macos() homebrew.TestRunnerFormulaDefinition {
+	return test_runner_spec_setup_formula('testball_user-macos', [], [
+		homebrew.TestRunnerDependencyRule{ name: 'testball', platform: 'macos' },
+	])
 }
 
 // Ruby let `let(:testball_user_linux) { setup_test_runner_formula("testball_user-linux", linux: ["testball"]) }` at line 321.
-pub fn ruby_test_runner_formula_spec_l321_d47_testball_user_linux(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('testball_user_linux', ...args)
+pub fn ruby_test_runner_formula_spec_l321_d47_testball_user_linux() homebrew.TestRunnerFormulaDefinition {
+	return test_runner_spec_setup_formula('testball_user-linux', [], [
+		homebrew.TestRunnerDependencyRule{ name: 'testball', platform: 'linux' },
+	])
 }
 
 // Ruby let `let(:testball_user_ventura) do` at line 322.
-pub fn ruby_test_runner_formula_spec_l322_d48_testball_user_ventura(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('testball_user_ventura', ...args)
+pub fn ruby_test_runner_formula_spec_l322_d48_testball_user_ventura() homebrew.TestRunnerFormulaDefinition {
+	return test_runner_spec_setup_formula('testball_user-ventura', [], [
+		homebrew.TestRunnerDependencyRule{ name: 'testball', platform: 'macos', macos_version: 'ventura' },
+	])
 }
 
 // Ruby let `let(:testball_and_dependents) do` at line 325.
-pub fn ruby_test_runner_formula_spec_l325_d49_testball_and_dependents(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('testball_and_dependents', ...args)
+pub fn ruby_test_runner_formula_spec_l325_d49_testball_and_dependents() []homebrew.TestRunnerFormulaDefinition {
+	return [ruby_test_runner_formula_spec_l299_d41_testball_user(),
+		ruby_test_runner_formula_spec_l318_d44_testball_user_intel(),
+		ruby_test_runner_formula_spec_l319_d45_testball_user_arm(),
+		ruby_test_runner_formula_spec_l320_d46_testball_user_macos(),
+		ruby_test_runner_formula_spec_l321_d47_testball_user_linux(),
+		ruby_test_runner_formula_spec_l322_d48_testball_user_ventura()]
+}
+
+fn test_runner_spec_dependent_names(system homebrew.TestRunnerSystem) []string {
+	mut names := homebrew.new_test_runner_formula(ruby_test_runner_formula_spec_l8_d1_testball(), true).dependents(ruby_test_runner_formula_spec_l325_d49_testball_and_dependents(), system).map(it.name)
+	names.sort()
+	return names
 }
 
 // Ruby it `it "returns only the dependents for the requested platform and architecture" do` at line 337.
-pub fn ruby_test_runner_formula_spec_l337_d50_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_test_runner_formula_spec_l337_d50_returns() bool {
+	return test_runner_spec_dependent_names(homebrew.TestRunnerSystem{ platform: 'linux', arch: 'x86_64' }) == [
+		'testball_user',
+		'testball_user-intel',
+		'testball_user-linux',
+	]
 }
 
 // Ruby it `it "returns only the dependents for the requested platform and architecture" do` at line 349.
-pub fn ruby_test_runner_formula_spec_l349_d51_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_test_runner_formula_spec_l349_d51_returns() bool {
+	return test_runner_spec_dependent_names(homebrew.TestRunnerSystem{ platform: 'macos', arch: 'x86_64' }) == [
+		'testball_user',
+		'testball_user-intel',
+		'testball_user-macos',
+	]
 }
 
 // Ruby it `it "returns only the dependents for the requested platform and architecture" do` at line 361.
-pub fn ruby_test_runner_formula_spec_l361_d52_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_test_runner_formula_spec_l361_d52_returns() bool {
+	return test_runner_spec_dependent_names(homebrew.TestRunnerSystem{ platform: 'macos', arch: 'arm64' }) == [
+		'testball_user',
+		'testball_user-arm',
+		'testball_user-macos',
+	]
 }
 
 // Ruby it `it "returns only the dependents for the requested platform and architecture" do` at line 373.
-pub fn ruby_test_runner_formula_spec_l373_d53_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_test_runner_formula_spec_l373_d53_returns() bool {
+	return test_runner_spec_dependent_names(homebrew.TestRunnerSystem{ platform: 'macos', arch: 'x86_64', macos_version: 'sonoma' }) == [
+		'testball_user',
+		'testball_user-intel',
+		'testball_user-macos',
+	]
 }
 
 // Ruby it `it "returns only the dependents for the requested platform and architecture" do` at line 385.
-pub fn ruby_test_runner_formula_spec_l385_d54_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_test_runner_formula_spec_l385_d54_returns() bool {
+	return test_runner_spec_dependent_names(homebrew.TestRunnerSystem{ platform: 'macos', arch: 'arm64', macos_version: 'ventura' }) == [
+		'testball_user',
+		'testball_user-arm',
+		'testball_user-macos',
+		'testball_user-ventura',
+	]
 }
 
 // Ruby method `setup_test_runner_formula(name, dependencies = [], **kwargs)` at line 399.
-pub fn ruby_test_runner_formula_spec_l399_d55_setup_test_runner_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('setup_test_runner_formula', ...args)
+pub fn ruby_test_runner_formula_spec_l399_d55_setup_test_runner_formula(name string,
+	dependencies []string, rules []homebrew.TestRunnerDependencyRule) homebrew.TestRunnerFormulaDefinition {
+	return test_runner_spec_setup_formula(name, dependencies, rules)
 }
 
 // Original Ruby source (line-for-line):

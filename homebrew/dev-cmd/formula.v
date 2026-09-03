@@ -1,13 +1,34 @@
 module dev_cmd
 
 import brew_runtime
+import os
 
 // Translated from Homebrew/brew `dev-cmd/formula.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub fn run_formula_command(formula_paths []string, cask_paths []string) !string {
+	existing_formulae := formula_paths.filter(os.exists(it))
+	if existing_formulae.len == 0 && cask_paths.any(os.exists(it)) {
+		return error('Found casks but did not find formulae!')
+	}
+	return if existing_formulae.len == 0 { '' } else { '${existing_formulae.join('\n')}\n' }
+}
 
 // Ruby method `run` at line 19.
 pub fn ruby_formula_l19_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('run', ...args)
+	if args.len == 0 {
+		return brew_runtime.object_value('ArgumentError', 'formula paths are required')
+	}
+	formula_paths := args[0].as_string_array() or {
+		return brew_runtime.object_value('TypeError', err.msg())
+	}
+	cask_paths := if args.len > 1 {
+		args[1].as_string_array() or { []string{} }
+	} else {
+		[]string{}
+	}
+	return brew_runtime.string_value(run_formula_command(formula_paths, cask_paths) or {
+		return brew_runtime.object_value('FatalError', err.msg())
+	})
 }
 
 // Original Ruby source (line-for-line):

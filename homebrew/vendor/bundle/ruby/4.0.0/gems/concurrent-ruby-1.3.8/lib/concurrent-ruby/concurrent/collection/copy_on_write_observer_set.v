@@ -1,68 +1,241 @@
 module collection
 
 import brew_runtime
+import sync
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/collection/copy_on_write_observer_set.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub type ObserverCallback = fn([]brew_runtime.Value) !
+
+pub enum ObserverCopyMode {
+	on_write
+	on_notify
+}
+
+struct ObserverEntry {
+	observer brew_runtime.Value
+	function string
+	callback ?ObserverCallback
+}
+
+@[heap]
+struct ObserverSetState {
+	mode ObserverCopyMode
+mut:
+	lock      sync.Mutex
+	observers map[string]ObserverEntry
+}
+
+@[heap]
+pub struct ObserverSet {
+mut:
+	state &ObserverSetState
+}
+
+pub fn new_observer_set(mode ObserverCopyMode) &ObserverSet {
+	return &ObserverSet{
+		state: &ObserverSetState{
+			mode: mode
+			observers: map[string]ObserverEntry{}
+		}
+	}
+}
+
+fn observer_identity(observer brew_runtime.Value) string {
+	return observer.attributes['identity'] or { '${observer.type_name}:${observer.repr}' }
+}
+
+pub fn (mut set ObserverSet) add_observer(observer brew_runtime.Value, function string, callback ?ObserverCallback) !brew_runtime.Value {
+	if observer.type_name == 'NilClass' && callback == none {
+		return error('should pass observer as a first argument or block')
+	}
+	entry := ObserverEntry{
+		observer: observer
+		function: if callback == none { function } else { 'call' }
+		callback: callback
+	}
+	key := observer_identity(observer)
+	set.state.lock.lock()
+	if set.state.mode == .on_write {
+		mut copy := set.state.observers.clone()
+		copy[key] = entry
+		set.state.observers = copy.clone()
+	} else {
+		set.state.observers[key] = entry
+	}
+	set.state.lock.unlock()
+	return observer
+}
+
+pub fn (mut set ObserverSet) delete_observer(observer brew_runtime.Value) brew_runtime.Value {
+	key := observer_identity(observer)
+	set.state.lock.lock()
+	if set.state.mode == .on_write {
+		mut copy := set.state.observers.clone()
+		copy.delete(key)
+		set.state.observers = copy.clone()
+	} else {
+		set.state.observers.delete(key)
+	}
+	set.state.lock.unlock()
+	return observer
+}
+
+pub fn (mut set ObserverSet) delete_observers() {
+	set.state.lock.lock()
+	set.state.observers = map[string]ObserverEntry{}
+	set.state.lock.unlock()
+}
+
+pub fn (mut set ObserverSet) count_observers() int {
+	set.state.lock.lock()
+	defer {
+		set.state.lock.unlock()
+	}
+	return set.state.observers.len
+}
+
+fn (mut set ObserverSet) snapshot(clear bool) map[string]ObserverEntry {
+	set.state.lock.lock()
+	copy := set.state.observers.clone()
+	if clear {
+		set.state.observers = map[string]ObserverEntry{}
+	}
+	set.state.lock.unlock()
+	return copy
+}
+
+pub fn (mut set ObserverSet) notify(args []brew_runtime.Value, clear bool) ![]brew_runtime.Value {
+	entries := set.snapshot(clear)
+	mut notified := []brew_runtime.Value{cap: entries.len}
+	for _, entry in entries {
+		if callback := entry.callback {
+			callback(args)!
+		}
+		notified << entry.observer
+	}
+	return notified
+}
+
+fn observer_entries_value(entries map[string]ObserverEntry) brew_runtime.Value {
+	mut encoded := map[string]brew_runtime.Value{}
+	for key, entry in entries {
+		encoded[key] = brew_runtime.structured_value(entry.observer.type_name, entry.observer.repr, {
+			'function': entry.function
+		})
+	}
+	return brew_runtime.map_value(encoded)
+}
+
+fn observer_boundary_new(mode ObserverCopyMode, type_name string) brew_runtime.Value {
+	set := new_observer_set(mode)
+	return brew_runtime.structured_value(type_name, '#<${type_name}>', {
+		'observer_set_address': u64(voidptr(set)).str()
+	})
+}
+
+fn observer_boundary_receiver(args []brew_runtime.Value) &ObserverSet {
+	if args.len == 0 {
+		panic('observer set method requires a receiver')
+	}
+	address := (args[0].attribute('observer_set_address') or {
+		panic('${args[0].type_name} has no translated observer-set state')
+	}).u64()
+	return unsafe { &ObserverSet(voidptr(address)) }
+}
+
+fn observer_boundary_add(args []brew_runtime.Value) brew_runtime.Value {
+	if args.len < 2 {
+		panic('add_observer requires observer')
+	}
+	mut set := observer_boundary_receiver(args)
+	function := if args.len > 2 { args[2].as_string().trim_left(':') } else { 'update' }
+	return set.add_observer(args[1], function, none) or { panic(err) }
+}
 
 // Ruby method `initialize` at line 13.
 pub fn ruby_copy_on_write_observer_set_l13_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	return observer_boundary_new(.on_write, 'Concurrent::Collection::CopyOnWriteObserverSet')
 }
 
 // Ruby method `add_observer(observer = nil, func = :update, &block)` at line 19.
 pub fn ruby_copy_on_write_observer_set_l19_d2_add_observer(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('add_observer', ...args)
+	return observer_boundary_add(args)
 }
 
 // Ruby method `delete_observer(observer)` at line 40.
 pub fn ruby_copy_on_write_observer_set_l40_d3_delete_observer(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('delete_observer', ...args)
+	if args.len < 2 {
+		panic('delete_observer requires observer')
+	}
+	mut set := observer_boundary_receiver(args)
+	return set.delete_observer(args[1])
 }
 
 // Ruby method `delete_observers` at line 50.
 pub fn ruby_copy_on_write_observer_set_l50_d4_delete_observers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('delete_observers', ...args)
+	mut set := observer_boundary_receiver(args)
+	set.delete_observers()
+	return args[0]
 }
 
 // Ruby method `count_observers` at line 56.
 pub fn ruby_copy_on_write_observer_set_l56_d5_count_observers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('count_observers', ...args)
+	mut set := observer_boundary_receiver(args)
+	return brew_runtime.int_value(set.count_observers())
 }
 
 // Ruby method `notify_observers(*args, &block)` at line 63.
 pub fn ruby_copy_on_write_observer_set_l63_d6_notify_observers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('notify_observers', ...args)
+	mut set := observer_boundary_receiver(args)
+	set.notify(args[1..], false) or { panic(err) }
+	return args[0]
 }
 
 // Ruby method `notify_and_delete_observers(*args, &block)` at line 72.
 pub fn ruby_copy_on_write_observer_set_l72_d7_notify_and_delete_observers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('notify_and_delete_observers', ...args)
+	mut set := observer_boundary_receiver(args)
+	set.notify(args[1..], true) or { panic(err) }
+	return args[0]
 }
 
 // Ruby method `ns_initialize` at line 80.
 pub fn ruby_copy_on_write_observer_set_l80_d8_ns_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ns_initialize', ...args)
+	mut set := observer_boundary_receiver(args)
+	set.delete_observers()
+	return args[0]
 }
 
 // Ruby method `notify_to(observers, *args)` at line 86.
 pub fn ruby_copy_on_write_observer_set_l86_d9_notify_to(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('notify_to', ...args)
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Ruby method `observers` at line 94.
 pub fn ruby_copy_on_write_observer_set_l94_d10_observers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('observers', ...args)
+	mut set := observer_boundary_receiver(args)
+	return observer_entries_value(set.snapshot(false))
 }
 
 // Ruby method `observers=(new_set)` at line 98.
 pub fn ruby_copy_on_write_observer_set_l98_d11_observers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('observers=', ...args)
+	if args.len < 2 {
+		panic('observers= requires observer map')
+	}
+	mut set := observer_boundary_receiver(args)
+	values := args[1].as_map() or { panic(err) }
+	set.delete_observers()
+	for _, observer in values {
+		function := observer.attributes['function'] or { 'update' }
+		set.add_observer(observer, function, none) or { panic(err) }
+	}
+	return args[1]
 }
 
 // Ruby method `clear_observers_and_return_old` at line 102.
 pub fn ruby_copy_on_write_observer_set_l102_d12_clear_observers_and_return_old(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('clear_observers_and_return_old', ...args)
+	mut set := observer_boundary_receiver(args)
+	return observer_entries_value(set.snapshot(true))
 }
 
 // Original Ruby source (line-for-line):

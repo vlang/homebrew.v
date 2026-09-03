@@ -4,25 +4,70 @@ import brew_runtime
 
 // Translated from Homebrew/brew `vendor/bundle/bundler/setup.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub const vendored_ruby_api_version = '4.0.0'
+
+pub struct RbConfig {
+pub:
+	ruby_version  string
+	enable_shared string
+}
+
+pub type OriginalRequire = fn(string) !brew_runtime.Value
+
+// vendored_rb_config is the RbConfig used by Homebrew's adjacent portable Ruby.
+// Its API directory is `4.0.0`, and that interpreter is built without shared
+// library support.
+pub fn vendored_rb_config() RbConfig {
+	return RbConfig{
+		ruby_version: vendored_ruby_api_version
+		enable_shared: 'no'
+	}
+}
+
+pub fn api_version(config RbConfig) string {
+	return config.ruby_version
+}
+
+pub fn extension_api_version(config RbConfig) string {
+	version := api_version(config)
+	return if config.enable_shared == 'no' { '${version}-static' } else { version }
+}
+
+// call_original_require represents the method body installed by line 32: the
+// replacement `require` is exactly RubyGems' saved `gem_original_require`.
+pub fn call_original_require(feature string, original OriginalRequire) !brew_runtime.Value {
+	return original(feature)
+}
+
+fn setup_nil_value() brew_runtime.Value {
+	return brew_runtime.object_value('NilClass', 'nil')
+}
 
 // Ruby method `gem(*)` at line 5.
 pub fn ruby_setup_l5_d1_gem(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('gem', ...args)
+	return setup_nil_value()
 }
 
 // Ruby method `self.ruby_api_version` at line 12.
 pub fn ruby_setup_l12_d2_self_ruby_api_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.ruby_api_version', ...args)
+	return brew_runtime.string_value(api_version(vendored_rb_config()))
 }
 
 // Ruby method `self.extension_api_version` at line 16.
 pub fn ruby_setup_l16_d3_self_extension_api_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.extension_api_version', ...args)
+	return brew_runtime.string_value(extension_api_version(vendored_rb_config()))
 }
 
 // Ruby define_method `k.send(:define_method, :require, k.instance_method(:gem_original_require))` at line 32.
 pub fn ruby_setup_l32_d4_require(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('require', ...args)
+	if args.len < 2 {
+		panic('restored require needs a feature and translated gem_original_require result')
+	}
+	feature := args[0].as_string()
+	mut result := args[args.len - 1]
+	return call_original_require(feature, fn [mut result] (_ string) !brew_runtime.Value {
+		return result
+	}) or { panic(err) }
 }
 
 // Original Ruby source (line-for-line):

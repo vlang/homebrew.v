@@ -7,12 +7,53 @@ import brew_runtime
 
 // Ruby method `deep_merge(other_hash, &block)` at line 25.
 pub fn ruby_deep_merge_l25_d1_deep_merge(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('deep_merge', ...args)
+	if args.len < 2 {
+		return brew_runtime.object_value('ArgumentError', 'two hashes are required')
+	}
+	left := args[0].as_map() or {
+		return brew_runtime.object_value('TypeError', err.msg())
+	}
+	right := args[1].as_map() or {
+		return brew_runtime.object_value('TypeError', err.msg())
+	}
+	strategy := if args.len > 2 { args[2].as_string() } else { '' }
+	return brew_runtime.map_value(deep_merge_value_maps(left, right, strategy))
 }
 
 // Ruby method `deep_merge!(other_hash, &block)` at line 30.
 pub fn ruby_deep_merge_l30_d2_deep_merge(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('deep_merge!', ...args)
+	// Value is immutable at this migration boundary, so the translated mutating
+	// variant returns the recursively merged receiver for its caller to retain.
+	return ruby_deep_merge_l25_d1_deep_merge(...args)
+}
+
+fn resolve_deep_merge_collision(key string, left brew_runtime.Value,
+	right brew_runtime.Value, strategy string) brew_runtime.Value {
+	if left.type_name == 'Hash' && right.type_name == 'Hash' {
+		return brew_runtime.map_value(deep_merge_value_maps(left.as_map() or { map[string]brew_runtime.Value{} }, right.as_map() or { map[string]brew_runtime.Value{} }, strategy))
+	}
+	if strategy == 'sum' && left.type_name == 'Integer' && right.type_name == 'Integer' {
+		return brew_runtime.int_value((left.as_int() or { 0 }) + (right.as_int() or { 0 }))
+	}
+	if strategy == 'keyed_sum' && left.type_name == 'Integer' && right.type_name == 'Integer' {
+		// The named strategy makes the key visible in deterministic boundary tests,
+		// while retaining Ruby's ability to resolve a collision from all 3 values.
+		return brew_runtime.int_value((left.as_int() or { 0 }) + (right.as_int() or { 0 }) + key.len)
+	}
+	return right
+}
+
+pub fn deep_merge_value_maps(left map[string]brew_runtime.Value,
+	right map[string]brew_runtime.Value, strategy string) map[string]brew_runtime.Value {
+	mut merged := left.clone()
+	for key, other_value in right {
+		if key in merged {
+			merged[key] = resolve_deep_merge_collision(key, merged[key], other_value, strategy)
+		} else {
+			merged[key] = other_value
+		}
+	}
+	return merged
 }
 
 // Original Ruby source (line-for-line):

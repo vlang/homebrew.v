@@ -4,130 +4,463 @@ import brew_runtime
 
 // Translated from Homebrew/brew `cask/dsl/version.rb`.
 // The original source is retained below until every stub has a typed V body.
+const cask_version_dividers = {
+	'.': 'dots'
+	'-': 'hyphens'
+	'_': 'underscores'
+}
+
+pub struct CaskVersion {
+pub:
+	raw_version brew_runtime.Value
+	text        string
+}
+
+fn cask_version_nil() brew_runtime.Value {
+	return brew_runtime.Value{
+		type_name: 'NilClass'
+		repr: 'nil'
+	}
+}
+
+pub fn new_cask_version(raw_version brew_runtime.Value) !CaskVersion {
+	mut text := raw_version.as_string()
+	if raw_version.type_name == 'Symbol' {
+		text = text.trim_left(':')
+	}
+	if raw_version.type_name == 'NilClass' || raw_version.type_name == '' {
+		text = ''
+	}
+	version := CaskVersion{
+		raw_version: raw_version
+		text: text
+	}
+	invalid := version.invalid_characters()
+	if invalid.len > 0 {
+		mut unique := []string{}
+		for character in invalid {
+			if character !in unique {
+				unique << character
+			}
+		}
+		return error('${raw_version.as_string()} contains invalid characters: ${unique.join('')}!')
+	}
+	return version
+}
+
+pub fn cask_version_from_string(value string) !CaskVersion {
+	return new_cask_version(brew_runtime.string_value(value))
+}
+
+pub fn cask_version_value(version CaskVersion) brew_runtime.Value {
+	return brew_runtime.Value{
+		type_name: 'Cask::DSL::Version'
+		repr: version.text
+		map_data: {
+			'raw_version': version.raw_version
+		}
+		attributes: {
+			'raw_type': version.raw_version.type_name
+		}
+	}
+}
+
+pub fn cask_version_from_value(value brew_runtime.Value) !CaskVersion {
+	if value.type_name == 'Cask::DSL::Version' {
+		raw := value.map_data['raw_version'] or { brew_runtime.string_value(value.as_string()) }
+		return new_cask_version(raw)
+	}
+	return new_cask_version(value)
+}
+
+pub fn (version CaskVersion) invalid_characters() []string {
+	if version.text == '' || version.latest() {
+		return []string{}
+	}
+	mut invalid := []string{}
+	for character in version.text.runes() {
+		if !(character >= `0` && character <= `9`) && !(character >= `a` && character <= `z`) && !(character >= `A` && character <= `Z`) && character !in [
+			`.`,
+			`,`,
+			`:`,
+			`-`,
+			`_`,
+			`+`,
+			` `,
+		] {
+			invalid << character.str()
+		}
+	}
+	return invalid
+}
+
+pub fn (version CaskVersion) latest() bool {
+	return version.text == 'latest'
+}
+
+fn cask_version_unstable_text(value string) string {
+	mut normalized := ''
+	mut separator := false
+	for character in value.to_lower().replace('.', '').runes() {
+		if (character >= `a` && character <= `z`) || (character >= `0` && character <= `9`) {
+			normalized += character.str()
+			separator = false
+		} else if !separator {
+			normalized += '-'
+			separator = true
+		}
+	}
+	return normalized
+}
+
+fn cask_version_prerelease_word(value string) bool {
+	for word in ['alpha', 'beta', 'preview', 'rc', 'dev', 'canary', 'snapshot'] {
+		mut offset := 0
+		for offset <= value.len - word.len {
+			relative := value[offset..].index(word) or { break }
+			start := offset + relative
+			end := start + word.len
+			before := start == 0 || value[start - 1].is_digit() || value[start - 1] == `-`
+			after := end == value.len || value[end].is_digit() || value[end] == `-`
+			if before && after {
+				return true
+			}
+			offset = start + 1
+		}
+	}
+	return false
+}
+
+fn cask_version_abbreviated_prefix(prefix string) bool {
+	if prefix == '' || !prefix[0].is_alnum() {
+		return false
+	}
+	parts := prefix.split('-')
+	if parts[0] == '' || !parts[0].bytes().all(it.is_alnum()) {
+		return false
+	}
+	for index in 1 .. parts.len {
+		part := parts[index]
+		if index == parts.len - 1 && part == '' {
+			continue
+		}
+		if part == '' || !part.bytes().all(it.is_digit()) {
+			return false
+		}
+	}
+	return true
+}
+
+fn cask_version_abbreviated_prerelease(value string) bool {
+	for qualifier in ['pre', 'a', 'b'] {
+		mut offset := 1
+		for offset <= value.len - qualifier.len {
+			relative := value[offset..].index(qualifier) or { break }
+			start := offset + relative
+			end := start + qualifier.len
+			if cask_version_abbreviated_prefix(value[..start]) && (end == value.len || value[end].is_digit() || value[end] == `-`) {
+				return true
+			}
+			offset = start + 1
+		}
+	}
+	return false
+}
+
+pub fn (version CaskVersion) unstable() bool {
+	if version.latest() {
+		return false
+	}
+	value := cask_version_unstable_text(version.text)
+	return cask_version_prerelease_word(value) || cask_version_abbreviated_prerelease(value)
+}
+
+fn cask_version_components(text string) []string {
+	mut result := []string{}
+	mut start := 0
+	for index, character in text {
+		if character in [`.`, `,`, `:`] {
+			result << text[start..index]
+			start = index + 1
+			if result.len == 3 {
+				break
+			}
+		}
+	}
+	if result.len < 3 && start <= text.len {
+		result << text[start..]
+	}
+	for result.len < 3 {
+		result << ''
+	}
+	return result[..3]
+}
+
+fn cask_version_derived(version CaskVersion, text string) CaskVersion {
+	if version.text == '' || version.latest() {
+		return version
+	}
+	raw := if text == '' { cask_version_nil() } else { brew_runtime.string_value(text) }
+	return new_cask_version(raw) or { CaskVersion{ raw_version: raw, text: text } }
+}
+
+pub fn (version CaskVersion) major() CaskVersion {
+	return cask_version_derived(version, cask_version_components(version.text)[0])
+}
+
+pub fn (version CaskVersion) minor() CaskVersion {
+	return cask_version_derived(version, cask_version_components(version.text)[1])
+}
+
+pub fn (version CaskVersion) patch() CaskVersion {
+	return cask_version_derived(version, cask_version_components(version.text)[2])
+}
+
+pub fn (version CaskVersion) major_minor() CaskVersion {
+	return cask_version_derived(version, [version.major().text, version.minor().text].filter(it != '').join('.'))
+}
+
+pub fn (version CaskVersion) major_minor_patch() CaskVersion {
+	return cask_version_derived(version, [version.major().text, version.minor().text,
+		version.patch().text].filter(it != '').join('.'))
+}
+
+pub fn (version CaskVersion) minor_patch() CaskVersion {
+	return cask_version_derived(version, [version.minor().text, version.patch().text].filter(it != '').join('.'))
+}
+
+pub fn (version CaskVersion) csv() []CaskVersion {
+	if version.text == '' {
+		return []
+	}
+	mut parts := version.text.split(',')
+	for parts.len > 0 && parts.last() == '' {
+		parts.delete_last()
+	}
+	return parts.map(cask_version_from_string(it) or { CaskVersion{ text: it } })
+}
+
+pub fn (version CaskVersion) before_comma() CaskVersion {
+	return cask_version_derived(version, version.text.all_before(','))
+}
+
+pub fn (version CaskVersion) after_comma() CaskVersion {
+	return cask_version_derived(version, if version.text.contains(',') {
+		version.text.all_after(',')
+	} else {
+		''
+	})
+}
+
+pub fn (version CaskVersion) no_dividers() CaskVersion {
+	return cask_version_derived(version, version.text.replace('.', '').replace('-', '').replace('_', ''))
+}
+
+pub fn (version CaskVersion) delete_divider(divider string) CaskVersion {
+	return cask_version_derived(version, version.text.replace(divider, ''))
+}
+
+pub fn (version CaskVersion) convert_divider(left string, right string) CaskVersion {
+	return cask_version_derived(version, version.text.replace(left, right))
+}
+
+pub fn (version CaskVersion) chomp(separator ?string) CaskVersion {
+	mut text := version.text
+	if value := separator {
+		if value == '' {
+			text = text.trim_right('\r\n')
+		} else if text.ends_with(value) {
+			text = text[..text.len - value.len]
+		}
+	} else if text.ends_with('\r\n') {
+		text = text[..text.len - 2]
+	} else if text.ends_with('\n') || text.ends_with('\r') {
+		text = text[..text.len - 1]
+	}
+	return cask_version_derived(version, text)
+}
+
+fn cask_version_argument(args []brew_runtime.Value, index int) brew_runtime.Value {
+	return if args.len > index { args[index] } else { cask_version_nil() }
+}
+
+fn cask_version_receiver(args []brew_runtime.Value) ?CaskVersion {
+	if args.len == 0 {
+		return none
+	}
+	return cask_version_from_value(args[0]) or { return none }
+}
+
+fn cask_version_error(message string) brew_runtime.Value {
+	return brew_runtime.object_value('TypeError', message)
+}
 
 // Ruby method `define_divider_methods(divider)` at line 24.
 pub fn ruby_version_l24_d1_define_divider_methods(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('define_divider_methods', ...args)
+	if args.len == 0 || args[0].as_string() !in cask_version_dividers {
+		return cask_version_error('unknown version divider')
+	}
+	return cask_version_nil()
 }
 
 // Ruby method `define_divider_deletion_method(divider)` at line 30.
 pub fn ruby_version_l30_d2_define_divider_deletion_method(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('define_divider_deletion_method', ...args)
+	return ruby_version_l24_d1_define_divider_methods(...args)
 }
 
 // Ruby define_method `define_method(method_name) do` at line 32.
 pub fn ruby_version_l32_d3_method_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('method_name', ...args)
+	version := cask_version_receiver(args) or { return cask_version_error('divider method requires a Version') }
+	divider := if args.len > 1 { args[1].as_string() } else { '.' }
+	return cask_version_value(version.delete_divider(divider))
 }
 
 // Ruby method `deletion_method_name(divider)` at line 39.
 pub fn ruby_version_l39_d4_deletion_method_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('deletion_method_name', ...args)
+	if args.len == 0 || args[0].as_string() !in cask_version_dividers {
+		return cask_version_nil()
+	}
+	return brew_runtime.string_value('no_${cask_version_dividers[args[0].as_string()]}')
 }
 
 // Ruby method `define_divider_conversion_methods(left_divider)` at line 44.
 pub fn ruby_version_l44_d5_define_divider_conversion_methods(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('define_divider_conversion_methods', ...args)
+	return ruby_version_l24_d1_define_divider_methods(...args)
 }
 
 // Ruby method `define_divider_conversion_method(left_divider, right_divider)` at line 51.
 pub fn ruby_version_l51_d6_define_divider_conversion_method(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('define_divider_conversion_method', ...args)
+	if args.len < 2 || args[0].as_string() !in cask_version_dividers || args[1].as_string() !in cask_version_dividers {
+		return cask_version_error('unknown version divider')
+	}
+	return cask_version_nil()
 }
 
 // Ruby define_method `define_method(method_name) do` at line 53.
 pub fn ruby_version_l53_d7_method_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('method_name', ...args)
+	version := cask_version_receiver(args) or { return cask_version_error('conversion method requires a Version') }
+	left := if args.len > 1 { args[1].as_string() } else { '.' }
+	right := if args.len > 2 { args[2].as_string() } else { '-' }
+	return cask_version_value(version.convert_divider(left, right))
 }
 
 // Ruby method `conversion_method_name(left_divider, right_divider)` at line 60.
 pub fn ruby_version_l60_d8_conversion_method_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('conversion_method_name', ...args)
+	if args.len < 2 || args[0].as_string() !in cask_version_dividers || args[1].as_string() !in cask_version_dividers {
+		return cask_version_nil()
+	}
+	return brew_runtime.string_value('${cask_version_dividers[args[0].as_string()]}_to_${cask_version_dividers[args[1].as_string()]}')
 }
 
 // Ruby attr_reader `attr_reader :raw_version` at line 70.
 pub fn ruby_version_l70_d9_raw_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raw_version', ...args)
+	version := cask_version_receiver(args) or { return cask_version_nil() }
+	return version.raw_version
 }
 
 // Ruby method `initialize(raw_version)` at line 73.
 pub fn ruby_version_l73_d10_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	version := new_cask_version(cask_version_argument(args, 0)) or { return cask_version_error(err.msg()) }
+	return cask_version_value(version)
 }
 
 // Ruby method `invalid_characters` at line 82.
 pub fn ruby_version_l82_d11_invalid_characters(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('invalid_characters', ...args)
+	version := cask_version_receiver(args) or { return brew_runtime.array_value([]brew_runtime.Value{}) }
+	return brew_runtime.string_array_value(version.invalid_characters())
 }
 
 // Ruby method `unstable?` at line 89.
 pub fn ruby_version_l89_d12_unstable(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('unstable?', ...args)
+	version := cask_version_receiver(args) or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value(version.unstable())
 }
 
 // Ruby method `latest?` at line 101.
 pub fn ruby_version_l101_d13_latest(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('latest?', ...args)
+	version := cask_version_receiver(args) or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value(version.latest())
 }
 
 // Ruby method `major` at line 109.
 pub fn ruby_version_l109_d14_major(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('major', ...args)
+	version := cask_version_receiver(args) or { return cask_version_nil() }
+	return cask_version_value(version.major())
 }
 
 // Ruby method `minor` at line 117.
 pub fn ruby_version_l117_d15_minor(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('minor', ...args)
+	version := cask_version_receiver(args) or { return cask_version_nil() }
+	return cask_version_value(version.minor())
 }
 
 // Ruby method `patch` at line 125.
 pub fn ruby_version_l125_d16_patch(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('patch', ...args)
+	version := cask_version_receiver(args) or { return cask_version_nil() }
+	return cask_version_value(version.patch())
 }
 
 // Ruby method `major_minor` at line 133.
 pub fn ruby_version_l133_d17_major_minor(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('major_minor', ...args)
+	version := cask_version_receiver(args) or { return cask_version_nil() }
+	return cask_version_value(version.major_minor())
 }
 
 // Ruby method `major_minor_patch` at line 141.
 pub fn ruby_version_l141_d18_major_minor_patch(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('major_minor_patch', ...args)
+	version := cask_version_receiver(args) or { return cask_version_nil() }
+	return cask_version_value(version.major_minor_patch())
 }
 
 // Ruby method `minor_patch` at line 149.
 pub fn ruby_version_l149_d19_minor_patch(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('minor_patch', ...args)
+	version := cask_version_receiver(args) or { return cask_version_nil() }
+	return cask_version_value(version.minor_patch())
 }
 
 // Ruby method `csv` at line 157.
 pub fn ruby_version_l157_d20_csv(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('csv', ...args)
+	version := cask_version_receiver(args) or { return brew_runtime.array_value([]brew_runtime.Value{}) }
+	return brew_runtime.array_value(version.csv().map(cask_version_value(it)))
 }
 
 // Ruby method `before_comma` at line 165.
 pub fn ruby_version_l165_d21_before_comma(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('before_comma', ...args)
+	version := cask_version_receiver(args) or { return cask_version_nil() }
+	return cask_version_value(version.before_comma())
 }
 
 // Ruby method `after_comma` at line 173.
 pub fn ruby_version_l173_d22_after_comma(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('after_comma', ...args)
+	version := cask_version_receiver(args) or { return cask_version_nil() }
+	return cask_version_value(version.after_comma())
 }
 
 // Ruby method `no_dividers` at line 182.
 pub fn ruby_version_l182_d23_no_dividers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('no_dividers', ...args)
+	version := cask_version_receiver(args) or { return cask_version_nil() }
+	return cask_version_value(version.no_dividers())
 }
 
 // Ruby method `chomp(separator = T.unsafe(nil))` at line 191.
 pub fn ruby_version_l191_d24_chomp(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('chomp', ...args)
+	version := cask_version_receiver(args) or { return cask_version_nil() }
+	separator := if args.len > 1 && args[1].type_name != 'NilClass' {
+		?string(args[1].as_string())
+	} else {
+		none
+	}
+	return cask_version_value(version.chomp(separator))
 }
 
 // Ruby method `version(&_block)` at line 198.
 pub fn ruby_version_l198_d25_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('version', ...args)
+	version := cask_version_receiver(args) or { return cask_version_nil() }
+	if version.text == '' || version.latest() || args.len < 2 {
+		return cask_version_value(version)
+	}
+	derived := new_cask_version(args[1]) or { return cask_version_error(err.msg()) }
+	return cask_version_value(derived)
 }
 
 // Original Ruby source (line-for-line):

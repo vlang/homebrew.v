@@ -1,13 +1,17 @@
 module cask
 
-import brew_runtime
-
 // Translated from Homebrew/brew `extend/os/linux/cask/installer.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub fn check_linux_cask_requirements(cask_name string, supports_linux bool) ! {
+	if !supports_linux {
+		return error('${cask_name}: This cask requires macOS.')
+	}
+}
 
 // Ruby method `check_stanza_os_requirements` at line 13.
-pub fn ruby_installer_l13_d1_check_stanza_os_requirements(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('check_stanza_os_requirements', ...args)
+pub fn ruby_installer_l13_d1_check_stanza_os_requirements(cask_name string,
+	supports_linux bool) ! {
+	check_linux_cask_requirements(cask_name, supports_linux)!
 }
 
 // Original Ruby source (line-for-line):

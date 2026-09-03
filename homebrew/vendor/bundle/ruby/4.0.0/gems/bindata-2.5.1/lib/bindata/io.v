@@ -5,309 +5,1201 @@ import brew_runtime
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/bindata-2.5.1/lib/bindata/io.rb`.
 // The original source is retained below until every stub has a typed V body.
 
+// BinaryStringIO is the binary, in-memory stream created by create_string_io.
+// A non-seekable instance models streams such as Ruby's IO.pipe endpoints.
+@[heap]
+pub struct BinaryStringIO {
+mut:
+	data     []u8
+	position int
+	seekable bool = true
+}
+
+// new_binary_string_io creates the binary StringIO used by the Ruby source.
+pub fn new_binary_string_io(value string) &BinaryStringIO {
+	return &BinaryStringIO{
+		data: value.bytes()
+	}
+}
+
+// new_binary_stream exposes the same storage with configurable seekability for
+// typed adapters around pipes and other forward-only streams.
+pub fn new_binary_stream(value string, seekable bool) &BinaryStringIO {
+	return &BinaryStringIO{
+		data: value.bytes()
+		seekable: seekable
+	}
+}
+
+pub fn (stream &BinaryStringIO) value() string {
+	return stream.data.bytestr()
+}
+
+pub fn (stream &BinaryStringIO) pos() int {
+	return stream.position
+}
+
+pub fn (mut stream BinaryStringIO) rewind() ! {
+	if !stream.seekable {
+		return error('stream is unseekable')
+	}
+	stream.position = 0
+}
+
+fn (mut stream BinaryStringIO) seek(position int) ! {
+	if !stream.seekable {
+		return error('stream is unseekable')
+	}
+	if position < 0 {
+		return error('Invalid argument')
+	}
+	stream.position = position
+}
+
+fn (mut stream BinaryStringIO) read(n int) []u8 {
+	if stream.position >= stream.data.len {
+		return []
+	}
+	end := if n < 0 || stream.position + n > stream.data.len {
+		stream.data.len
+	} else {
+		stream.position + n
+	}
+	result := stream.data[stream.position..end].clone()
+	stream.position = end
+	return result
+}
+
+fn (mut stream BinaryStringIO) write(data []u8) int {
+	if stream.position > stream.data.len {
+		stream.data << []u8{len: stream.position - stream.data.len}
+	}
+	end := stream.position + data.len
+	if end > stream.data.len {
+		stream.data << []u8{len: end - stream.data.len}
+	}
+	for index, byte in data {
+		stream.data[stream.position + index] = byte
+	}
+	stream.position = end
+	return data.len
+}
+
+// RawIO provides the source's position-independent logical offset on top of the
+// underlying stream position.
+@[heap]
+pub struct RawIO {
+mut:
+	stream      &BinaryStringIO
+	position    int
+	initial_pos int
+}
+
+pub fn new_raw_io(stream &BinaryStringIO) &RawIO {
+	return &RawIO{
+		stream: stream
+		initial_pos: if stream.seekable { stream.position } else { 0 }
+	}
+}
+
+pub fn (raw &RawIO) is_seekable() bool {
+	return raw.stream.seekable
+}
+
+pub fn (raw &RawIO) seekable() bool {
+	return raw.stream.seekable
+}
+
+pub fn (mut raw RawIO) num_bytes_remaining() !int {
+	if !raw.stream.seekable {
+		return error('stream is unseekable')
+	}
+	return raw.stream.data.len - raw.stream.position
+}
+
+pub fn (raw &RawIO) offset() int {
+	return raw.position
+}
+
+fn (mut raw RawIO) unseekable_skip(n int) ! {
+	if n < 0 {
+		return error('can not skip backwards')
+	}
+	mut remaining := n
+	for remaining > 0 {
+		bytes_to_read := if remaining < 8192 { remaining } else { 8192 }
+		raw.read(bytes_to_read)
+		remaining -= bytes_to_read
+	}
+}
+
+pub fn (mut raw RawIO) skip(n int) ! {
+	if n < 0 {
+		return error('can not skip backwards')
+	}
+	if !raw.stream.seekable {
+		raw.unseekable_skip(n)!
+		return
+	}
+	raw.stream.seek(raw.stream.position + n)!
+	raw.position += n
+}
+
+pub fn (mut raw RawIO) seek_abs(n int) ! {
+	if !raw.stream.seekable {
+		raw.unseekable_skip(n - raw.position)!
+		return
+	}
+	raw.stream.seek(n + raw.initial_pos)!
+	raw.position = n
+}
+
+pub fn (mut raw RawIO) read(n int) []u8 {
+	data := raw.stream.read(n)
+	raw.position += data.len
+	return data
+}
+
+pub fn (mut raw RawIO) write(data []u8) int {
+	return raw.stream.write(data)
+}
+
+enum IOChainKind {
+	raw
+	transform
+}
+
+@[heap]
+struct IOChain {
+mut:
+	kind      IOChainKind
+	raw       &RawIO = unsafe { nil }
+	transform &IOTransform = unsafe { nil }
+}
+
+fn raw_io_chain(raw &RawIO) &IOChain {
+	return &IOChain{
+		kind: .raw
+		raw: raw
+	}
+}
+
+fn transform_io_chain(transform &IOTransform) &IOChain {
+	return &IOChain{
+		kind: .transform
+		transform: transform
+	}
+}
+
+fn (chain &IOChain) seekable() bool {
+	return match chain.kind {
+		.raw { chain.raw.seekable() }
+		.transform { chain.transform.seekable() }
+	}
+}
+
+fn (mut chain IOChain) num_bytes_remaining() !int {
+	return match chain.kind {
+		.raw { chain.raw.num_bytes_remaining()! }
+		.transform { chain.transform.num_bytes_remaining()! }
+	}
+}
+
+fn (chain &IOChain) offset() int {
+	return match chain.kind {
+		.raw { chain.raw.offset() }
+		.transform { chain.transform.offset() }
+	}
+}
+
+fn (mut chain IOChain) skip(n int) ! {
+	match chain.kind {
+		.raw { chain.raw.skip(n)! }
+		.transform { chain.transform.skip(n)! }
+	}
+}
+
+fn (mut chain IOChain) seek_abs(n int) ! {
+	match chain.kind {
+		.raw { chain.raw.seek_abs(n)! }
+		.transform { chain.transform.seek_abs(n)! }
+	}
+}
+
+fn (mut chain IOChain) read(n int) ![]u8 {
+	return match chain.kind {
+		.raw { chain.raw.read(n) }
+		.transform { chain.transform.read(n)! }
+	}
+}
+
+fn (mut chain IOChain) write(data []u8) !int {
+	return match chain.kind {
+		.raw { chain.raw.write(data) }
+		.transform { chain.transform.write(data)! }
+	}
+}
+
+// IOTransform is the source's identity Transform base class. Subclasses can use
+// the public chain_* methods as their typed superclass adapter.
+@[heap]
+pub struct IOTransform {
+mut:
+	chain                 &IOChain = unsafe { nil }
+	head                  &IOChain = unsafe { nil }
+	changes_stream_length bool
+}
+
+pub fn new_io_transform() &IOTransform {
+	return &IOTransform{}
+}
+
+pub fn (mut transform IOTransform) transform_changes_stream_length() {
+	transform.changes_stream_length = true
+}
+
+pub fn (mut transform IOTransform) before_transform() ! {}
+
+pub fn (mut transform IOTransform) after_read_transform() ! {}
+
+pub fn (mut transform IOTransform) after_write_transform() ! {}
+
+fn (mut transform IOTransform) prepend_to_chain(chain &IOChain) !&IOChain {
+	transform.chain = chain
+	transform.before_transform()!
+	transform.head = transform_io_chain(&transform)
+	return transform.head
+}
+
+pub fn (transform &IOTransform) seekable() bool {
+	if transform.changes_stream_length {
+		return false
+	}
+	return transform.chain.seekable()
+}
+
+pub fn (mut transform IOTransform) num_bytes_remaining() !int {
+	if transform.changes_stream_length {
+		return error('stream is unseekable')
+	}
+	return transform.chain_num_bytes_remaining()!
+}
+
+pub fn (transform &IOTransform) offset() int {
+	return transform.chain_offset()
+}
+
+fn (mut transform IOTransform) unseekable_skip(n int) ! {
+	if n < 0 {
+		return error('can not skip backwards')
+	}
+	mut remaining := n
+	for remaining > 0 {
+		bytes_to_read := if remaining < 8192 { remaining } else { 8192 }
+		transform.read(bytes_to_read)!
+		remaining -= bytes_to_read
+	}
+}
+
+pub fn (mut transform IOTransform) skip(n int) ! {
+	if transform.changes_stream_length {
+		transform.unseekable_skip(n)!
+		return
+	}
+	transform.chain_skip(n)!
+}
+
+pub fn (mut transform IOTransform) seek_abs(n int) ! {
+	if transform.changes_stream_length {
+		transform.unseekable_skip(n - transform.offset())!
+		return
+	}
+	transform.chain_seek_abs(n)!
+}
+
+pub fn (mut transform IOTransform) read(n int) ![]u8 {
+	return transform.chain_read(n)!
+}
+
+pub fn (mut transform IOTransform) write(data []u8) !int {
+	return transform.chain_write(data)!
+}
+
+pub fn (transform &IOTransform) create_empty_binary_string() string {
+	return ''
+}
+
+pub fn (transform &IOTransform) chain_seekable() bool {
+	return transform.chain.seekable()
+}
+
+pub fn (mut transform IOTransform) chain_num_bytes_remaining() !int {
+	return transform.chain.num_bytes_remaining()!
+}
+
+pub fn (transform &IOTransform) chain_offset() int {
+	return transform.chain.offset()
+}
+
+pub fn (mut transform IOTransform) chain_skip(n int) ! {
+	transform.chain.skip(n)!
+}
+
+pub fn (mut transform IOTransform) chain_seek_abs(n int) ! {
+	transform.chain.seek_abs(n)!
+}
+
+pub fn (mut transform IOTransform) chain_read(n int) ![]u8 {
+	return transform.chain.read(n)!
+}
+
+pub fn (mut transform IOTransform) chain_write(data []u8) !int {
+	return transform.chain.write(data)!
+}
+
+enum BitEndian {
+	none
+	big
+	little
+}
+
+fn mask_bits(nbits int) u64 {
+	if nbits <= 0 {
+		return 0
+	}
+	if nbits >= 64 {
+		return ~u64(0)
+	}
+	return (u64(1) << nbits) - 1
+}
+
+@[heap]
+pub struct IORead {
+mut:
+	io      &IOChain
+	rnbits  int
+	rval    u64
+	rendian BitEndian
+}
+
+pub fn new_io_read(stream &BinaryStringIO) &IORead {
+	return &IORead{
+		io: raw_io_chain(new_raw_io(stream))
+	}
+}
+
+pub fn new_io_read_string(value string) &IORead {
+	return new_io_read(new_binary_string_io(value))
+}
+
+pub fn (mut reader IORead) transform(mut transform IOTransform, operation fn(mut IORead, mut IOTransform) !) ! {
+	reader.reset_read_bits()
+	saved := reader.io
+	defer {
+		reader.io = saved
+	}
+	reader.io = transform.prepend_to_chain(saved)!
+	operation(mut reader, mut transform)!
+	transform.after_read_transform()!
+}
+
+pub fn (mut reader IORead) num_bytes_remaining() !int {
+	return reader.io.num_bytes_remaining()!
+}
+
+pub fn (mut reader IORead) skipbytes(n int) ! {
+	reader.reset_read_bits()
+	reader.io.skip(n)!
+}
+
+pub fn (mut reader IORead) seek_to_abs_offset(n int) ! {
+	reader.reset_read_bits()
+	reader.io.seek_abs(n)!
+}
+
+fn (mut reader IORead) read(n int) ![]u8 {
+	data := reader.io.read(n)!
+	if n >= 0 {
+		if n > 0 && data.len == 0 {
+			return error('End of file reached')
+		}
+		if data.len < n {
+			return error('data truncated')
+		}
+	}
+	return data
+}
+
+pub fn (mut reader IORead) readbytes(n int) ![]u8 {
+	reader.reset_read_bits()
+	return reader.read(n)!
+}
+
+pub fn (mut reader IORead) read_all_bytes() ![]u8 {
+	reader.reset_read_bits()
+	return reader.read(-1)!
+}
+
+pub fn (mut reader IORead) readbits(nbits int, endian BitEndian) !u64 {
+	if nbits < 0 || nbits > 64 {
+		return error('nbits must be between 0 and 64')
+	}
+	if reader.rendian != endian {
+		reader.reset_read_bits()
+		reader.rendian = endian
+	}
+	return if endian == .big {
+		reader.read_big_endian_bits(nbits)!
+	} else {
+		reader.read_little_endian_bits(nbits)!
+	}
+}
+
+pub fn (mut reader IORead) readbits_big(nbits int) !u64 {
+	return reader.readbits(nbits, .big)!
+}
+
+pub fn (mut reader IORead) readbits_little(nbits int) !u64 {
+	return reader.readbits(nbits, .little)!
+}
+
+pub fn (mut reader IORead) reset_read_bits() {
+	reader.rnbits = 0
+	reader.rval = 0
+}
+
+fn (mut reader IORead) read_big_endian_bits(nbits int) !u64 {
+	for reader.rnbits < nbits {
+		reader.accumulate_big_endian_bits()!
+	}
+	value := (reader.rval >> (reader.rnbits - nbits)) & mask_bits(nbits)
+	reader.rnbits -= nbits
+	reader.rval &= mask_bits(reader.rnbits)
+	return value
+}
+
+fn (mut reader IORead) accumulate_big_endian_bits() ! {
+	byte := reader.read(1)![0] & 0xff
+	reader.rval = (reader.rval << 8) | byte
+	reader.rnbits += 8
+}
+
+fn (mut reader IORead) read_little_endian_bits(nbits int) !u64 {
+	for reader.rnbits < nbits {
+		reader.accumulate_little_endian_bits()!
+	}
+	value := reader.rval & mask_bits(nbits)
+	reader.rnbits -= nbits
+	reader.rval >>= nbits
+	return value
+}
+
+fn (mut reader IORead) accumulate_little_endian_bits() ! {
+	byte := reader.read(1)![0] & 0xff
+	reader.rval |= u64(byte) << reader.rnbits
+	reader.rnbits += 8
+}
+
+@[heap]
+pub struct IOWrite {
+mut:
+	io      &IOChain
+	wnbits  int
+	wval    u64
+	wendian BitEndian
+}
+
+pub fn new_io_write(stream &BinaryStringIO) &IOWrite {
+	return &IOWrite{
+		io: raw_io_chain(new_raw_io(stream))
+	}
+}
+
+pub fn new_io_write_string(value string) &IOWrite {
+	return new_io_write(new_binary_string_io(value))
+}
+
+pub fn (mut writer IOWrite) transform(mut transform IOTransform, operation fn(mut IOWrite, mut IOTransform) !) ! {
+	writer.flushbits()!
+	saved := writer.io
+	defer {
+		writer.io = saved
+	}
+	writer.io = transform.prepend_to_chain(saved)!
+	operation(mut writer, mut transform)!
+	transform.after_write_transform()!
+}
+
+pub fn (mut writer IOWrite) seek_to_abs_offset(n int) ! {
+	if !writer.io.seekable() {
+		return error('stream is unseekable')
+	}
+	writer.flushbits()!
+	writer.io.seek_abs(n)!
+}
+
+fn (mut writer IOWrite) write(data []u8) !int {
+	return writer.io.write(data)!
+}
+
+pub fn (mut writer IOWrite) writebytes(data []u8) !int {
+	writer.flushbits()!
+	return writer.write(data)!
+}
+
+pub fn (mut writer IOWrite) writebits(value u64, nbits int, endian BitEndian) ! {
+	if nbits < 0 || nbits > 64 {
+		return error('nbits must be between 0 and 64')
+	}
+	if writer.wendian != endian {
+		writer.flushbits()!
+		writer.wendian = endian
+	}
+	clamped_value := value & mask_bits(nbits)
+	if endian == .big {
+		writer.write_big_endian_bits(clamped_value, nbits)!
+	} else {
+		writer.write_little_endian_bits(clamped_value, nbits)!
+	}
+}
+
+pub fn (mut writer IOWrite) writebits_big(value u64, nbits int) ! {
+	writer.writebits(value, nbits, .big)!
+}
+
+pub fn (mut writer IOWrite) writebits_little(value u64, nbits int) ! {
+	writer.writebits(value, nbits, .little)!
+}
+
+pub fn (mut writer IOWrite) flushbits() ! {
+	if writer.wnbits >= 8 {
+		return error('Internal state error nbits = ${writer.wnbits}')
+	}
+	if writer.wnbits > 0 {
+		writer.writebits(0, 8 - writer.wnbits, writer.wendian)!
+	}
+}
+
+pub fn (mut writer IOWrite) flush() ! {
+	writer.flushbits()!
+}
+
+fn (mut writer IOWrite) write_big_endian_bits(initial_value u64, initial_nbits int) ! {
+	mut value := initial_value
+	mut nbits := initial_nbits
+	for nbits > 0 {
+		bits_required := 8 - writer.wnbits
+		if nbits >= bits_required {
+			most_significant_bits := (value >> (nbits - bits_required)) & mask_bits(bits_required)
+			nbits -= bits_required
+			value &= mask_bits(nbits)
+			writer.wval = (writer.wval << bits_required) | most_significant_bits
+			writer.write([u8(writer.wval)])!
+			writer.wval = 0
+			writer.wnbits = 0
+		} else {
+			writer.wval = (writer.wval << nbits) | value
+			writer.wnbits += nbits
+			nbits = 0
+		}
+	}
+}
+
+fn (mut writer IOWrite) write_little_endian_bits(initial_value u64, initial_nbits int) ! {
+	mut value := initial_value
+	mut nbits := initial_nbits
+	for nbits > 0 {
+		bits_required := 8 - writer.wnbits
+		if nbits >= bits_required {
+			least_significant_bits := value & mask_bits(bits_required)
+			nbits -= bits_required
+			value >>= bits_required
+			writer.wval |= least_significant_bits << writer.wnbits
+			writer.write([u8(writer.wval)])!
+			writer.wval = 0
+			writer.wnbits = 0
+		} else {
+			writer.wval |= value << writer.wnbits
+			writer.wnbits += nbits
+			nbits = 0
+		}
+	}
+}
+
+fn io_nil_value() brew_runtime.Value {
+	return brew_runtime.object_value('NilClass', 'nil')
+}
+
+fn binary_string_io_value(stream &BinaryStringIO) brew_runtime.Value {
+	return brew_runtime.Value{
+		type_name: 'StringIO'
+		repr: stream.value()
+		int_data: i64(u64(voidptr(stream)))
+		attributes: {
+			'binary_string_io_address': u64(voidptr(stream)).str()
+			'seekable':                 stream.seekable.str()
+		}
+	}
+}
+
+fn binary_string_io_from_value(value brew_runtime.Value) &BinaryStringIO {
+	if address := value.attributes['binary_string_io_address'] {
+		return unsafe { &BinaryStringIO(voidptr(address.u64())) }
+	}
+	return new_binary_string_io(value.as_string())
+}
+
+pub fn io_read_boundary_value(reader &IORead) brew_runtime.Value {
+	return brew_runtime.Value{
+		type_name: 'BinData::IO::Read'
+		repr: 'BinData::IO::Read'
+		int_data: i64(u64(voidptr(reader)))
+		attributes: {
+			'io_read_address': u64(voidptr(reader)).str()
+		}
+	}
+}
+
+fn io_read_from_value(value brew_runtime.Value) &IORead {
+	address := value.attributes['io_read_address'] or {
+		panic('expected BinData::IO::Read, got ${value.type_name}')
+	}
+	return unsafe { &IORead(voidptr(address.u64())) }
+}
+
+pub fn io_write_boundary_value(writer &IOWrite) brew_runtime.Value {
+	return brew_runtime.Value{
+		type_name: 'BinData::IO::Write'
+		repr: 'BinData::IO::Write'
+		int_data: i64(u64(voidptr(writer)))
+		attributes: {
+			'io_write_address': u64(voidptr(writer)).str()
+		}
+	}
+}
+
+fn io_write_from_value(value brew_runtime.Value) &IOWrite {
+	address := value.attributes['io_write_address'] or {
+		panic('expected BinData::IO::Write, got ${value.type_name}')
+	}
+	return unsafe { &IOWrite(voidptr(address.u64())) }
+}
+
+fn raw_io_value(raw &RawIO) brew_runtime.Value {
+	return brew_runtime.Value{
+		type_name: 'BinData::IO::RawIO'
+		repr: 'BinData::IO::RawIO'
+		int_data: i64(u64(voidptr(raw)))
+		attributes: {
+			'raw_io_address': u64(voidptr(raw)).str()
+		}
+	}
+}
+
+fn raw_io_from_value(value brew_runtime.Value) &RawIO {
+	address := value.attributes['raw_io_address'] or {
+		panic('expected BinData::IO::RawIO, got ${value.type_name}')
+	}
+	return unsafe { &RawIO(voidptr(address.u64())) }
+}
+
+pub fn io_transform_boundary_value(transform &IOTransform) brew_runtime.Value {
+	return brew_runtime.Value{
+		type_name: 'BinData::IO::Transform'
+		repr: 'BinData::IO::Transform'
+		int_data: i64(u64(voidptr(transform)))
+		attributes: {
+			'io_transform_address':  u64(voidptr(transform)).str()
+			'changes_stream_length': transform.changes_stream_length.str()
+		}
+	}
+}
+
+fn io_transform_from_value(value brew_runtime.Value) &IOTransform {
+	address := value.attributes['io_transform_address'] or {
+		panic('expected BinData::IO::Transform, got ${value.type_name}')
+	}
+	return unsafe { &IOTransform(voidptr(address.u64())) }
+}
+
+fn io_chain_from_value(value brew_runtime.Value) &IOChain {
+	if value.type_name == 'BinData::IO::Read' {
+		return io_read_from_value(value).io
+	}
+	if value.type_name == 'BinData::IO::Write' {
+		return io_write_from_value(value).io
+	}
+	if value.type_name == 'BinData::IO::RawIO' {
+		return raw_io_chain(raw_io_from_value(value))
+	}
+	if value.type_name == 'BinData::IO::Transform' {
+		return io_transform_from_value(value).head
+	}
+	return raw_io_chain(new_raw_io(binary_string_io_from_value(value)))
+}
+
+fn io_boundary_int(args []brew_runtime.Value, index int, name string) int {
+	if index >= args.len {
+		panic('${name} requires argument ${index + 1}')
+	}
+	return int(args[index].as_int() or { panic(err) })
+}
+
+fn io_boundary_endian(value brew_runtime.Value) BitEndian {
+	return match value.as_string().trim_left(':') {
+		'big' { .big }
+		'little' { .little }
+		else { .little }
+	}
+}
+
 // Ruby method `self.create_string_io(str = "")` at line 9.
 pub fn ruby_io_l9_d1_self_create_string_io(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.create_string_io', ...args)
+	value := if args.len > 0 { args[0].as_string() } else { '' }
+	return binary_string_io_value(new_binary_string_io(value))
 }
 
 // Ruby method `initialize(io)` at line 32.
 pub fn ruby_io_l32_d2_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	if args.len == 0 {
+		panic('BinData::IO::Read#initialize requires io')
+	}
+	if args[0].type_name == 'BinData::IO::Read' {
+		panic('io must not be a BinData::IO::Read')
+	}
+	return io_read_boundary_value(new_io_read(binary_string_io_from_value(args[0])))
 }
 
 // Ruby method `transform(io)` at line 56.
 pub fn ruby_io_l56_d3_transform(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('transform', ...args)
+	if args.len < 2 {
+		panic('BinData::IO::Read#transform requires a transform')
+	}
+	mut reader := io_read_from_value(args[0])
+	mut transform := io_transform_from_value(args[1])
+	reader.transform(mut transform, fn (mut _ IORead, mut _ IOTransform) ! {}) or { panic(err) }
+	return io_read_boundary_value(reader)
 }
 
 // Ruby method `num_bytes_remaining` at line 68.
 pub fn ruby_io_l68_d4_num_bytes_remaining(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('num_bytes_remaining', ...args)
+	mut reader := io_read_from_value(args[0])
+	return brew_runtime.int_value(reader.num_bytes_remaining() or { panic(err) })
 }
 
 // Ruby method `skipbytes(n)` at line 73.
 pub fn ruby_io_l73_d5_skipbytes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skipbytes', ...args)
+	mut reader := io_read_from_value(args[0])
+	reader.skipbytes(io_boundary_int(args, 1, 'skipbytes')) or { panic(err) }
+	return io_nil_value()
 }
 
 // Ruby method `seek_to_abs_offset(n)` at line 79.
 pub fn ruby_io_l79_d6_seek_to_abs_offset(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('seek_to_abs_offset', ...args)
+	mut reader := io_read_from_value(args[0])
+	reader.seek_to_abs_offset(io_boundary_int(args, 1, 'seek_to_abs_offset')) or { panic(err) }
+	return io_nil_value()
 }
 
 // Ruby method `readbytes(n)` at line 89.
 pub fn ruby_io_l89_d7_readbytes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('readbytes', ...args)
+	mut reader := io_read_from_value(args[0])
+	return brew_runtime.string_value(reader.readbytes(io_boundary_int(args, 1, 'readbytes')) or {
+		panic(err)
+	}.bytestr())
 }
 
 // Ruby method `read_all_bytes` at line 95.
 pub fn ruby_io_l95_d8_read_all_bytes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('read_all_bytes', ...args)
+	mut reader := io_read_from_value(args[0])
+	return brew_runtime.string_value(reader.read_all_bytes() or { panic(err) }.bytestr())
 }
 
 // Ruby method `readbits(nbits, endian)` at line 102.
 pub fn ruby_io_l102_d9_readbits(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('readbits', ...args)
+	mut reader := io_read_from_value(args[0])
+	value := reader.readbits(io_boundary_int(args, 1, 'readbits'), io_boundary_endian(args[2])) or {
+		panic(err)
+	}
+	return brew_runtime.int_value(i64(value))
 }
 
 // Ruby method `reset_read_bits` at line 118.
 pub fn ruby_io_l118_d10_reset_read_bits(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reset_read_bits', ...args)
+	mut reader := io_read_from_value(args[0])
+	reader.reset_read_bits()
+	return io_nil_value()
 }
 
 // Ruby method `read(n = nil)` at line 126.
 pub fn ruby_io_l126_d11_read(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('read', ...args)
+	mut reader := io_read_from_value(args[0])
+	n := if args.len > 1 && args[1].type_name != 'NilClass' {
+		io_boundary_int(args, 1, 'read')
+	} else {
+		-1
+	}
+	return brew_runtime.string_value(reader.read(n) or { panic(err) }.bytestr())
 }
 
 // Ruby method `read_big_endian_bits(nbits)` at line 135.
 pub fn ruby_io_l135_d12_read_big_endian_bits(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('read_big_endian_bits', ...args)
+	mut reader := io_read_from_value(args[0])
+	return brew_runtime.int_value(i64(reader.read_big_endian_bits(io_boundary_int(args, 1, 'read_big_endian_bits')) or { panic(err) }))
 }
 
 // Ruby method `accumulate_big_endian_bits` at line 147.
 pub fn ruby_io_l147_d13_accumulate_big_endian_bits(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('accumulate_big_endian_bits', ...args)
+	mut reader := io_read_from_value(args[0])
+	reader.accumulate_big_endian_bits() or { panic(err) }
+	return io_nil_value()
 }
 
 // Ruby method `read_little_endian_bits(nbits)` at line 153.
 pub fn ruby_io_l153_d14_read_little_endian_bits(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('read_little_endian_bits', ...args)
+	mut reader := io_read_from_value(args[0])
+	return brew_runtime.int_value(i64(reader.read_little_endian_bits(io_boundary_int(args, 1, 'read_little_endian_bits')) or { panic(err) }))
 }
 
 // Ruby method `accumulate_little_endian_bits` at line 165.
 pub fn ruby_io_l165_d15_accumulate_little_endian_bits(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('accumulate_little_endian_bits', ...args)
+	mut reader := io_read_from_value(args[0])
+	reader.accumulate_little_endian_bits() or { panic(err) }
+	return io_nil_value()
 }
 
 // Ruby method `mask(nbits)` at line 171.
 pub fn ruby_io_l171_d16_mask(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('mask', ...args)
+	index := if args.len > 1 { 1 } else { 0 }
+	return brew_runtime.int_value(i64(mask_bits(io_boundary_int(args, index, 'mask'))))
 }
 
 // Ruby method `initialize(io)` at line 184.
 pub fn ruby_io_l184_d17_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	if args.len == 0 {
+		panic('BinData::IO::Write#initialize requires io')
+	}
+	if args[0].type_name == 'BinData::IO::Write' {
+		panic('io must not be a BinData::IO::Write')
+	}
+	return io_write_boundary_value(new_io_write(binary_string_io_from_value(args[0])))
 }
 
 // Ruby method `transform(io)` at line 207.
 pub fn ruby_io_l207_d18_transform(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('transform', ...args)
+	if args.len < 2 {
+		panic('BinData::IO::Write#transform requires a transform')
+	}
+	mut writer := io_write_from_value(args[0])
+	mut transform := io_transform_from_value(args[1])
+	writer.transform(mut transform, fn (mut _ IOWrite, mut _ IOTransform) ! {}) or { panic(err) }
+	return io_write_boundary_value(writer)
 }
 
 // Ruby method `seek_to_abs_offset(n)` at line 219.
 pub fn ruby_io_l219_d19_seek_to_abs_offset(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('seek_to_abs_offset', ...args)
+	mut writer := io_write_from_value(args[0])
+	writer.seek_to_abs_offset(io_boundary_int(args, 1, 'seek_to_abs_offset')) or { panic(err) }
+	return io_nil_value()
 }
 
 // Ruby method `writebytes(str)` at line 227.
 pub fn ruby_io_l227_d20_writebytes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('writebytes', ...args)
+	mut writer := io_write_from_value(args[0])
+	return brew_runtime.int_value(writer.writebytes(args[1].as_string().bytes()) or { panic(err) })
 }
 
 // Ruby method `writebits(val, nbits, endian)` at line 234.
 pub fn ruby_io_l234_d21_writebits(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('writebits', ...args)
+	mut writer := io_write_from_value(args[0])
+	writer.writebits(u64(args[1].as_int() or { panic(err) }), io_boundary_int(args, 2, 'writebits'), io_boundary_endian(args[3])) or { panic(err) }
+	return io_nil_value()
 }
 
 // Ruby method `flushbits` at line 251.
 pub fn ruby_io_l251_d22_flushbits(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('flushbits', ...args)
+	mut writer := io_write_from_value(args[0])
+	writer.flushbits() or { panic(err) }
+	return io_nil_value()
 }
 
 // Ruby alias `alias flush flushbits` at line 258.
 pub fn ruby_io_l258_d23_flush(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('flush', ...args)
+	return ruby_io_l251_d22_flushbits(...args)
 }
 
 // Ruby method `write(data)` at line 263.
 pub fn ruby_io_l263_d24_write(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('write', ...args)
+	mut writer := io_write_from_value(args[0])
+	return brew_runtime.int_value(writer.write(args[1].as_string().bytes()) or { panic(err) })
 }
 
 // Ruby method `write_big_endian_bits(val, nbits)` at line 267.
 pub fn ruby_io_l267_d25_write_big_endian_bits(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('write_big_endian_bits', ...args)
+	mut writer := io_write_from_value(args[0])
+	writer.write_big_endian_bits(u64(args[1].as_int() or { panic(err) }), io_boundary_int(args, 2, 'write_big_endian_bits')) or { panic(err) }
+	return io_nil_value()
 }
 
 // Ruby method `write_little_endian_bits(val, nbits)` at line 288.
 pub fn ruby_io_l288_d26_write_little_endian_bits(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('write_little_endian_bits', ...args)
+	mut writer := io_write_from_value(args[0])
+	writer.write_little_endian_bits(u64(args[1].as_int() or { panic(err) }), io_boundary_int(args, 2, 'write_little_endian_bits')) or { panic(err) }
+	return io_nil_value()
 }
 
 // Ruby method `mask(nbits)` at line 309.
 pub fn ruby_io_l309_d27_mask(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('mask', ...args)
+	index := if args.len > 1 { 1 } else { 0 }
+	return brew_runtime.int_value(i64(mask_bits(io_boundary_int(args, index, 'mask'))))
 }
 
 // Ruby method `initialize(io)` at line 316.
 pub fn ruby_io_l316_d28_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	if args.len == 0 {
+		panic('BinData::IO::RawIO#initialize requires io')
+	}
+	return raw_io_value(new_raw_io(binary_string_io_from_value(args[0])))
 }
 
 // Ruby method `is_seekable?(io)` at line 327.
 pub fn ruby_io_l327_d29_is_seekable(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('is_seekable?', ...args)
+	if args.len == 0 {
+		return brew_runtime.bool_value(false)
+	}
+	return brew_runtime.bool_value(binary_string_io_from_value(args[args.len - 1]).seekable)
 }
 
 // Ruby method `seekable?` at line 333.
 pub fn ruby_io_l333_d30_seekable(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('seekable?', ...args)
+	return brew_runtime.bool_value(raw_io_from_value(args[0]).seekable())
 }
 
 // Ruby method `num_bytes_remaining` at line 337.
 pub fn ruby_io_l337_d31_num_bytes_remaining(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('num_bytes_remaining', ...args)
+	mut raw := raw_io_from_value(args[0])
+	return brew_runtime.int_value(raw.num_bytes_remaining() or { panic(err) })
 }
 
 // Ruby method `offset` at line 346.
 pub fn ruby_io_l346_d32_offset(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('offset', ...args)
+	return brew_runtime.int_value(raw_io_from_value(args[0]).offset())
 }
 
 // Ruby method `skip(n)` at line 350.
 pub fn ruby_io_l350_d33_skip(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skip', ...args)
+	mut raw := raw_io_from_value(args[0])
+	raw.skip(io_boundary_int(args, 1, 'skip')) or { panic(err) }
+	return io_nil_value()
 }
 
 // Ruby method `seek_abs(n)` at line 356.
 pub fn ruby_io_l356_d34_seek_abs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('seek_abs', ...args)
+	mut raw := raw_io_from_value(args[0])
+	raw.seek_abs(io_boundary_int(args, 1, 'seek_abs')) or { panic(err) }
+	return io_nil_value()
 }
 
 // Ruby method `read(n)` at line 361.
 pub fn ruby_io_l361_d35_read(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('read', ...args)
+	mut raw := raw_io_from_value(args[0])
+	n := if args.len > 1 && args[1].type_name != 'NilClass' {
+		io_boundary_int(args, 1, 'read')
+	} else {
+		-1
+	}
+	return brew_runtime.string_value(raw.read(n).bytestr())
 }
 
 // Ruby method `write(data)` at line 365.
 pub fn ruby_io_l365_d36_write(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('write', ...args)
+	mut raw := raw_io_from_value(args[0])
+	return brew_runtime.int_value(raw.write(args[1].as_string().bytes()))
 }
 
 // Ruby method `transform_changes_stream_length!` at line 387.
 pub fn ruby_io_l387_d37_transform_changes_stream_length(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('transform_changes_stream_length!', ...args)
+	if args.len == 0 {
+		return brew_runtime.bool_value(true)
+	}
+	mut transform := io_transform_from_value(args[0])
+	transform.transform_changes_stream_length()
+	return io_transform_boundary_value(transform)
 }
 
 // Ruby method `initialize` at line 392.
 pub fn ruby_io_l392_d38_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	return io_transform_boundary_value(new_io_transform())
 }
 
 // Ruby method `before_transform; end` at line 399.
 pub fn ruby_io_l399_d39_before_transform(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('before_transform', ...args)
+	mut transform := io_transform_from_value(args[0])
+	transform.before_transform() or { panic(err) }
+	return io_nil_value()
 }
 
 // Ruby method `after_read_transform; end` at line 404.
 pub fn ruby_io_l404_d40_after_read_transform(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('after_read_transform', ...args)
+	mut transform := io_transform_from_value(args[0])
+	transform.after_read_transform() or { panic(err) }
+	return io_nil_value()
 }
 
 // Ruby method `after_write_transform; end` at line 409.
 pub fn ruby_io_l409_d41_after_write_transform(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('after_write_transform', ...args)
+	mut transform := io_transform_from_value(args[0])
+	transform.after_write_transform() or { panic(err) }
+	return io_nil_value()
 }
 
 // Ruby method `prepend_to_chain(chain)` at line 414.
 pub fn ruby_io_l414_d42_prepend_to_chain(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prepend_to_chain', ...args)
+	mut transform := io_transform_from_value(args[0])
+	transform.prepend_to_chain(io_chain_from_value(args[1])) or { panic(err) }
+	return io_transform_boundary_value(transform)
 }
 
 // Ruby method `seekable?` at line 421.
 pub fn ruby_io_l421_d43_seekable(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('seekable?', ...args)
+	return brew_runtime.bool_value(io_transform_from_value(args[0]).seekable())
 }
 
 // Ruby method `num_bytes_remaining` at line 426.
 pub fn ruby_io_l426_d44_num_bytes_remaining(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('num_bytes_remaining', ...args)
+	mut transform := io_transform_from_value(args[0])
+	return brew_runtime.int_value(transform.num_bytes_remaining() or { panic(err) })
 }
 
 // Ruby method `offset` at line 431.
 pub fn ruby_io_l431_d45_offset(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('offset', ...args)
+	return brew_runtime.int_value(io_transform_from_value(args[0]).offset())
 }
 
 // Ruby method `skip(n)` at line 436.
 pub fn ruby_io_l436_d46_skip(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skip', ...args)
+	mut transform := io_transform_from_value(args[0])
+	transform.skip(io_boundary_int(args, 1, 'skip')) or { panic(err) }
+	return io_nil_value()
 }
 
 // Ruby method `seek_abs(n)` at line 441.
 pub fn ruby_io_l441_d47_seek_abs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('seek_abs', ...args)
+	mut transform := io_transform_from_value(args[0])
+	transform.seek_abs(io_boundary_int(args, 1, 'seek_abs')) or { panic(err) }
+	return io_nil_value()
 }
 
 // Ruby method `read(n)` at line 446.
 pub fn ruby_io_l446_d48_read(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('read', ...args)
+	mut transform := io_transform_from_value(args[0])
+	n := if args.len > 1 && args[1].type_name != 'NilClass' {
+		io_boundary_int(args, 1, 'read')
+	} else {
+		-1
+	}
+	return brew_runtime.string_value(transform.read(n) or { panic(err) }.bytestr())
 }
 
 // Ruby method `write(data)` at line 451.
 pub fn ruby_io_l451_d49_write(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('write', ...args)
+	mut transform := io_transform_from_value(args[0])
+	return brew_runtime.int_value(transform.write(args[1].as_string().bytes()) or { panic(err) })
 }
 
 // Ruby method `create_empty_binary_string` at line 458.
 pub fn ruby_io_l458_d50_create_empty_binary_string(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('create_empty_binary_string', ...args)
+	return brew_runtime.string_value('')
 }
 
 // Ruby method `chain_seekable?` at line 462.
 pub fn ruby_io_l462_d51_chain_seekable(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('chain_seekable?', ...args)
+	return brew_runtime.bool_value(io_transform_from_value(args[0]).chain_seekable())
 }
 
 // Ruby method `chain_num_bytes_remaining` at line 466.
 pub fn ruby_io_l466_d52_chain_num_bytes_remaining(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('chain_num_bytes_remaining', ...args)
+	mut transform := io_transform_from_value(args[0])
+	return brew_runtime.int_value(transform.chain_num_bytes_remaining() or { panic(err) })
 }
 
 // Ruby method `chain_offset` at line 470.
 pub fn ruby_io_l470_d53_chain_offset(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('chain_offset', ...args)
+	return brew_runtime.int_value(io_transform_from_value(args[0]).chain_offset())
 }
 
 // Ruby method `chain_skip(n)` at line 474.
 pub fn ruby_io_l474_d54_chain_skip(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('chain_skip', ...args)
+	mut transform := io_transform_from_value(args[0])
+	transform.chain_skip(io_boundary_int(args, 1, 'chain_skip')) or { panic(err) }
+	return io_nil_value()
 }
 
 // Ruby method `chain_seek_abs(n)` at line 478.
 pub fn ruby_io_l478_d55_chain_seek_abs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('chain_seek_abs', ...args)
+	mut transform := io_transform_from_value(args[0])
+	transform.chain_seek_abs(io_boundary_int(args, 1, 'chain_seek_abs')) or { panic(err) }
+	return io_nil_value()
 }
 
 // Ruby method `chain_read(n)` at line 482.
 pub fn ruby_io_l482_d56_chain_read(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('chain_read', ...args)
+	mut transform := io_transform_from_value(args[0])
+	n := if args.len > 1 && args[1].type_name != 'NilClass' {
+		io_boundary_int(args, 1, 'chain_read')
+	} else {
+		-1
+	}
+	return brew_runtime.string_value(transform.chain_read(n) or { panic(err) }.bytestr())
 }
 
 // Ruby method `chain_write(data)` at line 486.
 pub fn ruby_io_l486_d57_chain_write(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('chain_write', ...args)
+	mut transform := io_transform_from_value(args[0])
+	return brew_runtime.int_value(transform.chain_write(args[1].as_string().bytes()) or { panic(err) })
 }
 
 // Ruby method `seekable?` at line 495.
 pub fn ruby_io_l495_d58_seekable(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('seekable?', ...args)
+	return brew_runtime.bool_value(false)
 }
 
 // Ruby method `num_bytes_remaining` at line 499.
 pub fn ruby_io_l499_d59_num_bytes_remaining(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('num_bytes_remaining', ...args)
+	panic('stream is unseekable')
 }
 
 // Ruby method `skip(n)` at line 503.
 pub fn ruby_io_l503_d60_skip(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skip', ...args)
+	mut chain := io_chain_from_value(args[0])
+	n := io_boundary_int(args, 1, 'skip')
+	if n < 0 {
+		panic('can not skip backwards')
+	}
+	mut remaining := n
+	for remaining > 0 {
+		bytes_to_read := if remaining < 8192 { remaining } else { 8192 }
+		chain.read(bytes_to_read) or { panic(err) }
+		remaining -= bytes_to_read
+	}
+	return io_nil_value()
 }
 
 // Ruby method `seek_abs(n)` at line 514.
 pub fn ruby_io_l514_d61_seek_abs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('seek_abs', ...args)
+	mut chain := io_chain_from_value(args[0])
+	target := io_boundary_int(args, 1, 'seek_abs')
+	delta := target - chain.offset()
+	if delta < 0 {
+		panic('can not skip backwards')
+	}
+	mut remaining := delta
+	for remaining > 0 {
+		bytes_to_read := if remaining < 8192 { remaining } else { 8192 }
+		chain.read(bytes_to_read) or { panic(err) }
+		remaining -= bytes_to_read
+	}
+	return io_nil_value()
 }
 
 // Original Ruby source (line-for-line):

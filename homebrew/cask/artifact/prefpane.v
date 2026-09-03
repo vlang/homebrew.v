@@ -7,7 +7,7 @@ import brew_runtime
 
 // Ruby method `self.english_name` at line 11.
 pub fn ruby_prefpane_l11_d1_self_english_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.english_name', ...args)
+	return brew_runtime.string_value('Preference Pane')
 }
 
 // Original Ruby source (line-for-line):

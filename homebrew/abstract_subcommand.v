@@ -1,69 +1,225 @@
 module homebrew
 
 import brew_runtime
+import homebrew.cli as brew_cli
 
 // Translated from Homebrew/brew `abstract_subcommand.rb`.
 // The original source is retained below until every stub has a typed V body.
 
+// AbstractSubcommandParserBlock is the V equivalent of the parser-bound block
+// retained by `subcommand_args` in Ruby.
+pub type AbstractSubcommandParserBlock = fn(mut brew_cli.Parser) !
+
+// AbstractSubcommandArgsConfig retains the class-level metadata supplied to
+// `subcommand_args`.
+pub struct AbstractSubcommandArgsConfig {
+pub:
+	aliases       []string
+	alias_options map[string]string
+	default       bool
+}
+
+// AbstractSubcommandClass models the Ruby subclass object. Ruby discovers these
+// objects through T::Helpers.subclasses; translated callers pass the same ordered
+// subclass list explicitly.
+pub struct AbstractSubcommandClass {
+pub:
+	name     string
+	has_name bool
+pub mut:
+	aliases          []string
+	alias_options    map[string]string
+	default          bool
+	has_parser_block bool
+	parser_block     AbstractSubcommandParserBlock @[required]
+}
+
+fn abstract_subcommand_empty_parser_block(mut _ brew_cli.Parser) ! {}
+
+pub fn new_abstract_subcommand_class(name string) AbstractSubcommandClass {
+	return AbstractSubcommandClass{
+		name: name
+		has_name: true
+		alias_options: map[string]string{}
+		parser_block: abstract_subcommand_empty_parser_block
+	}
+}
+
+pub fn new_anonymous_abstract_subcommand_class() AbstractSubcommandClass {
+	return AbstractSubcommandClass{
+		alias_options: map[string]string{}
+		parser_block: abstract_subcommand_empty_parser_block
+	}
+}
+
+pub fn (subcommand AbstractSubcommandClass) subcommand_name() !string {
+	if !subcommand.has_name {
+		return error('anonymous subcommands do not have names')
+	}
+	parts := subcommand.name.split('::')
+	class_name := parts[parts.len - 1]
+	mut name := underscore(class_name).replace('_', '-')
+	if name.ends_with('-subcommand') {
+		name = name[..name.len - '-subcommand'.len]
+	}
+	return name
+}
+
+pub fn abstract_subcommands_for(command_name string, subclasses []AbstractSubcommandClass) []AbstractSubcommandClass {
+	namespace := '${command_name}::'
+	return subclasses.filter(it.has_name && it.name.starts_with(namespace))
+}
+
+pub fn abstract_subcommand_define_all(mut parser brew_cli.Parser, command_name string,
+	subclasses []AbstractSubcommandClass) ! {
+	for subcommand in abstract_subcommands_for(command_name, subclasses) {
+		subcommand.define(mut parser)!
+	}
+}
+
+pub fn (subcommand AbstractSubcommandClass) define(mut parser brew_cli.Parser) ! {
+	if !subcommand.has_parser_block {
+		return error('subcommand arguments have not been defined')
+	}
+	name := subcommand.subcommand_name()!
+	parser.add_subcommand(name, brew_cli.SubcommandConfig{
+		aliases: subcommand.aliases.clone()
+		alias_options: subcommand.alias_options.clone()
+		default: subcommand.default
+	}, subcommand.parser_block)!
+}
+
+pub fn (mut subcommand AbstractSubcommandClass) subcommand_args(config AbstractSubcommandArgsConfig,
+	block AbstractSubcommandParserBlock) {
+	subcommand.aliases = config.aliases.clone()
+	subcommand.alias_options = config.alias_options.clone()
+	subcommand.default = config.default
+	subcommand.parser_block = block
+	subcommand.has_parser_block = true
+}
+
+pub struct AbstractSubcommandInitOptions {
+pub:
+	context brew_runtime.Value
+	targets brew_runtime.Value
+	quiet   bool
+	cleanup bool = true
+}
+
+// AbstractSubcommand stores the five instance variables initialized by Ruby.
+// The untyped Ruby readers remain Values while their boolean state is concrete.
+pub struct AbstractSubcommand {
+	args_value    brew_runtime.Value
+	context_value brew_runtime.Value
+	targets_value brew_runtime.Value
+	quiet_value   bool
+	cleanup_value bool
+}
+
+fn abstract_subcommand_nil() brew_runtime.Value {
+	return brew_runtime.object_value('NilClass', 'nil')
+}
+
+pub fn new_abstract_subcommand(args brew_runtime.Value, options AbstractSubcommandInitOptions) AbstractSubcommand {
+	return AbstractSubcommand{
+		args_value: args
+		context_value: if options.context.type_name == '' {
+			abstract_subcommand_nil()
+		} else {
+			options.context
+		}
+		targets_value: if options.targets.type_name == '' {
+			abstract_subcommand_nil()
+		} else {
+			options.targets
+		}
+		quiet_value: options.quiet
+		cleanup_value: options.cleanup
+	}
+}
+
+pub fn (subcommand AbstractSubcommand) args() brew_runtime.Value {
+	return subcommand.args_value
+}
+
+pub fn (subcommand AbstractSubcommand) context() brew_runtime.Value {
+	return subcommand.context_value
+}
+
+pub fn (subcommand AbstractSubcommand) targets() brew_runtime.Value {
+	return subcommand.targets_value
+}
+
+pub fn (subcommand AbstractSubcommand) quiet() bool {
+	return subcommand.quiet_value
+}
+
+pub fn (subcommand AbstractSubcommand) cleanup() bool {
+	return subcommand.cleanup_value
+}
+
 // Ruby method `subcommand_name` at line 20.
-pub fn ruby_abstract_subcommand_l20_d1_subcommand_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('subcommand_name', ...args)
+pub fn ruby_abstract_subcommand_l20_d1_subcommand_name(subcommand AbstractSubcommandClass) !string {
+	return subcommand.subcommand_name()
 }
 
 // Ruby method `subcommands_for(command)` at line 32.
-pub fn ruby_abstract_subcommand_l32_d2_subcommands_for(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('subcommands_for', ...args)
+pub fn ruby_abstract_subcommand_l32_d2_subcommands_for(command_name string,
+	subclasses []AbstractSubcommandClass) []AbstractSubcommandClass {
+	return abstract_subcommands_for(command_name, subclasses)
 }
 
 // Ruby method `define_all(parser, command:)` at line 40.
-pub fn ruby_abstract_subcommand_l40_d3_define_all(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('define_all', ...args)
+pub fn ruby_abstract_subcommand_l40_d3_define_all(mut parser brew_cli.Parser, command_name string,
+	subclasses []AbstractSubcommandClass) ! {
+	abstract_subcommand_define_all(mut parser, command_name, subclasses)!
 }
 
 // Ruby method `define(parser)` at line 47.
-pub fn ruby_abstract_subcommand_l47_d4_define(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('define', ...args)
+pub fn ruby_abstract_subcommand_l47_d4_define(subcommand AbstractSubcommandClass,
+	mut parser brew_cli.Parser) ! {
+	subcommand.define(mut parser)!
 }
 
 // Ruby method `subcommand_args(aliases: [], alias_options: {}, default: false, &block)` at line 74.
-pub fn ruby_abstract_subcommand_l74_d5_subcommand_args(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('subcommand_args', ...args)
+pub fn ruby_abstract_subcommand_l74_d5_subcommand_args(mut subcommand AbstractSubcommandClass,
+	config AbstractSubcommandArgsConfig, block AbstractSubcommandParserBlock) {
+	subcommand.subcommand_args(config, block)
 }
 
 // Ruby attr_reader `attr_reader :args` at line 83.
-pub fn ruby_abstract_subcommand_l83_d6_args(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('args', ...args)
+pub fn ruby_abstract_subcommand_l83_d6_args(subcommand AbstractSubcommand) brew_runtime.Value {
+	return subcommand.args()
 }
 
 // Ruby method `initialize(args, context: nil, targets: nil, quiet: false, cleanup: true)` at line 86.
-pub fn ruby_abstract_subcommand_l86_d7_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+pub fn ruby_abstract_subcommand_l86_d7_initialize(args brew_runtime.Value,
+	options AbstractSubcommandInitOptions) AbstractSubcommand {
+	return new_abstract_subcommand(args, options)
 }
 
 // Ruby attr_reader `attr_reader :context` at line 95.
-pub fn ruby_abstract_subcommand_l95_d8_context(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('context', ...args)
+pub fn ruby_abstract_subcommand_l95_d8_context(subcommand AbstractSubcommand) brew_runtime.Value {
+	return subcommand.context()
 }
 
 // Ruby attr_reader `attr_reader :targets` at line 98.
-pub fn ruby_abstract_subcommand_l98_d9_targets(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('targets', ...args)
+pub fn ruby_abstract_subcommand_l98_d9_targets(subcommand AbstractSubcommand) brew_runtime.Value {
+	return subcommand.targets()
 }
 
 // Ruby attr_reader `attr_reader :quiet` at line 101.
-pub fn ruby_abstract_subcommand_l101_d10_quiet(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('quiet', ...args)
+pub fn ruby_abstract_subcommand_l101_d10_quiet(subcommand AbstractSubcommand) bool {
+	return subcommand.quiet()
 }
 
 // Ruby attr_reader `attr_reader :cleanup` at line 104.
-pub fn ruby_abstract_subcommand_l104_d11_cleanup(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cleanup', ...args)
+pub fn ruby_abstract_subcommand_l104_d11_cleanup(subcommand AbstractSubcommand) bool {
+	return subcommand.cleanup()
 }
 
 // Ruby method `run; end` at line 110.
-pub fn ruby_abstract_subcommand_l110_d12_run(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('run', ...args)
-}
+pub fn ruby_abstract_subcommand_l110_d12_run(_ AbstractSubcommand) {}
 
 // Original Ruby source (line-for-line):
 // 1: # typed: strict

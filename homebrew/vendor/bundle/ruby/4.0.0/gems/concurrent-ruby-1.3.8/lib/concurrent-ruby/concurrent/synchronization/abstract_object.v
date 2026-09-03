@@ -7,17 +7,17 @@ import brew_runtime
 
 // Ruby method `initialize` at line 7.
 pub fn ruby_abstract_object_l7_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Ruby method `full_memory_barrier` at line 13.
 pub fn ruby_abstract_object_l13_d2_full_memory_barrier(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('full_memory_barrier', ...args)
+	panic('NotImplementedError: AbstractObject#full_memory_barrier')
 }
 
 // Ruby method `self.attr_volatile(*names)` at line 17.
 pub fn ruby_abstract_object_l17_d3_self_attr_volatile(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.attr_volatile', ...args)
+	panic('NotImplementedError: AbstractObject.attr_volatile')
 }
 
 // Original Ruby source (line-for-line):

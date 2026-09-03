@@ -1,7 +1,53 @@
 module atomic
 
+import brew_runtime
+import time
+
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/atomic/semaphore.rb`.
 // The original source is retained below until every stub has a typed V body.
+@[heap]
+pub struct Semaphore {
+mut:
+	implementation &MutexSemaphore
+}
+
+pub fn new_semaphore(count i64) !&Semaphore {
+	return &Semaphore{
+		implementation: new_mutex_semaphore(count)!
+	}
+}
+
+pub fn (mut semaphore Semaphore) acquire(permits i64) ! {
+	semaphore.implementation.acquire(permits)!
+}
+
+pub fn (mut semaphore Semaphore) acquire_with(permits i64, action SemaphoreAction) !brew_runtime.Value {
+	return semaphore.implementation.acquire_with(permits, action)
+}
+
+pub fn (mut semaphore Semaphore) available_permits() i64 {
+	return semaphore.implementation.available_permits()
+}
+
+pub fn (mut semaphore Semaphore) drain_permits() i64 {
+	return semaphore.implementation.drain_permits()
+}
+
+pub fn (mut semaphore Semaphore) try_acquire(permits i64, timeout ?time.Duration) !bool {
+	return semaphore.implementation.try_acquire(permits, timeout)
+}
+
+pub fn (mut semaphore Semaphore) try_acquire_with(permits i64, timeout ?time.Duration, action SemaphoreAction) !SemaphoreActionResult {
+	return semaphore.implementation.try_acquire_with(permits, timeout, action)
+}
+
+pub fn (mut semaphore Semaphore) release(permits i64) ! {
+	semaphore.implementation.release(permits)!
+}
+
+pub fn (mut semaphore Semaphore) reduce_permits(reduction i64) ! {
+	semaphore.implementation.reduce_permits(reduction)!
+}
 
 // Original Ruby source (line-for-line):
 // 1: require 'concurrent/atomic/mutex_semaphore'

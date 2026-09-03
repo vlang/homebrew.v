@@ -1,28 +1,63 @@
 module cmd
 
-import brew_runtime
+import homebrew.cmd as brew_cmd
 
 // Translated from Homebrew/brew `test/cmd/pin_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "pins a Formula's version", :integration_test do` at line 10.
-pub fn ruby_pin_spec_l10_d1_pins(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('pins', ...args)
+pub fn ruby_pin_spec_l10_d1_pins() bool {
+	mut packages := [brew_cmd.PinPackageState{
+		kind: .formula
+		full_name: 'testball'
+		version: '1.0'
+		installed: true
+		pinnable: true
+	}]
+	result := brew_cmd.pin_packages(mut packages)
+	pinned_version := packages[0].pinned_version or { '' }
+	return !result.failed() && packages[0].pinned && packages[0].pin_symlink && pinned_version == '1.0'
 }
 
 // Ruby it `it "pins a Cask's version", :cask do` at line 16.
-pub fn ruby_pin_spec_l16_d2_pins(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('pins', ...args)
+pub fn ruby_pin_spec_l16_d2_pins() bool {
+	mut packages := [brew_cmd.PinPackageState{
+		kind: .cask
+		full_name: 'local-caffeine'
+		version: '1.2.3'
+		installed: true
+		pinnable: true
+	}]
+	result := brew_cmd.pin_packages(mut packages)
+	pinned_version := packages[0].pinned_version or { '' }
+	return result.warnings.len == 0 && !result.failed() && packages[0].pinned && pinned_version == '1.2.3'
 }
 
 // Ruby it `it "warns when pinning a Cask with auto_updates true", :cask do` at line 28.
-pub fn ruby_pin_spec_l28_d3_warns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('warns', ...args)
+pub fn ruby_pin_spec_l28_d3_warns() bool {
+	mut packages := [brew_cmd.PinPackageState{
+		kind: .cask
+		full_name: 'auto-updates'
+		version: '2.0'
+		auto_updates: true
+		installed: true
+		pinnable: true
+	}]
+	result := brew_cmd.pin_packages(mut packages)
+	return packages[0].pinned && result.warnings.len == 1 && result.warnings[0].contains('auto-updates has `auto_updates true`') && result.warnings[0].contains('outside Homebrew')
 }
 
 // Ruby it `it "fails with an uninstalled Formula" do` at line 39.
-pub fn ruby_pin_spec_l39_d4_fails(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fails', ...args)
+pub fn ruby_pin_spec_l39_d4_fails() bool {
+	mut packages := [brew_cmd.PinPackageState{
+		kind: .formula
+		full_name: 'testball'
+		version: '1.0'
+		installed: false
+		pinnable: false
+	}]
+	result := brew_cmd.pin_packages(mut packages)
+	return result.failed() && result.failures == ['testball not installed'] && !packages[0].pinned
 }
 
 // Original Ruby source (line-for-line):

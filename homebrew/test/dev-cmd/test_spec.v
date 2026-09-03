@@ -7,12 +7,39 @@ import brew_runtime
 
 // Ruby it `it "tests a given Formula", :integration_test do` at line 11.
 pub fn ruby_test_spec_l11_d1_tests(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tests', ...args)
+	_ = args
+	result := run_formula_tests(FormulaTestOptions{
+		formulae: [FormulaTestTarget{
+			full_name: 'testball'
+			path: '/formula/testball.rb'
+			logs: '/logs/testball'
+			latest_version_installed: true
+			test_defined: true
+			linked: true
+		}]
+	})
+	return brew_runtime.bool_value(!result.failed && result.attempts.len == 1
+		&& result.attempts[0].heading == 'Testing testball')
 }
 
 // Ruby it `it "blocks network access when test phase is offline", :integration_test do` at line 35.
 pub fn ruby_test_spec_l35_d2_blocks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('blocks', ...args)
+	_ = args
+	result := run_formula_tests(FormulaTestOptions{
+		formulae: [FormulaTestTarget{
+			full_name: 'testball_offline_test'
+			path: '/formula/testball_offline_test.rb'
+			logs: '/logs/testball_offline_test'
+			latest_version_installed: true
+			test_defined: true
+			linked: true
+			network_access_allowed: false
+			test_failures: 1
+			failure_message: 'curl: (6) Could not resolve host: example.org'
+		}]
+	})
+	return brew_runtime.bool_value(result.failed && result.attempts[0].deny_network
+		&& result.errors.any(it.contains('Could not resolve host')))
 }
 
 // Original Ruby source (line-for-line):

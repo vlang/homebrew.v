@@ -1,38 +1,159 @@
 module concern
 
 import brew_runtime
+import sync
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/concern/dereferenceable.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub type DereferenceCopy = fn(brew_runtime.Value) brew_runtime.Value
+
+pub struct DereferenceOptions {
+pub:
+	dup_on_deref    bool
+	freeze_on_deref bool
+}
+
+@[heap]
+pub struct Dereferenceable {
+mut:
+	lock    sync.Mutex
+	value   brew_runtime.Value
+	options DereferenceOptions
+}
+
+pub fn new_dereferenceable(value brew_runtime.Value, options DereferenceOptions) &Dereferenceable {
+	return &Dereferenceable{
+		value: value
+		options: options
+	}
+}
+
+fn duplicate_boundary_value(value brew_runtime.Value) brew_runtime.Value {
+	return brew_runtime.Value{
+		type_name: value.type_name
+		repr: value.repr
+		bool_data: value.bool_data
+		int_data: value.int_data
+		float_data: value.float_data
+		string_array_data: value.string_array_data.clone()
+		array_data: value.array_data.clone()
+		map_data: value.map_data.clone()
+		attributes: value.attributes.clone()
+	}
+}
+
+pub fn apply_dereference_options(value brew_runtime.Value, options DereferenceOptions, copy ?DereferenceCopy) brew_runtime.Value {
+	if value.type_name == 'NilClass' {
+		return value
+	}
+	mut result := value
+	if copy_fn := copy {
+		result = copy_fn(result)
+	}
+	if options.dup_on_deref {
+		result = duplicate_boundary_value(result)
+	}
+	// Boundary values are immutable in V, so freeze_on_deref is already
+	// satisfied after any requested copy/dup operations.
+	return result
+}
+
+pub fn (mut dereferenceable Dereferenceable) get(copy ?DereferenceCopy) brew_runtime.Value {
+	dereferenceable.lock.lock()
+	value := apply_dereference_options(dereferenceable.value, dereferenceable.options, copy)
+	dereferenceable.lock.unlock()
+	return value
+}
+
+pub fn (mut dereferenceable Dereferenceable) set(value brew_runtime.Value) brew_runtime.Value {
+	dereferenceable.lock.lock()
+	dereferenceable.value = value
+	dereferenceable.lock.unlock()
+	return value
+}
+
+pub fn (mut dereferenceable Dereferenceable) set_options(options DereferenceOptions) {
+	dereferenceable.lock.lock()
+	dereferenceable.options = options
+	dereferenceable.lock.unlock()
+}
+
+fn dereference_options_from_value(value brew_runtime.Value) DereferenceOptions {
+	if value.type_name != 'Hash' {
+		return DereferenceOptions{}
+	}
+	options := value.as_map() or { return DereferenceOptions{} }
+	dup_on_deref := if 'dup_on_deref' in options {
+		options['dup_on_deref'].as_bool() or { false }
+	} else if 'dup' in options {
+		options['dup'].as_bool() or { false }
+	} else {
+		false
+	}
+	freeze_on_deref := if 'freeze_on_deref' in options {
+		options['freeze_on_deref'].as_bool() or { false }
+	} else if 'freeze' in options {
+		options['freeze'].as_bool() or { false }
+	} else {
+		false
+	}
+	return DereferenceOptions{
+		dup_on_deref: dup_on_deref
+		freeze_on_deref: freeze_on_deref
+	}
+}
 
 // Ruby method `value` at line 21.
 pub fn ruby_dereferenceable_l21_d1_value(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('value', ...args)
+	if args.len == 0 {
+		return brew_runtime.object_value('NilClass', 'nil')
+	}
+	options := if args.len > 1 {
+		dereference_options_from_value(args[1])
+	} else {
+		DereferenceOptions{}
+	}
+	return apply_dereference_options(args[0], options, none)
 }
 
 // Ruby alias_method `alias_method :deref, :value` at line 24.
 pub fn ruby_dereferenceable_l24_d2_deref(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('deref', ...args)
+	return ruby_dereferenceable_l21_d1_value(...args)
 }
 
 // Ruby method `value=(value)` at line 31.
 pub fn ruby_dereferenceable_l31_d3_value(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('value=', ...args)
+	return if args.len > 0 {
+		args[args.len - 1]
+	} else {
+		brew_runtime.object_value('NilClass', 'nil')
+	}
 }
 
 // Ruby method `set_deref_options(opts = {})` at line 48.
 pub fn ruby_dereferenceable_l48_d4_set_deref_options(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('set_deref_options', ...args)
+	return ruby_dereferenceable_l54_d5_ns_set_deref_options(...args)
 }
 
 // Ruby method `ns_set_deref_options(opts)` at line 54.
 pub fn ruby_dereferenceable_l54_d5_ns_set_deref_options(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ns_set_deref_options', ...args)
+	if args.len > 0 {
+		dereference_options_from_value(args[0])
+	}
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Ruby method `apply_deref_options(value)` at line 63.
 pub fn ruby_dereferenceable_l63_d6_apply_deref_options(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('apply_deref_options', ...args)
+	if args.len == 0 {
+		return brew_runtime.object_value('NilClass', 'nil')
+	}
+	options := if args.len > 1 {
+		dereference_options_from_value(args[1])
+	} else {
+		DereferenceOptions{}
+	}
+	return apply_dereference_options(args[0], options, none)
 }
 
 // Original Ruby source (line-for-line):

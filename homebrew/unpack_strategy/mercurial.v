@@ -6,13 +6,24 @@ import brew_runtime
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `self.can_extract?(path)` at line 10.
-pub fn ruby_mercurial_l10_d1_self_can_extract(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.can_extract?', ...args)
+pub fn ruby_mercurial_l10_d1_self_can_extract(path string) bool {
+	return mercurial_can_extract(path)
 }
 
 // Ruby method `extract_to_dir(unpack_dir, basename:, verbose:)` at line 17.
-pub fn ruby_mercurial_l17_d2_extract_to_dir(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('extract_to_dir', ...args)
+pub fn ruby_mercurial_l17_d2_extract_to_dir(path string, unpack_dir string, basename string, verbose bool) ! {
+	mercurial_extract_to_dir(path, unpack_dir, basename, verbose)!
+}
+
+pub fn mercurial_can_extract(path string) bool {
+	return directory_can_extract(path) && brew_runtime.is_dir(brew_runtime.join_path(path, '.hg'))
+}
+
+pub fn mercurial_extract_to_dir(path string, unpack_dir string, basename string, verbose bool) ! {
+	_ = basename
+	_ = verbose
+	checked_command(command_path('hg')!, ['--cwd', path, 'archive', '--subrepos', '-y', '-t', 'files',
+		unpack_dir])!
 }
 
 // Original Ruby source (line-for-line):

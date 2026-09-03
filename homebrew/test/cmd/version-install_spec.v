@@ -1,168 +1,267 @@
 module cmd
 
-import brew_runtime
+import homebrew.cmd as version_install_cmd
 
 // Translated from Homebrew/brew `test/cmd/version-install_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+fn version_install_spec_unavailable_formula(reference string,
+	_ map[string]version_install_cmd.VersionInstallFormula) !version_install_cmd.VersionInstallFormula {
+	return error('Formula unavailable: ${reference}')
+}
+
+fn version_install_spec_versioned_formula(reference string,
+	_ map[string]version_install_cmd.VersionInstallFormula) !version_install_cmd.VersionInstallFormula {
+	if reference == 'foo@1.2' {
+		return version_install_cmd.VersionInstallFormula{
+			full_name: 'homebrew/core/foo@1.2'
+			name: 'foo@1.2'
+			version: '1.2'
+		}
+	}
+	return error('Formula unavailable: ${reference}')
+}
+
+fn version_install_spec_current_formula(reference string,
+	_ map[string]version_install_cmd.VersionInstallFormula) !version_install_cmd.VersionInstallFormula {
+	if reference == 'foo' {
+		return version_install_cmd.VersionInstallFormula{
+			full_name: 'homebrew/core/foo'
+			name: 'foo'
+			version: '1.2'
+		}
+	}
+	if reference == 'foo@1.2' {
+		return error('Formula unavailable: ${reference}')
+	}
+	return error('Unexpected ref: ${reference}')
+}
+
+fn version_install_spec_config(installed_formula_names []string,
+	installed_taps []version_install_cmd.VersionInstallTap,
+	formula_resolver version_install_cmd.VersionInstallFormulaResolver,
+	tap_installed bool) version_install_cmd.VersionInstallConfig {
+	tap_name := 'tester/homebrew-versions'
+	return version_install_cmd.VersionInstallConfig{
+		installed_formula_names: installed_formula_names.clone()
+		installed_taps: installed_taps.clone()
+		fetched_taps: {
+			tap_name: version_install_cmd.VersionInstallTap{
+				name: tap_name
+				installed: tap_installed
+			}
+		}
+		local_username: 'tester'
+		brew_file: 'brew'
+		formula_resolver: formula_resolver
+	}
+}
+
+fn version_install_spec_run(arguments []string, installed_formula_names []string,
+	installed_taps []version_install_cmd.VersionInstallTap,
+	formula_resolver version_install_cmd.VersionInstallFormulaResolver,
+	tap_installed bool) ?version_install_cmd.VersionInstallResult {
+	return version_install_cmd.ruby_version_install_l29_d1_run(arguments, version_install_spec_config(installed_formula_names, installed_taps, formula_resolver, tap_installed)) or { none }
+}
 
 // Ruby subject `subject(:version_install) { described_class.new(args) }` at line 8.
-pub fn ruby_version_install_spec_l8_d1_version_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('version_install', ...args)
+pub fn ruby_version_install_spec_l8_d1_version_install(arguments []string) []string {
+	return arguments.clone()
 }
 
 // Ruby let `let(:formulary_factory) { ->(ref, **_opts) { raise FormulaUnavailableError, ref } }` at line 10.
-pub fn ruby_version_install_spec_l10_d2_formulary_factory(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formulary_factory', ...args)
+pub fn ruby_version_install_spec_l10_d2_formulary_factory() version_install_cmd.VersionInstallFormulaResolver {
+	return version_install_spec_unavailable_formula
 }
 
 // Ruby let `let(:installed_taps) { [] }` at line 11.
-pub fn ruby_version_install_spec_l11_d3_installed_taps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('installed_taps', ...args)
+pub fn ruby_version_install_spec_l11_d3_installed_taps() []version_install_cmd.VersionInstallTap {
+	return []
 }
 
 // Ruby let `let(:installed_formula_names) { [] }` at line 12.
-pub fn ruby_version_install_spec_l12_d4_installed_formula_names(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('installed_formula_names', ...args)
+pub fn ruby_version_install_spec_l12_d4_installed_formula_names() []string {
+	return []
 }
 
 // Ruby let `let(:tap_name) { "tester/homebrew-versions" }` at line 13.
-pub fn ruby_version_install_spec_l13_d5_tap_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tap_name', ...args)
+pub fn ruby_version_install_spec_l13_d5_tap_name() string {
+	return 'tester/homebrew-versions'
 }
 
 // Ruby let `let(:versioned_name) { "#{formula}@#{version}" }` at line 14.
-pub fn ruby_version_install_spec_l14_d6_versioned_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('versioned_name', ...args)
+pub fn ruby_version_install_spec_l14_d6_versioned_name() string {
+	return '${ruby_version_install_spec_l17_d9_formula()}@${ruby_version_install_spec_l16_d8_version()}'
 }
 
 // Ruby let `let(:args) { [formula, version] }` at line 15.
-pub fn ruby_version_install_spec_l15_d7_args(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('args', ...args)
+pub fn ruby_version_install_spec_l15_d7_args() []string {
+	return [ruby_version_install_spec_l17_d9_formula(), ruby_version_install_spec_l16_d8_version()]
 }
 
 // Ruby let `let(:version) { "1.2" }` at line 16.
-pub fn ruby_version_install_spec_l16_d8_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('version', ...args)
+pub fn ruby_version_install_spec_l16_d8_version() string {
+	return '1.2'
 }
 
 // Ruby let `let(:formula) { "foo" }` at line 17.
-pub fn ruby_version_install_spec_l17_d9_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula', ...args)
+pub fn ruby_version_install_spec_l17_d9_formula() string {
+	return 'foo'
 }
 
 // Ruby let `let(:installed_formula_names) { [versioned_name] }` at line 29.
-pub fn ruby_version_install_spec_l29_d10_installed_formula_names(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('installed_formula_names', ...args)
+pub fn ruby_version_install_spec_l29_d10_installed_formula_names() []string {
+	return [ruby_version_install_spec_l14_d6_versioned_name()]
 }
 
 // Ruby it `it "skips installation" do` at line 31.
-pub fn ruby_version_install_spec_l31_d11_skips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skips', ...args)
+pub fn ruby_version_install_spec_l31_d11_skips() bool {
+	result := version_install_spec_run(ruby_version_install_spec_l15_d7_args(), ruby_version_install_spec_l29_d10_installed_formula_names(), [], version_install_spec_unavailable_formula, false) or { return false }
+	return result.outcome == .already_installed && result.commands.len == 0
 }
 
 // Ruby let `let(:existing_tap_name) { "alice/homebrew-versions" }` at line 39.
-pub fn ruby_version_install_spec_l39_d12_existing_tap_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('existing_tap_name', ...args)
+pub fn ruby_version_install_spec_l39_d12_existing_tap_name() string {
+	return 'alice/homebrew-versions'
 }
 
 // Ruby let `let(:existing_tap) do` at line 40.
-pub fn ruby_version_install_spec_l40_d13_existing_tap(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('existing_tap', ...args)
+pub fn ruby_version_install_spec_l40_d13_existing_tap() version_install_cmd.VersionInstallTap {
+	return version_install_cmd.VersionInstallTap{
+		name: ruby_version_install_spec_l39_d12_existing_tap_name()
+		installed: true
+		formula_names: [ruby_version_install_spec_l14_d6_versioned_name()]
+	}
 }
 
 // Ruby let `let(:installed_taps) { [existing_tap] }` at line 47.
-pub fn ruby_version_install_spec_l47_d14_installed_taps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('installed_taps', ...args)
+pub fn ruby_version_install_spec_l47_d14_installed_taps() []version_install_cmd.VersionInstallTap {
+	return [ruby_version_install_spec_l40_d13_existing_tap()]
 }
 
 // Ruby let `let(:install_target) { "#{existing_tap_name}/#{versioned_name}" }` at line 48.
-pub fn ruby_version_install_spec_l48_d15_install_target(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install_target', ...args)
+pub fn ruby_version_install_spec_l48_d15_install_target() string {
+	return '${ruby_version_install_spec_l39_d12_existing_tap_name()}/${ruby_version_install_spec_l14_d6_versioned_name()}'
 }
 
 // Ruby it `it "installs from the existing tap extraction" do` at line 54.
-pub fn ruby_version_install_spec_l54_d16_installs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('installs', ...args)
+pub fn ruby_version_install_spec_l54_d16_installs() bool {
+	result := version_install_spec_run(ruby_version_install_spec_l15_d7_args(), [], ruby_version_install_spec_l47_d14_installed_taps(), version_install_spec_unavailable_formula, false) or { return false }
+	return result.install_target == ruby_version_install_spec_l48_d15_install_target() && result.commands == [
+		['brew', 'install', ruby_version_install_spec_l48_d15_install_target()],
+	]
 }
 
 // Ruby let `let(:args) { ["#{formula}@#{version}"] }` at line 63.
-pub fn ruby_version_install_spec_l63_d17_args(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('args', ...args)
+pub fn ruby_version_install_spec_l63_d17_args() []string {
+	return [ruby_version_install_spec_l14_d6_versioned_name()]
 }
 
 // Ruby let `let(:versioned_formula) { instance_double(Formula, full_name: "homebrew/core/#{versioned_name}") }` at line 64.
-pub fn ruby_version_install_spec_l64_d18_versioned_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('versioned_formula', ...args)
+pub fn ruby_version_install_spec_l64_d18_versioned_formula() version_install_cmd.VersionInstallFormula {
+	return version_install_cmd.VersionInstallFormula{
+		full_name: 'homebrew/core/${ruby_version_install_spec_l14_d6_versioned_name()}'
+		name: ruby_version_install_spec_l14_d6_versioned_name()
+		version: ruby_version_install_spec_l16_d8_version()
+	}
 }
 
 // Ruby let `let(:install_target) { "homebrew/core/#{versioned_name}" }` at line 65.
-pub fn ruby_version_install_spec_l65_d19_install_target(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install_target', ...args)
+pub fn ruby_version_install_spec_l65_d19_install_target() string {
+	return ruby_version_install_spec_l64_d18_versioned_formula().full_name
 }
 
 // Ruby let `let(:formulary_factory) do` at line 66.
-pub fn ruby_version_install_spec_l66_d20_formulary_factory(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formulary_factory', ...args)
+pub fn ruby_version_install_spec_l66_d20_formulary_factory() version_install_cmd.VersionInstallFormulaResolver {
+	return version_install_spec_versioned_formula
 }
 
 // Ruby it `it "installs a versioned formula that already exists" do` at line 74.
-pub fn ruby_version_install_spec_l74_d21_installs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('installs', ...args)
+pub fn ruby_version_install_spec_l74_d21_installs() bool {
+	result := version_install_spec_run(ruby_version_install_spec_l63_d17_args(), [], [], version_install_spec_versioned_formula, false) or { return false }
+	return result.install_target == ruby_version_install_spec_l65_d19_install_target() && result.commands == [
+		['brew', 'install', ruby_version_install_spec_l65_d19_install_target()],
+	]
 }
 
 // Ruby let `let(:current_formula) { instance_double(Formula, full_name: "homebrew/core/#{formula}", name: formula, version:) }` at line 83.
-pub fn ruby_version_install_spec_l83_d22_current_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('current_formula', ...args)
+pub fn ruby_version_install_spec_l83_d22_current_formula() version_install_cmd.VersionInstallFormula {
+	return version_install_cmd.VersionInstallFormula{
+		full_name: 'homebrew/core/${ruby_version_install_spec_l17_d9_formula()}'
+		name: ruby_version_install_spec_l17_d9_formula()
+		version: ruby_version_install_spec_l16_d8_version()
+	}
 }
 
 // Ruby let `let(:install_target) { "homebrew/core/#{formula}" }` at line 84.
-pub fn ruby_version_install_spec_l84_d23_install_target(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install_target', ...args)
+pub fn ruby_version_install_spec_l84_d23_install_target() string {
+	return ruby_version_install_spec_l83_d22_current_formula().full_name
 }
 
 // Ruby let `let(:formulary_factory) do` at line 85.
-pub fn ruby_version_install_spec_l85_d24_formulary_factory(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formulary_factory', ...args)
+pub fn ruby_version_install_spec_l85_d24_formulary_factory() version_install_cmd.VersionInstallFormulaResolver {
+	return version_install_spec_current_formula
 }
 
 // Ruby it `it "installs the current formula" do` at line 94.
-pub fn ruby_version_install_spec_l94_d25_installs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('installs', ...args)
+pub fn ruby_version_install_spec_l94_d25_installs() bool {
+	result := version_install_spec_run(ruby_version_install_spec_l15_d7_args(), [], [], version_install_spec_current_formula, false) or { return false }
+	return result.install_target == ruby_version_install_spec_l84_d23_install_target() && result.commands == [
+		['brew', 'install', ruby_version_install_spec_l84_d23_install_target()],
+	]
 }
 
 // Ruby let `let(:installed_formula_names) { [formula] }` at line 102.
-pub fn ruby_version_install_spec_l102_d26_installed_formula_names(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('installed_formula_names', ...args)
+pub fn ruby_version_install_spec_l102_d26_installed_formula_names() []string {
+	return [ruby_version_install_spec_l17_d9_formula()]
 }
 
 // Ruby it `it "skips installation" do` at line 104.
-pub fn ruby_version_install_spec_l104_d27_skips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skips', ...args)
+pub fn ruby_version_install_spec_l104_d27_skips() bool {
+	result := version_install_spec_run(ruby_version_install_spec_l15_d7_args(), ruby_version_install_spec_l102_d26_installed_formula_names(), [], version_install_spec_current_formula, false) or { return false }
+	return result.outcome == .already_installed && result.commands.len == 0
 }
 
 // Ruby let `let(:tap_installed) { false }` at line 113.
-pub fn ruby_version_install_spec_l113_d28_tap_installed(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tap_installed', ...args)
+pub fn ruby_version_install_spec_l113_d28_tap_installed() bool {
+	return false
 }
 
 // Ruby let `let(:tap) { instance_double(Tap, name: tap_name, installed?: tap_installed) }` at line 114.
-pub fn ruby_version_install_spec_l114_d29_tap(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tap', ...args)
+pub fn ruby_version_install_spec_l114_d29_tap() version_install_cmd.VersionInstallTap {
+	return version_install_cmd.VersionInstallTap{
+		name: ruby_version_install_spec_l13_d5_tap_name()
+		installed: ruby_version_install_spec_l113_d28_tap_installed()
+	}
 }
 
 // Ruby it `it "extracts into a new tap when needed" do` at line 122.
-pub fn ruby_version_install_spec_l122_d30_extracts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('extracts', ...args)
+pub fn ruby_version_install_spec_l122_d30_extracts() bool {
+	result := version_install_spec_run(ruby_version_install_spec_l15_d7_args(), [], [], version_install_spec_unavailable_formula, ruby_version_install_spec_l113_d28_tap_installed()) or {
+		return false
+	}
+	tap_name := ruby_version_install_spec_l13_d5_tap_name()
+	return result.install_target == '${tap_name}/${ruby_version_install_spec_l14_d6_versioned_name()}' && result.commands == [
+		['brew', 'tap-new', '--no-git', tap_name],
+		['brew', 'extract', 'foo', tap_name, '--version=1.2'],
+		['brew', 'install', '${tap_name}/foo@1.2'],
+	]
 }
 
 // Ruby let `let(:tap_installed) { true }` at line 134.
-pub fn ruby_version_install_spec_l134_d31_tap_installed(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tap_installed', ...args)
+pub fn ruby_version_install_spec_l134_d31_tap_installed() bool {
+	return true
 }
 
 // Ruby it `it "skips tap creation" do` at line 136.
-pub fn ruby_version_install_spec_l136_d32_skips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skips', ...args)
+pub fn ruby_version_install_spec_l136_d32_skips() bool {
+	result := version_install_spec_run(ruby_version_install_spec_l15_d7_args(), [], [], version_install_spec_unavailable_formula, ruby_version_install_spec_l134_d31_tap_installed()) or {
+		return false
+	}
+	tap_name := ruby_version_install_spec_l13_d5_tap_name()
+	return result.commands == [
+		['brew', 'extract', 'foo', tap_name, '--version=1.2'],
+		['brew', 'install', '${tap_name}/foo@1.2'],
+	]
 }
 
 // Original Ruby source (line-for-line):

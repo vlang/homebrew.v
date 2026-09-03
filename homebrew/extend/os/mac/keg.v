@@ -1,68 +1,330 @@
 module mac
 
 import brew_runtime
+import homebrew.os.mac as mach
+import os
+
+pub struct MacKegCommandResult {
+pub:
+	success bool
+	stderr  string
+}
+
+pub type MacKegCommandRunner = fn(string, []string) MacKegCommandResult
+
+pub type MacKegMachSigner = fn(string) !
+
+pub struct MacKegCodesignResult {
+pub:
+	attempted  bool
+	signed     bool
+	used_macho bool
+	workaround bool
+	error      string
+}
+
+pub fn mac_keg_link_directories(base []string) []string {
+	mut directories := base.clone()
+	if 'Frameworks' !in directories {
+		directories << 'Frameworks'
+	}
+	return directories
+}
+
+pub fn mac_keg_required_directories(base []string, prefix string) []string {
+	mut directories := base.clone()
+	frameworks := os.join_path(prefix, 'Frameworks')
+	if frameworks !in directories {
+		directories << frameworks
+	}
+	directories.sort()
+	return directories
+}
+
+pub fn mac_keg_change_dylib_id(mut file mach.MachState, identifier string) !bool {
+	if file.dylib_id == identifier {
+		return false
+	}
+	file.change_dylib_id(identifier, false)!
+	return true
+}
+
+pub fn mac_keg_change_install_name(mut file mach.MachState, old string, replacement string) !bool {
+	if old == replacement {
+		return false
+	}
+	file.change_install_name(old, replacement, false)!
+	return true
+}
+
+pub fn mac_keg_change_rpath(mut file mach.MachState, old string, replacement string) !bool {
+	if old == replacement {
+		return false
+	}
+	file.change_rpath(old, replacement, false, false, false)!
+	return true
+}
+
+pub fn mac_keg_delete_rpath(mut file mach.MachState, rpath string) !bool {
+	return file.delete_rpath(rpath, false)! != ''
+}
+
+fn mac_keg_walk(path string) []string {
+	mut files := []string{}
+	entries := os.ls(path) or { return files }
+	for entry in entries {
+		child := os.join_path(path, entry)
+		if os.is_link(child) {
+			continue
+		}
+		if os.is_dir(child) {
+			files << mac_keg_walk(child)
+		} else if os.is_file(child) {
+			files << child
+		}
+	}
+	return files
+}
+
+fn mac_keg_is_macho(path string) bool {
+	bytes := os.read_bytes(path) or { return false }
+	if bytes.len < 4 {
+		return false
+	}
+	magic := [bytes[0], bytes[1], bytes[2], bytes[3]]
+	return magic == [u8(0xfe), 0xed, 0xfa, 0xce] || magic == [u8(0xce), 0xfa, 0xed, 0xfe] || magic == [
+		u8(0xfe),
+		0xed,
+		0xfa,
+		0xcf,
+	] || magic == [u8(0xcf), 0xfa, 0xed, 0xfe] || magic == [u8(0xca), 0xfe, 0xba, 0xbe] || magic == [
+		u8(0xbe),
+		0xba,
+		0xfe,
+		0xca,
+	]
+}
+
+pub fn mac_keg_mach_o_files(path string) []string {
+	mut seen_inodes := []u64{}
+	mut files := []string{}
+	for file in mac_keg_walk(path) {
+		if !mac_keg_is_macho(file) {
+			continue
+		}
+		information := os.stat(file) or { continue }
+		if information.inode in seen_inodes {
+			continue
+		}
+		seen_inodes << information.inode
+		files << file
+	}
+	return files
+}
+
+fn mac_keg_copy_workaround(file string) ! {
+	temporary := '${file}.homebrew-codesign-${os.getpid()}'
+	os.cp(file, temporary)!
+	os.mv(temporary, file)!
+}
+
+pub fn mac_keg_codesign_patched_binary(file string, macos_major int, arm bool,
+	runner MacKegCommandRunner, signer MacKegMachSigner) MacKegCodesignResult {
+	if macos_major < 11 {
+		return MacKegCodesignResult{}
+	}
+	if arm {
+		signer(file) or {
+			return MacKegCodesignResult{
+				attempted: true
+				used_macho: true
+				error: err.msg()
+			}
+		}
+		return MacKegCodesignResult{
+			attempted: true
+			signed: true
+			used_macho: true
+		}
+	}
+	verification := runner('codesign', ['--verify', file])
+	if !verification.stderr.to_lower().contains('invalid signature') {
+		return MacKegCodesignResult{}
+	}
+	sign_arguments := ['--sign', '-', '--force',
+		'--preserve-metadata=entitlements,requirements,flags,runtime', file]
+	first := runner('codesign', sign_arguments)
+	if first.success {
+		return MacKegCodesignResult{ attempted: true, signed: true }
+	}
+	mac_keg_copy_workaround(file) or {
+		return MacKegCodesignResult{ attempted: true, error: err.msg() }
+	}
+	second := runner('codesign', sign_arguments)
+	return MacKegCodesignResult{
+		attempted: true
+		signed: second.success
+		workaround: true
+		error: if second.success { '' } else { second.stderr }
+	}
+}
+
+pub fn mac_keg_prepare_debug_symbols(files []string, runner MacKegCommandRunner) ! {
+	for file in files {
+		result := runner('dsymutil', [file])
+		if !result.success {
+			return error('Failed to extract symbols from ${file}:\n${result.stderr}')
+		}
+	}
+}
+
+pub fn mac_keg_consistent_symlink_permissions(path string) ![]string {
+	mut changed := []string{}
+	for file in mac_keg_walk_including_links(path) {
+		if !os.is_link(file) {
+			continue
+		}
+		result := brew_runtime.run_command('chmod', ['-h', '0777', '--', file])
+		if result.exit_code != 0 {
+			return error(result.output)
+		}
+		changed << file
+	}
+	return changed
+}
+
+fn mac_keg_walk_including_links(path string) []string {
+	mut files := []string{}
+	entries := os.ls(path) or { return files }
+	for entry in entries {
+		child := os.join_path(path, entry)
+		files << child
+		if os.is_dir(child) && !os.is_link(child) {
+			files << mac_keg_walk_including_links(child)
+		}
+	}
+	return files
+}
+
+fn mac_keg_result_value(result MacKegCodesignResult) brew_runtime.Value {
+	return brew_runtime.structured_value('MacKegCodesignResult', result.signed.str(), {
+		'attempted':  result.attempted.str()
+		'signed':     result.signed.str()
+		'used_macho': result.used_macho.str()
+		'workaround': result.workaround.str()
+		'error':      result.error
+	})
+}
+
+pub fn mac_keg_mach_state_value(state &mach.MachState) brew_runtime.Value {
+	return brew_runtime.structured_value('MachOPathname', state.path, {
+		'mach_address': u64(voidptr(state)).str()
+	})
+}
+
+fn mac_keg_mach_state_from_value(value brew_runtime.Value) &mach.MachState {
+	address := value.attributes['mach_address'] or { panic('invalid MachOPathname receiver') }
+	return unsafe { &mach.MachState(voidptr(address.u64())) }
+}
+
+fn mac_keg_default_runner(command string, arguments []string) MacKegCommandResult {
+	result := brew_runtime.run_command(command, arguments)
+	return MacKegCommandResult{ success: result.exit_code == 0, stderr: result.output }
+}
+
+fn mac_keg_default_signer(file string) ! {
+	result := brew_runtime.run_command('codesign', ['--sign', '-', '--force', file])
+	if result.exit_code != 0 {
+		return error(result.output)
+	}
+}
 
 // Translated from Homebrew/brew `extend/os/mac/keg.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `keg_link_directories` at line 13.
 pub fn ruby_keg_l13_d1_keg_link_directories(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('keg_link_directories', ...args)
+	base := if args.len > 0 { args[0].as_string_array() or { panic(err) } } else { []string{} }
+	return brew_runtime.string_array_value(mac_keg_link_directories(base))
 }
 
 // Ruby method `must_exist_subdirectories` at line 18.
 pub fn ruby_keg_l18_d2_must_exist_subdirectories(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('must_exist_subdirectories', ...args)
+	base := if args.len > 0 { args[0].as_string_array() or { panic(err) } } else { []string{} }
+	prefix := if args.len > 1 {
+		args[1].as_string()
+	} else {
+		brew_runtime.environment_value('HOMEBREW_PREFIX')
+	}
+	return brew_runtime.string_array_value(mac_keg_required_directories(base, prefix))
 }
 
 // Ruby method `must_exist_directories` at line 26.
 pub fn ruby_keg_l26_d3_must_exist_directories(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('must_exist_directories', ...args)
+	return ruby_keg_l18_d2_must_exist_subdirectories(...args)
 }
 
 // Ruby method `must_be_writable_directories` at line 34.
 pub fn ruby_keg_l34_d4_must_be_writable_directories(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('must_be_writable_directories', ...args)
+	return ruby_keg_l18_d2_must_exist_subdirectories(...args)
 }
 
 // Ruby method `change_dylib_id(id, file)` at line 43.
 pub fn ruby_keg_l43_d5_change_dylib_id(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('change_dylib_id', ...args)
+	if args.len < 2 { panic('change_dylib_id requires id and MachO file') }
+	mut file := mac_keg_mach_state_from_value(args[1])
+	return brew_runtime.bool_value(mac_keg_change_dylib_id(mut file, args[0].as_string()) or { panic(err) })
 }
 
 // Ruby method `change_install_name(old, new, file)` at line 60.
 pub fn ruby_keg_l60_d6_change_install_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('change_install_name', ...args)
+	if args.len < 3 { panic('change_install_name requires old, new and MachO file') }
+	mut file := mac_keg_mach_state_from_value(args[2])
+	return brew_runtime.bool_value(mac_keg_change_install_name(mut file, args[0].as_string(), args[1].as_string()) or { panic(err) })
 }
 
 // Ruby method `change_rpath(old, new, file)` at line 77.
 pub fn ruby_keg_l77_d7_change_rpath(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('change_rpath', ...args)
+	if args.len < 3 { panic('change_rpath requires old, new and MachO file') }
+	mut file := mac_keg_mach_state_from_value(args[2])
+	return brew_runtime.bool_value(mac_keg_change_rpath(mut file, args[0].as_string(), args[1].as_string()) or { panic(err) })
 }
 
 // Ruby method `delete_rpath(rpath, file)` at line 94.
 pub fn ruby_keg_l94_d8_delete_rpath(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('delete_rpath', ...args)
+	if args.len < 2 { panic('delete_rpath requires rpath and MachO file') }
+	mut file := mac_keg_mach_state_from_value(args[1])
+	return brew_runtime.bool_value(mac_keg_delete_rpath(mut file, args[0].as_string()) or { panic(err) })
 }
 
 // Ruby method `binary_executable_or_library_files = mach_o_files` at line 105.
 pub fn ruby_keg_l105_d9_binary_executable_or_library_files(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('binary_executable_or_library_files', ...args)
+	if args.len == 0 {
+		return brew_runtime.string_array_value([]string{})
+	}
+	return brew_runtime.string_array_value(mac_keg_mach_o_files(args[0].as_string()))
 }
 
 // Ruby method `codesign_patched_binary(file)` at line 108.
 pub fn ruby_keg_l108_d10_codesign_patched_binary(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('codesign_patched_binary', ...args)
+	if args.len == 0 { panic('codesign_patched_binary requires a file') }
+	major := if args.len > 1 { int(args[1].as_int() or { panic(err) }) } else { 11 }
+	arm := if args.len > 2 { args[2].as_bool() or { panic(err) } } else { false }
+	return mac_keg_result_value(mac_keg_codesign_patched_binary(args[0].as_string(), major, arm, mac_keg_default_runner, mac_keg_default_signer))
 }
 
 // Ruby method `prepare_debug_symbols` at line 160.
 pub fn ruby_keg_l160_d11_prepare_debug_symbols(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prepare_debug_symbols', ...args)
+	files := if args.len > 0 { args[0].as_string_array() or { panic(err) } } else { []string{} }
+	mac_keg_prepare_debug_symbols(files, mac_keg_default_runner) or { panic(err) }
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Ruby method `consistent_reproducible_symlink_permissions!` at line 179.
 pub fn ruby_keg_l179_d12_consistent_reproducible_symlink_permissions(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('consistent_reproducible_symlink_permissions!', ...args)
+	if args.len == 0 { panic('consistent_reproducible_symlink_permissions! requires a path') }
+	mac_keg_consistent_symlink_permissions(args[0].as_string()) or { panic(err) }
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Original Ruby source (line-for-line):

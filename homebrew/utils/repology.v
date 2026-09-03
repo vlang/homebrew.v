@@ -1,23 +1,160 @@
 module utils
 
 import brew_runtime
+import net.urllib
 
 // Translated from Homebrew/brew `utils/repology.rb`.
 // The original source is retained below until every stub has a typed V body.
 
+pub const repology_api_base = 'https://repology.org/api/v1'
+pub const repology_homebrew_core = 'homebrew'
+pub const repology_homebrew_cask = 'homebrew_casks'
+
+pub struct RepologyCurlResult {
+pub:
+	success     bool
+	stdout      string
+	stderr      string
+	exit_status int
+}
+
+pub struct RepologyQueryResult {
+pub:
+	url               string
+	arguments         []string
+	use_homebrew_curl bool
+	data              brew_runtime.Value
+	error_output      []string
+}
+
+pub struct RepologyRepositoryVersion {
+pub:
+	status  string
+	version string
+}
+
+fn repology_url_encode(value string) string {
+	return urllib.query_escape(value).replace('+', '%20')
+}
+
+pub fn repology_query_api(last_package string, repository string, tls13_supported bool,
+	response RepologyCurlResult, developer bool) !RepologyQueryResult {
+	cursor := if last_package.len > 0 { '${repology_url_encode(last_package)}/' } else { '' }
+	url := '${repology_api_base}/projects/${cursor}?inrepo=${repository}&outdated=1'
+	data := brew_runtime.parse_json_value(response.stdout) or {
+		message := if developer && response.stderr.len > 0 {
+			'${response.stderr}\n${err.msg()}'
+		} else {
+			err.msg()
+		}
+		return error(message)
+	}
+	return RepologyQueryResult{
+		url: url
+		arguments: ['--fail', '--silent', url]
+		use_homebrew_curl: !tls13_supported
+		data: data
+	}
+}
+
+pub fn repology_single_package_query(name string, repository string, tls13_supported bool,
+	response RepologyCurlResult, developer bool) RepologyQueryResult {
+	_ = repository
+	url := '${repology_api_base}/project/${repology_url_encode(name)}'
+	arguments := ['--fail', '--location', '--silent', url]
+	if !response.success {
+		message := 'RuntimeError: curl exit ${response.exit_status}: ${response.stderr.trim_space()}'
+		return RepologyQueryResult{
+			url: url
+			arguments: arguments
+			use_homebrew_curl: !tls13_supported
+			error_output: [response.stderr, message].filter(it.len > 0)
+		}
+	}
+	data := brew_runtime.parse_json_value(response.stdout) or {
+		message := 'JsonError: ${err.msg()}'
+		return RepologyQueryResult{
+			url: url
+			arguments: arguments
+			use_homebrew_curl: !tls13_supported
+			error_output: [response.stderr, message].filter(it.len > 0)
+		}
+	}
+	_ = developer
+	return RepologyQueryResult{
+		url: url
+		arguments: arguments
+		use_homebrew_curl: !tls13_supported
+		data: brew_runtime.map_value({
+			name: data
+		})
+	}
+}
+
+pub fn repology_latest_version(repositories []RepologyRepositoryVersion) string {
+	if repositories.any(it.status == 'unique') {
+		return 'present only in Homebrew'
+	}
+	for repository in repositories {
+		if repository.status == 'newest' {
+			return repository.version
+		}
+	}
+	return 'no latest version'
+}
+
+fn repology_curl_result_from_value(value brew_runtime.Value) RepologyCurlResult {
+	return RepologyCurlResult{
+		success: (value.map_data['success'] or { brew_runtime.bool_value(false) }).as_bool() or { false }
+		stdout: (value.map_data['stdout'] or { brew_runtime.string_value('') }).as_string()
+		stderr: (value.map_data['stderr'] or { brew_runtime.string_value('') }).as_string()
+		exit_status: int((value.map_data['exit_status'] or { brew_runtime.int_value(0) }).as_int() or { 0 })
+	}
+}
+
 // Ruby method `self.query_api(last_package_in_response = "", repository:)` at line 17.
 pub fn ruby_repology_l17_d1_self_query_api(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.query_api', ...args)
+	if args.len < 3 {
+		return brew_runtime.object_value('ArgumentError', 'cursor, repository and curl result are required')
+	}
+	tls := args.len > 3 && (args[3].as_bool() or { false })
+	developer := args.len > 4 && (args[4].as_bool() or { false })
+	return repology_query_api(args[0].as_string(), args[1].as_string(), tls,
+		repology_curl_result_from_value(args[2]), developer) or {
+		return brew_runtime.object_value('Error', err.msg())
+	}.data
 }
 
 // Ruby method `self.single_package_query(name, repository:)` at line 37.
 pub fn ruby_repology_l37_d2_self_single_package_query(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.single_package_query', ...args)
+	if args.len < 3 {
+		return brew_runtime.object_value('ArgumentError', 'name, repository and curl result are required')
+	}
+	tls := args.len > 3 && (args[3].as_bool() or { false })
+	developer := args.len > 4 && (args[4].as_bool() or { false })
+	result := repology_single_package_query(args[0].as_string(), args[1].as_string(), tls,
+		repology_curl_result_from_value(args[2]), developer)
+	return if result.error_output.len > 0 { brew_runtime.object_value('NilClass', '') } else { result.data }
 }
 
 // Ruby method `self.latest_version(repositories)` at line 61.
 pub fn ruby_repology_l61_d3_self_latest_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.latest_version', ...args)
+	if args.len == 0 {
+		return brew_runtime.object_value('ArgumentError', 'repositories are required')
+	}
+	mut repositories := []RepologyRepositoryVersion{}
+	for entry in args[0].as_array() or { []brew_runtime.Value{} } {
+		repositories << RepologyRepositoryVersion{
+			status: (entry.map_data['status'] or { brew_runtime.string_value('') }).as_string()
+			version: (entry.map_data['version'] or { brew_runtime.string_value('') }).as_string()
+		}
+	}
+	result := repology_latest_version(repositories)
+	return if result in ['present only in Homebrew', 'no latest version'] {
+		brew_runtime.string_value(result)
+	} else {
+		brew_runtime.object_value('Version', result)
+	}
 }
 
 // Original Ruby source (line-for-line):

@@ -1,33 +1,60 @@
 module cmd
 
-import brew_runtime
+import homebrew.cmd as doctor_core
 
 // Translated from Homebrew/brew `test/cmd/doctor_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby specify `specify "check_integration_test", :integration_test do` at line 10.
-pub fn ruby_doctor_spec_l10_d1_check_integration_test(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('check_integration_test', ...args)
+pub fn ruby_doctor_spec_l10_d1_check_integration_test() bool {
+	result := doctor_core.run_doctor([doctor_core.DoctorCheck{
+		name: 'check_integration_test'
+		findings: [doctor_core.DoctorFinding{
+			message: 'This is an integration test'
+		}]
+	}], doctor_core.DoctorOptions{
+		named: ['check_integration_test']
+	})
+	return result.failed && result.stderr.contains('This is an integration test')
 }
 
 // Ruby specify `specify "prints json when requested" do` at line 15.
-pub fn ruby_doctor_spec_l15_d2_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+pub fn ruby_doctor_spec_l15_d2_prints() bool {
+	result := doctor_core.run_doctor([]doctor_core.DoctorCheck{}, doctor_core.DoctorOptions{
+		json: true
+	})
+	return result.stdout.contains('"tier": 1') && result.stdout.contains('"findings": []')
 }
 
 // Ruby specify `specify "check_missing_deps reports formula and cask dependencies", :cask do` at line 22.
-pub fn ruby_doctor_spec_l22_d3_check_missing_deps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('check_missing_deps', ...args)
+pub fn ruby_doctor_spec_l22_d3_check_missing_deps() bool {
+	finding := doctor_core.doctor_missing_deps_finding([doctor_core.DoctorFormulaDependencyState{
+		full_name: 'needs-foo'
+		missing_dependencies: ['foo']
+	}], [doctor_core.DoctorCaskDependencyState{
+		full_name: 'with-depends-on-everything'
+		runtime_casks: ['local-caffeine']
+		runtime_formulae: ['unar']
+	}]) or { return false }
+	return finding.message.contains('Some installed formulae or casks are missing dependencies.') && finding.message.contains('brew install foo local-caffeine unar') && finding.message.contains('Run `brew missing` for more details.')
 }
 
 // Ruby specify `specify "check_for_unreadable_installed_formula skips untrusted installed formulae" do` at line 43.
-pub fn ruby_doctor_spec_l43_d4_check_for_unreadable_installed_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('check_for_unreadable_installed_formula', ...args)
+pub fn ruby_doctor_spec_l43_d4_check_for_unreadable_installed_formula() bool {
+	return doctor_core.doctor_unreadable_installed_formula([doctor_core.DoctorInstalledFormulaState{
+		name: 'shivammathur/php/php@7.2'
+		trusted: false
+		load_error: 'Refusing to load formula shivammathur/php/php@7.2.'
+	}]) == none
 }
 
 // Ruby specify `specify "does not print removed caveats method errors for installed casks", :cask do` at line 57.
-pub fn ruby_doctor_spec_l57_d5_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_doctor_spec_l57_d5_does() bool {
+	findings := doctor_core.doctor_cask_deprecated_disabled([doctor_core.DoctorInstalledCaskState{
+		token: 'local-caffeine'
+		caveats: 'discontinued'
+	}])
+	return findings.len == 0
 }
 
 // Original Ruby source (line-for-line):

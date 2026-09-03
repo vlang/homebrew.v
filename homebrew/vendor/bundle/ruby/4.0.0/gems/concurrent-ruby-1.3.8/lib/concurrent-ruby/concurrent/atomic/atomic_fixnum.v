@@ -4,15 +4,39 @@ import brew_runtime
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/atomic/atomic_fixnum.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub fn atomic_fixnum_description(super_description string, value i64) string {
+	base := if super_description.len > 0 {
+		super_description[..super_description.len - 1]
+	} else {
+		super_description
+	}
+	return '${base} value:${value}>'
+}
+
+fn atomic_fixnum_description_from_args(args []brew_runtime.Value) string {
+	if args.len >= 2 {
+		return atomic_fixnum_description(args[0].as_string(), args[1].as_int() or {
+			panic(err)
+		})
+	}
+	if args.len == 1 {
+		return atomic_fixnum_description(args[0].attribute('super') or {
+			panic('AtomicFixnum#to_s requires the superclass description')
+		}, (args[0].attribute('value') or {
+			panic('AtomicFixnum#to_s requires the current value')
+		}).i64())
+	}
+	panic('AtomicFixnum#to_s requires a receiver or superclass description and value')
+}
 
 // Ruby method `to_s` at line 138.
 pub fn ruby_atomic_fixnum_l138_d1_to_s(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_s', ...args)
+	return brew_runtime.string_value(atomic_fixnum_description_from_args(args))
 }
 
 // Ruby alias_method `alias_method :inspect, :to_s` at line 142.
 pub fn ruby_atomic_fixnum_l142_d2_inspect(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('inspect', ...args)
+	return ruby_atomic_fixnum_l138_d1_to_s(...args)
 }
 
 // Original Ruby source (line-for-line):

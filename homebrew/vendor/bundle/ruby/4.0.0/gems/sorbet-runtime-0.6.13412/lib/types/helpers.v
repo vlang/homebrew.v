@@ -4,35 +4,152 @@ import brew_runtime
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/sorbet-runtime-0.6.13412/lib/types/helpers.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub enum HelperDeclarationKind {
+	abstract_
+	interface_
+	final_
+	sealed_
+	mixes_in_class_methods
+	requires_ancestor
+}
+
+pub struct HelperDeclaration {
+pub:
+	kind             HelperDeclarationKind
+	target           brew_runtime.Value
+	declaration_file string
+	modules          []brew_runtime.Value
+	super_result     brew_runtime.Value
+}
+
+fn helpers_nil_value() brew_runtime.Value {
+	return brew_runtime.object_value('NilClass', 'nil')
+}
+
+pub fn declare_helper(kind HelperDeclarationKind, target brew_runtime.Value,
+	declaration_file string, modules []brew_runtime.Value) !HelperDeclaration {
+	is_module := target.type_name in ['Class', 'Module']
+	is_abstract := target.attribute('abstract') or { 'false' } == 'true'
+	is_final := target.attribute('final') or { 'false' } == 'true'
+	is_sealed := target.attribute('sealed') or { 'false' } == 'true'
+	if kind in [.abstract_, .interface_] {
+		if !is_module {
+			return error('${target.as_string()} is not a class or module and cannot be declared abstract')
+		}
+		if is_abstract {
+			return error('${target.as_string()} is already declared as abstract')
+		}
+		if is_final {
+			return error('${target.as_string()} was already declared as final and cannot be declared as abstract')
+		}
+		if kind == .interface_ && target.type_name == 'Class' {
+			return error("Classes can't be interfaces. Use `abstract!` instead of `interface!`.")
+		}
+		if target.type_name == 'Class' && target.attribute('owns_new') or { 'false' } == 'true' {
+			return error('You must call `abstract!` *before* defining a `new` method')
+		}
+	}
+	if kind == .final_ {
+		if !is_module {
+			return error('${target.as_string()} is not a class or module and cannot be declared as final with `final!`')
+		}
+		if is_final {
+			return error('${target.as_string()} was already declared as final and cannot be re-declared as final')
+		}
+		if is_abstract {
+			return error('${target.as_string()} was already declared as abstract and cannot be declared as final')
+		}
+		if is_sealed {
+			return error('${target.as_string()} was already declared as sealed and cannot be declared as final')
+		}
+	}
+	if kind == .sealed_ {
+		if !is_module {
+			return error('${target.as_string()} is not a class or module and cannot be declared `sealed!`')
+		}
+		if is_sealed {
+			return error('${target.as_string()} was already declared `sealed!` and cannot be re-declared `sealed!`')
+		}
+		if is_final {
+			return error('${target.as_string()} was already declared `final!` and cannot be declared `sealed!`')
+		}
+		if declaration_file == '' {
+			return error("Couldn't determine declaration file for sealed class.")
+		}
+	}
+	if kind == .mixes_in_class_methods {
+		if target.type_name == 'Class' {
+			return error('Classes cannot be used as mixins, and so mixes_in_class_methods cannot be used on a Class.')
+		}
+		for mod in modules {
+			if mod.type_name != 'Module' {
+				return error('mixes_in_class_methods expects modules, got ${mod.type_name}')
+			}
+		}
+	}
+	super_result := target.map_data['abstract_super'] or { helpers_nil_value() }
+	if kind == .abstract_ && super_result.type_name == 'Exception' {
+		return error(super_result.as_string())
+	}
+	return HelperDeclaration{
+		kind: kind
+		target: target
+		declaration_file: declaration_file
+		modules: modules.clone()
+		super_result: super_result
+	}
+}
+
+fn helper_boundary(args []brew_runtime.Value, kind HelperDeclarationKind) brew_runtime.Value {
+	if args.len == 0 {
+		panic('T::Helpers method requires a receiver')
+	}
+	declaration_file := if kind == .sealed_ && args.len > 1 {
+		args[1].as_string()
+	} else {
+		''
+	}
+	modules := if kind == .mixes_in_class_methods && args.len > 1 {
+		args[1..].clone()
+	} else {
+		[]brew_runtime.Value{}
+	}
+	declare_helper(kind, args[0], declaration_file, modules) or { panic(err.msg()) }
+	return helpers_nil_value()
+}
 
 // Ruby method `abstract!` at line 11.
 pub fn ruby_helpers_l11_d1_abstract(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('abstract!', ...args)
+	return helper_boundary(args, .abstract_)
 }
 
 // Ruby method `interface!` at line 22.
 pub fn ruby_helpers_l22_d2_interface(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('interface!', ...args)
+	return helper_boundary(args, .interface_)
 }
 
 // Ruby method `final!` at line 26.
 pub fn ruby_helpers_l26_d3_final(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('final!', ...args)
+	return helper_boundary(args, .final_)
 }
 
 // Ruby method `sealed!` at line 30.
 pub fn ruby_helpers_l30_d4_sealed(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sealed!', ...args)
+	return helper_boundary(args, .sealed_)
 }
 
 // Ruby method `mixes_in_class_methods(mod, *mods)` at line 43.
 pub fn ruby_helpers_l43_d5_mixes_in_class_methods(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('mixes_in_class_methods', ...args)
+	return helper_boundary(args, .mixes_in_class_methods)
 }
 
 // Ruby method `requires_ancestor(&block); end` at line 62.
 pub fn ruby_helpers_l62_d6_requires_ancestor(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('requires_ancestor', ...args)
+	if args.len > 0 {
+		// The Ruby runtime intentionally leaves this check as a static-only TODO.
+		_ = declare_helper(.requires_ancestor, args[0], '', []) or { panic(err.msg()) }
+	}
+	return helpers_nil_value()
 }
 
 // Original Ruby source (line-for-line):

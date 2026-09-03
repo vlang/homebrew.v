@@ -1,263 +1,545 @@
 module shared_examples
 
 import brew_runtime
+import homebrew.cask.artifact as core
+import os
 
 // Translated from Homebrew/brew `test/cask/artifact/shared_examples/uninstall_zap.rb`.
 // The original source is retained below until every stub has a typed V body.
+const shared_bundle_id = 'my.fancy.package.app'
+const shared_service_id = 'my.fancy.package.service'
+
+fn shared_success_runner(command core.UninstallCommand) !bool {
+	_ = command
+	return true
+}
+
+fn shared_failure_runner(command core.UninstallCommand) !bool {
+	_ = command
+	return false
+}
+
+fn shared_artifact(directive string, value brew_runtime.Value) core.AbstractUninstallArtifact {
+	return core.new_abstract_uninstall_artifact('with-uninstall-${directive}', 'uninstall', {
+		directive: value
+	}) or { core.AbstractUninstallArtifact{} }
+}
+
+fn shared_launchctl_listing() string {
+	return 'PID     Status  Label\n1111    0       my.fancy.package.service.12345\n-       0       com.apple.SafariHistoryServiceAgent\n-       0       com.apple.progressd\n555     0       my.fancy.package.service.test'
+}
+
+fn shared_directive_result(directive string, value brew_runtime.Value,
+	options core.AbstractUninstallOptions, runner core.UninstallCommandRunner) core.AbstractUninstallResult {
+	mut artifact := shared_artifact(directive, value)
+	return core.dispatch_abstract_uninstall_with_command(mut artifact, options, runner)
+}
+
+fn shared_command(result core.AbstractUninstallResult, executable string, sudo bool) bool {
+	return result.commands.any(it.executable == executable && it.sudo == sudo)
+}
+
+fn uninstall_zap_filesystem_case() bool {
+	root := os.join_path(os.temp_dir(), 'brew-v-abstract-uninstall-${os.getpid()}')
+	if os.exists(root) {
+		os.rmdir_all(root) or { return false }
+	}
+	os.mkdir_all(root) or { return false }
+	delete_path := os.join_path(root, 'absolute_path')
+	trash_path := os.join_path(root, 'path_with_tilde')
+	trash_dir := os.join_path(root, 'Trash')
+	os.write_file(delete_path, 'delete') or { return false }
+	os.write_file(trash_path, 'trash') or { return false }
+	delete_result := shared_directive_result('delete', brew_runtime.string_array_value([
+		delete_path,
+	]), core.AbstractUninstallOptions{
+		home: root
+	}, shared_success_runner)
+	trash_result := shared_directive_result('trash', brew_runtime.string_array_value([
+		trash_path,
+	]), core.AbstractUninstallOptions{
+		home: root
+		trash_directory: trash_dir
+	}, shared_success_runner)
+	success := delete_result.success && delete_path in delete_result.removed && !os.exists(delete_path) && trash_result.success && trash_result.trashed.len == 1 && !os.exists(trash_path)
+	os.rmdir_all(root) or {}
+	return success
+}
+
+fn uninstall_zap_script_case() bool {
+	root := os.join_path(os.temp_dir(), 'brew-v-abstract-script-${os.getpid()}')
+	os.mkdir_all(root) or { return false }
+	script := os.join_path(root, 'FancyUninstaller.tool')
+	os.write_file(script, '#!/bin/sh\n') or { return false }
+	value := brew_runtime.map_value({
+		'executable': brew_runtime.string_value(script)
+		'args':       brew_runtime.string_array_value(['--please'])
+		'sudo':       brew_runtime.bool_value(false)
+	})
+	script_result := shared_directive_result('script', value, core.AbstractUninstallOptions{}, shared_success_runner)
+	early_result := shared_directive_result('early_script', value, core.AbstractUninstallOptions{}, shared_success_runner)
+	os.rmdir_all(root) or {}
+	return script_result.success && early_result.success && script_result.commands.len == 1 && script_result.commands[0].args == [
+		'--please',
+	]
+}
+
+pub fn uninstall_zap_shared_example_case(index int) bool {
+	match index {
+		9 {
+			result := shared_directive_result('launchctl', brew_runtime.string_array_value([
+				shared_service_id,
+			]), core.AbstractUninstallOptions{
+				launchctl_user_services: [shared_service_id]
+			}, shared_success_runner)
+			return result.success && shared_command(result, '/bin/launchctl', false)
+		}
+		10 {
+			result := shared_directive_result('launchctl', brew_runtime.string_array_value([
+				shared_service_id,
+			]), core.AbstractUninstallOptions{
+				launchctl_system_services: [shared_service_id]
+			}, shared_success_runner)
+			return result.success && shared_command(result, '/bin/launchctl', true)
+		}
+		11 {
+			result := shared_directive_result('launchctl', brew_runtime.string_array_value([
+				shared_service_id,
+			]), core.AbstractUninstallOptions{
+				launchctl_system_services: [shared_service_id]
+			}, shared_failure_runner)
+			return result.success && result.commands.len == 1
+		}
+		16 {
+			result := shared_directive_result('launchctl', brew_runtime.string_array_value([
+				'my.fancy.package.service.*',
+			]), core.AbstractUninstallOptions{
+				launchctl_list: shared_launchctl_listing()
+				launchctl_system_services: ['my.fancy.package.service.12345']
+			}, shared_success_runner)
+			return result.commands.any(it.args == ['remove', 'my.fancy.package.service.12345'])
+		}
+		17 {
+			return core.find_launchctl_with_wildcard('my.fancy.package.service.*', shared_launchctl_listing()) == [
+				'my.fancy.package.service.12345',
+				'my.fancy.package.service.test',
+			]
+		}
+		21 {
+			result := shared_directive_result('pkgutil', brew_runtime.string_array_value([
+				'my.fancy.package.*',
+			]), core.AbstractUninstallOptions{
+				package_matches: {
+					'my.fancy.package.*': ['my.fancy.package.main', 'my.fancy.package.agent']
+				}
+			}, shared_success_runner)
+			return result.packages == ['my.fancy.package.main', 'my.fancy.package.agent']
+		}
+		24 {
+			kext := 'my.fancy.package.kernelextension'
+			result := shared_directive_result('kext', brew_runtime.string_array_value([
+				kext,
+			]), core.AbstractUninstallOptions{
+				kext_loaded: {
+					kext: true
+				}
+				kext_paths: {
+					kext: ['/Library/Extensions/FancyPackage.kext']
+				}
+			}, shared_success_runner)
+			return result.commands.map(it.executable) == ['/usr/sbin/kextstat', '/sbin/kextunload',
+				'/bin/rm']
+		}
+		27 {
+			result := shared_directive_result('quit', brew_runtime.string_array_value([
+				shared_bundle_id,
+			]), core.AbstractUninstallOptions{
+				gui: false
+				running_processes: {
+					shared_bundle_id: [12345]
+				}
+			}, shared_success_runner)
+			return result.commands.len == 0 && result.warnings[0].contains('Not logged into a GUI')
+		}
+		28 {
+			result := shared_directive_result('quit', brew_runtime.string_array_value([
+				shared_bundle_id,
+			]), core.AbstractUninstallOptions{
+				running_processes: {
+					shared_bundle_id: [12345]
+				}
+				quit_success: {
+					shared_bundle_id: true
+				}
+			}, shared_success_runner)
+			return result.commands.len == 1 && result.output.last().contains('quit successfully')
+		}
+		29 {
+			result := shared_directive_result('quit', brew_runtime.string_array_value([
+				shared_bundle_id,
+			]), core.AbstractUninstallOptions{
+				running_processes: {
+					shared_bundle_id: [12345]
+				}
+				quit_success: {
+					shared_bundle_id: false
+				}
+			}, shared_failure_runner)
+			return result.warnings.any(it.contains('did not quit'))
+		}
+		34 {
+			value := brew_runtime.string_array_value(['TERM', shared_bundle_id, 'KILL',
+				shared_bundle_id])
+			result := shared_directive_result('signal', value, core.AbstractUninstallOptions{
+				running_processes: {
+					shared_bundle_id: [12345, 67890]
+				}
+			}, shared_success_runner)
+			return result.commands.len == 2 && result.commands[0].args[0] == '-TERM' && result.commands[1].args[0] == '-KILL'
+		}
+		35 {
+			value := brew_runtime.string_array_value(['TERM', shared_bundle_id])
+			upgrade := shared_directive_result('signal', value, core.AbstractUninstallOptions{
+				upgrade: true
+				running_processes: {
+					shared_bundle_id: [12345]
+				}
+			}, shared_success_runner)
+			reinstall := shared_directive_result('signal', value, core.AbstractUninstallOptions{
+				reinstall: true
+				running_processes: {
+					shared_bundle_id: [12345]
+				}
+			}, shared_success_runner)
+			return upgrade.commands.len == 0 && reinstall.commands.len == 0
+		}
+		44 {
+			return uninstall_zap_filesystem_case()
+		}
+		49 {
+			return uninstall_zap_script_case()
+		}
+		51 {
+			result := shared_directive_result('login_item', brew_runtime.string_array_value([
+				'Fancy',
+			]), core.AbstractUninstallOptions{}, shared_success_runner)
+			return result.commands.len == 1 && result.commands[0].executable == 'osascript' && result.commands[0].args.last().contains('name is "Fancy"')
+		}
+		else {
+			return false
+		}
+	}
+}
 
 // Ruby subject `subject { artifact }` at line 8.
 pub fn ruby_uninstall_zap_l8_d1_subject_dynamic(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('subject_dynamic', ...args)
+	_ = args
+	return core.abstract_uninstall_to_value(shared_artifact('delete', brew_runtime.string_array_value([
+		'/tmp/absolute_path',
+	])))
 }
 
 // Ruby let `let(:artifact_dsl_key) { described_class.dsl_key }` at line 10.
 pub fn ruby_uninstall_zap_l10_d2_artifact_dsl_key(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('artifact_dsl_key', ...args)
+	_ = args
+	return brew_runtime.string_value('uninstall')
 }
 
 // Ruby let `let(:artifact) { cask.artifacts.find { |a| a.is_a?(described_class) } }` at line 11.
 pub fn ruby_uninstall_zap_l11_d3_artifact(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('artifact', ...args)
+	return ruby_uninstall_zap_l8_d1_subject_dynamic(...args)
 }
 
 // Ruby let `let(:fake_system_command) { class_double(SystemCommand) }` at line 12.
 pub fn ruby_uninstall_zap_l12_d4_fake_system_command(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fake_system_command', ...args)
+	_ = args
+	return brew_runtime.object_value('UninstallCommandRunner', 'InjectedUninstallCommand')
 }
 
 // Ruby let `let(:cask) { Cask::CaskLoader.load(cask_path("with-#{artifact_dsl_key}-launchctl")) }` at line 19.
 pub fn ruby_uninstall_zap_l19_d5_cask(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask', ...args)
+	_ = args
+	return brew_runtime.string_value('with-uninstall-launchctl')
 }
 
 // Ruby let `let(:launchctl_list_cmd) { %w[/bin/launchctl list my.fancy.package.service] }` at line 20.
 pub fn ruby_uninstall_zap_l20_d6_launchctl_list_cmd(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('launchctl_list_cmd', ...args)
+	_ = args
+	return brew_runtime.string_array_value(['/bin/launchctl', 'list', shared_service_id])
 }
 
 // Ruby let `let(:launchctl_remove_cmd) { %w[/bin/launchctl remove my.fancy.package.service] }` at line 21.
 pub fn ruby_uninstall_zap_l21_d7_launchctl_remove_cmd(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('launchctl_remove_cmd', ...args)
+	_ = args
+	return brew_runtime.string_array_value(['/bin/launchctl', 'remove', shared_service_id])
 }
 
 // Ruby let `let(:service_info) do` at line 22.
 pub fn ruby_uninstall_zap_l22_d8_service_info(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('service_info', ...args)
+	_ = args
+	return brew_runtime.string_value('{ "Label" = "${shared_service_id}"; "OnDemand" = true; };')
 }
 
 // Ruby it `it "works when job is owned by user" do` at line 37.
 pub fn ruby_uninstall_zap_l37_d9_works(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('works', ...args)
+	_ = args
+	return brew_runtime.bool_value(uninstall_zap_shared_example_case(9))
 }
 
 // Ruby it `it "works when job is owned by system" do` at line 53.
 pub fn ruby_uninstall_zap_l53_d10_works(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('works', ...args)
+	_ = args
+	return brew_runtime.bool_value(uninstall_zap_shared_example_case(10))
 }
 
 // Ruby it `it "does not fail when sudo removal fails" do` at line 69.
 pub fn ruby_uninstall_zap_l69_d11_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	_ = args
+	return brew_runtime.bool_value(uninstall_zap_shared_example_case(11))
 }
 
 // Ruby let `let(:cask) { Cask::CaskLoader.load(cask_path("with-#{artifact_dsl_key}-launchctl-wildcard")) }` at line 89.
 pub fn ruby_uninstall_zap_l89_d12_cask(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask', ...args)
+	_ = args
+	return brew_runtime.string_value('with-uninstall-launchctl-wildcard')
 }
 
 // Ruby let `let(:launchctl_regex) { "my.fancy.package.service.*" }` at line 90.
 pub fn ruby_uninstall_zap_l90_d13_launchctl_regex(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('launchctl_regex', ...args)
+	_ = args
+	return brew_runtime.string_value('my.fancy.package.service.*')
 }
 
 // Ruby let `let(:service_info) do` at line 91.
 pub fn ruby_uninstall_zap_l91_d14_service_info(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('service_info', ...args)
+	_ = args
+	return brew_runtime.string_value('{ "Label" = "my.fancy.package.service.12345"; };')
 }
 
 // Ruby let `let(:launchctl_list) do` at line 105.
 pub fn ruby_uninstall_zap_l105_d15_launchctl_list(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('launchctl_list', ...args)
+	_ = args
+	return brew_runtime.string_value(shared_launchctl_listing())
 }
 
 // Ruby it `it "searches installed launchctl items" do` at line 121.
 pub fn ruby_uninstall_zap_l121_d16_searches(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('searches', ...args)
+	_ = args
+	return brew_runtime.bool_value(uninstall_zap_shared_example_case(16))
 }
 
 // Ruby it `it "returns the matching launchctl services" do` at line 138.
 pub fn ruby_uninstall_zap_l138_d17_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	return brew_runtime.bool_value(uninstall_zap_shared_example_case(17))
 }
 
 // Ruby let `let(:cask) { Cask::CaskLoader.load(cask_path("with-#{artifact_dsl_key}-pkgutil")) }` at line 149.
 pub fn ruby_uninstall_zap_l149_d18_cask(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask', ...args)
+	_ = args
+	return brew_runtime.string_value('with-uninstall-pkgutil')
 }
 
 // Ruby let `let(:main_pkg_id) { "my.fancy.package.main" }` at line 151.
 pub fn ruby_uninstall_zap_l151_d19_main_pkg_id(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('main_pkg_id', ...args)
+	_ = args
+	return brew_runtime.string_value('my.fancy.package.main')
 }
 
 // Ruby let `let(:agent_pkg_id) { "my.fancy.package.agent" }` at line 152.
 pub fn ruby_uninstall_zap_l152_d20_agent_pkg_id(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('agent_pkg_id', ...args)
+	_ = args
+	return brew_runtime.string_value('my.fancy.package.agent')
 }
 
 // Ruby it `it "is supported" do` at line 154.
 pub fn ruby_uninstall_zap_l154_d21_is(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('is', ...args)
+	_ = args
+	return brew_runtime.bool_value(uninstall_zap_shared_example_case(21))
 }
 
 // Ruby let `let(:cask) { Cask::CaskLoader.load(cask_path("with-#{artifact_dsl_key}-kext")) }` at line 173.
 pub fn ruby_uninstall_zap_l173_d22_cask(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask', ...args)
+	_ = args
+	return brew_runtime.string_value('with-uninstall-kext')
 }
 
 // Ruby let `let(:kext_id) { "my.fancy.package.kernelextension" }` at line 174.
 pub fn ruby_uninstall_zap_l174_d23_kext_id(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('kext_id', ...args)
+	_ = args
+	return brew_runtime.string_value('my.fancy.package.kernelextension')
 }
 
 // Ruby it `it "is supported" do` at line 176.
 pub fn ruby_uninstall_zap_l176_d24_is(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('is', ...args)
+	_ = args
+	return brew_runtime.bool_value(uninstall_zap_shared_example_case(24))
 }
 
 // Ruby let `let(:cask) { Cask::CaskLoader.load(cask_path("with-#{artifact_dsl_key}-quit")) }` at line 197.
 pub fn ruby_uninstall_zap_l197_d25_cask(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask', ...args)
+	_ = args
+	return brew_runtime.string_value('with-uninstall-quit')
 }
 
 // Ruby let `let(:bundle_id) { "my.fancy.package.app" }` at line 198.
 pub fn ruby_uninstall_zap_l198_d26_bundle_id(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('bundle_id', ...args)
+	_ = args
+	return brew_runtime.string_value(shared_bundle_id)
 }
 
 // Ruby it `it "is skipped when the user is not a GUI user" do` at line 200.
 pub fn ruby_uninstall_zap_l200_d27_is(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('is', ...args)
+	_ = args
+	return brew_runtime.bool_value(uninstall_zap_shared_example_case(27))
 }
 
 // Ruby it `it "quits a running application" do` at line 209.
 pub fn ruby_uninstall_zap_l209_d28_quits(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('quits', ...args)
+	_ = args
+	return brew_runtime.bool_value(uninstall_zap_shared_example_case(28))
 }
 
 // Ruby it `it "tries to quit the application" do` at line 222.
 pub fn ruby_uninstall_zap_l222_d29_tries(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tries', ...args)
+	_ = args
+	return brew_runtime.bool_value(uninstall_zap_shared_example_case(29))
 }
 
 // Ruby let `let(:cask) { Cask::CaskLoader.load(cask_path("with-#{artifact_dsl_key}-signal")) }` at line 238.
 pub fn ruby_uninstall_zap_l238_d30_cask(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask', ...args)
+	_ = args
+	return brew_runtime.string_value('with-uninstall-signal')
 }
 
 // Ruby let `let(:bundle_id) { "my.fancy.package.app" }` at line 239.
 pub fn ruby_uninstall_zap_l239_d31_bundle_id(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('bundle_id', ...args)
+	_ = args
+	return brew_runtime.string_value(shared_bundle_id)
 }
 
 // Ruby let `let(:signals) { %w[TERM KILL] }` at line 240.
 pub fn ruby_uninstall_zap_l240_d32_signals(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('signals', ...args)
+	_ = args
+	return brew_runtime.string_array_value(['TERM', 'KILL'])
 }
 
 // Ruby let `let(:unix_pids) { [12_345, 67_890] }` at line 241.
 pub fn ruby_uninstall_zap_l241_d33_unix_pids(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('unix_pids', ...args)
+	_ = args
+	return brew_runtime.array_value([brew_runtime.int_value(12345), brew_runtime.int_value(67890)])
 }
 
 // Ruby it `it "is supported" do` at line 243.
 pub fn ruby_uninstall_zap_l243_d34_is(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('is', ...args)
+	_ = args
+	return brew_runtime.bool_value(uninstall_zap_shared_example_case(34))
 }
 
 // Ruby it `it "does not send signal when upgrading or reinstalling" do` at line 255.
 pub fn ruby_uninstall_zap_l255_d35_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	_ = args
+	return brew_runtime.bool_value(uninstall_zap_shared_example_case(35))
 }
 
 // Ruby let `let(:dir) { TEST_TMPDIR }` at line 274.
 pub fn ruby_uninstall_zap_l274_d36_dir(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dir', ...args)
+	_ = args
+	return brew_runtime.string_value(os.temp_dir())
 }
 
 // Ruby let `let(:absolute_path) { Pathname.new("#{dir}/absolute_path") }` at line 275.
 pub fn ruby_uninstall_zap_l275_d37_absolute_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('absolute_path', ...args)
+	_ = args
+	return brew_runtime.string_value(os.join_path(os.temp_dir(), 'absolute_path'))
 }
 
 // Ruby let `let(:path_with_tilde) { Pathname.new("#{dir}/path_with_tilde") }` at line 276.
 pub fn ruby_uninstall_zap_l276_d38_path_with_tilde(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('path_with_tilde', ...args)
+	_ = args
+	return brew_runtime.string_value('~/path_with_tilde')
 }
 
 // Ruby let `let(:glob_path) { Pathname.new("#{dir}/glob_path") }` at line 277.
 pub fn ruby_uninstall_zap_l277_d39_glob_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('glob_path', ...args)
+	_ = args
+	return brew_runtime.string_value(os.join_path(os.temp_dir(), 'glob_path*'))
 }
 
 // Ruby let `let(:glob_path_alt) { Pathname.new("#{dir}/glob_path_alt") }` at line 278.
 pub fn ruby_uninstall_zap_l278_d40_glob_path_alt(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('glob_path_alt', ...args)
+	_ = args
+	return brew_runtime.string_value(os.join_path(os.temp_dir(), 'glob_path_alt'))
 }
 
 // Ruby let `let(:paths) { [absolute_path, path_with_tilde, glob_path, glob_path_alt] }` at line 279.
 pub fn ruby_uninstall_zap_l279_d41_paths(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('paths', ...args)
+	_ = args
+	return brew_runtime.string_array_value([
+		os.join_path(os.temp_dir(), 'absolute_path'),
+		'~/path_with_tilde',
+		os.join_path(os.temp_dir(), 'glob_path*'),
+		os.join_path(os.temp_dir(), 'glob_path_alt'),
+	])
 }
 
 // Ruby let `let(:fake_system_command) { NeverSudoSystemCommand }` at line 280.
 pub fn ruby_uninstall_zap_l280_d42_fake_system_command(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fake_system_command', ...args)
+	_ = args
+	return brew_runtime.object_value('UninstallCommandRunner', 'NeverSudoSystemCommand')
 }
 
 // Ruby let `let(:cask) { Cask::CaskLoader.load(cask_path("with-#{artifact_dsl_key}-#{directive}")) }` at line 281.
 pub fn ruby_uninstall_zap_l281_d43_cask(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask', ...args)
+	directive := if args.len > 0 { args[0].as_string() } else { 'delete' }
+	return brew_runtime.string_value('with-uninstall-${directive}')
 }
 
 // Ruby it `it "is supported" do` at line 302.
 pub fn ruby_uninstall_zap_l302_d44_is(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('is', ...args)
+	_ = args
+	return brew_runtime.bool_value(uninstall_zap_shared_example_case(44))
 }
 
 // Ruby let `let(:fake_system_command) { NeverSudoSystemCommand }` at line 316.
 pub fn ruby_uninstall_zap_l316_d45_fake_system_command(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fake_system_command', ...args)
+	_ = args
+	return brew_runtime.object_value('UninstallCommandRunner', 'NeverSudoSystemCommand')
 }
 
 // Ruby let `let(:token) { "with-#{artifact_dsl_key}-#{script_type}".tr("_", "-") }` at line 317.
 pub fn ruby_uninstall_zap_l317_d46_token(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('token', ...args)
+	script_type := if args.len > 0 { args[0].as_string() } else { 'script' }
+	return brew_runtime.string_value('with-uninstall-${script_type}'.replace('_', '-'))
 }
 
 // Ruby let `let(:cask) { Cask::CaskLoader.load(cask_path(token.to_s)) }` at line 318.
 pub fn ruby_uninstall_zap_l318_d47_cask(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask', ...args)
+	return ruby_uninstall_zap_l317_d46_token(...args)
 }
 
 // Ruby let `let(:script_pathname) { cask.staged_path.join("MyFancyPkg", "FancyUninstaller.tool") }` at line 319.
 pub fn ruby_uninstall_zap_l319_d48_script_pathname(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('script_pathname', ...args)
+	_ = args
+	return brew_runtime.string_value('/tmp/staged/MyFancyPkg/FancyUninstaller.tool')
 }
 
 // Ruby it `it "is supported" do` at line 321.
 pub fn ruby_uninstall_zap_l321_d49_is(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('is', ...args)
+	_ = args
+	return brew_runtime.bool_value(uninstall_zap_shared_example_case(49))
 }
 
 // Ruby let `let(:cask) { Cask::CaskLoader.load(cask_path("with-#{artifact_dsl_key}-login-item")) }` at line 340.
 pub fn ruby_uninstall_zap_l340_d50_cask(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask', ...args)
+	_ = args
+	return brew_runtime.string_value('with-uninstall-login-item')
 }
 
 // Ruby it `it "is supported" do` at line 342.
 pub fn ruby_uninstall_zap_l342_d51_is(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('is', ...args)
+	_ = args
+	return brew_runtime.bool_value(uninstall_zap_shared_example_case(51))
 }
 
 // Original Ruby source (line-for-line):

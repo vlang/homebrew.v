@@ -1,69 +1,578 @@
 module homebrew
 
 import brew_runtime
+import homebrew.upgrade_helpers
+
+pub struct UpgradeExecutionResult {
+pub:
+	success bool
+	values  []brew_runtime.Value
+	stdout  string
+	stderr  string
+}
+
+fn upgrade_bool(value brew_runtime.Value, key string, fallback bool) bool {
+	raw := value.attributes[key] or { return fallback }
+	return raw == 'true' || raw == '1'
+}
+
+fn upgrade_strings(value brew_runtime.Value, key string) []string {
+	raw := value.attributes[key] or { return [] }
+	return if raw == '' { [] } else { raw.split('\x1f') }
+}
+
+fn upgrade_values(value brew_runtime.Value, key string) []brew_runtime.Value {
+	item := value.map_data[key] or { return [] }
+	return item.as_array() or { [] }
+}
+
+fn upgrade_name(value brew_runtime.Value) string {
+	return value.attributes['full_specified_name'] or {
+		value.attributes['full_name'] or { value.attributes['name'] or { value.repr } }
+	}
+}
+
+fn upgrade_version(value brew_runtime.Value) string {
+	return value.attributes['pkg_version'] or { value.attributes['version'] or { '' } }
+}
+
+fn upgrade_unique_values(values []brew_runtime.Value) []brew_runtime.Value {
+	mut seen := map[string]bool{}
+	mut result := []brew_runtime.Value{}
+	for value in values {
+		key := upgrade_name(value)
+		if seen[key] or { false } {
+			continue
+		}
+		seen[key] = true
+		result << value
+	}
+	return result
+}
+
+fn upgrade_result_value(result UpgradeExecutionResult) brew_runtime.Value {
+	return brew_runtime.Value{
+		type_name: 'UpgradeExecutionResult'
+		bool_data: result.success
+		attributes: {
+			'success': result.success.str()
+			'stdout':  result.stdout
+			'stderr':  result.stderr
+		}
+		map_data: {
+			'values': brew_runtime.array_value(result.values)
+		}
+	}
+}
+
+fn upgrade_result(value brew_runtime.Value) UpgradeExecutionResult {
+	return UpgradeExecutionResult{
+		success: upgrade_bool(value, 'success', value.bool_data)
+		values: upgrade_values(value, 'values')
+		stdout: value.attributes['stdout'] or { '' }
+		stderr: value.attributes['stderr'] or { '' }
+	}
+}
+
+pub fn upgrade_format_summary(upgrades []string) []string {
+	return upgrade_helpers.format_summary(upgrades)
+}
+
+fn upgrade_installer_formula(value brew_runtime.Value) brew_runtime.Value {
+	return value.map_data['formula'] or { value }
+}
+
+fn upgrade_installer_value(formula brew_runtime.Value, source brew_runtime.Value) brew_runtime.Value {
+	mut attributes := source.attributes.clone()
+	attributes['valid'] = (source.attributes['valid'] or { 'true' })
+	attributes['upgraded'] = (source.attributes['upgraded'] or { 'true' })
+	return brew_runtime.Value{
+		type_name: 'FormulaInstaller'
+		repr: upgrade_name(formula)
+		attributes: attributes
+		map_data: {
+			'formula':      formula
+			'dependencies': source.map_data['dependencies'] or { brew_runtime.array_value([]) }
+		}
+	}
+}
+
+fn upgrade_compare_formula(one brew_runtime.Value, two brew_runtime.Value) int {
+	if upgrade_strings(one, 'runtime_dependencies').any(it == (two.attributes['full_name'] or {
+		upgrade_name(two)})) {
+		return 1
+	}
+	one_name := upgrade_name(one)
+	two_name := upgrade_name(two)
+	return if one_name < two_name {
+		-1
+	} else if one_name > two_name { 1 } else { 0 }
+}
 
 // Translated from Homebrew/brew `upgrade.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `format_upgrade_summary(upgrades)` at line 26.
 pub fn ruby_upgrade_l26_d1_format_upgrade_summary(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('format_upgrade_summary', ...args)
+	if args.len == 0 {
+		return brew_runtime.string_array_value([])
+	}
+	upgrades := args[0].as_string_array() or {
+		(args[0].as_array() or { [] }).map(it.as_string())
+	}
+	return brew_runtime.string_array_value(upgrade_format_summary(upgrades))
 }
 
 // Ruby method `formula_installers(` at line 65.
 pub fn ruby_upgrade_l65_d2_formula_installers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_installers', ...args)
+	if args.len == 0 {
+		return upgrade_result_value(UpgradeExecutionResult{ success: true })
+	}
+	config := if args.len > 1 { args[1] } else { brew_runtime.Value{} }
+	mut formulae := args[0].as_array() or { [] }
+	formulae.sort_with_compare(fn (left &brew_runtime.Value, right &brew_runtime.Value) int {
+		left_keg_only := upgrade_bool(*left, 'keg_only', false)
+		right_keg_only := upgrade_bool(*right, 'keg_only', false)
+		return if left_keg_only == right_keg_only {
+			0
+		} else if left_keg_only { -1 } else { 1 }
+	})
+	mut pending := formulae.clone()
+	mut sorted := []brew_runtime.Value{}
+	for pending.len > 0 {
+		pending_names := pending.map(upgrade_name(it))
+		mut found := -1
+		for index, formula in pending {
+			dependencies := upgrade_strings(formula, 'dependencies')
+			if dependencies.all(it !in pending_names) {
+				found = index
+				break
+			}
+		}
+		if found < 0 {
+			if upgrade_bool(config, 'developer', false) {
+				return upgrade_result_value(UpgradeExecutionResult{
+					success: false
+					stderr: 'Cyclic dependency: ${pending.map(upgrade_name(it)).join(', ')}\n'
+				})
+			}
+			sorted << pending
+			break
+		}
+		sorted << pending[found]
+		pending.delete(found)
+	}
+	mut installers := []brew_runtime.Value{}
+	mut stdout := ''
+	mut stderr := ''
+	for formula in sorted {
+		if error_message := formula.attributes['installer_error'] {
+			stderr += 'Error: ${upgrade_name(formula)}: ${error_message}\n'
+			continue
+		}
+		installer_source := formula.map_data['installer'] or { brew_runtime.Value{} }
+		mut installer := ruby_upgrade_l539_d11_create_formula_installer(formula, config)
+		if installer_source.type_name != '' {
+			installer = upgrade_installer_value(formula, installer_source)
+		}
+		if !upgrade_bool(config, 'dry_run', false) && upgrade_bool(config, 'dependents', false) && upgrade_bool(installer, 'all_runtime_dependencies_installed', false) {
+			stdout += '==> Not upgrading ${upgrade_name(formula)}: installed runtime dependencies satisfy bottle metadata\n'
+			continue
+		}
+		if upgrade_bool(config, 'dry_run', false) {
+			if sanity_error := installer.attributes['sanity_error'] {
+				stderr += 'Error: ${sanity_error}\n'
+				continue
+			}
+		}
+		installers << installer
+	}
+	base := upgrade_result_value(UpgradeExecutionResult{
+		success: stderr == ''
+		values: installers
+		stdout: stdout
+		stderr: stderr
+	})
+	mut attributes := base.attributes.clone()
+	attributes['bottle_manifest_heading'] = 'Downloading bottle manifests'
+	attributes['bottle_manifest_allow_failures'] = 'true'
+	attributes['download_queue_shutdown'] = 'true'
+	return brew_runtime.Value{
+		...base
+		attributes: attributes
+	}
 }
 
 // Ruby method `upgrade_formulae(formula_installers, dry_run: false, verbose: false, fetch: true, skip_formula_names: [])` at line 178.
 pub fn ruby_upgrade_l178_d3_upgrade_formulae(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('upgrade_formulae', ...args)
+	if args.len == 0 {
+		return upgrade_result_value(UpgradeExecutionResult{ success: true })
+	}
+	config := if args.len > 1 { args[1] } else { brew_runtime.Value{} }
+	dry_run := upgrade_bool(config, 'dry_run', false)
+	fetch := upgrade_bool(config, 'fetch', true)
+	mut installers := args[0].as_array() or { [] }
+	if !dry_run && fetch {
+		installers = installers.filter(upgrade_bool(it, 'fetch_valid', true))
+	}
+	mut upgraded := []brew_runtime.Value{}
+	mut stdout := ''
+	mut stderr := ''
+	for installer in installers {
+		result := upgrade_result(ruby_upgrade_l466_d8_upgrade_formula(installer, config))
+		stdout += result.stdout
+		stderr += result.stderr
+		if result.success {
+			upgraded << installer
+			if !dry_run && upgrade_bool(config, 'cleanup', true) {
+				stdout += installer.attributes['cleanup_output'] or { '' }
+			}
+		}
+	}
+	if dry_run {
+		cleanup_output := config.attributes['cleanup_output'] or { '' }
+		if cleanup_output != '' {
+			stdout += '==> Would `brew cleanup`\n${cleanup_output}'
+			if !upgrade_bool(config, 'no_install_cleanup', false) {
+				stdout += 'Disable this behaviour by setting `HOMEBREW_NO_INSTALL_CLEANUP=1`.\n'
+			}
+		}
+	}
+	return upgrade_result_value(UpgradeExecutionResult{
+		success: stderr == ''
+		values: upgraded
+		stdout: stdout
+		stderr: stderr
+	})
 }
 
 // Ruby method `outdated_kegs(formula)` at line 201.
 pub fn ruby_upgrade_l201_d4_outdated_kegs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('outdated_kegs', ...args)
+	if args.len == 0 {
+		return brew_runtime.array_value([])
+	}
+	mut kegs := upgrade_values(args[0], 'linked_kegs')
+	kegs << upgrade_values(args[0], 'old_installed_linked_kegs')
+	return brew_runtime.array_value(kegs.filter(upgrade_bool(it, 'directory', false)))
 }
 
 // Ruby method `print_upgrade_message(formula, fi_options)` at line 208.
 pub fn ruby_upgrade_l208_d5_print_upgrade_message(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('print_upgrade_message', ...args)
+	if args.len == 0 {
+		return brew_runtime.string_value('')
+	}
+	formula := args[0]
+	options := if args.len > 1 {
+		args[1].as_string_array() or { upgrade_strings(args[1], 'options') }
+	} else {
+		[]string{}
+	}
+	version_upgrade := if upgrade_bool(formula, 'optlinked', false) {
+		'${formula.attributes['old_version'] or { '' }} -> ${upgrade_version(formula)}'
+	} else {
+		'-> ${upgrade_version(formula)}'
+	}
+	return brew_runtime.string_value('==> Upgrading ${upgrade_name(formula)}\n  ${version_upgrade} ${options.join(' ')}\n')
 }
 
 // Ruby method `dependants(` at line 227.
 pub fn ruby_upgrade_l227_d6_dependants(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dependants', ...args)
+	formulae := if args.len > 0 { args[0].as_array() or { [] } } else { []brew_runtime.Value{} }
+	config := if args.len > 1 { args[1] } else { brew_runtime.Value{} }
+	mut stdout := ''
+	if upgrade_bool(config, 'no_installed_dependents_check', false) {
+		if !upgrade_bool(config, 'no_env_hints', false) {
+			stdout = 'Warning: `\$HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK` is set: not checking for outdated\ndependents or dependents with broken linkage!\n'
+		}
+		return brew_runtime.Value{
+			type_name: 'UpgradeDependents'
+			attributes: {
+				'stdout': stdout
+			}
+			map_data: {
+				'upgradeable': brew_runtime.array_value([])
+				'pinned':      brew_runtime.array_value([])
+				'skipped':     brew_runtime.array_value([])
+			}
+		}
+	}
+	formulae_to_install := formulae.filter(!(upgrade_bool(it, 'core_formula', false) && upgrade_bool(it, 'versioned_formula', false)))
+	mut outdated := []brew_runtime.Value{}
+	for formula in formulae_to_install {
+		outdated << upgrade_values(formula, 'runtime_dependents').filter(upgrade_bool(it, 'outdated', false))
+	}
+	outdated = upgrade_unique_values(outdated)
+	mut skipped := []brew_runtime.Value{}
+	mut bottled := []brew_runtime.Value{}
+	for dependent in outdated {
+		if upgrade_bool(dependent, 'bottled', false) && upgrade_bool(dependent, 'dependencies_bottled', true) {
+			bottled << dependent
+		} else {
+			skipped << dependent
+		}
+	}
+	if upgrade_bool(config, 'dry_run', false) {
+		primary_names := formulae_to_install.map(upgrade_name(it))
+		bottled = bottled.filter(upgrade_name(it) !in primary_names)
+	}
+	mut upgradeable := bottled.filter(!upgrade_bool(it, 'pinned', false))
+	mut pinned := bottled.filter(upgrade_bool(it, 'pinned', false))
+	upgradeable.sort_with_compare(fn (left &brew_runtime.Value, right &brew_runtime.Value) int {
+		return upgrade_compare_formula(*left, *right)
+	})
+	pinned.sort_with_compare(fn (left &brew_runtime.Value, right &brew_runtime.Value) int {
+		return upgrade_compare_formula(*left, *right)
+	})
+	return brew_runtime.Value{
+		type_name: 'UpgradeDependents'
+		attributes: {
+			'stdout': stdout
+		}
+		map_data: {
+			'upgradeable': brew_runtime.array_value(upgradeable)
+			'pinned':      brew_runtime.array_value(pinned)
+			'skipped':     brew_runtime.array_value(skipped)
+		}
+	}
 }
 
 // Ruby method `upgrade_dependents(deps, formulae,` at line 283.
 pub fn ruby_upgrade_l283_d7_upgrade_dependents(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('upgrade_dependents', ...args)
+	if args.len == 0 {
+		return upgrade_result_value(UpgradeExecutionResult{ success: true })
+	}
+	deps := args[0]
+	formulae := if args.len > 1 { args[1].as_array() or { [] } } else { []brew_runtime.Value{} }
+	config := if args.len > 2 { args[2] } else { brew_runtime.Value{} }
+	dry_run := upgrade_bool(config, 'dry_run', false)
+	mut upgradeable := upgrade_values(deps, 'upgradeable')
+	pinned := upgrade_values(deps, 'pinned')
+	skipped := upgrade_values(deps, 'skipped')
+	mut stdout := ''
+	mut stderr := ''
+	if pinned.len > 0 {
+		plural := if pinned.len == 1 { 'dependent' } else { 'dependents' }
+		mut pinned_descriptions := []string{}
+		for formula in pinned {
+			pinned_descriptions << '${upgrade_name(formula)} ${upgrade_version(formula)}'
+		}
+		stdout += 'Warning: Not upgrading ${pinned.len} pinned ${plural}:\n${pinned_descriptions.join(', ')}\n'
+	}
+	if skipped.len > 0 {
+		stdout += 'Warning: The following dependents of upgraded formulae are outdated but will not\nbe upgraded because they are not bottled:\n  ${skipped.map(upgrade_name(it)).join('\n  ')}\n'
+	}
+	installed := upgrade_values(config, 'installed_formulae')
+	installed_names := installed.map(upgrade_name(it))
+	primary_names := formulae.map(it.attributes['full_name'] or { upgrade_name(it) })
+	mut upgraded := []brew_runtime.Value{}
+	if !dry_run {
+		upgraded << upgradeable.filter(upgrade_name(it) in installed_names && (it.attributes['full_name'] or { upgrade_name(it) }) !in primary_names)
+	}
+	skip_names := upgrade_strings(config, 'skip_formula_names')
+	upgradeable = upgradeable.filter(upgrade_name(it) !in installed_names && !(dry_run && upgrade_name(it) in skip_names))
+	if upgradeable.len > 0 {
+		formula_count := if dry_run { formulae.len } else { installed.len }
+		formula_plural := if formula_count == 1 { 'formula' } else { 'formulae' }
+		verb := if dry_run { 'Would upgrade' } else { 'Upgrading' }
+		dependent_plural := if upgradeable.len == 1 { 'dependent' } else { 'dependents' }
+		stdout += '==> ${verb} ${upgradeable.len} ${dependent_plural} of upgraded ${formula_plural}:\n'
+		stdout += ruby_upgrade_l522_d10_puts_no_installed_dependents_check_disable_message_if_not_already(config).as_string()
+		mut descriptions := []string{}
+		for formula in upgradeable {
+			descriptions << if upgrade_bool(formula, 'optlinked', false) {
+				'${upgrade_name(formula)} ${formula.attributes['old_version'] or { '' }} -> ${upgrade_version(formula)}'
+			} else {
+				'${upgrade_name(formula)} ${upgrade_version(formula)}'
+			}
+		}
+		stdout += upgrade_format_summary(descriptions).join('\n') + '\n'
+		if !dry_run {
+			installer_result := upgrade_result(ruby_upgrade_l65_d2_formula_installers(brew_runtime.array_value(upgradeable), config))
+			formula_result := upgrade_result(ruby_upgrade_l178_d3_upgrade_formulae(brew_runtime.array_value(installer_result.values), config))
+			stdout += installer_result.stdout + formula_result.stdout
+			stderr += installer_result.stderr + formula_result.stderr
+			upgraded << formula_result.values.map(upgrade_installer_formula(it))
+		}
+	}
+	non_core := installed.filter(!upgrade_bool(it, 'core_formula', false))
+	if non_core.len > 0 {
+		if !dry_run {
+			stdout += '==> Checking for dependents of upgraded formulae...\n'
+			stdout += ruby_upgrade_l522_d10_puts_no_installed_dependents_check_disable_message_if_not_already(config).as_string()
+		}
+		broken := ruby_upgrade_l504_d9_check_broken_dependents(brew_runtime.array_value(non_core)).as_array() or { [] }
+		if broken.len == 0 {
+			stdout += if dry_run {
+				'==> No currently broken dependents found!\nWarning: If they are broken by the upgrade they will also be upgraded or reinstalled.\n'
+			} else {
+				'==> No broken dependents found!\n'
+			}
+		} else {
+			reinstallable := broken.filter(!upgrade_bool(it, 'outdated', false) && !upgrade_bool(it, 'pinned', false))
+			pinned_broken := broken.filter(upgrade_bool(it, 'outdated', false) && upgrade_bool(it, 'pinned', false))
+			if pinned_broken.len > 0 {
+				plural := if pinned_broken.len == 1 { 'dependent' } else { 'dependents' }
+				mut pinned_descriptions := []string{}
+				for formula in pinned_broken {
+					pinned_descriptions << '${upgrade_name(formula)} ${upgrade_version(formula)}'
+				}
+				stderr += 'Error: Not reinstalling ${pinned_broken.len} broken and outdated, but pinned ${plural}:\n${pinned_descriptions.join(', ')}\n'
+			}
+			if reinstallable.len == 0 {
+				stdout += '==> No broken dependents to reinstall!\n'
+			} else {
+				plural := if reinstallable.len == 1 { 'dependent' } else { 'dependents' }
+				stdout += '==> Reinstalling ${reinstallable.len} ${plural} with broken linkage from source:\n${reinstallable.map(upgrade_name(it)).join(', ')}\n'
+			}
+		}
+	}
+	return upgrade_result_value(UpgradeExecutionResult{
+		success: stderr == ''
+		values: upgraded
+		stdout: stdout
+		stderr: stderr
+	})
 }
 
 // Ruby method `upgrade_formula(formula_installer, dry_run: false, verbose: false, skip_formula_names: [])` at line 466.
 pub fn ruby_upgrade_l466_d8_upgrade_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('upgrade_formula', ...args)
+	if args.len == 0 {
+		return upgrade_result_value(UpgradeExecutionResult{ success: false })
+	}
+	installer := args[0]
+	config := if args.len > 1 { args[1] } else { brew_runtime.Value{} }
+	formula := upgrade_installer_formula(installer)
+	if upgrade_bool(config, 'dry_run', false) {
+		skip_names := upgrade_strings(config, 'skip_formula_names')
+		mut descriptions := []string{}
+		for dependency in upgrade_values(installer, 'dependencies') {
+			name := upgrade_name(dependency)
+			if name in skip_names {
+				continue
+			}
+			installed := upgrade_strings(dependency, 'installed_versions')
+			mut current := dependency.attributes['old_version'] or { '' }
+			for version in installed {
+				if current == '' || version > current {
+					current = version
+				}
+			}
+			description := if current != '' && current != upgrade_version(dependency) {
+				'${name} ${current} -> ${upgrade_version(dependency)}'
+			} else {
+				'${name} ${upgrade_version(dependency)}'
+			}
+			descriptions << description
+		}
+		return upgrade_result_value(UpgradeExecutionResult{
+			success: true
+			values: [installer]
+			stdout: if descriptions.len > 0 {
+				'==> Would upgrade dependencies\n${upgrade_format_summary(descriptions).join('\n')}\n'} else {
+				''}
+		})
+	}
+	error_message := installer.attributes['install_error'] or { '' }
+	if error_message != '' {
+		name := upgrade_name(formula)
+		return upgrade_result_value(UpgradeExecutionResult{
+			success: false
+			stderr: 'Error: ${name}: ${error_message}\n'
+		})
+	}
+	return upgrade_result_value(UpgradeExecutionResult{
+		success: true
+		values: [installer]
+	})
 }
 
 // Ruby method `check_broken_dependents(installed_formulae)` at line 504.
 pub fn ruby_upgrade_l504_d9_check_broken_dependents(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('check_broken_dependents', ...args)
+	if args.len == 0 {
+		return brew_runtime.array_value([])
+	}
+	formulae := args[0].as_array() or { [] }
+	mut dependents := []brew_runtime.Value{}
+	for formula in formulae {
+		dependents << upgrade_values(formula, 'runtime_dependents')
+	}
+	dependents = upgrade_unique_values(dependents)
+	return brew_runtime.array_value(dependents.filter(upgrade_bool(it, 'any_installed_keg', false) && upgrade_bool(it, 'keg_directory', false) && upgrade_bool(it, 'broken_linkage', false)))
 }
 
 // Ruby method `puts_no_installed_dependents_check_disable_message_if_not_already!` at line 522.
 pub fn ruby_upgrade_l522_d10_puts_no_installed_dependents_check_disable_message_if_not_already(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('puts_no_installed_dependents_check_disable_message_if_not_already!',
-		...args)
+	config := if args.len > 0 { args[0] } else { brew_runtime.Value{} }
+	if upgrade_bool(config, 'no_env_hints', false) || upgrade_bool(config, 'no_installed_dependents_check', false) || upgrade_bool(config, 'hint_printed', false) {
+		return brew_runtime.string_value('')
+	}
+	return brew_runtime.string_value('Disable this behaviour by setting `HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK=1`.\nHide these hints with `HOMEBREW_NO_ENV_HINTS=1` (see `man brew`).\n')
 }
 
 // Ruby method `create_formula_installer(` at line 539.
 pub fn ruby_upgrade_l539_d11_create_formula_installer(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('create_formula_installer', ...args)
+	if args.len == 0 {
+		return brew_runtime.object_value('ArgumentError', 'formula is required')
+	}
+	formula := args[0]
+	config := if args.len > 1 { args[1] } else { brew_runtime.Value{} }
+	kegs := upgrade_values(formula, 'installed_kegs')
+	mut keg := brew_runtime.Value{}
+	if upgrade_bool(formula, 'optlinked', false) {
+		keg = formula.map_data['opt_keg'] or { brew_runtime.Value{} }
+	} else {
+		for candidate in kegs {
+			if upgrade_bool(candidate, 'optlinked', false) {
+				keg = candidate
+				break
+			}
+		}
+	}
+	mut requested_options := upgrade_strings(config, 'flags')
+	requested_options << upgrade_strings(formula, 'used_options')
+	allowed := upgrade_strings(formula, 'options')
+	mut options := []string{}
+	for option in requested_options {
+		if option in allowed && option !in options {
+			options << option
+		}
+	}
+	return brew_runtime.Value{
+		type_name: 'FormulaInstaller'
+		repr: upgrade_name(formula)
+		attributes: {
+			'link_keg':             if keg.type_name != '' {
+				upgrade_bool(keg, 'linked', false).str()} else {
+				''}
+			'installed_on_request': if keg.type_name != '' {
+				upgrade_bool(keg, 'installed_on_request', false).str()} else {
+				'true'}
+			'build_bottle':         if keg.type_name != '' {
+				upgrade_bool(keg, 'built_bottle', false).str()} else {
+				'false'}
+			'options':              options.join('\x1f')
+			'force_bottle':         upgrade_bool(config, 'force_bottle', false).str()
+			'interactive':          upgrade_bool(config, 'interactive', false).str()
+			'keep_tmp':             upgrade_bool(config, 'keep_tmp', false).str()
+			'debug_symbols':        upgrade_bool(config, 'debug_symbols', false).str()
+			'force':                upgrade_bool(config, 'force', false).str()
+			'overwrite':            upgrade_bool(config, 'overwrite', false).str()
+			'debug':                upgrade_bool(config, 'debug', false).str()
+			'quiet':                upgrade_bool(config, 'quiet', false).str()
+			'verbose':              upgrade_bool(config, 'verbose', false).str()
+		}
+		map_data: {
+			'formula': formula
+		}
+	}
 }
 
 // Ruby method `depends_on(one, two)` at line 599.
 pub fn ruby_upgrade_l599_d12_depends_on(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('depends_on', ...args)
+	if args.len < 2 {
+		return brew_runtime.int_value(0)
+	}
+	return brew_runtime.int_value(upgrade_compare_formula(args[0], args[1]))
 }
 
 // Original Ruby source (line-for-line):

@@ -2,42 +2,164 @@ module mac
 
 import brew_runtime
 
+pub struct MacSystemConfig {
+pub:
+	clang                string
+	clang_build          string
+	xcode_installed      bool
+	xcode_version        string
+	xcode_prefix         string
+	xcode_default_prefix bool = true
+	clt_installed        bool
+	clt_version          string
+	arm64                bool
+	physical_arm64       bool
+	in_rosetta2          bool
+	metal_success        bool
+	metal_output         string
+	macos_full_version   string
+	kernel               string
+	base_sections        []string
+}
+
+pub fn mac_describe_clang(config MacSystemConfig) string {
+	if config.clang == '' {
+		return 'N/A'
+	}
+	build := if config.clang_build == '' { '(parse error)' } else { config.clang_build }
+	return '${config.clang} build ${build}'
+}
+
+pub fn mac_system_xcode(config MacSystemConfig) ?string {
+	if !config.xcode_installed {
+		return none
+	}
+	return if config.xcode_default_prefix {
+		config.xcode_version
+	} else {
+		'${config.xcode_version} => ${config.xcode_prefix}'
+	}
+}
+
+pub fn mac_system_clt(config MacSystemConfig) ?string {
+	if !config.clt_installed {
+		return none
+	}
+	return config.clt_version
+}
+
+pub fn mac_metal_toolchain(config MacSystemConfig) ?string {
+	if !config.arm64 || !(config.xcode_installed || config.clt_installed) || !config.metal_success {
+		return none
+	}
+	marker := 'MetalToolchain-v'
+	if !config.metal_output.contains(marker) {
+		return none
+	}
+	version := config.metal_output.all_after(marker).fields()[0]
+	parts := version.split('.')
+	if parts.len < 4 {
+		return none
+	}
+	letter_value := parts[1].int()
+	if letter_value < 1 || letter_value > 26 {
+		return none
+	}
+	letter := rune(`A` + letter_value - 1).str()
+	return '${parts[0]}.${parts[3]} (${parts[0]}${letter}${parts[2]})'
+}
+
+pub fn macos_config_lines(config MacSystemConfig) []string {
+	mut lines := ['macOS: ${config.macos_full_version}-${config.kernel}']
+	lines << 'CLT: ${mac_system_clt(config) or { 'N/A' }}'
+	lines << 'Xcode: ${mac_system_xcode(config) or { 'N/A' }}'
+	if config.arm64 && config.xcode_installed && version_at_least(config.xcode_version, '26.0') {
+		lines << 'Metal Toolchain: ${mac_metal_toolchain(config) or { 'N/A' }}'
+	}
+	if config.physical_arm64 { lines << 'Rosetta 2: ${config.in_rosetta2}' }
+	return lines
+}
+
+fn version_at_least(current string, required string) bool {
+	a := current.split('.').map(it.int())
+	b := required.split('.').map(it.int())
+	maximum := if a.len > b.len { a.len } else { b.len }
+	for index in 0 .. maximum {
+		av := if index < a.len { a[index] } else { 0 }
+		bv := if index < b.len { b[index] } else { 0 }
+		if av != bv {
+			return av > bv
+		}
+	}
+	return true
+}
+
+pub fn mac_config_sections(config MacSystemConfig) []string {
+	mut sections := config.base_sections.clone()
+	sections << 'macos_config'
+	return sections
+}
+
+fn mac_system_config_value(config &MacSystemConfig) brew_runtime.Value {
+	return brew_runtime.structured_value('SystemConfig', '', {
+		'mac_system_config_address': u64(voidptr(config)).str()
+	})
+}
+
+fn mac_system_config_from_value(value brew_runtime.Value) &MacSystemConfig {
+	return unsafe { &MacSystemConfig(voidptr(value.attributes['mac_system_config_address'].u64())) }
+}
+
+pub fn mac_system_config_boundary(config &MacSystemConfig) brew_runtime.Value {
+	return mac_system_config_value(config)
+}
+
 // Translated from Homebrew/brew `extend/os/mac/system_config.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `initialize` at line 15.
 pub fn ruby_system_config_l15_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	config := &MacSystemConfig{}
+	return mac_system_config_value(config)
 }
 
 // Ruby method `describe_clang` at line 22.
 pub fn ruby_system_config_l22_d2_describe_clang(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('describe_clang', ...args)
+	return brew_runtime.string_value(mac_describe_clang(*mac_system_config_from_value(args[0])))
 }
 
 // Ruby method `xcode` at line 30.
 pub fn ruby_system_config_l30_d3_xcode(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('xcode', ...args)
+	value := mac_system_xcode(*mac_system_config_from_value(args[0])) or {
+		return brew_runtime.object_value('NilClass', 'nil')
+	}
+	return brew_runtime.string_value(value)
 }
 
 // Ruby method `clt` at line 39.
 pub fn ruby_system_config_l39_d4_clt(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('clt', ...args)
+	value := mac_system_clt(*mac_system_config_from_value(args[0])) or {
+		return brew_runtime.object_value('NilClass', 'nil')
+	}
+	return brew_runtime.string_value(value)
 }
 
 // Ruby method `metal_toolchain` at line 44.
 pub fn ruby_system_config_l44_d5_metal_toolchain(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('metal_toolchain', ...args)
+	value := mac_metal_toolchain(*mac_system_config_from_value(args[0])) or {
+		return brew_runtime.object_value('NilClass', 'nil')
+	}
+	return brew_runtime.string_value(value)
 }
 
 // Ruby method `macos_config(out = $stdout)` at line 60.
 pub fn ruby_system_config_l60_d6_macos_config(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('macos_config', ...args)
+	return brew_runtime.string_value(macos_config_lines(*mac_system_config_from_value(args[0])).join('\n') + '\n')
 }
 
 // Ruby method `config_sections` at line 72.
 pub fn ruby_system_config_l72_d7_config_sections(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('config_sections', ...args)
+	return brew_runtime.array_value(mac_config_sections(*mac_system_config_from_value(args[0])).map(brew_runtime.object_value('Symbol', it)))
 }
 
 // Original Ruby source (line-for-line):

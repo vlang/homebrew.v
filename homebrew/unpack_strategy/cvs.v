@@ -6,8 +6,12 @@ import brew_runtime
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `self.can_extract?(path)` at line 10.
-pub fn ruby_cvs_l10_d1_self_can_extract(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.can_extract?', ...args)
+pub fn ruby_cvs_l10_d1_self_can_extract(path string) bool {
+	return cvs_can_extract(path)
+}
+
+pub fn cvs_can_extract(path string) bool {
+	return directory_can_extract(path) && brew_runtime.is_dir(brew_runtime.join_path(path, 'CVS'))
 }
 
 // Original Ruby source (line-for-line):

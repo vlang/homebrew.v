@@ -1,38 +1,87 @@
 module cmd
 
 import brew_runtime
+import homebrew.cmd as cmd_core
+
+fn untrust_spec_store(trusted map[string][]string, taps []cmd_core.UntrustedTapSnapshot) cmd_core.UntrustStore {
+	return cmd_core.UntrustStore{
+		trusted: trusted
+		untrusted_taps: taps
+	}
+}
 
 // Translated from Homebrew/brew `test/cmd/untrust_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "untrusts a given tap", :integration_test do` at line 11.
 pub fn ruby_untrust_spec_l11_d1_untrusts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('untrusts', ...args)
+	result := cmd_core.run_untrust(untrust_spec_store({
+		'tap': ['thirdparty/foo']
+	}, []), [cmd_core.UntrustTarget{
+		kind: .tap
+		name: 'thirdparty/foo'
+	}], none)
+	return brew_runtime.bool_value(result.messages == ['Untrusted tap: thirdparty/foo'] && result.store.trusted['tap'].len == 0)
 }
 
 // Ruby it `it "notes official taps are always trusted" do` at line 31.
 pub fn ruby_untrust_spec_l31_d2_notes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('notes', ...args)
+	result := cmd_core.run_untrust(cmd_core.UntrustStore{}, [cmd_core.UntrustTarget{
+		kind: .tap
+		name: 'homebrew/core'
+		official: true
+	}], none)
+	return brew_runtime.bool_value(result.messages == [
+		'Official tap homebrew/core is always trusted.',
+	])
 }
 
 // Ruby it `it "untrusts a command with the plural switch alias" do` at line 36.
 pub fn ruby_untrust_spec_l36_d3_untrusts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('untrusts', ...args)
+	result := cmd_core.run_untrust(untrust_spec_store({
+		'command': ['thirdparty/foo/hello']
+	}, []), [cmd_core.UntrustTarget{
+		kind: .command
+		name: 'thirdparty/foo/hello'
+	}], .command)
+	return brew_runtime.bool_value(result.messages == [
+		'Untrusted command: thirdparty/foo/hello',
+	])
 }
 
 // Ruby it `it "untrusts legacy and remote-qualified entries for custom-remote tap items" do` at line 43.
 pub fn ruby_untrust_spec_l43_d4_untrusts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('untrusts', ...args)
+	result := cmd_core.run_untrust(untrust_spec_store({
+		'formula': ['thirdparty/custom/bar', 'https://gitlab.com/other/repo/bar']
+	}, []), [cmd_core.UntrustTarget{
+		kind: .formula
+		name: 'thirdparty/custom/bar'
+		aliases: ['https://gitlab.com/other/repo/bar']
+	}], .formula)
+	return brew_runtime.bool_value(result.store.trusted['formula'].len == 0)
 }
 
 // Ruby it `it "untrusts trusted items from a tap" do` at line 60.
 pub fn ruby_untrust_spec_l60_d5_untrusts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('untrusts', ...args)
+	result := cmd_core.run_untrust(untrust_spec_store({
+		'formula': ['thirdparty/foo/bar']
+		'cask':    ['thirdparty/foo/baz']
+		'command': ['thirdparty/foo/hello']
+	}, []), [cmd_core.UntrustTarget{
+		kind: .tap
+		name: 'thirdparty/foo'
+	}], none)
+	return brew_runtime.bool_value(result.messages == ['Untrusted tap: thirdparty/foo'] && result.store.trusted['formula'].len == 0 && result.store.trusted['cask'].len == 0 && result.store.trusted['command'].len == 0)
 }
 
 // Ruby it `it "lists untrusted entries with no arguments" do` at line 73.
 pub fn ruby_untrust_spec_l73_d6_lists(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('lists', ...args)
+	result := cmd_core.run_untrust(untrust_spec_store({}, [cmd_core.UntrustedTapSnapshot{
+		name: 'untrustlist/foo'
+		casks: ['bar']
+	}]), [], none)
+	return brew_runtime.bool_value(result.messages == ['Untrusted taps:', '  untrustlist/foo',
+		'Untrusted casks:', '  untrustlist/foo/bar'])
 }
 
 // Original Ruby source (line-for-line):

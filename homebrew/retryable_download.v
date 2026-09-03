@@ -1,78 +1,328 @@
 module homebrew
 
 import brew_runtime
+import crypto.sha256
+import os
 
 // Translated from Homebrew/brew `retryable_download.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub enum RetryableFailure {
+	none
+	network
+	checksum
+	bottle_manifest
+	other
+}
+
+pub struct RetryableAttempt {
+pub:
+	path    string
+	is_file bool
+	failure RetryableFailure
+	message string
+	digest  string
+}
+
+@[heap]
+pub struct RetryableDownloadable {
+pub:
+	url_value           string
+	checksum_value      string
+	mirrors_value       []string
+	download_queue_name string
+	download_queue_type string
+	cached_download     string
+	version_value       string
+	download_strategy   string
+	downloader_value    string
+	is_resource         bool
+	is_json_download    bool
+	attempts            []RetryableAttempt
+pub mut:
+	already_downloaded bool
+	downloading_calls  int
+	downloaded_calls   int
+	clear_cache_calls  int
+	verify_calls       []string
+	fetch_index        int
+	skip_patches       []bool
+	timeouts           []f64
+	quiet_values       []bool
+	touched            []string
+}
+
+@[heap]
+pub struct RetryableDownload {
+pub:
+	downloadable &RetryableDownloadable
+	tries        int
+pub mut:
+	try_count int
+	output    []string
+	waits     []i64
+}
+
+pub fn new_retryable_download(downloadable &RetryableDownloadable, tries int) &RetryableDownload {
+	return &RetryableDownload{
+		downloadable: downloadable
+		tries: if tries > 0 { tries } else { 1 }
+	}
+}
+
+pub fn (download RetryableDownload) url() ?string {
+	return if download.downloadable.url_value == '' {
+		none
+	} else {
+		download.downloadable.url_value
+	}
+}
+
+pub fn (download RetryableDownload) checksum() ?string {
+	return if download.downloadable.checksum_value == '' {
+		none
+	} else {
+		download.downloadable.checksum_value
+	}
+}
+
+pub fn (download RetryableDownload) mirrors() []string {
+	return download.downloadable.mirrors_value.clone()
+}
+
+pub fn (download RetryableDownload) download_queue_name() string {
+	return download.downloadable.download_queue_name
+}
+
+pub fn (download RetryableDownload) download_queue_type() string {
+	return download.downloadable.download_queue_type
+}
+
+pub fn (download RetryableDownload) cached_download() string {
+	return download.downloadable.cached_download
+}
+
+pub fn (download RetryableDownload) clear_cache() {
+	mut downloadable := download.downloadable
+	downloadable.clear_cache_calls++
+}
+
+pub fn (download RetryableDownload) version() ?string {
+	return if download.downloadable.version_value == '' {
+		none
+	} else {
+		download.downloadable.version_value
+	}
+}
+
+pub fn (download RetryableDownload) download_strategy() string {
+	return download.downloadable.download_strategy
+}
+
+pub fn (download RetryableDownload) downloader() string {
+	return download.downloadable.downloader_value
+}
+
+pub fn (download RetryableDownload) verify_download_integrity(filename string) {
+	mut downloadable := download.downloadable
+	downloadable.verify_calls << filename
+}
+
+fn retryable_digest(attempt RetryableAttempt) string {
+	if attempt.digest != '' {
+		return attempt.digest
+	}
+	if attempt.is_file && os.is_file(attempt.path) {
+		return sha256.sum256(os.read_bytes(attempt.path) or { [] }).hex()
+	}
+	return ''
+}
+
+fn retryable_error(attempt RetryableAttempt) IError {
+	message := if attempt.message != '' { attempt.message } else { 'download failed' }
+	return error(message)
+}
+
+pub fn (mut download RetryableDownload) fetch(verify_download_integrity bool, timeout ?f64,
+	quiet bool) !string {
+	for {
+		download.try_count++
+		mut downloadable := download.downloadable
+		downloadable.downloading_calls++
+		already_downloaded := downloadable.already_downloaded
+		attempt := downloadable.attempts[downloadable.fetch_index] or {
+			return error('no download attempt configured')
+		}
+		downloadable.fetch_index++
+		downloadable.skip_patches << downloadable.is_resource
+		downloadable.timeouts << timeout or { 0.0 }
+		downloadable.quiet_values << quiet
+		if attempt.failure == .none {
+			downloadable.downloaded_calls++
+			downloadable.already_downloaded = true
+			if !attempt.is_file {
+				return attempt.path
+			}
+			if !quiet {
+				if !already_downloaded {
+					download.output << 'Downloaded to: ${attempt.path}'
+				}
+				download.output << 'SHA-256: ${retryable_digest(attempt)}'
+			}
+			if verify_download_integrity && !downloadable.is_json_download {
+				download.verify_download_integrity(attempt.path)
+			}
+			if downloadable.is_json_download {
+				downloadable.touched << attempt.path
+			}
+			return attempt.path
+		}
+		if attempt.failure == .other {
+			return retryable_error(attempt)
+		}
+		tries_remaining := download.tries - download.try_count
+		if tries_remaining == 0 {
+			return retryable_error(attempt)
+		}
+		wait := i64(1 << download.try_count)
+		download.waits << wait
+		if !quiet {
+			what := if tries_remaining == 1 { 'try' } else { 'tries' }
+			download.output << 'Retrying download in ${wait}s... (${tries_remaining} ${what} left)'
+		}
+		if attempt.failure != .network {
+			downloadable.clear_cache_calls++
+		}
+	}
+	return error('download failed')
+}
+
+fn retryable_downloadable_value(downloadable &RetryableDownloadable) brew_runtime.Value {
+	return brew_runtime.structured_value('Downloadable', downloadable.url_value, {
+		'retryable_downloadable_address': u64(voidptr(downloadable)).str()
+	})
+}
+
+fn retryable_downloadable_from_value(value brew_runtime.Value) &RetryableDownloadable {
+	address := value.attributes['retryable_downloadable_address'] or {
+		panic('invalid retryable downloadable')
+	}
+	return unsafe { &RetryableDownloadable(voidptr(address.u64())) }
+}
+
+pub fn retryable_downloadable_boundary(downloadable &RetryableDownloadable) brew_runtime.Value {
+	return retryable_downloadable_value(downloadable)
+}
+
+fn retryable_download_value(download &RetryableDownload) brew_runtime.Value {
+	return brew_runtime.structured_value('Homebrew::RetryableDownload', '', {
+		'retryable_download_address': u64(voidptr(download)).str()
+	})
+}
+
+fn retryable_download_from_value(value brew_runtime.Value) &RetryableDownload {
+	address := value.attributes['retryable_download_address'] or { panic('invalid retryable download') }
+	return unsafe { &RetryableDownload(voidptr(address.u64())) }
+}
 
 // Ruby method `url = downloadable.url` at line 14.
 pub fn ruby_retryable_download_l14_d1_url(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('url', ...args)
+	return if value := retryable_download_from_value(args[0]).url() {
+		brew_runtime.string_value(value)
+	} else {
+		brew_runtime.object_value('NilClass', 'nil')
+	}
 }
 
 // Ruby method `checksum = downloadable.checksum` at line 17.
 pub fn ruby_retryable_download_l17_d2_checksum(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('checksum', ...args)
+	return if value := retryable_download_from_value(args[0]).checksum() {
+		brew_runtime.object_value('Checksum', value)
+	} else {
+		brew_runtime.object_value('NilClass', 'nil')
+	}
 }
 
 // Ruby method `mirrors = downloadable.mirrors` at line 20.
 pub fn ruby_retryable_download_l20_d3_mirrors(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('mirrors', ...args)
+	return brew_runtime.string_array_value(retryable_download_from_value(args[0]).mirrors())
 }
 
 // Ruby method `initialize(downloadable, tries:)` at line 23.
 pub fn ruby_retryable_download_l23_d4_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	if args.len < 2 {
+		return brew_runtime.object_value('ArgumentError', 'downloadable and tries are required')
+	}
+	return retryable_download_value(new_retryable_download(retryable_downloadable_from_value(args[0]), int(args[1].as_int() or { 1 })))
 }
 
 // Ruby method `download_queue_name = downloadable.download_queue_name` at line 32.
 pub fn ruby_retryable_download_l32_d5_download_queue_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('download_queue_name', ...args)
+	return brew_runtime.string_value(retryable_download_from_value(args[0]).download_queue_name())
 }
 
 // Ruby method `download_queue_type = downloadable.download_queue_type` at line 35.
 pub fn ruby_retryable_download_l35_d6_download_queue_type(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('download_queue_type', ...args)
+	return brew_runtime.string_value(retryable_download_from_value(args[0]).download_queue_type())
 }
 
 // Ruby method `cached_download = downloadable.cached_download` at line 38.
 pub fn ruby_retryable_download_l38_d7_cached_download(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cached_download', ...args)
+	return brew_runtime.object_value('Pathname', retryable_download_from_value(args[0]).cached_download())
 }
 
 // Ruby method `clear_cache = downloadable.clear_cache` at line 41.
 pub fn ruby_retryable_download_l41_d8_clear_cache(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('clear_cache', ...args)
+	retryable_download_from_value(args[0]).clear_cache()
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Ruby method `version = downloadable.version` at line 44.
 pub fn ruby_retryable_download_l44_d9_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('version', ...args)
+	return if value := retryable_download_from_value(args[0]).version() {
+		brew_runtime.object_value('Version', value)
+	} else {
+		brew_runtime.object_value('NilClass', 'nil')
+	}
 }
 
 // Ruby method `download_strategy = downloadable.download_strategy` at line 47.
 pub fn ruby_retryable_download_l47_d10_download_strategy(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('download_strategy', ...args)
+	return brew_runtime.object_value('Class', retryable_download_from_value(args[0]).download_strategy())
 }
 
 // Ruby method `downloader = downloadable.downloader` at line 50.
 pub fn ruby_retryable_download_l50_d11_downloader(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('downloader', ...args)
+	return brew_runtime.object_value('AbstractDownloadStrategy', retryable_download_from_value(args[0]).downloader())
 }
 
 // Ruby method `fetch(verify_download_integrity: true, timeout: nil, quiet: false)` at line 59.
 pub fn ruby_retryable_download_l59_d12_fetch(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fetch', ...args)
+	if args.len == 0 {
+		return brew_runtime.object_value('ArgumentError', 'retryable download is required')
+	}
+	mut download := retryable_download_from_value(args[0])
+	verify := args.len < 2 || args[1].bool_data
+	timeout := if args.len > 2 && args[2].type_name != 'NilClass' {
+		?f64(args[2].as_float() or { 0.0 })
+	} else {
+		none
+	}
+	quiet := args.len > 3 && args[3].bool_data
+	path := download.fetch(verify, timeout, quiet) or {
+		return brew_runtime.object_value('DownloadError', err.msg())
+	}
+	return brew_runtime.object_value('Pathname', path)
 }
 
 // Ruby method `verify_download_integrity(filename) = downloadable.verify_download_integrity(filename)` at line 106.
 pub fn ruby_retryable_download_l106_d13_verify_download_integrity(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('verify_download_integrity', ...args)
+	retryable_download_from_value(args[0]).verify_download_integrity(args[1].as_string())
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Ruby attr_reader `attr_reader :downloadable` at line 111.
 pub fn ruby_retryable_download_l111_d14_downloadable(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('downloadable', ...args)
+	return retryable_downloadable_value(retryable_download_from_value(args[0]).downloadable)
 }
 
 // Original Ruby source (line-for-line):

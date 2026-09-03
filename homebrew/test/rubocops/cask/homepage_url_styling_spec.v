@@ -1,23 +1,28 @@
 module cask
 
-import brew_runtime
+import homebrew.rubocops.cask as homepage_core
 
 // Translated from Homebrew/brew `test/rubocops/cask/homepage_url_styling_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "accepts a homepage URL ending with a slash" do` at line 7.
-pub fn ruby_homepage_url_styling_spec_l7_d1_accepts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('accepts', ...args)
+pub fn ruby_homepage_url_styling_spec_l7_d1_accepts() bool {
+	source := "cask 'foo' do\n  homepage 'https://foo.brew.sh/'\nend"
+	return homepage_core.audit_homepage_url_styling(source).len == 0
 }
 
 // Ruby it `it "accepts a homepage URL with a path" do` at line 15.
-pub fn ruby_homepage_url_styling_spec_l15_d2_accepts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('accepts', ...args)
+pub fn ruby_homepage_url_styling_spec_l15_d2_accepts() bool {
+	source := "cask 'foo' do\n  homepage 'https://foo.brew.sh/path'\nend"
+	return homepage_core.audit_homepage_url_styling(source).len == 0
 }
 
 // Ruby it `it "reports an offense when the homepage URL does not end with a slash and has no path" do` at line 23.
-pub fn ruby_homepage_url_styling_spec_l23_d3_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_homepage_url_styling_spec_l23_d3_reports() bool {
+	source := "cask 'foo' do\n  homepage 'https://foo.brew.sh'\nend"
+	expected := "cask 'foo' do\n  homepage 'https://foo.brew.sh/'\nend"
+	offenses := homepage_core.audit_homepage_url_styling(source)
+	return offenses.len == 1 && offenses[0].url == 'https://foo.brew.sh' && offenses[0].message == "'https://foo.brew.sh' must have a slash after the domain." && homepage_core.correct_homepage_url_styling(source) == expected
 }
 
 // Original Ruby source (line-for-line):

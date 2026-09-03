@@ -1,13 +1,30 @@
 module shared_examples
 
 import brew_runtime
+import os
 
 // Translated from Homebrew/brew `test/support/helper/spec/shared_examples/formulae_exist.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "#{f} formula exists", :needs_homebrew_core do` at line 9.
 pub fn ruby_formulae_exist_l9_d1_f(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#{f}', ...args)
+	if args.len < 2 {
+		return brew_runtime.bool_value(false)
+	}
+	return brew_runtime.bool_value(formula_or_alias_exists(args[0].as_string(), args[1].as_string()))
+}
+
+pub fn formula_or_alias_exists(homebrew_library_path string, formula string) bool {
+	core_tap := os.real_path(os.join_path(homebrew_library_path, '../Taps/homebrew/homebrew-core'))
+	formula_root := os.join_path(core_tap, 'Formula')
+	if os.is_dir(formula_root) {
+		for candidate in os.walk_ext(formula_root, '.rb') {
+			if os.file_name(candidate) == '${formula}.rb' && os.exists(candidate) {
+				return true
+			}
+		}
+	}
+	return os.exists(os.join_path(core_tap, 'Aliases/${formula}'))
 }
 
 // Original Ruby source (line-for-line):

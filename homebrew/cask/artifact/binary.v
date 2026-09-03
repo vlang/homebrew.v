@@ -7,7 +7,13 @@ import brew_runtime
 
 // Ruby method `link(force: false, adopt: false, command: SystemCommand, **_options)` at line 18.
 pub fn ruby_binary_l18_d1_link(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('link', ...args)
+	if args.len == 0 {
+		return brew_runtime.object_value('ArgumentError', 'Binary#link requires a source')
+	}
+	result := link_executable_artifact(args[0].as_string()) or {
+		return brew_runtime.object_value('CaskError', err.msg())
+	}
+	return executable_artifact_link_value(result)
 }
 
 // Original Ruby source (line-for-line):

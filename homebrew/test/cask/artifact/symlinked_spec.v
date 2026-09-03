@@ -1,38 +1,96 @@
 module artifact
 
 import brew_runtime
+import homebrew.cask.artifact as core
+import os
 
 // Translated from Homebrew/brew `test/cask/artifact/symlinked_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+fn symlinked_spec_runner(command core.ArtifactCommand) !bool {
+	_ = command
+	return true
+}
+
+fn symlinked_spec_artifact(root string) core.SymlinkedArtifact {
+	return core.SymlinkedArtifact{
+		source: os.join_path(root, 'Caskroom', 'with-binary', 'staged', 'binary')
+		target: os.join_path(root, 'bin', 'binary')
+		english_name: 'Binary'
+		caskroom_path: os.join_path(root, 'Caskroom', 'with-binary')
+		cellar_root: os.join_path(root, 'Cellar')
+	}
+}
+
+fn symlinked_spec_prepare_source(artifact core.SymlinkedArtifact) bool {
+	os.mkdir_all(os.dir(artifact.source)) or { return false }
+	os.write_file(artifact.source, '#!/bin/sh\n') or { return false }
+	return true
+}
+
+pub fn symlinked_spec_case(index int) bool {
+	root := os.join_path(os.temp_dir(), 'brew-v-symlinked-spec-${os.getpid()}-${index}')
+	if os.exists(root) {
+		os.rmdir_all(root) or { return false }
+	}
+	artifact := symlinked_spec_artifact(root)
+	if !symlinked_spec_prepare_source(artifact) {
+		return false
+	}
+	mut success := false
+	match index {
+		5 {
+			formula_binary := os.join_path(artifact.cellar_root, 'with-binary', '1.0.0', 'bin', 'binary')
+			os.mkdir_all(os.dir(formula_binary)) or { return false }
+			os.write_file(formula_binary, 'formula') or { return false }
+			os.mkdir_all(os.dir(artifact.target)) or { return false }
+			os.symlink(formula_binary, artifact.target) or { return false }
+			result := core.link_symlinked_artifact_with_command(artifact, core.SymlinkedInstallOptions{}, symlinked_spec_runner)
+			success = result.success && result.skipped && result.conflicting_formula == 'with-binary' && os.readlink(artifact.target) or { '' } == formula_binary
+		}
+		6 {
+			result := core.link_symlinked_artifact_with_command(artifact, core.SymlinkedInstallOptions{}, symlinked_spec_runner)
+			success = result.success && result.linked && os.is_link(artifact.target) && os.exists(artifact.target)
+		}
+		else {}
+	}
+	os.rmdir_all(root) or {}
+	return success
+}
 
 // Ruby let `let(:cask) do` at line 7.
 pub fn ruby_symlinked_spec_l7_d1_cask(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask', ...args)
+	_ = args
+	return brew_runtime.string_value('with-binary')
 }
 
 // Ruby let `let(:binary_artifact) { cask.artifacts.find { |a| a.is_a?(Cask::Artifact::Binary) } }` at line 13.
 pub fn ruby_symlinked_spec_l13_d2_binary_artifact(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('binary_artifact', ...args)
+	_ = args
+	return core.symlinked_artifact_to_value(symlinked_spec_artifact('/tmp/symlinked-spec'))
 }
 
 // Ruby let `let(:binarydir) { cask.config.binarydir }` at line 14.
 pub fn ruby_symlinked_spec_l14_d3_binarydir(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('binarydir', ...args)
+	_ = args
+	return brew_runtime.string_value('/tmp/symlinked-spec/bin')
 }
 
 // Ruby let `let(:target_path) { binarydir.join("binary") }` at line 15.
 pub fn ruby_symlinked_spec_l15_d4_target_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('target_path', ...args)
+	_ = args
+	return brew_runtime.string_value('/tmp/symlinked-spec/bin/binary')
 }
 
 // Ruby it `it "detects the conflict and skips linking with warning" do` at line 29.
 pub fn ruby_symlinked_spec_l29_d5_detects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('detects', ...args)
+	_ = args
+	return brew_runtime.bool_value(symlinked_spec_case(5))
 }
 
 // Ruby it `it "proceeds with normal installation" do` at line 53.
 pub fn ruby_symlinked_spec_l53_d6_proceeds(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('proceeds', ...args)
+	_ = args
+	return brew_runtime.bool_value(symlinked_spec_case(6))
 }
 
 // Original Ruby source (line-for-line):

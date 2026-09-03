@@ -2,72 +2,168 @@ module props
 
 import brew_runtime
 
+pub struct PropsClass {
+pub:
+	name string
+pub mut:
+	plugins   []string
+	decorator PropsDecorator
+}
+
+pub fn new_props_class(name string) PropsClass {
+	return PropsClass{
+		name: name
+		decorator: new_props_decorator(name, []string{})
+	}
+}
+
+pub fn props_class_define(mut class_state PropsClass, name string,
+	type_value brew_runtime.Value, rules map[string]brew_runtime.Value) ! {
+	decorator_define_prop(mut class_state.decorator, name, type_value, rules)!
+}
+
+pub fn props_class_const(mut class_state PropsClass, name string,
+	type_value brew_runtime.Value, input_rules map[string]brew_runtime.Value) ! {
+	if 'immutable' in input_rules {
+		return error("Cannot pass 'immutable' argument when using 'const' keyword to define a prop")
+	}
+	mut rules := input_rules.clone()
+	rules['immutable'] = brew_runtime.bool_value(true)
+	props_class_define(mut class_state, name, type_value, rules)!
+}
+
+pub fn props_class_plugin(mut class_state PropsClass, plugin_name string) {
+	class_state.plugins << plugin_name
+	class_state.decorator.plugins << plugin_name
+}
+
+pub fn props_class_inherited(class_state PropsClass, child_name string) PropsClass {
+	return PropsClass{
+		name: child_name
+		plugins: class_state.plugins.clone()
+		decorator: decorator_model_inherited(class_state.decorator, child_name)
+	}
+}
+
+fn props_class_from_value(value brew_runtime.Value) PropsClass {
+	decorator_value_ := value.map_data['_decorator'] or { value }
+	decorator := decorator_from_value(decorator_value_)
+	return PropsClass{
+		name: value.attribute('class_name') or { decorator.class_name }
+		plugins: value.string_array_data.clone()
+		decorator: decorator
+	}
+}
+
+fn props_class_value(class_state PropsClass) brew_runtime.Value {
+	return brew_runtime.Value{
+		type_name: 'Class'
+		repr: class_state.name
+		string_array_data: class_state.plugins.clone()
+		map_data: {
+			'_decorator': decorator_value(class_state.decorator)
+		}
+		attributes: {
+			'class_name': class_state.name
+		}
+	}
+}
+
+fn props_class_arg(args []brew_runtime.Value) PropsClass {
+	if args.len == 0 { panic('T::Props class method requires class') }
+	return props_class_from_value(args[0])
+}
+
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/sorbet-runtime-0.6.13412/lib/types/props/_props.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `props` at line 23.
 pub fn ruby_props_l23_d1_props(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('props', ...args)
+	return decorator_value(props_class_arg(args).decorator).map_data['_props'] or { brew_runtime.map_value(map[string]brew_runtime.Value{}) }
 }
 
 // Ruby method `plugins` at line 26.
 pub fn ruby_props_l26_d2_plugins(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('plugins', ...args)
+	return brew_runtime.string_array_value(props_class_arg(args).plugins)
 }
 
 // Ruby method `decorator_class` at line 30.
 pub fn ruby_props_l30_d3_decorator_class(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('decorator_class', ...args)
+	return brew_runtime.object_value('Class', 'T::Props::Decorator')
 }
 
 // Ruby method `decorator` at line 34.
 pub fn ruby_props_l34_d4_decorator(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('decorator', ...args)
+	return decorator_value(props_class_arg(args).decorator)
 }
 
 // Ruby method `reload_decorator!` at line 37.
 pub fn ruby_props_l37_d5_reload_decorator(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reload_decorator!', ...args)
+	mut class_state := props_class_arg(args)
+	class_state.decorator = new_props_decorator(class_state.name, class_state.plugins)
+	return props_class_value(class_state)
 }
 
 // Ruby method `prop(name, cls, **rules)` at line 113.
 pub fn ruby_props_l113_d6_prop(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prop', ...args)
+	if args.len < 3 { panic('prop requires class, name, and type') }
+	mut class_state := props_class_arg(args)
+	rules := if args.len > 3 {
+		args[3].as_map() or { panic(err) }
+	} else {
+		map[string]brew_runtime.Value{}
+	}
+	props_class_define(mut class_state, decorator_rule_name(args[1]), args[2], rules) or { panic(err) }
+	return props_class_value(class_state)
 }
 
 // Ruby method `validate_prop_value(prop, val)` at line 125.
 pub fn ruby_props_l125_d7_validate_prop_value(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('validate_prop_value', ...args)
+	if args.len < 3 { panic('validate_prop_value requires class, prop, and value') }
+	return ruby_decorator_l123_d8_validate_prop_value(decorator_value(props_class_arg(args).decorator), args[1], args[2])
 }
 
 // Ruby method `plugin(mod)` at line 130.
 pub fn ruby_props_l130_d8_plugin(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('plugin', ...args)
+	if args.len < 2 { panic('plugin requires class and module') }
+	mut class_state := props_class_arg(args)
+	props_class_plugin(mut class_state, args[1].as_string())
+	return props_class_value(class_state)
 }
 
 // Ruby method `const(name, cls, **rules)` at line 136.
 pub fn ruby_props_l136_d9_const(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('const', ...args)
+	if args.len < 3 { panic('const requires class, name, and type') }
+	mut class_state := props_class_arg(args)
+	rules := if args.len > 3 {
+		args[3].as_map() or { panic(err) }
+	} else {
+		map[string]brew_runtime.Value{}
+	}
+	props_class_const(mut class_state, decorator_rule_name(args[1]), args[2], rules) or { panic(err) }
+	return props_class_value(class_state)
 }
 
 // Ruby method `included(child)` at line 145.
 pub fn ruby_props_l145_d10_included(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('included', ...args)
+	if args.len < 2 { panic('included requires class and child') }
+	return props_class_value(props_class_inherited(props_class_arg(args), args[1].as_string()))
 }
 
 // Ruby method `prepended(child)` at line 150.
 pub fn ruby_props_l150_d11_prepended(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prepended', ...args)
+	return ruby_props_l145_d10_included(...args)
 }
 
 // Ruby method `extended(child)` at line 155.
 pub fn ruby_props_l155_d12_extended(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('extended', ...args)
+	if args.len < 2 { panic('extended requires class and child') }
+	return props_class_value(props_class_inherited(props_class_arg(args), '${args[1].as_string()}.singleton_class'))
 }
 
 // Ruby method `inherited(child)` at line 160.
 pub fn ruby_props_l160_d13_inherited(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('inherited', ...args)
+	return ruby_props_l145_d10_included(...args)
 }
 
 // Original Ruby source (line-for-line):

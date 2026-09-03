@@ -1,88 +1,242 @@
 module api
 
 import brew_runtime
+import homebrew.api as brew_api
 
 // Translated from Homebrew/brew `test/api/formula_struct_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `build_formula_struct(checksums)` at line 8.
-pub fn ruby_formula_struct_spec_l8_d1_build_formula_struct(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('build_formula_struct', ...args)
+pub fn ruby_formula_struct_spec_l8_d1_build_formula_struct(checksums []brew_api.FormulaBottleChecksum) brew_api.FormulaStruct {
+	return brew_api.FormulaStruct{
+		desc: 'sample formula'
+		executables: ['sample']
+		homepage: 'https://example.com'
+		license: 'MIT'
+		ruby_source_checksum: 'abc123'
+		stable_version: '1.0.0'
+		bottle_checksums: checksums
+	}
 }
 
 // Ruby specify `specify :aggregate_failures, :needs_macos do` at line 20.
-pub fn ruby_formula_struct_spec_l20_d2_aggregate_failures(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('aggregate_failures', ...args)
+pub fn ruby_formula_struct_spec_l20_d2_aggregate_failures() bool {
+	formula := ruby_formula_struct_spec_l8_d1_build_formula_struct([
+		brew_api.FormulaBottleChecksum{ cellar: 'any', tag: 'arm64_sequoia', checksum: 'checksum1' },
+		brew_api.FormulaBottleChecksum{ cellar: 'any_skip_relocation', tag: 'sequoia', checksum: 'checksum2' },
+		brew_api.FormulaBottleChecksum{ cellar: '/opt/homebrew/Cellar', tag: 'arm64_sonoma', checksum: 'checksum3' },
+	])
+	tahoe := formula.serialize_bottle('arm64_tahoe') or { return false }
+	sequoia := formula.serialize_bottle('arm64_sequoia') or { return false }
+	intel := formula.serialize_bottle('sequoia') or { return false }
+	sonoma := formula.serialize_bottle('arm64_sonoma') or { return false }
+	return formula_struct_spec_optional(tahoe.bottle_tag) == 'arm64_sequoia' && formula_struct_spec_optional(tahoe.bottle_cellar) == 'any' && tahoe.bottle_checksum == 'checksum1' && sequoia.bottle_tag == none && formula_struct_spec_optional(sequoia.bottle_cellar) == 'any' && intel.bottle_tag == none && intel.bottle_cellar == none && sonoma.bottle_tag == none && formula_struct_spec_optional(sonoma.bottle_cellar) == '/opt/homebrew/Cellar' && formula.serialize_bottle('x86_64_linux') == none
 }
 
 // Ruby it `it "serializes bottle with all tag" do` at line 68.
-pub fn ruby_formula_struct_spec_l68_d3_serializes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('serializes', ...args)
+pub fn ruby_formula_struct_spec_l68_d3_serializes() bool {
+	formula := ruby_formula_struct_spec_l8_d1_build_formula_struct([
+		brew_api.FormulaBottleChecksum{ cellar: 'any_skip_relocation', tag: 'all', checksum: 'checksum1' },
+	])
+	for tag in ['arm64_tahoe', 'sequoia', 'x86_64_linux'] {
+		bottle := formula.serialize_bottle(tag) or { return false }
+		if formula_struct_spec_optional(bottle.bottle_tag) != 'all' || bottle.bottle_cellar != none || bottle.bottle_checksum != 'checksum1' {
+			return false
+		}
+	}
+	return true
 }
 
 // Ruby specify `specify(:aggregate_failures) do` at line 84.
-pub fn ruby_formula_struct_spec_l84_d4_aggregate_failures(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('aggregate_failures', ...args)
+pub fn ruby_formula_struct_spec_l84_d4_aggregate_failures() bool {
+	one := brew_api.formula_struct_format_arg_pair([brew_runtime.string_value('foo')], brew_runtime.map_value({}))
+	two := brew_api.formula_struct_format_arg_pair([
+		brew_runtime.object_value('Symbol', ':foo'),
+		brew_runtime.object_value('Symbol', ':bar'),
+	], brew_runtime.object_value('NilClass', ''))
+	return one.first.as_string() == 'foo' && one.second.map_data.len == 0 && two.first.as_string() == ':foo' && two.second.as_string() == ':bar'
 }
 
 // Ruby it `it "defaults all predicates to false when not set" do` at line 99.
-pub fn ruby_formula_struct_spec_l99_d5_defaults(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('defaults', ...args)
+pub fn ruby_formula_struct_spec_l99_d5_defaults() bool {
+	formula := formula_struct_spec_minimal()
+	return brew_api.formula_struct_predicate_names.all(!formula.predicate(it))
 }
 
 // Ruby it `it "returns true when the corresponding _present field is set" do` at line 114.
-pub fn ruby_formula_struct_spec_l114_d6_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_formula_struct_spec_l114_d6_returns() bool {
+	mut hash := formula_struct_spec_minimal_hash()
+	for name in brew_api.formula_struct_predicate_names {
+		hash['${name}_present'] = brew_runtime.bool_value(true)
+	}
+	formula := brew_api.formula_struct_from_hash(hash, formula_struct_spec_paths())
+	return brew_api.formula_struct_predicate_names.all(formula.predicate(it))
 }
 
 // Ruby it `it "reconstructs a struct from a serialized hash with bottle info" do` at line 136.
-pub fn ruby_formula_struct_spec_l136_d7_reconstructs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reconstructs', ...args)
+pub fn ruby_formula_struct_spec_l136_d7_reconstructs() bool {
+	mut hash := formula_struct_spec_minimal_hash()
+	hash['executables'] = brew_runtime.string_array_value(['foo'])
+	hash['bottle_checksum'] = brew_runtime.string_value('checksum1')
+	hash['bottle_tag'] = brew_runtime.string_value(':arm64_sequoia')
+	hash['bottle_cellar'] = brew_runtime.string_value(':any')
+	formula := brew_api.formula_struct_deserialize(hash, 'arm64_sequoia', formula_struct_spec_paths())
+	return formula.predicate('bottle') && formula.executables == ['foo'] && formula.bottle_checksums == [brew_api.FormulaBottleChecksum{
+		cellar: 'any'
+		tag: 'arm64_sequoia'
+		checksum: 'checksum1'
+	}]
 }
 
 // Ruby it `it "sets bottle_present to false when no bottle_checksum is present" do` at line 157.
-pub fn ruby_formula_struct_spec_l157_d8_sets(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sets', ...args)
+pub fn ruby_formula_struct_spec_l157_d8_sets() bool {
+	formula := brew_api.formula_struct_deserialize(formula_struct_spec_minimal_hash(), 'arm64_sequoia', formula_struct_spec_paths())
+	return !formula.predicate('bottle') && formula.bottle_checksums.len == 0
 }
 
 // Ruby it `it "sets predicate _present fields from _args presence" do` at line 173.
-pub fn ruby_formula_struct_spec_l173_d9_sets(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sets', ...args)
+pub fn ruby_formula_struct_spec_l173_d9_sets() bool {
+	mut hash := formula_struct_spec_minimal_hash()
+	hash['deprecate_args'] = brew_runtime.map_value({
+		':date': brew_runtime.string_value('2025-01-01')
+	})
+	hash['keg_only_args'] = brew_runtime.array_value([
+		brew_runtime.object_value('Symbol', ':versioned_formula'),
+	])
+	formula := brew_api.formula_struct_deserialize(hash, 'arm64_sequoia', formula_struct_spec_paths())
+	return formula.predicate('deprecate') && formula.predicate('keg_only') && !formula.predicate('disable')
 }
 
 // Ruby it `it "formats _url_args into [String, Hash] pairs" do` at line 192.
-pub fn ruby_formula_struct_spec_l192_d10_formats(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formats', ...args)
+pub fn ruby_formula_struct_spec_l192_d10_formats() bool {
+	mut hash := formula_struct_spec_minimal_hash()
+	hash['stable_url_args'] = brew_runtime.string_array_value([
+		'https://example.com/foo-1.0.tar.gz',
+	])
+	formula := brew_api.formula_struct_deserialize(hash, 'arm64_sequoia', formula_struct_spec_paths())
+	return formula.predicate('stable') && formula.stable_url_args.first.as_string() == 'https://example.com/foo-1.0.tar.gz' && formula.stable_url_args.second.map_data.len == 0
 }
 
 // Ruby it `it "formats uses_from_macos into arg pairs" do` at line 209.
-pub fn ruby_formula_struct_spec_l209_d11_formats(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formats', ...args)
+pub fn ruby_formula_struct_spec_l209_d11_formats() bool {
+	mut hash := formula_struct_spec_minimal_hash()
+	hash['stable_url_args'] = brew_runtime.string_array_value(['url'])
+	hash['stable_uses_from_macos'] = brew_runtime.array_value([brew_runtime.string_array_value([
+		'zlib',
+	])])
+	formula := brew_api.formula_struct_deserialize(hash, 'arm64_sequoia', formula_struct_spec_paths())
+	return formula.stable_uses_from_macos.len == 1 && formula.stable_uses_from_macos[0].first.as_string() == 'zlib' && formula.stable_uses_from_macos[0].second.map_data.len == 0
 }
 
 // Ruby it `it "formats service_args into arg pairs" do` at line 226.
-pub fn ruby_formula_struct_spec_l226_d12_formats(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formats', ...args)
+pub fn ruby_formula_struct_spec_l226_d12_formats() bool {
+	mut hash := formula_struct_spec_minimal_hash()
+	hash['service_args'] = brew_runtime.array_value([brew_runtime.array_value([
+		brew_runtime.object_value('Symbol', ':run_type'),
+		brew_runtime.object_value('Symbol', ':immediate'),
+	])])
+	formula := brew_api.formula_struct_deserialize(hash, 'arm64_sequoia', formula_struct_spec_paths())
+	return formula.predicate('service') && formula.service_args.len == 1 && formula.service_args[0].first.as_string() == ':run_type' && formula.service_args[0].second.as_string() == ':immediate'
 }
 
 // Ruby it `it "formats conflicts into arg pairs" do` at line 243.
-pub fn ruby_formula_struct_spec_l243_d13_formats(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formats', ...args)
+pub fn ruby_formula_struct_spec_l243_d13_formats() bool {
+	mut hash := formula_struct_spec_minimal_hash()
+	hash['conflicts'] = brew_runtime.array_value([brew_runtime.string_array_value([
+		'other-formula',
+	])])
+	formula := brew_api.formula_struct_deserialize(hash, 'arm64_sequoia', formula_struct_spec_paths())
+	return formula.conflicts.len == 1 && formula.conflicts[0].first.as_string() == 'other-formula' && formula.conflicts[0].second.map_data.len == 0
 }
 
 // Ruby it `it "reconstructs an equivalent struct after serialize then deserialize", :needs_macos do` at line 261.
-pub fn ruby_formula_struct_spec_l261_d14_reconstructs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reconstructs', ...args)
+pub fn ruby_formula_struct_spec_l261_d14_reconstructs() bool {
+	original := formula_struct_spec_round_trip()
+	restored := brew_api.formula_struct_deserialize(original.serialize('arm64_sequoia'), 'arm64_sequoia', formula_struct_spec_paths())
+	return restored.equals(original, 'arm64_sequoia')
 }
 
 // Ruby it `it "serializes post-install steps", :needs_macos do` at line 287.
-pub fn ruby_formula_struct_spec_l287_d15_serializes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('serializes', ...args)
+pub fn ruby_formula_struct_spec_l287_d15_serializes() bool {
+	mut hash := formula_struct_spec_minimal_hash()
+	hash['post_install_steps'] = brew_runtime.array_value([brew_runtime.map_value({
+		'type': brew_runtime.string_value('mkdir_p')
+		'path': brew_runtime.map_value({
+			'base': brew_runtime.string_value('var')
+			'path': brew_runtime.string_value('log/foo')
+		})
+	})])
+	original := brew_api.formula_struct_from_hash(hash, formula_struct_spec_paths())
+	restored := brew_api.formula_struct_deserialize(original.serialize('arm64_sequoia'), 'arm64_sequoia', formula_struct_spec_paths())
+	return brew_api.api_struct_value_equal(brew_runtime.array_value(original.post_install_steps), brew_runtime.array_value(restored.post_install_steps))
 }
 
 // Ruby it `it "does not replace home placeholders inside prefix placeholders" do` at line 307.
-pub fn ruby_formula_struct_spec_l307_d16_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_formula_struct_spec_l307_d16_does() bool {
+	mut hash := formula_struct_spec_minimal_hash()
+	hash['caveats'] = brew_runtime.string_value('unix://\$HOMEBREW_PREFIX')
+	formula := brew_api.formula_struct_from_hash(hash, formula_struct_spec_paths())
+	caveats := formula.caveats or { '' }
+	return caveats == 'unix:///opt/testbrew'
+}
+
+fn formula_struct_spec_paths() brew_api.ApiStructPaths {
+	return brew_api.ApiStructPaths{
+		prefix: '/opt/testbrew'
+		cellar: '/opt/testbrew/Cellar'
+		home: '/Users/tester'
+		appdir: '/Applications'
+	}
+}
+
+fn formula_struct_spec_minimal_hash() map[string]brew_runtime.Value {
+	return {
+		'desc':                 brew_runtime.string_value('test')
+		'homepage':             brew_runtime.string_value('https://example.com')
+		'license':              brew_runtime.string_value('MIT')
+		'ruby_source_checksum': brew_runtime.string_value('abc123')
+		'stable_version':       brew_runtime.string_value('1.0.0')
+	}
+}
+
+fn formula_struct_spec_minimal() brew_api.FormulaStruct {
+	return brew_api.formula_struct_from_hash(formula_struct_spec_minimal_hash(), formula_struct_spec_paths())
+}
+
+fn formula_struct_spec_round_trip() brew_api.FormulaStruct {
+	mut hash := formula_struct_spec_minimal_hash()
+	hash['desc'] = brew_runtime.string_value('round-trip test')
+	hash['stable_url_args'] = brew_runtime.array_value([
+		brew_runtime.string_value('https://example.com/foo-1.0.tar.gz'),
+		brew_runtime.map_value({}),
+	])
+	hash['stable_dependencies'] = brew_runtime.array_value([
+		brew_runtime.string_value('dep1'),
+		brew_runtime.map_value({
+			'dep2': brew_runtime.object_value('Symbol', ':build')
+		}),
+	])
+	hash['executables'] = brew_runtime.string_array_value(['foo'])
+	hash['stable_uses_from_macos'] = brew_runtime.array_value([brew_runtime.array_value([
+		brew_runtime.string_value('zlib'),
+		brew_runtime.map_value({}),
+	])])
+	hash['bottle_checksums'] = brew_runtime.array_value([brew_runtime.map_value({
+		'cellar':        brew_runtime.string_value('any')
+		'arm64_sequoia': brew_runtime.string_value('checksum1')
+	})])
+	hash['conflicts'] = brew_runtime.array_value([brew_runtime.array_value([
+		brew_runtime.string_value('other-formula'),
+		brew_runtime.map_value({}),
+	])])
+	hash['revision'] = brew_runtime.int_value(2)
+	hash['aliases'] = brew_runtime.string_array_value(['foo-alias'])
+	hash['post_install_defined'] = brew_runtime.bool_value(true)
+	return brew_api.formula_struct_from_hash(hash, formula_struct_spec_paths())
+}
+
+fn formula_struct_spec_optional(value ?string) string {
+	return value or { '' }
 }
 
 // Original Ruby source (line-for-line):

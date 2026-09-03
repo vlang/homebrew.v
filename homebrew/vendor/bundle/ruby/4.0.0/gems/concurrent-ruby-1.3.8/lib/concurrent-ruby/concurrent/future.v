@@ -1,48 +1,207 @@
 module concurrent
 
 import brew_runtime
+import time
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/future.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub enum FutureExecutorMode {
+	async
+	immediate
+	deferred
+}
+
+@[heap]
+pub struct Future {
+	mode FutureExecutorMode
+mut:
+	ivar &IVar
+	task IVarTask @[required]
+	args []brew_runtime.Value
+}
+
+pub fn new_future(task IVarTask, args []brew_runtime.Value) &Future {
+	return new_future_with_mode(task, args, .async)
+}
+
+pub fn new_future_with_mode(task IVarTask, args []brew_runtime.Value, mode FutureExecutorMode) &Future {
+	mut ivar := new_ivar_with_options(IVarOptions{
+		args: args.clone()
+	})
+	ivar.set_state(.unscheduled)
+	return &Future{
+		ivar: ivar
+		mode: mode
+		task: task
+		args: args.clone()
+	}
+}
+
+fn run_future(mut future Future) {
+	future.run()
+}
+
+pub fn (mut future Future) run() bool {
+	return future.ivar.safe_execute(future.task, future.args, none)
+}
+
+fn (mut future Future) dispatch() {
+	match future.mode {
+		.async { spawn run_future(mut future) }
+		.immediate { future.run() }
+		.deferred {}
+	}
+}
+
+pub fn (mut future Future) execute() bool {
+	if !future.ivar.compare_and_set_state(.pending, [.unscheduled]) {
+		return false
+	}
+	future.dispatch()
+	return true
+}
+
+pub fn execute_future(task IVarTask, args []brew_runtime.Value) &Future {
+	mut future := new_future(task, args)
+	future.execute()
+	return future
+}
+
+pub fn (mut future Future) set(value brew_runtime.Value) !&Future {
+	return future.set_task(future_value_task, [value])
+}
+
+pub fn (mut future Future) set_task(task IVarTask, args []brew_runtime.Value) !&Future {
+	future.ivar.data.mutex.lock()
+	if future.ivar.data.state != .unscheduled {
+		future.ivar.data.mutex.unlock()
+		return error('MultipleAssignmentError')
+	}
+	future.task = task
+	future.args = args.clone()
+	future.ivar.data.state = .pending
+	future.ivar.data.mutex.unlock()
+	future.dispatch()
+	return future
+}
+
+fn future_value_task(args []brew_runtime.Value) !brew_runtime.Value {
+	return if args.len > 0 { args[0] } else { ivar_nil_value() }
+}
+
+pub fn (mut future Future) cancel() bool {
+	if !future.ivar.compare_and_set_state(.cancelled, [.pending]) {
+		return false
+	}
+	// The Ruby implementation immediately completes the cancelled operation as a
+	// rejection, so its observable final state is `rejected` with this reason.
+	future.ivar.complete(false, ivar_nil_value(), 'CancelledOperationError') or { panic(err) }
+	return true
+}
+
+pub fn (mut future Future) cancelled() bool {
+	return future.ivar.state() == .cancelled
+}
+
+pub fn (mut future Future) wait_or_cancel(timeout time.Duration) bool {
+	future.ivar.wait(timeout)
+	if future.ivar.is_complete() {
+		return true
+	}
+	future.cancel()
+	return false
+}
+
+pub fn (mut future Future) state() IVarState {
+	return future.ivar.state()
+}
+
+pub fn (mut future Future) value(timeout ?time.Duration) brew_runtime.Value {
+	return future.ivar.value(timeout)
+}
+
+pub fn (mut future Future) value_or_error(timeout ?time.Duration) !brew_runtime.Value {
+	return future.ivar.value_or_error(timeout)
+}
+
+pub fn (mut future Future) reason() string {
+	return future.ivar.reason()
+}
+
+fn future_boundary_value(future &Future) brew_runtime.Value {
+	return brew_runtime.structured_value('Concurrent::Future', '#<Concurrent::Future>', {
+		'future_address': u64(voidptr(future)).str()
+	})
+}
+
+fn future_boundary_receiver(args []brew_runtime.Value) &Future {
+	if args.len == 0 {
+		panic('Future method requires a receiver')
+	}
+	address := (args[0].attribute('future_address') or {
+		panic('${args[0].type_name} has no translated Future state')
+	}).u64()
+	return unsafe { &Future(voidptr(address)) }
+}
+
+fn future_boundary_timeout(value brew_runtime.Value) time.Duration {
+	return time.Duration((value.as_float() or { panic(err) }) * f64(time.second))
+}
 
 // Ruby method `initialize(opts = {}, &block)` at line 33.
 pub fn ruby_future_l33_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	if args.len == 0 {
+		panic('ArgumentError: no block given')
+	}
+	return future_boundary_value(new_future(future_value_task, [args[args.len - 1]]))
 }
 
 // Ruby method `execute` at line 53.
 pub fn ruby_future_l53_d2_execute(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('execute', ...args)
+	mut future := future_boundary_receiver(args)
+	return if future.execute() { args[0] } else { ivar_nil_value() }
 }
 
 // Ruby method `self.execute(opts = {}, &block)` at line 77.
 pub fn ruby_future_l77_d3_self_execute(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.execute', ...args)
+	value := ruby_future_l33_d1_initialize(...args)
+	return ruby_future_l53_d2_execute(value)
 }
 
 // Ruby method `set(value = NULL, &block)` at line 82.
 pub fn ruby_future_l82_d4_set(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('set', ...args)
+	mut future := future_boundary_receiver(args)
+	if args.len < 2 {
+		panic('ArgumentError: must set with either a value or a block')
+	}
+	future.set(args[1]) or { panic(err) }
+	return args[0]
 }
 
 // Ruby method `cancel` at line 99.
 pub fn ruby_future_l99_d5_cancel(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cancel', ...args)
+	mut future := future_boundary_receiver(args)
+	return brew_runtime.bool_value(future.cancel())
 }
 
 // Ruby method `cancelled?` at line 111.
 pub fn ruby_future_l111_d6_cancelled(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cancelled?', ...args)
+	mut future := future_boundary_receiver(args)
+	return brew_runtime.bool_value(future.cancelled())
 }
 
 // Ruby method `wait_or_cancel(timeout)` at line 121.
 pub fn ruby_future_l121_d7_wait_or_cancel(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('wait_or_cancel', ...args)
+	mut future := future_boundary_receiver(args)
+	if args.len < 2 {
+		panic('wait_or_cancel requires a timeout')
+	}
+	return brew_runtime.bool_value(future.wait_or_cancel(future_boundary_timeout(args[1])))
 }
 
 // Ruby method `ns_initialize(value, opts)` at line 133.
 pub fn ruby_future_l133_d8_ns_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ns_initialize', ...args)
+	return ruby_future_l33_d1_initialize(...args)
 }
 
 // Original Ruby source (line-for-line):

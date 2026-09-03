@@ -7,7 +7,12 @@ import brew_runtime
 
 // Ruby it `it "prints a given Formula's path", :integration_test do` at line 10.
 pub fn ruby_formula_spec_l10_d1_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+	if args.len == 0 {
+		return brew_runtime.object_value('ArgumentError', 'formula path is required')
+	}
+	path := args[0].as_string()
+	output := run_formula_command([path], []) or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value(output == '${path}\n')
 }
 
 // Original Ruby source (line-for-line):

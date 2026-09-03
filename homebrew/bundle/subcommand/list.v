@@ -1,13 +1,61 @@
 module subcommand
 
 import brew_runtime
+import homebrew.bundle
 
 // Translated from Homebrew/brew `bundle/subcommand/list.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `run` at line 38.
 pub fn ruby_list_l38_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('run', ...args)
+	if args.len == 0 {
+		return brew_runtime.string_array_value([])
+	}
+	entries := args[0].as_array() or { [] }.map(bundle.BundleListEntry{
+		entry_type: it.attribute('type') or { it.attribute('entry_type') or { '' } }
+		name: it.attribute('name') or { it.as_string() }
+	})
+	options := BundleListCommandOptions{
+		formulae: if args.len > 1 { args[1].as_bool() or { false } } else { true }
+		casks: if args.len > 2 { args[2].as_bool() or { false } } else { false }
+		taps: if args.len > 3 { args[3].as_bool() or { false } } else { false }
+		extension_types: if args.len > 4 {
+			extension_flags_from_value(args[4])} else {
+			map[string]bool{}}
+	}
+	return brew_runtime.string_array_value(run_bundle_list(entries, options))
+}
+
+pub struct BundleListCommandOptions {
+pub:
+	formulae        bool
+	casks           bool
+	taps            bool
+	all             bool
+	no_type_args    bool
+	extension_types map[string]bool
+}
+
+pub fn run_bundle_list(entries []bundle.BundleListEntry,
+	options BundleListCommandOptions) []string {
+	mut extensions := options.extension_types.clone()
+	if options.all {
+		for entry in entries {
+			if entry.entry_type !in ['brew', 'cask', 'tap'] {
+				extensions[entry.entry_type] = true
+			}
+		}
+	}
+	return bundle.list_bundle_entries(entries, options.formulae || options.all || options.no_type_args, options.casks || options.all, options.taps || options.all, extensions)
+}
+
+fn extension_flags_from_value(value brew_runtime.Value) map[string]bool {
+	flags := value.as_map() or { return map[string]bool{} }
+	mut result := map[string]bool{}
+	for name, enabled in flags {
+		result[name] = enabled.as_bool() or { enabled.as_string() == 'true' }
+	}
+	return result
 }
 
 // Original Ruby source (line-for-line):

@@ -1,23 +1,62 @@
 module homebrew
 
-import brew_runtime
-
 // Translated from Homebrew/brew `minimum_version.rb`.
 // The original source is retained below until every stub has a typed V body.
 
+pub fn formula_kegs_below_minimum(formula Formula, minimum_version ?string) ![]Keg {
+	minimum_text := minimum_version or { '' }
+	if minimum_text.trim_space() == '' {
+		return formula.outdated_kegs()
+	}
+	minimum_pkg_version := parse_pkg_version(minimum_text)!
+	mut outdated := []Keg{}
+	for keg in formula.installed_kegs() {
+		installed := keg.version() or { continue }
+		if keg.version_scheme() < formula.reference.version_scheme
+			|| (keg.version_scheme() == formula.reference.version_scheme
+			&& installed.compare_to(minimum_pkg_version) < 0) {
+			outdated << keg
+		}
+	}
+	return outdated
+}
+
+pub fn comparable_cask_version(version string) ?Version {
+	if version.trim_space() == '' || version.trim_space().to_lower() == 'latest' {
+		return none
+	}
+	return new_version(version) or { return none }
+}
+
+pub fn cask_installed_below(installed_version string, minimum_version string) !bool {
+	minimum := comparable_cask_version(minimum_version) or {
+		return error('invalid `--minimum-version`: ${minimum_version}')
+	}
+	if installed_version.trim_space() == '' {
+		return false
+	}
+	installed := comparable_cask_version(installed_version) or { return false }
+	return installed.compare_to(minimum) < 0
+}
+
 // Ruby method `self.formula_outdated_kegs(formula, minimum_version, fetch_head:)` at line 14.
-pub fn ruby_minimum_version_l14_d1_self_formula_outdated_kegs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.formula_outdated_kegs', ...args)
+pub fn ruby_minimum_version_l14_d1_self_formula_outdated_kegs(formula Formula,
+	minimum_version ?string, _fetch_head bool) ![]Keg {
+	// fetch_head only affects Formula#outdated_kegs in Ruby; the typed Formula
+	// currently represents its active spec explicitly, so no extra branch is
+	// needed here.
+	return formula_kegs_below_minimum(formula, minimum_version)
 }
 
 // Ruby method `self.cask_installed_below?(cask, minimum_version)` at line 25.
-pub fn ruby_minimum_version_l25_d2_self_cask_installed_below(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.cask_installed_below?', ...args)
+pub fn ruby_minimum_version_l25_d2_self_cask_installed_below(installed_version string,
+	minimum_version string) !bool {
+	return cask_installed_below(installed_version, minimum_version)
 }
 
 // Ruby method `self.comparable_cask_version(version)` at line 39.
-pub fn ruby_minimum_version_l39_d3_self_comparable_cask_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.comparable_cask_version', ...args)
+pub fn ruby_minimum_version_l39_d3_self_comparable_cask_version(version string) ?Version {
+	return comparable_cask_version(version)
 }
 
 // Original Ruby source (line-for-line):

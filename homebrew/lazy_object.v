@@ -4,35 +4,76 @@ import brew_runtime
 
 // Translated from Homebrew/brew `lazy_object.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub type LazyValueFactory = fn() !brew_runtime.Value
+
+pub struct LazyObject {
+mut:
+	callable    LazyValueFactory @[required]
+	getobj_set  bool
+	object      brew_runtime.Value
+	evaluations int
+}
+
+pub fn (object &LazyObject) evaluated() bool {
+	return object.getobj_set
+}
+
+pub fn (object &LazyObject) evaluation_count() int {
+	return object.evaluations
+}
 
 // Ruby method `initialize(&callable)` at line 9.
-pub fn ruby_lazy_object_l9_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+pub fn ruby_lazy_object_l9_d1_initialize(callable LazyValueFactory) LazyObject {
+	return LazyObject{
+		callable: callable
+	}
 }
 
 // Ruby method `__getobj__(&_blk)` at line 17.
-pub fn ruby_lazy_object_l17_d2_getobj(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('__getobj__', ...args)
+pub fn ruby_lazy_object_l17_d2_getobj(mut object LazyObject) !brew_runtime.Value {
+	if object.getobj_set {
+		return object.object
+	}
+	object.object = object.callable()!
+	object.getobj_set = true
+	object.evaluations++
+	return object.object
 }
 
 // Ruby method `__setobj__(callable)` at line 26.
-pub fn ruby_lazy_object_l26_d3_setobj(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('__setobj__', ...args)
+pub fn ruby_lazy_object_l26_d3_setobj(mut object LazyObject, callable LazyValueFactory) {
+	object.callable = callable
+	object.getobj_set = false
+	object.object = brew_runtime.Value{}
 }
 
 // Ruby method `is_a?(klass)` at line 36.
-pub fn ruby_lazy_object_l36_d4_is_a(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('is_a?', ...args)
+pub fn ruby_lazy_object_l36_d4_is_a(mut object LazyObject, class_name string) !bool {
+	value := ruby_lazy_object_l17_d2_getobj(mut object)!
+	return value.type_name == class_name || class_name == 'LazyObject' || class_name == 'Delegator'
 }
 
 // Ruby method `class = __getobj__.class` at line 44.
-pub fn ruby_lazy_object_l44_d5_class(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('class', ...args)
+pub fn ruby_lazy_object_l44_d5_class(mut object LazyObject) !string {
+	return ruby_lazy_object_l17_d2_getobj(mut object)!.type_name
 }
 
 // Ruby method `to_s = __getobj__.to_s` at line 47.
-pub fn ruby_lazy_object_l47_d6_to_s(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_s', ...args)
+pub fn ruby_lazy_object_l47_d6_to_s(mut object LazyObject) !string {
+	return ruby_lazy_object_l17_d2_getobj(mut object)!.as_string()
+}
+
+pub fn lazy_object_not(mut object LazyObject) !bool {
+	value := ruby_lazy_object_l17_d2_getobj(mut object)!
+	if value.type_name == 'Bool' {
+		return !value.as_bool()!
+	}
+	return false
+}
+
+pub fn lazy_object_equals(mut object LazyObject, other brew_runtime.Value) !bool {
+	value := ruby_lazy_object_l17_d2_getobj(mut object)!
+	return value.type_name == other.type_name && value.repr == other.repr
 }
 
 // Original Ruby source (line-for-line):

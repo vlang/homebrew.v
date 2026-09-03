@@ -1,13 +1,24 @@
 module cmd
 
-import brew_runtime
+import homebrew.cmd as postinstall_core
 
 // Translated from Homebrew/brew `test/cmd/postinstall_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "runs post-install steps through `FormulaInstaller`" do` at line 10.
-pub fn ruby_postinstall_spec_l10_d1_runs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('runs', ...args)
+pub fn ruby_postinstall_spec_l10_d1_runs() bool {
+	result := postinstall_core.run_postinstall_command([
+		postinstall_core.PostinstallFormula{
+			name: 'foo'
+			post_install_steps_defined: true
+		},
+	], postinstall_core.PostinstallOptions{})
+	return result.actions == [
+		'Postinstalling foo',
+		'install_etc_var:foo',
+		'FormulaInstaller.new:foo:debug=false:quiet=false:verbose=false',
+		'FormulaInstaller.post_install:foo',
+	] && result.warnings.len == 0 && !result.actions.any(it.contains('run_post_install_steps'))
 }
 
 // Original Ruby source (line-for-line):

@@ -1,153 +1,193 @@
 module bundle
 
-import brew_runtime
+import homebrew.bundle as base_bundle
+import homebrew.extend.os.linux.bundle as linux_bundle
+import homebrew.extend.os.mac.bundle as mac_bundle
 
 // Translated from Homebrew/brew `test/bundle/skipper_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:skipper) { described_class }` at line 9.
-pub fn ruby_skipper_spec_l9_d1_skipper(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skipper', ...args)
+pub fn ruby_skipper_spec_l9_d1_skipper() base_bundle.BundleSkipper {
+	return base_bundle.new_bundle_skipper({
+		'HOMEBREW_BUNDLE_BREW_SKIP': 'mysql'
+		'HOMEBREW_BUNDLE_TAP_SKIP':  'org/repo'
+	})
 }
 
 // Ruby let `let(:entry) { Homebrew::Bundle::Dsl::Entry.new(:brew, "mysql") }` at line 22.
-pub fn ruby_skipper_spec_l22_d2_entry(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('entry', ...args)
+pub fn ruby_skipper_spec_l22_d2_entry() base_bundle.BundleSkipEntry {
+	return base_bundle.BundleSkipEntry{ type_name: 'brew', name: 'mysql' }
 }
 
 // Ruby it `it "returns true" do` at line 24.
-pub fn ruby_skipper_spec_l24_d3_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_skipper_spec_l24_d3_returns() bool {
+	skipper := ruby_skipper_spec_l9_d1_skipper()
+	return skipper.skip(ruby_skipper_spec_l22_d2_entry(), false).skipped
 }
 
 // Ruby let `let(:entry) { Homebrew::Bundle::Dsl::Entry.new(:brew, "mysql") }` at line 30.
-pub fn ruby_skipper_spec_l30_d4_entry(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('entry', ...args)
+pub fn ruby_skipper_spec_l30_d4_entry() base_bundle.BundleSkipEntry {
+	return ruby_skipper_spec_l22_d2_entry()
 }
 
 // Ruby it `it "returns true" do` at line 32.
-pub fn ruby_skipper_spec_l32_d5_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_skipper_spec_l32_d5_returns() bool {
+	skipper := ruby_skipper_spec_l9_d1_skipper()
+	return skipper.skip(ruby_skipper_spec_l30_d4_entry(), false).skipped
 }
 
 // Ruby let `let(:entry) { Homebrew::Bundle::Dsl::Entry.new(:cask, "java") }` at line 45.
-pub fn ruby_skipper_spec_l45_d6_entry(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('entry', ...args)
+pub fn ruby_skipper_spec_l45_d6_entry() base_bundle.BundleSkipEntry {
+	return base_bundle.BundleSkipEntry{ type_name: 'cask', name: 'java' }
 }
 
 // Ruby it `it "returns false" do` at line 47.
-pub fn ruby_skipper_spec_l47_d7_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_skipper_spec_l47_d7_returns() bool {
+	skipper := ruby_skipper_spec_l9_d1_skipper()
+	return !mac_bundle.mac_bundle_skip(&skipper, ruby_skipper_spec_l45_d6_entry(), false).skipped
 }
 
 // Ruby let `let(:entry) { Homebrew::Bundle::Dsl::Entry.new(:flatpak, "org.gnome.Calculator") }` at line 53.
-pub fn ruby_skipper_spec_l53_d8_entry(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('entry', ...args)
+pub fn ruby_skipper_spec_l53_d8_entry() base_bundle.BundleSkipEntry {
+	return base_bundle.BundleSkipEntry{ type_name: 'flatpak', name: 'org.gnome.Calculator' }
 }
 
 // Ruby it `it "skips on macOS with warning" do` at line 55.
-pub fn ruby_skipper_spec_l55_d9_skips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skips', ...args)
+pub fn ruby_skipper_spec_l55_d9_skips() bool {
+	skipper := ruby_skipper_spec_l9_d1_skipper()
+	result := mac_bundle.mac_bundle_skip(&skipper, ruby_skipper_spec_l53_d8_entry(), false)
+	return result.skipped && result.warning == 'Warning: Skipping flatpak org.gnome.Calculator (unsupported on macOS)'
 }
 
 // Ruby it `it "skips silently when silent flag is set" do` at line 62.
-pub fn ruby_skipper_spec_l62_d10_skips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skips', ...args)
+pub fn ruby_skipper_spec_l62_d10_skips() bool {
+	skipper := ruby_skipper_spec_l9_d1_skipper()
+	result := mac_bundle.mac_bundle_skip(&skipper, ruby_skipper_spec_l53_d8_entry(), true)
+	return result.skipped && result.warning == ''
 }
 
 // Ruby let `let(:entry) { Homebrew::Bundle::Dsl::Entry.new(:winget, "Valve.Steam") }` at line 69.
-pub fn ruby_skipper_spec_l69_d11_entry(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('entry', ...args)
+pub fn ruby_skipper_spec_l69_d11_entry() base_bundle.BundleSkipEntry {
+	return base_bundle.BundleSkipEntry{ type_name: 'winget', name: 'Valve.Steam' }
 }
 
 // Ruby it `it "skips on macOS with warning" do` at line 71.
-pub fn ruby_skipper_spec_l71_d12_skips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skips', ...args)
+pub fn ruby_skipper_spec_l71_d12_skips() bool {
+	skipper := ruby_skipper_spec_l9_d1_skipper()
+	result := mac_bundle.mac_bundle_skip(&skipper, ruby_skipper_spec_l69_d11_entry(), false)
+	return result.skipped && result.warning == 'Warning: Skipping winget Valve.Steam (requires WSL)'
 }
 
 // Ruby let `let(:entry) { Homebrew::Bundle::Dsl::Entry.new(:flatpak, "org.gnome.Calculator") }` at line 80.
-pub fn ruby_skipper_spec_l80_d13_entry(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('entry', ...args)
+pub fn ruby_skipper_spec_l80_d13_entry() base_bundle.BundleSkipEntry {
+	return ruby_skipper_spec_l53_d8_entry()
 }
 
 // Ruby it `it "does not skip" do` at line 82.
-pub fn ruby_skipper_spec_l82_d14_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_skipper_spec_l82_d14_does() bool {
+	skipper := ruby_skipper_spec_l9_d1_skipper()
+	return !linux_bundle.linux_bundle_skip(&skipper, ruby_skipper_spec_l80_d13_entry(), false, linux_bundle.LinuxBundleSkipContext{}).skipped
 }
 
 // Ruby let `let(:entry) { Homebrew::Bundle::Dsl::Entry.new(:winget, "App Installer") }` at line 88.
-pub fn ruby_skipper_spec_l88_d15_entry(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('entry', ...args)
+pub fn ruby_skipper_spec_l88_d15_entry() base_bundle.BundleSkipEntry {
+	return base_bundle.BundleSkipEntry{ type_name: 'winget', name: 'App Installer' }
 }
 
 // Ruby it `it "skips with warning" do` at line 90.
-pub fn ruby_skipper_spec_l90_d16_skips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skips', ...args)
+pub fn ruby_skipper_spec_l90_d16_skips() bool {
+	skipper := ruby_skipper_spec_l9_d1_skipper()
+	result := linux_bundle.linux_bundle_skip(&skipper, ruby_skipper_spec_l88_d15_entry(), false, linux_bundle.LinuxBundleSkipContext{})
+	return result.skipped && result.warning == 'Warning: Skipping winget App Installer (requires WSL)'
 }
 
 // Ruby let `let(:entry) { Homebrew::Bundle::Dsl::Entry.new(:winget, "App Installer") }` at line 100.
-pub fn ruby_skipper_spec_l100_d17_entry(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('entry', ...args)
+pub fn ruby_skipper_spec_l100_d17_entry() base_bundle.BundleSkipEntry {
+	return ruby_skipper_spec_l88_d15_entry()
 }
 
 // Ruby it `it "does not skip" do` at line 102.
-pub fn ruby_skipper_spec_l102_d18_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_skipper_spec_l102_d18_does() bool {
+	skipper := ruby_skipper_spec_l9_d1_skipper()
+	return !linux_bundle.linux_bundle_skip(&skipper, ruby_skipper_spec_l100_d17_entry(), false, linux_bundle.LinuxBundleSkipContext{ wsl: true }).skipped
 }
 
 // Ruby let `let(:entry) { Homebrew::Bundle::Dsl::Entry.new(:cask, "testball") }` at line 109.
-pub fn ruby_skipper_spec_l109_d19_entry(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('entry', ...args)
+pub fn ruby_skipper_spec_l109_d19_entry() base_bundle.BundleSkipEntry {
+	return base_bundle.BundleSkipEntry{ type_name: 'cask', name: 'testball' }
 }
 
 // Ruby it `it "skips on Linux with warning" do` at line 111.
-pub fn ruby_skipper_spec_l111_d20_skips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skips', ...args)
+pub fn ruby_skipper_spec_l111_d20_skips() bool {
+	skipper := ruby_skipper_spec_l9_d1_skipper()
+	result := linux_bundle.linux_bundle_skip(&skipper, ruby_skipper_spec_l109_d19_entry(), false, linux_bundle.LinuxBundleSkipContext{
+		cask_supports_linux: {
+			'testball': false
+		}
+	})
+	return result.skipped && result.warning == 'Warning: Skipping cask testball (requires macOS)'
 }
 
 // Ruby let `let(:entry) { Homebrew::Bundle::Dsl::Entry.new(:cask, "testball") }` at line 123.
-pub fn ruby_skipper_spec_l123_d21_entry(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('entry', ...args)
+pub fn ruby_skipper_spec_l123_d21_entry() base_bundle.BundleSkipEntry {
+	return ruby_skipper_spec_l109_d19_entry()
 }
 
 // Ruby it `it "does not skip" do` at line 125.
-pub fn ruby_skipper_spec_l125_d22_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_skipper_spec_l125_d22_does() bool {
+	skipper := ruby_skipper_spec_l9_d1_skipper()
+	return !linux_bundle.linux_bundle_skip(&skipper, ruby_skipper_spec_l123_d21_entry(), false, linux_bundle.LinuxBundleSkipContext{
+		cask_supports_linux: {
+			'testball': true
+		}
+	}).skipped
 }
 
 // Ruby let `let(:entry) do` at line 134.
-pub fn ruby_skipper_spec_l134_d23_entry(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('entry', ...args)
+pub fn ruby_skipper_spec_l134_d23_entry() base_bundle.BundleSkipEntry {
+	return base_bundle.BundleSkipEntry{ type_name: 'cask', name: 'vscodium-linux', full_name: 'ublue-os/tap/vscodium-linux' }
 }
 
 // Ruby it `it "does not skip when cask can't be loaded" do` at line 138.
-pub fn ruby_skipper_spec_l138_d24_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_skipper_spec_l138_d24_does() bool {
+	skipper := ruby_skipper_spec_l9_d1_skipper()
+	return !linux_bundle.linux_bundle_skip(&skipper, ruby_skipper_spec_l134_d23_entry(), false, linux_bundle.LinuxBundleSkipContext{
+		cask_load_errors: [
+			'vscodium-linux',
+		]
+	}).skipped
 }
 
 // Ruby let `let(:entry) { Homebrew::Bundle::Dsl::Entry.new(:brew, "org/repo/formula") }` at line 145.
-pub fn ruby_skipper_spec_l145_d25_entry(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('entry', ...args)
+pub fn ruby_skipper_spec_l145_d25_entry() base_bundle.BundleSkipEntry {
+	return base_bundle.BundleSkipEntry{ type_name: 'brew', name: 'org/repo/formula' }
 }
 
 // Ruby it `it "returns true" do` at line 147.
-pub fn ruby_skipper_spec_l147_d26_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_skipper_spec_l147_d26_returns() bool {
+	mut skipper := ruby_skipper_spec_l9_d1_skipper()
+	skipper.tap_failed('org/repo')
+	return skipper.skip(ruby_skipper_spec_l145_d25_entry(), false).skipped
 }
 
 // Ruby let `let(:tap) { Homebrew::Bundle::Dsl::Entry.new(:tap, "org/repo-b") }` at line 157.
-pub fn ruby_skipper_spec_l157_d27_tap(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tap', ...args)
+pub fn ruby_skipper_spec_l157_d27_tap() base_bundle.BundleSkipEntry {
+	return base_bundle.BundleSkipEntry{ type_name: 'tap', name: 'org/repo-b' }
 }
 
 // Ruby let `let(:entry) { Homebrew::Bundle::Dsl::Entry.new(:brew, "org/repo-b/formula") }` at line 158.
-pub fn ruby_skipper_spec_l158_d28_entry(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('entry', ...args)
+pub fn ruby_skipper_spec_l158_d28_entry() base_bundle.BundleSkipEntry {
+	return base_bundle.BundleSkipEntry{ type_name: 'brew', name: 'org/repo-b/formula' }
 }
 
 // Ruby it `it "returns false" do` at line 160.
-pub fn ruby_skipper_spec_l160_d29_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_skipper_spec_l160_d29_returns() bool {
+	mut skipper := ruby_skipper_spec_l9_d1_skipper()
+	entry := ruby_skipper_spec_l158_d28_entry()
+	before := skipper.skip(entry, false).skipped
+	skipper.tap_failed(ruby_skipper_spec_l157_d27_tap().name)
+	return !before && skipper.skip(entry, false).skipped
 }
 
 // Original Ruby source (line-for-line):

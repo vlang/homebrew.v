@@ -1,23 +1,32 @@
 module services
 
 import brew_runtime
+import homebrew.services.subcommand as service_subcommand
 
 // Translated from Homebrew/brew `test/cmd/services/cleanup_subcommand_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "root - prints on empty cleanup" do` at line 10.
 pub fn ruby_cleanup_subcommand_spec_l10_d1_root(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('root', ...args)
+	result := service_subcommand.service_cleanup(service_subcommand.ServiceSubcommandRequest{
+		root: true
+	})
+	return brew_runtime.bool_value(result.output == 'All root services OK, nothing cleaned...\n')
 }
 
 // Ruby it `it "user - prints on empty cleanup" do` at line 20.
 pub fn ruby_cleanup_subcommand_spec_l20_d2_user(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('user', ...args)
+	result := service_subcommand.service_cleanup(service_subcommand.ServiceSubcommandRequest{})
+	return brew_runtime.bool_value(result.output == 'All user-space services OK, nothing cleaned...\n')
 }
 
 // Ruby it `it "prints nothing on cleanup" do` at line 30.
 pub fn ruby_cleanup_subcommand_spec_l30_d3_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+	result := service_subcommand.service_cleanup(service_subcommand.ServiceSubcommandRequest{
+		orphaned: ['a']
+		unused: ['b']
+	})
+	return brew_runtime.bool_value(result.output == '' && result.cleaned == ['a', 'b'])
 }
 
 // Original Ruby source (line-for-line):

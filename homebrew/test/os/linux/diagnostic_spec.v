@@ -1,83 +1,132 @@
 module linux
 
-import brew_runtime
+import homebrew.extend.os.linux as diagnostic
 
 // Translated from Homebrew/brew `test/os/linux/diagnostic_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:checks) { described_class.new }` at line 8.
-pub fn ruby_diagnostic_spec_l8_d1_checks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('checks', ...args)
+pub fn ruby_diagnostic_spec_l8_d1_checks() &diagnostic.LinuxDiagnosticContext {
+	return diagnostic.new_linux_diagnostic_context()
 }
 
 // Ruby specify `specify "#check_supported_architecture" do` at line 14.
-pub fn ruby_diagnostic_spec_l14_d2_check_supported_architecture(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#check_supported_architecture', ...args)
+pub fn ruby_diagnostic_spec_l14_d2_check_supported_architecture() bool {
+	result := diagnostic.linux_check_supported_architecture(diagnostic.LinuxDiagnosticContext{
+		cpu_arch: 'arm'
+	}) or { return false }
+	return result.string().contains('Your CPU architecture (arm) is not supported')
 }
 
 // Ruby specify `specify "#check_glibc_minimum_version" do` at line 21.
-pub fn ruby_diagnostic_spec_l21_d3_check_glibc_minimum_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#check_glibc_minimum_version', ...args)
+pub fn ruby_diagnostic_spec_l21_d3_check_glibc_minimum_version() bool {
+	result := diagnostic.linux_check_glibc_minimum_version(diagnostic.LinuxDiagnosticContext{
+		glibc_below_minimum: true
+		glibc_system_version: '2.12'
+		glibc_minimum_version: '2.13'
+	}) or { return false }
+	return result.string().contains('Your system glibc 2.12 is too old')
 }
 
 // Ruby specify `specify "#check_glibc_next_version" do` at line 28.
-pub fn ruby_diagnostic_spec_l28_d4_check_glibc_next_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#check_glibc_next_version', ...args)
+pub fn ruby_diagnostic_spec_l28_d4_check_glibc_next_version() bool {
+	result := diagnostic.linux_check_glibc_next_version(diagnostic.LinuxDiagnosticContext{
+		glibc_system_version: '2.35'
+		glibc_next_ci_version: '2.39'
+	}) or { return false }
+	return result.string().contains('Your system glibc 2.35 is older than 2.39')
 }
 
 // Ruby specify `specify "#check_kernel_minimum_version" do` at line 37.
-pub fn ruby_diagnostic_spec_l37_d5_check_kernel_minimum_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#check_kernel_minimum_version', ...args)
+pub fn ruby_diagnostic_spec_l37_d5_check_kernel_minimum_version() bool {
+	result := diagnostic.linux_check_kernel_minimum_version(diagnostic.LinuxDiagnosticContext{
+		kernel_below_minimum: true
+		kernel_version: '3.1'
+	}) or { return false }
+	return result.string().contains('Your Linux kernel 3.1 is too old')
 }
 
 // Ruby specify `specify "#check_for_installed_developer_tools explains system build tools" do` at line 44.
-pub fn ruby_diagnostic_spec_l44_d6_check_for_installed_developer_tools(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#check_for_installed_developer_tools', ...args)
+pub fn ruby_diagnostic_spec_l44_d6_check_for_installed_developer_tools() bool {
+	result := diagnostic.linux_check_for_installed_developer_tools(diagnostic.LinuxDiagnosticContext{
+		developer_tools_installed: false
+	}) or { return false }
+	message := result.string()
+	return message.contains('No developer tools installed.') && message.contains('Install a system C compiler and the standard development tools') && message.contains('https://docs.brew.sh/Homebrew-on-Linux#requirements')
 }
 
 // Ruby it `it "points at brew install gcc" do` at line 56.
-pub fn ruby_diagnostic_spec_l56_d7_points(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('points', ...args)
+pub fn ruby_diagnostic_spec_l56_d7_points() bool {
+	return diagnostic.linux_development_tools_custom_installation_instructions().contains('brew install gcc')
 }
 
 // Ruby specify `specify "#fatal_build_from_source_checks" do` at line 61.
-pub fn ruby_diagnostic_spec_l61_d8_fatal_build_from_source_checks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#fatal_build_from_source_checks', ...args)
+pub fn ruby_diagnostic_spec_l61_d8_fatal_build_from_source_checks() bool {
+	return 'check_linux_sandbox' !in diagnostic.linux_fatal_build_from_source_checks()
 }
 
 // Ruby specify `specify "#check_linux_sandbox returns nil when Linux sandboxing is disabled" do` at line 65.
-pub fn ruby_diagnostic_spec_l65_d9_check_linux_sandbox(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#check_linux_sandbox', ...args)
+pub fn ruby_diagnostic_spec_l65_d9_check_linux_sandbox() bool {
+	return diagnostic.linux_check_linux_sandbox(diagnostic.LinuxDiagnosticContext{
+		sandbox_linux: false
+		sandbox_state: .unsupported
+		sandbox_failure_reason: 'must not be read'
+	}) == none
 }
 
 // Ruby specify `specify "#check_linux_sandbox returns nil when the Linux sandbox is available" do` at line 73.
-pub fn ruby_diagnostic_spec_l73_d10_check_linux_sandbox(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#check_linux_sandbox', ...args)
+pub fn ruby_diagnostic_spec_l73_d10_check_linux_sandbox() bool {
+	return diagnostic.linux_check_linux_sandbox(diagnostic.LinuxDiagnosticContext{
+		sandbox_state: .available
+		sandbox_failure_reason: 'must not be used'
+	}) == none
 }
 
 // Ruby specify `specify "#check_linux_sandbox returns nil inside Docker outside GitHub Actions" do` at line 82.
-pub fn ruby_diagnostic_spec_l82_d11_check_linux_sandbox(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#check_linux_sandbox', ...args)
+pub fn ruby_diagnostic_spec_l82_d11_check_linux_sandbox() bool {
+	return diagnostic.linux_check_linux_sandbox(diagnostic.LinuxDiagnosticContext{
+		inside_docker: true
+		sandbox_state: .disabled
+	}) == none
 }
 
 // Ruby specify `specify "#check_linux_sandbox describes unsupported Landlock" do` at line 91.
-pub fn ruby_diagnostic_spec_l91_d12_check_linux_sandbox(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#check_linux_sandbox', ...args)
+pub fn ruby_diagnostic_spec_l91_d12_check_linux_sandbox() bool {
+	result := diagnostic.linux_check_linux_sandbox(diagnostic.LinuxDiagnosticContext{
+		sandbox_state: .unsupported
+		sandbox_failure_reason: 'Landlock is not supported by this Linux kernel.'
+	}) or { return false }
+	message := result.string()
+	return message.contains('Landlock is not supported by this Linux kernel.') && message.contains("Homebrew's Linux sandbox requires a kernel with Landlock enabled.") && message.ends_with('  export HOMEBREW_NO_SANDBOX_LINUX=1')
 }
 
 // Ruby specify `specify "#check_linux_sandbox describes missing Fiddle" do` at line 110.
-pub fn ruby_diagnostic_spec_l110_d13_check_linux_sandbox(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#check_linux_sandbox', ...args)
+pub fn ruby_diagnostic_spec_l110_d13_check_linux_sandbox() bool {
+	result := diagnostic.linux_check_linux_sandbox(diagnostic.LinuxDiagnosticContext{
+		sandbox_state: .missing_fiddle
+		sandbox_failure_reason: "Landlock requires Ruby's bundled Fiddle library."
+	}) or { return false }
+	message := result.string()
+	return message.contains("Landlock requires Ruby's bundled Fiddle library.") && message.contains('Run Homebrew with its vendored Ruby, which includes Fiddle.') && message.contains('export HOMEBREW_NO_SANDBOX_LINUX=1') && !message.contains('kernel with Landlock')
 }
 
 // Ruby specify `specify "#check_linux_sandbox describes unavailable Landlock inside Docker on GitHub Actions" do` at line 129.
-pub fn ruby_diagnostic_spec_l129_d14_check_linux_sandbox(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#check_linux_sandbox', ...args)
+pub fn ruby_diagnostic_spec_l129_d14_check_linux_sandbox() bool {
+	result := diagnostic.linux_check_linux_sandbox(diagnostic.LinuxDiagnosticContext{
+		inside_docker: true
+		github_actions: true
+		sandbox_state: .disabled
+		sandbox_failure_reason: 'Landlock is disabled by this Linux kernel.'
+	}) or { return false }
+	return result.string().contains('Landlock is disabled by this Linux kernel.')
 }
 
 // Ruby specify `specify "#check_for_symlinked_home" do` at line 141.
-pub fn ruby_diagnostic_spec_l141_d15_check_for_symlinked_home(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#check_for_symlinked_home', ...args)
+pub fn ruby_diagnostic_spec_l141_d15_check_for_symlinked_home() bool {
+	result := diagnostic.linux_check_for_symlinked_home(diagnostic.LinuxDiagnosticContext{
+		home_symlink: true
+	}) or { return false }
+	return result.string().contains('Your /home directory is a symlink')
 }
 
 // Original Ruby source (line-for-line):

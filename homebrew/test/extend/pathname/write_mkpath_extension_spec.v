@@ -1,38 +1,78 @@
 module pathname
 
 import brew_runtime
+import homebrew.extend.pathname as pathname_extension
 
 // Translated from Homebrew/brew `test/extend/pathname/write_mkpath_extension_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby let `let(:file_content) { "sample contents" }` at line 12.
 pub fn ruby_write_mkpath_extension_spec_l12_d1_file_content(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('file_content', ...args)
+	_ = args
+	return brew_runtime.string_value('sample contents')
 }
 
 // Ruby it `it "creates parent directories if they do not exist" do` at line 14.
 pub fn ruby_write_mkpath_extension_spec_l14_d2_creates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('creates', ...args)
+	path := write_mkpath_spec_path('creates', args)
+	pathname_extension.write_mkpath(path, 'sample contents', none, '') or {
+		return brew_runtime.bool_value(false)
+	}
+	return brew_runtime.bool_value((brew_runtime.read_file(path) or { '' }) == 'sample contents')
 }
 
 // Ruby it `it "raises if file exists and not in append mode or with offset" do` at line 24.
 pub fn ruby_write_mkpath_extension_spec_l24_d3_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+	path := write_mkpath_spec_path('raises', args)
+	pathname_extension.write_mkpath(path, 'sample contents', none, '') or {
+		return brew_runtime.bool_value(false)
+	}
+	_ := pathname_extension.write_mkpath(path, 'new content', none, '') or {
+		return brew_runtime.bool_value(err.msg().contains('Will not overwrite'))
+	}
+	return brew_runtime.bool_value(false)
 }
 
 // Ruby it `it "allows overwrite if offset is provided" do` at line 32.
 pub fn ruby_write_mkpath_extension_spec_l32_d4_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+	path := write_mkpath_spec_path('offset', args)
+	pathname_extension.write_mkpath(path, 'sample contents', none, '') or {
+		return brew_runtime.bool_value(false)
+	}
+	pathname_extension.write_mkpath(path, 'change', 0, '') or {
+		return brew_runtime.bool_value(false)
+	}
+	return brew_runtime.bool_value((brew_runtime.read_file(path) or { '' }) == 'change contents')
 }
 
 // Ruby it `it "allows append mode ('a')" do` at line 43.
 pub fn ruby_write_mkpath_extension_spec_l43_d5_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+	return write_mkpath_append_spec('a', ' appended', args)
 }
 
 // Ruby it `it "allows append mode ('a+')" do` at line 54.
 pub fn ruby_write_mkpath_extension_spec_l54_d6_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+	return write_mkpath_append_spec('a+', ' again', args)
+}
+
+fn write_mkpath_spec_path(name string, args []brew_runtime.Value) string {
+	root := if args.len > 0 {
+		args[0].as_string()
+	} else {
+		'/tmp/brew-v-write-mkpath-spec-${brew_runtime.process_id()}'
+	}
+	return brew_runtime.join_path(root, '${name}/foo/bar/baz.txt')
+}
+
+fn write_mkpath_append_spec(mode string, suffix string, args []brew_runtime.Value) brew_runtime.Value {
+	path := write_mkpath_spec_path(mode.replace('+', 'plus'), args)
+	pathname_extension.write_mkpath(path, 'sample contents', none, '') or {
+		return brew_runtime.bool_value(false)
+	}
+	pathname_extension.write_mkpath(path, suffix, none, mode) or {
+		return brew_runtime.bool_value(false)
+	}
+	return brew_runtime.bool_value((brew_runtime.read_file(path) or { '' }).contains(suffix.trim_space()))
 }
 
 // Original Ruby source (line-for-line):

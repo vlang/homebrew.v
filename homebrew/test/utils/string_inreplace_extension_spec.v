@@ -1,193 +1,257 @@
 module utils
 
 import brew_runtime
+import homebrew.utils as production
 
 // Translated from Homebrew/brew `test/utils/string_inreplace_extension_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:string_extension) { described_class.new(string.dup) }` at line 7.
 pub fn ruby_string_inreplace_extension_spec_l7_d1_string_extension(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('string_extension', ...args)
+	contents := if args.len > 0 { args[0].as_string() } else { '' }
+	return production.ruby_string_inreplace_extension_l17_d5_initialize(brew_runtime.string_value(contents))
 }
 
 // Ruby let `let(:string) { "" }` at line 9.
 pub fn ruby_string_inreplace_extension_spec_l9_d2_string(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('string', ...args)
+	return brew_runtime.string_value('')
 }
 
 // Ruby let `let(:string) do` at line 14.
 pub fn ruby_string_inreplace_extension_spec_l14_d3_string(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('string', ...args)
+	return brew_runtime.string_value(string_inreplace_spec_spaces())
 }
 
 // Ruby it `it "is successfully replaced" do` at line 22.
 pub fn ruby_string_inreplace_extension_spec_l22_d4_is(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('is', ...args)
+	return string_inreplace_spec_change(string_inreplace_spec_input(args, string_inreplace_spec_spaces()), 'FLAG', 'def', 'OTHER=def\nFLAG=def\nFLAG2=abc\n')
 }
 
 // Ruby it `it "is successfully appended" do` at line 31.
 pub fn ruby_string_inreplace_extension_spec_l31_d5_is(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('is', ...args)
+	return string_inreplace_spec_change(string_inreplace_spec_input(args, string_inreplace_spec_spaces()), 'FLAG', '\\1 def', 'OTHER=def\nFLAG=abc def\nFLAG2=abc\n')
 }
 
 // Ruby let `let(:string) do` at line 42.
 pub fn ruby_string_inreplace_extension_spec_l42_d6_string(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('string', ...args)
+	return brew_runtime.string_value(string_inreplace_spec_tabs())
 }
 
 // Ruby it `it "is successfully replaced" do` at line 49.
 pub fn ruby_string_inreplace_extension_spec_l49_d7_is(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('is', ...args)
+	return string_inreplace_spec_change(string_inreplace_spec_input(args, string_inreplace_spec_tabs()), 'CFLAGS', '-O3', 'CFLAGS=-O3\nLDFLAGS\t=\t-lcrypto -lssl\n')
 }
 
 // Ruby let `let(:string) do` at line 59.
 pub fn ruby_string_inreplace_extension_spec_l59_d8_string(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('string', ...args)
+	return brew_runtime.string_value(string_inreplace_spec_multiline())
 }
 
 // Ruby it `it "is successfully replaced" do` at line 67.
 pub fn ruby_string_inreplace_extension_spec_l67_d9_is(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('is', ...args)
+	return string_inreplace_spec_change(string_inreplace_spec_input(args, string_inreplace_spec_multiline()), 'CFLAGS', '-O3', 'CFLAGS=-O3\nLDFLAGS = -lcrypto -lssl\n')
 }
 
 // Ruby let `let(:string) do` at line 78.
 pub fn ruby_string_inreplace_extension_spec_l78_d10_string(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('string', ...args)
+	return brew_runtime.string_value('OTHER=def\nFLAG =\nFLAG2=abc\n')
 }
 
 // Ruby it `it "is successfully replaced" do` at line 86.
 pub fn ruby_string_inreplace_extension_spec_l86_d11_is(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('is', ...args)
+	return string_inreplace_spec_change(string_inreplace_spec_input(args, 'OTHER=def\nFLAG =\nFLAG2=abc\n'), 'FLAG', 'def', 'OTHER=def\nFLAG=def\nFLAG2=abc\n')
 }
 
 // Ruby let `let(:string) do` at line 97.
 pub fn ruby_string_inreplace_extension_spec_l97_d12_string(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('string', ...args)
+	return brew_runtime.string_value('FLAG =\nmv file_a file_b\n')
 }
 
 // Ruby it `it "is successfully replaced" do` at line 104.
 pub fn ruby_string_inreplace_extension_spec_l104_d13_is(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('is', ...args)
+	return string_inreplace_spec_change(string_inreplace_spec_input(args, 'FLAG =\nmv file_a file_b\n'), 'FLAG', 'def', 'FLAG=def\nmv file_a file_b\n')
 }
 
 // Ruby let `let(:string) do` at line 114.
 pub fn ruby_string_inreplace_extension_spec_l114_d14_string(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('string', ...args)
+	return brew_runtime.string_value('OTHER=def\nFLAG=abc\nFLAG2=abc\n')
 }
 
 // Ruby it `it "is successfully replaced" do` at line 122.
 pub fn ruby_string_inreplace_extension_spec_l122_d15_is(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('is', ...args)
+	return string_inreplace_spec_change(string_inreplace_spec_input(args, 'OTHER=def\nFLAG=abc\nFLAG2=abc\n'), 'FLAG', 'def', 'OTHER=def\nFLAG=def\nFLAG2=abc\n')
 }
 
 // Ruby let `let(:string) do` at line 136.
 pub fn ruby_string_inreplace_extension_spec_l136_d16_string(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('string', ...args)
+	return brew_runtime.string_value('OTHER=def\nFLAG = abc\nFLAG2 = def\n')
 }
 
 // Ruby it `it "is successfully removed" do` at line 144.
 pub fn ruby_string_inreplace_extension_spec_l144_d17_is(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('is', ...args)
+	return string_inreplace_spec_remove(string_inreplace_spec_input(args, 'OTHER=def\nFLAG = abc\nFLAG2 = def\n'), [
+		'FLAG',
+	], 'OTHER=def\nFLAG2 = def\n')
 }
 
 // Ruby let `let(:string) do` at line 154.
 pub fn ruby_string_inreplace_extension_spec_l154_d18_string(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('string', ...args)
+	return brew_runtime.string_value(string_inreplace_spec_tabs())
 }
 
 // Ruby it `it "is successfully removed" do` at line 161.
 pub fn ruby_string_inreplace_extension_spec_l161_d19_is(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('is', ...args)
+	return string_inreplace_spec_remove(string_inreplace_spec_input(args, string_inreplace_spec_tabs()), [
+		'LDFLAGS',
+	], 'CFLAGS\t=\t-Wall -O2\n')
 }
 
 // Ruby let `let(:string) do` at line 170.
 pub fn ruby_string_inreplace_extension_spec_l170_d20_string(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('string', ...args)
+	return brew_runtime.string_value(string_inreplace_spec_multiline())
 }
 
 // Ruby it `it "is successfully removed" do` at line 178.
 pub fn ruby_string_inreplace_extension_spec_l178_d21_is(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('is', ...args)
+	return string_inreplace_spec_remove(string_inreplace_spec_input(args, string_inreplace_spec_multiline()), [
+		'CFLAGS',
+	], 'LDFLAGS = -lcrypto -lssl\n')
 }
 
 // Ruby let `let(:string) do` at line 188.
 pub fn ruby_string_inreplace_extension_spec_l188_d22_string(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('string', ...args)
+	return brew_runtime.string_value('OTHER=def\nFLAG = abc\nFLAG2 = def\nOTHER2=def\n')
 }
 
 // Ruby specify `specify "are successfully removed" do` at line 197.
 pub fn ruby_string_inreplace_extension_spec_l197_d23_are(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('are', ...args)
+	return string_inreplace_spec_remove(string_inreplace_spec_input(args, 'OTHER=def\nFLAG = abc\nFLAG2 = def\nOTHER2=def\n'), [
+		'FLAG',
+		'FLAG2',
+	], 'OTHER=def\nOTHER2=def\n')
 }
 
 // Ruby let `let(:string) do` at line 209.
 pub fn ruby_string_inreplace_extension_spec_l209_d24_string(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('string', ...args)
+	return brew_runtime.string_value('CFLAGS = -Wall -O2\nLDFLAGS = -lcrypto -lssl\n')
 }
 
 // Ruby it `it "extracts the value for a given variable" do` at line 216.
 pub fn ruby_string_inreplace_extension_spec_l216_d25_extracts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('extracts', ...args)
+	return string_inreplace_spec_get(string_inreplace_spec_input(args, 'CFLAGS = -Wall -O2\nLDFLAGS = -lcrypto -lssl\n'), 'CFLAGS', '-Wall -O2')
 }
 
 // Ruby let `let(:string) do` at line 222.
 pub fn ruby_string_inreplace_extension_spec_l222_d26_string(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('string', ...args)
+	return brew_runtime.string_value(string_inreplace_spec_tabs())
 }
 
 // Ruby it `it "extracts the value for a given variable" do` at line 229.
 pub fn ruby_string_inreplace_extension_spec_l229_d27_extracts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('extracts', ...args)
+	return string_inreplace_spec_get(string_inreplace_spec_input(args, string_inreplace_spec_tabs()), 'CFLAGS', '-Wall -O2')
 }
 
 // Ruby let `let(:string) do` at line 235.
 pub fn ruby_string_inreplace_extension_spec_l235_d28_string(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('string', ...args)
+	return brew_runtime.string_value(string_inreplace_spec_multiline())
 }
 
 // Ruby it `it "extracts the value for a given variable" do` at line 243.
 pub fn ruby_string_inreplace_extension_spec_l243_d29_extracts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('extracts', ...args)
+	return string_inreplace_spec_get(string_inreplace_spec_input(args, string_inreplace_spec_multiline()), 'CFLAGS', '-Wall -O2 \\\n         -DSOME_VAR=1')
 }
 
 // Ruby let `let(:string) { "CFLAGS = -Wall -O2\n" }` at line 249.
 pub fn ruby_string_inreplace_extension_spec_l249_d30_string(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('string', ...args)
+	return brew_runtime.string_value('CFLAGS = -Wall -O2\n')
 }
 
 // Ruby it `it "raises an error" do` at line 251.
 pub fn ruby_string_inreplace_extension_spec_l251_d31_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+	contents := string_inreplace_spec_input(args, 'CFLAGS = -Wall -O2\n')
+	mut extension := production.new_string_inreplace_extension(contents)
+	if _ := extension.get_make_var('LDFLAGS') {
+		return brew_runtime.bool_value(false)
+	} else {
+		return brew_runtime.bool_value(err.msg() == 'expected to find make variable "LDFLAGS"')
+	}
 }
 
 // Ruby let `let(:string) { "foo" }` at line 259.
 pub fn ruby_string_inreplace_extension_spec_l259_d32_string(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('string', ...args)
+	return brew_runtime.string_value('foo')
 }
 
 // Ruby it `it "replaces the first occurrence" do` at line 261.
 pub fn ruby_string_inreplace_extension_spec_l261_d33_replaces(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('replaces', ...args)
+	mut extension := production.new_string_inreplace_extension(string_inreplace_spec_input(args, 'foo'))
+	result := extension.sub('o', 'e', true)
+	return brew_runtime.bool_value(result != none && extension.inreplace_string == 'feo' && extension.errors.len == 0)
 }
 
 // Ruby it `it "adds an error to` at line 267.
 pub fn ruby_string_inreplace_extension_spec_l267_d34_adds(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('adds', ...args)
+	mut extension := production.new_string_inreplace_extension(string_inreplace_spec_input(args, 'foo'))
+	result := extension.sub('not here', 'test', true)
+	return brew_runtime.bool_value(result == none && extension.inreplace_string == 'foo' && extension.errors == [
+		'expected replacement of "not here" with "test"',
+	])
 }
 
 // Ruby it `it "doesn't add an error to` at line 273.
 pub fn ruby_string_inreplace_extension_spec_l273_d35_doesn(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('doesn', ...args)
+	mut extension := production.new_string_inreplace_extension(string_inreplace_spec_input(args, 'foo'))
+	result := extension.sub('not here', 'test', false)
+	return brew_runtime.bool_value(result == none && extension.inreplace_string == 'foo' && extension.errors.len == 0)
 }
 
 // Ruby let `let(:string) { "foo" }` at line 281.
 pub fn ruby_string_inreplace_extension_spec_l281_d36_string(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('string', ...args)
+	return brew_runtime.string_value('foo')
 }
 
 // Ruby it `it "replaces all occurrences" do` at line 283.
 pub fn ruby_string_inreplace_extension_spec_l283_d37_replaces(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('replaces', ...args)
+	mut extension := production.new_string_inreplace_extension(string_inreplace_spec_input(args, 'foo'))
+	result := extension.gsub('o', 'e', true)
+	return brew_runtime.bool_value(result != none && extension.inreplace_string == 'fee')
+}
+
+fn string_inreplace_spec_spaces() string {
+	return 'OTHER=def\nFLAG = abc\nFLAG2=abc\n'
+}
+
+fn string_inreplace_spec_tabs() string {
+	return 'CFLAGS\t=\t-Wall -O2\nLDFLAGS\t=\t-lcrypto -lssl\n'
+}
+
+fn string_inreplace_spec_multiline() string {
+	return 'CFLAGS = -Wall -O2 \\\n         -DSOME_VAR=1\nLDFLAGS = -lcrypto -lssl\n'
+}
+
+fn string_inreplace_spec_input(args []brew_runtime.Value, fallback string) string {
+	return if args.len > 0 { args[0].as_string() } else { fallback }
+}
+
+fn string_inreplace_spec_change(contents string, flag string, new_value string,
+	expected string) brew_runtime.Value {
+	mut extension := production.new_string_inreplace_extension(contents)
+	extension.change_make_var(flag, new_value)
+	return brew_runtime.bool_value(extension.inreplace_string == expected && extension.errors.len == 0)
+}
+
+fn string_inreplace_spec_remove(contents string, flags []string,
+	expected string) brew_runtime.Value {
+	mut extension := production.new_string_inreplace_extension(contents)
+	extension.remove_make_var(flags)
+	return brew_runtime.bool_value(extension.inreplace_string == expected && extension.errors.len == 0)
+}
+
+fn string_inreplace_spec_get(contents string, flag string,
+	expected string) brew_runtime.Value {
+	extension := production.new_string_inreplace_extension(contents)
+	value := extension.get_make_var(flag) or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value(value == expected)
 }
 
 // Original Ruby source (line-for-line):

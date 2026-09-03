@@ -1,18 +1,57 @@
 module compilers
 
 import brew_runtime
+import homebrew
 
 // Translated from Homebrew/brew `sorbet/tapioca/compilers/env_config.rb`.
 // The original source is retained below until every stub has a typed V body.
+const env_config_compiler_custom = ['HOMEBREW_BUNDLE_JOBS', 'HOMEBREW_CASK_OPTS',
+	'HOMEBREW_DOWNLOAD_CONCURRENCY', 'HOMEBREW_FORBID_PACKAGES_FROM_PATHS', 'HOMEBREW_MAKE_JOBS']
+
+pub fn env_config_compiler_decoration() TapiocaDecoration {
+	state := &homebrew.EnvConfigState{}
+	entries := homebrew.env_config_entries(state)
+	mut environment_names := entries.keys()
+	environment_names.sort()
+	mut methods := []TapiocaGeneratedMethod{}
+	for environment_name in environment_names {
+		if environment_name in env_config_compiler_custom {
+			continue
+		}
+		entry := entries[environment_name]
+		name := homebrew.ruby_env_config_l801_d1_env_method_name(environment_name, entry)
+		return_type := if name.ends_with('?') {
+			'T::Boolean'
+		} else if entry.has_default && entry.default_value != '' {
+			'String'
+		} else {
+			'T.nilable(::String)'
+		}
+		methods << TapiocaGeneratedMethod{
+			name: name
+			return_type: return_type
+			class_method: true
+		}
+	}
+	return TapiocaDecoration{
+		constant_name: 'Homebrew::EnvConfig'
+		kind: 'module'
+		methods: methods
+	}
+}
 
 // Ruby method `self.gather_constants = [Homebrew::EnvConfig]` at line 13.
 pub fn ruby_env_config_l13_d1_self_gather_constants(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.gather_constants', ...args)
+	_ = args
+	return brew_runtime.array_value([
+		brew_runtime.object_value('Module', 'Homebrew::EnvConfig'),
+	])
 }
 
 // Ruby method `decorate` at line 16.
 pub fn ruby_env_config_l16_d2_decorate(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('decorate', ...args)
+	_ = args
+	return tapioca_decoration_value(env_config_compiler_decoration())
 }
 
 // Original Ruby source (line-for-line):

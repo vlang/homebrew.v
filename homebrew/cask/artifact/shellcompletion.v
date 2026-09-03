@@ -7,7 +7,11 @@ import brew_runtime
 
 // Ruby method `resolve_target(_, base_dir: nil)` at line 11.
 pub fn ruby_shellcompletion_l11_d1_resolve_target(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('resolve_target', ...args)
+	panic(shell_completion_error().msg())
+}
+
+pub fn shell_completion_error() IError {
+	return error('Shell completion without shell info')
 }
 
 // Original Ruby source (line-for-line):

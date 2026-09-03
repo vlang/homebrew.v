@@ -1,68 +1,200 @@
 module types
 
 import brew_runtime
+import sync
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/sorbet-runtime-0.6.13412/lib/types/types/typed_class.rb`.
 // The original source is retained below until every stub has a typed V body.
+@[heap]
+pub struct TypedMetaType {
+pub:
+	type_value brew_runtime.Value
+	kind       string
+}
+
+struct TypedMetaPool {
+	mutex &sync.Mutex = sync.new_mutex()
+mut:
+	entries map[string]brew_runtime.Value
+}
+
+fn new_typed_meta_pool() &TypedMetaPool {
+	return &TypedMetaPool{}
+}
+
+const typed_class_pool = new_typed_meta_pool()
+const typed_module_pool = new_typed_meta_pool()
+
+pub fn new_typed_meta_type(kind string, type_value brew_runtime.Value) &TypedMetaType {
+	return &TypedMetaType{
+		type_value: type_value
+		kind: kind
+	}
+}
+
+pub fn (typed &TypedMetaType) build_type() ! {
+	if base_type := base_type_from_value(typed.type_value) {
+		base_type.build_type()!
+	}
+}
+
+pub fn (typed &TypedMetaType) name() string {
+	return 'T::${typed.kind}[${enumerable_element_name(typed.type_value)}]'
+}
+
+pub fn (typed &TypedMetaType) valid(value brew_runtime.Value) bool {
+	return if typed.kind == 'Class' {
+		value.type_name == 'Class'
+	} else {
+		value.type_name in ['Module', 'Class']
+	}
+}
+
+pub fn (typed &TypedMetaType) subtype_of_single(other brew_runtime.Value) bool {
+	if typed.kind == 'Class' && other.type_name in ['T::Types::TypedClass', 'T::Types::TypedModule'] {
+		return true
+	}
+	if typed.kind == 'Module' && other.type_name == 'T::Types::TypedModule' {
+		return true
+	}
+	if other.type_name == 'T::Types::Simple' {
+		raw_type := other.attribute('raw_type') or { return false }
+		return if typed.kind == 'Class' {
+			raw_type in ['Class', 'Module', 'Object', 'BasicObject']
+		} else {
+			raw_type in ['Module', 'Object', 'BasicObject']
+		}
+	}
+	return false
+}
+
+fn typed_meta_value(typed &TypedMetaType) brew_runtime.Value {
+	return brew_runtime.Value{
+		type_name: 'T::Types::Typed${typed.kind}'
+		repr: typed.name()
+		map_data: {
+			'type': typed.type_value
+		}
+		attributes: {
+			'typed_meta_address': u64(voidptr(typed)).str()
+			'underlying_class':   typed.kind
+		}
+	}
+}
+
+fn typed_meta_from_args(args []brew_runtime.Value, expected_kind string) &TypedMetaType {
+	if args.len == 0 {
+		panic('Typed${expected_kind} method requires a receiver')
+	}
+	address := args[0].attribute('typed_meta_address') or {
+		panic('invalid Typed${expected_kind} receiver')
+	}
+	typed := unsafe { &TypedMetaType(voidptr(address.u64())) }
+	if typed.kind != expected_kind {
+		panic('invalid Typed${expected_kind} receiver')
+	}
+	return typed
+}
+
+fn typed_meta_for_module(kind string, module_value brew_runtime.Value) brew_runtime.Value {
+	mut pool := if kind == 'Class' {
+		unsafe { &TypedMetaPool(typed_class_pool) }
+	} else {
+		unsafe { &TypedMetaPool(typed_module_pool) }
+	}
+	key := module_value.as_string()
+	pool.mutex.lock()
+	defer {
+		pool.mutex.unlock()
+	}
+	if cached := pool.entries[key] {
+		return cached
+	}
+	value := typed_meta_value(new_typed_meta_type(kind, module_value))
+	pool.entries[key] = value
+	return value
+}
 
 // Ruby method `initialize(type)` at line 6.
 pub fn ruby_typed_class_l6_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	if args.len == 0 {
+		panic('TypedClass#initialize requires a type')
+	}
+	return typed_meta_value(new_typed_meta_type('Class', args[0]))
 }
 
 // Ruby method `type` at line 10.
 pub fn ruby_typed_class_l10_d2_type(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('type', ...args)
+	return typed_meta_from_args(args, 'Class').type_value
 }
 
 // Ruby method `build_type` at line 14.
 pub fn ruby_typed_class_l14_d3_build_type(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('build_type', ...args)
+	typed_meta_from_args(args, 'Class').build_type() or { panic(err) }
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Ruby method `name` at line 20.
 pub fn ruby_typed_class_l20_d4_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('name', ...args)
+	return brew_runtime.string_value(typed_meta_from_args(args, 'Class').name())
 }
 
 // Ruby method `underlying_class` at line 24.
 pub fn ruby_typed_class_l24_d5_underlying_class(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('underlying_class', ...args)
+	typed_meta_from_args(args, 'Class')
+	return brew_runtime.object_value('Class', 'Class')
 }
 
 // Ruby method `valid?(obj)` at line 29.
 pub fn ruby_typed_class_l29_d6_valid(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('valid?', ...args)
+	if args.len < 2 {
+		panic('TypedClass#valid? requires an object')
+	}
+	return brew_runtime.bool_value(typed_meta_from_args(args, 'Class').valid(args[1]))
 }
 
 // Ruby method `subtype_of_single?(type)` at line 34.
 pub fn ruby_typed_class_l34_d7_subtype_of_single(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('subtype_of_single?', ...args)
+	if args.len < 2 {
+		panic('TypedClass#subtype_of_single? requires another type')
+	}
+	return brew_runtime.bool_value(typed_meta_from_args(args, 'Class').subtype_of_single(args[1]))
 }
 
 // Ruby method `self.type_for_module(mod)` at line 58.
 pub fn ruby_typed_class_l58_d8_self_type_for_module(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.type_for_module', ...args)
+	if args.len == 0 {
+		panic('TypedClass.type_for_module requires a module')
+	}
+	return typed_meta_for_module('Class', args[0])
 }
 
 // Ruby method `initialize` at line 73.
 pub fn ruby_typed_class_l73_d9_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	return typed_meta_value(new_typed_meta_type('Class', base_type_boundary_value(base_untyped_type())))
 }
 
 // Ruby method `freeze` at line 77.
 pub fn ruby_typed_class_l77_d10_freeze(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('freeze', ...args)
+	if args.len == 0 {
+		panic('TypedClass::Untyped#freeze requires a receiver')
+	}
+	typed_meta_from_args(args, 'Class').build_type() or { panic(err) }
+	return args[0]
 }
 
 // Ruby method `initialize` at line 88.
 pub fn ruby_typed_class_l88_d11_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	return typed_meta_value(new_typed_meta_type('Class', base_type_boundary_value(base_anything_type())))
 }
 
 // Ruby method `freeze` at line 92.
 pub fn ruby_typed_class_l92_d12_freeze(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('freeze', ...args)
+	if args.len == 0 {
+		panic('TypedClass::Anything#freeze requires a receiver')
+	}
+	typed_meta_from_args(args, 'Class').build_type() or { panic(err) }
+	return args[0]
 }
 
 // Original Ruby source (line-for-line):

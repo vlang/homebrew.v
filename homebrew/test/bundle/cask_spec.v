@@ -1,183 +1,522 @@
 module bundle
 
 import brew_runtime
+import homebrew.bundle as brew_bundle
 
 // Translated from Homebrew/brew `test/bundle/cask_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+fn cask_spec_bool(value bool) brew_runtime.Value {
+	return brew_runtime.bool_value(value)
+}
+
+fn cask_spec_foo() brew_bundle.BundleCask {
+	return brew_bundle.BundleCask{
+		name: 'foo'
+		full_name: 'foo'
+	}
+}
+
+fn cask_spec_baz() brew_bundle.BundleCask {
+	return brew_bundle.BundleCask{
+		name: 'baz'
+		full_name: 'baz'
+		desc: 'Software'
+	}
+}
+
+fn cask_spec_bar() brew_bundle.BundleCask {
+	return brew_bundle.BundleCask{
+		name: 'bar'
+		full_name: 'bar'
+		explicit: {
+			'fontdir':   brew_runtime.string_value('/Library/Fonts')
+			'languages': brew_runtime.string_array_value(['zh-TW'])
+		}
+	}
+}
+
+fn cask_spec_dump_state() brew_bundle.BundleCaskState {
+	return brew_bundle.BundleCaskState{
+		cask_available: true
+		casks: [cask_spec_foo(), cask_spec_bar(), cask_spec_baz()]
+		trusted_casks: ['bar']
+	}
+}
+
+fn cask_spec_command_effect(command []string, result bool) brew_bundle.BundleCaskEffects {
+	return brew_bundle.BundleCaskEffects{
+		command_results: {
+			command.join('\x1f'): result
+		}
+	}
+}
+
+fn cask_spec_action_result(value brew_runtime.Value) bool {
+	return (value.map_data['result'] or { brew_runtime.bool_value(false) }).as_bool() or { false }
+}
 
 // Ruby subject `subject(:dumper) { described_class }` at line 11.
 pub fn ruby_cask_spec_l11_d1_dumper(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dumper', ...args)
+	_ = args
+	return brew_runtime.object_value('Homebrew::Bundle::Cask', 'Homebrew::Bundle::Cask')
 }
 
 // Ruby specify `specify do` at line 19.
 pub fn ruby_cask_spec_l19_d2_do(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('do', ...args)
+	_ = args
+	state := brew_bundle.BundleCaskState{}
+	return cask_spec_bool(brew_bundle.bundle_cask_names(state).len == 0 && brew_bundle.bundle_cask_dump(state, false) == '')
 }
 
 // Ruby specify `specify do` at line 32.
 pub fn ruby_cask_spec_l32_d3_do(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('do', ...args)
+	_ = args
+	state := brew_bundle.BundleCaskState{ cask_available: true }
+	return cask_spec_bool(brew_bundle.bundle_cask_names(state).len == 0 && brew_bundle.bundle_cask_dump(state, false) == '')
 }
 
 // Ruby it `it "doesn't want to greedily update a non-installed cask" do` at line 37.
 pub fn ruby_cask_spec_l37_d4_doesn(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('doesn', ...args)
+	_ = args
+	return cask_spec_bool(!brew_bundle.bundle_cask_greedy_outdated(brew_bundle.BundleCaskState{
+		cask_available: true
+	}, 'foo'))
 }
 
 // Ruby let `let(:foo) { instance_double(Cask::Cask, to_s: "foo", full_name: "foo", desc: nil, config: nil) }` at line 43.
 pub fn ruby_cask_spec_l43_d5_foo(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('foo', ...args)
+	_ = args
+	return brew_bundle.bundle_cask_value(cask_spec_foo())
 }
 
 // Ruby let `let(:baz) { instance_double(Cask::Cask, to_s: "baz", full_name: "baz", desc: "Software", config: nil) }` at line 44.
 pub fn ruby_cask_spec_l44_d6_baz(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('baz', ...args)
+	_ = args
+	return brew_bundle.bundle_cask_value(cask_spec_baz())
 }
 
 // Ruby let `let(:bar) do` at line 45.
 pub fn ruby_cask_spec_l45_d7_bar(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('bar', ...args)
+	_ = args
+	return brew_bundle.bundle_cask_value(cask_spec_bar())
 }
 
 // Ruby it `it "returns list %w[foo bar baz]" do` at line 67.
 pub fn ruby_cask_spec_l67_d8_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	return cask_spec_bool(brew_bundle.bundle_cask_names(cask_spec_dump_state()) == [
+		'foo',
+		'bar',
+		'baz',
+	])
 }
 
 // Ruby it `it "dumps as `cask 'baz'` and `cask 'foo' cask 'bar'` plus descriptions and config values" do` at line 71.
 pub fn ruby_cask_spec_l71_d9_dumps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dumps', ...args)
+	_ = args
+	expected := 'cask "foo"\ncask "bar", args: { fontdir: "/Library/Fonts", language: "zh-TW" }, trusted: true\n# Software\ncask "baz"'
+	return cask_spec_bool(brew_bundle.bundle_cask_dump(cask_spec_dump_state(), true) == expected)
 }
 
 // Ruby it `it "doesn't want to greedily update a non-installed cask" do` at line 82.
 pub fn ruby_cask_spec_l82_d10_doesn(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('doesn', ...args)
+	_ = args
+	return cask_spec_bool(!brew_bundle.bundle_cask_greedy_outdated(cask_spec_dump_state(), 'qux'))
 }
 
 // Ruby it `it "wants to greedily update foo if there is an update available" do` at line 86.
 pub fn ruby_cask_spec_l86_d11_wants(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('wants', ...args)
+	_ = args
+	return cask_spec_bool(brew_bundle.bundle_cask_greedy_outdated(brew_bundle.BundleCaskState{
+		cask_available: true
+		casks: [brew_bundle.BundleCask{
+			name: 'foo'
+			full_name: 'foo'
+			greedy_outdated: true
+		}]
+	}, 'foo'))
 }
 
 // Ruby it `it "does not want to greedily update foo if it is pinned" do` at line 92.
 pub fn ruby_cask_spec_l92_d12_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	_ = args
+	return cask_spec_bool(!brew_bundle.bundle_cask_greedy_outdated(brew_bundle.BundleCaskState{
+		cask_available: true
+		casks: [brew_bundle.BundleCask{
+			name: 'foo'
+			full_name: 'foo'
+			pinned: true
+			greedy_outdated: true
+		}]
+	}, 'foo'))
 }
 
 // Ruby it `it "does not want to greedily update bar if there is no update available" do` at line 98.
 pub fn ruby_cask_spec_l98_d13_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	_ = args
+	return cask_spec_bool(!brew_bundle.bundle_cask_greedy_outdated(brew_bundle.BundleCaskState{
+		cask_available: true
+		casks: [cask_spec_bar()]
+	}, 'bar'))
 }
 
 // Ruby it `it "returns an empty string when no casks are installed" do` at line 110.
 pub fn ruby_cask_spec_l110_d14_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	return cask_spec_bool(brew_bundle.bundle_cask_oldnames(brew_bundle.BundleCaskState{}).len == 0)
 }
 
 // Ruby it `it "returns a hash with installed casks old names" do` at line 114.
 pub fn ruby_cask_spec_l114_d15_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	oldnames := brew_bundle.bundle_cask_oldnames(brew_bundle.BundleCaskState{
+		cask_available: true
+		casks: [brew_bundle.BundleCask{
+			name: 'foo'
+			full_name: 'qux/quuz/foo'
+			old_tokens: ['oldfoo']
+		}, brew_bundle.BundleCask{
+			name: 'bar'
+			full_name: 'bar'
+		}]
+	})
+	return cask_spec_bool(oldnames == {
+		'qux/quuz/oldfoo': 'qux/quuz/foo'
+		'oldfoo':          'qux/quuz/foo'
+	})
 }
 
 // Ruby it `it "returns an empty array" do` at line 132.
 pub fn ruby_cask_spec_l132_d16_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	return cask_spec_bool(brew_bundle.bundle_cask_formula_dependencies(brew_bundle.BundleCaskState{}, [
+		'foo',
+	]).len == 0)
 }
 
 // Ruby it `it "returns an array of unique formula dependencies" do` at line 146.
 pub fn ruby_cask_spec_l146_d17_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	state := brew_bundle.BundleCaskState{
+		cask_available: true
+		casks: [brew_bundle.BundleCask{
+			name: 'foo'
+			full_name: 'foo'
+			formula_dependencies: ['baz', 'qux']
+		}, brew_bundle.BundleCask{
+			name: 'bar'
+			full_name: 'bar'
+		}]
+	}
+	return cask_spec_bool(brew_bundle.bundle_cask_formula_dependencies(state, ['foo', 'bar']) == [
+		'baz',
+		'qux',
+	])
 }
 
 // Ruby it `it "loads formula dependencies from the cask definition" do` at line 157.
 pub fn ruby_cask_spec_l157_d18_loads(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('loads', ...args)
+	_ = args
+	state := brew_bundle.BundleCaskState{
+		loadable_casks: [brew_bundle.BundleCask{
+			name: 'tpack'
+			full_name: 'tmuxpack/tpack/tpack'
+			formula_dependencies: ['tmux']
+		}]
+	}
+	return cask_spec_bool(brew_bundle.bundle_cask_formula_dependencies(state, [
+		'tmuxpack/tpack/tpack',
+	]) == ['tmux'])
 }
 
 // Ruby it `it "shells out" do` at line 179.
 pub fn ruby_cask_spec_l179_d19_shells(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('shells', ...args)
+	_ = args
+	return cask_spec_bool(brew_bundle.bundle_cask_installed_names(brew_bundle.BundleCaskState{}).len == 0)
 }
 
 // Ruby it `it "returns result" do` at line 185.
 pub fn ruby_cask_spec_l185_d20_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	state := brew_bundle.BundleCaskState{
+		installed_casks: ['foo', 'baz']
+		installed_override: true
+		outdated_casks: ['baz']
+		outdated_override: true
+	}
+	return cask_spec_bool(brew_bundle.bundle_cask_installed_and_up_to_date(state, 'foo', false) && !brew_bundle.bundle_cask_installed_and_up_to_date(state, 'baz', false))
 }
 
 // Ruby it `it "returns empty array" do` at line 196.
 pub fn ruby_cask_spec_l196_d21_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	return cask_spec_bool(brew_bundle.bundle_cask_outdated_casks(brew_bundle.BundleCaskState{}).len == 0)
 }
 
 // Ruby it `it "returns empty array" do` at line 210.
 pub fn ruby_cask_spec_l210_d22_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	return cask_spec_bool(brew_bundle.bundle_cask_outdated_casks(brew_bundle.BundleCaskState{
+		cask_available: true
+	}).len == 0)
 }
 
 // Ruby it `it "does not include pinned casks" do` at line 215.
 pub fn ruby_cask_spec_l215_d23_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	_ = args
+	state := brew_bundle.BundleCaskState{
+		cask_available: true
+		casks: [brew_bundle.BundleCask{
+			name: 'google-chrome'
+			full_name: 'google-chrome'
+			pinned: true
+			outdated: true
+		}, brew_bundle.BundleCask{
+			name: 'firefox'
+			full_name: 'firefox'
+			outdated: true
+		}]
+	}
+	return cask_spec_bool(brew_bundle.bundle_cask_outdated_casks(state) == ['firefox'])
 }
 
 // Ruby it `it "skips" do` at line 232.
 pub fn ruby_cask_spec_l232_d24_skips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skips', ...args)
+	_ = args
+	result, _ := brew_bundle.bundle_cask_preinstall(brew_bundle.BundleCaskState{
+		installed_casks: ['google-chrome']
+		installed_override: true
+	}, 'google-chrome', false, false, brew_bundle.BundleCaskOptions{})
+	return cask_spec_bool(!result)
 }
 
 // Ruby it `it "upgrades" do` at line 244.
 pub fn ruby_cask_spec_l244_d25_upgrades(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('upgrades', ...args)
+	_ = args
+	state := brew_bundle.BundleCaskState{
+		installed_casks: ['google-chrome']
+		installed_override: true
+		outdated_casks: ['google-chrome']
+		outdated_override: true
+	}
+	preinstall, _ := brew_bundle.bundle_cask_preinstall(state, 'google-chrome', false, false, brew_bundle.BundleCaskOptions{})
+	action := brew_bundle.bundle_cask_install(state, 'google-chrome', true, false, false, false, brew_bundle.BundleCaskOptions{}, cask_spec_command_effect([
+		'upgrade',
+		'--cask',
+		'google-chrome',
+	], true))
+	return cask_spec_bool(preinstall && action.success && action.commands == [[
+		'upgrade',
+		'--cask',
+		'google-chrome',
+	]])
 }
 
 // Ruby it `it "upgrades" do` at line 260.
 pub fn ruby_cask_spec_l260_d26_upgrades(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('upgrades', ...args)
+	_ = args
+	state := brew_bundle.BundleCaskState{
+		cask_available: true
+		casks: [brew_bundle.BundleCask{
+			name: 'opera'
+			full_name: 'opera'
+			greedy_outdated: true
+		}]
+	}
+	options := brew_bundle.BundleCaskOptions{ greedy: true }
+	preinstall, _ := brew_bundle.bundle_cask_preinstall(state, 'opera', false, false, options)
+	action := brew_bundle.bundle_cask_install(state, 'opera', true, false, false, false, options, cask_spec_command_effect([
+		'upgrade',
+		'--cask',
+		'opera',
+	], true))
+	return cask_spec_bool(preinstall && action.success && action.commands == [[
+		'upgrade',
+		'--cask',
+		'opera',
+	]])
 }
 
 // Ruby it `it "installs cask" do` at line 274.
 pub fn ruby_cask_spec_l274_d27_installs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('installs', ...args)
+	_ = args
+	state := brew_bundle.BundleCaskState{
+		installed_override: true
+	}
+	preinstall, _ := brew_bundle.bundle_cask_preinstall(state, 'google-chrome', false, false, brew_bundle.BundleCaskOptions{})
+	action := brew_bundle.bundle_cask_install(state, 'google-chrome', true, false, false, false, brew_bundle.BundleCaskOptions{}, cask_spec_command_effect([
+		'install',
+		'--cask',
+		'google-chrome',
+		'--adopt',
+	], true))
+	return cask_spec_bool(preinstall && action.success && action.commands == [[
+		'install',
+		'--cask',
+		'google-chrome',
+		'--adopt',
+	]])
 }
 
 // Ruby it `it "trusts the cask before installing it" do` at line 282.
 pub fn ruby_cask_spec_l282_d28_trusts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('trusts', ...args)
+	_ = args
+	options := brew_bundle.BundleCaskOptions{
+		full_name: 'puma/puma/puma-cask'
+		trusted: true
+	}
+	action := brew_bundle.bundle_cask_install(brew_bundle.BundleCaskState{
+		installed_override: true
+	}, 'puma-cask', true, false, false, false, options, cask_spec_command_effect([
+		'install',
+		'--cask',
+		'puma/puma/puma-cask',
+		'--adopt',
+	], true))
+	return cask_spec_bool(action.trusted == ['puma/puma/puma-cask'])
 }
 
 // Ruby it `it "does not trust an unqualified cask token" do` at line 288.
 pub fn ruby_cask_spec_l288_d29_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	_ = args
+	action := brew_bundle.bundle_cask_install(brew_bundle.BundleCaskState{
+		installed_override: true
+	}, 'google-chrome', true, false, false, false, brew_bundle.BundleCaskOptions{
+		trusted: true
+	}, cask_spec_command_effect(['install', '--cask', 'google-chrome', '--adopt'], true))
+	return cask_spec_bool(action.trusted.len == 0)
 }
 
 // Ruby it `it "installs cask with arguments" do` at line 294.
 pub fn ruby_cask_spec_l294_d30_installs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('installs', ...args)
+	_ = args
+	options := brew_bundle.BundleCaskOptions{
+		args: {
+			'appdir': brew_runtime.string_value('/Applications')
+		}
+	}
+	action := brew_bundle.bundle_cask_install(brew_bundle.BundleCaskState{
+		installed_override: true
+	}, 'firefox', true, false, false, false, options, cask_spec_command_effect([
+		'install',
+		'--cask',
+		'firefox',
+		'--appdir=/Applications',
+		'--adopt',
+	], true))
+	return cask_spec_bool(action.success && action.commands == [[
+		'install',
+		'--cask',
+		'firefox',
+		'--appdir=/Applications',
+		'--adopt',
+	]])
 }
 
 // Ruby it `it "reports a failure" do` at line 304.
 pub fn ruby_cask_spec_l304_d31_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	_ = args
+	action := brew_bundle.bundle_cask_install(brew_bundle.BundleCaskState{
+		installed_override: true
+	}, 'google-chrome', true, false, false, false, brew_bundle.BundleCaskOptions{}, cask_spec_command_effect([
+		'install',
+		'--cask',
+		'google-chrome',
+		'--adopt',
+	], false))
+	return cask_spec_bool(!action.success)
 }
 
 // Ruby it `it "includes a flag if true" do` at line 313.
 pub fn ruby_cask_spec_l313_d32_includes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('includes', ...args)
+	_ = args
+	options := brew_bundle.BundleCaskOptions{
+		args: {
+			'force': brew_runtime.bool_value(true)
+		}
+	}
+	action := brew_bundle.bundle_cask_install(brew_bundle.BundleCaskState{
+		installed_override: true
+	}, 'iterm', true, false, false, false, options, cask_spec_command_effect([
+		'install',
+		'--cask',
+		'iterm',
+		'--force',
+	], true))
+	return cask_spec_bool(action.success && action.commands == [[
+		'install',
+		'--cask',
+		'iterm',
+		'--force',
+	]])
 }
 
 // Ruby it `it "does not include a flag if false" do` at line 321.
 pub fn ruby_cask_spec_l321_d33_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	_ = args
+	options := brew_bundle.BundleCaskOptions{
+		args: {
+			'force': brew_runtime.bool_value(false)
+		}
+	}
+	action := brew_bundle.bundle_cask_install(brew_bundle.BundleCaskState{
+		installed_override: true
+	}, 'iterm', true, false, false, false, options, cask_spec_command_effect([
+		'install',
+		'--cask',
+		'iterm',
+		'--adopt',
+	], true))
+	return cask_spec_bool(action.success && action.commands == [[
+		'install',
+		'--cask',
+		'iterm',
+		'--adopt',
+	]])
 }
 
 // Ruby it `it "runs the postinstall command" do` at line 339.
 pub fn ruby_cask_spec_l339_d34_runs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('runs', ...args)
+	_ = args
+	state := brew_bundle.BundleCaskState{
+		installed_casks: ['google-chrome']
+		installed_override: true
+		outdated_casks: ['google-chrome']
+		outdated_override: true
+	}
+	options := brew_bundle.BundleCaskOptions{ postinstall: 'custom command' }
+	effects := brew_bundle.BundleCaskEffects{
+		command_results: {
+			['upgrade', '--cask', 'google-chrome'].join('\x1f'): true
+		}
+		postinstall_results: {
+			'custom command': true
+		}
+	}
+	action := brew_bundle.bundle_cask_install(state, 'google-chrome', true, false, false, false, options, effects)
+	return cask_spec_bool(action.success)
 }
 
 // Ruby it `it "reports a failure when postinstall fails" do` at line 345.
 pub fn ruby_cask_spec_l345_d35_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	_ = args
+	state := brew_bundle.BundleCaskState{
+		installed_casks: ['google-chrome']
+		installed_override: true
+		outdated_casks: ['google-chrome']
+		outdated_override: true
+	}
+	options := brew_bundle.BundleCaskOptions{ postinstall: 'custom command' }
+	effects := brew_bundle.BundleCaskEffects{
+		command_results: {
+			['upgrade', '--cask', 'google-chrome'].join('\x1f'): true
+		}
+		postinstall_results: {
+			'custom command': false
+		}
+	}
+	action := brew_bundle.bundle_cask_install(state, 'google-chrome', true, false, false, false, options, effects)
+	return cask_spec_bool(!action.success)
 }
 
 // Original Ruby source (line-for-line):

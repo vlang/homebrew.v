@@ -1,343 +1,424 @@
 module bundle
 
-import brew_runtime
+import homebrew.bundle as brew_bundle
 
 // Translated from Homebrew/brew `test/bundle/brewfile_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+const brewfile_spec_working_directory = '/workspace'
+const brewfile_spec_user_config_home = '/Users/username/.homebrew'
+const brewfile_spec_home = '/Users/username'
+
+pub struct BrewfileSpecContext {
+pub:
+	dash_writes_to_stdout  bool
+	env_bundle_file_global string
+	env_bundle_file        string
+	user_config_home       string = brewfile_spec_user_config_home
+	home_directory         string = brewfile_spec_home
+	file                   ?string
+	global                 bool
+	config_dir_exists      bool
+	config_brewfile_exists bool
+	home_brewfile_exists   bool
+	working_directory      string = brewfile_spec_working_directory
+}
+
+pub fn brewfile_spec_context() BrewfileSpecContext {
+	return BrewfileSpecContext{}
+}
+
+pub fn brewfile_spec_path(context BrewfileSpecContext) !string {
+	return brew_bundle.resolve_bundle_brewfile_path(brew_bundle.BundleBrewfilePathConfig{
+		global: context.global
+		file: context.file
+		working_directory: context.working_directory
+		home_directory: context.home_directory
+		env_bundle_file_global: context.env_bundle_file_global
+		env_bundle_file: context.env_bundle_file
+		user_config_home: context.user_config_home
+		user_config_home_exists: context.config_dir_exists
+		user_config_brewfile_exists: context.config_brewfile_exists
+		home_brewfile_exists: context.home_brewfile_exists
+	}, context.dash_writes_to_stdout)!
+}
+
+fn brewfile_spec_path_matches(context BrewfileSpecContext, expected string) bool {
+	path := brewfile_spec_path(context) or { return false }
+	return path == expected
+}
 
 // Ruby subject `subject(:path) do` at line 9.
-pub fn ruby_brewfile_spec_l9_d1_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('path', ...args)
+pub fn ruby_brewfile_spec_l9_d1_path(context BrewfileSpecContext) !string {
+	return brewfile_spec_path(context)!
 }
 
 // Ruby let `let(:dash_writes_to_stdout) { false }` at line 13.
-pub fn ruby_brewfile_spec_l13_d2_dash_writes_to_stdout(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dash_writes_to_stdout', ...args)
+pub fn ruby_brewfile_spec_l13_d2_dash_writes_to_stdout() bool {
+	return false
 }
 
 // Ruby let `let(:env_bundle_file_global_value) { nil }` at line 14.
-pub fn ruby_brewfile_spec_l14_d3_env_bundle_file_global_value(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('env_bundle_file_global_value', ...args)
+pub fn ruby_brewfile_spec_l14_d3_env_bundle_file_global_value() ?string {
+	return none
 }
 
 // Ruby let `let(:env_bundle_file_value) { nil }` at line 15.
-pub fn ruby_brewfile_spec_l15_d4_env_bundle_file_value(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('env_bundle_file_value', ...args)
+pub fn ruby_brewfile_spec_l15_d4_env_bundle_file_value() ?string {
+	return none
 }
 
 // Ruby let `let(:env_user_config_home_value) { "/Users/username/.homebrew" }` at line 16.
-pub fn ruby_brewfile_spec_l16_d5_env_user_config_home_value(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('env_user_config_home_value', ...args)
+pub fn ruby_brewfile_spec_l16_d5_env_user_config_home_value() string {
+	return brewfile_spec_user_config_home
 }
 
 // Ruby let `let(:env_home_value) { "/Users/username" }` at line 17.
-pub fn ruby_brewfile_spec_l17_d6_env_home_value(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('env_home_value', ...args)
+pub fn ruby_brewfile_spec_l17_d6_env_home_value() string {
+	return brewfile_spec_home
 }
 
 // Ruby let `let(:file_value) { nil }` at line 18.
-pub fn ruby_brewfile_spec_l18_d7_file_value(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('file_value', ...args)
+pub fn ruby_brewfile_spec_l18_d7_file_value() ?string {
+	return none
 }
 
 // Ruby let `let(:has_global) { false }` at line 19.
-pub fn ruby_brewfile_spec_l19_d8_has_global(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('has_global', ...args)
+pub fn ruby_brewfile_spec_l19_d8_has_global() bool {
+	return false
 }
 
 // Ruby let `let(:config_dir_exist) { false }` at line 20.
-pub fn ruby_brewfile_spec_l20_d9_config_dir_exist(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('config_dir_exist', ...args)
+pub fn ruby_brewfile_spec_l20_d9_config_dir_exist() bool {
+	return false
 }
 
 // Ruby let `let(:config_dir_brewfile_exist) { false }` at line 21.
-pub fn ruby_brewfile_spec_l21_d10_config_dir_brewfile_exist(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('config_dir_brewfile_exist', ...args)
+pub fn ruby_brewfile_spec_l21_d10_config_dir_brewfile_exist() bool {
+	return false
 }
 
 // Ruby let `let(:home_dir_brewfile_exist) { false }` at line 22.
-pub fn ruby_brewfile_spec_l22_d11_home_dir_brewfile_exist(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('home_dir_brewfile_exist', ...args)
+pub fn ruby_brewfile_spec_l22_d11_home_dir_brewfile_exist() bool {
+	return false
 }
 
 // Ruby let `let(:file_value) { "path/to/Brewfile" }` at line 43.
-pub fn ruby_brewfile_spec_l43_d12_file_value(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('file_value', ...args)
+pub fn ruby_brewfile_spec_l43_d12_file_value() string {
+	return 'path/to/Brewfile'
 }
 
 // Ruby let `let(:expected_pathname) { Pathname.new(file_value).expand_path(Dir.pwd) }` at line 44.
-pub fn ruby_brewfile_spec_l44_d13_expected_pathname(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('expected_pathname', ...args)
+pub fn ruby_brewfile_spec_l44_d13_expected_pathname() string {
+	return '${brewfile_spec_working_directory}/path/to/Brewfile'
 }
 
 // Ruby it `it "returns the expected path" do` at line 46.
-pub fn ruby_brewfile_spec_l46_d14_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_brewfile_spec_l46_d14_returns() bool {
+	return brewfile_spec_path_matches(BrewfileSpecContext{ file: 'path/to/Brewfile' }, ruby_brewfile_spec_l44_d13_expected_pathname())
 }
 
 // Ruby let `let(:env_bundle_file_value) { "/path/to/Brewfile" }` at line 51.
-pub fn ruby_brewfile_spec_l51_d15_env_bundle_file_value(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('env_bundle_file_value', ...args)
+pub fn ruby_brewfile_spec_l51_d15_env_bundle_file_value() string {
+	return '/path/to/Brewfile'
 }
 
 // Ruby it `it "returns the value specified by `file` path" do` at line 53.
-pub fn ruby_brewfile_spec_l53_d16_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_brewfile_spec_l53_d16_returns() bool {
+	return brewfile_spec_path_matches(BrewfileSpecContext{
+		file: 'path/to/Brewfile'
+		env_bundle_file: '/path/to/Brewfile'
+	}, ruby_brewfile_spec_l44_d13_expected_pathname())
 }
 
 // Ruby let `let(:env_bundle_file_value) { "" }` at line 59.
-pub fn ruby_brewfile_spec_l59_d17_env_bundle_file_value(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('env_bundle_file_value', ...args)
+pub fn ruby_brewfile_spec_l59_d17_env_bundle_file_value() string {
+	return ''
 }
 
 // Ruby it `it "returns the value specified by `file` path" do` at line 61.
-pub fn ruby_brewfile_spec_l61_d18_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_brewfile_spec_l61_d18_returns() bool {
+	return ruby_brewfile_spec_l46_d14_returns()
 }
 
 // Ruby let `let(:file_value) { "/tmp/random_file" }` at line 68.
-pub fn ruby_brewfile_spec_l68_d19_file_value(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('file_value', ...args)
+pub fn ruby_brewfile_spec_l68_d19_file_value() string {
+	return '/tmp/random_file'
 }
 
 // Ruby let `let(:expected_pathname) { Pathname.new(file_value) }` at line 69.
-pub fn ruby_brewfile_spec_l69_d20_expected_pathname(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('expected_pathname', ...args)
+pub fn ruby_brewfile_spec_l69_d20_expected_pathname() string {
+	return '/tmp/random_file'
 }
 
 // Ruby it `it "returns the expected path" do` at line 71.
-pub fn ruby_brewfile_spec_l71_d21_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_brewfile_spec_l71_d21_returns() bool {
+	return brewfile_spec_path_matches(BrewfileSpecContext{ file: '/tmp/random_file' }, '/tmp/random_file')
 }
 
 // Ruby let `let(:env_bundle_file_value) { "/path/to/Brewfile" }` at line 76.
-pub fn ruby_brewfile_spec_l76_d22_env_bundle_file_value(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('env_bundle_file_value', ...args)
+pub fn ruby_brewfile_spec_l76_d22_env_bundle_file_value() string {
+	return '/path/to/Brewfile'
 }
 
 // Ruby it `it "returns the value specified by `file` path" do` at line 78.
-pub fn ruby_brewfile_spec_l78_d23_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_brewfile_spec_l78_d23_returns() bool {
+	return brewfile_spec_path_matches(BrewfileSpecContext{
+		file: '/tmp/random_file'
+		env_bundle_file: '/path/to/Brewfile'
+	}, '/tmp/random_file')
 }
 
 // Ruby let `let(:env_bundle_file_value) { "" }` at line 84.
-pub fn ruby_brewfile_spec_l84_d24_env_bundle_file_value(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('env_bundle_file_value', ...args)
+pub fn ruby_brewfile_spec_l84_d24_env_bundle_file_value() string {
+	return ''
 }
 
 // Ruby it `it "returns the value specified by `file` path" do` at line 86.
-pub fn ruby_brewfile_spec_l86_d25_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_brewfile_spec_l86_d25_returns() bool {
+	return ruby_brewfile_spec_l71_d21_returns()
 }
 
 // Ruby let `let(:file_value) { "-" }` at line 93.
-pub fn ruby_brewfile_spec_l93_d26_file_value(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('file_value', ...args)
+pub fn ruby_brewfile_spec_l93_d26_file_value() string {
+	return '-'
 }
 
 // Ruby let `let(:expected_pathname) { Pathname.new("/dev/stdin") }` at line 94.
-pub fn ruby_brewfile_spec_l94_d27_expected_pathname(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('expected_pathname', ...args)
+pub fn ruby_brewfile_spec_l94_d27_expected_pathname() string {
+	return '/dev/stdin'
 }
 
 // Ruby it `it "returns stdin by default" do` at line 96.
-pub fn ruby_brewfile_spec_l96_d28_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_brewfile_spec_l96_d28_returns() bool {
+	return brewfile_spec_path_matches(BrewfileSpecContext{ file: '-' }, '/dev/stdin')
 }
 
 // Ruby let `let(:env_bundle_file_value) { "/path/to/Brewfile" }` at line 101.
-pub fn ruby_brewfile_spec_l101_d29_env_bundle_file_value(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('env_bundle_file_value', ...args)
+pub fn ruby_brewfile_spec_l101_d29_env_bundle_file_value() string {
+	return '/path/to/Brewfile'
 }
 
 // Ruby it `it "returns the value specified by `file` path" do` at line 103.
-pub fn ruby_brewfile_spec_l103_d30_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_brewfile_spec_l103_d30_returns() bool {
+	return brewfile_spec_path_matches(BrewfileSpecContext{
+		file: '-'
+		env_bundle_file: '/path/to/Brewfile'
+	}, '/dev/stdin')
 }
 
 // Ruby let `let(:env_bundle_file_value) { "" }` at line 109.
-pub fn ruby_brewfile_spec_l109_d31_env_bundle_file_value(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('env_bundle_file_value', ...args)
+pub fn ruby_brewfile_spec_l109_d31_env_bundle_file_value() string {
+	return ''
 }
 
 // Ruby it `it "returns the value specified by `file` path" do` at line 111.
-pub fn ruby_brewfile_spec_l111_d32_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_brewfile_spec_l111_d32_returns() bool {
+	return ruby_brewfile_spec_l96_d28_returns()
 }
 
 // Ruby let `let(:expected_pathname) { Pathname.new("/dev/stdout") }` at line 117.
-pub fn ruby_brewfile_spec_l117_d33_expected_pathname(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('expected_pathname', ...args)
+pub fn ruby_brewfile_spec_l117_d33_expected_pathname() string {
+	return '/dev/stdout'
 }
 
 // Ruby let `let(:dash_writes_to_stdout) { true }` at line 118.
-pub fn ruby_brewfile_spec_l118_d34_dash_writes_to_stdout(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dash_writes_to_stdout', ...args)
+pub fn ruby_brewfile_spec_l118_d34_dash_writes_to_stdout() bool {
+	return true
 }
 
 // Ruby it `it "returns stdout" do` at line 120.
-pub fn ruby_brewfile_spec_l120_d35_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_brewfile_spec_l120_d35_returns() bool {
+	return brewfile_spec_path_matches(BrewfileSpecContext{
+		file: '-'
+		dash_writes_to_stdout: true
+	}, '/dev/stdout')
 }
 
 // Ruby let `let(:env_bundle_file_value) { "/path/to/Brewfile" }` at line 125.
-pub fn ruby_brewfile_spec_l125_d36_env_bundle_file_value(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('env_bundle_file_value', ...args)
+pub fn ruby_brewfile_spec_l125_d36_env_bundle_file_value() string {
+	return '/path/to/Brewfile'
 }
 
 // Ruby it `it "returns the value specified by `file` path" do` at line 127.
-pub fn ruby_brewfile_spec_l127_d37_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_brewfile_spec_l127_d37_returns() bool {
+	return brewfile_spec_path_matches(BrewfileSpecContext{
+		file: '-'
+		dash_writes_to_stdout: true
+		env_bundle_file: '/path/to/Brewfile'
+	}, '/dev/stdout')
 }
 
 // Ruby let `let(:env_bundle_file_value) { "" }` at line 133.
-pub fn ruby_brewfile_spec_l133_d38_env_bundle_file_value(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('env_bundle_file_value', ...args)
+pub fn ruby_brewfile_spec_l133_d38_env_bundle_file_value() string {
+	return ''
 }
 
 // Ruby it `it "returns the value specified by `file` path" do` at line 135.
-pub fn ruby_brewfile_spec_l135_d39_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_brewfile_spec_l135_d39_returns() bool {
+	return ruby_brewfile_spec_l120_d35_returns()
 }
 
 // Ruby let `let(:has_global) { true }` at line 143.
-pub fn ruby_brewfile_spec_l143_d40_has_global(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('has_global', ...args)
+pub fn ruby_brewfile_spec_l143_d40_has_global() bool {
+	return true
 }
 
 // Ruby let `let(:expected_pathname) { Pathname.new("#{Dir.home}/.Brewfile") }` at line 144.
-pub fn ruby_brewfile_spec_l144_d41_expected_pathname(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('expected_pathname', ...args)
+pub fn ruby_brewfile_spec_l144_d41_expected_pathname() string {
+	return '${brewfile_spec_home}/.Brewfile'
 }
 
 // Ruby it `it "returns the expected path" do` at line 146.
-pub fn ruby_brewfile_spec_l146_d42_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_brewfile_spec_l146_d42_returns() bool {
+	return brewfile_spec_path_matches(BrewfileSpecContext{ global: true }, ruby_brewfile_spec_l144_d41_expected_pathname())
 }
 
 // Ruby let `let(:env_bundle_file_global_value) { "/path/to/Brewfile" }` at line 151.
-pub fn ruby_brewfile_spec_l151_d43_env_bundle_file_global_value(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('env_bundle_file_global_value', ...args)
+pub fn ruby_brewfile_spec_l151_d43_env_bundle_file_global_value() string {
+	return '/path/to/Brewfile'
 }
 
 // Ruby let `let(:expected_pathname) { Pathname.new(env_bundle_file_global_value) }` at line 152.
-pub fn ruby_brewfile_spec_l152_d44_expected_pathname(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('expected_pathname', ...args)
+pub fn ruby_brewfile_spec_l152_d44_expected_pathname() string {
+	return '/path/to/Brewfile'
 }
 
 // Ruby it `it "returns the value specified by the environment variable" do` at line 154.
-pub fn ruby_brewfile_spec_l154_d45_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_brewfile_spec_l154_d45_returns() bool {
+	return brewfile_spec_path_matches(BrewfileSpecContext{
+		global: true
+		env_bundle_file_global: '/path/to/Brewfile'
+	}, '/path/to/Brewfile')
 }
 
 // Ruby let `let(:env_bundle_file_value) { "/path/to/Brewfile" }` at line 160.
-pub fn ruby_brewfile_spec_l160_d46_env_bundle_file_value(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('env_bundle_file_value', ...args)
+pub fn ruby_brewfile_spec_l160_d46_env_bundle_file_value() string {
+	return '/path/to/Brewfile'
 }
 
 // Ruby it `it "returns the value specified by the variable" do` at line 162.
-pub fn ruby_brewfile_spec_l162_d47_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_brewfile_spec_l162_d47_returns() bool {
+	brewfile_spec_path(BrewfileSpecContext{
+		global: true
+		env_bundle_file: '/path/to/Brewfile'
+	}) or {
+		return err.msg() == "'HOMEBREW_BUNDLE_FILE' cannot be specified with '--global'"
+	}
+	return false
 }
 
 // Ruby let `let(:env_bundle_file_value) { "" }` at line 168.
-pub fn ruby_brewfile_spec_l168_d48_env_bundle_file_value(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('env_bundle_file_value', ...args)
+pub fn ruby_brewfile_spec_l168_d48_env_bundle_file_value() string {
+	return ''
 }
 
 // Ruby it `it "returns the value specified by `file` path" do` at line 170.
-pub fn ruby_brewfile_spec_l170_d49_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_brewfile_spec_l170_d49_returns() bool {
+	return ruby_brewfile_spec_l146_d42_returns()
 }
 
 // Ruby let `let(:config_dir_brewfile_exist) { true }` at line 176.
-pub fn ruby_brewfile_spec_l176_d50_config_dir_brewfile_exist(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('config_dir_brewfile_exist', ...args)
+pub fn ruby_brewfile_spec_l176_d50_config_dir_brewfile_exist() bool {
+	return true
 }
 
 // Ruby let `let(:config_dir_exist) { true }` at line 177.
-pub fn ruby_brewfile_spec_l177_d51_config_dir_exist(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('config_dir_exist', ...args)
+pub fn ruby_brewfile_spec_l177_d51_config_dir_exist() bool {
+	return true
 }
 
 // Ruby let `let(:home_dir_brewfile_exist) { true }` at line 178.
-pub fn ruby_brewfile_spec_l178_d52_home_dir_brewfile_exist(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('home_dir_brewfile_exist', ...args)
+pub fn ruby_brewfile_spec_l178_d52_home_dir_brewfile_exist() bool {
+	return true
 }
 
 // Ruby let `let(:expected_pathname) { Pathname.new("#{env_user_config_home_value}/Brewfile") }` at line 179.
-pub fn ruby_brewfile_spec_l179_d53_expected_pathname(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('expected_pathname', ...args)
+pub fn ruby_brewfile_spec_l179_d53_expected_pathname() string {
+	return '${brewfile_spec_user_config_home}/Brewfile'
 }
 
 // Ruby it `it "returns the expected path" do` at line 181.
-pub fn ruby_brewfile_spec_l181_d54_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_brewfile_spec_l181_d54_returns() bool {
+	return brewfile_spec_path_matches(BrewfileSpecContext{
+		global: true
+		config_dir_exists: true
+		config_brewfile_exists: true
+		home_brewfile_exists: true
+	}, ruby_brewfile_spec_l179_d53_expected_pathname())
 }
 
 // Ruby let `let(:config_dir_exist) { true }` at line 187.
-pub fn ruby_brewfile_spec_l187_d55_config_dir_exist(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('config_dir_exist', ...args)
+pub fn ruby_brewfile_spec_l187_d55_config_dir_exist() bool {
+	return true
 }
 
 // Ruby let `let(:expected_pathname) { Pathname.new("#{env_user_config_home_value}/Brewfile") }` at line 188.
-pub fn ruby_brewfile_spec_l188_d56_expected_pathname(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('expected_pathname', ...args)
+pub fn ruby_brewfile_spec_l188_d56_expected_pathname() string {
+	return '${brewfile_spec_user_config_home}/Brewfile'
 }
 
 // Ruby it `it "returns the expected path" do` at line 190.
-pub fn ruby_brewfile_spec_l190_d57_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_brewfile_spec_l190_d57_returns() bool {
+	return brewfile_spec_path_matches(BrewfileSpecContext{
+		global: true
+		config_dir_exists: true
+	}, ruby_brewfile_spec_l188_d56_expected_pathname())
 }
 
 // Ruby let `let(:config_dir_exist) { true }` at line 196.
-pub fn ruby_brewfile_spec_l196_d58_config_dir_exist(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('config_dir_exist', ...args)
+pub fn ruby_brewfile_spec_l196_d58_config_dir_exist() bool {
+	return true
 }
 
 // Ruby let `let(:home_dir_brewfile_exist) { true }` at line 197.
-pub fn ruby_brewfile_spec_l197_d59_home_dir_brewfile_exist(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('home_dir_brewfile_exist', ...args)
+pub fn ruby_brewfile_spec_l197_d59_home_dir_brewfile_exist() bool {
+	return true
 }
 
 // Ruby let `let(:expected_pathname) { Pathname.new("#{env_home_value}/.Brewfile") }` at line 198.
-pub fn ruby_brewfile_spec_l198_d60_expected_pathname(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('expected_pathname', ...args)
+pub fn ruby_brewfile_spec_l198_d60_expected_pathname() string {
+	return '${brewfile_spec_home}/.Brewfile'
 }
 
 // Ruby it `it "returns the expected path" do` at line 200.
-pub fn ruby_brewfile_spec_l200_d61_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_brewfile_spec_l200_d61_returns() bool {
+	return brewfile_spec_path_matches(BrewfileSpecContext{
+		global: true
+		config_dir_exists: true
+		home_brewfile_exists: true
+	}, ruby_brewfile_spec_l198_d60_expected_pathname())
 }
 
 // Ruby let `let(:env_bundle_file_value) { "/path/to/Brewfile" }` at line 207.
-pub fn ruby_brewfile_spec_l207_d62_env_bundle_file_value(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('env_bundle_file_value', ...args)
+pub fn ruby_brewfile_spec_l207_d62_env_bundle_file_value() string {
+	return '/path/to/Brewfile'
 }
 
 // Ruby it `it "returns the expected path" do` at line 209.
-pub fn ruby_brewfile_spec_l209_d63_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_brewfile_spec_l209_d63_returns() bool {
+	return brewfile_spec_path_matches(BrewfileSpecContext{
+		env_bundle_file: '/path/to/Brewfile'
+	}, '/path/to/Brewfile')
 }
 
 // Ruby let `let(:env_bundle_file_value) { "" }` at line 214.
-pub fn ruby_brewfile_spec_l214_d64_env_bundle_file_value(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('env_bundle_file_value', ...args)
+pub fn ruby_brewfile_spec_l214_d64_env_bundle_file_value() string {
+	return ''
 }
 
 // Ruby it `it "defaults to `${PWD}/Brewfile`" do` at line 216.
-pub fn ruby_brewfile_spec_l216_d65_defaults(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('defaults', ...args)
+pub fn ruby_brewfile_spec_l216_d65_defaults() bool {
+	return brewfile_spec_path_matches(BrewfileSpecContext{}, '${brewfile_spec_working_directory}/Brewfile')
 }
 
 // Ruby let `let(:env_bundle_file_value) { nil }` at line 222.
-pub fn ruby_brewfile_spec_l222_d66_env_bundle_file_value(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('env_bundle_file_value', ...args)
+pub fn ruby_brewfile_spec_l222_d66_env_bundle_file_value() ?string {
+	return none
 }
 
 // Ruby it `it "defaults to `${PWD}/Brewfile`" do` at line 224.
-pub fn ruby_brewfile_spec_l224_d67_defaults(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('defaults', ...args)
+pub fn ruby_brewfile_spec_l224_d67_defaults() bool {
+	return ruby_brewfile_spec_l216_d65_defaults()
 }
 
 // Original Ruby source (line-for-line):

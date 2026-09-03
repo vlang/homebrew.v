@@ -1,13 +1,21 @@
 module test
 
 import brew_runtime
+import homebrew
 
 // Translated from Homebrew/brew `test/formula_info_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+fn formula_info_spec_case() bool {
+	info := homebrew.formula_info_from_json('{"name":"testball","versions":{"stable":"0.1"},"revision":0,"bottle":{}}', 'arm64_sequoia') or { return false }
+	version := info.version('stable') or { return false }
+	pkg_version := info.pkg_version('stable') or { return false }
+	return info.revision() == 0 && info.bottle_tags().len == 0 && info.bottle_info('arm64_sequoia') == none && info.bottle_info_any() == none && info.any_bottle_tag() == none && version.to_s() == '0.1' && pkg_version == homebrew.new_pkg_version(version, 0)
+}
 
 // Ruby it `it "tests the FormulaInfo class" do` at line 7.
 pub fn ruby_formula_info_spec_l7_d1_tests(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tests', ...args)
+	_ = args
+	return brew_runtime.bool_value(formula_info_spec_case())
 }
 
 // Original Ruby source (line-for-line):

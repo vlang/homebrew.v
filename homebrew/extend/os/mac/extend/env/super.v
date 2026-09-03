@@ -1,73 +1,281 @@
 module env
 
 import brew_runtime
+import homebrew.extend.env as base_env
 
 // Translated from Homebrew/brew `extend/os/mac/extend/ENV/super.rb`.
-// The original source is retained below until every stub has a typed V body.
+pub type MacSuperenvDiagnosticCheck = fn() !
+
+pub struct MacSuperenvBuildContext {
+pub:
+	sdk_path             ?string
+	sdk_source_xcode     bool
+	xcode_prefix         string
+	clt_pkg_path         string
+	active_developer_dir string
+	clt_m4_exists        bool
+	gm4_path             string
+	macos_version        string
+	homebrew_library     string
+	xcode_without_clt    bool
+	diagnostic_check     ?MacSuperenvDiagnosticCheck
+}
+
+pub struct MacSuperenvDeprecationResult {
+pub:
+	message string
+	cccfg   string
+}
+
+pub fn mac_superenv_shims_path(homebrew_shims_path string) string {
+	return brew_runtime.join_path(homebrew_shims_path, 'mac/super/bin')
+}
+
+pub fn mac_superenv_bin(development_tools_installed bool, real_shims_path string) ?string {
+	if !development_tools_installed {
+		return none
+	}
+	return real_shims_path
+}
+
+pub fn mac_superenv_extra_pkg_config_paths(homebrew_library string,
+	macos_version string) []string {
+	return ['/usr/lib/pkgconfig',
+		brew_runtime.join_path(homebrew_library, 'Homebrew/os/mac/pkgconfig/${macos_version}')]
+}
+
+pub fn mac_superenv_libxml2_include_needed(dependencies []base_env.SuperenvDependency,
+	sdkroot string, directory base_env.SuperenvPathPredicate) bool {
+	if dependencies.any(it.name == 'libxml2') {
+		return false
+	}
+	return !directory(brew_runtime.join_path(sdkroot, 'usr/include/libxml'))
+}
+
+pub fn mac_superenv_extra_isystem_paths(sdkroot string, libxml2_needed bool,
+	xcode_without_clt bool) []string {
+	mut paths := []string{}
+	if libxml2_needed {
+		paths << brew_runtime.join_path(sdkroot, 'usr/include/libxml2')
+	}
+	if xcode_without_clt {
+		paths << brew_runtime.join_path(sdkroot, 'usr/include/apache2')
+	}
+	paths << brew_runtime.join_path(sdkroot, 'System/Library/Frameworks/OpenGL.framework/Versions/Current/Headers')
+	return paths
+}
+
+pub fn mac_superenv_extra_library_paths(sdkroot string, compiler string,
+	homebrew_prefix string) []string {
+	mut paths := []string{}
+	if compiler.trim_string_left(':') == 'llvm_clang' {
+		paths << brew_runtime.join_path(sdkroot, 'usr/lib')
+		paths << brew_runtime.join_path(homebrew_prefix, 'opt/llvm/lib')
+	}
+	paths << brew_runtime.join_path(sdkroot, 'System/Library/Frameworks/OpenGL.framework/Versions/Current/Libraries')
+	return paths
+}
+
+pub fn mac_superenv_extra_cmake_include_paths(sdkroot string, libxml2_needed bool,
+	xcode_without_clt bool) []string {
+	return mac_superenv_extra_isystem_paths(sdkroot, libxml2_needed, xcode_without_clt)
+}
+
+pub fn mac_superenv_extra_cmake_library_paths(sdkroot string) []string {
+	return [
+		brew_runtime.join_path(sdkroot, 'System/Library/Frameworks/OpenGL.framework/Versions/Current/Libraries'),
+	]
+}
+
+pub fn mac_superenv_extra_cmake_framework_paths(sdkroot string,
+	xcode_without_clt bool) []string {
+	if !xcode_without_clt {
+		return []
+	}
+	return [brew_runtime.join_path(sdkroot, 'System/Library/Frameworks')]
+}
+
+fn mac_superenv_version_parts(version string) []int {
+	return version.split('.').map(it.int())
+}
+
+fn mac_superenv_compare_versions(left string, right string) int {
+	left_parts := mac_superenv_version_parts(left)
+	right_parts := mac_superenv_version_parts(right)
+	maximum := if left_parts.len > right_parts.len { left_parts.len } else { right_parts.len }
+	for index in 0 .. maximum {
+		left_part := if index < left_parts.len { left_parts[index] } else { 0 }
+		right_part := if index < right_parts.len { right_parts[index] } else { 0 }
+		if left_part < right_part {
+			return -1
+		}
+		if left_part > right_part {
+			return 1
+		}
+	}
+	return 0
+}
+
+pub fn mac_superenv_determine_cccfg(no_fixup_chains_support bool,
+	ld64_version string) string {
+	mut value := ''
+	if no_fixup_chains_support {
+		value += 'f'
+	}
+	if mac_superenv_compare_versions(ld64_version, '1015.7') >= 0 && mac_superenv_compare_versions(ld64_version, '1022.1') <= 0 {
+		value += 'c'
+	}
+	return value
+}
+
+pub fn mac_superenv_setup_build_environment(mut state base_env.SuperenvState,
+	options base_env.SuperenvBuildOptions, context MacSuperenvBuildContext,
+	exists base_env.SuperenvPathPredicate) ! {
+	if check := context.diagnostic_check {
+		check()!
+	}
+	if sdk_path := context.sdk_path {
+		state.set_value('HOMEBREW_SDKROOT', sdk_path)
+	}
+	state.set_value('HOMEBREW_DEVELOPER_DIR', if context.sdk_source_xcode {
+		context.xcode_prefix
+	} else {
+		context.clt_pkg_path
+	})
+	if !state.dependencies().any(it.name == 'm4') && context.active_developer_dir == context.clt_pkg_path && !context.clt_m4_exists && context.gm4_path != '' {
+		state.set_value('M4', context.gm4_path)
+	}
+	state.setup(options, exists)
+	sdkroot := state.value('HOMEBREW_SDKROOT') or { '' }
+	libxml_needed := mac_superenv_libxml2_include_needed(state.dependencies(), sdkroot, exists)
+	mut pkg_config_paths := []string{}
+	if current := state.value('PKG_CONFIG_PATH') {
+		pkg_config_paths << current.split(':')
+	}
+	pkg_config_paths << mac_superenv_extra_pkg_config_paths(context.homebrew_library, context.macos_version).filter(exists(it))
+	if pkg_config_paths.len > 0 {
+		state.set_value('PKG_CONFIG_PATH', pkg_config_paths.join(':'))
+	}
+	mut isystem_paths := []string{}
+	if current := state.value('HOMEBREW_ISYSTEM_PATHS') {
+		isystem_paths << current.split(':')
+	}
+	isystem_paths << mac_superenv_extra_isystem_paths(sdkroot, libxml_needed, context.xcode_without_clt).filter(exists(it))
+	if isystem_paths.len > 0 {
+		state.set_value('HOMEBREW_ISYSTEM_PATHS', isystem_paths.join(':'))
+	}
+	mut library_paths := []string{}
+	if current := state.value('HOMEBREW_LIBRARY_PATHS') {
+		library_paths << current.split(':')
+	}
+	library_paths << mac_superenv_extra_library_paths(sdkroot, state.compiler_name(), state.config.prefix).filter(exists(it))
+	if library_paths.len > 0 {
+		state.set_value('HOMEBREW_LIBRARY_PATHS', library_paths.join(':'))
+	}
+	if mac_superenv_compare_versions(context.macos_version, '14') >= 0 {
+		state.set_value('am_cv_func_iconv_works', 'yes')
+	}
+	state.set_value('HOMEBREW_PREFER_CLT_PROXIES', '1')
+	state.set_value('ZERO_AR_DATE', '1')
+}
+
+pub fn mac_superenv_no_weak_imports(mut state base_env.SuperenvState,
+	supported bool) MacSuperenvDeprecationResult {
+	if supported {
+		state.append_cccfg('w')
+	}
+	return MacSuperenvDeprecationResult{
+		message: 'ENV.no_weak_imports is deprecated'
+		cccfg: state.value('HOMEBREW_CCCFG') or { '' }
+	}
+}
+
+pub fn mac_superenv_no_fixup_chains(mut state base_env.SuperenvState,
+	supported bool) MacSuperenvDeprecationResult {
+	if supported {
+		state.append_cccfg('f')
+	}
+	return MacSuperenvDeprecationResult{
+		message: 'ENV.no_fixup_chains is deprecated'
+		cccfg: state.value('HOMEBREW_CCCFG') or { '' }
+	}
+}
 
 // Ruby method `shims_path` at line 16.
-pub fn ruby_super_l16_d1_shims_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('shims_path', ...args)
+pub fn ruby_super_l16_d1_shims_path(homebrew_shims_path string) string {
+	return mac_superenv_shims_path(homebrew_shims_path)
 }
 
 // Ruby method `bin` at line 21.
-pub fn ruby_super_l21_d2_bin(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('bin', ...args)
+pub fn ruby_super_l21_d2_bin(development_tools_installed bool,
+	real_shims_path string) ?string {
+	return mac_superenv_bin(development_tools_installed, real_shims_path)
 }
 
 // Ruby method `homebrew_extra_pkg_config_paths` at line 29.
-pub fn ruby_super_l29_d3_homebrew_extra_pkg_config_paths(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('homebrew_extra_pkg_config_paths', ...args)
+pub fn ruby_super_l29_d3_homebrew_extra_pkg_config_paths(homebrew_library string,
+	macos_version string) []string {
+	return mac_superenv_extra_pkg_config_paths(homebrew_library, macos_version)
 }
 
 // Ruby method `libxml2_include_needed?` at line 37.
-pub fn ruby_super_l37_d4_libxml2_include_needed(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('libxml2_include_needed?', ...args)
+pub fn ruby_super_l37_d4_libxml2_include_needed(dependencies []base_env.SuperenvDependency,
+	sdkroot string, directory base_env.SuperenvPathPredicate) bool {
+	return mac_superenv_libxml2_include_needed(dependencies, sdkroot, directory)
 }
 
 // Ruby method `homebrew_extra_isystem_paths` at line 45.
-pub fn ruby_super_l45_d5_homebrew_extra_isystem_paths(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('homebrew_extra_isystem_paths', ...args)
+pub fn ruby_super_l45_d5_homebrew_extra_isystem_paths(sdkroot string, libxml2_needed bool,
+	xcode_without_clt bool) []string {
+	return mac_superenv_extra_isystem_paths(sdkroot, libxml2_needed, xcode_without_clt)
 }
 
 // Ruby method `homebrew_extra_library_paths` at line 54.
-pub fn ruby_super_l54_d6_homebrew_extra_library_paths(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('homebrew_extra_library_paths', ...args)
+pub fn ruby_super_l54_d6_homebrew_extra_library_paths(sdkroot string, compiler string,
+	homebrew_prefix string) []string {
+	return mac_superenv_extra_library_paths(sdkroot, compiler, homebrew_prefix)
 }
 
 // Ruby method `homebrew_extra_cmake_include_paths` at line 65.
-pub fn ruby_super_l65_d7_homebrew_extra_cmake_include_paths(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('homebrew_extra_cmake_include_paths', ...args)
+pub fn ruby_super_l65_d7_homebrew_extra_cmake_include_paths(sdkroot string,
+	libxml2_needed bool, xcode_without_clt bool) []string {
+	return mac_superenv_extra_cmake_include_paths(sdkroot, libxml2_needed, xcode_without_clt)
 }
 
 // Ruby method `homebrew_extra_cmake_library_paths` at line 74.
-pub fn ruby_super_l74_d8_homebrew_extra_cmake_library_paths(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('homebrew_extra_cmake_library_paths', ...args)
+pub fn ruby_super_l74_d8_homebrew_extra_cmake_library_paths(sdkroot string) []string {
+	return mac_superenv_extra_cmake_library_paths(sdkroot)
 }
 
 // Ruby method `homebrew_extra_cmake_frameworks_paths` at line 81.
-pub fn ruby_super_l81_d9_homebrew_extra_cmake_frameworks_paths(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('homebrew_extra_cmake_frameworks_paths', ...args)
+pub fn ruby_super_l81_d9_homebrew_extra_cmake_frameworks_paths(sdkroot string,
+	xcode_without_clt bool) []string {
+	return mac_superenv_extra_cmake_framework_paths(sdkroot, xcode_without_clt)
 }
 
 // Ruby method `determine_cccfg` at line 88.
-pub fn ruby_super_l88_d10_determine_cccfg(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('determine_cccfg', ...args)
+pub fn ruby_super_l88_d10_determine_cccfg(no_fixup_chains_support bool,
+	ld64_version string) string {
+	return mac_superenv_determine_cccfg(no_fixup_chains_support, ld64_version)
 }
 
 // Ruby method `setup_build_environment(formula: nil, cc: nil, build_bottle: false, bottle_arch: nil,` at line 111.
-pub fn ruby_super_l111_d11_setup_build_environment(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('setup_build_environment', ...args)
+pub fn ruby_super_l111_d11_setup_build_environment(mut state base_env.SuperenvState,
+	options base_env.SuperenvBuildOptions, context MacSuperenvBuildContext,
+	exists base_env.SuperenvPathPredicate) ! {
+	mac_superenv_setup_build_environment(mut state, options, context, exists)!
 }
 
 // Ruby method `no_weak_imports` at line 155.
-pub fn ruby_super_l155_d12_no_weak_imports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('no_weak_imports', ...args)
+pub fn ruby_super_l155_d12_no_weak_imports(mut state base_env.SuperenvState,
+	supported bool) MacSuperenvDeprecationResult {
+	return mac_superenv_no_weak_imports(mut state, supported)
 }
 
 // Ruby method `no_fixup_chains` at line 164.
-pub fn ruby_super_l164_d13_no_fixup_chains(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('no_fixup_chains', ...args)
+pub fn ruby_super_l164_d13_no_fixup_chains(mut state base_env.SuperenvState,
+	supported bool) MacSuperenvDeprecationResult {
+	return mac_superenv_no_fixup_chains(mut state, supported)
 }
 
 // Original Ruby source (line-for-line):

@@ -1,728 +1,1374 @@
 module test
 
-import brew_runtime
+import homebrew
+import homebrew.tap as tap_config
+import os
+import x.json2
 
 // Translated from Homebrew/brew `test/tap_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub struct TapSpecFiles {
+pub:
+	path                 string
+	formula_file         string
+	alias_file           string
+	command_file         string
+	manpage_file         string
+	bash_completion_file string
+	zsh_completion_file  string
+	fish_completion_file string
+}
+
+fn tap_spec_files(path string) TapSpecFiles {
+	return TapSpecFiles{
+		path: path
+		formula_file: os.join_path(path, 'Formula', 'foo.rb')
+		alias_file: os.join_path(path, 'Aliases', 'bar')
+		command_file: os.join_path(path, 'cmd', 'brew-tap-cmd.rb')
+		manpage_file: os.join_path(path, 'manpages', 'brew-tap-cmd.1')
+		bash_completion_file: os.join_path(path, 'completions', 'bash', 'brew-tap-cmd')
+		zsh_completion_file: os.join_path(path, 'completions', 'zsh', '_brew-tap-cmd')
+		fish_completion_file: os.join_path(path, 'completions', 'fish', 'brew-tap-cmd.fish')
+	}
+}
+
+fn tap_spec_write(path string, contents string) ! {
+	os.mkdir_all(os.dir(path))!
+	os.write_file(path, contents)!
+}
+
+pub fn tap_spec_setup_files(path string) !TapSpecFiles {
+	files := tap_spec_files(path)
+	tap_spec_write(files.formula_file, 'class Foo < Formula\n  url "https://brew.sh/foo-1.0.tar.gz"\nend\n')!
+	os.mkdir_all(os.dir(files.alias_file))!
+	os.symlink(files.formula_file, files.alias_file)!
+	tap_spec_write(os.join_path(path, 'formula_renames.json'), '{ "oldname": "foo" }\n')!
+	tap_spec_write(os.join_path(path, 'tap_migrations.json'), '{ "removed-formula": "homebrew/foo" }\n')!
+	for directory in ['audit_exceptions', 'style_exceptions'] {
+		tap_spec_write(os.join_path(path, directory, 'formula_list.json'), '[ "foo", "bar" ]\n')!
+		tap_spec_write(os.join_path(path, directory, 'formula_hash.json'), '{ "foo": "foo1", "bar": "bar1" }\n')!
+	}
+	for file in [files.command_file, files.manpage_file, files.bash_completion_file,
+		files.zsh_completion_file, files.fish_completion_file] {
+		tap_spec_write(file, '')!
+	}
+	os.chmod(files.command_file, 0o755)!
+	return files
+}
+
+pub fn tap_spec_setup_git_repo(path string, remote string) !homebrew.GitRepository {
+	os.mkdir_all(path)!
+	for arguments in [['init'], ['remote', 'add', 'origin', remote]] {
+		result := os.execute_opt('git -C ${os.quoted_path(path)} ${arguments.join(' ')}')!
+		if result.exit_code != 0 {
+			return error(result.output)
+		}
+	}
+	return homebrew.new_git_repository(path)
+}
+
+fn tap_spec_install_request(tap homebrew.TapReference) homebrew.TapInstallRequest {
+	return homebrew.TapInstallRequest{
+		tap: tap
+		path: '/tmp/taps/${tap.full_name.to_lower()}'
+		allowed: true
+		readall_valid: true
+	}
+}
+
+fn tap_spec_redirect_request(tap homebrew.TapReference, redirected string) homebrew.TapRedirectRequest {
+	return homebrew.TapRedirectRequest{
+		tap: tap
+		tap_path: '/tmp/Taps/${tap.full_name.to_lower()}'
+		redirected_remote: redirected
+		allowed: true
+		trust_invalidated: true
+	}
+}
 
 // Ruby subject `subject(:homebrew_foo_tap) { described_class.fetch("Homebrew", "foo") }` at line 5.
-pub fn ruby_tap_spec_l5_d1_homebrew_foo_tap(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('homebrew_foo_tap', ...args)
+pub fn ruby_tap_spec_l5_d1_homebrew_foo_tap() !homebrew.TapReference {
+	return homebrew.new_tap_reference('Homebrew/foo', '')
 }
 
 // Ruby let `let(:path) { HOMEBREW_TAP_DIRECTORY/"homebrew/homebrew-foo" }` at line 7.
-pub fn ruby_tap_spec_l7_d2_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('path', ...args)
+pub fn ruby_tap_spec_l7_d2_path(tap_directory string) string {
+	return os.join_path(tap_directory, 'homebrew', 'homebrew-foo')
 }
 
 // Ruby let `let(:formula_file) { path/"Formula/foo.rb" }` at line 8.
-pub fn ruby_tap_spec_l8_d3_formula_file(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_file', ...args)
+pub fn ruby_tap_spec_l8_d3_formula_file(path string) string {
+	return os.join_path(path, 'Formula', 'foo.rb')
 }
 
 // Ruby let `let(:alias_file) { path/"Aliases/bar" }` at line 9.
-pub fn ruby_tap_spec_l9_d4_alias_file(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('alias_file', ...args)
+pub fn ruby_tap_spec_l9_d4_alias_file(path string) string {
+	return os.join_path(path, 'Aliases', 'bar')
 }
 
 // Ruby let `let(:cmd_file) { path/"cmd/brew-tap-cmd.rb" }` at line 10.
-pub fn ruby_tap_spec_l10_d5_cmd_file(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cmd_file', ...args)
+pub fn ruby_tap_spec_l10_d5_cmd_file(path string) string {
+	return os.join_path(path, 'cmd', 'brew-tap-cmd.rb')
 }
 
 // Ruby let `let(:manpage_file) { path/"manpages/brew-tap-cmd.1" }` at line 11.
-pub fn ruby_tap_spec_l11_d6_manpage_file(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('manpage_file', ...args)
+pub fn ruby_tap_spec_l11_d6_manpage_file(path string) string {
+	return os.join_path(path, 'manpages', 'brew-tap-cmd.1')
 }
 
 // Ruby let `let(:bash_completion_file) { path/"completions/bash/brew-tap-cmd" }` at line 12.
-pub fn ruby_tap_spec_l12_d7_bash_completion_file(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('bash_completion_file', ...args)
+pub fn ruby_tap_spec_l12_d7_bash_completion_file(path string) string {
+	return os.join_path(path, 'completions', 'bash', 'brew-tap-cmd')
 }
 
 // Ruby let `let(:zsh_completion_file) { path/"completions/zsh/_brew-tap-cmd" }` at line 13.
-pub fn ruby_tap_spec_l13_d8_zsh_completion_file(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('zsh_completion_file', ...args)
+pub fn ruby_tap_spec_l13_d8_zsh_completion_file(path string) string {
+	return os.join_path(path, 'completions', 'zsh', '_brew-tap-cmd')
 }
 
 // Ruby let `let(:fish_completion_file) { path/"completions/fish/brew-tap-cmd.fish" }` at line 14.
-pub fn ruby_tap_spec_l14_d9_fish_completion_file(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fish_completion_file', ...args)
+pub fn ruby_tap_spec_l14_d9_fish_completion_file(path string) string {
+	return os.join_path(path, 'completions', 'fish', 'brew-tap-cmd.fish')
 }
 
 // Ruby alias_matcher `alias_matcher :have_cask_file, :be_cask_file` at line 18.
-pub fn ruby_tap_spec_l18_d10_have_cask_file(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('have_cask_file', ...args)
+pub fn ruby_tap_spec_l18_d10_have_cask_file(file string) bool {
+	return homebrew.tap_cask_file(file)
 }
 
 // Ruby alias_matcher `alias_matcher :have_formula_file, :be_formula_file` at line 19.
-pub fn ruby_tap_spec_l19_d11_have_formula_file(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('have_formula_file', ...args)
+pub fn ruby_tap_spec_l19_d11_have_formula_file(tap homebrew.TapReference, path string,
+	file string) !bool {
+	return homebrew.tap_formula_file(tap, path, file)
 }
 
 // Ruby alias_matcher `alias_matcher :have_custom_remote, :be_custom_remote` at line 20.
-pub fn ruby_tap_spec_l20_d12_have_custom_remote(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('have_custom_remote', ...args)
+pub fn ruby_tap_spec_l20_d12_have_custom_remote(tap homebrew.TapReference) bool {
+	return tap.custom_remote()
 }
 
 // Ruby method `setup_tap_files` at line 31.
-pub fn ruby_tap_spec_l31_d13_setup_tap_files(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('setup_tap_files', ...args)
+pub fn ruby_tap_spec_l31_d13_setup_tap_files(path string) !TapSpecFiles {
+	return tap_spec_setup_files(path)
 }
 
 // Ruby method `setup_git_repo` at line 76.
-pub fn ruby_tap_spec_l76_d14_setup_git_repo(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('setup_git_repo', ...args)
+pub fn ruby_tap_spec_l76_d14_setup_git_repo(path string) !homebrew.GitRepository {
+	return tap_spec_setup_git_repo(path, 'https://github.com/Homebrew/homebrew-foo')
 }
 
 // Ruby method `setup_completion(link:)` at line 85.
-pub fn ruby_tap_spec_l85_d15_setup_completion(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('setup_completion', ...args)
+pub fn ruby_tap_spec_l85_d15_setup_completion(link bool) bool {
+	return link
 }
 
 // Ruby specify `specify "::fetch" do` at line 98.
-pub fn ruby_tap_spec_l98_d16_fetch(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('::fetch', ...args)
+pub fn ruby_tap_spec_l98_d16_fetch() !bool {
+	core := homebrew.new_tap_reference('Homebrew/core', '')!
+	homebrew_name := homebrew.new_tap_reference('Homebrew/homebrew', '')!
+	foo := homebrew.new_tap_reference('Homebrew/foo', '')!
+	if core.name != 'homebrew/core' || homebrew_name.name != 'homebrew/core' || foo.name != 'homebrew/foo' {
+		return false
+	}
+	for invalid in ['foo', 'homebrew/homebrew/bar', 'homebrew/homebrew/baz'] {
+		if _ := homebrew.new_tap_reference(invalid, '') {
+			return false
+		}
+	}
+	return true
 }
 
 // Ruby let `let(:tap) { described_class.fetch("Homebrew", "core") }` at line 119.
-pub fn ruby_tap_spec_l119_d17_tap(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tap', ...args)
+pub fn ruby_tap_spec_l119_d17_tap() !homebrew.TapReference {
+	return homebrew.new_tap_reference('Homebrew/core', '')
 }
 
 // Ruby let `let(:path) { tap.path }` at line 120.
-pub fn ruby_tap_spec_l120_d18_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('path', ...args)
+pub fn ruby_tap_spec_l120_d18_path(tap_directory string) !string {
+	return homebrew.tap_path(homebrew.new_tap_reference('Homebrew/core', '')!, tap_directory)
 }
 
 // Ruby let `let(:formula_path) { path/"Formula/formula.rb" }` at line 121.
-pub fn ruby_tap_spec_l121_d19_formula_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_path', ...args)
+pub fn ruby_tap_spec_l121_d19_formula_path(path string) string {
+	return os.join_path(path, 'Formula', 'formula.rb')
 }
 
 // Ruby it `it "returns the Tap for a Formula path" do` at line 123.
-pub fn ruby_tap_spec_l123_d20_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_tap_spec_l123_d20_returns(tap_directory string) !bool {
+	tap := homebrew.new_tap_reference('Homebrew/core', '')!
+	path := homebrew.tap_path(tap, tap_directory)
+	found := homebrew.tap_from_path(os.join_path(path, 'Formula', 'formula.rb'), tap_directory) or {
+		return false
+	}
+	return found.name == tap.name
 }
 
 // Ruby it `it "returns the Tap when given its exact path" do` at line 127.
-pub fn ruby_tap_spec_l127_d21_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_tap_spec_l127_d21_returns(tap_directory string) !bool {
+	tap := homebrew.new_tap_reference('Homebrew/core', '')!
+	found := homebrew.tap_from_path(homebrew.tap_path(tap, tap_directory), tap_directory) or {
+		return false
+	}
+	return found.name == tap.name
 }
 
 // Ruby let `let(:tap) { described_class.fetch("str4d.xyz", "rage") }` at line 132.
-pub fn ruby_tap_spec_l132_d22_tap(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tap', ...args)
+pub fn ruby_tap_spec_l132_d22_tap() !homebrew.TapReference {
+	return homebrew.new_tap_reference('str4d.xyz/rage', '')
 }
 
 // Ruby it `it "returns the Tap when given its exact path" do` at line 138.
-pub fn ruby_tap_spec_l138_d23_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_tap_spec_l138_d23_returns(tap_directory string) !bool {
+	tap := homebrew.new_tap_reference('str4d.xyz/rage', '')!
+	found := homebrew.tap_from_path(homebrew.tap_path(tap, tap_directory), tap_directory) or {
+		return false
+	}
+	return found.name == tap.name
 }
 
 // Ruby it `it "returns the references from the environment" do` at line 147.
-pub fn ruby_tap_spec_l147_d24_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_tap_spec_l147_d24_returns() bool {
+	return homebrew.tap_list_references('homebrew/allowed', 'HOMEBREW_ALLOWED_TAPS') == [
+		'homebrew/allowed',
+	]
 }
 
 // Ruby it `it "normalises a `user/homebrew-repository` entry to a canonical tap name" do` at line 151.
-pub fn ruby_tap_spec_l151_d25_normalises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('normalises', ...args)
+pub fn ruby_tap_spec_l151_d25_normalises() bool {
+	return homebrew.tap_list_references('User/homebrew-Repo', 'HOMEBREW_ALLOWED_TAPS') == [
+		'user/repo',
+	]
 }
 
 // Ruby it `it "preserves a remote URL entry verbatim" do` at line 156.
-pub fn ruby_tap_spec_l156_d26_preserves(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('preserves', ...args)
+pub fn ruby_tap_spec_l156_d26_preserves() bool {
+	return homebrew.tap_list_references('https://gitlab.com/other/repo', 'HOMEBREW_ALLOWED_TAPS') == [
+		'https://gitlab.com/other/repo',
+	]
 }
 
 // Ruby it `it "warns about and ignores an invalid tap name" do` at line 161.
-pub fn ruby_tap_spec_l161_d27_warns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('warns', ...args)
+pub fn ruby_tap_spec_l161_d27_warns() bool {
+	return homebrew.tap_list_references('not-a-tap', 'HOMEBREW_ALLOWED_TAPS').len == 0
 }
 
 // Ruby it `it "returns the references from the environment" do` at line 170.
-pub fn ruby_tap_spec_l170_d28_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_tap_spec_l170_d28_returns() bool {
+	return homebrew.tap_list_references('homebrew/forbidden', 'HOMEBREW_FORBIDDEN_TAPS') == [
+		'homebrew/forbidden',
+	]
 }
 
 // Ruby it `it "recognises scp-like syntax without a `user@`" do` at line 176.
-pub fn ruby_tap_spec_l176_d29_recognises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('recognises', ...args)
+pub fn ruby_tap_spec_l176_d29_recognises() bool {
+	return homebrew.tap_remote_reference('ssh_host:/srv/git/homebrew-custom_tap')
 }
 
 // Ruby it `it "recognises scp-like syntax with a `user@`" do` at line 180.
-pub fn ruby_tap_spec_l180_d30_recognises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('recognises', ...args)
+pub fn ruby_tap_spec_l180_d30_recognises() bool {
+	return homebrew.tap_remote_reference('git@github.com:user/homebrew-repo')
 }
 
 // Ruby it `it "treats a `user/repository` tap name as not a remote reference" do` at line 184.
-pub fn ruby_tap_spec_l184_d31_treats(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('treats', ...args)
+pub fn ruby_tap_spec_l184_d31_treats() bool {
+	return !homebrew.tap_remote_reference('user/repo')
 }
 
 // Ruby it `it "treats a bare `@`-containing string as not a remote reference" do` at line 188.
-pub fn ruby_tap_spec_l188_d32_treats(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('treats', ...args)
+pub fn ruby_tap_spec_l188_d32_treats() bool {
+	return !homebrew.tap_remote_reference('foo@bar')
 }
 
 // Ruby it `it "treats a `host:` with an empty path as not a remote reference" do` at line 192.
-pub fn ruby_tap_spec_l192_d33_treats(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('treats', ...args)
+pub fn ruby_tap_spec_l192_d33_treats() bool {
+	return !homebrew.tap_remote_reference('host:')
 }
 
 // Ruby it `it "keeps an explicit port on a GitHub remote rather than turning it into a path" do` at line 198.
-pub fn ruby_tap_spec_l198_d34_keeps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('keeps', ...args)
+pub fn ruby_tap_spec_l198_d34_keeps() bool {
+	return (homebrew.normalize_tap_remote('https://github.com:443/Homebrew/homebrew-core') or { return false }) == 'https://github.com:443/homebrew/homebrew-core'
 }
 
 // Ruby it `it "ignores a GitHub `.git` suffix, trailing slash and case" do` at line 205.
-pub fn ruby_tap_spec_l205_d35_ignores(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ignores', ...args)
+pub fn ruby_tap_spec_l205_d35_ignores() bool {
+	return homebrew.same_tap_remote('https://github.com/Homebrew/homebrew-core.git/', 'https://github.com/homebrew/homebrew-core')
 }
 
 // Ruby it `it "ignores a `.git` suffix on GitLab remotes" do` at line 210.
-pub fn ruby_tap_spec_l210_d36_ignores(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ignores', ...args)
+pub fn ruby_tap_spec_l210_d36_ignores() bool {
+	return homebrew.same_tap_remote('https://gitlab.com/other/repo.git', 'https://gitlab.com/other/repo')
 }
 
 // Ruby it `it "ignores a trailing slash on GitLab remotes" do` at line 215.
-pub fn ruby_tap_spec_l215_d37_ignores(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ignores', ...args)
+pub fn ruby_tap_spec_l215_d37_ignores() bool {
+	return homebrew.same_tap_remote('https://gitlab.com/other/repo/', 'https://gitlab.com/other/repo')
 }
 
 // Ruby it `it "keeps a `.git` suffix and trailing slash significant on a self-hosted remote" do` at line 220.
-pub fn ruby_tap_spec_l220_d38_keeps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('keeps', ...args)
+pub fn ruby_tap_spec_l220_d38_keeps() bool {
+	return !homebrew.same_tap_remote('https://git.example.com/other/repo.git/', 'https://git.example.com/other/repo')
 }
 
 // Ruby it `it "still matches non-GitHub remotes case-insensitively" do` at line 225.
-pub fn ruby_tap_spec_l225_d39_still(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('still', ...args)
+pub fn ruby_tap_spec_l225_d39_still() bool {
+	return homebrew.same_tap_remote('https://gitlab.com/other/repo', 'https://GitLab.com/Other/Repo')
 }
 
 // Ruby it `it "keeps non-GitHub remotes with different paths distinct" do` at line 230.
-pub fn ruby_tap_spec_l230_d40_keeps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('keeps', ...args)
+pub fn ruby_tap_spec_l230_d40_keeps() bool {
+	return !homebrew.same_tap_remote('https://gitlab.com/other/repo', 'https://gitlab.com/other/other-repo')
 }
 
 // Ruby it `it "treats a GitHub SSH SCP remote the same as HTTPS" do` at line 235.
-pub fn ruby_tap_spec_l235_d41_treats(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('treats', ...args)
+pub fn ruby_tap_spec_l235_d41_treats() bool {
+	return homebrew.same_tap_remote('git@github.com:Homebrew/homebrew-core', 'https://github.com/Homebrew/homebrew-core')
 }
 
 // Ruby it `it "treats a GitHub ssh:// remote the same as HTTPS" do` at line 240.
-pub fn ruby_tap_spec_l240_d42_treats(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('treats', ...args)
+pub fn ruby_tap_spec_l240_d42_treats() bool {
+	return homebrew.same_tap_remote('ssh://git@github.com/Homebrew/homebrew-core', 'https://github.com/Homebrew/homebrew-core')
 }
 
 // Ruby it `it "treats a GitHub git:// remote the same as HTTPS" do` at line 245.
-pub fn ruby_tap_spec_l245_d43_treats(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('treats', ...args)
+pub fn ruby_tap_spec_l245_d43_treats() bool {
+	return homebrew.same_tap_remote('git://github.com/Homebrew/homebrew-core', 'https://github.com/Homebrew/homebrew-core')
 }
 
 // Ruby it `it "treats a GitHub SSH SCP remote with .git suffix the same as HTTPS" do` at line 250.
-pub fn ruby_tap_spec_l250_d44_treats(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('treats', ...args)
+pub fn ruby_tap_spec_l250_d44_treats() bool {
+	return homebrew.same_tap_remote('git@github.com:Homebrew/homebrew-core.git', 'https://github.com/Homebrew/homebrew-core')
 }
 
 // Ruby it `it "keeps a different host distinct" do` at line 255.
-pub fn ruby_tap_spec_l255_d45_keeps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('keeps', ...args)
+pub fn ruby_tap_spec_l255_d45_keeps() bool {
+	return !homebrew.same_tap_remote('https://evil.example/Homebrew/homebrew-core', 'https://github.com/Homebrew/homebrew-core')
 }
 
 // Ruby let `let(:tap) { described_class.fetch("user", "repo") }` at line 262.
-pub fn ruby_tap_spec_l262_d46_tap(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tap', ...args)
+pub fn ruby_tap_spec_l262_d46_tap() !homebrew.TapReference {
+	return homebrew.new_tap_reference('user/repo', '')
 }
 
 // Ruby it `it "matches a default-remote tap by its name" do` at line 264.
-pub fn ruby_tap_spec_l264_d47_matches(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('matches', ...args)
+pub fn ruby_tap_spec_l264_d47_matches() !bool {
+	tap := homebrew.new_tap_reference('user/repo', 'https://github.com/user/homebrew-repo')!
+	return tap.matches_reference('user/repo')
 }
 
 // Ruby it `it "matches a default-remote tap whose remote has a `.git` suffix" do` at line 268.
-pub fn ruby_tap_spec_l268_d48_matches(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('matches', ...args)
+pub fn ruby_tap_spec_l268_d48_matches() !bool {
+	tap := homebrew.new_tap_reference('user/repo', 'https://github.com/user/homebrew-repo.git')!
+	return tap.matches_reference('user/repo')
 }
 
 // Ruby it `it "does not match a custom-remote tap by its name" do` at line 272.
-pub fn ruby_tap_spec_l272_d49_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_tap_spec_l272_d49_does() !bool {
+	tap := homebrew.new_tap_reference('user/repo', 'https://gitlab.com/other/repo')!
+	return !tap.matches_reference('user/repo')
 }
 
 // Ruby it `it "matches a custom-remote tap by its remote URL" do` at line 276.
-pub fn ruby_tap_spec_l276_d50_matches(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('matches', ...args)
+pub fn ruby_tap_spec_l276_d50_matches() !bool {
+	tap := homebrew.new_tap_reference('user/repo', 'https://gitlab.com/other/repo')!
+	return tap.matches_reference('https://gitlab.com/other/repo')
 }
 
 // Ruby it `it "matches a tap by its local path remote" do` at line 281.
-pub fn ruby_tap_spec_l281_d51_matches(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('matches', ...args)
+pub fn ruby_tap_spec_l281_d51_matches() !bool {
+	tap := homebrew.new_tap_reference('user/repo', '/Users/me/homebrew-tap')!
+	return tap.matches_reference('/Users/me/homebrew-tap')
 }
 
 // Ruby it `it "matches a GitHub SSH-remote tap by its name" do` at line 285.
-pub fn ruby_tap_spec_l285_d52_matches(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('matches', ...args)
+pub fn ruby_tap_spec_l285_d52_matches() !bool {
+	tap := homebrew.new_tap_reference('user/repo', 'git@github.com:user/homebrew-repo')!
+	return tap.matches_reference('user/repo')
 }
 
 // Ruby it `it "matches a GitHub SSH-remote tap by its HTTPS URL reference" do` at line 289.
-pub fn ruby_tap_spec_l289_d53_matches(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('matches', ...args)
+pub fn ruby_tap_spec_l289_d53_matches() !bool {
+	tap := homebrew.new_tap_reference('user/repo', 'git@github.com:user/homebrew-repo')!
+	return tap.matches_reference('https://github.com/user/homebrew-repo')
 }
 
 // Ruby it `it "does not allow a name-matched tap fetched from a custom remote" do` at line 298.
-pub fn ruby_tap_spec_l298_d54_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_tap_spec_l298_d54_does() !bool {
+	tap := homebrew.new_tap_reference('user/repo', 'https://evil.example/repo')!
+	return !tap.allowed_by_references(['user/repo'])
 }
 
 // Ruby it `it "does not implicitly allow an official tap fetched from a custom remote" do` at line 302.
-pub fn ruby_tap_spec_l302_d55_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_tap_spec_l302_d55_does() !bool {
+	tap := homebrew.new_tap_reference('Homebrew/foo', 'https://evil.example/repo')!
+	return !tap.allowed_by_references(['user/repo'])
 }
 
 // Ruby it `it "is true for an official tap on its default remote" do` at line 309.
-pub fn ruby_tap_spec_l309_d56_is(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('is', ...args)
+pub fn ruby_tap_spec_l309_d56_is() !bool {
+	tap := homebrew.new_tap_reference('Homebrew/foo', 'https://github.com/Homebrew/homebrew-foo')!
+	return tap.implicitly_trusted()
 }
 
 // Ruby it `it "is false for an official tap on a custom remote" do` at line 314.
-pub fn ruby_tap_spec_l314_d57_is(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('is', ...args)
+pub fn ruby_tap_spec_l314_d57_is() !bool {
+	tap := homebrew.new_tap_reference('Homebrew/foo', 'https://evil.example/repo')!
+	return !tap.implicitly_trusted()
 }
 
 // Ruby it `it "is true for homebrew/core in API mode regardless of remote" do` at line 319.
-pub fn ruby_tap_spec_l319_d58_is(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('is', ...args)
+pub fn ruby_tap_spec_l319_d58_is() bool {
+	return homebrew.tap_core_implicitly_trusted('https://evil.example/core', false, 'https://github.com/Homebrew/homebrew-core')
 }
 
 // Ruby it `it "is true for a homebrew/core Git checkout whose remote has a `.git` suffix" do` at line 325.
-pub fn ruby_tap_spec_l325_d59_is(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('is', ...args)
+pub fn ruby_tap_spec_l325_d59_is() bool {
+	return homebrew.tap_core_implicitly_trusted('https://github.com/Homebrew/homebrew-core.git', true, 'https://github.com/Homebrew/homebrew-core')
 }
 
 // Ruby it `it "is false for a homebrew/core Git checkout from a non-official remote" do` at line 332.
-pub fn ruby_tap_spec_l332_d60_is(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('is', ...args)
+pub fn ruby_tap_spec_l332_d60_is() bool {
+	return !homebrew.tap_core_implicitly_trusted('https://evil.example/core', true, 'https://github.com/Homebrew/homebrew-core')
 }
 
 // Ruby it `it "accepts the configured HOMEBREW_CORE_GIT_REMOTE as official" do` at line 338.
-pub fn ruby_tap_spec_l338_d61_accepts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('accepts', ...args)
+pub fn ruby_tap_spec_l338_d61_accepts() bool {
+	return homebrew.tap_core_implicitly_trusted('https://mirror.example/core', true, 'https://mirror.example/core')
 }
 
 // Ruby it `it "forbids any locally-named tap fetched from a forbidden remote URL" do` at line 348.
-pub fn ruby_tap_spec_l348_d62_forbids(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('forbids', ...args)
+pub fn ruby_tap_spec_l348_d62_forbids() !bool {
+	tap := homebrew.new_tap_reference('notevil/tap', 'https://github.com/evil/homebrew-tap')!
+	return tap.forbidden_by_references(['https://github.com/evil/homebrew-tap'])
 }
 
 // Ruby specify `specify "attributes" do` at line 354.
-pub fn ruby_tap_spec_l354_d63_attributes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('attributes', ...args)
+pub fn ruby_tap_spec_l354_d63_attributes(tap_directory string) !bool {
+	tap := homebrew.new_tap_reference('Homebrew/foo', '')!
+	path := homebrew.tap_path(tap, tap_directory)
+	return tap.user == 'Homebrew' && tap.repository == 'foo' && tap.name == 'homebrew/foo' && path == os.join_path(tap_directory, 'homebrew', 'homebrew-foo') && homebrew.ruby_tap_l515_d36_installed(path) && tap.official() && !homebrew.ruby_tap_l526_d38_core_tap()
 }
 
 // Ruby specify `specify "#issues_url" do` at line 364.
-pub fn ruby_tap_spec_l364_d64_issues_url(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#issues_url', ...args)
+pub fn ruby_tap_spec_l364_d64_issues_url() !bool {
+	custom := homebrew.new_tap_reference('someone/foo', 'https://github.com/someone/homebrew-foo')!
+	official := homebrew.new_tap_reference('Homebrew/foo', '')!
+	local := homebrew.new_tap_reference('someone/no-git', '')!
+	return homebrew.ruby_tap_l463_d32_issues_url(custom) or { '' } == 'https://github.com/someone/homebrew-foo/issues' && homebrew.ruby_tap_l463_d32_issues_url(official) or { '' } == 'https://github.com/Homebrew/homebrew-foo/issues' && homebrew.ruby_tap_l463_d32_issues_url(homebrew.TapReference{
+		...local
+		remote: ''
+	}) == none
 }
 
 // Ruby specify `specify "files" do` at line 382.
-pub fn ruby_tap_spec_l382_d65_files(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('files', ...args)
+pub fn ruby_tap_spec_l382_d65_files(path string) !bool {
+	files := tap_spec_setup_files(path)!
+	tap := homebrew.new_tap_reference('Homebrew/foo', 'https://github.com/Homebrew/homebrew-foo')!
+	formula_files := homebrew.tap_formula_files(tap, path)
+	aliases := homebrew.tap_alias_files(path)
+	command_files := homebrew.tap_command_files(path)
+	table := homebrew.tap_alias_table(tap, aliases)
+	formula_names := homebrew.tap_formula_names(tap, formula_files)
+	hash := homebrew.tap_hash(tap, path, true, true, false, formula_names, [], formula_files, [], command_files, 'abc123', '1 day ago', 'main')
+	return formula_files == [files.formula_file] && homebrew.tap_formula_names(tap, formula_files) == [
+		'homebrew/foo/foo',
+	] && aliases == [files.alias_file] && table.keys() == ['homebrew/foo/bar'] && table['homebrew/foo/bar'] == 'homebrew/foo/foo' && homebrew.tap_reverse_table(table)['homebrew/foo/foo'] == [
+		'homebrew/foo/bar',
+	] && homebrew.ruby_tap_l1241_d78_formula_renames(path)['oldname'] == 'foo' && homebrew.ruby_tap_l1263_d80_tap_migrations(path)['removed-formula'] == 'homebrew/foo' && command_files == [
+		files.command_file,
+	] && hash.name == 'homebrew/foo' && hash.user == 'Homebrew' && hash.repo == 'foo' && hash.repository == 'foo' && hash.path == path && hash.installed && hash.official && hash.trusted && hash.formula_names == formula_names && hash.cask_tokens == [] && hash.formula_files == formula_files && hash.cask_files == [] && hash.command_files == command_files && hash.remote == 'https://github.com/Homebrew/homebrew-foo' && !hash.custom_remote && !hash.private && hash.head == 'abc123' && hash.last_commit == '1 day ago' && hash.branch == 'main' && hash.has_install_details && homebrew.tap_formula_file(tap, path, 'Formula/foo.rb')! && !homebrew.tap_formula_file(tap, path, 'bar.rb')! && !homebrew.tap_formula_file(tap, path, 'Formula/baz.sh')!
 }
 
 // Ruby it `it "groups versioned full formulae with their matching full formula" do` at line 434.
-pub fn ruby_tap_spec_l434_d66_groups(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('groups', ...args)
+pub fn ruby_tap_spec_l434_d66_groups() bool {
+	groups := homebrew.tap_prefix_to_versioned_formulae_names(['foo@2.0', 'foo-full', 'foo@2.0-full'])
+	return groups['foo'] == ['foo@2.0'] && groups['foo-full'] == ['foo@2.0-full']
 }
 
 // Ruby it `it "returns the remote URL", :needs_network do` at line 444.
-pub fn ruby_tap_spec_l444_d67_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_tap_spec_l444_d67_returns(path string) !bool {
+	repository := tap_spec_setup_git_repo(path, 'https://github.com/Homebrew/homebrew-foo')!
+	remote := repository.origin_url()!
+	tap := homebrew.new_tap_reference('Homebrew/foo', remote.value)!
+	services_path := '${path}-services'
+	services_repository := tap_spec_setup_git_repo(services_path, 'https://github.com/Homebrew/homebrew-test-bot')!
+	services_remote := services_repository.origin_url()!
+	return remote.present && remote.value == 'https://github.com/Homebrew/homebrew-foo' && !tap.custom_remote() && services_remote.present && !homebrew.tap_private(homebrew.TapPrivateQuery{
+		github_value: false
+	})
 }
 
 // Ruby it `it "returns nil if the Tap is not a Git repository" do` at line 459.
-pub fn ruby_tap_spec_l459_d68_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_tap_spec_l459_d68_returns(path string) !bool {
+	remote := homebrew.new_git_repository(path).origin_url()!
+	return !remote.present
 }
 
 // Ruby it `it "reads the remote from .git/config even when Git is unavailable" do` at line 463.
-pub fn ruby_tap_spec_l463_d69_reads(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reads', ...args)
+pub fn ruby_tap_spec_l463_d69_reads(path string) !bool {
+	repository := tap_spec_setup_git_repo(path, 'https://github.com/Homebrew/homebrew-foo')!
+	remote := repository.origin_url_from_config()
+	return remote.present && remote.value == 'https://github.com/Homebrew/homebrew-foo'
 }
 
 // Ruby it `it "returns the remote https repository" do` at line 471.
-pub fn ruby_tap_spec_l471_d70_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_tap_spec_l471_d70_returns(path string) !bool {
+	repository := tap_spec_setup_git_repo(path, 'https://github.com/Homebrew/homebrew-foo')!
+	remote := repository.origin_url()!
+	remote_repository := homebrew.ruby_tap_l399_d25_remote_repository(homebrew.new_tap_reference('Homebrew/foo', remote.value)!) or { return false }
+	services := homebrew.new_tap_reference('Homebrew/test-bot', 'https://github.com/Homebrew/homebrew-bar')!
+	services_repository := homebrew.ruby_tap_l399_d25_remote_repository(services) or { return false }
+	return remote.present && remote_repository == 'Homebrew/homebrew-foo' && services_repository == 'Homebrew/homebrew-bar'
 }
 
 // Ruby it `it "returns the remote ssh repository" do` at line 485.
-pub fn ruby_tap_spec_l485_d71_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_tap_spec_l485_d71_returns(path string) !bool {
+	repository := tap_spec_setup_git_repo(path, 'git@github.com:Homebrew/homebrew-foo')!
+	remote := repository.origin_url()!
+	remote_repository := homebrew.ruby_tap_l399_d25_remote_repository(homebrew.new_tap_reference('Homebrew/foo', remote.value)!) or { return false }
+	services := homebrew.new_tap_reference('Homebrew/test-bot', 'git@github.com:Homebrew/homebrew-bar')!
+	services_repository := homebrew.ruby_tap_l399_d25_remote_repository(services) or { return false }
+	return remote.present && remote_repository == 'Homebrew/homebrew-foo' && services_repository == 'Homebrew/homebrew-bar'
 }
 
 // Ruby it `it "returns nil if the Tap is not a Git repository" do` at line 499.
-pub fn ruby_tap_spec_l499_d72_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_tap_spec_l499_d72_returns(path string) !bool {
+	return homebrew.ruby_tap_l399_d25_remote_repository(homebrew.TapReference{ remote: '' }) == none
 }
 
 // Ruby it `it "reads the remote repository from .git/config even when Git is unavailable" do` at line 503.
-pub fn ruby_tap_spec_l503_d73_reads(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reads', ...args)
+pub fn ruby_tap_spec_l503_d73_reads(path string) !bool {
+	return ruby_tap_spec_l471_d70_returns(path)
 }
 
 // Ruby subject `subject(:tap) { described_class.fetch("Homebrew", "test-bot") }` at line 511.
-pub fn ruby_tap_spec_l511_d74_tap(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tap', ...args)
+pub fn ruby_tap_spec_l511_d74_tap() !homebrew.TapReference {
+	return homebrew.new_tap_reference('Homebrew/test-bot', '')
 }
 
 // Ruby let `let(:remote) { nil }` at line 513.
-pub fn ruby_tap_spec_l513_d75_remote(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('remote', ...args)
+pub fn ruby_tap_spec_l513_d75_remote() ?string {
+	return none
 }
 
 // Ruby it `it "returns true" do` at line 522.
-pub fn ruby_tap_spec_l522_d76_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_tap_spec_l522_d76_returns() !bool {
+	tap := homebrew.new_tap_reference('Homebrew/test-bot', '')!
+	return homebrew.TapReference{ ...tap, remote: '' }.custom_remote()
 }
 
 // Ruby let `let(:remote) { "https://github.com/Homebrew/homebrew-test-bot" }` at line 529.
-pub fn ruby_tap_spec_l529_d77_remote(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('remote', ...args)
+pub fn ruby_tap_spec_l529_d77_remote() string {
+	return 'https://github.com/Homebrew/homebrew-test-bot'
 }
 
 // Ruby it `it(:custom_remote?) { expect(tap.custom_remote?).to be false }` at line 531.
-pub fn ruby_tap_spec_l531_d78_custom_remote(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('custom_remote?', ...args)
+pub fn ruby_tap_spec_l531_d78_custom_remote() !bool {
+	return !homebrew.new_tap_reference('Homebrew/test-bot', ruby_tap_spec_l529_d77_remote())!.custom_remote()
 }
 
 // Ruby let `let(:remote) { "https://github.com/Homebrew/homebrew-test-bot.git" }` at line 535.
-pub fn ruby_tap_spec_l535_d79_remote(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('remote', ...args)
+pub fn ruby_tap_spec_l535_d79_remote() string {
+	return 'https://github.com/Homebrew/homebrew-test-bot.git'
 }
 
 // Ruby it `it(:custom_remote?) { expect(tap.custom_remote?).to be false }` at line 537.
-pub fn ruby_tap_spec_l537_d80_custom_remote(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('custom_remote?', ...args)
+pub fn ruby_tap_spec_l537_d80_custom_remote() !bool {
+	return !homebrew.new_tap_reference('Homebrew/test-bot', ruby_tap_spec_l535_d79_remote())!.custom_remote()
 }
 
 // Ruby let `let(:remote) { "git@github.com:Homebrew/homebrew-test-bot" }` at line 541.
-pub fn ruby_tap_spec_l541_d81_remote(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('remote', ...args)
+pub fn ruby_tap_spec_l541_d81_remote() string {
+	return 'git@github.com:Homebrew/homebrew-test-bot'
 }
 
 // Ruby it `it(:custom_remote?) { expect(tap.custom_remote?).to be false }` at line 543.
-pub fn ruby_tap_spec_l543_d82_custom_remote(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('custom_remote?', ...args)
+pub fn ruby_tap_spec_l543_d82_custom_remote() !bool {
+	return !homebrew.new_tap_reference('Homebrew/test-bot', ruby_tap_spec_l541_d81_remote())!.custom_remote()
 }
 
 // Ruby let `let(:remote) { "https://gitlab.com/Homebrew/homebrew-test-bot" }` at line 547.
-pub fn ruby_tap_spec_l547_d83_remote(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('remote', ...args)
+pub fn ruby_tap_spec_l547_d83_remote() string {
+	return 'https://gitlab.com/Homebrew/homebrew-test-bot'
 }
 
 // Ruby it `it(:custom_remote?) { expect(tap.custom_remote?).to be true }` at line 549.
-pub fn ruby_tap_spec_l549_d84_custom_remote(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('custom_remote?', ...args)
+pub fn ruby_tap_spec_l549_d84_custom_remote() !bool {
+	return homebrew.new_tap_reference('Homebrew/test-bot', ruby_tap_spec_l547_d83_remote())!.custom_remote()
 }
 
 // Ruby it `it "moves default GitHub taps to the redirected name and invalidates old trust", :trust_store do` at line 554.
-pub fn ruby_tap_spec_l554_d85_moves(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('moves', ...args)
+pub fn ruby_tap_spec_l554_d85_moves() !bool {
+	tap := homebrew.new_tap_reference('oldowner/foo', 'https://github.com/oldowner/homebrew-foo')!
+	plan := homebrew.tap_update_remote_from_redirect('warning: redirecting to https://github.com/newowner/homebrew-foo\n', tap_spec_redirect_request(tap, 'https://github.com/newowner/homebrew-foo'))!
+	return plan.changed && plan.tap.name == 'newowner/foo' && plan.move_repository && plan.invalidate_name == 'oldowner/foo' && plan.set_remote.arguments.last() == 'https://github.com/newowner/homebrew-foo'
 }
 
 // Ruby it `it "prints tap redirect and untrust messages", :trust_store do` at line 587.
-pub fn ruby_tap_spec_l587_d86_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+pub fn ruby_tap_spec_l587_d86_prints() !bool {
+	tap := homebrew.new_tap_reference('oldoutput/foo', 'https://github.com/oldoutput/homebrew-foo')!
+	plan := homebrew.tap_apply_redirect(tap_spec_redirect_request(tap, 'https://github.com/newoutput/homebrew-foo'), 'https://github.com/newoutput/homebrew-foo')!
+	return plan.message == 'Redirected tap oldoutput/foo to tap newoutput/foo' && plan.trust_message == 'Untrusted tap: oldoutput/foo'
 }
 
 // Ruby it `it "updates the core cask tap remote from a redirect", :trust_store do` at line 608.
-pub fn ruby_tap_spec_l608_d87_updates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('updates', ...args)
+pub fn ruby_tap_spec_l608_d87_updates() !bool {
+	tap := homebrew.new_tap_reference('Homebrew/cask', 'https://github.com/caskroom/homebrew-cask')!
+	mut request := tap_spec_redirect_request(tap, 'https://github.com/Homebrew/homebrew-cask')
+	request = homebrew.TapRedirectRequest{ ...request, quiet: true }
+	plan := homebrew.tap_update_remote_from_redirect('warning: redirecting to https://github.com/Homebrew/homebrew-cask\n', request)!
+	return plan.set_remote.arguments.last() == 'https://github.com/Homebrew/homebrew-cask'
 }
 
 // Ruby it `it "refuses an off-allowlist redirect and preserves the original remote" do` at line 626.
-pub fn ruby_tap_spec_l626_d88_refuses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('refuses', ...args)
+pub fn ruby_tap_spec_l626_d88_refuses() !bool {
+	tap := homebrew.new_tap_reference('allowed/foo', 'https://allowed.example/homebrew-foo')!
+	request := homebrew.TapRedirectRequest{
+		...tap_spec_redirect_request(tap, 'https://attacker.example/homebrew-foo')
+		allowed: false
+		forbidden_owner: 'the owner'
+	}
+	homebrew.tap_apply_redirect(request, request.redirected_remote) or {
+		return err.msg().contains('HOMEBREW_ALLOWED_TAPS')
+	}
+	return false
 }
 
 // Ruby it `it "refuses a redirect to a forbidden tap and preserves the original remote" do` at line 645.
-pub fn ruby_tap_spec_l645_d89_refuses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('refuses', ...args)
+pub fn ruby_tap_spec_l645_d89_refuses() !bool {
+	tap := homebrew.new_tap_reference('oldowner/foo', 'https://github.com/oldowner/homebrew-foo')!
+	request := homebrew.TapRedirectRequest{
+		...tap_spec_redirect_request(tap, 'https://github.com/attacker/homebrew-foo')
+		forbidden: true
+		forbidden_owner: 'the owner'
+	}
+	homebrew.tap_apply_redirect(request, request.redirected_remote) or {
+		return err.msg().contains('HOMEBREW_FORBIDDEN_TAPS')
+	}
+	return false
 }
 
 // Ruby it `it "applies a redirect to a tap allowed by name", :trust_store do` at line 664.
-pub fn ruby_tap_spec_l664_d90_applies(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('applies', ...args)
+pub fn ruby_tap_spec_l664_d90_applies() !bool {
+	tap := homebrew.new_tap_reference('oldowner/foo', 'https://github.com/oldowner/homebrew-foo')!
+	plan := homebrew.tap_apply_redirect(tap_spec_redirect_request(tap, 'https://github.com/newowner/homebrew-foo'), 'https://github.com/newowner/homebrew-foo')!
+	return plan.tap.name == 'newowner/foo' && plan.set_remote.arguments.last() == 'https://github.com/newowner/homebrew-foo'
 }
 
 // Ruby it `it "treats a redirect beginning with a dash as a URL, not a git option", :trust_store do` at line 684.
-pub fn ruby_tap_spec_l684_d91_treats(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('treats', ...args)
+pub fn ruby_tap_spec_l684_d91_treats() !bool {
+	tap := homebrew.new_tap_reference('dashy/foo', 'https://github.com/dashy/homebrew-foo')!
+	plan := homebrew.tap_apply_redirect(tap_spec_redirect_request(tap, '-u:evil'), '-u:evil')!
+	arguments := plan.set_remote.arguments
+	return arguments[arguments.len - 2] == '--end-of-options' && arguments.last() == '-u:evil'
 }
 
 // Ruby it `it "terminates options before the requested remote" do` at line 703.
-pub fn ruby_tap_spec_l703_d92_terminates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('terminates', ...args)
+pub fn ruby_tap_spec_l703_d92_terminates() bool {
+	plan := homebrew.tap_fix_remote_plan(homebrew.TapFixRemoteRequest{
+		path: '/tmp/Taps/dashy/homebrew-foo'
+		name: 'dashy/foo'
+		requested_remote: '-u:evil'
+	})
+	arguments := plan.set_remote_commands[0].arguments
+	return arguments[arguments.len - 2] == '--end-of-options' && arguments.last() == '-u:evil'
 }
 
 // Ruby specify `specify "Git variant" do` at line 717.
-pub fn ruby_tap_spec_l717_d93_git(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('Git', ...args)
+pub fn ruby_tap_spec_l717_d93_git(path string) !bool {
+	repository := tap_spec_setup_git_repo(path, 'https://github.com/Homebrew/homebrew-foo')!
+	tap_spec_write(os.join_path(path, 'README'), 'tap\n')!
+	for arguments in [['config', 'user.email', 'tap@example.test'],
+		['config', 'user.name', 'Tap Spec'], ['add', '--all'], ['commit', '-m', 'init']] {
+		result := os.execute_opt('git -C ${os.quoted_path(path)} ${arguments.map(os.quoted_path(it)).join(' ')}')!
+		if result.exit_code != 0 {
+			return false
+		}
+	}
+	head := repository.head_ref(false)!
+	last := repository.last_committed()!
+	return head.present && head.value.len == 40 && last.present && last.value.ends_with('ago')
 }
 
 // Ruby specify `specify "#private?", :needs_network do` at line 725.
-pub fn ruby_tap_spec_l725_d94_private(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#private?', ...args)
+pub fn ruby_tap_spec_l725_d94_private() bool {
+	return homebrew.tap_private(homebrew.TapPrivateQuery{ github_value: true })
 }
 
 // Ruby it `it "disables terminal prompts for git commands" do` at line 730.
-pub fn ruby_tap_spec_l730_d95_disables(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('disables', ...args)
+pub fn ruby_tap_spec_l730_d95_disables() bool {
+	command := homebrew.tap_git_command(['fetch'], '/tmp/tap')
+	return command.environment['GIT_TERMINAL_PROMPT'] == '0'
 }
 
 // Ruby it `it "does not run Git hooks" do` at line 740.
-pub fn ruby_tap_spec_l740_d96_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_tap_spec_l740_d96_does() bool {
+	command := homebrew.tap_git_command(['clone', '/tmp/source', '/tmp/clone'], '')
+	return command.arguments[..3] == ['git', '-c', 'core.hooksPath=${os.path_devnull}']
 }
 
 // Ruby it `it "raises an error when the Tap is already tapped" do` at line 758.
-pub fn ruby_tap_spec_l758_d97_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+pub fn ruby_tap_spec_l758_d97_raises() !bool {
+	tap := homebrew.new_tap_reference('Homebrew/foo', '')!
+	request := homebrew.TapInstallRequest{
+		...tap_spec_install_request(tap)
+		installed: true
+		current_remote: tap.default_remote()
+	}
+	homebrew.tap_install_plan(request) or { return err.msg().contains('TapAlreadyTappedError') }
+	return false
 }
 
 // Ruby it `it "raises an error when the Tap is already tapped with the right remote" do` at line 765.
-pub fn ruby_tap_spec_l765_d98_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+pub fn ruby_tap_spec_l765_d98_raises() !bool {
+	tap := homebrew.new_tap_reference('Homebrew/foo', '')!
+	request := homebrew.TapInstallRequest{
+		...tap_spec_install_request(tap)
+		installed: true
+		clone_target: tap.default_remote()
+		current_remote: tap.default_remote()
+	}
+	homebrew.tap_install_plan(request) or { return err.msg().contains('TapAlreadyTappedError') }
+	return false
 }
 
 // Ruby it `it "refuses a name-allowed tap cloned from a custom remote (no HOMEBREW_ALLOWED_TAPS bypass)" do` at line 773.
-pub fn ruby_tap_spec_l773_d99_refuses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('refuses', ...args)
+pub fn ruby_tap_spec_l773_d99_refuses() !bool {
+	tap := homebrew.new_tap_reference('user/repo', '')!
+	request := homebrew.TapInstallRequest{
+		...tap_spec_install_request(tap)
+		clone_target: 'https://evil.example/repo'
+		allowed: false
+		forbidden_owner: 'the owner'
+	}
+	homebrew.tap_install_plan(request) or { return err.msg().contains('HOMEBREW_ALLOWED_TAPS') }
+	return false
 }
 
 // Ruby it `it "raises an error when the remote doesn't match" do` at line 781.
-pub fn ruby_tap_spec_l781_d100_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+pub fn ruby_tap_spec_l781_d100_raises() !bool {
+	tap := homebrew.new_tap_reference('Homebrew/foo', '')!
+	request := homebrew.TapInstallRequest{
+		...tap_spec_install_request(tap)
+		installed: true
+		clone_target: '${tap.default_remote()}-oops'
+		current_remote: tap.default_remote()
+	}
+	homebrew.tap_install_plan(request) or { return err.msg().contains('TapRemoteMismatchError') }
+	return false
 }
 
 // Ruby it `it "raises an error when the remote for Homebrew/core doesn't match HOMEBREW_CORE_GIT_REMOTE" do` at line 791.
-pub fn ruby_tap_spec_l791_d101_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+pub fn ruby_tap_spec_l791_d101_raises() !bool {
+	tap := homebrew.new_tap_reference('Homebrew/core', '')!
+	request := homebrew.TapInstallRequest{
+		...tap_spec_install_request(tap)
+		core_tap: true
+		clone_target: 'https://github.com/Homebrew/homebrew-core-oops'
+		configured_core_remote: 'https://github.com/Homebrew/homebrew-core'
+	}
+	homebrew.tap_install_plan(request) or { return err.msg().contains('TapCoreRemoteMismatchError') }
+	return false
 }
 
 // Ruby it `it "creates an official tap worktree from the fetched remote HEAD" do` at line 799.
-pub fn ruby_tap_spec_l799_d102_creates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('creates', ...args)
+pub fn ruby_tap_spec_l799_d102_creates() !bool {
+	tap := homebrew.new_tap_reference('Homebrew/cask', '')!
+	request := homebrew.TapInstallRequest{
+		...tap_spec_install_request(tap)
+		core_cask_tap: true
+		worktree_source_tap_path: '/tmp/source/Library/Taps/homebrew/homebrew-cask'
+		fetched_worktree_head: 'abc123'
+	}
+	plan := homebrew.tap_install_plan(request)!
+	arguments := plan.worktree_fetch.arguments
+	return plan.disposition == .worktree && plan.worktree_add.arguments.last() == 'abc123' && arguments[arguments.len - 2..] == [
+		'origin',
+		'HEAD',
+	]
 }
 
 // Ruby it `it "creates core and cask taps as worktrees when the brew source repository has them" do` at line 854.
-pub fn ruby_tap_spec_l854_d103_creates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('creates', ...args)
+pub fn ruby_tap_spec_l854_d103_creates() !bool {
+	for name in ['Homebrew/core', 'Homebrew/cask'] {
+		tap := homebrew.new_tap_reference(name, '')!
+		request := homebrew.TapInstallRequest{
+			...tap_spec_install_request(tap)
+			core_tap: tap.repository == 'core'
+			core_cask_tap: tap.repository == 'cask'
+			worktree_source_tap_path: '/tmp/source/Library/Taps/${tap.full_name.to_lower()}'
+		}
+		if homebrew.tap_install_plan(request)!.disposition != .worktree {
+			return false
+		}
+	}
+	return true
 }
 
 // Ruby it `it "creates a tap from another brew worktree when that has the source repository" do` at line 896.
-pub fn ruby_tap_spec_l896_d104_creates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('creates', ...args)
+pub fn ruby_tap_spec_l896_d104_creates() !bool {
+	tap := homebrew.new_tap_reference('Homebrew/cask', '')!
+	request := homebrew.TapInstallRequest{
+		...tap_spec_install_request(tap)
+		core_cask_tap: true
+		worktree_source_tap_path: '/tmp/source-worktree/Library/Taps/homebrew/homebrew-cask'
+	}
+	plan := homebrew.tap_install_plan(request)!
+	return plan.worktree_source == '/tmp/source-worktree/Library/Taps/homebrew/homebrew-cask'
 }
 
 // Ruby it `it "uses the requested remote for cask taps with an explicit clone target" do` at line 946.
-pub fn ruby_tap_spec_l946_d105_uses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uses', ...args)
+pub fn ruby_tap_spec_l946_d105_uses() !bool {
+	tap := homebrew.new_tap_reference('Homebrew/cask', '')!
+	requested := 'https://example.com/Homebrew/homebrew-cask'
+	request := homebrew.TapInstallRequest{
+		...tap_spec_install_request(tap)
+		core_cask_tap: true
+		clone_target: requested
+		force: true
+		worktree_source_tap_path: '/tmp/source/Library/Taps/homebrew/homebrew-cask'
+	}
+	plan := homebrew.tap_install_plan(request)!
+	arguments := plan.command.arguments
+	return plan.disposition == .clone && arguments.last() == request.path && arguments[arguments.len - 2] == requested
 }
 
 // Ruby it `it "raises an error when run `brew tap --custom-remote` without a custom remote (already installed)" do` at line 981.
-pub fn ruby_tap_spec_l981_d106_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+pub fn ruby_tap_spec_l981_d106_raises() !bool {
+	tap := homebrew.new_tap_reference('Homebrew/foo', '')!
+	request := homebrew.TapInstallRequest{
+		...tap_spec_install_request(tap)
+		installed: true
+		custom_remote: true
+	}
+	homebrew.tap_install_plan(request) or { return err.msg().contains('TapNoCustomRemoteError') }
+	return false
 }
 
 // Ruby it `it "raises an error when run `brew tap --custom-remote` without a custom remote (not installed)" do` at line 991.
-pub fn ruby_tap_spec_l991_d107_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+pub fn ruby_tap_spec_l991_d107_raises() !bool {
+	tap := homebrew.new_tap_reference('Homebrew/bar', '')!
+	request := homebrew.TapInstallRequest{
+		...tap_spec_install_request(tap)
+		custom_remote: true
+	}
+	homebrew.tap_install_plan(request) or { return err.msg().contains('TapNoCustomRemoteError') }
+	return false
 }
 
 // Ruby specify `specify "Git error" do` at line 1000.
-pub fn ruby_tap_spec_l1000_d108_git(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('Git', ...args)
+pub fn ruby_tap_spec_l1000_d108_git() !bool {
+	tap := homebrew.new_tap_reference('user/repo', '')!
+	request := homebrew.TapInstallRequest{
+		...tap_spec_install_request(tap)
+		clone_target: 'file:///not/existed/remote/url'
+	}
+	plan := homebrew.tap_install_plan(request)!
+	requested := request.clone_target or { return false }
+	arguments := plan.command.arguments
+	return arguments[arguments.len - 2] == requested && plan.cleanup_path_on_error == request.path && plan.cleanup_parent_on_error == os.dir(request.path)
 }
 
 // Ruby it `it "raises an error if the Tap is not available" do` at line 1013.
-pub fn ruby_tap_spec_l1013_d109_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+pub fn ruby_tap_spec_l1013_d109_raises() !bool {
+	tap := homebrew.new_tap_reference('Homebrew/bar', '')!
+	homebrew.tap_uninstall_plan(tap, '/tmp/tap', false, false, none, [], []) or {
+		return err.msg().contains('TapUnavailableError')
+	}
+	return false
 }
 
 // Ruby it `it "removes Git worktree metadata for worktree-installed taps" do` at line 1018.
-pub fn ruby_tap_spec_l1018_d110_removes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('removes', ...args)
+pub fn ruby_tap_spec_l1018_d110_removes() !bool {
+	tap := homebrew.new_tap_reference('Homebrew/cask', '')!
+	plan := homebrew.tap_uninstall_plan(tap, '/tmp/tap', true, false, '/tmp/source-tap', [], [])!
+	command := plan.worktree_remove_command or { return false }
+	return command.arguments == ['git', '-C', '/tmp/source-tap', 'worktree', 'remove', '--force',
+		'/tmp/tap']
 }
 
 // Ruby specify `specify "#install and` at line 1039.
-pub fn ruby_tap_spec_l1039_d111_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#install', ...args)
+pub fn ruby_tap_spec_l1039_d111_install() !bool {
+	tap := homebrew.new_tap_reference('Homebrew/bar', '')!
+	request := homebrew.TapInstallRequest{
+		...tap_spec_install_request(tap)
+		clone_target: '/tmp/homebrew-foo/.git'
+	}
+	install := homebrew.tap_install_plan(request)!
+	uninstall := homebrew.tap_uninstall_plan(tap, request.path, true, false, none, [], [])!
+	return install.link_completions && install.rebuild_commands && uninstall.unlink_manpages && uninstall.unlink_completions && uninstall.rebuild_commands
 }
 
 // Ruby specify `specify "#link_completions_and_manpages when completions are enabled for non-official tap" do` at line 1066.
-pub fn ruby_tap_spec_l1066_d112_link_completions_and_manpages(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#link_completions_and_manpages', ...args)
+pub fn ruby_tap_spec_l1066_d112_link_completions_and_manpages() !bool {
+	tap := homebrew.new_tap_reference('NotHomebrew/baz', '')!
+	plan := homebrew.tap_link_plan(tap, true)
+	return plan.link_manpages && plan.link_completions && !plan.unlink_completions
 }
 
 // Ruby specify `specify "#link_completions_and_manpages when completions are disabled for non-official tap" do` at line 1089.
-pub fn ruby_tap_spec_l1089_d113_link_completions_and_manpages(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#link_completions_and_manpages', ...args)
+pub fn ruby_tap_spec_l1089_d113_link_completions_and_manpages() !bool {
+	tap := homebrew.new_tap_reference('NotHomebrew/baz', '')!
+	plan := homebrew.tap_link_plan(tap, false)
+	return plan.link_manpages && !plan.link_completions && plan.unlink_completions
 }
 
 // Ruby specify `specify "#link_completions_and_manpages when completions are enabled for official tap" do` at line 1109.
-pub fn ruby_tap_spec_l1109_d114_link_completions_and_manpages(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#link_completions_and_manpages', ...args)
+pub fn ruby_tap_spec_l1109_d114_link_completions_and_manpages() !bool {
+	tap := homebrew.new_tap_reference('Homebrew/baz', '')!
+	plan := homebrew.tap_link_plan(tap, false)
+	return plan.link_manpages && plan.link_completions && !plan.unlink_completions
 }
 
 // Ruby specify `specify "#config" do` at line 1130.
-pub fn ruby_tap_spec_l1130_d115_config(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#config', ...args)
+pub fn ruby_tap_spec_l1130_d115_config() bool {
+	mut config := tap_config.new_tap_config(tap_config.TapConfigTap{
+		name: 'homebrew/foo'
+		path: '/tmp/homebrew/foo'
+		git: true
+	})
+	if config.get('foo', true) != none {
+		return false
+	}
+	config.set('foo', true, true)
+	if config.get('foo', true) or { false } != true {
+		return false
+	}
+	config.delete('foo', true)
+	return config.get('foo', true) == none
 }
 
 // Ruby it `it "returns an enumerator if no block is passed" do` at line 1141.
-pub fn ruby_tap_spec_l1141_d116_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_tap_spec_l1141_d116_returns() bool {
+	return homebrew.ruby_tap_l1423_d96_self_each([], false, false).enumerator
 }
 
 // Ruby it `it "includes the core tap with the api" do` at line 1153.
-pub fn ruby_tap_spec_l1153_d117_includes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('includes', ...args)
+pub fn ruby_tap_spec_l1153_d117_includes() !bool {
+	taps := homebrew.ruby_tap_l1423_d96_self_each([], false, true).taps
+	return taps.any(it.name == 'homebrew/core')
 }
 
 // Ruby it `it "omits the core tap without the api", :no_api do` at line 1157.
-pub fn ruby_tap_spec_l1157_d118_omits(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('omits', ...args)
+pub fn ruby_tap_spec_l1157_d118_omits() !bool {
+	taps := homebrew.ruby_tap_l1423_d96_self_each([], true, true).taps
+	return !taps.any(it.name == 'homebrew/core')
 }
 
 // Ruby it `it "includes only installed taps" do` at line 1164.
-pub fn ruby_tap_spec_l1164_d119_includes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('includes', ...args)
+pub fn ruby_tap_spec_l1164_d119_includes() !bool {
+	core := homebrew.new_tap_reference('Homebrew/core', '')!
+	foo := homebrew.new_tap_reference('Homebrew/foo', '')!
+	installed := [core, foo]
+	return installed.map(it.name) == ['homebrew/core', 'homebrew/foo']
 }
 
 // Ruby it `it "includes the core and cask taps by default", :needs_macos do` at line 1171.
-pub fn ruby_tap_spec_l1171_d120_includes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('includes', ...args)
+pub fn ruby_tap_spec_l1171_d120_includes() !bool {
+	foo := homebrew.new_tap_reference('Homebrew/foo', '')!
+	third := homebrew.new_tap_reference('third-party/tap', '')!
+	names := homebrew.ruby_tap_l1410_d94_self_all([foo, third]).map(it.name)
+	return ['homebrew/core', 'homebrew/cask', 'homebrew/foo', 'third-party/tap'].all(it in names)
 }
 
 // Ruby it `it "includes the core and cask taps by default", :needs_linux do` at line 1180.
-pub fn ruby_tap_spec_l1180_d121_includes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('includes', ...args)
+pub fn ruby_tap_spec_l1180_d121_includes() !bool {
+	foo := homebrew.new_tap_reference('Homebrew/foo', '')!
+	names := homebrew.ruby_tap_l1410_d94_self_all([foo]).map(it.name)
+	return ['homebrew/core', 'homebrew/cask', 'homebrew/foo'].all(it in names)
 }
 
 // Ruby it `it "returns the formula_renames hash" do` at line 1191.
-pub fn ruby_tap_spec_l1191_d122_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_tap_spec_l1191_d122_returns(path string) bool {
+	return homebrew.ruby_tap_l1241_d78_formula_renames(path) == {
+		'oldname': 'foo'
+	}
 }
 
 // Ruby it `it "returns the tap_migrations hash" do` at line 1200.
-pub fn ruby_tap_spec_l1200_d123_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_tap_spec_l1200_d123_returns(path string) bool {
+	return homebrew.ruby_tap_l1263_d80_tap_migrations(path) == {
+		'removed-formula': 'homebrew/foo'
+	}
 }
 
 // Ruby it `it "returns the expected hash" do` at line 1224.
-pub fn ruby_tap_spec_l1224_d124_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_tap_spec_l1224_d124_returns() bool {
+	reverse := homebrew.tap_reverse_migration_renames({
+		'adobe-air-sdk':    'homebrew/cask'
+		'app-engine-go-32': 'homebrew/cask/google-cloud-sdk'
+		'app-engine-go-64': 'homebrew/cask/google-cloud-sdk'
+		'gimp':             'homebrew/cask'
+		'horndis':          'homebrew/cask'
+		'inkscape':         'homebrew/cask'
+		'schismtracker':    'homebrew/cask/schism-tracker'
+	})
+	return reverse == {
+		'homebrew/cask/google-cloud-sdk': ['app-engine-go-32', 'app-engine-go-64']
+		'homebrew/cask/schism-tracker':   ['schismtracker']
+	}
 }
 
 // Ruby let `let(:cask_tap) { CoreCaskTap.instance }` at line 1233.
-pub fn ruby_tap_spec_l1233_d125_cask_tap(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask_tap', ...args)
+pub fn ruby_tap_spec_l1233_d125_cask_tap() !homebrew.TapReference {
+	return homebrew.new_tap_reference('Homebrew/cask', '')
 }
 
 // Ruby let `let(:core_tap) { CoreTap.instance }` at line 1234.
-pub fn ruby_tap_spec_l1234_d126_core_tap(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('core_tap', ...args)
+pub fn ruby_tap_spec_l1234_d126_core_tap() !homebrew.TapReference {
+	return homebrew.new_tap_reference('Homebrew/core', '')
 }
 
 // Ruby it `it "returns expected renames", :no_api do` at line 1236.
-pub fn ruby_tap_spec_l1236_d127_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_tap_spec_l1236_d127_returns() !bool {
+	reverse := homebrew.tap_reverse_migration_renames({
+		'app-engine-go-32': 'homebrew/cask/google-cloud-sdk'
+		'app-engine-go-64': 'homebrew/cask/google-cloud-sdk'
+		'schismtracker':    'homebrew/cask/schism-tracker'
+	})
+	cask := homebrew.new_tap_reference('Homebrew/cask', '')!
+	core := homebrew.new_tap_reference('Homebrew/core', '')!
+	return homebrew.tap_migration_oldnames([reverse], cask, 'gimp') == [] && homebrew.tap_migration_oldnames([
+		reverse,
+	], core, 'schism-tracker') == [] && homebrew.tap_migration_oldnames([reverse], cask, 'schism-tracker') == [
+		'schismtracker',
+	] && homebrew.tap_migration_oldnames([reverse], cask, 'google-cloud-sdk') == [
+		'app-engine-go-32',
+		'app-engine-go-64',
+	]
 }
 
 // Ruby it `it "returns the audit_exceptions hash" do` at line 1250.
-pub fn ruby_tap_spec_l1250_d128_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_tap_spec_l1250_d128_returns(path string) bool {
+	exceptions := homebrew.ruby_tap_l1341_d85_audit_exceptions(path)
+	list := exceptions['formula_list'] or { return false }
+	hash := exceptions['formula_hash'] or { return false }
+	return list is []json2.Any && list.as_array().map(it.str()) == ['foo', 'bar'] && hash is map[string]json2.Any && hash.as_map()['foo'] or { return false }.str() == 'foo1'
 }
 
 // Ruby it `it "returns the style_exceptions hash" do` at line 1262.
-pub fn ruby_tap_spec_l1262_d129_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_tap_spec_l1262_d129_returns(path string) bool {
+	exceptions := homebrew.ruby_tap_l1348_d86_style_exceptions(path)
+	list := exceptions['formula_list'] or { return false }
+	hash := exceptions['formula_hash'] or { return false }
+	return list is []json2.Any && list.as_array().map(it.str()) == ['foo', 'bar'] && hash is map[string]json2.Any && hash.as_map()['bar'] or { return false }.str() == 'bar1'
 }
 
 // Ruby it `it "matches files from Formula/" do` at line 1274.
-pub fn ruby_tap_spec_l1274_d130_matches(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('matches', ...args)
+pub fn ruby_tap_spec_l1274_d130_matches(path string) !bool {
+	os.mkdir_all(os.join_path(path, 'Formula'))!
+	tap := homebrew.new_tap_reference('hard/core', '')!
+	for file in ['kvazaar.rb', 'Casks/kvazaar.rb', 'Casks/k/kvazaar.rb', 'Formula/kvazaar.sh',
+		'HomebrewFormula/kvazaar.rb', 'HomebrewFormula/k/kvazaar.rb'] {
+		if homebrew.tap_formula_file(tap, path, file)! {
+			return false
+		}
+	}
+	return homebrew.tap_formula_file(tap, path, 'Formula/kvazaar.rb')! && homebrew.tap_formula_file(tap, path, 'Formula/k/kvazaar.rb')!
 }
 
 // Ruby it `it "matches files from HomebrewFormula/" do` at line 1299.
-pub fn ruby_tap_spec_l1299_d131_matches(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('matches', ...args)
+pub fn ruby_tap_spec_l1299_d131_matches(path string) !bool {
+	os.mkdir_all(os.join_path(path, 'HomebrewFormula'))!
+	tap := homebrew.new_tap_reference('hard/core', '')!
+	for file in ['kvazaar.rb', 'Casks/kvazaar.rb', 'Casks/k/kvazaar.rb', 'Formula/kvazaar.rb',
+		'Formula/k/kvazaar.rb', 'HomebrewFormula/kvazaar.sh'] {
+		if homebrew.tap_formula_file(tap, path, file)! {
+			return false
+		}
+	}
+	return homebrew.tap_formula_file(tap, path, 'HomebrewFormula/kvazaar.rb')! && homebrew.tap_formula_file(tap, path, 'HomebrewFormula/k/kvazaar.rb')!
 }
 
 // Ruby it `it "matches files from the top-level directory" do` at line 1324.
-pub fn ruby_tap_spec_l1324_d132_matches(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('matches', ...args)
+pub fn ruby_tap_spec_l1324_d132_matches(path string) !bool {
+	os.mkdir_all(path)!
+	tap := homebrew.new_tap_reference('hard/core', '')!
+	for file in ['kvazaar.sh', 'Casks/kvazaar.rb', 'Casks/k/kvazaar.rb', 'Formula/kvazaar.rb',
+		'Formula/k/kvazaar.rb', 'HomebrewFormula/kvazaar.rb', 'HomebrewFormula/k/kvazaar.rb'] {
+		if homebrew.tap_formula_file(tap, path, file)! {
+			return false
+		}
+	}
+	return homebrew.tap_formula_file(tap, path, 'kvazaar.rb')!
 }
 
 // Ruby it `it "matches files from Casks/" do` at line 1347.
-pub fn ruby_tap_spec_l1347_d133_matches(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('matches', ...args)
+pub fn ruby_tap_spec_l1347_d133_matches() bool {
+	for file in ['kvazaar.rb', 'Casks/kvazaar.sh', 'Formula/kvazaar.rb', 'Formula/k/kvazaar.rb',
+		'HomebrewFormula/kvazaar.rb', 'HomebrewFormula/k/kvazaar.rb'] {
+		if homebrew.tap_cask_file(file) {
+			return false
+		}
+	}
+	return homebrew.tap_cask_file('Casks/kvazaar.rb') && homebrew.tap_cask_file('Casks/k/kvazaar.rb')
 }
 
 // Ruby subject `subject(:core_tap) { described_class.instance }` at line 1372.
-pub fn ruby_tap_spec_l1372_d134_core_tap(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('core_tap', ...args)
+pub fn ruby_tap_spec_l1372_d134_core_tap() !homebrew.TapReference {
+	return homebrew.new_tap_reference('Homebrew/core', '')
 }
 
 // Ruby specify `specify "attributes" do` at line 1374.
-pub fn ruby_tap_spec_l1374_d135_attributes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('attributes', ...args)
+pub fn ruby_tap_spec_l1374_d135_attributes(path string) !bool {
+	tap := homebrew.new_tap_reference('Homebrew/core', '')!
+	return tap.user == 'Homebrew' && tap.repository == 'core' && tap.name == 'homebrew/core' && homebrew.tap_command_files(path) == [] && homebrew.ruby_tap_l515_d36_installed(path) && tap.official() && tap_config.ruby_core_tap_l64_d7_core_tap()
 }
 
 // Ruby specify `specify "forbidden operations", :no_api do` at line 1384.
-pub fn ruby_tap_spec_l1384_d136_forbidden(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('forbidden', ...args)
+pub fn ruby_tap_spec_l1384_d136_forbidden() bool {
+	tap_config.core_tap_uninstall(true) or {
+		return err.msg() == 'Tap#uninstall is not available for CoreTap'
+	}
+	return false
 }
 
 // Ruby specify `specify "#autobump reads public formula API metadata" do` at line 1388.
-pub fn ruby_tap_spec_l1388_d137_autobump(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#autobump', ...args)
+pub fn ruby_tap_spec_l1388_d137_autobump() bool {
+	return homebrew.tap_autobump_for_tap(true, false, {
+		'autobumped': homebrew.TapPackageMetadata{ autobump: true }
+		'disabled':   homebrew.TapPackageMetadata{ autobump: true, disabled: true }
+		'skipped':    homebrew.TapPackageMetadata{ autobump: true, skip_livecheck: true }
+	}, {
+		'wrong-api': homebrew.TapPackageMetadata{ autobump: true }
+	}, '/not/present') == ['autobumped']
 }
 
 // Ruby specify `specify "#autobump reads public cask API metadata" do` at line 1400.
-pub fn ruby_tap_spec_l1400_d138_autobump(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#autobump', ...args)
+pub fn ruby_tap_spec_l1400_d138_autobump() bool {
+	return homebrew.tap_autobump_for_tap(false, true, {
+		'wrong-api': homebrew.TapPackageMetadata{ autobump: true }
+	}, {
+		'autobumped': homebrew.TapPackageMetadata{ autobump: true }
+		'disabled':   homebrew.TapPackageMetadata{ autobump: true, disabled: true }
+		'skipped':    homebrew.TapPackageMetadata{ autobump: true, skip_livecheck: true }
+	}, '/not/present') == ['autobumped']
 }
 
 // Ruby specify `specify "files", :no_api do` at line 1414.
-pub fn ruby_tap_spec_l1414_d139_files(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('files', ...args)
+pub fn ruby_tap_spec_l1414_d139_files(path string) !bool {
+	tap := homebrew.new_tap_reference('Homebrew/core', '')!
+	formula_file := os.join_path(path, 'Formula', 'foo.rb')
+	tap_spec_write(formula_file, 'class Foo < Formula\nend\n')!
+	for file in ['formula_renames.json', 'tap_migrations.json', 'audit_exceptions/formula_list.json',
+		'style_exceptions/formula_hash.json'] {
+		tap_spec_write(os.join_path(path, file), '{ "foo": "foo1", "bar": "bar1" }')!
+	}
+	alias_file := os.join_path(path, 'Aliases', 'bar')
+	os.mkdir_all(os.dir(alias_file))!
+	os.symlink(formula_file, alias_file)!
+	formula_files := homebrew.tap_formula_files(tap, path)
+	alias_files := homebrew.tap_alias_files(path)
+	table := tap_config.core_tap_alias_table(alias_files)
+	return formula_files == [formula_file] && tap_config.core_tap_formula_names(formula_files) == [
+		'foo',
+	] && alias_files == [alias_file] && table == {
+		'bar': 'foo'
+	} && homebrew.tap_reverse_table(table) == {
+		'foo': ['bar']
+	} && homebrew.tap_read_string_map(os.join_path(path, 'formula_renames.json')) == {
+		'foo': 'foo1'
+		'bar': 'bar1'
+	}
 }
 
 // Ruby specify `specify do` at line 1455.
-pub fn ruby_tap_spec_l1455_d140_do(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('do', ...args)
+pub fn ruby_tap_spec_l1455_d140_do(tap_directory string) !bool {
+	core := homebrew.new_tap_reference('Homebrew/core', '')!
+	dashes := homebrew.new_tap_reference('my/tap-with-dashes', '')!
+	symbol := homebrew.new_tap_reference('my/tap-with-@-symbol', '')!
+	return homebrew.tap_repository_var_suffix(core, tap_directory) == '_HOMEBREW_HOMEBREW_CORE' && homebrew.tap_repository_var_suffix(dashes, tap_directory) == '_MY_HOMEBREW_TAP_WITH_DASHES' && homebrew.tap_repository_var_suffix(symbol, tap_directory) == '_MY_HOMEBREW_TAP_WITH___SYMBOL'
 }
 
 // Ruby it `it "returns the tap and formula name when given a full name" do` at line 1467.
-pub fn ruby_tap_spec_l1467_d141_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_tap_spec_l1467_d141_returns() bool {
+	tap, name := homebrew.tap_with_formula_name('homebrew/core/gcc') or { return false }
+	return tap.name == 'homebrew/core' && name == 'gcc'
 }
 
 // Ruby it `it "returns nil when given a relative path" do` at line 1471.
-pub fn ruby_tap_spec_l1471_d142_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_tap_spec_l1471_d142_returns() bool {
+	return homebrew.tap_with_formula_name('./Formula/gcc.rb') == none
 }
 
 // Ruby it `it "returns the tap and cask token when given a full token" do` at line 1477.
-pub fn ruby_tap_spec_l1477_d143_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_tap_spec_l1477_d143_returns() bool {
+	tap, token := homebrew.tap_with_cask_token('homebrew/cask/alfred') or { return false }
+	return tap.name == 'homebrew/cask' && token == 'alfred'
 }
 
 // Ruby it `it "returns nil when given a relative path" do` at line 1481.
-pub fn ruby_tap_spec_l1481_d144_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_tap_spec_l1481_d144_returns() bool {
+	return homebrew.tap_with_cask_token('./Casks/alfred.rb') == none
+}
+
+pub struct TapSpecBoundary {
+pub:
+	line   int
+	passed bool
+}
+
+pub fn tap_spec_all_boundaries(root string) ![]TapSpecBoundary {
+	os.mkdir_all(root)!
+	defer {
+		os.rmdir_all(root) or {}
+	}
+	mut boundaries := []TapSpecBoundary{}
+	tap_directory := os.join_path(root, 'Taps')
+	os.mkdir_all(tap_directory)!
+	foo := ruby_tap_spec_l5_d1_homebrew_foo_tap()!
+	path := ruby_tap_spec_l7_d2_path(tap_directory)
+	boundaries << TapSpecBoundary{ line: 5, passed: foo.name == 'homebrew/foo' }
+	boundaries << TapSpecBoundary{ line: 7, passed: path.ends_with('homebrew/homebrew-foo') }
+	boundaries << TapSpecBoundary{ line: 8, passed: ruby_tap_spec_l8_d3_formula_file(path).ends_with('Formula/foo.rb') }
+	boundaries << TapSpecBoundary{ line: 9, passed: ruby_tap_spec_l9_d4_alias_file(path).ends_with('Aliases/bar') }
+	boundaries << TapSpecBoundary{ line: 10, passed: ruby_tap_spec_l10_d5_cmd_file(path).ends_with('cmd/brew-tap-cmd.rb') }
+	boundaries << TapSpecBoundary{ line: 11, passed: ruby_tap_spec_l11_d6_manpage_file(path).ends_with('manpages/brew-tap-cmd.1') }
+	boundaries << TapSpecBoundary{ line: 12, passed: ruby_tap_spec_l12_d7_bash_completion_file(path).ends_with('bash/brew-tap-cmd') }
+	boundaries << TapSpecBoundary{ line: 13, passed: ruby_tap_spec_l13_d8_zsh_completion_file(path).ends_with('zsh/_brew-tap-cmd') }
+	boundaries << TapSpecBoundary{ line: 14, passed: ruby_tap_spec_l14_d9_fish_completion_file(path).ends_with('fish/brew-tap-cmd.fish') }
+	boundaries << TapSpecBoundary{ line: 18, passed: ruby_tap_spec_l18_d10_have_cask_file('Casks/a.rb') }
+	formula_root := os.join_path(root, 'formula-matcher')
+	os.mkdir_all(os.join_path(formula_root, 'Formula'))!
+	boundaries << TapSpecBoundary{ line: 19, passed: ruby_tap_spec_l19_d11_have_formula_file(foo, formula_root, 'Formula/a.rb')! }
+	boundaries << TapSpecBoundary{ line: 20, passed: !ruby_tap_spec_l20_d12_have_custom_remote(foo) }
+	fixture := os.join_path(root, 'fixture')
+	boundaries << TapSpecBoundary{ line: 31, passed: ruby_tap_spec_l31_d13_setup_tap_files(fixture)!.formula_file.ends_with('foo.rb') }
+	git_helper := os.join_path(root, 'git-helper')
+	boundaries << TapSpecBoundary{ line: 76, passed: ruby_tap_spec_l76_d14_setup_git_repo(git_helper)!.is_git_repository() }
+	boundaries << TapSpecBoundary{ line: 85, passed: ruby_tap_spec_l85_d15_setup_completion(true) }
+	boundaries << TapSpecBoundary{ line: 98, passed: ruby_tap_spec_l98_d16_fetch()! }
+	boundaries << TapSpecBoundary{ line: 119, passed: ruby_tap_spec_l119_d17_tap()!.name == 'homebrew/core' }
+	boundaries << TapSpecBoundary{ line: 120, passed: ruby_tap_spec_l120_d18_path(tap_directory)!.contains('homebrew-core') }
+	boundaries << TapSpecBoundary{ line: 121, passed: ruby_tap_spec_l121_d19_formula_path('/tap').ends_with('Formula/formula.rb') }
+	boundaries << TapSpecBoundary{ line: 123, passed: ruby_tap_spec_l123_d20_returns(tap_directory)! }
+	boundaries << TapSpecBoundary{ line: 127, passed: ruby_tap_spec_l127_d21_returns(tap_directory)! }
+	boundaries << TapSpecBoundary{ line: 132, passed: ruby_tap_spec_l132_d22_tap()!.name == 'str4d.xyz/rage' }
+	boundaries << TapSpecBoundary{ line: 138, passed: ruby_tap_spec_l138_d23_returns(tap_directory)! }
+	boundaries << TapSpecBoundary{ line: 147, passed: ruby_tap_spec_l147_d24_returns() }
+	boundaries << TapSpecBoundary{ line: 151, passed: ruby_tap_spec_l151_d25_normalises() }
+	boundaries << TapSpecBoundary{ line: 156, passed: ruby_tap_spec_l156_d26_preserves() }
+	boundaries << TapSpecBoundary{ line: 161, passed: ruby_tap_spec_l161_d27_warns() }
+	boundaries << TapSpecBoundary{ line: 170, passed: ruby_tap_spec_l170_d28_returns() }
+	boundaries << TapSpecBoundary{ line: 176, passed: ruby_tap_spec_l176_d29_recognises() }
+	boundaries << TapSpecBoundary{ line: 180, passed: ruby_tap_spec_l180_d30_recognises() }
+	boundaries << TapSpecBoundary{ line: 184, passed: ruby_tap_spec_l184_d31_treats() }
+	boundaries << TapSpecBoundary{ line: 188, passed: ruby_tap_spec_l188_d32_treats() }
+	boundaries << TapSpecBoundary{ line: 192, passed: ruby_tap_spec_l192_d33_treats() }
+	boundaries << TapSpecBoundary{ line: 198, passed: ruby_tap_spec_l198_d34_keeps() }
+	boundaries << TapSpecBoundary{ line: 205, passed: ruby_tap_spec_l205_d35_ignores() }
+	boundaries << TapSpecBoundary{ line: 210, passed: ruby_tap_spec_l210_d36_ignores() }
+	boundaries << TapSpecBoundary{ line: 215, passed: ruby_tap_spec_l215_d37_ignores() }
+	boundaries << TapSpecBoundary{ line: 220, passed: ruby_tap_spec_l220_d38_keeps() }
+	boundaries << TapSpecBoundary{ line: 225, passed: ruby_tap_spec_l225_d39_still() }
+	boundaries << TapSpecBoundary{ line: 230, passed: ruby_tap_spec_l230_d40_keeps() }
+	boundaries << TapSpecBoundary{ line: 235, passed: ruby_tap_spec_l235_d41_treats() }
+	boundaries << TapSpecBoundary{ line: 240, passed: ruby_tap_spec_l240_d42_treats() }
+	boundaries << TapSpecBoundary{ line: 245, passed: ruby_tap_spec_l245_d43_treats() }
+	boundaries << TapSpecBoundary{ line: 250, passed: ruby_tap_spec_l250_d44_treats() }
+	boundaries << TapSpecBoundary{ line: 255, passed: ruby_tap_spec_l255_d45_keeps() }
+	boundaries << TapSpecBoundary{ line: 262, passed: ruby_tap_spec_l262_d46_tap()!.name == 'user/repo' }
+	boundaries << TapSpecBoundary{ line: 264, passed: ruby_tap_spec_l264_d47_matches()! }
+	boundaries << TapSpecBoundary{ line: 268, passed: ruby_tap_spec_l268_d48_matches()! }
+	boundaries << TapSpecBoundary{ line: 272, passed: ruby_tap_spec_l272_d49_does()! }
+	boundaries << TapSpecBoundary{ line: 276, passed: ruby_tap_spec_l276_d50_matches()! }
+	boundaries << TapSpecBoundary{ line: 281, passed: ruby_tap_spec_l281_d51_matches()! }
+	boundaries << TapSpecBoundary{ line: 285, passed: ruby_tap_spec_l285_d52_matches()! }
+	boundaries << TapSpecBoundary{ line: 289, passed: ruby_tap_spec_l289_d53_matches()! }
+	boundaries << TapSpecBoundary{ line: 298, passed: ruby_tap_spec_l298_d54_does()! }
+	boundaries << TapSpecBoundary{ line: 302, passed: ruby_tap_spec_l302_d55_does()! }
+	boundaries << TapSpecBoundary{ line: 309, passed: ruby_tap_spec_l309_d56_is()! }
+	boundaries << TapSpecBoundary{ line: 314, passed: ruby_tap_spec_l314_d57_is()! }
+	boundaries << TapSpecBoundary{ line: 319, passed: ruby_tap_spec_l319_d58_is() }
+	boundaries << TapSpecBoundary{ line: 325, passed: ruby_tap_spec_l325_d59_is() }
+	boundaries << TapSpecBoundary{ line: 332, passed: ruby_tap_spec_l332_d60_is() }
+	boundaries << TapSpecBoundary{ line: 338, passed: ruby_tap_spec_l338_d61_accepts() }
+	boundaries << TapSpecBoundary{ line: 348, passed: ruby_tap_spec_l348_d62_forbids()! }
+	os.mkdir_all(os.join_path(tap_directory, 'homebrew', 'homebrew-foo'))!
+	boundaries << TapSpecBoundary{ line: 354, passed: ruby_tap_spec_l354_d63_attributes(tap_directory)! }
+	boundaries << TapSpecBoundary{ line: 364, passed: ruby_tap_spec_l364_d64_issues_url()! }
+	boundaries << TapSpecBoundary{ line: 382, passed: ruby_tap_spec_l382_d65_files(os.join_path(root, 'files'))! }
+	boundaries << TapSpecBoundary{ line: 434, passed: ruby_tap_spec_l434_d66_groups() }
+	boundaries << TapSpecBoundary{ line: 444, passed: ruby_tap_spec_l444_d67_returns(os.join_path(root, 'remote'))! }
+	boundaries << TapSpecBoundary{ line: 459, passed: ruby_tap_spec_l459_d68_returns(os.join_path(root, 'not-git'))! }
+	boundaries << TapSpecBoundary{ line: 463, passed: ruby_tap_spec_l463_d69_reads(os.join_path(root, 'config'))! }
+	boundaries << TapSpecBoundary{ line: 471, passed: ruby_tap_spec_l471_d70_returns(os.join_path(root, 'https'))! }
+	boundaries << TapSpecBoundary{ line: 485, passed: ruby_tap_spec_l485_d71_returns(os.join_path(root, 'ssh'))! }
+	boundaries << TapSpecBoundary{ line: 499, passed: ruby_tap_spec_l499_d72_returns(os.join_path(root, 'none'))! }
+	boundaries << TapSpecBoundary{ line: 503, passed: ruby_tap_spec_l503_d73_reads(os.join_path(root, 'config2'))! }
+	boundaries << TapSpecBoundary{ line: 511, passed: ruby_tap_spec_l511_d74_tap()!.name == 'homebrew/test-bot' }
+	boundaries << TapSpecBoundary{ line: 513, passed: ruby_tap_spec_l513_d75_remote() == none }
+	boundaries << TapSpecBoundary{ line: 522, passed: ruby_tap_spec_l522_d76_returns()! }
+	boundaries << TapSpecBoundary{ line: 529, passed: ruby_tap_spec_l529_d77_remote().contains('github.com') }
+	boundaries << TapSpecBoundary{ line: 531, passed: ruby_tap_spec_l531_d78_custom_remote()! }
+	boundaries << TapSpecBoundary{ line: 535, passed: ruby_tap_spec_l535_d79_remote().ends_with('.git') }
+	boundaries << TapSpecBoundary{ line: 537, passed: ruby_tap_spec_l537_d80_custom_remote()! }
+	boundaries << TapSpecBoundary{ line: 541, passed: ruby_tap_spec_l541_d81_remote().starts_with('git@') }
+	boundaries << TapSpecBoundary{ line: 543, passed: ruby_tap_spec_l543_d82_custom_remote()! }
+	boundaries << TapSpecBoundary{ line: 547, passed: ruby_tap_spec_l547_d83_remote().contains('gitlab.com') }
+	boundaries << TapSpecBoundary{ line: 549, passed: ruby_tap_spec_l549_d84_custom_remote()! }
+	boundaries << TapSpecBoundary{ line: 554, passed: ruby_tap_spec_l554_d85_moves()! }
+	boundaries << TapSpecBoundary{ line: 587, passed: ruby_tap_spec_l587_d86_prints()! }
+	boundaries << TapSpecBoundary{ line: 608, passed: ruby_tap_spec_l608_d87_updates()! }
+	boundaries << TapSpecBoundary{ line: 626, passed: ruby_tap_spec_l626_d88_refuses()! }
+	boundaries << TapSpecBoundary{ line: 645, passed: ruby_tap_spec_l645_d89_refuses()! }
+	boundaries << TapSpecBoundary{ line: 664, passed: ruby_tap_spec_l664_d90_applies()! }
+	boundaries << TapSpecBoundary{ line: 684, passed: ruby_tap_spec_l684_d91_treats()! }
+	boundaries << TapSpecBoundary{ line: 703, passed: ruby_tap_spec_l703_d92_terminates() }
+	boundaries << TapSpecBoundary{ line: 717, passed: ruby_tap_spec_l717_d93_git(os.join_path(root, 'git-variant'))! }
+	boundaries << TapSpecBoundary{ line: 725, passed: ruby_tap_spec_l725_d94_private() }
+	boundaries << TapSpecBoundary{ line: 730, passed: ruby_tap_spec_l730_d95_disables() }
+	boundaries << TapSpecBoundary{ line: 740, passed: ruby_tap_spec_l740_d96_does() }
+	boundaries << TapSpecBoundary{ line: 758, passed: ruby_tap_spec_l758_d97_raises()! }
+	boundaries << TapSpecBoundary{ line: 765, passed: ruby_tap_spec_l765_d98_raises()! }
+	boundaries << TapSpecBoundary{ line: 773, passed: ruby_tap_spec_l773_d99_refuses()! }
+	boundaries << TapSpecBoundary{ line: 781, passed: ruby_tap_spec_l781_d100_raises()! }
+	boundaries << TapSpecBoundary{ line: 791, passed: ruby_tap_spec_l791_d101_raises()! }
+	boundaries << TapSpecBoundary{ line: 799, passed: ruby_tap_spec_l799_d102_creates()! }
+	boundaries << TapSpecBoundary{ line: 854, passed: ruby_tap_spec_l854_d103_creates()! }
+	boundaries << TapSpecBoundary{ line: 896, passed: ruby_tap_spec_l896_d104_creates()! }
+	boundaries << TapSpecBoundary{ line: 946, passed: ruby_tap_spec_l946_d105_uses()! }
+	boundaries << TapSpecBoundary{ line: 981, passed: ruby_tap_spec_l981_d106_raises()! }
+	boundaries << TapSpecBoundary{ line: 991, passed: ruby_tap_spec_l991_d107_raises()! }
+	boundaries << TapSpecBoundary{ line: 1000, passed: ruby_tap_spec_l1000_d108_git()! }
+	boundaries << TapSpecBoundary{ line: 1013, passed: ruby_tap_spec_l1013_d109_raises()! }
+	boundaries << TapSpecBoundary{ line: 1018, passed: ruby_tap_spec_l1018_d110_removes()! }
+	boundaries << TapSpecBoundary{ line: 1039, passed: ruby_tap_spec_l1039_d111_install()! }
+	boundaries << TapSpecBoundary{ line: 1066, passed: ruby_tap_spec_l1066_d112_link_completions_and_manpages()! }
+	boundaries << TapSpecBoundary{ line: 1089, passed: ruby_tap_spec_l1089_d113_link_completions_and_manpages()! }
+	boundaries << TapSpecBoundary{ line: 1109, passed: ruby_tap_spec_l1109_d114_link_completions_and_manpages()! }
+	boundaries << TapSpecBoundary{ line: 1130, passed: ruby_tap_spec_l1130_d115_config() }
+	boundaries << TapSpecBoundary{ line: 1141, passed: ruby_tap_spec_l1141_d116_returns() }
+	boundaries << TapSpecBoundary{ line: 1153, passed: ruby_tap_spec_l1153_d117_includes()! }
+	boundaries << TapSpecBoundary{ line: 1157, passed: ruby_tap_spec_l1157_d118_omits()! }
+	boundaries << TapSpecBoundary{ line: 1164, passed: ruby_tap_spec_l1164_d119_includes()! }
+	boundaries << TapSpecBoundary{ line: 1171, passed: ruby_tap_spec_l1171_d120_includes()! }
+	boundaries << TapSpecBoundary{ line: 1180, passed: ruby_tap_spec_l1180_d121_includes()! }
+	boundaries << TapSpecBoundary{ line: 1191, passed: ruby_tap_spec_l1191_d122_returns(fixture) }
+	boundaries << TapSpecBoundary{ line: 1200, passed: ruby_tap_spec_l1200_d123_returns(fixture) }
+	boundaries << TapSpecBoundary{ line: 1224, passed: ruby_tap_spec_l1224_d124_returns() }
+	boundaries << TapSpecBoundary{ line: 1233, passed: ruby_tap_spec_l1233_d125_cask_tap()!.name == 'homebrew/cask' }
+	boundaries << TapSpecBoundary{ line: 1234, passed: ruby_tap_spec_l1234_d126_core_tap()!.name == 'homebrew/core' }
+	boundaries << TapSpecBoundary{ line: 1236, passed: ruby_tap_spec_l1236_d127_returns()! }
+	boundaries << TapSpecBoundary{ line: 1250, passed: ruby_tap_spec_l1250_d128_returns(fixture) }
+	boundaries << TapSpecBoundary{ line: 1262, passed: ruby_tap_spec_l1262_d129_returns(fixture) }
+	boundaries << TapSpecBoundary{ line: 1274, passed: ruby_tap_spec_l1274_d130_matches(os.join_path(root, 'formula-dir'))! }
+	boundaries << TapSpecBoundary{ line: 1299, passed: ruby_tap_spec_l1299_d131_matches(os.join_path(root, 'homebrew-formula-dir'))! }
+	boundaries << TapSpecBoundary{ line: 1324, passed: ruby_tap_spec_l1324_d132_matches(os.join_path(root, 'top-formula-dir'))! }
+	boundaries << TapSpecBoundary{ line: 1347, passed: ruby_tap_spec_l1347_d133_matches() }
+	boundaries << TapSpecBoundary{ line: 1372, passed: ruby_tap_spec_l1372_d134_core_tap()!.name == 'homebrew/core' }
+	core_path := os.join_path(root, 'core-attributes')
+	os.mkdir_all(core_path)!
+	boundaries << TapSpecBoundary{ line: 1374, passed: ruby_tap_spec_l1374_d135_attributes(core_path)! }
+	boundaries << TapSpecBoundary{ line: 1384, passed: ruby_tap_spec_l1384_d136_forbidden() }
+	boundaries << TapSpecBoundary{ line: 1388, passed: ruby_tap_spec_l1388_d137_autobump() }
+	boundaries << TapSpecBoundary{ line: 1400, passed: ruby_tap_spec_l1400_d138_autobump() }
+	boundaries << TapSpecBoundary{ line: 1414, passed: ruby_tap_spec_l1414_d139_files(os.join_path(root, 'core-files'))! }
+	boundaries << TapSpecBoundary{ line: 1455, passed: ruby_tap_spec_l1455_d140_do(tap_directory)! }
+	boundaries << TapSpecBoundary{ line: 1467, passed: ruby_tap_spec_l1467_d141_returns() }
+	boundaries << TapSpecBoundary{ line: 1471, passed: ruby_tap_spec_l1471_d142_returns() }
+	boundaries << TapSpecBoundary{ line: 1477, passed: ruby_tap_spec_l1477_d143_returns() }
+	boundaries << TapSpecBoundary{ line: 1481, passed: ruby_tap_spec_l1481_d144_returns() }
+	return boundaries
 }
 
 // Original Ruby source (line-for-line):

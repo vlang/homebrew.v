@@ -1,279 +1,1580 @@
 module homebrew
 
 import brew_runtime
+import os
+import time
+
+const cleanup_default_days = 30
+const cleanup_gh_actions_days = 3
+
+pub struct CleanupPath {
+pub:
+	path          string
+	exists        bool
+	directory     bool
+	file          bool
+	symlink       bool
+	resolved_file bool
+	mtime         i64
+	ctime         i64
+	disk_usage    i64
+	locked        bool
+}
+
+pub struct CleanupEntry {
+pub:
+	path      CleanupPath
+	type_name string
+}
+
+pub struct CleanupFormula {
+pub:
+	name                     string
+	aliases                  []string
+	latest_version_installed bool
+	pkg_version              string
+	installed_versions       []string
+	eligible_versions        []string
+	resource_versions        map[string]string
+	patch_versions           []string
+	bottle_version           string
+	bottle_rebuild           int
+	bottle_outdated          bool
+	untrusted                bool
+}
+
+pub struct CleanupCask {
+pub:
+	token             string
+	version           string
+	installed_version string
+	latest            bool
+	url               string
+	caskroom_path     string
+}
+
+pub struct Cleanup {
+pub mut:
+	args                  []string
+	days                  int
+	cache                 string
+	disk_cleanup_size     i64
+	dry_run               bool
+	prune                 bool
+	scrub                 bool
+	cleaned_up_paths      map[string]bool
+	formula_cache_paths   map[string][]string
+	formula_cache_indexed bool
+	unremovable_kegs      []brew_runtime.Value
+	output                []string
+}
+
+fn cleanup_nil() brew_runtime.Value {
+	return brew_runtime.object_value('NilClass', 'nil')
+}
+
+fn cleanup_bool_attr(value brew_runtime.Value, name string, fallback bool) bool {
+	raw := value.attributes[name] or { return fallback }
+	return raw == 'true' || raw == '1'
+}
+
+fn cleanup_int_attr(value brew_runtime.Value, name string, fallback i64) i64 {
+	return (value.attributes[name] or { return fallback }).i64()
+}
+
+fn cleanup_string_list(value brew_runtime.Value, name string) []string {
+	raw := value.attributes[name] or { return [] }
+	if raw == '' {
+		return []
+	}
+	return raw.split('\x1f')
+}
+
+fn cleanup_path_from_value(value brew_runtime.Value) CleanupPath {
+	path := value.as_string()
+	exists := cleanup_bool_attr(value, 'exists', os.exists(path))
+	symlink := cleanup_bool_attr(value, 'symlink', os.is_link(path))
+	directory := cleanup_bool_attr(value, 'directory', os.is_dir(path))
+	file := cleanup_bool_attr(value, 'file', os.is_file(path))
+	mtime := cleanup_int_attr(value, 'mtime', if os.exists(path) {
+		os.file_last_mod_unix(path)
+	} else {
+		0
+	})
+	ctime := cleanup_int_attr(value, 'ctime', mtime)
+	return CleanupPath{
+		path: path
+		exists: exists
+		directory: directory
+		file: file
+		symlink: symlink
+		resolved_file: cleanup_bool_attr(value, 'resolved_file', file)
+		mtime: mtime
+		ctime: ctime
+		disk_usage: cleanup_int_attr(value, 'disk_usage', if os.is_file(path) {
+			i64(os.file_size(path))} else {
+			0})
+		locked: cleanup_bool_attr(value, 'locked', false)
+	}
+}
+
+fn cleanup_path_value(path CleanupPath) brew_runtime.Value {
+	return brew_runtime.structured_value('Pathname', path.path, {
+		'exists':        path.exists.str()
+		'directory':     path.directory.str()
+		'file':          path.file.str()
+		'symlink':       path.symlink.str()
+		'resolved_file': path.resolved_file.str()
+		'mtime':         path.mtime.str()
+		'ctime':         path.ctime.str()
+		'disk_usage':    path.disk_usage.str()
+		'locked':        path.locked.str()
+	})
+}
+
+fn cleanup_entry_from_value(value brew_runtime.Value) CleanupEntry {
+	path_value := value.map_data['path'] or { value }
+	type_value := value.map_data['type'] or { cleanup_nil() }
+	return CleanupEntry{
+		path: cleanup_path_from_value(path_value)
+		type_name: if type_value.type_name == 'NilClass' {
+			''} else {
+			type_value.as_string().trim_left(':')}
+	}
+}
+
+fn cleanup_entry_value(entry CleanupEntry) brew_runtime.Value {
+	return brew_runtime.map_value({
+		'path': cleanup_path_value(entry.path)
+		'type': if entry.type_name == '' {
+			cleanup_nil()
+		} else {
+			brew_runtime.object_value('Symbol', ':${entry.type_name}')
+		}
+	})
+}
+
+fn cleanup_formula_from_value(value brew_runtime.Value) CleanupFormula {
+	mut resources := map[string]string{}
+	if resource_values := value.map_data['resource_versions'] {
+		for key, item in resource_values.map_data {
+			resources[key] = item.as_string()
+		}
+	}
+	return CleanupFormula{
+		name: value.attributes['name'] or { value.as_string() }
+		aliases: cleanup_string_list(value, 'aliases')
+		latest_version_installed: cleanup_bool_attr(value, 'latest_version_installed', false)
+		pkg_version: value.attributes['pkg_version'] or { '' }
+		installed_versions: cleanup_string_list(value, 'installed_versions')
+		eligible_versions: cleanup_string_list(value, 'eligible_versions')
+		resource_versions: resources
+		patch_versions: cleanup_string_list(value, 'patch_versions')
+		bottle_version: value.attributes['bottle_version'] or { '' }
+		bottle_rebuild: int(cleanup_int_attr(value, 'bottle_rebuild', 0))
+		bottle_outdated: cleanup_bool_attr(value, 'bottle_outdated', false)
+		untrusted: cleanup_bool_attr(value, 'untrusted', false)
+	}
+}
+
+fn cleanup_formula_value(formula CleanupFormula) brew_runtime.Value {
+	mut resources := map[string]brew_runtime.Value{}
+	for key, version in formula.resource_versions {
+		resources[key] = brew_runtime.string_value(version)
+	}
+	return brew_runtime.Value{
+		type_name: 'Formula'
+		repr: formula.name
+		map_data: {
+			'resource_versions': brew_runtime.map_value(resources)
+		}
+		attributes: {
+			'name':                     formula.name
+			'aliases':                  formula.aliases.join('\x1f')
+			'latest_version_installed': formula.latest_version_installed.str()
+			'pkg_version':              formula.pkg_version
+			'installed_versions':       formula.installed_versions.join('\x1f')
+			'eligible_versions':        formula.eligible_versions.join('\x1f')
+			'patch_versions':           formula.patch_versions.join('\x1f')
+			'bottle_version':           formula.bottle_version
+			'bottle_rebuild':           formula.bottle_rebuild.str()
+			'bottle_outdated':          formula.bottle_outdated.str()
+			'untrusted':                formula.untrusted.str()
+		}
+	}
+}
+
+fn cleanup_cask_from_value(value brew_runtime.Value) CleanupCask {
+	return CleanupCask{
+		token: value.attributes['token'] or { value.as_string() }
+		version: value.attributes['version'] or { '' }
+		installed_version: value.attributes['installed_version'] or { '' }
+		latest: cleanup_bool_attr(value, 'latest', false)
+		url: value.attributes['url'] or { '' }
+		caskroom_path: value.attributes['caskroom_path'] or { '' }
+	}
+}
+
+fn cleanup_cask_value(cask CleanupCask) brew_runtime.Value {
+	return brew_runtime.structured_value('Cask::Cask', cask.token, {
+		'token':             cask.token
+		'version':           cask.version
+		'installed_version': cask.installed_version
+		'latest':            cask.latest.str()
+		'url':               cask.url
+		'caskroom_path':     cask.caskroom_path
+	})
+}
+
+fn cleanup_new(arguments []string, dry_run bool, scrub bool, days ?int, cache string) &Cleanup {
+	return &Cleanup{
+		args: arguments.clone()
+		days: days or { cleanup_default_days }
+		cache: cache
+		disk_cleanup_size: 0
+		dry_run: dry_run
+		prune: days != none
+		scrub: scrub
+		cleaned_up_paths: map[string]bool{}
+		formula_cache_paths: map[string][]string{}
+		unremovable_kegs: []brew_runtime.Value{}
+		output: []string{}
+	}
+}
+
+fn cleanup_value(cleanup &Cleanup) brew_runtime.Value {
+	return brew_runtime.Value{
+		type_name: 'Homebrew::Cleanup'
+		repr: 'Homebrew::Cleanup'
+		array_data: cleanup.unremovable_kegs.clone()
+		map_data: {
+			'output': brew_runtime.string_array_value(cleanup.output)
+		}
+		attributes: {
+			'cleanup_address':   u64(voidptr(cleanup)).str()
+			'dry_run':           cleanup.dry_run.str()
+			'scrub':             cleanup.scrub.str()
+			'prune':             cleanup.prune.str()
+			'days':              cleanup.days.str()
+			'cache':             cleanup.cache
+			'disk_cleanup_size': cleanup.disk_cleanup_size.str()
+			'args':              cleanup.args.join('\x1f')
+		}
+	}
+}
+
+fn cleanup_from_value(value brew_runtime.Value) &Cleanup {
+	address := value.attributes['cleanup_address'] or { panic('invalid Cleanup receiver') }
+	return unsafe { &Cleanup(voidptr(address.u64())) }
+}
+
+fn cleanup_output_value(cleanup &Cleanup) brew_runtime.Value {
+	return brew_runtime.string_value(if cleanup.output.len == 0 {
+		''
+	} else {
+		cleanup.output.join('\n') + '\n'
+	})
+}
+
+fn cleanup_remove(path string) {
+	if os.is_dir(path) && !os.is_link(path) {
+		os.rmdir_all(path) or { panic(err) }
+	} else if os.exists(path) || os.is_link(path) {
+		os.rm(path) or { panic(err) }
+	}
+}
+
+fn cleanup_each_path(root string) []string {
+	if !os.is_dir(root) {
+		return []
+	}
+	mut result := []string{}
+	for name in os.ls(root) or { [] } {
+		path := os.join_path(root, name)
+		result << path
+		if os.is_dir(path) && !os.is_link(path) {
+			result << cleanup_each_path(path)
+		}
+	}
+	return result
+}
+
+pub fn cleanup_incomplete(path CleanupPath) bool {
+	return os.file_ext(path.path).ends_with('.incomplete')
+}
+
+pub fn cleanup_nested_cache(path CleanupPath) bool {
+	return path.directory && os.base(path.path) in [
+		'cargo_cache',
+		'go_cache',
+		'go_mod_cache',
+		'glide_home',
+		'java_cache',
+		'npm_cache',
+		'pip_cache',
+		'gclient_cache',
+	]
+}
+
+pub fn cleanup_go_cache_directory(path CleanupPath) bool {
+	return path.directory && os.base(path.path) in ['go_cache', 'go_mod_cache']
+}
+
+pub fn cleanup_prune(path CleanupPath, days ?int, now i64) bool {
+	prune_days := days or { return false }
+	if prune_days == 0 {
+		return true
+	}
+	if path.symlink && !path.exists {
+		return true
+	}
+	threshold := now - i64(prune_days) * 24 * 60 * 60
+	return path.mtime < threshold && path.ctime < threshold
+}
+
+pub fn cleanup_cask_cache_file_current(path CleanupPath, cask CleanupCask, name string) bool {
+	basename := os.base(path.path)
+	prefix := '${name}--${cask.version}'
+	return basename == prefix || basename.starts_with('${prefix}.')
+}
+
+pub fn cleanup_stale_cask_download(path CleanupPath, cask CleanupCask, name string,
+	scrub bool, now i64) bool {
+	if !path.exists || !cleanup_cask_cache_file_current(path, cask, name) {
+		return true
+	}
+	if scrub && cask.installed_version != cask.version {
+		return true
+	}
+	if cask.latest {
+		return cleanup_prune(path, cleanup_default_days, now)
+	}
+	return false
+}
+
+pub fn cleanup_stale_api_source(path CleanupPath, scrub bool, package_found bool,
+	package_git_head string) bool {
+	if scrub {
+		return true
+	}
+	parts := path.path.split('/').filter(it != '')
+	mut source_index := -1
+	for index in 0 .. parts.len {
+		if parts[index] == 'api-source' {
+			source_index = index
+		}
+	}
+	if source_index < 0 || parts.len - source_index - 1 < 4 || !os.base(path.path).ends_with('.rb') {
+		return false
+	}
+	relative := parts[source_index + 1..]
+	type_name := relative[3]
+	if type_name !in ['Cask', 'Formula'] {
+		return false
+	}
+	if !package_found {
+		return true
+	}
+	return package_git_head != relative[2]
+}
+
+pub fn cleanup_excluded_versions(formula CleanupFormula) []string {
+	mut result := []string{}
+	for version in formula.installed_versions {
+		if version !in formula.eligible_versions {
+			result << version
+		}
+	}
+	return result
+}
+
+fn cleanup_cache_components(path CleanupPath) (string, string, string) {
+	basename := os.base(path.path)
+	extension := os.file_ext(basename)
+	mut stem := if extension == '' { basename } else { basename[..basename.len - extension.len] }
+	if path.path.contains('#resolved-version=') {
+		resolved := path.path.all_after_last('#resolved-version=')
+		stem = stem.all_before('#resolved-version=')
+		parts := stem.split('--')
+		return parts[0], if parts.len > 2 { parts[1] } else { '' }, resolved
+	}
+	parts := stem.split('--')
+	if parts.len >= 2 {
+		return parts[0], if parts.len > 2 { parts[1] } else { '' }, parts.last()
+	}
+	mut separator := stem.last_index('-') or { return '', '', '' }
+	if separator > 0 && stem[separator - 1] == `-` {
+		separator--
+	}
+	return stem[..separator], '', stem[separator + 1..]
+}
+
+fn cleanup_version_base(version string) string {
+	if dash := version.last_index('-') {
+		suffix := version[dash + 1..]
+		if suffix != '' && suffix.bytes().all(it.is_digit()) {
+			return version[..dash]
+		}
+	}
+	return version
+}
+
+fn cleanup_version_greater(left string, right string) bool {
+	left_parts := left.split_any('.-_').map(it.int())
+	right_parts := right.split_any('.-_').map(it.int())
+	maximum := if left_parts.len > right_parts.len { left_parts.len } else { right_parts.len }
+	for index in 0 .. maximum {
+		left_value := if index < left_parts.len { left_parts[index] } else { 0 }
+		right_value := if index < right_parts.len { right_parts[index] } else { 0 }
+		if left_value != right_value {
+			return left_value > right_value
+		}
+	}
+	return false
+}
+
+pub fn cleanup_stale_formula(path CleanupPath, scrub bool, cellar_exists bool,
+	formula ?CleanupFormula) bool {
+	if !cellar_exists {
+		return false
+	}
+	formula_name, resource_name, version := cleanup_cache_components(path)
+	if formula_name == '' || version == '' {
+		return false
+	}
+	loaded_formula := formula or { return false }
+	if loaded_formula.untrusted {
+		return false
+	}
+	mut actual_name := formula_name
+	if formula_name.ends_with('_bottle_manifest') {
+		actual_name = formula_name.trim_string_right('_bottle_manifest')
+		if actual_name != loaded_formula.name {
+			return false
+		}
+		excluded := cleanup_excluded_versions(loaded_formula)
+		if version in excluded || cleanup_version_base(version) in excluded {
+			return false
+		}
+		if !loaded_formula.latest_version_installed {
+			return false
+		}
+		if loaded_formula.bottle_version == '' {
+			return false
+		}
+		expected := if loaded_formula.bottle_rebuild > 0 {
+			'${loaded_formula.bottle_version}-${loaded_formula.bottle_rebuild}'
+		} else {
+			loaded_formula.bottle_version
+		}
+		return version != expected
+	}
+	if actual_name != loaded_formula.name {
+		return false
+	}
+	if resource_name == 'patch' {
+		return version !in loaded_formula.patch_versions
+	}
+	if resource_name != '' && resource_name in loaded_formula.resource_versions {
+		return loaded_formula.resource_versions[resource_name] != version
+	}
+	if version in cleanup_excluded_versions(loaded_formula) {
+		return false
+	}
+	if (loaded_formula.latest_version_installed && loaded_formula.pkg_version != version) || cleanup_version_greater(loaded_formula.pkg_version, version) {
+		return true
+	}
+	if scrub && !loaded_formula.latest_version_installed {
+		return true
+	}
+	return loaded_formula.bottle_outdated
+}
+
+pub fn cleanup_stale_cask(path CleanupPath, scrub bool, cask ?CleanupCask, now i64) bool {
+	basename := os.base(path.path)
+	separator := basename.index('--') or { return false }
+	name := basename[..separator]
+	loaded_cask := cask or { return false }
+	return cleanup_stale_cask_download(path, loaded_cask, name, scrub, now)
+}
+
+pub fn cleanup_stale(entry CleanupEntry, scrub bool, now i64, package_found bool,
+	package_git_head string, formula ?CleanupFormula, cask ?CleanupCask, cellar_exists bool) bool {
+	if !entry.path.resolved_file {
+		return false
+	}
+	return match entry.type_name {
+		'api_package' { scrub }
+		'api_source' {
+			cleanup_stale_api_source(entry.path, scrub, package_found, package_git_head)
+		}
+		'cask' { cleanup_stale_cask(entry.path, scrub, cask, now) }
+		'gh_actions_artifact' { scrub || cleanup_prune(entry.path, cleanup_gh_actions_days, now) }
+		else { cleanup_stale_formula(entry.path, scrub, cellar_exists, formula) }
+	}
+}
+
+pub fn cleanup_formula_paths(mut cleanup Cleanup, formula CleanupFormula) []string {
+	if !os.is_dir(cleanup.cache) {
+		return []
+	}
+	if !cleanup.formula_cache_indexed {
+		for basename in os.ls(cleanup.cache) or { [] } {
+			prefix, separator := basename.split_once('--') or { continue }
+			if prefix.starts_with('.') || separator == '' {
+				continue
+			}
+			cleanup.formula_cache_paths[prefix] << os.join_path(cleanup.cache, basename)
+		}
+		cleanup.formula_cache_indexed = true
+	}
+	mut paths := (cleanup.formula_cache_paths[formula.name] or { [] }).clone()
+	paths << (cleanup.formula_cache_paths['${formula.name}_bottle_manifest'] or { [] })
+	paths.sort()
+	return paths
+}
+
+pub fn cleanup_path_action(mut cleanup Cleanup, path CleanupPath, recursive bool) bool {
+	if !path.exists && !path.symlink {
+		return false
+	}
+	if path.path in cleanup.cleaned_up_paths {
+		return false
+	}
+	cleanup.cleaned_up_paths[path.path] = true
+	cleanup.disk_cleanup_size += path.disk_usage
+	if cleanup.dry_run {
+		cleanup.output << 'Would remove: ${path.path} (${path.disk_usage}B)'
+	} else {
+		cleanup.output << 'Removing: ${path.path}... (${path.disk_usage}B)'
+		if recursive {
+			cleanup_remove(path.path)
+		} else if os.exists(path.path) || os.is_link(path.path) {
+			os.rm(path.path) or { panic(err) }
+		}
+	}
+	return true
+}
+
+fn cleanup_entries_value(entries []CleanupEntry) brew_runtime.Value {
+	return brew_runtime.array_value(entries.map(cleanup_entry_value(it)))
+}
+
+fn cleanup_values(value brew_runtime.Value) []brew_runtime.Value {
+	return value.as_array() or { [] }
+}
+
+fn cleanup_clone_value(value brew_runtime.Value) brew_runtime.Value {
+	return brew_runtime.Value{
+		type_name: value.type_name
+		repr: value.repr.clone()
+		bool_data: value.bool_data
+		int_data: value.int_data
+		float_data: value.float_data
+		string_array_data: value.string_array_data.clone()
+		array_data: value.array_data.clone()
+		map_data: value.map_data.clone()
+		attributes: value.attributes.clone()
+	}
+}
+
+fn cleanup_disable_message(no_env_hints bool, no_install_cleanup bool) string {
+	if no_env_hints || no_install_cleanup {
+		return ''
+	}
+	return 'Disable this behaviour by setting `HOMEBREW_NO_INSTALL_CLEANUP=1`.\nHide these hints with `HOMEBREW_NO_ENV_HINTS=1` (see `man brew`).'
+}
 
 // Translated from Homebrew/brew `cleanup.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `incomplete?(pathname)` at line 24.
 pub fn ruby_cleanup_l24_d1_incomplete(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('incomplete?', ...args)
+	return brew_runtime.bool_value(cleanup_incomplete(cleanup_path_from_value(args[0])))
 }
 
 // Ruby method `nested_cache?(pathname)` at line 29.
 pub fn ruby_cleanup_l29_d2_nested_cache(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('nested_cache?', ...args)
+	return brew_runtime.bool_value(cleanup_nested_cache(cleanup_path_from_value(args[0])))
 }
 
 // Ruby method `go_cache_directory?(pathname)` at line 43.
 pub fn ruby_cleanup_l43_d3_go_cache_directory(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('go_cache_directory?', ...args)
+	return brew_runtime.bool_value(cleanup_go_cache_directory(cleanup_path_from_value(args[0])))
 }
 
 // Ruby method `prune?(pathname, days)` at line 50.
 pub fn ruby_cleanup_l50_d4_prune(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prune?', ...args)
+	days := if args.len < 2 || args[1].type_name == 'NilClass' {
+		?int(none)
+	} else {
+		?int(int(args[1].as_int() or { 0 }))
+	}
+	now := if args.len > 2 { args[2].as_int() or { time.now().unix() } } else { time.now().unix() }
+	return brew_runtime.bool_value(cleanup_prune(cleanup_path_from_value(args[0]), days, now))
 }
 
 // Ruby method `stale?(entry, scrub: false)` at line 60.
 pub fn ruby_cleanup_l60_d5_stale(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('stale?', ...args)
+	entry := cleanup_entry_from_value(args[0])
+	scrub := args.len > 1 && args[1].bool_data
+	formula_value := args[0].map_data['formula'] or { cleanup_nil() }
+	cask_value := args[0].map_data['cask'] or { cleanup_nil() }
+	formula := if formula_value.type_name == 'NilClass' {
+		?CleanupFormula(none)
+	} else {
+		?CleanupFormula(cleanup_formula_from_value(formula_value))
+	}
+	cask := if cask_value.type_name == 'NilClass' {
+		?CleanupCask(none)
+	} else {
+		?CleanupCask(cleanup_cask_from_value(cask_value))
+	}
+	return brew_runtime.bool_value(cleanup_stale(entry, scrub, cleanup_int_attr(args[0], 'now', time.now().unix()), cleanup_bool_attr(args[0], 'package_found', false), args[0].attributes['package_git_head'] or { '' }, formula, cask, cleanup_bool_attr(args[0], 'cellar_exists', true)))
 }
 
 // Ruby method `cask_cache_file_current?(pathname, cask, name)` at line 79.
 pub fn ruby_cleanup_l79_d6_cask_cache_file_current(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask_cache_file_current?', ...args)
+	return brew_runtime.bool_value(cleanup_cask_cache_file_current(cleanup_path_from_value(args[0]), cleanup_cask_from_value(args[1]), args[2].as_string()))
 }
 
 // Ruby method `stale_cask_download?(pathname, cask, name, scrub:)` at line 84.
 pub fn ruby_cleanup_l84_d7_stale_cask_download(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('stale_cask_download?', ...args)
+	scrub := args.len > 3 && args[3].bool_data
+	now := if args.len > 4 { args[4].as_int() or { time.now().unix() } } else { time.now().unix() }
+	return brew_runtime.bool_value(cleanup_stale_cask_download(cleanup_path_from_value(args[0]), cleanup_cask_from_value(args[1]), args[2].as_string(), scrub, now))
 }
 
 // Ruby method `stale_api_source?(pathname, scrub)` at line 100.
 pub fn ruby_cleanup_l100_d8_stale_api_source(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('stale_api_source?', ...args)
+	return brew_runtime.bool_value(cleanup_stale_api_source(cleanup_path_from_value(args[0]), args[1].bool_data, args.len > 2 && cleanup_bool_attr(args[2], 'found', true), if args.len > 2 {
+		args[2].attributes['tap_git_head'] or { '' }
+	} else {
+		''
+	}))
 }
 
 // Ruby method `excluded_versions_from_cleanup(formula)` at line 139.
 pub fn ruby_cleanup_l139_d9_excluded_versions_from_cleanup(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('excluded_versions_from_cleanup', ...args)
+	return brew_runtime.string_array_value(cleanup_excluded_versions(cleanup_formula_from_value(args[0])))
 }
 
 // Ruby method `stale_formula?(pathname, scrub)` at line 148.
 pub fn ruby_cleanup_l148_d10_stale_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('stale_formula?', ...args)
+	formula := if args.len > 2 && args[2].type_name != 'NilClass' {
+		?CleanupFormula(cleanup_formula_from_value(args[2]))
+	} else {
+		?CleanupFormula(none)
+	}
+	cellar_exists := if args.len > 3 { args[3].bool_data } else { true }
+	return brew_runtime.bool_value(cleanup_stale_formula(cleanup_path_from_value(args[0]), args[1].bool_data, cellar_exists, formula))
 }
 
 // Ruby method `stale_cask?(pathname, scrub)` at line 238.
 pub fn ruby_cleanup_l238_d11_stale_cask(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('stale_cask?', ...args)
+	cask := if args.len > 2 && args[2].type_name != 'NilClass' {
+		?CleanupCask(cleanup_cask_from_value(args[2]))
+	} else {
+		?CleanupCask(none)
+	}
+	now := if args.len > 3 { args[3].as_int() or { time.now().unix() } } else { time.now().unix() }
+	return brew_runtime.bool_value(cleanup_stale_cask(cleanup_path_from_value(args[0]), args[1].bool_data, cask, now))
 }
 
 // Ruby attr_reader `attr_reader :args` at line 257.
 pub fn ruby_cleanup_l257_d12_args(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('args', ...args)
+	return brew_runtime.string_array_value(cleanup_from_value(args[0]).args)
 }
 
 // Ruby attr_reader `attr_reader :days` at line 260.
 pub fn ruby_cleanup_l260_d13_days(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('days', ...args)
+	return brew_runtime.int_value(cleanup_from_value(args[0]).days)
 }
 
 // Ruby attr_reader `attr_reader :cache` at line 263.
 pub fn ruby_cleanup_l263_d14_cache(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cache', ...args)
+	return brew_runtime.object_value('Pathname', cleanup_from_value(args[0]).cache)
 }
 
 // Ruby attr_reader `attr_reader :disk_cleanup_size` at line 266.
 pub fn ruby_cleanup_l266_d15_disk_cleanup_size(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('disk_cleanup_size', ...args)
+	return brew_runtime.int_value(cleanup_from_value(args[0]).disk_cleanup_size)
 }
 
 // Ruby method `initialize(*args, dry_run: false, scrub: false, days: nil, cache: HOMEBREW_CACHE)` at line 271.
 pub fn ruby_cleanup_l271_d16_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	mut arguments := []string{}
+	mut options := brew_runtime.map_value({})
+	if args.len > 0 && args[0].type_name == 'Array' {
+		arguments = (args[0].as_array() or { [] }).map(it.as_string())
+		if args.len > 1 {
+			options = args[1]
+		}
+	} else {
+		for value in args {
+			if value.type_name == 'Hash' {
+				options = value
+			} else {
+				arguments << value.as_string()
+			}
+		}
+	}
+	dry_run := (options.map_data['dry_run'] or { brew_runtime.bool_value(false) }).bool_data
+	scrub := (options.map_data['scrub'] or { brew_runtime.bool_value(false) }).bool_data
+	days_value := options.map_data['days'] or { cleanup_nil() }
+	days := if days_value.type_name == 'NilClass' {
+		?int(none)
+	} else {
+		?int(int(days_value.as_int() or { cleanup_default_days }))
+	}
+	cache := (options.map_data['cache'] or {
+		brew_runtime.string_value(brew_runtime.environment_value('HOMEBREW_CACHE'))
+	}).as_string()
+	return cleanup_value(cleanup_new(arguments, dry_run, scrub, days, cache))
 }
 
 // Ruby method `dry_run? = @dry_run` at line 284.
 pub fn ruby_cleanup_l284_d17_dry_run(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dry_run?', ...args)
+	return brew_runtime.bool_value(cleanup_from_value(args[0]).dry_run)
 }
 
 // Ruby method `prune? = @prune` at line 287.
 pub fn ruby_cleanup_l287_d18_prune(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prune?', ...args)
+	return brew_runtime.bool_value(cleanup_from_value(args[0]).prune)
 }
 
 // Ruby method `scrub? = @scrub` at line 290.
 pub fn ruby_cleanup_l290_d19_scrub(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('scrub?', ...args)
+	return brew_runtime.bool_value(cleanup_from_value(args[0]).scrub)
 }
 
 // Ruby method `self.printed_dry_run_output?(output, ohai: false)` at line 293.
 pub fn ruby_cleanup_l293_d20_self_printed_dry_run_output(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.printed_dry_run_output?', ...args)
+	output := args[0].as_string()
+	if output.trim_space() == '' {
+		return brew_runtime.bool_value(false)
+	}
+	heading := if args.len > 1 && args[1].bool_data {
+		'==> Would `brew cleanup`'
+	} else {
+		'Would `brew cleanup`:'
+	}
+	text := '${heading}\n${output}${if output.ends_with('\n') { '' } else { '\n' }}'
+	return brew_runtime.Value{
+		type_name: 'Bool'
+		repr: text
+		bool_data: true
+	}
 }
 
 // Ruby method `self.dry_run_output(*args, formulae: [])` at line 307.
 pub fn ruby_cleanup_l307_d21_self_dry_run_output(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.dry_run_output', ...args)
+	mut arguments := []string{}
+	mut context := brew_runtime.map_value({})
+	for value in args {
+		if value.type_name == 'Hash' {
+			context = value
+		} else if value.type_name == 'Array' {
+			context = brew_runtime.map_value({
+				'formulae': value
+			})
+		} else {
+			arguments << value.as_string()
+		}
+	}
+	mut cleanup := cleanup_new(arguments, true, false, none, (context.map_data['cache'] or {
+		brew_runtime.string_value(brew_runtime.environment_value('HOMEBREW_CACHE'))
+	}).as_string())
+	formulae := cleanup_values(context.map_data['formulae'] or { brew_runtime.array_value([]) })
+	if formulae.len == 0 {
+		for entry_value in cleanup_values(context.map_data['entries'] or { brew_runtime.array_value([]) }) {
+			entry := cleanup_entry_from_value(entry_value)
+			cleanup_path_action(mut cleanup, entry.path, entry.path.directory)
+		}
+	} else {
+		for formula_value in formulae {
+			for path in cleanup_formula_paths(mut cleanup, cleanup_formula_from_value(formula_value)) {
+				cleanup_path_action(mut cleanup, cleanup_path_from_value(brew_runtime.object_value('Pathname', path)), false)
+			}
+		}
+	}
+	return cleanup_output_value(cleanup)
 }
 
 // Ruby method `self.install_cleanup_formulae(formulae)` at line 325.
 pub fn ruby_cleanup_l325_d22_self_install_cleanup_formulae(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.install_cleanup_formulae', ...args)
+	if args.len > 1 && args[1].bool_data {
+		return brew_runtime.array_value([])
+	}
+	no_cleanup := if args.len > 2 { args[2].as_string().split(',') } else { [] }
+	mut result := []brew_runtime.Value{}
+	for value in cleanup_values(args[0]) {
+		formula := cleanup_formula_from_value(value)
+		if formula.latest_version_installed && formula.name !in no_cleanup && !formula.aliases.any(it in no_cleanup) {
+			result << value
+		}
+	}
+	return brew_runtime.array_value(result)
 }
 
 // Ruby method `self.install_formula_clean!(formula)` at line 334.
 pub fn ruby_cleanup_l334_d23_self_install_formula_clean(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.install_formula_clean!', ...args)
+	selected := ruby_cleanup_l325_d22_self_install_cleanup_formulae(brew_runtime.array_value([
+		args[0],
+	]), if args.len > 1 { args[1] } else { brew_runtime.bool_value(false) }, if args.len > 2 {
+		args[2]
+	} else {
+		brew_runtime.string_value('')
+	})
+	if cleanup_values(selected).len == 0 {
+		return cleanup_nil()
+	}
+	formula := cleanup_formula_from_value(args[0])
+	return brew_runtime.string_value('Running `brew cleanup ${formula.name}`...')
 }
 
 // Ruby method `self.puts_no_install_cleanup_disable_message` at line 343.
 pub fn ruby_cleanup_l343_d24_self_puts_no_install_cleanup_disable_message(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.puts_no_install_cleanup_disable_message', ...args)
+	return brew_runtime.string_value(cleanup_disable_message(args.len > 0 && args[0].bool_data, args.len > 1 && args[1].bool_data))
 }
 
 // Ruby method `self.puts_no_install_cleanup_disable_message_if_not_already!` at line 352.
 pub fn ruby_cleanup_l352_d25_self_puts_no_install_cleanup_disable_message_if_not_already(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.puts_no_install_cleanup_disable_message_if_not_already!',
-		...args)
+	if args.len > 2 && args[2].bool_data {
+		return cleanup_nil()
+	}
+	return brew_runtime.string_value(cleanup_disable_message(args.len > 0 && args[0].bool_data, args.len > 1 && args[1].bool_data))
 }
 
 // Ruby method `self.skip_clean_formula?(formula)` at line 360.
 pub fn ruby_cleanup_l360_d26_self_skip_clean_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.skip_clean_formula?', ...args)
+	formula := cleanup_formula_from_value(args[0])
+	configured := if args.len > 1 { args[1].as_string() } else { '' }
+	if configured.trim_space() == '' {
+		return brew_runtime.bool_value(false)
+	}
+	excluded := configured.split(',')
+	return brew_runtime.bool_value(formula.name in excluded || formula.aliases.any(it in excluded))
 }
 
 // Ruby method `self.periodic_clean_due?` at line 369.
 pub fn ruby_cleanup_l369_d27_self_periodic_clean_due(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.periodic_clean_due?', ...args)
+	if args.len > 0 && args[0].bool_data {
+		return brew_runtime.bool_value(false)
+	}
+	path := if args.len > 1 {
+		cleanup_path_from_value(args[1])
+	} else {
+		cleanup_path_from_value(brew_runtime.object_value('Pathname', os.join_path(brew_runtime.environment_value('HOMEBREW_CACHE'), '.cleaned')))
+	}
+	if !path.exists {
+		if path.path != '' {
+			os.mkdir_all(os.dir(path.path)) or { panic(err) }
+			os.write_file(path.path, '') or { panic(err) }
+		}
+		return brew_runtime.bool_value(false)
+	}
+	now := if args.len > 2 { args[2].as_int() or { time.now().unix() } } else { time.now().unix() }
+	return brew_runtime.bool_value(path.mtime < now - cleanup_default_days * 24 * 60 * 60)
 }
 
 // Ruby method `self.periodic_clean!(dry_run: false)` at line 382.
 pub fn ruby_cleanup_l382_d28_self_periodic_clean(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.periodic_clean!', ...args)
+	dry_run := args.len > 0 && args[0].bool_data
+	no_install := args.len > 1 && args[1].bool_data
+	cleaned_file := if args.len > 2 { args[2] } else { brew_runtime.object_value('Pathname', '') }
+	now := if args.len > 3 { args[3] } else { brew_runtime.int_value(time.now().unix()) }
+	due := ruby_cleanup_l369_d27_self_periodic_clean_due(brew_runtime.bool_value(no_install), cleaned_file, now).bool_data
+	if no_install || !due {
+		return cleanup_nil()
+	}
+	return brew_runtime.string_value(if dry_run {
+		'Would run `brew cleanup` which has not been run in the last ${cleanup_default_days} days'
+	} else {
+		'`brew cleanup` has not been run in the last ${cleanup_default_days} days, running now...'
+	})
 }
 
 // Ruby method `clean!(quiet: false, periodic: false)` at line 399.
 pub fn ruby_cleanup_l399_d29_clean(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('clean!', ...args)
+	mut cleanup := cleanup_from_value(args[0])
+	context := if args.len > 1 { args[1] } else { brew_runtime.map_value({}) }
+	if cleanup.args.len == 0 {
+		for formula_value in cleanup_values(context.map_data['formulae'] or { brew_runtime.array_value([]) }) {
+			if ruby_cleanup_l360_d26_self_skip_clean_formula(formula_value, context.map_data['no_cleanup_formulae'] or { brew_runtime.string_value('') }).bool_data {
+				continue
+			}
+			for path in cleanup_formula_paths(mut cleanup, cleanup_formula_from_value(formula_value)) {
+				cleanup_path_action(mut cleanup, cleanup_path_from_value(brew_runtime.object_value('Pathname', path)), false)
+			}
+		}
+		for entry_value in cleanup_values(context.map_data['entries'] or { brew_runtime.array_value([]) }) {
+			entry := cleanup_entry_from_value(entry_value)
+			if cleanup_incomplete(entry.path) || cleanup_nested_cache(entry.path) || cleanup_prune(entry.path, if cleanup.prune {
+				?int(cleanup.days)} else {
+				?int(none)}, time.now().unix()) {
+				cleanup_path_action(mut cleanup, entry.path, entry.path.directory)
+			}
+		}
+	} else {
+		formulae := context.map_data['formulae'] or { brew_runtime.map_value({}) }
+		casks := context.map_data['casks'] or { brew_runtime.map_value({}) }
+		for name in cleanup.args {
+			if formula_value := formulae.map_data[name] {
+				for path in cleanup_formula_paths(mut cleanup, cleanup_formula_from_value(formula_value)) {
+					cleanup_path_action(mut cleanup, cleanup_path_from_value(brew_runtime.object_value('Pathname', path)), false)
+				}
+			}
+			if cask_value := casks.map_data[name] {
+				cask := cleanup_cask_from_value(cask_value)
+				for path in os.glob(os.join_path(cleanup.cache, 'Cask', '${cask.token}--*')) or { [] } {
+					cleanup_path_action(mut cleanup, cleanup_path_from_value(brew_runtime.object_value('Pathname', path)), false)
+				}
+			}
+		}
+	}
+	return cleanup_nil()
 }
 
 // Ruby method `unremovable_kegs` at line 466.
 pub fn ruby_cleanup_l466_d30_unremovable_kegs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('unremovable_kegs', ...args)
+	return brew_runtime.array_value(cleanup_from_value(args[0]).unremovable_kegs)
 }
 
 // Ruby method `cache_entries(paths, type:)` at line 474.
 pub fn ruby_cleanup_l474_d31_cache_entries(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cache_entries', ...args)
+	type_name := if args.len < 3 || args[2].type_name == 'NilClass' {
+		''
+	} else {
+		args[2].as_string().trim_left(':')
+	}
+	entries := cleanup_values(args[1]).map(CleanupEntry{
+		path: cleanup_path_from_value(it)
+		type_name: type_name
+	})
+	return cleanup_entries_value(entries)
 }
 
 // Ruby method `cleanup_cache_entries(paths, type:, cleanup_unreferenced: true)` at line 481.
 pub fn ruby_cleanup_l481_d32_cleanup_cache_entries(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cleanup_cache_entries', ...args)
+	entries := ruby_cleanup_l474_d31_cache_entries(args[0], args[1], if args.len > 2 {
+		args[2]
+	} else {
+		cleanup_nil()
+	})
+	return ruby_cleanup_l666_d44_cleanup_cache(args[0], entries, if args.len > 3 {
+		args[3]
+	} else {
+		brew_runtime.bool_value(true)
+	})
 }
 
 // Ruby method `formula_cache_paths(formula)` at line 490.
 pub fn ruby_cleanup_l490_d33_formula_cache_paths(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_cache_paths', ...args)
+	mut cleanup := cleanup_from_value(args[0])
+	return brew_runtime.array_value(cleanup_formula_paths(mut cleanup, cleanup_formula_from_value(args[1])).map(brew_runtime.object_value('Pathname', it)))
 }
 
 // Ruby method `cleanup_formula(formula, quiet: false, ds_store: true, cache_db: true, cleanup_unreferenced: true)` at line 507.
 pub fn ruby_cleanup_l507_d34_cleanup_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cleanup_formula', ...args)
+	mut cleanup := cleanup_from_value(args[0])
+	formula_value := args[1]
+	for keg in cleanup_values(formula_value.map_data['eligible_kegs'] or { brew_runtime.array_value([]) }) {
+		if cleanup_bool_attr(keg, 'uninstall_error', false) {
+			cleanup.unremovable_kegs << cleanup_clone_value(keg)
+		} else {
+			cleanup_path_action(mut cleanup, cleanup_path_from_value(keg), true)
+		}
+	}
+	for path in cleanup_formula_paths(mut cleanup, cleanup_formula_from_value(formula_value)) {
+		cleanup_path_action(mut cleanup, cleanup_path_from_value(brew_runtime.object_value('Pathname', path)), false)
+	}
+	ds_store := if args.len > 3 { args[3].bool_data } else { true }
+	if ds_store {
+		rack := formula_value.attributes['rack'] or { '' }
+		if rack != '' {
+			for path in cleanup_each_path(rack).filter(os.base(it) == '.DS_Store') {
+				cleanup_remove(path)
+			}
+		}
+	}
+	if lock_path := formula_value.attributes['lock_path'] {
+		if os.exists(lock_path) {
+			os.rm(lock_path) or { panic(err) }
+		}
+	}
+	return cleanup_nil()
 }
 
 // Ruby method `cleanup_cask(cask, ds_store: true)` at line 517.
 pub fn ruby_cleanup_l517_d35_cleanup_cask(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cleanup_cask', ...args)
+	mut cleanup := cleanup_from_value(args[0])
+	cask := cleanup_cask_from_value(args[1])
+	for path in os.glob(os.join_path(cleanup.cache, 'Cask', '${cask.token}--*')) or { [] } {
+		path_value := cleanup_path_from_value(brew_runtime.object_value('Pathname', path))
+		if cleanup_stale_cask_download(path_value, cask, cask.token, cleanup.scrub, time.now().unix()) {
+			cleanup_path_action(mut cleanup, path_value, false)
+		}
+	}
+	ruby_cleanup_l530_d36_cleanup_legacy_cask_downloads(args[0], brew_runtime.array_value([
+		args[1],
+	]))
+	ruby_cleanup_l636_d43_cleanup_unreferenced_downloads(args[0])
+	if (if args.len > 2 { args[2].bool_data } else { true }) && cask.caskroom_path != '' {
+		for path in cleanup_each_path(cask.caskroom_path).filter(os.base(it) == '.DS_Store') {
+			cleanup_remove(path)
+		}
+	}
+	if lock_path := args[1].attributes['lock_path'] {
+		if os.exists(lock_path) {
+			os.rm(lock_path) or { panic(err) }
+		}
+	}
+	return cleanup_nil()
 }
 
 // Ruby method `cleanup_legacy_cask_downloads(casks)` at line 530.
 pub fn ruby_cleanup_l530_d36_cleanup_legacy_cask_downloads(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cleanup_legacy_cask_downloads', ...args)
+	mut cleanup := cleanup_from_value(args[0])
+	cask_cache := os.join_path(cleanup.cache, 'Cask')
+	if !os.is_dir(cask_cache) {
+		return cleanup_nil()
+	}
+	paths := os.ls(cask_cache) or { [] }
+	for cask_value in cleanup_values(args[1]) {
+		cask := cleanup_cask_from_value(cask_value)
+		if cask.url == '' {
+			continue
+		}
+		legacy_name := os.base(cask.url.all_after('://'))
+		if legacy_name == '' || legacy_name == cask.token {
+			continue
+		}
+		for basename in paths {
+			if !basename.starts_with('${legacy_name}--') {
+				continue
+			}
+			path := os.join_path(cask_cache, basename)
+			path_value := cleanup_path_from_value(brew_runtime.object_value('Pathname', path))
+			current_legacy := cleanup_cask_cache_file_current(path_value, cask, legacy_name)
+			token_path := os.join_path(cask_cache, '${cask.token}--${cask.version}${os.file_ext(path)}')
+			if cleanup_stale_cask_download(path_value, cask, legacy_name, cleanup.scrub, time.now().unix()) || (current_legacy && os.exists(token_path)) {
+				cleanup_path_action(mut cleanup, path_value, false)
+			}
+		}
+	}
+	return cleanup_nil()
 }
 
 // Ruby method `cleanup_keg(keg)` at line 554.
 pub fn ruby_cleanup_l554_d37_cleanup_keg(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cleanup_keg', ...args)
+	mut cleanup := cleanup_from_value(args[0])
+	if cleanup_bool_attr(args[1], 'uninstall_error', false) {
+		cleanup.unremovable_kegs << cleanup_clone_value(args[1])
+		return cleanup_nil()
+	}
+	cleanup_path_action(mut cleanup, cleanup_path_from_value(args[1]), true)
+	return cleanup_nil()
 }
 
 // Ruby method `cleanup_logs` at line 562.
 pub fn ruby_cleanup_l562_d38_cleanup_logs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cleanup_logs', ...args)
+	mut cleanup := cleanup_from_value(args[0])
+	logs := if args.len > 1 {
+		args[1].as_string()
+	} else {
+		brew_runtime.environment_value('HOMEBREW_LOGS')
+	}
+	if !os.is_dir(logs) {
+		return cleanup_nil()
+	}
+	logs_days := if cleanup.days < cleanup_default_days {
+		cleanup.days
+	} else {
+		cleanup_default_days
+	}
+	now := if args.len > 2 { args[2].as_int() or { time.now().unix() } } else { time.now().unix() }
+	for name in os.ls(logs) or { [] } {
+		path := cleanup_path_from_value(brew_runtime.object_value('Pathname', os.join_path(logs, name)))
+		if path.directory && cleanup_prune(path, logs_days, now) {
+			cleanup_path_action(mut cleanup, path, true)
+		}
+	}
+	return cleanup_nil()
 }
 
 // Ruby method `cleanup_temp_cellar` at line 573.
 pub fn ruby_cleanup_l573_d39_cleanup_temp_cellar(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cleanup_temp_cellar', ...args)
+	mut cleanup := cleanup_from_value(args[0])
+	root := if args.len > 1 {
+		args[1].as_string()
+	} else {
+		brew_runtime.environment_value('HOMEBREW_TEMP_CELLAR')
+	}
+	if os.is_dir(root) {
+		for name in os.ls(root) or { [] } {
+			cleanup_path_action(mut cleanup, cleanup_path_from_value(brew_runtime.object_value('Pathname', os.join_path(root, name))), true)
+		}
+	}
+	return cleanup_nil()
 }
 
 // Ruby method `cleanup_reinstall_kegs` at line 582.
 pub fn ruby_cleanup_l582_d40_cleanup_reinstall_kegs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cleanup_reinstall_kegs', ...args)
+	mut cleanup := cleanup_from_value(args[0])
+	cellar := if args.len > 1 {
+		args[1].as_string()
+	} else {
+		brew_runtime.environment_value('HOMEBREW_CELLAR')
+	}
+	if os.is_dir(cellar) {
+		for path in os.glob(os.join_path(cellar, '*', '*.reinstall')) or { [] } {
+			cleanup_path_action(mut cleanup, cleanup_path_from_value(brew_runtime.object_value('Pathname', path)), true)
+		}
+	}
+	return cleanup_nil()
 }
 
 // Ruby method `cache_files` at line 591.
 pub fn ruby_cleanup_l591_d41_cache_files(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cache_files', ...args)
+	cleanup := cleanup_from_value(args[0])
+	mut entries := []CleanupEntry{}
+	if os.is_dir(cleanup.cache) {
+		for name in os.ls(cleanup.cache) or { [] } {
+			entries << CleanupEntry{
+				path: cleanup_path_from_value(brew_runtime.object_value('Pathname', os.join_path(cleanup.cache, name)))
+			}
+		}
+	}
+	cask_cache := os.join_path(cleanup.cache, 'Cask')
+	if os.is_dir(cask_cache) {
+		for name in os.ls(cask_cache) or { [] } {
+			entries << CleanupEntry{
+				path: cleanup_path_from_value(brew_runtime.object_value('Pathname', os.join_path(cask_cache, name)))
+				type_name: 'cask'
+			}
+		}
+	}
+	api_source := os.join_path(cleanup.cache, 'api-source')
+	for path in cleanup_each_path(api_source) {
+		if os.is_file(path) || os.is_link(path) {
+			entries << CleanupEntry{
+				path: cleanup_path_from_value(brew_runtime.object_value('Pathname', path))
+				type_name: 'api_source'
+			}
+		}
+	}
+	artifacts := os.join_path(cleanup.cache, 'gh-actions-artifact')
+	if os.is_dir(artifacts) {
+		for name in os.ls(artifacts) or { [] } {
+			entries << CleanupEntry{
+				path: cleanup_path_from_value(brew_runtime.object_value('Pathname', os.join_path(artifacts, name)))
+				type_name: 'gh_actions_artifact'
+			}
+		}
+	}
+	return cleanup_entries_value(entries)
 }
 
 // Ruby method `cleanup_empty_api_source_directories(directory = cache/"api-source")` at line 623.
 pub fn ruby_cleanup_l623_d42_cleanup_empty_api_source_directories(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cleanup_empty_api_source_directories', ...args)
+	cleanup := cleanup_from_value(args[0])
+	if cleanup.dry_run {
+		return cleanup_nil()
+	}
+	directory := if args.len > 1 {
+		args[1].as_string()
+	} else {
+		os.join_path(cleanup.cache, 'api-source')
+	}
+	if !os.is_dir(directory) {
+		return cleanup_nil()
+	}
+	mut directories := cleanup_each_path(directory).filter(os.is_dir(it))
+	directories.sort_with_compare(fn (left &string, right &string) int {
+		return right.len - left.len
+	})
+	for child in directories {
+		if os.is_dir(child) && (os.ls(child) or { [] }).len == 0 {
+			os.rmdir(child) or { panic(err) }
+		}
+	}
+	return cleanup_nil()
 }
 
 // Ruby method `cleanup_unreferenced_downloads` at line 636.
 pub fn ruby_cleanup_l636_d43_cleanup_unreferenced_downloads(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cleanup_unreferenced_downloads', ...args)
+	cleanup := cleanup_from_value(args[0])
+	if cleanup.dry_run {
+		return cleanup_nil()
+	}
+	downloads_root := os.join_path(cleanup.cache, 'downloads')
+	if !os.is_dir(downloads_root) {
+		return cleanup_nil()
+	}
+	mut referenced := []string{}
+	for entry_value in cleanup_values(ruby_cleanup_l591_d41_cache_files(args[0])) {
+		entry := cleanup_entry_from_value(entry_value)
+		if entry.path.symlink {
+			referenced << os.real_path(entry.path.path)
+		}
+	}
+	for name in os.ls(downloads_root) or { [] } {
+		path := os.join_path(downloads_root, name)
+		if os.real_path(path) in referenced {
+			continue
+		}
+		cleanup_remove(path)
+	}
+	return cleanup_nil()
 }
 
 // Ruby method `cleanup_cache(entries = nil, cleanup_unreferenced: true)` at line 666.
 pub fn ruby_cleanup_l666_d44_cleanup_cache(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cleanup_cache', ...args)
+	mut cleanup := cleanup_from_value(args[0])
+	full_cleanup := args.len < 2 || args[1].type_name == 'NilClass'
+	entries_value := if full_cleanup { ruby_cleanup_l591_d41_cache_files(args[0]) } else { args[1] }
+	for value in cleanup_values(entries_value) {
+		entry := cleanup_entry_from_value(value)
+		if os.base(entry.path.path) == '.cleaned' {
+			continue
+		}
+		if cleanup_incomplete(entry.path) {
+			cleanup_path_action(mut cleanup, entry.path, entry.path.directory)
+			continue
+		}
+		if cleanup_nested_cache(entry.path) {
+			cleanup_path_action(mut cleanup, entry.path, true)
+			continue
+		}
+		if cleanup_prune(entry.path, cleanup.days, time.now().unix()) {
+			if entry.path.file || entry.path.symlink {
+				cleanup_path_action(mut cleanup, entry.path, false)
+			} else if entry.path.directory && entry.path.path.contains('--') {
+				cleanup_path_action(mut cleanup, entry.path, true)
+			}
+			continue
+		}
+		if !cleanup.prune {
+			formula_value := value.map_data['formula'] or { cleanup_nil() }
+			cask_value := value.map_data['cask'] or { cleanup_nil() }
+			formula := if formula_value.type_name == 'NilClass' {
+				?CleanupFormula(none)
+			} else {
+				?CleanupFormula(cleanup_formula_from_value(formula_value))
+			}
+			cask := if cask_value.type_name == 'NilClass' {
+				?CleanupCask(none)
+			} else {
+				?CleanupCask(cleanup_cask_from_value(cask_value))
+			}
+			if cleanup_stale(entry, cleanup.scrub, time.now().unix(), cleanup_bool_attr(value, 'package_found', false), value.attributes['package_git_head'] or {
+				''}, formula, cask, cleanup_bool_attr(value, 'cellar_exists', true)) {
+				cleanup_path_action(mut cleanup, entry.path, false)
+			}
+		}
+	}
+	cleanup_unreferenced := if args.len > 2 { args[2].bool_data } else { true }
+	if cleanup_unreferenced {
+		ruby_cleanup_l636_d43_cleanup_unreferenced_downloads(args[0])
+	}
+	return cleanup_nil()
 }
 
 // Ruby method `cleanup_path(path, &_block)` at line 696.
 pub fn ruby_cleanup_l696_d45_cleanup_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cleanup_path', ...args)
+	mut cleanup := cleanup_from_value(args[0])
+	recursive := args.len > 2 && args[2].as_string() in ['rm_r', 'rm_rf', 'recursive']
+	return brew_runtime.bool_value(cleanup_path_action(mut cleanup, cleanup_path_from_value(args[1]), recursive))
 }
 
 // Ruby method `cleanup_lockfiles(*lockfiles)` at line 711.
 pub fn ruby_cleanup_l711_d46_cleanup_lockfiles(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cleanup_lockfiles', ...args)
+	cleanup := cleanup_from_value(args[0])
+	if cleanup.dry_run {
+		return cleanup_nil()
+	}
+	mut lockfiles := if args.len > 1 { args[1..].clone() } else { []brew_runtime.Value{} }
+	if lockfiles.len == 0 {
+		locks := brew_runtime.environment_value('HOMEBREW_LOCKS')
+		if os.is_dir(locks) {
+			lockfiles = (os.ls(locks) or { [] }).map(brew_runtime.object_value('Pathname', os.join_path(locks, it)))
+		}
+	}
+	for value in lockfiles {
+		path := cleanup_path_from_value(value)
+		if path.exists && path.file && !path.locked {
+			os.rm(path.path) or { panic(err) }
+		}
+	}
+	return cleanup_nil()
 }
 
 // Ruby method `cleanup_portable_ruby` at line 732.
 pub fn ruby_cleanup_l732_d47_cleanup_portable_ruby(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cleanup_portable_ruby', ...args)
+	mut cleanup := cleanup_from_value(args[0])
+	vendor := if args.len > 1 {
+		args[1].as_string()
+	} else {
+		os.join_path('Library', 'Homebrew', 'vendor')
+	}
+	version_file := os.join_path(vendor, 'portable-ruby-version')
+	if !os.is_file(version_file) {
+		return cleanup_nil()
+	}
+	latest := os.read_file(version_file) or { '' }.trim_space()
+	portable_root := os.join_path(vendor, 'portable-ruby')
+	use_system := args.len > 2 && args[2].bool_data
+	mut removals := []string{}
+	if os.is_dir(portable_root) {
+		for name in os.ls(portable_root) or { [] } {
+			path := os.join_path(portable_root, name)
+			if os.is_dir(path) && (use_system || name != latest) && name.contains('.') {
+				removals << path
+			}
+		}
+	}
+	if removals.len == 0 {
+		return cleanup_nil()
+	}
+	bundle_root := os.join_path(vendor, 'bundle', 'ruby')
+	if os.is_dir(bundle_root) {
+		version_parts := latest.split('.')
+		version_part_count := if version_parts.len < 2 { version_parts.len } else { 2 }
+		major_minor := version_parts[..version_part_count].join('.') + '.0'
+		current := if args.len > 3 { args[3].as_string() } else { '' }
+		for name in os.ls(bundle_root) or { [] } {
+			if name == '.homebrew_gem_groups' {
+				continue
+			}
+			path := os.join_path(bundle_root, name)
+			if !os.is_dir(path) || (name != major_minor && name != current) {
+				cleanup.output << 'git clean ${if cleanup.dry_run { '-nx' } else { '-ffqx' }} ${path}'
+			}
+		}
+	}
+	for path in removals {
+		cleanup_path_action(mut cleanup, cleanup_path_from_value(brew_runtime.object_value('Pathname', path)), true)
+	}
+	return cleanup_nil()
 }
 
 // Ruby method `use_system_ruby?` at line 771.
 pub fn ruby_cleanup_l771_d48_use_system_ruby(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('use_system_ruby?', ...args)
+	return brew_runtime.bool_value(false)
 }
 
 // Ruby method `cleanup_bootsnap` at line 776.
 pub fn ruby_cleanup_l776_d49_cleanup_bootsnap(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cleanup_bootsnap', ...args)
+	mut cleanup := cleanup_from_value(args[0])
+	bootsnap := if args.len > 1 {
+		args[1].as_string()
+	} else {
+		os.join_path(cleanup.cache, 'bootsnap')
+	}
+	key := if args.len > 2 { args[2].as_string() } else { '' }
+	if os.is_dir(bootsnap) {
+		for name in os.ls(bootsnap) or { [] } {
+			if name != key {
+				cleanup_path_action(mut cleanup, cleanup_path_from_value(brew_runtime.object_value('Pathname', os.join_path(bootsnap, name))), true)
+			}
+		}
+	}
+	return cleanup_nil()
 }
 
 // Ruby method `cleanup_cache_db(rack = nil)` at line 786.
 pub fn ruby_cleanup_l786_d50_cleanup_cache_db(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cleanup_cache_db', ...args)
+	cleanup := cleanup_from_value(args[0])
+	for name in ['desc_cache.json', 'linkage.db', 'linkage.db.db'] {
+		cleanup_remove(os.join_path(cleanup.cache, name))
+	}
+	rack := if args.len > 1 && args[1].type_name != 'NilClass' { args[1].as_string() } else { '' }
+	mut retained := []string{}
+	if args.len > 2 {
+		for keg in args[2].as_string_array() or { [] } {
+			if (rack != '' && !keg.starts_with('${rack}/')) || os.is_dir(keg) {
+				retained << keg
+			}
+		}
+	}
+	return brew_runtime.string_array_value(retained)
 }
 
 // Ruby method `rm_ds_store(dirs = nil)` at line 810.
 pub fn ruby_cleanup_l810_d51_rm_ds_store(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('rm_ds_store', ...args)
+	cleanup := cleanup_from_value(args[0])
+	if cleanup.dry_run {
+		return cleanup_nil()
+	}
+	dirs := if args.len > 1 && args[1].type_name != 'NilClass' {
+		cleanup_values(args[1]).map(it.as_string())
+	} else {
+		[]string{}
+	}
+	for dir in dirs.filter(os.is_dir(it)) {
+		for path in cleanup_each_path(dir).filter(os.base(it) == '.DS_Store') {
+			os.rm(path) or {}
+		}
+	}
+	return cleanup_nil()
 }
 
 // Ruby method `cleanup_python_site_packages` at line 825.
 pub fn ruby_cleanup_l825_d52_cleanup_python_site_packages(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cleanup_python_site_packages', ...args)
+	mut cleanup := cleanup_from_value(args[0])
+	prefix := if args.len > 1 {
+		args[1].as_string()
+	} else {
+		brew_runtime.environment_value('HOMEBREW_PREFIX')
+	}
+	now := if args.len > 2 { args[2].as_int() or { time.now().unix() } } else { time.now().unix() }
+	for site_packages in os.glob(os.join_path(prefix, 'lib', 'python*', 'site-packages')) or { [] } {
+		for child_name in os.ls(site_packages) or { [] } {
+			child := os.join_path(site_packages, child_name)
+			if !os.is_dir(child) || child_name.ends_with('-info') {
+				continue
+			}
+			paths := cleanup_each_path(child).filter(os.is_file(it))
+			if child_name == '__pycache__' {
+				for path in paths.filter(os.file_ext(it) == '.pyc') {
+					info := cleanup_path_from_value(brew_runtime.object_value('Pathname', path))
+					if cleanup_prune(info, cleanup.days, now) {
+						cleanup_path_action(mut cleanup, info, false)
+					}
+				}
+				continue
+			}
+			if paths.len > 0 && paths.all(os.file_ext(it) == '.pyc') {
+				for path in paths {
+					cleanup_path_action(mut cleanup, cleanup_path_from_value(brew_runtime.object_value('Pathname', path)), false)
+				}
+			}
+		}
+	}
+	return cleanup_nil()
 }
 
 // Ruby method `prune_prefix_symlinks_and_directories` at line 875.
 pub fn ruby_cleanup_l875_d53_prune_prefix_symlinks_and_directories(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prune_prefix_symlinks_and_directories', ...args)
+	mut cleanup := cleanup_from_value(args[0])
+	mut roots := if args.len > 1 {
+		cleanup_values(args[1]).map(it.as_string())
+	} else {
+		[]string{}
+	}
+	mut broken_links := []string{}
+	mut directories := []string{}
+	for root in roots {
+		if !os.is_dir(root) {
+			continue
+		}
+		for path in cleanup_each_path(root) {
+			if os.is_link(path) && !os.exists(path) {
+				broken_links << path
+			} else if os.is_dir(path) && path != root {
+				directories << path
+			}
+		}
+	}
+	broken_links.sort_with_compare(fn (left &string, right &string) int {
+		return right.count('/') - left.count('/')
+	})
+	mut removed := map[string]bool{}
+	for path in broken_links {
+		if cleanup.dry_run {
+			cleanup.output << 'Would remove (broken link): ${path}'
+		} else {
+			os.rm(path) or { panic(err) }
+		}
+		removed[path] = true
+	}
+	directories.sort_with_compare(fn (left &string, right &string) int {
+		return right.count('/') - left.count('/')
+	})
+	for directory in directories {
+		children := os.ls(directory) or { [] }
+		empty_after_prune := children.all(removed[os.join_path(directory, it)] or { false })
+		if children.len == 0 || empty_after_prune {
+			if cleanup.dry_run {
+				cleanup.output << 'Would remove (empty directory): ${directory}'
+			} else if os.is_dir(directory) {
+				os.rmdir(directory) or { continue }
+			}
+			removed[directory] = true
+		}
+	}
+	if args.len > 2 {
+		caskroom := args[2].as_string()
+		if os.is_dir(caskroom) {
+			for name in os.ls(caskroom) or { [] } {
+				path := os.join_path(caskroom, name)
+				if !os.is_link(path) || os.exists(path) {
+					continue
+				}
+				if cleanup.dry_run {
+					cleanup.output << 'Would remove (broken link): ${path}'
+				} else {
+					os.rm(path) or { panic(err) }
+				}
+			}
+		}
+	}
+	return cleanup_nil()
 }
 
 // Ruby method `self.autoremove(dry_run: false)` at line 938.
 pub fn ruby_cleanup_l938_d54_self_autoremove(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.autoremove', ...args)
+	dry_run := args.len > 0 && args[0].bool_data
+	mut removable := if args.len > 3 {
+		cleanup_values(args[3])
+	} else if args.len > 1 {
+		cleanup_values(args[1])
+	} else {
+		[]brew_runtime.Value{}
+	}
+	no_cleanup := if args.len > 5 { args[5].as_string() } else { '' }
+	if no_cleanup != '' {
+		removable = removable.filter(!ruby_cleanup_l360_d26_self_skip_clean_formula(it, brew_runtime.string_value(no_cleanup)).bool_data)
+	}
+	required := if args.len > 4 { args[4].as_string_array() or { [] } } else { [] }
+	removable = removable.filter((it.attributes['name'] or { it.as_string() }) !in required)
+	if removable.len == 0 {
+		return brew_runtime.Value{
+			type_name: 'CleanupAutoremoveResult'
+			repr: ''
+			array_data: []
+			attributes: {
+				'dry_run':       dry_run.str()
+				'cache_cleared': (!dry_run).str()
+			}
+		}
+	}
+	mut names := removable.map(it.attributes['full_name'] or {
+		it.attributes['name'] or {
+			it.as_string()
+		}
+	})
+	names.sort()
+	verb := if dry_run { 'Would autoremove' } else { 'Autoremoving' }
+	output := '${verb} ${names.len} unneeded formula${if names.len == 1 { '' } else { 'e' }}:\n${names.join('\n')}'
+	if !dry_run {
+		for formula in removable {
+			keg := formula.attributes['any_installed_keg'] or { '' }
+			if keg != '' {
+				cleanup_remove(keg)
+			}
+		}
+	}
+	return brew_runtime.Value{
+		type_name: 'CleanupAutoremoveResult'
+		repr: output
+		array_data: removable
+		attributes: {
+			'dry_run':       dry_run.str()
+			'cache_cleared': (!dry_run).str()
+		}
+	}
 }
 
 // Original Ruby source (line-for-line):

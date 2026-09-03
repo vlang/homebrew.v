@@ -1,73 +1,140 @@
 module artifact
 
-import brew_runtime
+import homebrew.cask.artifact as brew_artifact
+import os
 
 // Translated from Homebrew/brew `test/cask/artifact/command_wrapper_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+fn command_wrapper_spec_options() brew_artifact.CommandWrapperOptions {
+	return brew_artifact.CommandWrapperOptions{
+		executable: '/Applications/Example.app/Contents/MacOS/example'
+		args: ['--cli', 'batch mode']
+		env: {
+			'EXAMPLE_MODE': 'batch'
+		}
+	}
+}
 
 // Ruby let `let(:cask) do` at line 5.
-pub fn ruby_command_wrapper_spec_l5_d1_cask(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask', ...args)
+pub fn ruby_command_wrapper_spec_l5_d1_cask(staged_path string,
+	binarydir string) !brew_artifact.CommandWrapperArtifact {
+	return brew_artifact.new_command_wrapper('with-command-wrapper', staged_path, binarydir, 'example', command_wrapper_spec_options())
 }
 
 // Ruby let `let(:artifact) { cask.artifacts.find { |candidate| candidate.is_a?(described_class) } }` at line 17.
-pub fn ruby_command_wrapper_spec_l17_d2_artifact(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('artifact', ...args)
+pub fn ruby_command_wrapper_spec_l17_d2_artifact(staged_path string,
+	binarydir string) !brew_artifact.CommandWrapperArtifact {
+	return ruby_command_wrapper_spec_l5_d1_cask(staged_path, binarydir)
 }
 
 // Ruby let `let(:target) { cask.config.binarydir/"example" }` at line 18.
-pub fn ruby_command_wrapper_spec_l18_d3_target(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('target', ...args)
+pub fn ruby_command_wrapper_spec_l18_d3_target(binarydir string) string {
+	return os.join_path(binarydir, 'example')
 }
 
 // Ruby let `let(:custom_target) { cask.config.binarydir/"custom" }` at line 19.
-pub fn ruby_command_wrapper_spec_l19_d4_custom_target(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('custom_target', ...args)
+pub fn ruby_command_wrapper_spec_l19_d4_custom_target(binarydir string) string {
+	return os.join_path(binarydir, 'custom')
 }
 
 // Ruby it `it "writes and links an executable command wrapper" do` at line 31.
-pub fn ruby_command_wrapper_spec_l31_d5_writes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('writes', ...args)
+pub fn ruby_command_wrapper_spec_l31_d5_writes(artifact brew_artifact.CommandWrapperArtifact) !bool {
+	brew_artifact.install_command_wrapper(artifact, false, false)!
+	expected := '#!/bin/bash\nEXAMPLE_MODE="batch" exec "/Applications/Example.app/Contents/MacOS/example" --cli batch\\ mode "\$@"\n'
+	return os.is_link(artifact.target) && os.read_file(artifact.target)! == expected && os.is_executable(artifact.target) && os.readlink(artifact.target)! == artifact.source
 }
 
 // Ruby it `it "serialises the wrapper definition" do` at line 44.
-pub fn ruby_command_wrapper_spec_l44_d6_serialises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('serialises', ...args)
+pub fn ruby_command_wrapper_spec_l44_d6_serialises(artifact brew_artifact.CommandWrapperArtifact) bool {
+	arguments := brew_artifact.command_wrapper_to_args(artifact).as_array() or { return false }
+	if arguments.len != 2 || arguments[0].as_string() != 'example' {
+		return false
+	}
+	options := arguments[1].as_map() or { return false }
+	environment := (options['env'] or { return false }).as_map() or { return false }
+	serialized_args := (options['args'] or { return false }).as_string_array() or { return false }
+	return (options['executable'] or { return false }).as_string() == '/Applications/Example.app/Contents/MacOS/example' && serialized_args == [
+		'--cli',
+		'batch mode',
+	] && (environment['EXAMPLE_MODE'] or { return false }).as_string() == 'batch'
 }
 
 // Ruby it `it "shell-escapes a single non-array argument" do` at line 55.
-pub fn ruby_command_wrapper_spec_l55_d7_shell_escapes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('shell-escapes', ...args)
+pub fn ruby_command_wrapper_spec_l55_d7_shell_escapes(staged_path string,
+	binarydir string) !bool {
+	wrapper := brew_artifact.new_command_wrapper('with-command-wrapper', staged_path, binarydir, 'custom', brew_artifact.CommandWrapperOptions{
+		executable: '/usr/bin/example'
+		scalar_arg: 'two words; true'
+	})!
+	brew_artifact.install_command_wrapper(wrapper, false, false)!
+	return os.read_file(ruby_command_wrapper_spec_l19_d4_custom_target(binarydir))! == '#!/bin/bash\nexec "/usr/bin/example" two\\ words\\;\\ true "\$@"\n'
 }
 
 // Ruby it `it "serialises Pathname arguments and symbol environment keys as plain strings" do` at line 67.
-pub fn ruby_command_wrapper_spec_l67_d8_serialises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('serialises', ...args)
+pub fn ruby_command_wrapper_spec_l67_d8_serialises(staged_path string,
+	binarydir string) !bool {
+	wrapper := brew_artifact.new_command_wrapper('with-command-wrapper', staged_path, binarydir, 'custom', brew_artifact.CommandWrapperOptions{
+		executable: '/usr/bin/example'
+		args: ['/etc/example.conf']
+		env: {
+			'EXAMPLE_MODE': '/var/example'
+		}
+	})!
+	arguments := brew_artifact.command_wrapper_to_args(wrapper).as_array()!
+	options := arguments[1].as_map()!
+	environment := (options['env'] or { return false }).as_map()!
+	return arguments[0].as_string() == 'custom' && (options['executable'] or { return false }).as_string() == '/usr/bin/example' && (options['args'] or { return false }).as_string_array()! == [
+		'/etc/example.conf',
+	] && (environment['EXAMPLE_MODE'] or { return false }).as_string() == '/var/example'
 }
 
 // Ruby it `it "accepts custom wrapper content" do` at line 83.
-pub fn ruby_command_wrapper_spec_l83_d9_accepts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('accepts', ...args)
+pub fn ruby_command_wrapper_spec_l83_d9_accepts(staged_path string,
+	binarydir string) !bool {
+	content := '#!/bin/sh\nexit 1\n'
+	wrapper := brew_artifact.new_command_wrapper('with-command-wrapper', staged_path, binarydir, 'custom', brew_artifact.CommandWrapperOptions{
+		content: content
+	})!
+	brew_artifact.install_command_wrapper(wrapper, false, false)!
+	target := ruby_command_wrapper_spec_l19_d4_custom_target(binarydir)
+	return os.is_link(target) && os.read_file(target)! == content && os.is_executable(target)
 }
 
 // Ruby it `it "serialises custom wrapper content" do` at line 91.
-pub fn ruby_command_wrapper_spec_l91_d10_serialises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('serialises', ...args)
+pub fn ruby_command_wrapper_spec_l91_d10_serialises(staged_path string,
+	binarydir string) !bool {
+	content := '#!/bin/sh\nexit 1\n'
+	wrapper := brew_artifact.new_command_wrapper('with-command-wrapper', staged_path, binarydir, 'custom', brew_artifact.CommandWrapperOptions{
+		content: content
+	})!
+	arguments := brew_artifact.command_wrapper_to_args(wrapper).as_array()!
+	options := arguments[1].as_map()!
+	return arguments[0].as_string() == 'custom' && (options['content'] or { return false }).as_string() == content
 }
 
 // Ruby it `it "rejects missing content and executable" do` at line 100.
-pub fn ruby_command_wrapper_spec_l100_d11_rejects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('rejects', ...args)
+pub fn ruby_command_wrapper_spec_l100_d11_rejects(staged_path string, binarydir string) bool {
+	_ := brew_artifact.new_command_wrapper('with-command-wrapper', staged_path, binarydir, 'other', brew_artifact.CommandWrapperOptions{}) or {
+		return err.msg().contains('requires content or executable')
+	}
+	return false
 }
 
 // Ruby it `it "rejects command names containing path components" do` at line 106.
-pub fn ruby_command_wrapper_spec_l106_d12_rejects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('rejects', ...args)
+pub fn ruby_command_wrapper_spec_l106_d12_rejects(staged_path string, binarydir string) bool {
+	_ := brew_artifact.new_command_wrapper('with-command-wrapper', staged_path, binarydir, '../other', brew_artifact.CommandWrapperOptions{
+		executable: 'example'
+	}) or { return err.msg().contains('requires a command name without path components') }
+	return false
 }
 
 // Ruby it `it "rejects content with an executable" do` at line 112.
-pub fn ruby_command_wrapper_spec_l112_d13_rejects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('rejects', ...args)
+pub fn ruby_command_wrapper_spec_l112_d13_rejects(staged_path string, binarydir string) bool {
+	_ := brew_artifact.new_command_wrapper('with-command-wrapper', staged_path, binarydir, 'other', brew_artifact.CommandWrapperOptions{
+		content: '#!/bin/sh\n'
+		executable: 'example'
+	}) or { return err.msg().contains('content or executable, not both') }
+	return false
 }
 
 // Original Ruby source (line-for-line):

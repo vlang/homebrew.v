@@ -1,33 +1,68 @@
 module tap
 
-import brew_runtime
+import os
 
 // Translated from Homebrew/brew `tap/abstract_core_tap.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub enum AbstractCoreTapKind {
+	core
+	cask
+}
+
+pub struct AbstractCoreTap {
+pub:
+	kind AbstractCoreTapKind
+}
+
+pub fn abstract_core_tap_instance(kind AbstractCoreTapKind) AbstractCoreTap {
+	return AbstractCoreTap{ kind: kind }
+}
+
+pub fn abstract_core_tap_should_install(no_install_from_api bool,
+	automatically_set_no_install_from_api bool, installed bool) bool {
+	return no_install_from_api && !automatically_set_no_install_from_api && !installed
+}
+
+pub fn abstract_core_tap_implicitly_trusted(no_install_from_api bool,
+	base_implicitly_trusted bool) bool {
+	return !no_install_from_api || base_implicitly_trusted
+}
+
+pub fn abstract_core_tap_formula_file_to_name(file string) string {
+	return os.base(file).trim_string_right('.rb')
+}
+
+pub fn abstract_core_tap_should_report_analytics(no_install_from_api bool,
+	base_value bool) bool {
+	return if no_install_from_api { base_value } else { true }
+}
 
 // Ruby method `self.instance` at line 21.
-pub fn ruby_abstract_core_tap_l21_d1_self_instance(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.instance', ...args)
+pub fn ruby_abstract_core_tap_l21_d1_self_instance(kind AbstractCoreTapKind) AbstractCoreTap {
+	return abstract_core_tap_instance(kind)
 }
 
 // Ruby method `ensure_installed!` at line 26.
-pub fn ruby_abstract_core_tap_l26_d2_ensure_installed(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ensure_installed!', ...args)
+pub fn ruby_abstract_core_tap_l26_d2_ensure_installed(no_install_from_api bool,
+	automatically_set_no_install_from_api bool, installed bool) bool {
+	return abstract_core_tap_should_install(no_install_from_api, automatically_set_no_install_from_api, installed)
 }
 
 // Ruby method `implicitly_trusted?(remote: self.remote)` at line 36.
-pub fn ruby_abstract_core_tap_l36_d3_implicitly_trusted(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('implicitly_trusted?', ...args)
+pub fn ruby_abstract_core_tap_l36_d3_implicitly_trusted(no_install_from_api bool,
+	base_implicitly_trusted bool) bool {
+	return abstract_core_tap_implicitly_trusted(no_install_from_api, base_implicitly_trusted)
 }
 
 // Ruby method `formula_file_to_name(file)` at line 43.
-pub fn ruby_abstract_core_tap_l43_d4_formula_file_to_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_file_to_name', ...args)
+pub fn ruby_abstract_core_tap_l43_d4_formula_file_to_name(file string) string {
+	return abstract_core_tap_formula_file_to_name(file)
 }
 
 // Ruby method `should_report_analytics?` at line 48.
-pub fn ruby_abstract_core_tap_l48_d5_should_report_analytics(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('should_report_analytics?', ...args)
+pub fn ruby_abstract_core_tap_l48_d5_should_report_analytics(no_install_from_api bool,
+	base_value bool) bool {
+	return abstract_core_tap_should_report_analytics(no_install_from_api, base_value)
 }
 
 // Original Ruby source (line-for-line):

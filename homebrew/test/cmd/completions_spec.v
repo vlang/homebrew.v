@@ -1,23 +1,33 @@
 module cmd
 
-import brew_runtime
+import homebrew.completions
+import homebrew.completions.subcommand
 
 // Translated from Homebrew/brew `test/cmd/completions_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "uses state as the default subcommand" do` at line 10.
-pub fn ruby_completions_spec_l10_d1_uses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uses', ...args)
+pub fn ruby_completions_spec_l10_d1_uses() bool {
+	mut state := subcommand.CompletionsState{}
+	output := completions.ruby_subcommand_l16_dispatch([], mut state) or { return false }
+	return output == 'Completions are not linked.\n'
 }
 
 // Ruby it `it "rejects extra arguments for state" do` at line 14.
-pub fn ruby_completions_spec_l14_d2_rejects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('rejects', ...args)
+pub fn ruby_completions_spec_l14_d2_rejects() bool {
+	mut state := subcommand.CompletionsState{}
+	completions.ruby_subcommand_l16_dispatch(['state', 'foo'], mut state) or {
+		return err.msg().contains('at most one named argument')
+	}
+	return false
 }
 
 // Ruby it `it "runs the status subcommand correctly", :integration_test do` at line 19.
-pub fn ruby_completions_spec_l19_d3_runs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('runs', ...args)
+pub fn ruby_completions_spec_l19_d3_runs() bool {
+	mut state := subcommand.CompletionsState{}
+	completions.ruby_subcommand_l16_dispatch(['link'], mut state) or { return false }
+	output := completions.ruby_subcommand_l16_dispatch([], mut state) or { return false }
+	return state.linked && output == 'Completions are linked.\n'
 }
 
 // Original Ruby source (line-for-line):

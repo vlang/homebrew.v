@@ -1,38 +1,39 @@
 module test
 
-import brew_runtime
+import homebrew
 
 // Translated from Homebrew/brew `test/build_options_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:build_options) { described_class.new(args, opts) }` at line 8.
-pub fn ruby_build_options_spec_l8_d1_build_options(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('build_options', ...args)
+pub fn ruby_build_options_spec_l8_d1_build_options() homebrew.BuildOptions {
+	return homebrew.new_build_options(ruby_build_options_spec_l10_d2_args(), ruby_build_options_spec_l11_d3_opts())
 }
 
 // Ruby let `let(:args) { Options.create(%w[--with-foo --with-bar --without-qux]) }` at line 10.
-pub fn ruby_build_options_spec_l10_d2_args(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('args', ...args)
+pub fn ruby_build_options_spec_l10_d2_args() homebrew.Options {
+	return homebrew.new_options('--with-foo', '--with-bar', '--without-qux')
 }
 
 // Ruby let `let(:opts) { Options.create(%w[--with-foo --with-bar --without-baz --without-qux]) }` at line 11.
-pub fn ruby_build_options_spec_l11_d3_opts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('opts', ...args)
+pub fn ruby_build_options_spec_l11_d3_opts() homebrew.Options {
+	return homebrew.new_options('--with-foo', '--with-bar', '--without-baz', '--without-qux')
 }
 
 // Ruby alias_matcher `alias_matcher :be_built_with, :be_with` at line 13.
-pub fn ruby_build_options_spec_l13_d4_be_built_with(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('be_built_with', ...args)
+pub fn ruby_build_options_spec_l13_d4_be_built_with(build homebrew.BuildOptions, name string) bool {
+	return build.with(name)
 }
 
 // Ruby alias_matcher `alias_matcher :be_built_without, :be_without` at line 14.
-pub fn ruby_build_options_spec_l14_d5_be_built_without(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('be_built_without', ...args)
+pub fn ruby_build_options_spec_l14_d5_be_built_without(build homebrew.BuildOptions, name string) bool {
+	return build.without(name)
 }
 
 // Ruby specify `specify do` at line 16.
-pub fn ruby_build_options_spec_l16_d6_do(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('do', ...args)
+pub fn ruby_build_options_spec_l16_d6_do() bool {
+	build := ruby_build_options_spec_l8_d1_build_options()
+	return ruby_build_options_spec_l13_d4_be_built_with(build, 'foo') && ruby_build_options_spec_l13_d4_be_built_with(build, 'bar') && ruby_build_options_spec_l13_d4_be_built_with(build, 'baz') && ruby_build_options_spec_l14_d5_be_built_without(build, 'qux') && ruby_build_options_spec_l14_d5_be_built_without(build, 'xyz') && build.used_options().contains('--with-foo') && build.used_options().contains('--with-bar') && build.unused_options().contains('--without-baz')
 }
 
 // Original Ruby source (line-for-line):

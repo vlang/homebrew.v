@@ -1,268 +1,427 @@
 module test
 
-import brew_runtime
+import homebrew as brew
 
 // Translated from Homebrew/brew `test/caveats_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:caveats) { described_class.new(f) }` at line 8.
-pub fn ruby_caveats_spec_l8_d1_caveats(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('caveats', ...args)
+pub fn ruby_caveats_spec_l8_d1_caveats() brew.Caveats {
+	return brew.new_caveats(ruby_caveats_spec_l10_d2_f())
 }
 
 // Ruby let `let(:f) do` at line 10.
-pub fn ruby_caveats_spec_l10_d2_f(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f', ...args)
+pub fn ruby_caveats_spec_l10_d2_f() brew.CaveatsFormula {
+	return caveats_spec_formula()
 }
 
 // Ruby specify `specify "#f" do` at line 17.
-pub fn ruby_caveats_spec_l17_d3_f(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#f', ...args)
+pub fn ruby_caveats_spec_l17_d3_f() bool {
+	return ruby_caveats_spec_l8_d1_caveats().formula.name == ruby_caveats_spec_l10_d2_f().name
 }
 
 // Ruby it `it "returns true if the Formula has no caveats" do` at line 22.
-pub fn ruby_caveats_spec_l22_d4_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_caveats_spec_l22_d4_returns() bool {
+	return ruby_caveats_spec_l8_d1_caveats().empty()
 }
 
 // Ruby it `it "returns false if the Formula has caveats" do` at line 26.
-pub fn ruby_caveats_spec_l26_d5_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_caveats_spec_l26_d5_returns() bool {
+	return !brew.new_caveats(brew.CaveatsFormula{
+		...caveats_spec_formula()
+		custom_caveats: ruby_caveats_spec_l31_d6_caveats()
+	}).empty()
 }
 
 // Ruby method `caveats` at line 31.
-pub fn ruby_caveats_spec_l31_d6_caveats(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('caveats', ...args)
+pub fn ruby_caveats_spec_l31_d6_caveats() string {
+	return 'something'
 }
 
 // Ruby it `it "gives information about service" do` at line 46.
-pub fn ruby_caveats_spec_l46_d7_gives(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('gives', ...args)
+pub fn ruby_caveats_spec_l46_d7_gives() bool {
+	text := caveats_spec_service(false, false, true, '${caveats_spec_formula().prefix}/bin/php test').text()
+	return text.contains('/bin/php test') && text.contains('background service')
 }
 
 // Ruby it `it "prints warning when no service daemon is found" do` at line 62.
-pub fn ruby_caveats_spec_l62_d8_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+pub fn ruby_caveats_spec_l62_d8_prints() bool {
+	formula := brew.CaveatsFormula{
+		...caveats_spec_formula()
+		service: brew.CaveatsService{
+			defined: true
+			command: true
+			manual_command: '${caveats_spec_formula().prefix}/bin/cmd'
+			systemctl: false
+			launchctl: false
+		}
+	}
+	return brew.new_caveats(formula).text().contains('service which can only be used on macOS or systemd!')
 }
 
 // Ruby it `it "prints service startup information when service.require_root is true" do` at line 76.
-pub fn ruby_caveats_spec_l76_d9_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+pub fn ruby_caveats_spec_l76_d9_prints() bool {
+	return caveats_spec_service(true, false, true, '/bin/cmd').text().contains('startup')
 }
 
 // Ruby it `it "prints service login information" do` at line 90.
-pub fn ruby_caveats_spec_l90_d10_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+pub fn ruby_caveats_spec_l90_d10_prints() bool {
+	return caveats_spec_service(false, false, true, '/bin/cmd').text().contains('restart at login')
 }
 
 // Ruby it `it "gives information about require_root restarting services after upgrade" do` at line 103.
-pub fn ruby_caveats_spec_l103_d11_gives(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('gives', ...args)
+pub fn ruby_caveats_spec_l103_d11_gives() bool {
+	return caveats_spec_service(true, true, true, '/bin/cmd').text().contains('  sudo brew services restart formula_name')
 }
 
 // Ruby it `it "gives information about user restarting services after upgrade" do` at line 118.
-pub fn ruby_caveats_spec_l118_d12_gives(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('gives', ...args)
+pub fn ruby_caveats_spec_l118_d12_gives() bool {
+	return caveats_spec_service(false, true, true, '/bin/cmd').text().contains('  brew services restart formula_name')
 }
 
 // Ruby it `it "gives information about require_root starting services after upgrade" do` at line 132.
-pub fn ruby_caveats_spec_l132_d13_gives(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('gives', ...args)
+pub fn ruby_caveats_spec_l132_d13_gives() bool {
+	return caveats_spec_service(true, false, true, '/bin/cmd').text().contains('  sudo brew services start formula_name')
 }
 
 // Ruby it `it "gives information about user starting services after upgrade" do` at line 147.
-pub fn ruby_caveats_spec_l147_d14_gives(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('gives', ...args)
+pub fn ruby_caveats_spec_l147_d14_gives() bool {
+	return caveats_spec_service(false, false, true, '/bin/cmd').text().contains('  brew services start formula_name')
 }
 
 // Ruby it `it "gives information about service manual command" do` at line 161.
-pub fn ruby_caveats_spec_l161_d15_gives(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('gives', ...args)
+pub fn ruby_caveats_spec_l161_d15_gives() bool {
+	manual := 'VAR="foo" ${caveats_spec_formula().prefix}/bin/cmd start'
+	text := caveats_spec_service(false, false, true, manual).text()
+	return text.contains("if you don't want/need a background service") && text.contains(manual)
 }
 
 // Ruby it `it "prints info when there are custom service files" do` at line 178.
-pub fn ruby_caveats_spec_l178_d16_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+pub fn ruby_caveats_spec_l178_d16_prints() bool {
+	formula := brew.CaveatsFormula{
+		...caveats_spec_formula()
+		service: brew.CaveatsService{
+			defined: true
+			installed: true
+			systemctl: true
+			launchctl: true
+		}
+	}
+	return brew.new_caveats(formula).text().contains('restart at login')
 }
 
 // Ruby let `let(:f) do` at line 194.
-pub fn ruby_caveats_spec_l194_d17_f(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f', ...args)
+pub fn ruby_caveats_spec_l194_d17_f() brew.CaveatsFormula {
+	return brew.CaveatsFormula{
+		...caveats_spec_formula()
+		keg_only_reason: 'some reason'
+	}
 }
 
 // Ruby let `let(:caveats) { described_class.new(f).caveats }` at line 201.
-pub fn ruby_caveats_spec_l201_d18_caveats(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('caveats', ...args)
+pub fn ruby_caveats_spec_l201_d18_caveats() string {
+	return brew.new_caveats(ruby_caveats_spec_l194_d17_f()).text()
 }
 
 // Ruby it `it "tells formula is keg_only" do` at line 203.
-pub fn ruby_caveats_spec_l203_d19_tells(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tells', ...args)
+pub fn ruby_caveats_spec_l203_d19_tells() bool {
+	return ruby_caveats_spec_l201_d18_caveats().contains('keg-only')
 }
 
 // Ruby it `it "omits keg-only caveats when the formula is linked" do` at line 207.
-pub fn ruby_caveats_spec_l207_d20_omits(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('omits', ...args)
+pub fn ruby_caveats_spec_l207_d20_omits() bool {
+	return brew.new_caveats(brew.CaveatsFormula{
+		...ruby_caveats_spec_l194_d17_f()
+		linked: true
+	}).text().trim_space() == ''
 }
 
 // Ruby it `it "gives command to be run when f.bin is a directory" do` at line 213.
-pub fn ruby_caveats_spec_l213_d21_gives(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('gives', ...args)
+pub fn ruby_caveats_spec_l213_d21_gives() bool {
+	return caveats_spec_keg_text(brew.CaveatsFormula{
+		...ruby_caveats_spec_l194_d17_f()
+		bin_directory: true
+	}).contains('${caveats_spec_formula().opt_prefix}/bin')
 }
 
 // Ruby it `it "gives command to be run when f.sbin is a directory" do` at line 218.
-pub fn ruby_caveats_spec_l218_d22_gives(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('gives', ...args)
+pub fn ruby_caveats_spec_l218_d22_gives() bool {
+	return caveats_spec_keg_text(brew.CaveatsFormula{
+		...ruby_caveats_spec_l194_d17_f()
+		sbin_directory: true
+	}).contains('${caveats_spec_formula().opt_prefix}/sbin')
 }
 
 // Ruby it `it "gives command to be run when f.lib is a directory" do` at line 224.
-pub fn ruby_caveats_spec_l224_d23_gives(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('gives', ...args)
+pub fn ruby_caveats_spec_l224_d23_gives() bool {
+	text := caveats_spec_keg_text(brew.CaveatsFormula{
+		...ruby_caveats_spec_l194_d17_f()
+		lib_directory: true
+	})
+	return text.contains('LDFLAGS') && text.contains('/lib')
 }
 
 // Ruby it `it "gives command to be run when f.include is a directory" do` at line 229.
-pub fn ruby_caveats_spec_l229_d24_gives(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('gives', ...args)
+pub fn ruby_caveats_spec_l229_d24_gives() bool {
+	text := caveats_spec_keg_text(brew.CaveatsFormula{
+		...ruby_caveats_spec_l194_d17_f()
+		include_directory: true
+	})
+	return text.contains('CPPFLAGS') && text.contains('/include')
 }
 
 // Ruby it `it "gives PKG_CONFIG_PATH when f.lib/'pkgconfig' and f.share/'pkgconfig' are directories" do` at line 234.
-pub fn ruby_caveats_spec_l234_d25_gives(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('gives', ...args)
+pub fn ruby_caveats_spec_l234_d25_gives() bool {
+	text := caveats_spec_keg_text(brew.CaveatsFormula{
+		...ruby_caveats_spec_l194_d17_f()
+		lib_directory: true
+		pkgconf_available: true
+		lib_pkgconfig_directory: true
+		share_pkgconfig_directory: true
+	})
+	return text.contains('PKG_CONFIG_PATH') && text.contains('/lib/pkgconfig') && text.contains('/share/pkgconfig')
 }
 
 // Ruby let `let(:f) do` at line 246.
-pub fn ruby_caveats_spec_l246_d26_f(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f', ...args)
+pub fn ruby_caveats_spec_l246_d26_f() brew.CaveatsFormula {
+	return brew.CaveatsFormula{
+		...ruby_caveats_spec_l194_d17_f()
+		custom_caveats: ruby_caveats_spec_l252_d27_caveats()
+		service: brew.CaveatsService{
+			defined: true
+			command: true
+			manual_command: '${caveats_spec_formula().prefix}/bin/cmd'
+			systemctl: true
+		}
+	}
 }
 
 // Ruby method `caveats` at line 252.
-pub fn ruby_caveats_spec_l252_d27_caveats(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('caveats', ...args)
+pub fn ruby_caveats_spec_l252_d27_caveats() string {
+	return 'something else'
 }
 
 // Ruby let `let(:caveats) { described_class.new(f).caveats }` at line 263.
-pub fn ruby_caveats_spec_l263_d28_caveats(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('caveats', ...args)
+pub fn ruby_caveats_spec_l263_d28_caveats() string {
+	return brew.new_caveats(ruby_caveats_spec_l246_d26_f()).text()
 }
 
 // Ruby it `it "adds the correct amount of new lines to the output" do` at line 265.
-pub fn ruby_caveats_spec_l265_d29_adds(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('adds', ...args)
+pub fn ruby_caveats_spec_l265_d29_adds() bool {
+	text := ruby_caveats_spec_l263_d28_caveats()
+	return text.contains('something else') && text.contains('keg-only') && text.contains("if you don't want/need a background service") && text.count('\n') == 9
 }
 
 // Ruby let `let(:f) do` at line 276.
-pub fn ruby_caveats_spec_l276_d30_f(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f', ...args)
+pub fn ruby_caveats_spec_l276_d30_f() brew.CaveatsFormula {
+	return brew.CaveatsFormula{
+		...caveats_spec_formula()
+		any_version_installed: true
+		shadows: [
+			brew.CaveatShadow{ name: 'foo', path: '/usr/local/bin/foo' },
+			brew.CaveatShadow{ name: 'bar', path: '/usr/local/bin/bar' },
+		]
+	}
 }
 
 // Ruby it `it "warns about shadowed executables on PATH in alphabetical order" do` at line 291.
-pub fn ruby_caveats_spec_l291_d31_warns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('warns', ...args)
+pub fn ruby_caveats_spec_l291_d31_warns() bool {
+	text := brew.new_caveats(ruby_caveats_spec_l276_d30_f()).text()
+	bar_index := text.index('bar (shadowed by') or { -1 }
+	foo_index := text.index('foo (shadowed by') or { -1 }
+	return text.contains('foo (shadowed by /usr/local/bin/foo)') && bar_index >= 0 && foo_index >= 0 && bar_index < foo_index
 }
 
 // Ruby it `it "does not warn when PATH resolves to the formula's own executable" do` at line 308.
-pub fn ruby_caveats_spec_l308_d32_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_caveats_spec_l308_d32_does() bool {
+	return !brew.new_caveats(brew.CaveatsFormula{
+		...ruby_caveats_spec_l276_d30_f()
+		shadows: []brew.CaveatShadow{}
+	}).text().contains('shadowed')
 }
 
 // Ruby it `it "does not warn for keg-only formulae" do` at line 315.
-pub fn ruby_caveats_spec_l315_d33_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_caveats_spec_l315_d33_does() bool {
+	return !brew.new_caveats(brew.CaveatsFormula{
+		...ruby_caveats_spec_l276_d30_f()
+		keg_only_reason: 'some reason'
+	}).text().contains('shadowed')
 }
 
 // Ruby it `it "does not warn when the queried formula itself is not installed" do` at line 330.
-pub fn ruby_caveats_spec_l330_d34_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_caveats_spec_l330_d34_does() bool {
+	return !brew.new_caveats(brew.CaveatsFormula{
+		...ruby_caveats_spec_l276_d30_f()
+		name: 'foo@old'
+		keg_only_reason: 'versioned formula'
+		any_version_installed: false
+	}).text().contains('shadowed')
 }
 
 // Ruby it `it "warns for a keg-only formula when a sibling keg is linked over it" do` at line 354.
-pub fn ruby_caveats_spec_l354_d35_warns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('warns', ...args)
+pub fn ruby_caveats_spec_l354_d35_warns() bool {
+	formula := brew.CaveatsFormula{
+		...caveats_spec_formula()
+		name: 'foo@1.0'
+		full_name: 'foo@1.0'
+		keg_only_reason: 'versioned formula'
+		any_version_installed: true
+		unversioned_formula_name: 'foo'
+		versioned_formulae_names: ['foo@2.0']
+		shadows: [
+			brew.CaveatShadow{ name: 'foo', path: '/cellar/foo@2.0/2.0/bin/foo', sibling_keg: 'foo@2.0' },
+		]
+	}
+	text := brew.new_caveats(formula).text()
+	return text.contains('from foo@2.0') && text.contains('Run `brew link foo@1.0`')
 }
 
 // Ruby it `it "warns when a keg-only formula has been linked" do` at line 380.
-pub fn ruby_caveats_spec_l380_d36_warns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('warns', ...args)
+pub fn ruby_caveats_spec_l380_d36_warns() bool {
+	formula := brew.CaveatsFormula{
+		...ruby_caveats_spec_l276_d30_f()
+		keg_only_reason: 'some reason'
+		linked: true
+		shadows: [brew.CaveatShadow{ name: 'foo', path: '/usr/local/bin/foo' }]
+	}
+	return brew.new_caveats(formula).text().contains('foo (shadowed by /usr/local/bin/foo)')
 }
 
 // Ruby it `it "does not warn when HOMEBREW_NO_PATH_SHADOW_CHECK is set" do` at line 397.
-pub fn ruby_caveats_spec_l397_d37_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_caveats_spec_l397_d37_does() bool {
+	return !brew.new_caveats(brew.CaveatsFormula{
+		...ruby_caveats_spec_l276_d30_f()
+		no_path_shadow_check: true
+	}).text().contains('shadowed')
 }
 
 // Ruby it `it "shows the opt-out hint by default" do` at line 405.
-pub fn ruby_caveats_spec_l405_d38_shows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('shows', ...args)
+pub fn ruby_caveats_spec_l405_d38_shows() bool {
+	return brew.new_caveats(ruby_caveats_spec_l276_d30_f()).text().contains('HOMEBREW_NO_PATH_SHADOW_CHECK=1')
 }
 
 // Ruby it `it "hides the opt-out hint when HOMEBREW_NO_ENV_HINTS is set" do` at line 413.
-pub fn ruby_caveats_spec_l413_d39_hides(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('hides', ...args)
+pub fn ruby_caveats_spec_l413_d39_hides() bool {
+	return !brew.new_caveats(brew.CaveatsFormula{
+		...ruby_caveats_spec_l276_d30_f()
+		no_env_hints: true
+	}).text().contains('HOMEBREW_NO_PATH_SHADOW_CHECK')
 }
 
 // Ruby it `it "annotates sibling-keg shadowers with the keg name and adds a `brew link` hint" do` at line 422.
-pub fn ruby_caveats_spec_l422_d40_annotates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('annotates', ...args)
+pub fn ruby_caveats_spec_l422_d40_annotates() bool {
+	formula := brew.CaveatsFormula{
+		...caveats_spec_formula()
+		any_version_installed: true
+		versioned_formulae_names: ['formula_name@1.0']
+		shadows: [
+			brew.CaveatShadow{ name: 'foo', path: '/cellar/formula_name@1.0/1.0/bin/foo', sibling_keg: 'formula_name@1.0' },
+		]
+	}
+	text := brew.new_caveats(formula).text()
+	return text.contains('shadowed by other linked Homebrew commands') && text.contains('from formula_name@1.0') && text.contains('Run `brew link formula_name`') && !text.contains('earlier in your PATH')
 }
 
 // Ruby it `it "annotates only the sibling line when shadowers are mixed" do` at line 439.
-pub fn ruby_caveats_spec_l439_d41_annotates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('annotates', ...args)
+pub fn ruby_caveats_spec_l439_d41_annotates() bool {
+	formula := brew.CaveatsFormula{
+		...caveats_spec_formula()
+		any_version_installed: true
+		versioned_formulae_names: ['formula_name@1.0']
+		shadows: [
+			brew.CaveatShadow{ name: 'foo', path: '/cellar/formula_name@1.0/1.0/bin/foo', sibling_keg: 'formula_name@1.0' },
+			brew.CaveatShadow{ name: 'bar', path: '/usr/local/bin/bar' },
+		]
+	}
+	text := brew.new_caveats(formula).text()
+	return text.contains('foo (shadowed by /cellar/formula_name@1.0/1.0/bin/foo from formula_name@1.0)') && text.contains('bar (shadowed by /usr/local/bin/bar)') && text.contains('Run `brew link formula_name`')
 }
 
 // Ruby let `let(:f) do` at line 465.
-pub fn ruby_caveats_spec_l465_d42_f(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f', ...args)
+pub fn ruby_caveats_spec_l465_d42_f() brew.CaveatsFormula {
+	return brew.CaveatsFormula{
+		...caveats_spec_formula()
+		completions: [
+			brew.CaveatCompletion{ shell: 'bash', completion: true },
+			brew.CaveatCompletion{ shell: 'fish', completion: true },
+			brew.CaveatCompletion{ shell: 'zsh', functions: true },
+			brew.CaveatCompletion{ shell: 'pwsh', completion: true },
+		]
+	}
 }
 
 // Ruby let `let(:caveats) { described_class.new(f) }` at line 471.
-pub fn ruby_caveats_spec_l471_d43_caveats(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('caveats', ...args)
+pub fn ruby_caveats_spec_l471_d43_caveats() brew.Caveats {
+	return brew.new_caveats(ruby_caveats_spec_l465_d42_f())
 }
 
 // Ruby let `let(:path) { f.prefix.resolved_path }` at line 472.
-pub fn ruby_caveats_spec_l472_d44_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('path', ...args)
+pub fn ruby_caveats_spec_l472_d44_path() string {
+	return ruby_caveats_spec_l465_d42_f().prefix
 }
 
 // Ruby let `let(:bash_completion_dir) { path/"etc/bash_completion.d" }` at line 474.
-pub fn ruby_caveats_spec_l474_d45_bash_completion_dir(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('bash_completion_dir', ...args)
+pub fn ruby_caveats_spec_l474_d45_bash_completion_dir() string {
+	return '${ruby_caveats_spec_l472_d44_path()}/etc/bash_completion.d'
 }
 
 // Ruby let `let(:fish_vendor_completions) { path/"share/fish/vendor_completions.d" }` at line 475.
-pub fn ruby_caveats_spec_l475_d46_fish_vendor_completions(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fish_vendor_completions', ...args)
+pub fn ruby_caveats_spec_l475_d46_fish_vendor_completions() string {
+	return '${ruby_caveats_spec_l472_d44_path()}/share/fish/vendor_completions.d'
 }
 
 // Ruby let `let(:zsh_site_functions) { path/"share/zsh/site-functions" }` at line 476.
-pub fn ruby_caveats_spec_l476_d47_zsh_site_functions(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('zsh_site_functions', ...args)
+pub fn ruby_caveats_spec_l476_d47_zsh_site_functions() string {
+	return '${ruby_caveats_spec_l472_d44_path()}/share/zsh/site-functions'
 }
 
 // Ruby let `let(:pwsh_completion_dir) { path/"share/pwsh/completions" }` at line 477.
-pub fn ruby_caveats_spec_l477_d48_pwsh_completion_dir(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('pwsh_completion_dir', ...args)
+pub fn ruby_caveats_spec_l477_d48_pwsh_completion_dir() string {
+	return '${ruby_caveats_spec_l472_d44_path()}/share/pwsh/completions'
 }
 
 // Ruby it `it "includes where Bash completions have been installed to" do` at line 487.
-pub fn ruby_caveats_spec_l487_d49_includes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('includes', ...args)
+pub fn ruby_caveats_spec_l487_d49_includes() bool {
+	return ruby_caveats_spec_l471_d43_caveats().completions_and_elisp().join('').contains('/opt/homebrew/etc/bash_completion.d')
 }
 
 // Ruby it `it "includes where fish completions have been installed to" do` at line 493.
-pub fn ruby_caveats_spec_l493_d50_includes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('includes', ...args)
+pub fn ruby_caveats_spec_l493_d50_includes() bool {
+	return ruby_caveats_spec_l471_d43_caveats().completions_and_elisp().join('').contains('/opt/homebrew/share/fish/vendor_completions.d')
 }
 
 // Ruby it `it "includes where zsh completions have been installed to" do` at line 499.
-pub fn ruby_caveats_spec_l499_d51_includes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('includes', ...args)
+pub fn ruby_caveats_spec_l499_d51_includes() bool {
+	return ruby_caveats_spec_l471_d43_caveats().completions_and_elisp().join('').contains('/opt/homebrew/share/zsh/site-functions')
 }
 
 // Ruby it `it "includes where pwsh completions have been installed to" do` at line 505.
-pub fn ruby_caveats_spec_l505_d52_includes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('includes', ...args)
+pub fn ruby_caveats_spec_l505_d52_includes() bool {
+	return ruby_caveats_spec_l471_d43_caveats().completions_and_elisp().join('').contains('/opt/homebrew/share/pwsh/completions')
+}
+
+fn caveats_spec_formula() brew.CaveatsFormula {
+	return brew.CaveatsFormula{}
+}
+
+fn caveats_spec_service(requires_root bool, running bool, command bool,
+	manual_command string) brew.Caveats {
+	return brew.new_caveats(brew.CaveatsFormula{
+		...caveats_spec_formula()
+		service: brew.CaveatsService{
+			defined: true
+			command: command
+			manual_command: manual_command
+			requires_root: requires_root
+			running: running
+			systemctl: true
+			launchctl: true
+		}
+	})
+}
+
+fn caveats_spec_keg_text(formula brew.CaveatsFormula) string {
+	return brew.new_caveats(formula).keg_only_text(false) or { '' }
 }
 
 // Original Ruby source (line-for-line):

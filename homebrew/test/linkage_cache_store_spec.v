@@ -1,58 +1,92 @@
 module test
 
 import brew_runtime
+import homebrew as cache_core
 
 // Translated from Homebrew/brew `test/linkage_cache_store_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:linkage_cache) { described_class.new(keg_name, database) }` at line 7.
 pub fn ruby_linkage_cache_store_spec_l7_d1_linkage_cache(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('linkage_cache', ...args)
+	keg_name := if args.len > 0 { args[0].as_string() } else { 'keg_name' }
+	return brew_runtime.structured_value('LinkageCacheStore', keg_name, {
+		'keg_path': keg_name
+	})
 }
 
 // Ruby let `let(:keg_name) { "keg_name" }` at line 9.
 pub fn ruby_linkage_cache_store_spec_l9_d2_keg_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('keg_name', ...args)
+	return brew_runtime.string_value('keg_name')
 }
 
 // Ruby let `let(:database) { instance_double(CacheStoreDatabase, "database") }` at line 10.
 pub fn ruby_linkage_cache_store_spec_l10_d3_database(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('database', ...args)
+	return brew_runtime.object_value('CacheStoreDatabase', 'database')
 }
 
 // Ruby it `it "returns `true`" do` at line 14.
 pub fn ruby_linkage_cache_store_spec_l14_d4_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	store := cache_core.new_linkage_cache_store('keg_name')
+	database := cache_core.LinkageCacheDatabase{
+		entries: {
+			'keg_name': map[string]brew_runtime.Value{}
+		}
+	}
+	return brew_runtime.bool_value(cache_core.linkage_keg_exists(store, database))
 }
 
 // Ruby it `it "returns `false`" do` at line 21.
 pub fn ruby_linkage_cache_store_spec_l21_d5_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	return brew_runtime.bool_value(!cache_core.linkage_keg_exists(cache_core.new_linkage_cache_store('keg_name'), cache_core.LinkageCacheDatabase{}))
 }
 
 // Ruby it `it "sets the cache for the `keg_name`" do` at line 30.
 pub fn ruby_linkage_cache_store_spec_l30_d6_sets(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sets', ...args)
+	store := cache_core.new_linkage_cache_store('keg_name')
+	mut database := cache_core.LinkageCacheDatabase{}
+	cache_core.linkage_update(mut database, store, {
+		'keg_files_dylibs': brew_runtime.map_value({
+			'key': brew_runtime.string_array_value(['value'])
+		})
+	}) or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value(database.sets == ['keg_name'] && 'keg_name' in database.entries)
 }
 
 // Ruby it `it "raises a `TypeError` if a `value` is not a `Hash`" do` at line 37.
 pub fn ruby_linkage_cache_store_spec_l37_d7_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+	mut database := cache_core.LinkageCacheDatabase{}
+	cache_core.linkage_update(mut database, cache_core.new_linkage_cache_store('keg_name'), {
+		'a_value': brew_runtime.string_array_value(['value'])
+	}) or { return brew_runtime.bool_value(err.msg().contains("Can't update types")) }
+	return brew_runtime.bool_value(false)
 }
 
 // Ruby it `it "calls `delete` on the `database` with `keg_name` as parameter" do` at line 44.
 pub fn ruby_linkage_cache_store_spec_l44_d8_calls(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('calls', ...args)
+	store := cache_core.new_linkage_cache_store('keg_name')
+	mut database := cache_core.LinkageCacheDatabase{
+		entries: {
+			'keg_name': map[string]brew_runtime.Value{}
+		}
+	}
+	cache_core.linkage_delete(mut database, store)
+	return brew_runtime.bool_value(database.deletes == ['keg_name'] && 'keg_name' !in database.entries)
 }
 
 // Ruby it `it "returns a `Hash` of values" do` at line 52.
 pub fn ruby_linkage_cache_store_spec_l52_d9_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	value := cache_core.linkage_fetch(cache_core.LinkageCacheDatabase{}, cache_core.new_linkage_cache_store('keg_name'), 'keg_files_dylibs') or {
+		return brew_runtime.bool_value(false)
+	}
+	return brew_runtime.bool_value(value.type_name == 'Hash')
 }
 
 // Ruby it `it "raises a `TypeError` if the `type` is not supported" do` at line 59.
 pub fn ruby_linkage_cache_store_spec_l59_d10_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+	cache_core.linkage_fetch(cache_core.LinkageCacheDatabase{}, cache_core.new_linkage_cache_store('keg_name'), 'bad_type') or {
+		return brew_runtime.bool_value(err.msg().contains("Can't fetch types"))
+	}
+	return brew_runtime.bool_value(false)
 }
 
 // Original Ruby source (line-for-line):

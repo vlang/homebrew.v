@@ -1,48 +1,96 @@
 module language
 
 import brew_runtime
+import homebrew.language as java_language
 
 // Translated from Homebrew/brew `test/language/java_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+const java_spec_opt_libexec = '/opt/homebrew/opt/openjdk/libexec'
+
+pub fn java_spec_formula() java_language.OpenJdkFormula {
+	return java_language.OpenJdkFormula{
+		name: 'openjdk'
+		installed: true
+		installed_version: '15.0.1'
+		opt_libexec: java_spec_opt_libexec
+	}
+}
+
+pub fn java_spec_expected_home() string {
+	return java_language.java_current_platform_home(java_spec_opt_libexec)
+}
+
+fn java_spec_version(args []brew_runtime.Value) string {
+	if args.len == 0 || args[0].type_name == 'NilClass' {
+		return ''
+	}
+	return args[0].as_string()
+}
+
+fn java_spec_formula_value(formula java_language.OpenJdkFormula) brew_runtime.Value {
+	return brew_runtime.structured_value('Formula', formula.name, {
+		'name':              formula.name
+		'installed':         formula.installed.str()
+		'installed_version': formula.installed_version
+		'opt_libexec':       formula.opt_libexec
+	})
+}
 
 // Ruby let `let(:f) do` at line 7.
 pub fn ruby_java_spec_l7_d1_f(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f', ...args)
+	return java_spec_formula_value(java_spec_formula())
 }
 
 // Ruby let `let(:expected_home) do` at line 15.
 pub fn ruby_java_spec_l15_d2_expected_home(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('expected_home', ...args)
+	return brew_runtime.string_value(java_spec_expected_home())
 }
 
 // Ruby it `it "returns valid JAVA_HOME if version is specified" do` at line 29.
 pub fn ruby_java_spec_l29_d3_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	version := if args.len == 0 { '1.8+' } else { java_spec_version(args) }
+	home := java_language.java_home_for_current_platform(version, [
+		java_spec_formula(),
+	]) or {
+		return brew_runtime.bool_value(false)
+	}
+	return brew_runtime.bool_value(home == java_spec_expected_home())
 }
 
 // Ruby it `it "returns valid JAVA_HOME if version is not specified" do` at line 34.
 pub fn ruby_java_spec_l34_d4_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	home := java_language.java_home_for_current_platform('', [java_spec_formula()]) or {
+		return brew_runtime.bool_value(false)
+	}
+	return brew_runtime.bool_value(home == java_spec_expected_home())
 }
 
 // Ruby it `it "returns java_home path if version specified" do` at line 41.
 pub fn ruby_java_spec_l41_d5_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	version := if args.len == 0 { '1.8+' } else { java_spec_version(args) }
+	environment := java_language.java_home_env(version, [java_spec_formula()], java_language.java_current_platform_home)
+	return brew_runtime.bool_value(environment['JAVA_HOME'] == java_spec_expected_home())
 }
 
 // Ruby it `it "returns java_home path if version is not specified" do` at line 46.
 pub fn ruby_java_spec_l46_d6_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	environment := java_language.java_home_env('', [java_spec_formula()], java_language.java_current_platform_home)
+	return brew_runtime.bool_value(environment['JAVA_HOME'] == java_spec_expected_home())
 }
 
 // Ruby it `it "returns java_home path if version specified" do` at line 53.
 pub fn ruby_java_spec_l53_d7_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	version := if args.len == 0 { '1.8+' } else { java_spec_version(args) }
+	environment := java_language.overridable_java_home_env(version, [
+		java_spec_formula(),
+	], java_language.java_current_platform_home)
+	return brew_runtime.bool_value(environment['JAVA_HOME'] == '\${JAVA_HOME:-${java_spec_expected_home()}}')
 }
 
 // Ruby it `it "returns java_home path if version is not specified" do` at line 58.
 pub fn ruby_java_spec_l58_d8_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	environment := java_language.overridable_java_home_env('', [java_spec_formula()], java_language.java_current_platform_home)
+	return brew_runtime.bool_value(environment['JAVA_HOME'] == '\${JAVA_HOME:-${java_spec_expected_home()}}')
 }
 
 // Original Ruby source (line-for-line):

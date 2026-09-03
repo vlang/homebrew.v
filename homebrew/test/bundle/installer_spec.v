@@ -1,218 +1,364 @@
 module bundle
 
-import brew_runtime
+import homebrew.bundle as production_bundle
 
 // Translated from Homebrew/brew `test/bundle/installer_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub struct InstallerSpecScenario {
+pub:
+	line            int
+	description     string
+	expected_fetch  []string
+	expected_order  []string
+	expected_trust  []string
+	expected_output string
+	jobs            int = 1
+	expects_warning bool
+	expects_failure bool
+}
+
+fn installer_spec_scenario(line int, description string) InstallerSpecScenario {
+	return InstallerSpecScenario{
+		line: line
+		description: description
+	}
+}
 
 // Ruby let `let(:formula_entry) { Homebrew::Bundle::Dsl::Entry.new(:brew, "mysql") }` at line 12.
-pub fn ruby_installer_spec_l12_d1_formula_entry(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_entry', ...args)
+pub fn ruby_installer_spec_l12_d1_formula_entry() production_bundle.BundleInstallerEntry {
+	return production_bundle.BundleInstallerEntry{
+		name: 'mysql'
+		package_kind: .brew
+		fetchable_name: 'mysql'
+	}
 }
 
 // Ruby let `let(:second_formula_entry) { Homebrew::Bundle::Dsl::Entry.new(:brew, "redis") }` at line 13.
-pub fn ruby_installer_spec_l13_d2_second_formula_entry(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('second_formula_entry', ...args)
+pub fn ruby_installer_spec_l13_d2_second_formula_entry() production_bundle.BundleInstallerEntry {
+	return production_bundle.BundleInstallerEntry{
+		name: 'redis'
+		package_kind: .brew
+		fetchable_name: 'redis'
+	}
 }
 
 // Ruby let `let(:cask_options) { { args: {}, full_name: "homebrew/cask/google-chrome" } }` at line 14.
-pub fn ruby_installer_spec_l14_d3_cask_options(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask_options', ...args)
+pub fn ruby_installer_spec_l14_d3_cask_options() production_bundle.InstallerEntryOptions {
+	return production_bundle.InstallerEntryOptions{
+		full_name: 'homebrew/cask/google-chrome'
+	}
 }
 
 // Ruby let `let(:cask_entry) { Homebrew::Bundle::Dsl::Entry.new(:cask, "google-chrome", cask_options) }` at line 15.
-pub fn ruby_installer_spec_l15_d4_cask_entry(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask_entry', ...args)
+pub fn ruby_installer_spec_l15_d4_cask_entry() production_bundle.BundleInstallerEntry {
+	return production_bundle.BundleInstallerEntry{
+		name: 'google-chrome'
+		options: ruby_installer_spec_l14_d3_cask_options()
+		package_kind: .cask
+		fetchable_name: 'homebrew/cask/google-chrome'
+	}
 }
 
 // Ruby it `it "resets cached package state before installing" do` at line 28.
-pub fn ruby_installer_spec_l28_d5_resets(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('resets', ...args)
+pub fn ruby_installer_spec_l28_d5_resets() InstallerSpecScenario {
+	return installer_spec_scenario(28, 'resets cached package state before installing')
 }
 
 // Ruby it `it "prefetches installable formulae and casks before installing" do` at line 40.
-pub fn ruby_installer_spec_l40_d6_prefetches(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prefetches', ...args)
+pub fn ruby_installer_spec_l40_d6_prefetches() InstallerSpecScenario {
+	return InstallerSpecScenario{
+		...installer_spec_scenario(40, 'prefetches installable formulae and casks before installing')
+		expected_fetch: ['mysql', 'homebrew/cask/google-chrome']
+		expected_order: ['fetch', 'mysql', 'google-chrome']
+	}
 }
 
 // Ruby it `it "skips fetching when no formulae or casks need installation or upgrade" do` at line 63.
-pub fn ruby_installer_spec_l63_d7_skips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skips', ...args)
+pub fn ruby_installer_spec_l63_d7_skips() InstallerSpecScenario {
+	return installer_spec_scenario(63, 'skips fetching when no formulae or casks need installation or upgrade')
 }
 
 // Ruby it `it "skips fetching formulae from untapped taps" do` at line 72.
-pub fn ruby_installer_spec_l72_d8_skips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skips', ...args)
+pub fn ruby_installer_spec_l72_d8_skips() InstallerSpecScenario {
+	return installer_spec_scenario(72, 'skips fetching formulae from untapped taps')
 }
 
 // Ruby it `it "trusts `trusted: true` formulae before fetching them" do` at line 84.
-pub fn ruby_installer_spec_l84_d9_trusts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('trusts', ...args)
+pub fn ruby_installer_spec_l84_d9_trusts() InstallerSpecScenario {
+	return InstallerSpecScenario{
+		...installer_spec_scenario(84, 'trusts `trusted: true` formulae before fetching them')
+		expected_trust: ['thirdparty/tap/bar']
+	}
 }
 
 // Ruby it `it "trusts `trusted: true` casks before fetching them" do` at line 98.
-pub fn ruby_installer_spec_l98_d10_trusts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('trusts', ...args)
+pub fn ruby_installer_spec_l98_d10_trusts() InstallerSpecScenario {
+	return InstallerSpecScenario{
+		...installer_spec_scenario(98, 'trusts `trusted: true` casks before fetching them')
+		expected_trust: ['thirdparty/tap/baz']
+	}
 }
 
 // Ruby it `it "trusts `trusted: true` taps by name" do` at line 113.
-pub fn ruby_installer_spec_l113_d11_trusts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('trusts', ...args)
+pub fn ruby_installer_spec_l113_d11_trusts() InstallerSpecScenario {
+	return InstallerSpecScenario{
+		...installer_spec_scenario(113, 'trusts `trusted: true` taps by name')
+		expected_trust: ['thirdparty/tap']
+	}
 }
 
 // Ruby it `it "trusts `trusted: true` taps with a clone target by their remote reference" do` at line 121.
-pub fn ruby_installer_spec_l121_d12_trusts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('trusts', ...args)
+pub fn ruby_installer_spec_l121_d12_trusts() InstallerSpecScenario {
+	return InstallerSpecScenario{
+		...installer_spec_scenario(121, 'trusts `trusted: true` taps with a clone target by their remote reference')
+		expected_trust: ['thirdparty/custom']
+	}
 }
 
 // Ruby it `it "trusts tap `trusted` hash entries" do` at line 131.
-pub fn ruby_installer_spec_l131_d13_trusts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('trusts', ...args)
+pub fn ruby_installer_spec_l131_d13_trusts() InstallerSpecScenario {
+	return InstallerSpecScenario{
+		...installer_spec_scenario(131, 'trusts tap `trusted` hash entries')
+		expected_trust: ['thirdparty/tap/foo', 'thirdparty/tap/bar', 'thirdparty/tap/baz',
+			'thirdparty/tap/qux', 'thirdparty/tap/hello', 'thirdparty/tap/world']
+	}
 }
 
 // Ruby it `it "rejects unsupported tap `trusted` hash keys" do` at line 156.
-pub fn ruby_installer_spec_l156_d14_rejects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('rejects', ...args)
+pub fn ruby_installer_spec_l156_d14_rejects() InstallerSpecScenario {
+	return InstallerSpecScenario{
+		...installer_spec_scenario(156, 'rejects unsupported tap `trusted` hash keys')
+		expects_failure: true
+	}
 }
 
 // Ruby it `it "does not trust unqualified `trusted: true` names" do` at line 163.
-pub fn ruby_installer_spec_l163_d15_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_installer_spec_l163_d15_does() InstallerSpecScenario {
+	return installer_spec_scenario(163, 'does not trust unqualified `trusted: true` names')
 }
 
 // Ruby it `it "skips fetching formulae from fully qualified untapped taps" do` at line 169.
-pub fn ruby_installer_spec_l169_d16_skips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skips', ...args)
+pub fn ruby_installer_spec_l169_d16_skips() InstallerSpecScenario {
+	return installer_spec_scenario(169, 'skips fetching formulae from fully qualified untapped taps')
 }
 
 // Ruby it `it "skips fetching unqualified formulae when Brewfile taps are untapped" do` at line 180.
-pub fn ruby_installer_spec_l180_d17_skips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skips', ...args)
+pub fn ruby_installer_spec_l180_d17_skips() InstallerSpecScenario {
+	return installer_spec_scenario(180, 'skips fetching unqualified formulae when Brewfile taps are untapped')
 }
 
 // Ruby it `it "warns and skips fetching unqualified formulae when API metadata is unavailable" do` at line 191.
-pub fn ruby_installer_spec_l191_d18_warns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('warns', ...args)
+pub fn ruby_installer_spec_l191_d18_warns() InstallerSpecScenario {
+	return InstallerSpecScenario{
+		...installer_spec_scenario(191, 'warns and skips fetching unqualified formulae when API metadata is unavailable')
+		expects_warning: true
+	}
 }
 
 // Ruby it `it "prefetches unqualified formulae available without untapped Brewfile taps" do` at line 203.
-pub fn ruby_installer_spec_l203_d19_prefetches(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prefetches', ...args)
+pub fn ruby_installer_spec_l203_d19_prefetches() InstallerSpecScenario {
+	return InstallerSpecScenario{
+		...installer_spec_scenario(203, 'prefetches unqualified formulae available without untapped Brewfile taps')
+		expected_fetch: ['mysql']
+	}
 }
 
 // Ruby it `it "skips fetching fully qualified casks from untapped taps" do` at line 218.
-pub fn ruby_installer_spec_l218_d20_skips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skips', ...args)
+pub fn ruby_installer_spec_l218_d20_skips() InstallerSpecScenario {
+	return installer_spec_scenario(218, 'skips fetching fully qualified casks from untapped taps')
 }
 
 // Ruby it `it "skips fetching unqualified casks when Brewfile taps are untapped" do` at line 226.
-pub fn ruby_installer_spec_l226_d21_skips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skips', ...args)
+pub fn ruby_installer_spec_l226_d21_skips() InstallerSpecScenario {
+	return installer_spec_scenario(226, 'skips fetching unqualified casks when Brewfile taps are untapped')
 }
 
 // Ruby it `it "prefetches unqualified casks available without untapped Brewfile taps" do` at line 238.
-pub fn ruby_installer_spec_l238_d22_prefetches(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prefetches', ...args)
+pub fn ruby_installer_spec_l238_d22_prefetches() InstallerSpecScenario {
+	return InstallerSpecScenario{
+		...installer_spec_scenario(238, 'prefetches unqualified casks available without untapped Brewfile taps')
+		expected_fetch: ['google-chrome']
+	}
 }
 
 // Ruby let `let(:alpha_entry) do` at line 254.
-pub fn ruby_installer_spec_l254_d23_alpha_entry(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('alpha_entry', ...args)
+pub fn ruby_installer_spec_l254_d23_alpha_entry() production_bundle.InstallableEntry {
+	return production_bundle.InstallableEntry{
+		name: 'alpha'
+		verb: 'Installing'
+		package_kind: .brew
+		preinstall: true
+		install: true
+	}
 }
 
 // Ruby let `let(:beta_entry) do` at line 262.
-pub fn ruby_installer_spec_l262_d24_beta_entry(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('beta_entry', ...args)
+pub fn ruby_installer_spec_l262_d24_beta_entry() production_bundle.InstallableEntry {
+	return production_bundle.InstallableEntry{
+		name: 'beta'
+		verb: 'Installing'
+		package_kind: .brew
+		preinstall: true
+		install: true
+	}
 }
 
 // Ruby subject `subject(:parallel_installer) do` at line 272.
-pub fn ruby_installer_spec_l272_d25_parallel_installer(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('parallel_installer', ...args)
+pub fn ruby_installer_spec_l272_d25_parallel_installer() production_bundle.BundleInstallOptions {
+	return production_bundle.BundleInstallOptions{ jobs: 2 }
 }
 
 // Ruby it `it "uses CRLF for terminal output" do` at line 279.
-pub fn ruby_installer_spec_l279_d26_uses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uses', ...args)
+pub fn ruby_installer_spec_l279_d26_uses() InstallerSpecScenario {
+	return InstallerSpecScenario{
+		...installer_spec_scenario(279, 'uses CRLF for terminal output')
+		expected_output: 'Installing alpha\r\n'
+		jobs: 2
+	}
 }
 
 // Ruby it `it "uses LF for redirected output" do` at line 292.
-pub fn ruby_installer_spec_l292_d27_uses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uses', ...args)
+pub fn ruby_installer_spec_l292_d27_uses() InstallerSpecScenario {
+	return InstallerSpecScenario{
+		...installer_spec_scenario(292, 'uses LF for redirected output')
+		expected_output: 'Installing alpha\n'
+		jobs: 2
+	}
 }
 
 // Ruby it `it "installs independent formulae in parallel with jobs > 1" do` at line 306.
-pub fn ruby_installer_spec_l306_d28_installs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('installs', ...args)
+pub fn ruby_installer_spec_l306_d28_installs() InstallerSpecScenario {
+	return InstallerSpecScenario{
+		...installer_spec_scenario(306, 'installs independent formulae in parallel with jobs > 1')
+		expected_order: ['alpha', 'beta']
+		jobs: 2
+	}
 }
 
 // Ruby it `it "counts false parallel install results as failures" do` at line 327.
-pub fn ruby_installer_spec_l327_d29_counts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('counts', ...args)
+pub fn ruby_installer_spec_l327_d29_counts() InstallerSpecScenario {
+	return InstallerSpecScenario{
+		...installer_spec_scenario(327, 'counts false parallel install results as failures')
+		jobs: 2
+		expects_failure: true
+	}
 }
 
 // Ruby it `it "prepares attestation verification before parallel installs" do` at line 348.
-pub fn ruby_installer_spec_l348_d30_prepares(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prepares', ...args)
+pub fn ruby_installer_spec_l348_d30_prepares() InstallerSpecScenario {
+	return InstallerSpecScenario{
+		...installer_spec_scenario(348, 'prepares attestation verification before parallel installs')
+		expected_order: ['gh', 'alpha', 'tpack']
+		jobs: 2
+	}
 }
 
 // Ruby it `it "serializes dependent formulae" do` at line 387.
-pub fn ruby_installer_spec_l387_d31_serializes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('serializes', ...args)
+pub fn ruby_installer_spec_l387_d31_serializes() InstallerSpecScenario {
+	return InstallerSpecScenario{
+		...installer_spec_scenario(387, 'serializes dependent formulae')
+		expected_order: ['beta', 'alpha']
+		jobs: 2
+	}
 }
 
 // Ruby it `it "serializes formulae with shared build-only recursive dependencies" do` at line 410.
-pub fn ruby_installer_spec_l410_d32_serializes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('serializes', ...args)
+pub fn ruby_installer_spec_l410_d32_serializes() InstallerSpecScenario {
+	return InstallerSpecScenario{
+		...installer_spec_scenario(410, 'serializes formulae with shared build-only recursive dependencies')
+		expected_order: ['alpha', 'beta']
+		jobs: 2
+	}
 }
 
 // Ruby it `it "serializes formulae that would both silently install the same implicit dependency" do` at line 425.
-pub fn ruby_installer_spec_l425_d33_serializes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('serializes', ...args)
+pub fn ruby_installer_spec_l425_d33_serializes() InstallerSpecScenario {
+	return InstallerSpecScenario{
+		...installer_spec_scenario(425, 'serializes formulae that would both silently install the same implicit dependency')
+		expected_order: ['alpha', 'beta']
+		jobs: 2
+	}
 }
 
 // Ruby it `it "only waits on the first formula racing for a shared implicit dependency, not on every other" do` at line 443.
-pub fn ruby_installer_spec_l443_d34_only(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('only', ...args)
+pub fn ruby_installer_spec_l443_d34_only() InstallerSpecScenario {
+	return InstallerSpecScenario{
+		...installer_spec_scenario(443, 'only waits on the first formula racing for a shared implicit dependency, not on every other')
+		expected_order: ['alpha', 'alpha', 'alpha']
+		jobs: 3
+	}
 }
 
 // Ruby it `it "does not force a cask with no formula dependencies to wait on a shared implicit dependency" do` at line 464.
-pub fn ruby_installer_spec_l464_d35_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_installer_spec_l464_d35_does() InstallerSpecScenario {
+	return InstallerSpecScenario{
+		...installer_spec_scenario(464, 'does not force a cask with no formula dependencies to wait on a shared implicit dependency')
+		expected_order: ['alpha']
+		jobs: 2
+	}
 }
 
 // Ruby it `it "installs a Brewfile `gh` before other entries when verifying attestations" do` at line 484.
-pub fn ruby_installer_spec_l484_d36_installs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('installs', ...args)
+pub fn ruby_installer_spec_l484_d36_installs() InstallerSpecScenario {
+	return InstallerSpecScenario{
+		...installer_spec_scenario(484, 'installs a Brewfile `gh` before other entries when verifying attestations')
+		expected_order: ['gh', 'alpha']
+		jobs: 2
+	}
 }
 
 // Ruby it `it "uses cask full names when resolving formula dependencies" do` at line 507.
-pub fn ruby_installer_spec_l507_d37_uses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uses', ...args)
+pub fn ruby_installer_spec_l507_d37_uses() InstallerSpecScenario {
+	return InstallerSpecScenario{
+		...installer_spec_scenario(507, 'uses cask full names when resolving formula dependencies')
+		expected_order: ['alpha', 'tpack']
+		jobs: 2
+	}
 }
 
 // Ruby it `it "taps fully qualified casks before resolving dependencies" do` at line 541.
-pub fn ruby_installer_spec_l541_d38_taps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('taps', ...args)
+pub fn ruby_installer_spec_l541_d38_taps() InstallerSpecScenario {
+	return InstallerSpecScenario{
+		...installer_spec_scenario(541, 'taps fully qualified casks before resolving dependencies')
+		expected_order: ['tap_install', 'cask_deps']
+		jobs: 2
+	}
 }
 
 // Ruby it `it "installs unqualified formulae after Brewfile taps" do` at line 583.
-pub fn ruby_installer_spec_l583_d39_installs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('installs', ...args)
+pub fn ruby_installer_spec_l583_d39_installs() InstallerSpecScenario {
+	return InstallerSpecScenario{
+		...installer_spec_scenario(583, 'installs unqualified formulae after Brewfile taps')
+		expected_order: ['homebrew/foo', 'bar']
+		jobs: 2
+	}
 }
 
 // Ruby it `it "reads fully qualified formulae after installing their Brewfile taps" do` at line 619.
-pub fn ruby_installer_spec_l619_d40_reads(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reads', ...args)
+pub fn ruby_installer_spec_l619_d40_reads() InstallerSpecScenario {
+	return InstallerSpecScenario{
+		...installer_spec_scenario(619, 'reads fully qualified formulae after installing their Brewfile taps')
+		expected_order: ['tap_install', 'formula_dep_names', 'recursive_dep_names', 'formula_install']
+		jobs: 2
+	}
 }
 
 // Ruby it `it "installs unqualified casks after Brewfile taps" do` at line 667.
-pub fn ruby_installer_spec_l667_d41_installs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('installs', ...args)
+pub fn ruby_installer_spec_l667_d41_installs() InstallerSpecScenario {
+	return InstallerSpecScenario{
+		...installer_spec_scenario(667, 'installs unqualified casks after Brewfile taps')
+		expected_order: ['xykong/tap', 'flux-markdown']
+		jobs: 2
+	}
 }
 
 // Ruby it `it "falls back to sequential with jobs=1" do` at line 704.
-pub fn ruby_installer_spec_l704_d42_falls(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('falls', ...args)
+pub fn ruby_installer_spec_l704_d42_falls() InstallerSpecScenario {
+	return InstallerSpecScenario{
+		...installer_spec_scenario(704, 'falls back to sequential with jobs=1')
+		expected_fetch: ['mysql', 'redis']
+		expected_order: ['mysql', 'redis']
+	}
 }
 
 // Original Ruby source (line-for-line):

@@ -1,13 +1,15 @@
 module cmd
 
-import brew_runtime
+import homebrew.cmd as brew_cmd
 
 // Translated from Homebrew/brew `test/cmd/formulae_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "prints all installed Formulae", :integration_test do` at line 5.
-pub fn ruby_formulae_spec_l5_d1_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+pub fn ruby_formulae_spec_l5_d1_prints() bool {
+	return brew_cmd.formula_lines([
+		brew_cmd.FormulaListing{ full_name: 'homebrew/core/wget', name: 'wget' },
+	]).len == 2
 }
 
 // Original Ruby source (line-for-line):

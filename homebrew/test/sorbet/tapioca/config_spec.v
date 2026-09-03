@@ -7,12 +7,51 @@ import brew_runtime
 
 // Ruby let `let(:config) { YAML.load_file(File.join(__dir__, "../../../sorbet/tapioca/config.yml")) }` at line 8.
 pub fn ruby_config_spec_l8_d1_config(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('config', ...args)
+	contents := if args.len > 0 { args[0].as_string() } else { '' }
+	exclusions := tapioca_config_exclusions(contents)
+	return brew_runtime.map_value({
+		'gem': brew_runtime.map_value({
+			'exclude': brew_runtime.string_array_value(exclusions)
+		})
+	})
 }
 
 // Ruby it `it "only excludes dependencies" do` at line 10.
 pub fn ruby_config_spec_l10_d2_only(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('only', ...args)
+	exclusions := if args.len > 0 {
+		args[0].as_string_array() or { []string{} }
+	} else {
+		[]string{}
+	}
+	dependencies := if args.len > 1 {
+		args[1].as_string_array() or { []string{} }
+	} else {
+		[]string{}
+	}
+	return brew_runtime.bool_value(tapioca_only_excludes_dependencies(exclusions, dependencies))
+}
+
+pub fn tapioca_config_exclusions(contents string) []string {
+	mut exclusions := []string{}
+	mut in_exclude := false
+	for raw_line in contents.split_into_lines() {
+		line := raw_line.trim_space()
+		if line == 'exclude:' {
+			in_exclude = true
+			continue
+		}
+		if in_exclude && raw_line.len > 0 && raw_line[0] != ` ` && raw_line[0] != `\t` {
+			break
+		}
+		if in_exclude && line.starts_with('- ') {
+			exclusions << line[2..].trim_space()
+		}
+	}
+	return exclusions
+}
+
+pub fn tapioca_only_excludes_dependencies(exclusions []string, dependencies []string) bool {
+	return exclusions.all(it in dependencies)
 }
 
 // Original Ruby source (line-for-line):

@@ -1,143 +1,292 @@
 module utils
 
 import brew_runtime
+import homebrew.utils as path_utils
+import os
 
 // Translated from Homebrew/brew `test/utils/path_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "recognizes a path as its own child" do` at line 8.
 pub fn ruby_path_spec_l8_d1_recognizes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('recognizes', ...args)
+	return path_spec_bool(path_utils.path_child_of('/foo/bar', '/foo/bar'))
 }
 
 // Ruby it `it "recognizes a path that is a child of the parent" do` at line 12.
 pub fn ruby_path_spec_l12_d2_recognizes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('recognizes', ...args)
+	return path_spec_bool(path_utils.path_child_of('/foo', '/foo/bar'))
 }
 
 // Ruby it `it "recognizes a path that is a grandchild of the parent" do` at line 16.
 pub fn ruby_path_spec_l16_d3_recognizes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('recognizes', ...args)
+	return path_spec_bool(path_utils.path_child_of('/foo', '/foo/bar/baz'))
 }
 
 // Ruby it `it "does not recognize a path that is not a child" do` at line 20.
 pub fn ruby_path_spec_l20_d4_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	return path_spec_bool(!path_utils.path_child_of('/foo', '/bar/baz'))
 }
 
 // Ruby it `it "handles . and .. in paths correctly" do` at line 24.
 pub fn ruby_path_spec_l24_d5_handles(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('handles', ...args)
+	return path_spec_bool(path_utils.path_child_of('/foo', '/foo/./bar') && path_utils.path_child_of('/foo/bar', '/foo/../foo/bar/baz'))
 }
 
 // Ruby it `it "handles relative paths correctly" do` at line 29.
 pub fn ruby_path_spec_l29_d6_handles(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('handles', ...args)
+	return path_spec_bool(!path_utils.path_child_of('foo', './bar/baz') && path_utils.path_child_of('../foo', './bar/baz/../../../foo/bar/baz'))
 }
 
 // Ruby it `it "allows a path that is a child of the parent" do` at line 36.
 pub fn ruby_path_spec_l36_d7_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+	path_utils.path_ensure_child_of('/foo', '/foo/bar', 'outside') or { return path_spec_bool(false) }
+	return path_spec_bool(true)
 }
 
 // Ruby it `it "raises the provided message for a path that is not a child" do` at line 40.
 pub fn ruby_path_spec_l40_d8_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+	path_utils.path_ensure_child_of('/foo', '/bar/baz', 'outside') or {
+		return path_spec_bool(err.msg() == 'outside')
+	}
+	return path_spec_bool(false)
 }
 
 // Ruby it `it "returns a formula opt prefix without loading a Formula object" do` at line 46.
 pub fn ruby_path_spec_l46_d9_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	prefix := path_spec_root('opt-prefix')
+	defer { os.rmdir_all(prefix) or {} }
+	return path_spec_bool(path_utils.path_formula_opt_prefix(prefix, 'foo') == os.join_path(prefix, 'opt', 'foo'))
 }
 
 // Ruby it `it "returns a formula opt prefix for a fully qualified formula name" do` at line 50.
 pub fn ruby_path_spec_l50_d10_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	prefix := path_spec_root('qualified-opt-prefix')
+	defer { os.rmdir_all(prefix) or {} }
+	return path_spec_bool(path_utils.path_formula_opt_prefix(prefix, 'homebrew/core/foo') == os.join_path(prefix, 'opt', 'foo'))
 }
 
 // Ruby it `it "returns a formula opt bin path without loading a Formula object" do` at line 56.
 pub fn ruby_path_spec_l56_d11_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	prefix := path_spec_root('opt-bin')
+	defer { os.rmdir_all(prefix) or {} }
+	return path_spec_bool(path_utils.path_formula_opt_bin(prefix, 'foo') == os.join_path(prefix, 'opt', 'foo', 'bin'))
 }
 
 // Ruby it `it "returns a formula opt lib path without loading a Formula object" do` at line 62.
 pub fn ruby_path_spec_l62_d12_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	prefix := path_spec_root('opt-lib')
+	defer { os.rmdir_all(prefix) or {} }
+	return path_spec_bool(path_utils.path_formula_opt_lib(prefix, 'foo') == os.join_path(prefix, 'opt', 'foo', 'lib'))
 }
 
 // Ruby it `it "returns a formula opt libexec path without loading a Formula object" do` at line 68.
 pub fn ruby_path_spec_l68_d13_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	prefix := path_spec_root('opt-libexec')
+	defer { os.rmdir_all(prefix) or {} }
+	return path_spec_bool(path_utils.path_formula_opt_libexec(prefix, 'foo') == os.join_path(prefix, 'opt', 'foo', 'libexec'))
 }
 
 // Ruby it `it "returns a formula opt include path without loading a Formula object" do` at line 74.
 pub fn ruby_path_spec_l74_d14_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	prefix := path_spec_root('opt-include')
+	defer { os.rmdir_all(prefix) or {} }
+	return path_spec_bool(path_utils.path_formula_opt_include(prefix, 'foo') == os.join_path(prefix, 'opt', 'foo', 'include'))
 }
 
 // Ruby it `it "returns installed prefixes for formula names" do` at line 80.
 pub fn ruby_path_spec_l80_d15_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	cellar := path_spec_root('installed-prefixes')
+	defer { os.rmdir_all(cellar) or {} }
+	os.mkdir_all(os.join_path(cellar, 'old-foo', '1.0')) or { return path_spec_bool(false) }
+	os.mkdir_all(os.join_path(cellar, 'foo', '2.0')) or { return path_spec_bool(false) }
+	return path_spec_bool(path_utils.path_formula_installed_prefixes(cellar, ['foo', 'old-foo']) == [
+		os.join_path(cellar, 'old-foo', '1.0'),
+		os.join_path(cellar, 'foo', '2.0'),
+	])
 }
 
 // Ruby it `it "does not list kegs twice when a name is a symlink to another rack" do` at line 90.
 pub fn ruby_path_spec_l90_d16_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	cellar := path_spec_root('installed-alias')
+	defer { os.rmdir_all(cellar) or {} }
+	os.mkdir_all(os.join_path(cellar, 'foo', '1.0')) or { return path_spec_bool(false) }
+	os.symlink(os.join_path(cellar, 'foo'), os.join_path(cellar, 'foo-alias')) or {
+		return path_spec_bool(false)
+	}
+	return path_spec_bool(path_utils.path_formula_installed_prefixes(cellar, ['foo', 'foo-alias']) == [
+		os.join_path(cellar, 'foo', '1.0'),
+	])
 }
 
 // Ruby it `it "checks whether any formula keg has an install receipt without loading a Formula object" do` at line 102.
 pub fn ruby_path_spec_l102_d17_checks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('checks', ...args)
+	cellar := path_spec_root('installed-receipt')
+	defer { os.rmdir_all(cellar) or {} }
+	before := !path_utils.path_formula_any_version_installed(cellar, ['foo'])
+	os.mkdir_all(os.join_path(cellar, 'foo', '1.0')) or { return path_spec_bool(false) }
+	without_receipt := !path_utils.path_formula_any_version_installed(cellar, ['foo'])
+	os.write_file(os.join_path(cellar, 'foo', '1.0', 'INSTALL_RECEIPT.json'), '{}') or {
+		return path_spec_bool(false)
+	}
+	return path_spec_bool(before && without_receipt && path_utils.path_formula_any_version_installed(cellar, [
+		'foo',
+	]))
 }
 
 // Ruby it `it "checks fully qualified formula names" do` at line 114.
 pub fn ruby_path_spec_l114_d18_checks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('checks', ...args)
+	cellar := path_spec_root('qualified-installed')
+	defer { os.rmdir_all(cellar) or {} }
+	receipt := os.join_path(cellar, 'foo', '1.0', 'INSTALL_RECEIPT.json')
+	os.mkdir_all(os.dir(receipt)) or { return path_spec_bool(false) }
+	os.write_file(receipt, '{}') or { return path_spec_bool(false) }
+	return path_spec_bool(path_utils.path_formula_any_version_installed(cellar, [
+		'homebrew/core/foo',
+	]))
 }
 
 // Ruby it `it "checks multiple possible formula names" do` at line 125.
 pub fn ruby_path_spec_l125_d19_checks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('checks', ...args)
+	cellar := path_spec_root('multiple-installed')
+	defer { os.rmdir_all(cellar) or {} }
+	receipt := os.join_path(cellar, 'old-foo', '1.0', 'INSTALL_RECEIPT.json')
+	os.mkdir_all(os.dir(receipt)) or { return path_spec_bool(false) }
+	os.write_file(receipt, '{}') or { return path_spec_bool(false) }
+	return path_spec_bool(path_utils.path_formula_any_version_installed(cellar, ['foo', 'old-foo']))
 }
 
 // Ruby it `it "prepends a formula opt bin path to the current PATH by default" do` at line 138.
 pub fn ruby_path_spec_l138_d20_prepends(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prepends', ...args)
+	prefix := '/homebrew'
+	current_path := '/bin:/sbin'
+	return path_spec_bool(path_utils.path_formula_opt_bin_path(prefix, 'foo', [], current_path) == [
+		os.join_path(prefix, 'opt', 'foo', 'bin'),
+		current_path,
+	].join(os.path_delimiter))
 }
 
 // Ruby it `it "prepends a formula opt bin path to PATH entries" do` at line 143.
 pub fn ruby_path_spec_l143_d21_prepends(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prepends', ...args)
+	prefix := '/homebrew'
+	current_path := '/bin:/sbin'
+	return path_spec_bool(path_utils.path_formula_opt_bin_path(prefix, 'foo', [
+		'/usr/bin',
+	], current_path) == [
+		os.join_path(prefix, 'opt', 'foo', 'bin'),
+		'/usr/bin',
+		current_path,
+	].join(os.path_delimiter))
 }
 
 // Ruby it `it "returns a PATH environment with a formula opt bin path prepended to the current PATH by default" do` at line 151.
 pub fn ruby_path_spec_l151_d22_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	prefix := '/homebrew'
+	current_path := '/bin:/sbin'
+	environment := {
+		'PATH': path_utils.path_formula_opt_bin_path(prefix, 'foo', [], current_path)
+	}
+	return path_spec_bool(environment == {
+		'PATH': [os.join_path(prefix, 'opt', 'foo', 'bin'), current_path].join(os.path_delimiter)
+	})
 }
 
 // Ruby it `it "returns a PATH environment with extra PATH entries" do` at line 156.
 pub fn ruby_path_spec_l156_d23_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	prefix := '/homebrew'
+	current_path := '/bin:/sbin'
+	environment := {
+		'PATH': path_utils.path_formula_opt_bin_path(prefix, 'foo', ['/usr/bin'], current_path)
+	}
+	return path_spec_bool(environment == {
+		'PATH': [os.join_path(prefix, 'opt', 'foo', 'bin'), '/usr/bin', current_path].join(os.path_delimiter)
+	})
 }
 
 // Ruby it `it "accepts formula paths under a symlinked cellar" do` at line 163.
 pub fn ruby_path_spec_l163_d24_accepts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('accepts', ...args)
+	root := path_spec_root('symlink-cellar')
+	defer { os.rmdir_all(root) or {} }
+	real_cellar := os.join_path(root, 'real-cellar')
+	symlink_cellar := os.join_path(root, 'cellar')
+	os.mkdir_all(real_cellar) or { return path_spec_bool(false) }
+	os.symlink(real_cellar, symlink_cellar) or { return path_spec_bool(false) }
+	formula_path := os.join_path(real_cellar, 'poshtui', '0.16', '.brew', 'poshtui.rb')
+	os.mkdir_all(os.dir(formula_path)) or { return path_spec_bool(false) }
+	os.write_file(formula_path, 'class Poshtui < Formula; end\n') or { return path_spec_bool(false) }
+	accepted := path_utils.path_loadable_package_path(formula_path, 'formula', path_utils.PathLoadOptions{
+		forbid_packages_from_paths: true
+		library: os.join_path(root, 'Library')
+		cellar: symlink_cellar
+	}) or { return path_spec_bool(false) }
+	return path_spec_bool(accepted)
 }
 
 // Ruby it `it "accepts formula paths under a symlinked tap" do` at line 182.
 pub fn ruby_path_spec_l182_d25_accepts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('accepts', ...args)
+	root := path_spec_root('symlink-tap')
+	defer { os.rmdir_all(root) or {} }
+	library := os.join_path(root, 'Library')
+	taps := os.join_path(library, 'Taps', 'homebrew')
+	os.mkdir_all(taps) or { return path_spec_bool(false) }
+	external_tap := os.join_path(root, 'external', 'homebrew-foo')
+	os.mkdir_all(os.join_path(external_tap, 'Formula')) or { return path_spec_bool(false) }
+	os.symlink(external_tap, os.join_path(taps, 'homebrew-foo')) or { return path_spec_bool(false) }
+	formula_path := os.join_path(taps, 'homebrew-foo', 'Formula', 'foo.rb')
+	os.write_file(formula_path, 'class Foo < Formula; end\n') or { return path_spec_bool(false) }
+	accepted := path_utils.path_loadable_package_path(formula_path, 'formula', path_utils.PathLoadOptions{
+		forbid_packages_from_paths: true
+		library: library
+		cellar: os.join_path(root, 'Cellar')
+	}) or { return path_spec_bool(false) }
+	return path_spec_bool(accepted)
 }
 
 // Ruby it `it "rejects formula paths that escape a trusted root via `..` segments" do` at line 199.
 pub fn ruby_path_spec_l199_d26_rejects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('rejects', ...args)
+	root := path_spec_root('traversal')
+	defer { os.rmdir_all(root) or {} }
+	library := os.join_path(root, 'Library')
+	os.mkdir_all(os.join_path(library, 'Taps')) or { return path_spec_bool(false) }
+	escaped := os.join_path(root, 'evil.rb')
+	os.write_file(escaped, 'class Evil < Formula; end\n') or { return path_spec_bool(false) }
+	traversal_path := os.join_path(library, 'Taps', '..', '..', 'evil.rb')
+	path_utils.path_loadable_package_path(traversal_path, 'formula', path_utils.PathLoadOptions{
+		forbid_packages_from_paths: true
+		library: library
+		cellar: os.join_path(root, 'Cellar')
+	}) or {
+		return path_spec_bool(err.msg().contains('to be in a tap'))
+	}
+	return path_spec_bool(false)
 }
 
 // Ruby it `it "rejects local JSON cask paths" do` at line 216.
 pub fn ruby_path_spec_l216_d27_rejects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('rejects', ...args)
+	root := path_spec_root('local-json-cask')
+	defer { os.rmdir_all(root) or {} }
+	library := os.join_path(root, 'Library')
+	os.mkdir_all(os.join_path(library, 'Taps')) or { return path_spec_bool(false) }
+	cask_path := os.join_path(root, 'evil.json')
+	os.write_file(cask_path, '{}\n') or { return path_spec_bool(false) }
+	path_utils.path_loadable_package_path(cask_path, 'cask', path_utils.PathLoadOptions{
+		forbid_packages_from_paths: true
+		library: library
+		caskroom: os.join_path(root, 'Caskroom')
+	}) or {
+		return path_spec_bool(err.msg().contains('to be in a tap'))
+	}
+	return path_spec_bool(false)
+}
+
+fn path_spec_bool(value bool) brew_runtime.Value {
+	return brew_runtime.bool_value(value)
+}
+
+fn path_spec_root(name string) string {
+	root := os.join_path(os.temp_dir(), 'brew-v-utils-path-${name}')
+	os.rmdir_all(root) or {}
+	os.mkdir_all(root) or { panic(err) }
+	return os.real_path(root)
 }
 
 // Original Ruby source (line-for-line):

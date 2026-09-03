@@ -1,18 +1,29 @@
 module unpack_strategy
 
 import brew_runtime
+import os
 
 // Translated from Homebrew/brew `unpack_strategy/bazaar.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `self.can_extract?(path)` at line 10.
-pub fn ruby_bazaar_l10_d1_self_can_extract(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.can_extract?', ...args)
+pub fn ruby_bazaar_l10_d1_self_can_extract(path string) bool {
+	return bazaar_can_extract(path)
 }
 
 // Ruby method `extract_to_dir(unpack_dir, basename:, verbose:)` at line 17.
-pub fn ruby_bazaar_l17_d2_extract_to_dir(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('extract_to_dir', ...args)
+pub fn ruby_bazaar_l17_d2_extract_to_dir(path string, unpack_dir string, basename string, verbose bool) ! {
+	bazaar_extract_to_dir(path, unpack_dir, basename, verbose)!
+}
+
+pub fn bazaar_can_extract(path string) bool {
+	return directory_can_extract(path) && brew_runtime.is_dir(brew_runtime.join_path(path, '.bzr'))
+}
+
+pub fn bazaar_extract_to_dir(path string, unpack_dir string, basename string, verbose bool) ! {
+	directory_extract_to_dir(path, unpack_dir, basename, verbose, false)!
+	metadata := brew_runtime.join_path(unpack_dir, '.bzr')
+	if brew_runtime.is_dir(metadata) { os.rmdir_all(metadata)! }
 }
 
 // Original Ruby source (line-for-line):

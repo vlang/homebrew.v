@@ -7,7 +7,7 @@ import brew_runtime
 
 // Ruby method `run; end` at line 80.
 pub fn ruby_brew_verify_undefined_l80_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('run', ...args)
+	return brew_runtime.object_value('Nil', '')
 }
 
 // Original Ruby source (line-for-line):

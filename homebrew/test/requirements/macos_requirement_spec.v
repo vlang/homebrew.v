@@ -1,88 +1,151 @@
 module requirements
 
-import brew_runtime
+import homebrew
+import homebrew.requirements as requirement_api
 
 // Translated from Homebrew/brew `test/requirements/macos_requirement_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+fn macos_requirement_spec_result(spec int) !bool {
+	tahoe := homebrew.new_macos_version('26.0')!
+	match spec {
+		5 {
+			return requirement_api.new_macos_requirement([]string{}, '>=')!.satisfied_on(tahoe, true)
+		}
+		6 {
+			requirement := requirement_api.new_macos_requirement(['tahoe'], '>=')!
+			return requirement.satisfied_on(tahoe, true)
+		}
+		7 {
+			catalina := homebrew.macos_version_from_symbol('catalina')!
+			requirement := requirement_api.new_macos_requirement(['catalina'], '<=')!
+			return requirement.satisfied_on(catalina, true)
+		}
+		8 {
+			unversioned := requirement_api.new_macos_requirement([]string{}, '>=')!
+			minimum := requirement_api.new_macos_requirement(['golden_gate'], '>=')!
+			maximum := requirement_api.new_macos_requirement(['golden_gate'], '<=')!
+			return !unversioned.satisfied_on(tahoe, false) && !minimum.satisfied_on(tahoe, false) && !maximum.satisfied_on(tahoe, false)
+		}
+		9 {
+			unversioned := requirement_api.new_macos_requirement([]string{}, '>=')!
+			maximum := requirement_api.new_macos_requirement(['tahoe'], '<=')!
+			minimum := requirement_api.new_macos_requirement(['tahoe'], '>=')!
+			exact := requirement_api.new_macos_requirement(['tahoe'], '==')!
+			range := requirement_api.new_macos_range_requirement(['sonoma', 'tahoe'], []string{})!
+			return unversioned.minimum_version().compare(requirement_api.macos_oldest_allowed_version()) == 0 && maximum.minimum_version().compare(requirement_api.macos_oldest_allowed_version()) == 0 && minimum.minimum_version().compare(tahoe) == 0 && exact.minimum_version().compare(tahoe) == 0 && range.minimum_version().str() == '14'
+		}
+		10 {
+			unversioned := requirement_api.new_macos_requirement([]string{}, '>=')!
+			maximum := requirement_api.new_macos_requirement(['tahoe'], '<=')!
+			minimum := requirement_api.new_macos_requirement(['tahoe'], '>=')!
+			exact := requirement_api.new_macos_requirement(['tahoe'], '==')!
+			range := requirement_api.new_macos_range_requirement(['sonoma', 'tahoe'], []string{})!
+			return unversioned.maximum_version().compare(requirement_api.macos_newest_unsupported_version()) == 0 && maximum.maximum_version().compare(tahoe) == 0 && minimum.maximum_version().compare(requirement_api.macos_newest_unsupported_version()) == 0 && exact.maximum_version().compare(tahoe) == 0 && range.maximum_version().compare(tahoe) == 0
+		}
+		11 {
+			unversioned := requirement_api.new_macos_requirement([]string{}, '>=')!
+			maximum := requirement_api.new_macos_requirement(['sequoia'], '<=')!
+			minimum := requirement_api.new_macos_requirement(['ventura'], '>=')!
+			exact := requirement_api.new_macos_requirement(['tahoe'], '==')!
+			range := requirement_api.new_macos_range_requirement(['sonoma', 'tahoe'], []string{})!
+			return unversioned.allows(tahoe) && !maximum.allows(tahoe) && minimum.allows(tahoe) && exact.allows(tahoe) && range.allows(tahoe)
+		}
+		15 {
+			minimum := requirement_api.new_macos_requirement(['tahoe'], '>=')!
+			maximum := requirement_api.new_macos_requirement(['monterey'], '<=')!
+			unversioned := requirement_api.new_macos_requirement([]string{}, '>=')!
+			return minimum.message('formula', true) == 'This formula does not run on macOS versions older than Tahoe.' && minimum.message('cask', true) == 'This cask does not run on macOS versions older than Tahoe.' && maximum.message('cask', true) == 'This cask does not run on macOS versions newer than Monterey.' && unversioned.message('formula', true) == 'This formula requires macOS.' && unversioned.message('cask', true) == 'This cask requires macOS.'
+		}
+		16 {
+			minimum := requirement_api.new_macos_requirement(['tahoe'], '>=')!
+			maximum := requirement_api.new_macos_requirement(['monterey'], '<=')!
+			unversioned := requirement_api.new_macos_requirement([]string{}, '>=')!
+			return minimum.message('formula', false) == 'This formula requires macOS.' && minimum.message('cask', false) == 'This cask requires macOS.' && maximum.message('cask', false) == 'This cask requires macOS.' && unversioned.message('formula', false) == 'This formula requires macOS.' && unversioned.message('cask', false) == 'This cask requires macOS.'
+		}
+		else {
+			return error('unknown macOS requirement spec ${spec}')
+		}
+	}
+}
 
 // Ruby subject `subject(:requirement) { described_class.new }` at line 7.
-pub fn ruby_macos_requirement_spec_l7_d1_requirement(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('requirement', ...args)
+pub fn ruby_macos_requirement_spec_l7_d1_requirement() requirement_api.MacOSRequirement {
+	return requirement_api.new_macos_requirement([]string{}, '>=') or { panic(err) }
 }
 
 // Ruby let `let(:macos_oldest_allowed) { MacOSVersion.new(HOMEBREW_MACOS_OLDEST_ALLOWED) }` at line 9.
-pub fn ruby_macos_requirement_spec_l9_d2_macos_oldest_allowed(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('macos_oldest_allowed', ...args)
+pub fn ruby_macos_requirement_spec_l9_d2_macos_oldest_allowed() homebrew.MacOSVersion {
+	return requirement_api.macos_oldest_allowed_version()
 }
 
 // Ruby let `let(:macos_newest_allowed) { MacOSVersion.new(HOMEBREW_MACOS_NEWEST_UNSUPPORTED) }` at line 10.
-pub fn ruby_macos_requirement_spec_l10_d3_macos_newest_allowed(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('macos_newest_allowed', ...args)
+pub fn ruby_macos_requirement_spec_l10_d3_macos_newest_allowed() homebrew.MacOSVersion {
+	return requirement_api.macos_newest_unsupported_version()
 }
 
 // Ruby let `let(:tahoe_major) { MacOSVersion.new("26.0") }` at line 11.
-pub fn ruby_macos_requirement_spec_l11_d4_tahoe_major(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tahoe_major', ...args)
+pub fn ruby_macos_requirement_spec_l11_d4_tahoe_major() homebrew.MacOSVersion {
+	return homebrew.new_macos_version('26.0') or { panic(err) }
 }
 
 // Ruby it `it "returns true" do` at line 15.
-pub fn ruby_macos_requirement_spec_l15_d5_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_macos_requirement_spec_l15_d5_returns() !bool {
+	return macos_requirement_spec_result(5)
 }
 
 // Ruby it `it "supports version symbols" do` at line 19.
-pub fn ruby_macos_requirement_spec_l19_d6_supports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('supports', ...args)
+pub fn ruby_macos_requirement_spec_l19_d6_supports() !bool {
+	return macos_requirement_spec_result(6)
 }
 
 // Ruby it `it "supports maximum versions" do` at line 24.
-pub fn ruby_macos_requirement_spec_l24_d7_supports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('supports', ...args)
+pub fn ruby_macos_requirement_spec_l24_d7_supports() !bool {
+	return macos_requirement_spec_result(7)
 }
 
 // Ruby it `it "returns false" do` at line 31.
-pub fn ruby_macos_requirement_spec_l31_d8_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_macos_requirement_spec_l31_d8_returns() !bool {
+	return macos_requirement_spec_result(8)
 }
 
 // Ruby specify `specify "#minimum_version" do` at line 41.
-pub fn ruby_macos_requirement_spec_l41_d9_minimum_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#minimum_version', ...args)
+pub fn ruby_macos_requirement_spec_l41_d9_minimum_version() !bool {
+	return macos_requirement_spec_result(9)
 }
 
 // Ruby specify `specify "#maximum_version" do` at line 54.
-pub fn ruby_macos_requirement_spec_l54_d10_maximum_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#maximum_version', ...args)
+pub fn ruby_macos_requirement_spec_l54_d10_maximum_version() !bool {
+	return macos_requirement_spec_result(10)
 }
 
 // Ruby specify `specify "#allows?" do` at line 67.
-pub fn ruby_macos_requirement_spec_l67_d11_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#allows?', ...args)
+pub fn ruby_macos_requirement_spec_l67_d11_allows() !bool {
+	return macos_requirement_spec_result(11)
 }
 
 // Ruby let `let(:min_requirement) { described_class.new([:tahoe], comparator: ">=") }` at line 81.
-pub fn ruby_macos_requirement_spec_l81_d12_min_requirement(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('min_requirement', ...args)
+pub fn ruby_macos_requirement_spec_l81_d12_min_requirement() requirement_api.MacOSRequirement {
+	return requirement_api.new_macos_requirement(['tahoe'], '>=') or { panic(err) }
 }
 
 // Ruby let `let(:max_requirement) { described_class.new([:monterey], comparator: "<=") }` at line 82.
-pub fn ruby_macos_requirement_spec_l82_d13_max_requirement(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('max_requirement', ...args)
+pub fn ruby_macos_requirement_spec_l82_d13_max_requirement() requirement_api.MacOSRequirement {
+	return requirement_api.new_macos_requirement(['monterey'], '<=') or { panic(err) }
 }
 
 // Ruby let `let(:no_requirement) { described_class.new }` at line 83.
-pub fn ruby_macos_requirement_spec_l83_d14_no_requirement(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('no_requirement', ...args)
+pub fn ruby_macos_requirement_spec_l83_d14_no_requirement() requirement_api.MacOSRequirement {
+	return requirement_api.new_macos_requirement([]string{}, '>=') or { panic(err) }
 }
 
 // Ruby it `it "reflects the dependent type" do` at line 86.
-pub fn ruby_macos_requirement_spec_l86_d15_reflects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reflects', ...args)
+pub fn ruby_macos_requirement_spec_l86_d15_reflects() !bool {
+	return macos_requirement_spec_result(15)
 }
 
 // Ruby it `it "always outputs incompatible OS" do` at line 99.
-pub fn ruby_macos_requirement_spec_l99_d16_always(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('always', ...args)
+pub fn ruby_macos_requirement_spec_l99_d16_always() !bool {
+	return macos_requirement_spec_result(16)
 }
 
 // Original Ruby source (line-for-line):

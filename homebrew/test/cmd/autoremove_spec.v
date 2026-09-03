@@ -1,23 +1,35 @@
 module cmd
 
-import brew_runtime
+import homebrew.cmd as autoremove_core
 
 // Translated from Homebrew/brew `test/cmd/autoremove_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby let `let(:requested_formula) { Formula["testball1"] }` at line 11.
-pub fn ruby_autoremove_spec_l11_d1_requested_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('requested_formula', ...args)
+pub fn ruby_autoremove_spec_l11_d1_requested_formula() autoremove_core.AutoremoveFormula {
+	return autoremove_core.AutoremoveFormula{
+		name: 'testball1'
+		installed: true
+		installed_on_request: true
+	}
 }
 
 // Ruby let `let(:unused_formula) { Formula["testball2"] }` at line 12.
-pub fn ruby_autoremove_spec_l12_d2_unused_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('unused_formula', ...args)
+pub fn ruby_autoremove_spec_l12_d2_unused_formula() autoremove_core.AutoremoveFormula {
+	return autoremove_core.AutoremoveFormula{
+		name: 'testball2'
+		installed: true
+		installed_on_request: false
+	}
 }
 
 // Ruby it `it "only removes unused dependencies", :integration_test do` at line 24.
-pub fn ruby_autoremove_spec_l24_d3_only(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('only', ...args)
+pub fn ruby_autoremove_spec_l24_d3_only() bool {
+	result := autoremove_core.autoremove_formulae([
+		ruby_autoremove_spec_l11_d1_requested_formula(),
+		ruby_autoremove_spec_l12_d2_unused_formula(),
+	], false)
+	return result.removed == ['testball2'] && result.retained == ['testball1'] && result.output == 'Autoremoving testball2\n'
 }
 
 // Original Ruby source (line-for-line):

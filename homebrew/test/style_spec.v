@@ -1,83 +1,283 @@
 module test
 
-import brew_runtime
+import homebrew
+import os
+import time
 
 // Translated from Homebrew/brew `test/style_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+fn style_spec_temp_dir(label string) !string {
+	path := os.join_path(os.temp_dir(), 'brew-v-style-${label}-${os.getpid()}-${time.now().unix_nano()}')
+	os.mkdir_all(path)!
+	return path
+}
+
+fn style_spec_write_executable(path string, contents string) ! {
+	os.mkdir_all(os.dir(path))!
+	os.write_file(path, contents)!
+	os.chmod(path, 0o755)!
+}
+
+fn style_spec_config(root string) !homebrew.StyleConfig {
+	repository := os.join_path(root, 'repo')
+	library := os.join_path(repository, 'Library')
+	library_path := os.join_path(library, 'Homebrew')
+	cache := os.join_path(root, 'cache')
+	tap_directory := os.join_path(library, 'Taps')
+	for path in [repository, library_path, cache, tap_directory] {
+		os.mkdir_all(path)!
+	}
+	return homebrew.StyleConfig{
+		prefix: repository
+		repository: repository
+		library: library
+		library_path: library_path
+		original_brew_file: os.join_path(repository, 'bin/brew')
+		cache: cache
+		tap_directory: tap_directory
+		ruby_args: ['/usr/bin/true']
+		rubocop_path: os.join_path(library_path, 'utils/rubocop.rb')
+		shellcheck_path: '/usr/bin/true'
+		shfmt_path: '/usr/bin/true'
+		shfmt_executable_path: '/usr/bin/true'
+		actionlint_path: '/usr/bin/true'
+		cpu_cores: 2
+	}
+}
+
+fn style_spec_fake_json_tool(root string, name string, payload string) !string {
+	path := os.join_path(root, name)
+	style_spec_write_executable(path, "#!/bin/sh\ncat <<'BREW_STYLE_JSON'\n${payload}\nBREW_STYLE_JSON\n")!
+	return path
+}
+
+fn style_spec_actionlint_invocation(with_first_config bool, with_second_tap bool) ![]string {
+	root := style_spec_temp_dir('actionlint')!
+	defer {
+		os.rmdir_all(root) or {}
+	}
+	mut config := style_spec_config(root)!
+	log := os.join_path(root, 'actionlint.log')
+	actionlint := os.join_path(root, 'actionlint')
+	style_spec_write_executable(actionlint, '#!/bin/sh\nprintf "%s\\n" "\$*" > "${log}"\n')!
+	config = homebrew.StyleConfig{
+		...config
+		actionlint_path: actionlint
+	}
+	first_tap := os.join_path(config.tap_directory, 'homebrew/homebrew-foo')
+	first_workflows := os.join_path(first_tap, '.github/workflows')
+	os.mkdir_all(first_workflows)!
+	first_workflow := os.join_path(first_workflows, 'ci.yml')
+	os.write_file(first_workflow, 'name: CI\n')!
+	if with_first_config {
+		os.write_file(os.join_path(first_tap, '.github/actionlint.yaml'), 'self-hosted-runner:\n  labels: []\n')!
+	}
+	mut workflows := [first_workflow]
+	if with_second_tap {
+		second_tap := os.join_path(config.tap_directory, 'homebrew/homebrew-bar')
+		second_workflows := os.join_path(second_tap, '.github/workflows')
+		os.mkdir_all(second_workflows)!
+		second_workflow := os.join_path(second_workflows, 'ci.yml')
+		os.write_file(second_workflow, 'name: CI\n')!
+		os.write_file(os.join_path(second_tap, '.github/actionlint.yaml'), 'self-hosted-runner:\n  labels: []\n')!
+		workflows << second_workflow
+	}
+	result := homebrew.style_run_actionlint(workflows, homebrew.StyleActionlintOptions{
+		actionlint_path: actionlint
+		shellcheck_path: '/usr/bin/shellcheck'
+		config: config
+	})!
+	if !result.success {
+		return error('fake actionlint failed')
+	}
+	return (os.read_file(log)!).trim_space().split(' ')
+}
 
 // Ruby let `let(:dir) { mktmpdir }` at line 22.
-pub fn ruby_style_spec_l22_d1_dir(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dir', ...args)
+pub fn ruby_style_spec_l22_d1_dir() !string {
+	return style_spec_temp_dir('json-dir')
 }
 
 // Ruby it `it "returns offenses when RuboCop reports offenses" do` at line 24.
-pub fn ruby_style_spec_l24_d2_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_style_spec_l24_d2_returns() !bool {
+	root := style_spec_temp_dir('rubocop-offenses')!
+	defer {
+		os.rmdir_all(root) or {}
+	}
+	mut config := style_spec_config(root)!
+	formula := os.join_path(root, 'my-formula.rb')
+	os.write_file(formula, 'class MyFormula < Formula\n\nend\n')!
+	payload := '{"files":[{"path":"${formula}","offenses":[{"severity":"convention","message":"Extra empty line detected at class body beginning.","cop_name":"Layout/EmptyLinesAroundClassBody","corrected":false,"location":{"line":2,"column":1}}]}]}'
+	rubocop := style_spec_fake_json_tool(root, 'rubocop-json', payload)!
+	config = homebrew.StyleConfig{
+		...config
+		ruby_args: [rubocop]
+	}
+	offenses := homebrew.style_check_json([formula], homebrew.StyleCheckOptions{
+		config: config
+	})!
+	return offenses.for_path(os.real_path(formula)).any(it.message == 'Extra empty line detected at class body beginning.')
 }
 
 // Ruby let `let(:dir) { mktmpdir }` at line 41.
-pub fn ruby_style_spec_l41_d3_dir(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dir', ...args)
+pub fn ruby_style_spec_l41_d3_dir() !string {
+	return style_spec_temp_dir('print-dir')
 }
 
 // Ruby it `it "returns true (success) for conforming file with only audit-level violations" do` at line 43.
-pub fn ruby_style_spec_l43_d4_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_style_spec_l43_d4_returns() !bool {
+	root := style_spec_temp_dir('rubocop-success')!
+	defer {
+		os.rmdir_all(root) or {}
+	}
+	mut config := style_spec_config(root)!
+	target := os.join_path(root, 'utils.rb')
+	os.write_file(target, 'module Utils\nend\n')!
+	rubocop := style_spec_fake_json_tool(root, 'rubocop-success', '{"files":[]}')!
+	config = homebrew.StyleConfig{
+		...config
+		ruby_args: [rubocop]
+	}
+	return homebrew.style_check_and_print([target], homebrew.StyleCheckOptions{
+		config: config
+	})
 }
 
 // Ruby let `let(:actionlint_result) do` at line 55.
-pub fn ruby_style_spec_l55_d5_actionlint_result(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('actionlint_result', ...args)
+pub fn ruby_style_spec_l55_d5_actionlint_result() homebrew.SystemCommandResult {
+	return homebrew.new_system_command_result(['actionlint'], [], homebrew.SystemCommandStatus{
+		exit_code: 0
+	}, [], false)
 }
 
 // Ruby it `it "uses a tap's actionlint config when present" do` at line 65.
-pub fn ruby_style_spec_l65_d6_uses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uses', ...args)
+pub fn ruby_style_spec_l65_d6_uses() !bool {
+	args := style_spec_actionlint_invocation(true, false)!
+	config_index := args.index('-config-file')
+	if config_index < 0 || config_index + 1 >= args.len {
+		return false
+	}
+	return args[config_index + 1].ends_with('/homebrew/homebrew-foo/.github/actionlint.yaml')
 }
 
 // Ruby it `it "falls back to HOMEBREW_REPOSITORY config when no tap config exists" do` at line 88.
-pub fn ruby_style_spec_l88_d7_falls(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('falls', ...args)
+pub fn ruby_style_spec_l88_d7_falls() !bool {
+	args := style_spec_actionlint_invocation(false, false)!
+	config_index := args.index('-config-file')
+	if config_index < 0 || config_index + 1 >= args.len {
+		return false
+	}
+	return args[config_index + 1].ends_with('/repo/.github/actionlint.yaml')
 }
 
 // Ruby it `it "falls back to HOMEBREW_REPOSITORY config when files span multiple taps" do` at line 108.
-pub fn ruby_style_spec_l108_d8_falls(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('falls', ...args)
+pub fn ruby_style_spec_l108_d8_falls() !bool {
+	args := style_spec_actionlint_invocation(true, true)!
+	config_index := args.index('-config-file')
+	if config_index < 0 || config_index + 1 >= args.len {
+		return false
+	}
+	return args[config_index + 1].ends_with('/repo/.github/actionlint.yaml') && args.filter(it.ends_with('/.github/workflows/ci.yml')).len == 2
 }
 
 // Ruby it `it "uses a matching system shellcheck" do` at line 136.
-pub fn ruby_style_spec_l136_d9_uses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uses', ...args)
+pub fn ruby_style_spec_l136_d9_uses() !bool {
+	return homebrew.style_shellcheck(homebrew.StyleConfig{
+		shellcheck_path: '/usr/bin/shellcheck'
+	})! == '/usr/bin/shellcheck'
 }
 
 // Ruby it `it "uses a matching system actionlint" do` at line 150.
-pub fn ruby_style_spec_l150_d10_uses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uses', ...args)
+pub fn ruby_style_spec_l150_d10_uses() !bool {
+	return homebrew.style_actionlint(homebrew.StyleConfig{
+		actionlint_path: '/usr/bin/actionlint'
+	})! == '/usr/bin/actionlint'
 }
 
 // Ruby it `it "passes a matching system shfmt to the shfmt wrapper" do` at line 165.
-pub fn ruby_style_spec_l165_d11_passes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('passes', ...args)
+pub fn ruby_style_spec_l165_d11_passes() !bool {
+	root := style_spec_temp_dir('shfmt')!
+	defer {
+		os.rmdir_all(root) or {}
+	}
+	mut config := style_spec_config(root)!
+	log := os.join_path(root, 'shfmt.log')
+	wrapper := os.join_path(root, 'shfmt-wrapper')
+	style_spec_write_executable(wrapper, '#!/bin/sh\nprintf "%s|%s\\n" "\$HOMEBREW_SHFMT" "\$*" > "${log}"\n')!
+	config = homebrew.StyleConfig{
+		...config
+		shfmt_path: wrapper
+		shfmt_executable_path: '/usr/bin/shfmt'
+	}
+	shell_file := os.join_path(root, 'test.sh')
+	os.write_file(shell_file, '#!/bin/bash\n')!
+	result := homebrew.style_run_shfmt([shell_file], homebrew.StyleShfmtOptions{
+		shfmt_path: '/usr/bin/shfmt'
+		config: config
+	})!
+	logged := os.read_file(log)!
+	return result.success && logged.starts_with('/usr/bin/shfmt|--language-dialect bash --indent 2 --case-indent -- ') && logged.contains(shell_file)
 }
 
 // Ruby it `it "runs shellcheck in parallel chunks and merges their JSON results" do` at line 188.
-pub fn ruby_style_spec_l188_d12_runs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('runs', ...args)
+pub fn ruby_style_spec_l188_d12_runs() !bool {
+	root := style_spec_temp_dir('shellcheck-chunks')!
+	defer {
+		os.rmdir_all(root) or {}
+	}
+	config := style_spec_config(root)!
+	log := os.join_path(root, 'shellcheck-args.log')
+	fake_shellcheck := os.join_path(root, 'shellcheck')
+	style_spec_write_executable(fake_shellcheck, '#!/bin/bash\necho "\$*" >> "${log}"\necho "[]"\n')!
+	mut files := []string{}
+	for index in 1 .. 4 {
+		file := os.join_path(root, 'script${index}.sh')
+		os.write_file(file, '#!/bin/bash\n')!
+		files << file
+	}
+	offenses := homebrew.style_run_shellcheck(files, .json, homebrew.StyleShellcheckOptions{
+		shellcheck_path: fake_shellcheck
+		config: config
+	})!
+	chunks := os.read_lines(log)!
+	first_chunk := chunks.filter(it.contains('script1.sh'))
+	return offenses.files.len == 0 && chunks.len == 2 && first_chunk.len == 1 && first_chunk[0].contains('script2.sh') && !first_chunk[0].contains('script3.sh')
 }
 
 // Ruby let `let(:dir) { mktmpdir }` at line 219.
-pub fn ruby_style_spec_l219_d13_dir(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dir', ...args)
+pub fn ruby_style_spec_l219_d13_dir() !string {
+	return style_spec_temp_dir('rubocop-dir')
 }
 
 // Ruby let `let(:ruby_file) { dir/"test.rb" }` at line 220.
-pub fn ruby_style_spec_l220_d14_ruby_file(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ruby_file', ...args)
+pub fn ruby_style_spec_l220_d14_ruby_file(dir string) !string {
+	path := os.join_path(dir, 'test.rb')
+	os.write_file(path, 'class Test\nend\n')!
+	return path
 }
 
 // Ruby it `it "passes --disable-uncorrectable when --todo is enabled" do` at line 229.
-pub fn ruby_style_spec_l229_d15_passes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('passes', ...args)
+pub fn ruby_style_spec_l229_d15_passes() !bool {
+	root := style_spec_temp_dir('rubocop-todo')!
+	defer {
+		os.rmdir_all(root) or {}
+	}
+	mut config := style_spec_config(root)!
+	log := os.join_path(root, 'rubocop.log')
+	rubocop := os.join_path(root, 'rubocop')
+	style_spec_write_executable(rubocop, '#!/bin/sh\nprintf "%s\\n" "\$*" > "${log}"\nprintf \'%s\\n\' \'{"files":[]}\'\n')!
+	config = homebrew.StyleConfig{
+		...config
+		ruby_args: [rubocop]
+	}
+	ruby_file := os.join_path(root, 'test.rb')
+	os.write_file(ruby_file, 'class Test\nend\n')!
+	result := homebrew.style_run_rubocop([ruby_file], .json, homebrew.StyleCheckOptions{
+		fix: true
+		todo: true
+		config: config
+	})!
+	return result.success && os.read_file(log)!.contains('--disable-uncorrectable')
 }
 
 // Original Ruby source (line-for-line):

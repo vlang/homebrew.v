@@ -1,48 +1,233 @@
 module concurrent
 
 import brew_runtime
+import runtime
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/configuration.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub enum ConfiguredExecutorKind {
+	fast
+	io
+	immediate
+}
+
+@[heap]
+pub struct ConfiguredExecutor {
+pub:
+	kind            ConfiguredExecutorKind
+	adapter         ScheduledExecutor
+	auto_terminate  bool = true
+	min_threads     int
+	max_threads     int
+	idletime        int
+	max_queue       int
+	fallback_policy string = 'abort'
+	name            string
+}
+
+fn immediate_scheduled_post(_ voidptr, task ScheduledExecution, args []brew_runtime.Value) bool {
+	task(args)
+	return true
+}
+
+pub fn new_fast_executor(auto_terminate bool) ConfiguredExecutor {
+	processor_count := runtime.nr_cpus()
+	pool_size := if processor_count > 2 { processor_count } else { 2 }
+	return ConfiguredExecutor{
+		kind: .fast
+		adapter: asynchronous_scheduled_executor('fast')
+		auto_terminate: auto_terminate
+		min_threads: pool_size
+		max_threads: pool_size
+		idletime: 60
+		max_queue: 0
+		fallback_policy: 'abort'
+		name: 'fast'
+	}
+}
+
+pub fn new_io_executor(auto_terminate bool) ConfiguredExecutor {
+	return ConfiguredExecutor{
+		kind: .io
+		adapter: asynchronous_scheduled_executor('io')
+		auto_terminate: auto_terminate
+		min_threads: 0
+		max_threads: 2_147_483_647
+		idletime: 60
+		max_queue: 0
+		fallback_policy: 'abort'
+		name: 'io'
+	}
+}
+
+pub fn new_immediate_configured_executor() ConfiguredExecutor {
+	return ConfiguredExecutor{
+		kind: .immediate
+		adapter: ScheduledExecutor{
+			post_fn: immediate_scheduled_post
+			name: 'immediate'
+		}
+		min_threads: 1
+		max_threads: 1
+		name: 'immediate'
+	}
+}
+
+fn configured_executor_pointer(value ConfiguredExecutor) &ConfiguredExecutor {
+	return &ConfiguredExecutor{
+		kind: value.kind
+		adapter: value.adapter
+		auto_terminate: value.auto_terminate
+		min_threads: value.min_threads
+		max_threads: value.max_threads
+		idletime: value.idletime
+		max_queue: value.max_queue
+		fallback_policy: value.fallback_policy
+		name: value.name
+	}
+}
+
+@[unsafe]
+fn delayed_global_fast_executor() &ConfiguredExecutor {
+	mut static executor := &ConfiguredExecutor(unsafe { nil })
+	if executor == unsafe { nil } {
+		executor = configured_executor_pointer(new_fast_executor(true))
+	}
+	return executor
+}
+
+pub fn global_fast_executor() ConfiguredExecutor {
+	return *unsafe { delayed_global_fast_executor() }
+}
+
+@[unsafe]
+fn delayed_global_io_executor() &ConfiguredExecutor {
+	mut static executor := &ConfiguredExecutor(unsafe { nil })
+	if executor == unsafe { nil } {
+		executor = configured_executor_pointer(new_io_executor(true))
+	}
+	return executor
+}
+
+pub fn global_io_executor() ConfiguredExecutor {
+	return *unsafe { delayed_global_io_executor() }
+}
+
+@[unsafe]
+fn delayed_global_immediate_executor() &ConfiguredExecutor {
+	mut static executor := &ConfiguredExecutor(unsafe { nil })
+	if executor == unsafe { nil } {
+		executor = configured_executor_pointer(new_immediate_configured_executor())
+	}
+	return executor
+}
+
+pub fn global_immediate_executor() ConfiguredExecutor {
+	return *unsafe { delayed_global_immediate_executor() }
+}
+
+@[unsafe]
+fn delayed_global_timer_set() &ScheduledTaskScheduler {
+	mut static timer_set := &ScheduledTaskScheduler(unsafe { nil })
+	if timer_set == unsafe { nil } {
+		timer_set = new_scheduled_task_scheduler()
+	}
+	return timer_set
+}
+
+pub fn global_timer_set() &ScheduledTaskScheduler {
+	return unsafe { delayed_global_timer_set() }
+}
+
+pub fn configured_executor(identifier brew_runtime.Value) !ConfiguredExecutor {
+	name := identifier.as_string().trim_left(':').to_lower()
+	return match name {
+		'fast' { global_fast_executor() }
+		'io' { global_io_executor() }
+		'immediate' { global_immediate_executor() }
+		else {
+			if identifier.type_name.ends_with('ExecutorService') {
+				ConfiguredExecutor{
+					kind: .io
+					adapter: asynchronous_scheduled_executor(identifier.as_string())
+					name: identifier.as_string()
+				}
+			} else {
+				return error("executor not recognized by '${identifier.as_string()}'")
+			}
+		}
+	}
+}
+
+fn configured_executor_value(executor ConfiguredExecutor) brew_runtime.Value {
+	return brew_runtime.structured_value('Concurrent::ExecutorService', executor.name, {
+		'kind':            executor.kind.str()
+		'auto_terminate':  executor.auto_terminate.str()
+		'min_threads':     executor.min_threads.str()
+		'max_threads':     executor.max_threads.str()
+		'idletime':        executor.idletime.str()
+		'max_queue':       executor.max_queue.str()
+		'fallback_policy': executor.fallback_policy
+	})
+}
+
+fn configuration_auto_terminate(args []brew_runtime.Value) bool {
+	if args.len == 0 || args[0].type_name != 'Hash' {
+		return true
+	}
+	options := args[0].as_map() or { return true }
+	return if 'auto_terminate' in options {
+		options['auto_terminate'].as_bool() or { true }
+	} else {
+		true
+	}
+}
 
 // Ruby method `self.disable_at_exit_handlers!` at line 48.
 pub fn ruby_configuration_l48_d1_self_disable_at_exit_handlers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.disable_at_exit_handlers!', ...args)
+	eprintln('Method #disable_at_exit_handlers! has no effect since it is no longer needed, see https://github.com/ruby-concurrency/concurrent-ruby/pull/841.')
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Ruby method `self.global_fast_executor` at line 55.
 pub fn ruby_configuration_l55_d2_self_global_fast_executor(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.global_fast_executor', ...args)
+	return configured_executor_value(global_fast_executor())
 }
 
 // Ruby method `self.global_io_executor` at line 62.
 pub fn ruby_configuration_l62_d3_self_global_io_executor(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.global_io_executor', ...args)
+	return configured_executor_value(global_io_executor())
 }
 
 // Ruby method `self.global_immediate_executor` at line 66.
 pub fn ruby_configuration_l66_d4_self_global_immediate_executor(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.global_immediate_executor', ...args)
+	return configured_executor_value(global_immediate_executor())
 }
 
 // Ruby method `self.global_timer_set` at line 73.
 pub fn ruby_configuration_l73_d5_self_global_timer_set(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.global_timer_set', ...args)
+	timer_set := global_timer_set()
+	return brew_runtime.structured_value('Concurrent::TimerSet', '#<Concurrent::TimerSet>', {
+		'scheduled_task_scheduler_address': u64(voidptr(timer_set)).str()
+	})
 }
 
 // Ruby method `self.executor(executor_identifier)` at line 83.
 pub fn ruby_configuration_l83_d6_self_executor(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.executor', ...args)
+	if args.len == 0 {
+		panic('Concurrent.executor requires an identifier')
+	}
+	return configured_executor_value(configured_executor(args[0]) or { panic(err) })
 }
 
 // Ruby method `self.new_fast_executor(opts = {})` at line 87.
 pub fn ruby_configuration_l87_d7_self_new_fast_executor(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.new_fast_executor', ...args)
+	return configured_executor_value(new_fast_executor(configuration_auto_terminate(args)))
 }
 
 // Ruby method `self.new_io_executor(opts = {})` at line 98.
 pub fn ruby_configuration_l98_d8_self_new_io_executor(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.new_io_executor', ...args)
+	return configured_executor_value(new_io_executor(configuration_auto_terminate(args)))
 }
 
 // Original Ruby source (line-for-line):

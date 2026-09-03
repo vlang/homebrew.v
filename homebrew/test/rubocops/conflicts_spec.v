@@ -1,33 +1,40 @@
 module rubocops
 
 import brew_runtime
+import homebrew.rubocops as conflicts_core
 
 // Translated from Homebrew/brew `test/rubocops/conflicts_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:cop) { described_class.new }` at line 7.
 pub fn ruby_conflicts_spec_l7_d1_cop(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cop', ...args)
+	return brew_runtime.object_value('RuboCop::Cop::FormulaAudit::Conflicts', 'FormulaAudit/Conflicts')
 }
 
 // Ruby it `it "reports and corrects an offense if reason is capitalized" do` at line 10.
-pub fn ruby_conflicts_spec_l10_d2_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_conflicts_spec_l10_d2_reports() bool {
+	source := 'conflicts_with "bar", :because => "Reason"\nconflicts_with "baz", :because => "Foo is the formula name which does not require downcasing"'
+	problems := conflicts_core.audit_formula_conflicts(source, 'Foo', false, false)
+	return problems.len == 1 && problems[0].kind == 'capitalized_reason' && conflicts_core.correct_formula_conflicts(source, 'Foo', false, false).starts_with('conflicts_with "bar", :because => "reason"')
 }
 
 // Ruby it `it "reports and corrects an offense if reason ends with a period" do` at line 29.
-pub fn ruby_conflicts_spec_l29_d3_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_conflicts_spec_l29_d3_reports() bool {
+	source := 'conflicts_with "bar", "baz", :because => "reason."'
+	problems := conflicts_core.audit_formula_conflicts(source, 'Foo', false, false)
+	return problems.len == 1 && problems[0].kind == 'trailing_period' && conflicts_core.correct_formula_conflicts(source, 'Foo', false, false) == 'conflicts_with "bar", "baz", :because => "reason"'
 }
 
 // Ruby it `it "reports an offense if it is present in a versioned formula" do` at line 46.
-pub fn ruby_conflicts_spec_l46_d4_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_conflicts_spec_l46_d4_reports() bool {
+	source := 'conflicts_with "mysql", "mariadb"'
+	problems := conflicts_core.audit_formula_conflicts(source, 'Foo', true, false)
+	return problems.len == 1 && problems[0].message == conflicts_core.conflicts_versioned_formula_message && conflicts_core.correct_formula_conflicts(source, 'Foo', true, false) == 'keg_only :versioned_formula'
 }
 
 // Ruby it `it "reports no offenses if it is not present" do` at line 56.
-pub fn ruby_conflicts_spec_l56_d5_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_conflicts_spec_l56_d5_reports() bool {
+	return conflicts_core.audit_formula_conflicts('homepage "https://brew.sh"', 'Foo', true, false).len == 0
 }
 
 // Original Ruby source (line-for-line):

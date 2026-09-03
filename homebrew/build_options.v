@@ -1,63 +1,72 @@
 module homebrew
 
-import brew_runtime
+import homebrew.options as option_types
 
 // Translated from Homebrew/brew `build_options.rb`.
-// The original source is retained below until every stub has a typed V body.
+// The original source is retained below.
+
+// BuildOptions is implemented alongside Options to keep the canonical types in
+// one dependency-free V module, then exposed from Homebrew through this alias.
+pub type BuildOptions = option_types.BuildOptions
+
+// new_build_options translates BuildOptions.new(args, options).
+pub fn new_build_options(args Options, options Options) BuildOptions {
+	return option_types.new_build_options(args, options)
+}
 
 // Ruby method `initialize(args, options)` at line 7.
-pub fn ruby_build_options_l7_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+pub fn ruby_build_options_l7_d1_initialize(args Options, options Options) BuildOptions {
+	return new_build_options(args, options)
 }
 
 // Ruby method `with?(val)` at line 34.
-pub fn ruby_build_options_l34_d2_with(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('with?', ...args)
+pub fn ruby_build_options_l34_d2_with(build BuildOptions, name string) bool {
+	return build.with(name)
 }
 
 // Ruby method `without?(val)` at line 60.
-pub fn ruby_build_options_l60_d3_without(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('without?', ...args)
+pub fn ruby_build_options_l60_d3_without(build BuildOptions, name string) bool {
+	return build.without(name)
 }
 
 // Ruby method `bottle?` at line 66.
-pub fn ruby_build_options_l66_d4_bottle(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('bottle?', ...args)
+pub fn ruby_build_options_l66_d4_bottle(build BuildOptions) bool {
+	return build.bottle()
 }
 
 // Ruby method `head?` at line 87.
-pub fn ruby_build_options_l87_d5_head(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('head?', ...args)
+pub fn ruby_build_options_l87_d5_head(build BuildOptions) bool {
+	return build.head()
 }
 
 // Ruby method `stable?` at line 100.
-pub fn ruby_build_options_l100_d6_stable(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('stable?', ...args)
+pub fn ruby_build_options_l100_d6_stable(build BuildOptions) bool {
+	return build.stable()
 }
 
 // Ruby method `any_args_or_options?` at line 106.
-pub fn ruby_build_options_l106_d7_any_args_or_options(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('any_args_or_options?', ...args)
+pub fn ruby_build_options_l106_d7_any_args_or_options(build BuildOptions) bool {
+	return build.any_args_or_options()
 }
 
 // Ruby method `used_options` at line 111.
-pub fn ruby_build_options_l111_d8_used_options(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('used_options', ...args)
+pub fn ruby_build_options_l111_d8_used_options(build BuildOptions) Options {
+	return build.used_options()
 }
 
 // Ruby method `unused_options` at line 116.
-pub fn ruby_build_options_l116_d9_unused_options(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('unused_options', ...args)
+pub fn ruby_build_options_l116_d9_unused_options(build BuildOptions) Options {
+	return build.unused_options()
 }
 
 // Ruby method `include?(name)` at line 123.
-pub fn ruby_build_options_l123_d10_include(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('include?', ...args)
+pub fn ruby_build_options_l123_d10_include(build BuildOptions, name string) bool {
+	return build.includes(name)
 }
 
 // Ruby method `option_defined?(name)` at line 128.
-pub fn ruby_build_options_l128_d11_option_defined(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('option_defined?', ...args)
+pub fn ruby_build_options_l128_d11_option_defined(build BuildOptions, name string) bool {
+	return build.option_defined(name)
 }
 
 // Original Ruby source (line-for-line):

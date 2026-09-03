@@ -1,33 +1,90 @@
 module cmd
 
-import brew_runtime
+import homebrew.cmd as uninstall_core
 
 // Translated from Homebrew/brew `test/cmd/uninstall_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "uninstalls a given Formula and Cask path", :cask, :integration_test do` at line 10.
-pub fn ruby_uninstall_spec_l10_d1_uninstalls(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uninstalls', ...args)
+pub fn ruby_uninstall_spec_l10_d1_uninstalls() bool {
+	result := uninstall_core.run_uninstall([uninstall_core.UninstallItem{
+		kind: .keg
+		name: 'testball'
+		full_name: 'testball'
+		rack: '/cellar/testball'
+	}, uninstall_core.UninstallItem{
+		kind: .cask
+		name: 'local-caffeine'
+		full_name: 'homebrew/cask/local-caffeine'
+	}], uninstall_core.UninstallOptions{
+		named: ['testball', 'local-caffeine']
+		force: true
+	})
+	return !result.failed && result.removed_kegs == ['testball'] && result.removed_casks == [
+		'homebrew/cask/local-caffeine',
+	] && result.stdout.contains('Uninstalling testball') && result.stdout.contains('Uninstalling Cask local-caffeine')
 }
 
 // Ruby it `it "catches cask uninstall errors and sets Homebrew.failed" do` at line 50.
-pub fn ruby_uninstall_spec_l50_d2_catches(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('catches', ...args)
+pub fn ruby_uninstall_spec_l50_d2_catches() bool {
+	result := uninstall_core.run_uninstall([uninstall_core.UninstallItem{
+		kind: .cask
+		name: 'test-cask'
+		uninstall_error: 'test cask error'
+	}], uninstall_core.UninstallOptions{
+		named: ['test-cask']
+	})
+	return result.failed && result.stderr.contains('test cask error') && result.autoremove_ran
 }
 
 // Ruby it `it "untrusts uninstalled casks" do` at line 68.
-pub fn ruby_uninstall_spec_l68_d3_untrusts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('untrusts', ...args)
+pub fn ruby_uninstall_spec_l68_d3_untrusts() bool {
+	result := uninstall_core.run_uninstall([uninstall_core.UninstallItem{
+		kind: .cask
+		name: 'test-cask'
+		full_name: 'thirdparty/foo/test-cask'
+	}], uninstall_core.UninstallOptions{
+		named: ['thirdparty/foo/test-cask']
+	})
+	return result.untrusted_items == ['cask:thirdparty/foo/test-cask'] && 'untrust:cask:thirdparty/foo/test-cask' in result.actions
 }
 
 // Ruby it `it "does not read an untrusted installed cask when uninstalling", :cask, :trust_store do` at line 84.
-pub fn ruby_uninstall_spec_l84_d4_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_uninstall_spec_l84_d4_does() bool {
+	name := 'untrusted/tap/local-caffeine'
+	result := uninstall_core.run_uninstall([uninstall_core.UninstallItem{
+		kind: .cask
+		name: 'local-caffeine'
+		full_name: name
+		untrusted: true
+		metadata: .legacy_ruby
+		load_error: 'untrusted installed cask evaluated'
+	}], uninstall_core.UninstallOptions{
+		named: [name]
+		cask: true
+		force: true
+		require_tap_trust: true
+	})
+	return !result.failed && name in result.removed_casks && name in result.used_recorded_data && result.stderr.contains('Skipping loading untrusted Cask ${name}') && !result.stderr.contains('untrusted installed cask evaluated')
 }
 
 // Ruby it `it "reads installed JSON cask metadata when uninstalling from an untrusted tap", :cask, :trust_store do` at line 123.
-pub fn ruby_uninstall_spec_l123_d5_reads(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reads', ...args)
+pub fn ruby_uninstall_spec_l123_d5_reads() bool {
+	name := 'untrusted/json/local-caffeine'
+	result := uninstall_core.run_uninstall([uninstall_core.UninstallItem{
+		kind: .cask
+		name: 'local-caffeine'
+		full_name: name
+		untrusted: true
+		metadata: .json
+		load_error: 'untrusted installed cask evaluated'
+	}], uninstall_core.UninstallOptions{
+		named: [name]
+		cask: true
+		force: true
+		require_tap_trust: true
+	})
+	return !result.failed && name in result.removed_casks && name in result.used_recorded_data && !result.stderr.contains('Skipping loading untrusted Cask') && !result.stderr.contains('untrusted installed cask evaluated')
 }
 
 // Original Ruby source (line-for-line):

@@ -1,43 +1,71 @@
 module options
 
-import brew_runtime
-
 // Translated from Homebrew/brew `options/deprecated_option.rb`.
-// The original source is retained below until every stub has a typed V body.
+// The original source is retained below.
 
-// Ruby attr_reader `attr_reader :old, :current` at line 7.
-pub fn ruby_deprecated_option_l7_d1_old(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('old', ...args)
+// DeprecatedOption records a formula option rename.
+pub struct DeprecatedOption {
+pub:
+	old     string
+	current string
+}
+
+// new_deprecated_option translates DeprecatedOption.new(old, current).
+pub fn new_deprecated_option(old string, current string) DeprecatedOption {
+	return DeprecatedOption{
+		old:     old
+		current: current
+	}
+}
+
+// old_flag translates DeprecatedOption#old_flag.
+pub fn (option DeprecatedOption) old_flag() string {
+	return '--${option.old}'
+}
+
+// current_flag translates DeprecatedOption#current_flag.
+pub fn (option DeprecatedOption) current_flag() string {
+	return '--${option.current}'
+}
+
+// equal translates DeprecatedOption#== and DeprecatedOption#eql?.
+pub fn (option DeprecatedOption) equal(other DeprecatedOption) bool {
+	return option.old == other.old && option.current == other.current
 }
 
 // Ruby attr_reader `attr_reader :old, :current` at line 7.
-pub fn ruby_deprecated_option_l7_d2_current(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('current', ...args)
+pub fn ruby_deprecated_option_l7_d1_old(option DeprecatedOption) string {
+	return option.old
+}
+
+// Ruby attr_reader `attr_reader :old, :current` at line 7.
+pub fn ruby_deprecated_option_l7_d2_current(option DeprecatedOption) string {
+	return option.current
 }
 
 // Ruby method `initialize(old, current)` at line 10.
-pub fn ruby_deprecated_option_l10_d3_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+pub fn ruby_deprecated_option_l10_d3_initialize(old string, current string) DeprecatedOption {
+	return new_deprecated_option(old, current)
 }
 
 // Ruby method `old_flag` at line 16.
-pub fn ruby_deprecated_option_l16_d4_old_flag(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('old_flag', ...args)
+pub fn ruby_deprecated_option_l16_d4_old_flag(option DeprecatedOption) string {
+	return option.old_flag()
 }
 
 // Ruby method `current_flag` at line 21.
-pub fn ruby_deprecated_option_l21_d5_current_flag(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('current_flag', ...args)
+pub fn ruby_deprecated_option_l21_d5_current_flag(option DeprecatedOption) string {
+	return option.current_flag()
 }
 
 // Ruby method `==(other)` at line 26.
-pub fn ruby_deprecated_option_l26_d6_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('==', ...args)
+pub fn ruby_deprecated_option_l26_d6_anonymous(option DeprecatedOption, other DeprecatedOption) bool {
+	return option.equal(other)
 }
 
 // Ruby alias `alias eql? ==` at line 34.
-pub fn ruby_deprecated_option_l34_d7_eql(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('eql?', ...args)
+pub fn ruby_deprecated_option_l34_d7_eql(option DeprecatedOption, other DeprecatedOption) bool {
+	return option.equal(other)
 }
 
 // Original Ruby source (line-for-line):

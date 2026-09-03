@@ -5,9 +5,24 @@ import brew_runtime
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/synchronization/safe_initialization.rb`.
 // The original source is retained below until every stub has a typed V body.
 
+// safely_initialize mirrors the Ruby ensure clause: construction errors are
+// propagated, but the publication fence always runs.
+pub fn safely_initialize[T](constructor fn() !T) !T {
+	defer {
+		full_memory_barrier()
+	}
+	return constructor()
+}
+
 // Ruby method `new(*args, &block)` at line 29.
 pub fn ruby_safe_initialization_l29_d1_new(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('new', ...args)
+	defer {
+		full_memory_barrier()
+	}
+	if args.len == 0 {
+		return brew_runtime.object_value('NilClass', 'nil')
+	}
+	return args[0]
 }
 
 // Original Ruby source (line-for-line):

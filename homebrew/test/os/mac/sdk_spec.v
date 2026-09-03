@@ -1,73 +1,107 @@
 module mac
 
-import brew_runtime
+import homebrew.os.mac as sdk
+import os
+
+fn sdk_spec_locator() &sdk.SdkLocator {
+	mut locator := sdk.new_sdk_locator('', 'clt')
+	locator.loaded = true
+	locator.sdks = [
+		sdk.MacSdk{ version: '11', path: '/some/path/MacOSX.sdk', source: 'clt' },
+		sdk.MacSdk{ version: '10.15', path: '/some/path/MacOSX10.15.sdk', source: 'clt' },
+	]
+	return locator
+}
 
 // Translated from Homebrew/brew `test/os/mac/sdk_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:locator) { described_class.new }` at line 5.
-pub fn ruby_sdk_spec_l5_d1_locator(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('locator', ...args)
+pub fn ruby_sdk_spec_l5_d1_locator() &sdk.SdkLocator {
+	return sdk_spec_locator()
 }
 
 // Ruby let `let(:big_sur_sdk) { OS::Mac::SDK.new(MacOSVersion.new("11"), "/some/path/MacOSX.sdk", :clt) }` at line 7.
-pub fn ruby_sdk_spec_l7_d2_big_sur_sdk(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('big_sur_sdk', ...args)
+pub fn ruby_sdk_spec_l7_d2_big_sur_sdk() sdk.MacSdk {
+	return sdk.MacSdk{ version: '11', path: '/some/path/MacOSX.sdk', source: 'clt' }
 }
 
 // Ruby let `let(:catalina_sdk) { OS::Mac::SDK.new(MacOSVersion.new("10.15"), "/some/path/MacOSX10.15.sdk", :clt) }` at line 8.
-pub fn ruby_sdk_spec_l8_d3_catalina_sdk(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('catalina_sdk', ...args)
+pub fn ruby_sdk_spec_l8_d3_catalina_sdk() sdk.MacSdk {
+	return sdk.MacSdk{ version: '10.15', path: '/some/path/MacOSX10.15.sdk', source: 'clt' }
 }
 
 // Ruby specify `specify "#sdk_for" do` at line 10.
-pub fn ruby_sdk_spec_l10_d4_sdk_for(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#sdk_for', ...args)
+pub fn ruby_sdk_spec_l10_d4_sdk_for() bool {
+	mut locator := sdk_spec_locator()
+	return locator.sdk_for('11') or { return false } == ruby_sdk_spec_l7_d2_big_sur_sdk() && locator.sdk_for('10.15') or { return false } == ruby_sdk_spec_l8_d3_catalina_sdk() && if _ := locator.sdk_for('10.14') {
+		false
+	} else {
+		err.msg().contains('NoSDKError')
+	}
 }
 
 // Ruby it `it "returns the requested SDK" do` at line 24.
-pub fn ruby_sdk_spec_l24_d5_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_sdk_spec_l24_d5_returns() bool {
+	mut locator := sdk_spec_locator()
+	return locator.sdk_if_applicable('11', '15') or { return false } == ruby_sdk_spec_l7_d2_big_sur_sdk() && locator.sdk_if_applicable('10.15', '15') or { return false } == ruby_sdk_spec_l8_d3_catalina_sdk()
 }
 
 // Ruby it `it "returns the latest SDK if the requested version is not found" do` at line 29.
-pub fn ruby_sdk_spec_l29_d6_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_sdk_spec_l29_d6_returns() bool {
+	mut locator := sdk_spec_locator()
+	return locator.sdk_if_applicable('10.14', '15') or { return false } == ruby_sdk_spec_l7_d2_big_sur_sdk() && locator.sdk_if_applicable('12', '15') or { return false } == ruby_sdk_spec_l7_d2_big_sur_sdk()
 }
 
 // Ruby it `it "returns the SDK matching the OS version if no version is specified" do` at line 34.
-pub fn ruby_sdk_spec_l34_d7_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_sdk_spec_l34_d7_returns() bool {
+	mut locator := sdk_spec_locator()
+	return locator.sdk_if_applicable('', '10.15') or { return false } == ruby_sdk_spec_l8_d3_catalina_sdk()
 }
 
 // Ruby it `it "returns the latest SDK on older OS versions when there's no matching SDK" do` at line 39.
-pub fn ruby_sdk_spec_l39_d8_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_sdk_spec_l39_d8_returns() bool {
+	mut locator := sdk_spec_locator()
+	return locator.sdk_if_applicable('', '10.14') or { return false } == ruby_sdk_spec_l7_d2_big_sur_sdk()
 }
 
 // Ruby it `it "returns nil if the OS is newer than all SDKs" do` at line 44.
-pub fn ruby_sdk_spec_l44_d9_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_sdk_spec_l44_d9_returns() bool {
+	mut locator := sdk_spec_locator()
+	return locator.sdk_if_applicable('', '12') == none
 }
 
 // Ruby let `let(:big_sur_sdk_prefix) { TEST_FIXTURE_DIR/"sdks/big_sur" }` at line 51.
-pub fn ruby_sdk_spec_l51_d10_big_sur_sdk_prefix(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('big_sur_sdk_prefix', ...args)
+pub fn ruby_sdk_spec_l51_d10_big_sur_sdk_prefix() string {
+	return os.join_path(os.temp_dir(), 'brew-v-sdk-big-sur-${os.getpid()}')
 }
 
 // Ruby let `let(:malformed_sdk_prefix) { TEST_FIXTURE_DIR/"sdks/malformed" }` at line 52.
-pub fn ruby_sdk_spec_l52_d11_malformed_sdk_prefix(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('malformed_sdk_prefix', ...args)
+pub fn ruby_sdk_spec_l52_d11_malformed_sdk_prefix() string {
+	return os.join_path(os.temp_dir(), 'brew-v-sdk-malformed-${os.getpid()}')
 }
 
 // Ruby it `it "reads the SDKSettings.json version of unversioned SDKs folders" do` at line 54.
-pub fn ruby_sdk_spec_l54_d12_reads(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reads', ...args)
+pub fn ruby_sdk_spec_l54_d12_reads() !bool {
+	prefix := ruby_sdk_spec_l51_d10_big_sur_sdk_prefix()
+	path := os.join_path(prefix, 'MacOSX.sdk')
+	os.mkdir_all(path)!
+	defer { os.rmdir_all(prefix) or {} }
+	os.write_file(os.join_path(path, 'SDKSettings.json'), '{"Version":"11.0"}')!
+	mut locator := sdk.new_sdk_locator(prefix, 'clt')
+	sdks := locator.all_sdks()
+	return sdks.len == 1 && sdks[0] == sdk.MacSdk{ version: '11', path: path, source: 'clt' }
 }
 
 // Ruby it `it "rejects malformed sdks" do` at line 66.
-pub fn ruby_sdk_spec_l66_d13_rejects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('rejects', ...args)
+pub fn ruby_sdk_spec_l66_d13_rejects() !bool {
+	prefix := ruby_sdk_spec_l52_d11_malformed_sdk_prefix()
+	path := os.join_path(prefix, 'MacOSX.sdk')
+	os.mkdir_all(path)!
+	defer { os.rmdir_all(prefix) or {} }
+	os.write_file(os.join_path(path, 'SDKSettings.json'), '{"Version":"malformed"}')!
+	mut locator := sdk.new_sdk_locator(prefix, 'clt')
+	return locator.all_sdks().len == 0
 }
 
 // Original Ruby source (line-for-line):

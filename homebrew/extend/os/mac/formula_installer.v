@@ -1,13 +1,16 @@
 module mac
 
-import brew_runtime
-
 // Translated from Homebrew/brew `extend/os/mac/formula_installer.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub fn mac_fresh_install(developer bool, outdated_release bool, installed_on_request bool,
+	any_version_installed bool) bool {
+	return !developer && !outdated_release && (installed_on_request || !any_version_installed)
+}
 
 // Ruby method `fresh_install?(formula)` at line 12.
-pub fn ruby_formula_installer_l12_d1_fresh_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fresh_install?', ...args)
+pub fn ruby_formula_installer_l12_d1_fresh_install(developer bool, outdated_release bool,
+	installed_on_request bool, any_version_installed bool) bool {
+	return mac_fresh_install(developer, outdated_release, installed_on_request, any_version_installed)
 }
 
 // Original Ruby source (line-for-line):

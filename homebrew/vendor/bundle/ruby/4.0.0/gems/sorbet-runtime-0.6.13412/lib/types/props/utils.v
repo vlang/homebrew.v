@@ -4,45 +4,163 @@ import brew_runtime
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/sorbet-runtime-0.6.13412/lib/types/props/utils.rb`.
 // The original source is retained below until every stub has a typed V body.
+fn props_nil_value() brew_runtime.Value {
+	return brew_runtime.object_value('NilClass', 'nil')
+}
+
+fn props_truthy(value brew_runtime.Value) bool {
+	return value.type_name != 'NilClass' && (value.type_name != 'Bool' || value.bool_data)
+}
+
+fn prop_rule(rules map[string]brew_runtime.Value, name string) ?brew_runtime.Value {
+	if value := rules[name] {
+		return value
+	}
+	if value := rules[':${name}'] {
+		return value
+	}
+	return none
+}
+
+fn prop_rule_enabled(rules map[string]brew_runtime.Value, name string) bool {
+	return props_truthy(prop_rule(rules, name) or { return false })
+}
+
+// deep_clone translates the recursive Ruby primitive/Array/Hash clone. Values
+// themselves are immutable in the boundary model, while all container storage
+// is copied recursively.
+pub fn deep_clone(value brew_runtime.Value) brew_runtime.Value {
+	mut items := []brew_runtime.Value{cap: value.array_data.len}
+	for item in value.array_data {
+		items << deep_clone(item)
+	}
+	mut entries := map[string]brew_runtime.Value{}
+	for key, item in value.map_data {
+		entries[key] = deep_clone(item)
+	}
+	return brew_runtime.Value{
+		...value
+		string_array_data: value.string_array_data.clone()
+		array_data: items
+		map_data: entries
+		attributes: value.attributes.clone()
+	}
+}
+
+// deep_clone_freeze has Ruby's recursive clone shape and records the freeze on
+// each translated boundary object, since V values have no Ruby freeze bit.
+pub fn deep_clone_freeze(value brew_runtime.Value) brew_runtime.Value {
+	mut items := []brew_runtime.Value{cap: value.array_data.len}
+	for item in value.array_data {
+		items << deep_clone_freeze(item)
+	}
+	mut entries := map[string]brew_runtime.Value{}
+	for key, item in value.map_data {
+		entries[key] = deep_clone_freeze(item)
+	}
+	mut attributes := value.attributes.clone()
+	attributes['frozen'] = 'true'
+	return brew_runtime.Value{
+		...value
+		string_array_data: value.string_array_data.clone()
+		array_data: items
+		map_data: entries
+		attributes: attributes
+	}
+}
+
+pub fn deep_clone_object(value brew_runtime.Value, freeze bool) brew_runtime.Value {
+	return if freeze { deep_clone_freeze(value) } else { deep_clone(value) }
+}
+
+pub fn need_nil_read_check(rules map[string]brew_runtime.Value) bool {
+	optional := prop_rule(rules, 'optional') or { props_nil_value() }
+	return optional.as_string() in [':on_load', 'on_load'] || prop_rule_enabled(rules, 'raise_on_nil_write')
+}
+
+pub fn required_prop(rules map[string]brew_runtime.Value) bool {
+	return !prop_rule_enabled(rules, '_tnilable')
+}
+
+pub fn optional_prop(rules map[string]brew_runtime.Value) bool {
+	return prop_rule_enabled(rules, '_tnilable')
+}
+
+pub fn need_nil_write_check(rules map[string]brew_runtime.Value) bool {
+	return need_nil_read_check(rules) || required_prop(rules)
+}
+
+pub fn merge_serialized_optional_rule(rules map[string]brew_runtime.Value) map[string]brew_runtime.Value {
+	mut result := rules.clone()
+	result['_tnilable'] = brew_runtime.bool_value(true)
+	return result
+}
 
 // Ruby method `self.deep_clone_object(what, freeze: false)` at line 7.
 pub fn ruby_utils_l7_d1_self_deep_clone_object(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.deep_clone_object', ...args)
+	if args.len == 0 {
+		panic('Utils.deep_clone_object requires an object')
+	}
+	freeze := if args.len > 1 { args[1].as_bool() or { panic(err) } } else { false }
+	return deep_clone_object(args[0], freeze)
 }
 
 // Ruby method `self.deep_clone(what)` at line 15.
 pub fn ruby_utils_l15_d2_self_deep_clone(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.deep_clone', ...args)
+	if args.len == 0 {
+		panic('Utils.deep_clone requires an object')
+	}
+	return deep_clone(args[0])
 }
 
 // Ruby method `self.deep_clone_freeze(what)` at line 39.
 pub fn ruby_utils_l39_d3_self_deep_clone_freeze(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.deep_clone_freeze', ...args)
+	if args.len == 0 {
+		panic('Utils.deep_clone_freeze requires an object')
+	}
+	return deep_clone_freeze(args[0])
 }
 
 // Ruby method `self.need_nil_read_check?(prop_rules)` at line 64.
 pub fn ruby_utils_l64_d4_self_need_nil_read_check(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.need_nil_read_check?', ...args)
+	if args.len == 0 {
+		panic('Utils.need_nil_read_check? requires prop rules')
+	}
+	return brew_runtime.bool_value(need_nil_read_check(args[0].as_map() or { panic(err) }))
 }
 
 // Ruby method `self.need_nil_write_check?(prop_rules)` at line 70.
 pub fn ruby_utils_l70_d5_self_need_nil_write_check(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.need_nil_write_check?', ...args)
+	if args.len == 0 {
+		panic('Utils.need_nil_write_check? requires prop rules')
+	}
+	return brew_runtime.bool_value(need_nil_write_check(args[0].as_map() or { panic(err) }))
 }
 
 // Ruby method `self.required_prop?(prop_rules)` at line 74.
 pub fn ruby_utils_l74_d6_self_required_prop(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.required_prop?', ...args)
+	if args.len == 0 {
+		panic('Utils.required_prop? requires prop rules')
+	}
+	return brew_runtime.bool_value(required_prop(args[0].as_map() or { panic(err) }))
 }
 
 // Ruby method `self.optional_prop?(prop_rules)` at line 79.
 pub fn ruby_utils_l79_d7_self_optional_prop(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.optional_prop?', ...args)
+	if args.len == 0 {
+		panic('Utils.optional_prop? requires prop rules')
+	}
+	return brew_runtime.bool_value(optional_prop(args[0].as_map() or { panic(err) }))
 }
 
 // Ruby method `self.merge_serialized_optional_rule(prop_rules)` at line 84.
 pub fn ruby_utils_l84_d8_self_merge_serialized_optional_rule(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.merge_serialized_optional_rule', ...args)
+	if args.len == 0 {
+		panic('Utils.merge_serialized_optional_rule requires prop rules')
+	}
+	return brew_runtime.map_value(merge_serialized_optional_rule(args[0].as_map() or {
+		panic(err)
+	}))
 }
 
 // Original Ruby source (line-for-line):

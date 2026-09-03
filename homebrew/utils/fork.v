@@ -5,29 +5,598 @@ import brew_runtime
 // Translated from Homebrew/brew `utils/fork.rb`.
 // The original source is retained below until every stub has a typed V body.
 
+pub enum ForkChildErrorKind {
+	build_error
+	error_during_execution
+	interrupt
+	runtime_error
+}
+
+pub struct ForkProcessStatus {
+pub:
+	has_exitstatus bool
+	exitstatus     int
+	has_termsig    bool
+	termsig        int
+}
+
+pub struct ForkOutputLine {
+pub:
+	stream string
+	text   string
+}
+
+@[heap]
+pub struct ForkChildError {
+pub:
+	kind              ForkChildErrorKind
+	class_name        string
+	message           string
+	backtrace         []string
+	command           string
+	command_arguments []string
+	arguments         []string
+	environment       map[string]string
+	status            ForkProcessStatus
+	status_is_process bool
+	raw_status        int
+	output            []ForkOutputLine
+}
+
+pub enum ForkRewrittenErrorKind {
+	build_error
+	error_during_execution
+	interrupt
+	runtime_error
+	child_process_error
+}
+
+pub struct ForkRewrittenError {
+pub:
+	kind              ForkRewrittenErrorKind
+	class_name        string
+	message           string
+	backtrace         []string
+	command           string
+	command_arguments []string
+	arguments         []string
+	environment       map[string]string
+	status            ForkProcessStatus
+	status_is_process bool
+	raw_status        int
+	output            []ForkOutputLine
+}
+
+pub struct ForkErrorPipe {
+pub:
+	socket_path         string
+	descriptor_received bool
+	close_on_exec       bool
+	open                bool
+}
+
+pub struct ForkErrorReport {
+pub:
+	written bool
+	closed  bool
+	payload string
+}
+
+@[heap]
+pub struct ForkSafeRequest {
+pub:
+	directory                 string
+	temporary_directory       string
+	yield_parent              bool
+	child_requests_error_pipe bool
+	has_child_error           bool
+	child_error               ForkChildError
+	has_exitstatus            bool
+	exitstatus                int
+	has_termsig               bool
+	termsig                   int
+	uid                       int
+	effective_uid             int
+	parent_interrupted        bool
+}
+
+pub struct ForkSafeResult {
+pub:
+	directory                   string
+	created_temporary_directory bool
+	socket_path                 string
+	child_error_pipe            string
+	child_environment           map[string]string
+	child_yielded               bool
+	parent_yielded              bool
+	privilege_changed           bool
+	write_close_on_exec         bool
+	descriptor_sent             bool
+	write_closed                bool
+	read_closed                 bool
+	child_reaped                bool
+	parent_interrupt_caught     bool
+	error_payload               string
+}
+
+pub struct ForkSafeOutcome {
+pub:
+	result    ForkSafeResult
+	has_error bool
+	raised    ForkRewrittenError
+}
+
+pub struct ForkRaisedError {
+pub:
+	rewritten ForkRewrittenError
+}
+
+pub fn (raised ForkRaisedError) msg() string {
+	return raised.rewritten.message
+}
+
+pub fn (raised ForkRaisedError) code() int {
+	return match raised.rewritten.kind {
+		.interrupt { 130 }
+		.child_process_error { 71 }
+		else { 1 }
+	}
+}
+
+fn fork_child_error_class(child_error &ForkChildError) string {
+	if child_error.class_name != '' {
+		return child_error.class_name
+	}
+	return match child_error.kind {
+		.build_error { 'BuildError' }
+		.error_during_execution { 'ErrorDuringExecution' }
+		.interrupt { 'Interrupt' }
+		.runtime_error { 'RuntimeError' }
+	}
+}
+
+fn fork_nil_value() brew_runtime.Value {
+	return brew_runtime.object_value('NilClass', 'nil')
+}
+
+fn fork_string_map_value(values map[string]string) brew_runtime.Value {
+	mut converted := map[string]brew_runtime.Value{}
+	for key, value in values {
+		converted[key] = brew_runtime.string_value(value)
+	}
+	return brew_runtime.map_value(converted)
+}
+
+fn fork_string_map_from_value(value brew_runtime.Value) map[string]string {
+	mut converted := map[string]string{}
+	for key, entry in value.map_data {
+		converted[key] = entry.as_string()
+	}
+	return converted
+}
+
+fn fork_string_array_from_value(value brew_runtime.Value) []string {
+	if value.string_array_data.len > 0 {
+		return value.string_array_data.clone()
+	}
+	return (value.as_array() or { []brew_runtime.Value{} }).map(it.as_string())
+}
+
+fn fork_status_value(status ForkProcessStatus) brew_runtime.Value {
+	return brew_runtime.map_value({
+		'exitstatus': if status.has_exitstatus {
+			brew_runtime.int_value(status.exitstatus)
+		} else {
+			fork_nil_value()
+		}
+		'termsig':    if status.has_termsig {
+			brew_runtime.int_value(status.termsig)
+		} else {
+			fork_nil_value()
+		}
+	})
+}
+
+fn fork_status_from_value(value brew_runtime.Value) (ForkProcessStatus, bool, int) {
+	if value.type_name != 'Hash' {
+		return ForkProcessStatus{}, false, int(value.int_data)
+	}
+	exitstatus := value.map_data['exitstatus'] or { fork_nil_value() }
+	termsig := value.map_data['termsig'] or { fork_nil_value() }
+	return ForkProcessStatus{
+		has_exitstatus: exitstatus.type_name != 'NilClass'
+		exitstatus: int(exitstatus.int_data)
+		has_termsig: termsig.type_name != 'NilClass'
+		termsig: int(termsig.int_data)
+	}, true, 0
+}
+
+fn fork_output_value(output []ForkOutputLine) brew_runtime.Value {
+	return brew_runtime.array_value(output.map(brew_runtime.array_value([
+		brew_runtime.string_value(it.stream),
+		brew_runtime.string_value(it.text),
+	])))
+}
+
+fn fork_output_from_value(value brew_runtime.Value) []ForkOutputLine {
+	mut output := []ForkOutputLine{}
+	for entry in value.as_array() or { []brew_runtime.Value{} } {
+		parts := entry.as_array() or { continue }
+		if parts.len >= 2 {
+			output << ForkOutputLine{
+				stream: parts[0].as_string()
+				text: parts[1].as_string()
+			}
+		}
+	}
+	return output
+}
+
+pub fn forked_child_error_pipe(error_pipe_path string, descriptor_received bool) !ForkErrorPipe {
+	if error_pipe_path == '' {
+		return error('key not found: HOMEBREW_ERROR_PIPE')
+	}
+	if !descriptor_received {
+		return error('no file descriptor received from ${error_pipe_path}')
+	}
+	return ForkErrorPipe{
+		socket_path: error_pipe_path
+		descriptor_received: true
+		close_on_exec: true
+		open: true
+	}
+}
+
+pub fn child_error_hash(child_error &ForkChildError) map[string]brew_runtime.Value {
+	mut error_hash := {
+		'json_class': brew_runtime.string_value(fork_child_error_class(child_error))
+		'm':          brew_runtime.string_value(child_error.message)
+		'b':          brew_runtime.string_array_value(child_error.backtrace)
+	}
+	match child_error.kind {
+		.build_error {
+			error_hash['cmd'] = brew_runtime.string_value(child_error.command)
+			error_hash['args'] = brew_runtime.string_array_value(child_error.arguments)
+			error_hash['env'] = fork_string_map_value(child_error.environment)
+		}
+		.error_during_execution {
+			error_hash['cmd'] = brew_runtime.string_array_value(child_error.command_arguments)
+			error_hash['status'] = if child_error.status_is_process {
+				fork_status_value(child_error.status)
+			} else {
+				brew_runtime.int_value(child_error.raw_status)
+			}
+			error_hash['output'] = fork_output_value(child_error.output)
+		}
+		else {}
+	}
+	return error_hash
+}
+
+pub fn report_forked_child_error(has_error_pipe bool, child_error &ForkChildError) ForkErrorReport {
+	if !has_error_pipe {
+		return ForkErrorReport{}
+	}
+	payload := brew_runtime.json_value_to_string(brew_runtime.map_value(child_error_hash(child_error))) + '\n'
+	return ForkErrorReport{
+		written: true
+		closed: true
+		payload: payload
+	}
+}
+
+pub fn rewrite_child_error(child_error map[string]brew_runtime.Value) ForkRewrittenError {
+	class_name := (child_error['json_class'] or { brew_runtime.string_value('NameError') }).as_string()
+	message := (child_error['m'] or { brew_runtime.string_value('') }).as_string()
+	backtrace := fork_string_array_from_value(child_error['b'] or {
+		brew_runtime.string_array_value([]string{})
+	})
+	if cmd := child_error['cmd'] {
+		if class_name == 'ErrorDuringExecution' {
+			status, status_is_process, raw_status := fork_status_from_value(child_error['status'] or {
+				brew_runtime.int_value(0)
+			})
+			return ForkRewrittenError{
+				kind: .error_during_execution
+				class_name: class_name
+				message: message
+				backtrace: backtrace
+				command_arguments: fork_string_array_from_value(cmd)
+				status: status
+				status_is_process: status_is_process
+				raw_status: raw_status
+				output: fork_output_from_value(child_error['output'] or {
+					brew_runtime.array_value([]brew_runtime.Value{})
+				})
+			}
+		}
+		if class_name == 'BuildError' {
+			return ForkRewrittenError{
+				kind: .build_error
+				class_name: class_name
+				message: message
+				backtrace: backtrace
+				command: cmd.as_string()
+				arguments: fork_string_array_from_value(child_error['args'] or {
+					brew_runtime.string_array_value([]string{})
+				})
+				environment: fork_string_map_from_value(child_error['env'] or {
+					brew_runtime.map_value(map[string]brew_runtime.Value{})
+				})
+			}
+		}
+	}
+	if class_name == 'Interrupt' {
+		return ForkRewrittenError{
+			kind: .interrupt
+			class_name: class_name
+			message: 'Interrupt'
+			backtrace: backtrace
+		}
+	}
+	return ForkRewrittenError{
+		kind: .runtime_error
+		class_name: 'RuntimeError'
+		message: 'An exception occurred within a child process:\n  ${class_name}: ${message}\n'
+		backtrace: backtrace
+	}
+}
+
+fn fork_interrupt_error() ForkRewrittenError {
+	return ForkRewrittenError{
+		kind: .interrupt
+		class_name: 'Interrupt'
+		message: 'Interrupt'
+	}
+}
+
+fn fork_child_process_error(request &ForkSafeRequest) ForkRewrittenError {
+	status := if request.has_exitstatus {
+		'exit ${request.exitstatus}'
+	} else if request.has_termsig {
+		'signal ${request.termsig}'
+	} else {
+		'unknown status'
+	}
+	return ForkRewrittenError{
+		kind: .child_process_error
+		class_name: 'ChildProcessError'
+		message: 'Forked child process failed: ${status}'
+		status: ForkProcessStatus{
+			has_exitstatus: request.has_exitstatus
+			exitstatus: request.exitstatus
+			has_termsig: request.has_termsig
+			termsig: request.termsig
+		}
+		status_is_process: true
+	}
+}
+
+pub fn safe_fork_outcome(request &ForkSafeRequest) ForkSafeOutcome {
+	directory := if request.directory != '' {
+		request.directory
+	} else if request.temporary_directory != '' {
+		request.temporary_directory
+	} else {
+		'/tmp/homebrew-fork'
+	}
+	socket_path := '${directory}/socket'
+	mut payload := ''
+	if request.has_child_error {
+		payload = report_forked_child_error(true, &request.child_error).payload
+	}
+	result := ForkSafeResult{
+		directory: directory
+		created_temporary_directory: request.directory == ''
+		socket_path: socket_path
+		child_error_pipe: socket_path
+		child_environment: {
+			'HOMEBREW_NO_BOOTSNAP': '1'
+			'HOMEBREW_ERROR_PIPE':  socket_path
+		}
+		child_yielded: true
+		parent_yielded: request.yield_parent
+		privilege_changed: request.effective_uid != request.uid
+		write_close_on_exec: true
+		descriptor_sent: request.child_requests_error_pipe
+		write_closed: true
+		read_closed: true
+		child_reaped: true
+		parent_interrupt_caught: request.parent_interrupted
+		error_payload: payload
+	}
+	if (request.has_exitstatus && request.exitstatus == 130)
+		|| (request.has_termsig && request.termsig == 2) {
+		return ForkSafeOutcome{
+			result: result
+			has_error: true
+			raised: fork_interrupt_error()
+		}
+	}
+	if payload != '' {
+		first_line := payload.split_into_lines()[0]
+		parsed := brew_runtime.parse_json_value(first_line) or {
+			return ForkSafeOutcome{
+				result: result
+				has_error: true
+				raised: ForkRewrittenError{
+					kind: .runtime_error
+					class_name: 'RuntimeError'
+					message: err.msg()
+				}
+			}
+		}
+		return ForkSafeOutcome{
+			result: result
+			has_error: true
+			raised: rewrite_child_error(parsed.as_map() or { map[string]brew_runtime.Value{} })
+		}
+	}
+	success := (!request.has_exitstatus && !request.has_termsig)
+		|| (request.has_exitstatus && request.exitstatus == 0 && !request.has_termsig)
+	if !success {
+		return ForkSafeOutcome{
+			result: result
+			has_error: true
+			raised: fork_child_process_error(request)
+		}
+	}
+	return ForkSafeOutcome{
+		result: result
+	}
+}
+
+pub fn safe_fork(request &ForkSafeRequest) !ForkSafeResult {
+	outcome := safe_fork_outcome(request)
+	if outcome.has_error {
+		return ForkRaisedError{
+			rewritten: outcome.raised
+		}
+	}
+	return outcome.result
+}
+
+pub fn fork_child_error_boundary(child_error &ForkChildError) brew_runtime.Value {
+	return brew_runtime.structured_value('Utils::ForkChildError', child_error.message, {
+		'fork_child_error_address': u64(voidptr(child_error)).str()
+	})
+}
+
+fn fork_child_error_from_boundary(value brew_runtime.Value) &ForkChildError {
+	address := value.attributes['fork_child_error_address'] or {
+		panic('invalid fork child error boundary')
+	}
+	return unsafe { &ForkChildError(voidptr(address.u64())) }
+}
+
+pub fn fork_safe_request_boundary(request &ForkSafeRequest) brew_runtime.Value {
+	return brew_runtime.structured_value('Utils::ForkSafeRequest', request.directory, {
+		'fork_safe_request_address': u64(voidptr(request)).str()
+	})
+}
+
+fn fork_safe_request_from_boundary(value brew_runtime.Value) &ForkSafeRequest {
+	address := value.attributes['fork_safe_request_address'] or {
+		panic('invalid safe fork request boundary')
+	}
+	return unsafe { &ForkSafeRequest(voidptr(address.u64())) }
+}
+
+fn fork_error_pipe_value(pipe ForkErrorPipe) brew_runtime.Value {
+	return brew_runtime.map_value({
+		'socket_path':         brew_runtime.string_value(pipe.socket_path)
+		'descriptor_received': brew_runtime.bool_value(pipe.descriptor_received)
+		'close_on_exec':       brew_runtime.bool_value(pipe.close_on_exec)
+		'open':                brew_runtime.bool_value(pipe.open)
+	})
+}
+
+fn fork_error_report_value(report ForkErrorReport) brew_runtime.Value {
+	return brew_runtime.map_value({
+		'written': brew_runtime.bool_value(report.written)
+		'closed':  brew_runtime.bool_value(report.closed)
+		'payload': brew_runtime.string_value(report.payload)
+	})
+}
+
+fn fork_rewritten_error_value(rewritten ForkRewrittenError) brew_runtime.Value {
+	mut fields := {
+		'json_class': brew_runtime.string_value(rewritten.class_name)
+		'backtrace':  brew_runtime.string_array_value(rewritten.backtrace)
+	}
+	if rewritten.kind == .build_error {
+		fields['cmd'] = brew_runtime.string_value(rewritten.command)
+		fields['args'] = brew_runtime.string_array_value(rewritten.arguments)
+		fields['env'] = fork_string_map_value(rewritten.environment)
+	} else if rewritten.kind == .error_during_execution {
+		fields['cmd'] = brew_runtime.string_array_value(rewritten.command_arguments)
+		fields['status'] = if rewritten.status_is_process {
+			fork_status_value(rewritten.status)
+		} else {
+			brew_runtime.int_value(rewritten.raw_status)
+		}
+		fields['output'] = fork_output_value(rewritten.output)
+	} else if rewritten.kind == .child_process_error {
+		fields['status'] = fork_status_value(rewritten.status)
+	}
+	return brew_runtime.Value{
+		type_name: rewritten.class_name
+		repr: rewritten.message
+		map_data: fields
+		attributes: {
+			'kind': rewritten.kind.str()
+		}
+	}
+}
+
+fn fork_safe_result_value(result ForkSafeResult) brew_runtime.Value {
+	return brew_runtime.map_value({
+		'directory':                   brew_runtime.string_value(result.directory)
+		'created_temporary_directory': brew_runtime.bool_value(result.created_temporary_directory)
+		'socket_path':                 brew_runtime.string_value(result.socket_path)
+		'child_error_pipe':            brew_runtime.string_value(result.child_error_pipe)
+		'child_environment':           fork_string_map_value(result.child_environment)
+		'child_yielded':               brew_runtime.bool_value(result.child_yielded)
+		'parent_yielded':              brew_runtime.bool_value(result.parent_yielded)
+		'privilege_changed':           brew_runtime.bool_value(result.privilege_changed)
+		'write_close_on_exec':         brew_runtime.bool_value(result.write_close_on_exec)
+		'descriptor_sent':             brew_runtime.bool_value(result.descriptor_sent)
+		'write_closed':                brew_runtime.bool_value(result.write_closed)
+		'read_closed':                 brew_runtime.bool_value(result.read_closed)
+		'child_reaped':                brew_runtime.bool_value(result.child_reaped)
+		'parent_interrupt_caught':     brew_runtime.bool_value(result.parent_interrupt_caught)
+		'error_payload':               brew_runtime.string_value(result.error_payload)
+	})
+}
+
 // Ruby method `self.forked_child_error_pipe` at line 9.
 pub fn ruby_fork_l9_d1_self_forked_child_error_pipe(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.forked_child_error_pipe', ...args)
+	path := if args.len > 0 {
+		args[0].as_string()
+	} else {
+		brew_runtime.environment_value('HOMEBREW_ERROR_PIPE')
+	}
+	descriptor_received := args.len < 2 || (args[1].as_bool() or { false })
+	return fork_error_pipe_value(forked_child_error_pipe(path, descriptor_received) or {
+		return brew_runtime.object_value(if path == '' { 'KeyError' } else { 'IOError' }, err.msg())
+	})
 }
 
 // Ruby method `self.child_error_hash(error)` at line 16.
 pub fn ruby_fork_l16_d2_self_child_error_hash(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.child_error_hash', ...args)
+	if args.len == 0 {
+		return brew_runtime.object_value('ArgumentError', 'error is required')
+	}
+	return brew_runtime.map_value(child_error_hash(fork_child_error_from_boundary(args[0])))
 }
 
 // Ruby method `self.report_forked_child_error(error_pipe, error)` at line 41.
 pub fn ruby_fork_l41_d3_self_report_forked_child_error(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.report_forked_child_error', ...args)
+	if args.len < 2 {
+		return brew_runtime.object_value('ArgumentError', 'error pipe and error are required')
+	}
+	has_error_pipe := args[0].type_name !in ['Nil', 'NilClass']
+	return fork_error_report_value(report_forked_child_error(has_error_pipe, fork_child_error_from_boundary(args[1])))
 }
 
 // Ruby method `self.rewrite_child_error(child_error)` at line 47.
 pub fn ruby_fork_l47_d4_self_rewrite_child_error(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.rewrite_child_error', ...args)
+	if args.len == 0 || args[0].type_name != 'Hash' {
+		return brew_runtime.object_value('ArgumentError', 'child error hash is required')
+	}
+	return fork_rewritten_error_value(rewrite_child_error(args[0].map_data))
 }
 
 // Ruby method `self.safe_fork(directory: nil, yield_parent: false, &_blk)` at line 82.
 pub fn ruby_fork_l82_d5_self_safe_fork(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.safe_fork', ...args)
+	if args.len == 0 {
+		return brew_runtime.object_value('ArgumentError', 'safe fork request is required')
+	}
+	outcome := safe_fork_outcome(fork_safe_request_from_boundary(args[0]))
+	if outcome.has_error {
+		return fork_rewritten_error_value(outcome.raised)
+	}
+	return fork_safe_result_value(outcome.result)
 }
 
 // Original Ruby source (line-for-line):

@@ -5,39 +5,114 @@ import brew_runtime
 // Translated from Homebrew/brew `test/dev-cmd/release_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
+fn release_spec_base_options() ReleaseOptions {
+	return ReleaseOptions{
+		latest_release: ReleaseRecord{
+			tag_name: '1.2.3'
+		}
+		release_notes: 'Release notes'
+	}
+}
+
 // Ruby it `it "requires an up-to-date origin/main before triggering the release workflow" do` at line 11.
 pub fn ruby_release_spec_l11_d1_requires(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('requires', ...args)
+	options := ReleaseOptions{
+		...release_spec_base_options()
+		force: true
+		current_sha: 'local-sha'
+		upstream_sha: 'upstream-sha'
+	}
+	run_release(options) or {
+		return brew_runtime.bool_value(err.msg().contains('Run `brew update` before `brew release --force`.'))
+	}
+	return brew_runtime.bool_value(false)
 }
 
 // Ruby it `it "refuses to release when open release blockers exist" do` at line 36.
 pub fn ruby_release_spec_l36_d2_refuses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('refuses', ...args)
+	options := ReleaseOptions{
+		...release_spec_base_options()
+		issues: {
+			'release blocker': [ReleaseRecord{
+				html_url: 'https://github.com/Homebrew/brew/issues/12345'
+			}]
+		}
+	}
+	run_release(options) or {
+		return brew_runtime.bool_value(err.msg().contains('issues/12345'))
+	}
+	return brew_runtime.bool_value(false)
 }
 
 // Ruby it `it "refuses to release when open major/minor release blockers exist for a major release" do` at line 49.
 pub fn ruby_release_spec_l49_d3_refuses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('refuses', ...args)
+	options := ReleaseOptions{
+		...release_spec_base_options()
+		major: true
+		issues: {
+			'release blocker':             []ReleaseRecord{}
+			'major/minor release blocker': [ReleaseRecord{
+				html_url: 'https://github.com/Homebrew/brew/pull/54321'
+			}]
+		}
+	}
+	run_release(options) or {
+		return brew_runtime.bool_value(err.msg().contains('pull/54321'))
+	}
+	return brew_runtime.bool_value(false)
 }
 
 // Ruby let `let(:command) { described_class.new([]) }` at line 67.
 pub fn ruby_release_spec_l67_d4_command(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('command', ...args)
+	return brew_runtime.object_value('Homebrew::DevCmd::Release', 'brew release')
 }
 
 // Ruby let `let(:releases) do` at line 68.
 pub fn ruby_release_spec_l68_d5_releases(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('releases', ...args)
+	return brew_runtime.array_value(release_spec_releases().map(release_record_value(it)))
+}
+
+pub fn release_spec_releases() []ReleaseRecord {
+	return [
+		ReleaseRecord{
+			id: 1
+			name: '1.2.3'
+			created_at: '2025-01-01T00:00:00Z'
+			html_url: 'https://github.com/Homebrew/brew/releases/tag/1.2.3'
+		},
+		ReleaseRecord{
+			id: 2
+			name: '1.2.3'
+			created_at: '2025-01-02T00:00:00Z'
+			html_url: 'https://github.com/Homebrew/brew/releases/tag/1.2.3-2'
+		},
+		ReleaseRecord{
+			id: 3
+			name: '1.2.2'
+			created_at: '2024-12-31T00:00:00Z'
+			html_url: 'https://github.com/Homebrew/brew/releases/tag/1.2.2'
+		},
+		ReleaseRecord{
+			id: 4
+			tag_name: '1.2.3'
+			created_at: '2025-01-03T00:00:00Z'
+			html_url: 'https://github.com/Homebrew/brew/releases/tag/1.2.3-3'
+		},
+	]
 }
 
 // Ruby it `it "filters releases by name or tag name" do` at line 102.
 pub fn ruby_release_spec_l102_d6_filters(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('filters', ...args)
+	ids := matching_releases('1.2.3', release_spec_releases()).map(it.id)
+	return brew_runtime.bool_value(ids == [i64(1), 2, 4])
 }
 
 // Ruby it `it "selects the latest matching release by creation time" do` at line 107.
 pub fn ruby_release_spec_l107_d7_selects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('selects', ...args)
+	latest := latest_matching_release('1.2.3', release_spec_releases()) or {
+		return brew_runtime.bool_value(false)
+	}
+	return brew_runtime.bool_value(latest.id == 4)
 }
 
 // Original Ruby source (line-for-line):

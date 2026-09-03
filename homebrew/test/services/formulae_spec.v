@@ -1,18 +1,33 @@
 module services
 
 import brew_runtime
+import homebrew.services as services_core
 
 // Translated from Homebrew/brew `test/services/formulae_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "empty list without available formulae" do` at line 8.
 pub fn ruby_formulae_spec_l8_d1_empty(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('empty', ...args)
+	return brew_runtime.bool_value(services_core.services_list([]services_core.ServiceFormula{}).len == 0)
 }
 
 // Ruby it `it "list with available formulae" do` at line 13.
 pub fn ruby_formulae_spec_l13_d2_list(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('list', ...args)
+	formula := services_core.ServiceFormula{
+		name: 'formula'
+		has_service: true
+		owner: 'root'
+		file: '/Library/LaunchDaemons/file.plist'
+		status: 'known'
+		user: 'root'
+	}
+	result := services_core.services_list([formula])
+	return brew_runtime.bool_value(result == [services_core.ServiceFormulaStatus{
+		file: '/Library/LaunchDaemons/file.plist'
+		name: 'formula'
+		status: 'known'
+		user: 'root'
+	}])
 }
 
 // Original Ruby source (line-for-line):

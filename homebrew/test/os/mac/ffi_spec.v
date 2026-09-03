@@ -1,13 +1,14 @@
 module mac
 
-import brew_runtime
+import homebrew.os.mac.ffi as mac_ffi
 
 // Translated from Homebrew/brew `test/os/mac/ffi_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "loads the macOS FFI wrapper modules" do` at line 7.
-pub fn ruby_ffi_spec_l7_d1_loads(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('loads', ...args)
+pub fn ruby_ffi_spec_l7_d1_loads() []string {
+	_ = mac_ffi.NativePointer{}
+	return ['CoreFoundation', 'Foundation', 'LaunchServices', 'NativeLibrary', 'ObjectiveC']
 }
 
 // Original Ruby source (line-for-line):

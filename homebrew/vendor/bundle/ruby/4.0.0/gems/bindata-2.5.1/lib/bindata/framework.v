@@ -4,60 +4,101 @@ import brew_runtime
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/bindata-2.5.1/lib/bindata/framework.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub fn framework_initialize_instance() {}
+
+pub fn framework_initialize_shared_instance() {}
+
+pub fn framework_not_implemented(_ string) ! {
+	return error('NotImplementedError')
+}
+
+pub fn framework_debug_name_of(receiver brew_runtime.Value) string {
+	return receiver.attribute('debug_name') or { receiver.repr }
+}
+
+pub fn framework_offset_of() int {
+	return 0
+}
+
+pub fn framework_bit_aligned() bool {
+	return false
+}
+
+fn framework_nil_value() brew_runtime.Value {
+	return brew_runtime.object_value('NilClass', 'nil')
+}
+
+fn panic_framework_not_implemented(method string) {
+	framework_not_implemented(method) or { panic(err) }
+}
 
 // Ruby method `initialize_instance; end` at line 10.
 pub fn ruby_framework_l10_d1_initialize_instance(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize_instance', ...args)
+	framework_initialize_instance()
+	return framework_nil_value()
 }
 
 // Ruby method `initialize_shared_instance; end` at line 18.
 pub fn ruby_framework_l18_d2_initialize_shared_instance(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize_shared_instance', ...args)
+	framework_initialize_shared_instance()
+	return framework_nil_value()
 }
 
 // Ruby method `clear?` at line 21.
 pub fn ruby_framework_l21_d3_clear(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('clear?', ...args)
+	panic_framework_not_implemented('clear?')
+	return framework_nil_value()
 }
 
 // Ruby method `assign(val)` at line 27.
 pub fn ruby_framework_l27_d4_assign(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('assign', ...args)
+	panic_framework_not_implemented('assign')
+	return framework_nil_value()
 }
 
 // Ruby method `snapshot` at line 32.
 pub fn ruby_framework_l32_d5_snapshot(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('snapshot', ...args)
+	panic_framework_not_implemented('snapshot')
+	return framework_nil_value()
 }
 
 // Ruby method `debug_name_of(child) # :nodoc:` at line 38.
 pub fn ruby_framework_l38_d6_debug_name_of(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('debug_name_of', ...args)
+	if args.len < 2 {
+		panic('Framework#debug_name_of requires a receiver and child')
+	}
+	return brew_runtime.string_value(framework_debug_name_of(args[0]))
 }
 
 // Ruby method `offset_of(child) # :nodoc:` at line 44.
 pub fn ruby_framework_l44_d7_offset_of(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('offset_of', ...args)
+	if args.len < 2 {
+		panic('Framework#offset_of requires a receiver and child')
+	}
+	return brew_runtime.int_value(framework_offset_of())
 }
 
 // Ruby method `bit_aligned?` at line 49.
 pub fn ruby_framework_l49_d8_bit_aligned(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('bit_aligned?', ...args)
+	return brew_runtime.bool_value(framework_bit_aligned())
 }
 
 // Ruby method `do_read(io) # :nodoc:` at line 54.
 pub fn ruby_framework_l54_d9_do_read(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('do_read', ...args)
+	panic_framework_not_implemented('do_read')
+	return framework_nil_value()
 }
 
 // Ruby method `do_write(io) # :nodoc:` at line 59.
 pub fn ruby_framework_l59_d10_do_write(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('do_write', ...args)
+	panic_framework_not_implemented('do_write')
+	return framework_nil_value()
 }
 
 // Ruby method `do_num_bytes # :nodoc:` at line 64.
 pub fn ruby_framework_l64_d11_do_num_bytes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('do_num_bytes', ...args)
+	panic_framework_not_implemented('do_num_bytes')
+	return framework_nil_value()
 }
 
 // Original Ruby source (line-for-line):

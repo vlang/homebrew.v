@@ -1,93 +1,188 @@
 module test
 
 import brew_runtime
+import homebrew
+import homebrew.description_cache_store as cask_descriptions
+import os
+import time
 
 // Translated from Homebrew/brew `test/description_cache_store_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:cache_store) { described_class.new(database) }` at line 8.
-pub fn ruby_description_cache_store_spec_l8_d1_cache_store(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cache_store', ...args)
+pub fn ruby_description_cache_store_spec_l8_d1_cache_store(database homebrew.CacheStoreDatabase) homebrew.DescriptionCacheStore {
+	return homebrew.new_description_cache_store(database)
 }
 
 // Ruby let `let(:database) { instance_double(CacheStoreDatabase, "database") }` at line 10.
-pub fn ruby_description_cache_store_spec_l10_d2_database(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('database', ...args)
+pub fn ruby_description_cache_store_spec_l10_d2_database(root string) homebrew.CacheStoreDatabase {
+	return homebrew.new_cache_store_database('formula_descriptions', root)
 }
 
 // Ruby let `let(:formula_name) { "test_name" }` at line 11.
-pub fn ruby_description_cache_store_spec_l11_d3_formula_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_name', ...args)
+pub fn ruby_description_cache_store_spec_l11_d3_formula_name() string {
+	return 'test_name'
 }
 
 // Ruby let `let(:description) { "test_description" }` at line 12.
-pub fn ruby_description_cache_store_spec_l12_d4_description(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('description', ...args)
+pub fn ruby_description_cache_store_spec_l12_d4_description() string {
+	return 'test_description'
+}
+
+fn description_cache_spec_root() !string {
+	root := os.join_path(os.temp_dir(), 'brew-v-description-cache-${os.getpid()}-${time.now().unix_nano()}')
+	os.mkdir_all(root)!
+	return root
+}
+
+fn description_cache_spec_formula_loader(name string) !homebrew.DescriptionFormula {
+	if name != 'formula_name' {
+		return error('formula unavailable')
+	}
+	return homebrew.DescriptionFormula{
+		full_name: name
+		description: brew_runtime.string_value('desc')
+	}
+}
+
+fn description_cache_spec_untrusted_formula(_ string) !homebrew.DescriptionFormula {
+	return error('untrusted tap')
+}
+
+fn description_cache_spec_cask_loader(token string) !cask_descriptions.CaskDescription {
+	if token != 'cask-names-desc' {
+		return error('cask unavailable')
+	}
+	return cask_descriptions.CaskDescription{
+		full_name: token
+		names: ['Name 1', 'Name 2']
+		description: 'description'
+	}
+}
+
+fn description_cache_spec_untrusted_cask(_ string) !cask_descriptions.CaskDescription {
+	return error('untrusted tap')
+}
+
+fn description_cache_spec_seed(mut store homebrew.DescriptionCacheStore, key string) ! {
+	store.update(key, brew_runtime.string_value('seed'))
+	store.database.write_if_dirty()!
 }
 
 // Ruby it `it "sets the formula description" do` at line 17.
-pub fn ruby_description_cache_store_spec_l17_d5_sets(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sets', ...args)
+pub fn ruby_description_cache_store_spec_l17_d5_sets() !bool {
+	root := description_cache_spec_root()!
+	defer { os.rmdir_all(root) or {} }
+	mut store := ruby_description_cache_store_spec_l8_d1_cache_store(ruby_description_cache_store_spec_l10_d2_database(root))
+	store.update(ruby_description_cache_store_spec_l11_d3_formula_name(), brew_runtime.string_value(ruby_description_cache_store_spec_l12_d4_description()))
+	return (store.database.values['test_name'] or { brew_runtime.Value{} }).repr == 'test_description'
 }
 
 // Ruby it `it "deletes the formula description" do` at line 24.
-pub fn ruby_description_cache_store_spec_l24_d6_deletes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('deletes', ...args)
+pub fn ruby_description_cache_store_spec_l24_d6_deletes() !bool {
+	root := description_cache_spec_root()!
+	defer { os.rmdir_all(root) or {} }
+	mut store := ruby_description_cache_store_spec_l8_d1_cache_store(ruby_description_cache_store_spec_l10_d2_database(root))
+	description_cache_spec_seed(mut store, ruby_description_cache_store_spec_l11_d3_formula_name())!
+	store.delete(ruby_description_cache_store_spec_l11_d3_formula_name())
+	return 'test_name' !in store.database.values
 }
 
 // Ruby let `let(:report) { instance_double(ReporterHub, select_formula_or_cask: [], empty?: false) }` at line 31.
-pub fn ruby_description_cache_store_spec_l31_d7_report(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('report', ...args)
+pub fn ruby_description_cache_store_spec_l31_d7_report() homebrew.DescriptionReport {
+	return homebrew.DescriptionReport{}
 }
 
 // Ruby it `it "reads from the report" do` at line 33.
-pub fn ruby_description_cache_store_spec_l33_d8_reads(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reads', ...args)
+pub fn ruby_description_cache_store_spec_l33_d8_reads() !bool {
+	root := description_cache_spec_root()!
+	defer { os.rmdir_all(root) or {} }
+	mut store := ruby_description_cache_store_spec_l8_d1_cache_store(ruby_description_cache_store_spec_l10_d2_database(root))
+	description_cache_spec_seed(mut store, 'existing')!
+	store.update_from_report(ruby_description_cache_store_spec_l31_d7_report(), true, [], description_cache_spec_formula_loader)
+	return 'existing' in store.database.values
 }
 
 // Ruby it `it "sets the formulae descriptions" do` at line 40.
-pub fn ruby_description_cache_store_spec_l40_d9_sets(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sets', ...args)
+pub fn ruby_description_cache_store_spec_l40_d9_sets() !bool {
+	root := description_cache_spec_root()!
+	defer { os.rmdir_all(root) or {} }
+	mut store := ruby_description_cache_store_spec_l8_d1_cache_store(ruby_description_cache_store_spec_l10_d2_database(root))
+	description_cache_spec_seed(mut store, 'existing')!
+	store.update_from_formula_names(['formula_name'], true, [], description_cache_spec_formula_loader)
+	return (store.database.values['formula_name'] or { brew_runtime.Value{} }).repr == 'desc'
 }
 
 // Ruby it `it "deletes untrusted formulae descriptions" do` at line 52.
-pub fn ruby_description_cache_store_spec_l52_d10_deletes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('deletes', ...args)
+pub fn ruby_description_cache_store_spec_l52_d10_deletes() !bool {
+	root := description_cache_spec_root()!
+	defer { os.rmdir_all(root) or {} }
+	mut store := ruby_description_cache_store_spec_l8_d1_cache_store(ruby_description_cache_store_spec_l10_d2_database(root))
+	description_cache_spec_seed(mut store, ruby_description_cache_store_spec_l11_d3_formula_name())!
+	store.update_from_formula_names([
+		ruby_description_cache_store_spec_l11_d3_formula_name(),
+	], true, [], description_cache_spec_untrusted_formula)
+	return 'test_name' !in store.database.values
 }
 
 // Ruby it `it "deletes the formulae descriptions" do` at line 62.
-pub fn ruby_description_cache_store_spec_l62_d11_deletes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('deletes', ...args)
+pub fn ruby_description_cache_store_spec_l62_d11_deletes() !bool {
+	root := description_cache_spec_root()!
+	defer { os.rmdir_all(root) or {} }
+	mut store := ruby_description_cache_store_spec_l8_d1_cache_store(ruby_description_cache_store_spec_l10_d2_database(root))
+	description_cache_spec_seed(mut store, ruby_description_cache_store_spec_l11_d3_formula_name())!
+	store.delete_from_formula_names([
+		ruby_description_cache_store_spec_l11_d3_formula_name(),
+	])
+	return 'test_name' !in store.database.values
 }
 
 // Ruby subject `subject(:cache_store) { described_class.new(database) }` at line 70.
-pub fn ruby_description_cache_store_spec_l70_d12_cache_store(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cache_store', ...args)
+pub fn ruby_description_cache_store_spec_l70_d12_cache_store(database homebrew.CacheStoreDatabase) homebrew.DescriptionCacheStore {
+	return homebrew.new_description_cache_store(database)
 }
 
 // Ruby let `let(:database) { instance_double(CacheStoreDatabase, "database") }` at line 72.
-pub fn ruby_description_cache_store_spec_l72_d13_database(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('database', ...args)
+pub fn ruby_description_cache_store_spec_l72_d13_database(root string) homebrew.CacheStoreDatabase {
+	return homebrew.new_cache_store_database('cask_descriptions', root)
 }
 
 // Ruby let `let(:report) { instance_double(ReporterHub, select_formula_or_cask: [], empty?: false) }` at line 75.
-pub fn ruby_description_cache_store_spec_l75_d14_report(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('report', ...args)
+pub fn ruby_description_cache_store_spec_l75_d14_report() homebrew.DescriptionReport {
+	return homebrew.DescriptionReport{}
 }
 
 // Ruby it `it "reads from the report" do` at line 77.
-pub fn ruby_description_cache_store_spec_l77_d15_reads(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reads', ...args)
+pub fn ruby_description_cache_store_spec_l77_d15_reads() !bool {
+	root := description_cache_spec_root()!
+	defer { os.rmdir_all(root) or {} }
+	mut store := ruby_description_cache_store_spec_l70_d12_cache_store(ruby_description_cache_store_spec_l72_d13_database(root))
+	description_cache_spec_seed(mut store, 'existing')!
+	cask_descriptions.update_cask_descriptions_from_report(mut store, ruby_description_cache_store_spec_l75_d14_report(), true, [], description_cache_spec_cask_loader)
+	return 'existing' in store.database.values
 }
 
 // Ruby it `it "sets the cask descriptions" do` at line 84.
-pub fn ruby_description_cache_store_spec_l84_d16_sets(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sets', ...args)
+pub fn ruby_description_cache_store_spec_l84_d16_sets() !bool {
+	root := description_cache_spec_root()!
+	defer { os.rmdir_all(root) or {} }
+	mut store := ruby_description_cache_store_spec_l70_d12_cache_store(ruby_description_cache_store_spec_l72_d13_database(root))
+	description_cache_spec_seed(mut store, 'existing')!
+	cask_descriptions.update_from_cask_tokens(mut store, ['cask-names-desc'], true, [], description_cache_spec_cask_loader)
+	value := store.database.values['cask-names-desc'] or { return false }
+	items := value.as_array() or { return false }
+	return items.len == 2 && items[0].repr == 'Name 1, Name 2' && items[1].repr == 'description'
 }
 
 // Ruby it `it "deletes untrusted cask descriptions" do` at line 97.
-pub fn ruby_description_cache_store_spec_l97_d17_deletes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('deletes', ...args)
+pub fn ruby_description_cache_store_spec_l97_d17_deletes() !bool {
+	root := description_cache_spec_root()!
+	defer { os.rmdir_all(root) or {} }
+	mut store := ruby_description_cache_store_spec_l70_d12_cache_store(ruby_description_cache_store_spec_l72_d13_database(root))
+	token := 'thirdparty/tap/untrusted-cask'
+	description_cache_spec_seed(mut store, token)!
+	cask_descriptions.update_from_cask_tokens(mut store, [token], true, [], description_cache_spec_untrusted_cask)
+	return token !in store.database.values
 }
 
 // Original Ruby source (line-for-line):

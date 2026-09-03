@@ -5,164 +5,996 @@ import brew_runtime
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/sorbet-runtime-0.6.13412/lib/types/_types.rb`.
 // The original source is retained below until every stub has a typed V body.
 
+// The translated concrete type implementations live in the child `types/types`
+// directory. That directory cannot be imported from this vendored dotted and
+// hyphenated path during the repository's canonical shared check, so these
+// helpers retain their public Value representation. Their fields intentionally
+// match the concrete Simple, Union, Intersection, FixedArray, FixedHash,
+// TypedEnumerable, TypedHash, TypedClass, TypedModule, Proc, Enum, and ClassOf
+// adapters in that child module.
+fn t_nil_value() brew_runtime.Value {
+	return brew_runtime.object_value('NilClass', 'nil')
+}
+
+fn t_untyped_value() brew_runtime.Value {
+	return brew_runtime.object_value('T::Types::Untyped', 'T.untyped')
+}
+
+fn t_noreturn_value() brew_runtime.Value {
+	return brew_runtime.object_value('T::Types::NoReturn', 'T.noreturn')
+}
+
+fn t_anything_value() brew_runtime.Value {
+	return brew_runtime.object_value('T::Types::Anything', 'T.anything')
+}
+
+fn t_simple_type(raw_type brew_runtime.Value) brew_runtime.Value {
+	mut attributes := {
+		'raw_type': raw_type.as_string()
+		'name':     raw_type.as_string()
+	}
+	for key in ['ancestors', 'object_id', 'module_object_id', 'constant_id'] {
+		if value := raw_type.attributes[key] {
+			attributes[key] = value
+		}
+	}
+	return brew_runtime.Value{
+		type_name: 'T::Types::Simple'
+		repr: raw_type.as_string()
+		map_data: {
+			'raw_type': raw_type
+		}
+		attributes: attributes
+	}
+}
+
+fn t_type_name(type_value brew_runtime.Value) string {
+	return type_value.attributes['name'] or { type_value.as_string() }
+}
+
+fn t_value_equal(left brew_runtime.Value, right brew_runtime.Value) bool {
+	return left.type_name == right.type_name && left.repr == right.repr && left.bool_data == right.bool_data && left.int_data == right.int_data && left.float_data == right.float_data && left.string_array_data == right.string_array_data && left.array_data == right.array_data && left.map_data == right.map_data && left.attributes == right.attributes
+}
+
+fn t_type_equal(left brew_runtime.Value, right brew_runtime.Value) bool {
+	return left.type_name == right.type_name && t_type_name(left) == t_type_name(right)
+}
+
+fn t_is_type(type_value brew_runtime.Value) bool {
+	return type_value.type_name.starts_with('T::Types::') || type_value.type_name.starts_with('T::Private::Types::')
+}
+
+fn t_proc_type(arg_types map[string]brew_runtime.Value, returns_type brew_runtime.Value) brew_runtime.Value {
+	mut args := []string{cap: arg_types.len}
+	for name, type_value in arg_types {
+		args << '${name}: ${t_type_name(type_value)}'
+	}
+	name := 'T.proc.params(${args.join(', ')}).returns(${t_type_name(returns_type)})'
+	return brew_runtime.Value{
+		type_name: 'T::Types::Proc'
+		repr: name
+		map_data: {
+			'arg_types': brew_runtime.map_value(arg_types)
+			'returns':   returns_type
+		}
+		attributes: {
+			'name': name
+		}
+	}
+}
+
+fn t_finalize_proc(builder brew_runtime.Value) !brew_runtime.Value {
+	returns_type := builder.map_data['returns'] or {
+		return error('Procs must specify a return type')
+	}
+	arg_value := builder.map_data['arg_types'] or { brew_runtime.map_value({}) }
+	mut arg_types := map[string]brew_runtime.Value{}
+	for name, type_value in arg_value.as_map()! {
+		arg_types[name] = t_coerce_type(type_value)!
+	}
+	return t_proc_type(arg_types, t_coerce_type(returns_type)!)
+}
+
+fn t_fixed_array(values []brew_runtime.Value) !brew_runtime.Value {
+	mut types := []brew_runtime.Value{cap: values.len}
+	for value in values {
+		types << t_coerce_type(value)!
+	}
+	name := '[${types.map(t_type_name(it)).join(', ')}]'
+	return brew_runtime.Value{
+		type_name: 'T::Types::FixedArray'
+		repr: name
+		array_data: types
+		attributes: {
+			'name': name
+		}
+	}
+}
+
+fn t_fixed_hash(values map[string]brew_runtime.Value) !brew_runtime.Value {
+	mut types := map[string]brew_runtime.Value{}
+	mut entries := []string{cap: values.len}
+	for key, value in values {
+		type_value := t_coerce_type(value)!
+		types[key] = type_value
+		inspected_key := if key.starts_with(':') && key.len > 1 {
+			'${key[1..]}:'
+		} else {
+			'"${key.replace('\\', '\\\\').replace('"', '\\"')}" =>'
+		}
+		entries << '${inspected_key} ${t_type_name(type_value)}'
+	}
+	name := '{${entries.join(', ')}}'
+	return brew_runtime.Value{
+		type_name: 'T::Types::FixedHash'
+		repr: name
+		map_data: types
+		attributes: {
+			'name': name
+		}
+	}
+}
+
+fn t_enum_type(values brew_runtime.Value) !brew_runtime.Value {
+	mut members := []brew_runtime.Value{}
+	if values.type_name == 'Hash' {
+		for key, _ in values.map_data {
+			members << if key.starts_with(':') {
+				brew_runtime.object_value('Symbol', key)
+			} else {
+				brew_runtime.string_value(key)
+			}
+		}
+	} else {
+		for value in values.as_array()! {
+			if !members.any(t_value_equal(it, value)) {
+				members << value
+			}
+		}
+	}
+	mut names := members.map(t_inspect_value(it))
+	names.sort()
+	name := 'T.deprecated_enum([${names.join(', ')}])'
+	return brew_runtime.Value{
+		type_name: 'T::Types::Enum'
+		repr: name
+		array_data: members
+		map_data: {
+			'values': values
+		}
+		attributes: {
+			'name': name
+		}
+	}
+}
+
+fn t_enum_singleton(value brew_runtime.Value) brew_runtime.Value {
+	mut name := value.as_string()
+	if name.starts_with('#<') && name.ends_with('>') && name.len >= 3 {
+		name = name[2..name.len - 1]
+	}
+	return brew_runtime.Value{
+		type_name: 'T::Types::TEnum'
+		repr: name
+		map_data: {
+			'value': value
+		}
+		attributes: {
+			'name': name
+		}
+	}
+}
+
+fn t_inspect_value(value brew_runtime.Value) string {
+	return match value.type_name {
+		'String' { '"${value.repr.replace('\\', '\\\\').replace('"', '\\"')}"' }
+		'NilClass' { 'nil' }
+		else { value.repr }
+	}
+}
+
+fn t_coerce_type(value brew_runtime.Value) !brew_runtime.Value {
+	if value.type_name == 'T::Private::Types::TypeAlias' {
+		aliased := value.map_data['aliased_type'] or {
+			return error('TypeAlias has no aliased type')
+		}
+		return t_coerce_type(aliased)!
+	}
+	if t_is_type(value) {
+		return value
+	}
+	return match value.type_name {
+		'Class', 'Module' { t_simple_type(value) }
+		'Array' { t_fixed_array(value.as_array()!)! }
+		'Hash' { t_fixed_hash(value.as_map()!)! }
+		'T::Private::Methods::DeclBuilder' { t_finalize_proc(value)! }
+		'T::Enum' { t_enum_singleton(value) }
+		'String' {
+			error('Invalid String literal for type constraint. Must be a T::Types::Base, a class/module, or an array. Got a String with value `${value.as_string()}`.')
+		}
+		else {
+			error('Invalid value for type constraint. Must be a T::Types::Base, a class/module, or an array. Got a `${value.type_name}`.')
+		}
+	}
+}
+
+fn t_flatten_types(values []brew_runtime.Value, composite_name string) []brew_runtime.Value {
+	mut flattened := []brew_runtime.Value{}
+	for value in values {
+		members := if value.type_name == composite_name || (composite_name == 'T::Types::Union' && value.type_name == 'T::Private::Types::SimplePairUnion') {
+			value.array_data
+		} else {
+			[value]
+		}
+		for member in members {
+			if !flattened.any(t_type_equal(it, member)) {
+				flattened << member
+			}
+		}
+	}
+	return flattened
+}
+
+fn t_is_simple_named(type_value brew_runtime.Value, name string) bool {
+	return type_value.type_name == 'T::Types::Simple' && t_type_name(type_value) == name
+}
+
+fn t_union_name(types []brew_runtime.Value) string {
+	if types.len == 1 {
+		return t_type_name(types[0])
+	}
+	if types.any(t_is_simple_named(it, 'NilClass')) {
+		remaining := types.filter(!t_is_simple_named(it, 'NilClass'))
+		return 'T.nilable(${t_union_name(remaining)})'
+	}
+	if types.any(t_is_simple_named(it, 'TrueClass')) && types.any(t_is_simple_named(it, 'FalseClass')) {
+		mut names := ['T::Boolean']
+		names << types.filter(!t_is_simple_named(it, 'TrueClass') && !t_is_simple_named(it, 'FalseClass')).map(t_type_name(it))
+		if names.len == 1 {
+			return names[0]
+		}
+		names.sort()
+		return 'T.any(${names.join(', ')})'
+	}
+	mut names := types.map(t_type_name(it))
+	names.sort()
+	return 'T.any(${names.join(', ')})'
+}
+
+fn t_union_of_types(type_a brew_runtime.Value, type_b brew_runtime.Value,
+	extra []brew_runtime.Value) brew_runtime.Value {
+	if extra.len == 0 && type_a.type_name == 'T::Types::Simple' && type_b.type_name == 'T::Types::Simple' {
+		if t_type_equal(type_a, type_b) {
+			return type_a
+		}
+		members := [type_a, type_b]
+		name := t_union_name(members)
+		return brew_runtime.Value{
+			type_name: 'T::Private::Types::SimplePairUnion'
+			repr: name
+			array_data: members
+			map_data: {
+				'type_a': type_a
+				'type_b': type_b
+			}
+			attributes: {
+				'name': name
+			}
+		}
+	}
+	mut values := [type_a, type_b]
+	values << extra
+	members := t_flatten_types(values, 'T::Types::Union')
+	name := t_union_name(members)
+	return brew_runtime.Value{
+		type_name: 'T::Types::Union'
+		repr: name
+		array_data: members
+		attributes: {
+			'name': name
+		}
+	}
+}
+
+fn t_intersection(values []brew_runtime.Value) !brew_runtime.Value {
+	mut coerced := []brew_runtime.Value{cap: values.len}
+	for value in values {
+		coerced << t_coerce_type(value)!
+	}
+	members := t_flatten_types(coerced, 'T::Types::Intersection')
+	mut names := members.map(t_type_name(it))
+	names.sort()
+	name := 'T.all(${names.join(', ')})'
+	return brew_runtime.Value{
+		type_name: 'T::Types::Intersection'
+		repr: name
+		array_data: members
+		attributes: {
+			'name': name
+		}
+	}
+}
+
+fn t_value_is_a(value brew_runtime.Value, expected string) bool {
+	actual := if value.type_name == 'Bool' {
+		if value.bool_data { 'TrueClass' } else { 'FalseClass' }
+	} else {
+		value.type_name
+	}
+	if actual == expected {
+		return true
+	}
+	ancestors := value.attributes['ancestors'] or { return false }
+	return ancestors.split(',').map(it.trim_space()).any(it == expected)
+}
+
+fn t_hash_key_value(key string) brew_runtime.Value {
+	if key.starts_with(':') && key.len > 1 {
+		return brew_runtime.object_value('Symbol', key)
+	}
+	return brew_runtime.string_value(key)
+}
+
+fn t_type_valid(type_value brew_runtime.Value, value brew_runtime.Value, recursive bool) !bool {
+	if type_value.type_name == 'T::Private::Types::TypeAlias' {
+		return t_type_valid(t_coerce_type(type_value)!, value, recursive)
+	}
+	return match type_value.type_name {
+		'T::Types::Anything', 'T::Types::Untyped', 'T::Types::SelfType', 'T::Types::AttachedClassType', 'T::Types::TypeParameter', 'T::Types::TypeVariable' {
+			true
+		}
+		'T::Types::NoReturn' { false }
+		'T::Types::Simple' {
+			raw_type := type_value.map_data['raw_type'] or {
+				brew_runtime.object_value('Class', type_value.attributes['raw_type'] or {
+					t_type_name(type_value)
+				})
+			}
+			t_value_is_a(value, raw_type.as_string())
+		}
+		'T::Types::Union', 'T::Private::Types::SimplePairUnion' {
+			mut valid := false
+			for member in type_value.array_data {
+				if t_type_valid(member, value, recursive)! {
+					valid = true
+					break
+				}
+			}
+			valid
+		}
+		'T::Types::Intersection' {
+			mut valid := true
+			for member in type_value.array_data {
+				if !t_type_valid(member, value, recursive)! {
+					valid = false
+					break
+				}
+			}
+			valid
+		}
+		'T::Types::FixedArray' {
+			if value.type_name != 'Array' || value.array_data.len != type_value.array_data.len {
+				false
+			} else {
+				mut valid := true
+				for index, member in type_value.array_data {
+					if !t_type_valid(member, value.array_data[index], recursive)! {
+						valid = false
+						break
+					}
+				}
+				valid
+			}
+		}
+		'T::Types::FixedHash' {
+			if value.type_name != 'Hash' || value.map_data.len > type_value.map_data.len {
+				false
+			} else {
+				mut valid := true
+				for key, member in type_value.map_data {
+					field := value.map_data[key] or { t_nil_value() }
+					if !t_type_valid(member, field, recursive)! {
+						valid = false
+						break
+					}
+				}
+				for key, _ in value.map_data {
+					if key !in type_value.map_data {
+						valid = false
+						break
+					}
+				}
+				valid
+			}
+		}
+		'T::Types::Enum' { type_value.array_data.any(t_value_equal(it, value)) }
+		'T::Types::TEnum' {
+			t_value_equal(type_value.map_data['value'] or { return false }, value)
+		}
+		'T::Types::ClassOf' {
+			target := type_value.map_data['type'] or { return false }
+			value.type_name in ['Class', 'Module'] && t_value_is_a(value, target.as_string())
+		}
+		'T::Types::Proc' { value.type_name == 'Proc' }
+		'T::Types::TypedClass', 'T::Types::TypedClass::Untyped', 'T::Types::TypedClass::Anything' {
+			value.type_name == 'Class'
+		}
+		'T::Types::TypedModule', 'T::Types::TypedModule::Untyped', 'T::Types::TypedModule::Anything' {
+			value.type_name in ['Class', 'Module']
+		}
+		'T::Types::TypedHash', 'T::Types::TypedHash::Untyped' {
+			if value.type_name != 'Hash' {
+				false
+			} else if !recursive || type_value.type_name.ends_with('::Untyped') {
+				true
+			} else {
+				key_type := type_value.map_data['keys'] or { return false }
+				value_type := type_value.map_data['values'] or { return false }
+				mut valid := true
+				for key, item in value.map_data {
+					if !t_type_valid(key_type, t_hash_key_value(key), true)! || !t_type_valid(value_type, item, true)! {
+						valid = false
+						break
+					}
+				}
+				valid
+			}
+		}
+		'T::Types::TypedArray', 'T::Types::TypedArray::Untyped', 'T::Types::TypedEnumerable', 'T::Types::TypedEnumerable::Untyped', 'T::Types::TypedEnumerator', 'T::Types::TypedEnumerator::Untyped', 'T::Types::TypedEnumeratorLazy', 'T::Types::TypedEnumeratorLazy::Untyped', 'T::Types::TypedEnumeratorChain', 'T::Types::TypedEnumeratorChain::Untyped', 'T::Types::TypedRange', 'T::Types::TypedRange::Untyped', 'T::Types::TypedSet', 'T::Types::TypedSet::Untyped' {
+			underlying := type_value.attributes['underlying_class'] or { 'Enumerable' }
+			if !t_value_is_a(value, underlying) && !(underlying == 'Enumerable' && value.type_name in [
+				'Array',
+				'Hash',
+				'Range',
+				'Set',
+				'Enumerator',
+				'Enumerator::Lazy',
+				'Enumerator::Chain',
+			]) {
+				false
+			} else if !recursive || type_value.type_name.ends_with('::Untyped') || value.type_name.starts_with('Enumerator') {
+				true
+			} else {
+				element_type := type_value.map_data['type'] or { return false }
+				if value.type_name == 'Hash' {
+					if element_type.type_name != 'T::Types::FixedArray' || element_type.array_data.len != 2 {
+						false
+					} else {
+						mut valid := true
+						for key, item in value.map_data {
+							if !t_type_valid(element_type.array_data[0], t_hash_key_value(key), true)! || !t_type_valid(element_type.array_data[1], item, true)! {
+								valid = false
+								break
+							}
+						}
+						valid
+					}
+				} else {
+					mut valid := true
+					for item in value.array_data {
+						if item.type_name != 'NilClass' || value.type_name != 'Range' {
+							if !t_type_valid(element_type, item, true)! {
+								valid = false
+								break
+							}
+						}
+					}
+					valid
+				}
+			}
+		}
+		else { error('${type_value.type_name} is not a supported Sorbet type') }
+	}
+}
+
+fn t_checked_argument(args []brew_runtime.Value, index int) !bool {
+	if args.len <= index {
+		return true
+	}
+	option := args[index]
+	if option.type_name == 'Hash' {
+		return option.map_data['checked'] or { return true }.as_bool()!
+	}
+	return option.as_bool()!
+}
+
+fn t_cast(value brew_runtime.Value, type_value brew_runtime.Value, checked bool,
+	method_name string) !brew_runtime.Value {
+	if !checked {
+		return value
+	}
+	coerced := t_coerce_type(type_value)!
+	if t_type_valid(coerced, value, false)! {
+		return value
+	}
+	return error('${method_name}: Expected type ${t_type_name(coerced)}, got type ${value.type_name}')
+}
+
+fn t_identity(args []brew_runtime.Value, name string) brew_runtime.Value {
+	if args.len == 0 {
+		panic('${name} requires a value')
+	}
+	return args[0]
+}
+
+fn t_must(value brew_runtime.Value) !brew_runtime.Value {
+	if value.type_name != 'NilClass' {
+		return value
+	}
+	return error('Passed `nil` into T.must')
+}
+
+fn t_must_because(value brew_runtime.Value, reason string) !brew_runtime.Value {
+	if value.type_name != 'NilClass' {
+		return value
+	}
+	return error('Unexpected `nil` because ${reason}')
+}
+
+fn t_absurd(value brew_runtime.Value) !brew_runtime.Value {
+	mut message := 'Control flow reached T.absurd.'
+	if value.type_name != 'BasicObject' {
+		message += ' Got value: ${value.as_string()}'
+	}
+	return error(message)
+}
+
+fn t_typed_enumerable(type_value brew_runtime.Value, type_name string, underlying string,
+	prefix string) !brew_runtime.Value {
+	coerced := t_coerce_type(type_value)!
+	name := '${prefix}[${t_type_name(coerced)}]'
+	return brew_runtime.Value{
+		type_name: type_name
+		repr: name
+		map_data: {
+			'type': coerced
+		}
+		attributes: {
+			'name':             name
+			'underlying_class': underlying
+		}
+	}
+}
+
+fn t_untyped_enumerable(type_name string, underlying string, prefix string) brew_runtime.Value {
+	name := '${prefix}[T.untyped]'
+	return brew_runtime.Value{
+		type_name: type_name
+		repr: name
+		map_data: {
+			'type': t_untyped_value()
+		}
+		attributes: {
+			'name':             name
+			'underlying_class': underlying
+		}
+	}
+}
+
+fn t_typed_meta(type_value brew_runtime.Value, kind string) !brew_runtime.Value {
+	coerced := t_coerce_type(type_value)!
+	name := 'T::${kind}[${t_type_name(coerced)}]'
+	return brew_runtime.Value{
+		type_name: 'T::Types::Typed${kind}'
+		repr: name
+		map_data: {
+			'type': coerced
+		}
+		attributes: {
+			'name':             name
+			'underlying_class': kind
+		}
+	}
+}
+
+fn t_untyped_meta(kind string, anything bool) brew_runtime.Value {
+	element := if anything { t_anything_value() } else { t_untyped_value() }
+	suffix := if anything { 'Anything' } else { 'Untyped' }
+	name := 'T::${kind}[${t_type_name(element)}]'
+	return brew_runtime.Value{
+		type_name: 'T::Types::Typed${kind}::${suffix}'
+		repr: name
+		map_data: {
+			'type': element
+		}
+		attributes: {
+			'frozen':           'true'
+			'name':             name
+			'underlying_class': kind
+		}
+	}
+}
+
+fn t_typed_hash(keys brew_runtime.Value, values brew_runtime.Value) !brew_runtime.Value {
+	key_type := t_coerce_type(keys)!
+	value_type := t_coerce_type(values)!
+	name := 'T::Hash[${t_type_name(key_type)}, ${t_type_name(value_type)}]'
+	return brew_runtime.Value{
+		type_name: 'T::Types::TypedHash'
+		repr: name
+		map_data: {
+			'keys':   key_type
+			'values': value_type
+			'type':   t_fixed_array([key_type, value_type])!
+		}
+		attributes: {
+			'name':             name
+			'underlying_class': 'Hash'
+		}
+	}
+}
+
 // Ruby method `self.any(type_a, type_b, *types)` at line 27.
 pub fn ruby_types_l27_d1_self_any(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.any', ...args)
+	if args.len < 2 {
+		panic('T.any requires at least two types')
+	}
+	mut types := []brew_runtime.Value{cap: args.len}
+	for value in args {
+		types << t_coerce_type(value) or { panic(err) }
+	}
+	return t_union_of_types(types[0], types[1], types[2..])
 }
 
 // Ruby method `self.nilable(type)` at line 35.
 pub fn ruby_types_l35_d2_self_nilable(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.nilable', ...args)
+	if args.len != 1 {
+		panic('T.nilable requires one type')
+	}
+	type_value := t_coerce_type(args[0]) or { panic(err) }
+	nil_type := t_simple_type(brew_runtime.object_value('Class', 'NilClass'))
+	return t_union_of_types(type_value, nil_type, [])
 }
 
 // Ruby method `self.untyped` at line 41.
 pub fn ruby_types_l41_d3_self_untyped(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.untyped', ...args)
+	if args.len != 0 {
+		panic('T.untyped does not accept arguments')
+	}
+	return t_untyped_value()
 }
 
 // Ruby method `self.noreturn` at line 46.
 pub fn ruby_types_l46_d4_self_noreturn(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.noreturn', ...args)
+	if args.len != 0 {
+		panic('T.noreturn does not accept arguments')
+	}
+	return t_noreturn_value()
 }
 
 // Ruby method `self.anything` at line 50.
 pub fn ruby_types_l50_d5_self_anything(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.anything', ...args)
+	if args.len != 0 {
+		panic('T.anything does not accept arguments')
+	}
+	return t_anything_value()
 }
 
 // Ruby method `self.all(type_a, type_b, *types)` at line 55.
 pub fn ruby_types_l55_d6_self_all(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.all', ...args)
+	if args.len < 2 {
+		panic('T.all requires at least two types')
+	}
+	return t_intersection(args) or { panic(err) }
 }
 
 // Ruby method `self.deprecated_enum(values)` at line 61.
 pub fn ruby_types_l61_d7_self_deprecated_enum(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.deprecated_enum', ...args)
+	if args.len != 1 {
+		panic('T.deprecated_enum requires values')
+	}
+	return t_enum_type(args[0]) or { panic(err) }
 }
 
 // Ruby method `self.proc` at line 66.
 pub fn ruby_types_l66_d8_self_proc(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.proc', ...args)
+	if args.len != 0 {
+		panic('T.proc does not accept arguments')
+	}
+	return brew_runtime.Value{
+		type_name: 'T::Private::Methods::DeclBuilder'
+		repr: 'T.proc'
+		map_data: {
+			'arg_types': brew_runtime.map_value({})
+		}
+		attributes: {
+			'mod': 'T::Private::Methods::PROC_TYPE'
+		}
+	}
 }
 
 // Ruby method `self.self_type` at line 71.
 pub fn ruby_types_l71_d9_self_self_type(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.self_type', ...args)
+	if args.len != 0 {
+		panic('T.self_type does not accept arguments')
+	}
+	return brew_runtime.object_value('T::Types::SelfType', 'T.self_type')
 }
 
 // Ruby method `self.attached_class` at line 76.
 pub fn ruby_types_l76_d10_self_attached_class(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.attached_class', ...args)
+	if args.len != 0 {
+		panic('T.attached_class does not accept arguments')
+	}
+	return brew_runtime.object_value('T::Types::AttachedClassType', 'T.attached_class')
 }
 
 // Ruby method `self.class_of(klass)` at line 82.
 pub fn ruby_types_l82_d11_self_class_of(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.class_of', ...args)
+	if args.len != 1 {
+		panic('T.class_of requires one class or module')
+	}
+	name := 'T.class_of(${args[0].as_string()})'
+	return brew_runtime.Value{
+		type_name: 'T::Types::ClassOf'
+		repr: name
+		map_data: {
+			'type': args[0]
+		}
+		attributes: {
+			'name': name
+		}
+	}
 }
 
 // Ruby method `self.type_alias(type=nil, &blk)` at line 104.
 pub fn ruby_types_l104_d12_self_type_alias(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.type_alias', ...args)
+	if args.len > 1 {
+		panic('T.type_alias accepts one type or block result')
+	}
+	if args.len == 0 {
+		return t_coerce_type(t_nil_value()) or { panic(err) }
+	}
+	if args[0].type_name == 'Proc' {
+		// Value cannot retain a V closure. A translated Ruby block carries its
+		// evaluated result in `map_data['result']`, which is then wrapped lazily
+		// at the public boundary just like TypeAlias.new's callable result adapter.
+		aliased := args[0].map_data['result'] or {
+			panic('T.type_alias block has no translated result')
+		}
+		return brew_runtime.Value{
+			type_name: 'T::Private::Types::TypeAlias'
+			repr: '<type alias>'
+			map_data: {
+				'aliased_type': aliased
+			}
+		}
+	}
+	return t_coerce_type(args[0]) or { panic(err) }
 }
 
 // Ruby method `self.type_parameter(name)` at line 125.
 pub fn ruby_types_l125_d13_self_type_parameter(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.type_parameter', ...args)
+	if args.len != 1 || args[0].type_name != 'Symbol' {
+		panic('T.type_parameter requires a Symbol')
+	}
+	parameter_name := args[0].as_string().trim_string_left(':')
+	name := 'T.type_parameter(:${parameter_name})'
+	return brew_runtime.structured_value('T::Types::TypeParameter', name, {
+		'name':           name
+		'parameter_name': parameter_name
+	})
 }
 
 // Ruby method `self.cast(value, type, checked: true)` at line 134.
 pub fn ruby_types_l134_d14_self_cast(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.cast', ...args)
+	if args.len < 2 {
+		panic('T.cast requires a value and type')
+	}
+	return t_cast(args[0], args[1], t_checked_argument(args, 2) or { panic(err) }, 'T.cast') or {
+		panic(err)
+	}
 }
 
 // Ruby method `self.let(value, type, checked: true)` at line 161.
 pub fn ruby_types_l161_d15_self_let(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.let', ...args)
+	if args.len < 2 {
+		panic('T.let requires a value and type')
+	}
+	return t_cast(args[0], args[1], t_checked_argument(args, 2) or { panic(err) }, 'T.let') or {
+		panic(err)
+	}
 }
 
 // Ruby method `self.bind(value, type, checked: true)` at line 188.
 pub fn ruby_types_l188_d16_self_bind(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.bind', ...args)
+	if args.len < 2 {
+		panic('T.bind requires a value and type')
+	}
+	return t_cast(args[0], args[1], t_checked_argument(args, 2) or { panic(err) }, 'T.bind') or {
+		panic(err)
+	}
 }
 
 // Ruby method `self.assert_type!(value, type, checked: true)` at line 206.
 pub fn ruby_types_l206_d17_self_assert_type(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.assert_type!', ...args)
+	if args.len < 2 {
+		panic('T.assert_type! requires a value and type')
+	}
+	return t_cast(args[0], args[1], t_checked_argument(args, 2) or { panic(err) }, 'T.assert_type!') or { panic(err) }
 }
 
 // Ruby method `self.unsafe(value)` at line 232.
 pub fn ruby_types_l232_d18_self_unsafe(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.unsafe', ...args)
+	return t_identity(args, 'T.unsafe')
 }
 
 // Ruby method `self.must(arg)` at line 253.
 pub fn ruby_types_l253_d19_self_must(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.must', ...args)
+	if args.len != 1 {
+		panic('T.must requires one value')
+	}
+	return t_must(args[0]) or { panic(err) }
 }
 
 // Ruby method `self.must_because(arg)` at line 281.
 pub fn ruby_types_l281_d20_self_must_because(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.must_because', ...args)
+	if args.len == 0 {
+		panic('T.must_because requires one value')
+	}
+	if args[0].type_name != 'NilClass' {
+		return args[0]
+	}
+	reason := if args.len > 1 {
+		if args[1].type_name == 'Proc' {
+			args[1].map_data['result'] or {
+				panic('T.must_because reason block has no translated result')
+			}.as_string()
+		} else {
+			args[1].as_string()
+		}
+	} else {
+		'<translated reason block unavailable>'
+	}
+	return t_must_because(args[0], reason) or { panic(err) }
 }
 
 // Ruby method `self.reveal_type(value)` at line 295.
 pub fn ruby_types_l295_d21_self_reveal_type(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.reveal_type', ...args)
+	return t_identity(args, 'T.reveal_type')
 }
 
 // Ruby method `self.absurd(value)` at line 302.
 pub fn ruby_types_l302_d22_self_absurd(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.absurd', ...args)
+	if args.len != 1 {
+		panic('T.absurd requires one value')
+	}
+	return t_absurd(args[0]) or { panic(err) }
 }
 
 // Ruby method `self.[](type)` at line 320.
 pub fn ruby_types_l320_d23_self(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.[]', ...args)
+	if args.len != 1 {
+		panic('T::Array.[] requires one type')
+	}
+	if args[0].type_name == 'T::Types::Untyped' {
+		return t_untyped_enumerable('T::Types::TypedArray::Untyped', 'Array', 'T::Array')
+	}
+	return t_typed_enumerable(args[0], 'T::Types::TypedArray', 'Array', 'T::Array') or {
+		panic(err)
+	}
 }
 
 // Ruby method `self.[](keys, values)` at line 330.
 pub fn ruby_types_l330_d24_self(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.[]', ...args)
+	if args.len != 2 {
+		panic('T::Hash.[] requires key and value types')
+	}
+	if args[0].type_name == 'T::Types::Untyped' && args[1].type_name == 'T::Types::Untyped' {
+		return brew_runtime.Value{
+			type_name: 'T::Types::TypedHash::Untyped'
+			repr: 'T::Hash[T.untyped, T.untyped]'
+			map_data: {
+				'keys':   t_untyped_value()
+				'values': t_untyped_value()
+				'type':   t_fixed_array([t_untyped_value(), t_untyped_value()]) or { panic(err) }
+			}
+			attributes: {
+				'frozen':           'true'
+				'name':             'T::Hash[T.untyped, T.untyped]'
+				'underlying_class': 'Hash'
+			}
+		}
+	}
+	return t_typed_hash(args[0], args[1]) or { panic(err) }
 }
 
 // Ruby method `self.[](type)` at line 340.
 pub fn ruby_types_l340_d25_self(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.[]', ...args)
+	if args.len != 1 {
+		panic('T::Enumerable.[] requires one type')
+	}
+	if args[0].type_name == 'T::Types::Untyped' {
+		return t_untyped_enumerable('T::Types::TypedEnumerable::Untyped', 'Enumerable', 'T::Enumerable')
+	}
+	return t_typed_enumerable(args[0], 'T::Types::TypedEnumerable', 'Enumerable', 'T::Enumerable') or { panic(err) }
 }
 
 // Ruby method `self.[](type)` at line 350.
 pub fn ruby_types_l350_d26_self(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.[]', ...args)
+	if args.len != 1 {
+		panic('T::Enumerator.[] requires one type')
+	}
+	if args[0].type_name == 'T::Types::Untyped' {
+		return t_untyped_enumerable('T::Types::TypedEnumerator::Untyped', 'Enumerator', 'T::Enumerator')
+	}
+	return t_typed_enumerable(args[0], 'T::Types::TypedEnumerator', 'Enumerator', 'T::Enumerator') or { panic(err) }
 }
 
 // Ruby method `self.[](type)` at line 359.
 pub fn ruby_types_l359_d27_self(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.[]', ...args)
+	if args.len != 1 {
+		panic('T::Enumerator::Lazy.[] requires one type')
+	}
+	if args[0].type_name == 'T::Types::Untyped' {
+		return t_untyped_enumerable('T::Types::TypedEnumeratorLazy::Untyped', 'Enumerator::Lazy', 'T::Enumerator::Lazy')
+	}
+	return t_typed_enumerable(args[0], 'T::Types::TypedEnumeratorLazy', 'Enumerator::Lazy', 'T::Enumerator::Lazy') or { panic(err) }
 }
 
 // Ruby method `self.[](type)` at line 369.
 pub fn ruby_types_l369_d28_self(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.[]', ...args)
+	if args.len != 1 {
+		panic('T::Enumerator::Chain.[] requires one type')
+	}
+	if args[0].type_name == 'T::Types::Untyped' {
+		return t_untyped_enumerable('T::Types::TypedEnumeratorChain::Untyped', 'Enumerator::Chain', 'T::Enumerator::Chain')
+	}
+	return t_typed_enumerable(args[0], 'T::Types::TypedEnumeratorChain', 'Enumerator::Chain', 'T::Enumerator::Chain') or { panic(err) }
 }
 
 // Ruby method `self.[](type)` at line 380.
 pub fn ruby_types_l380_d29_self(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.[]', ...args)
+	if args.len != 1 {
+		panic('T::Range.[] requires one type')
+	}
+	if args[0].type_name == 'T::Types::Untyped' {
+		return t_untyped_enumerable('T::Types::TypedRange::Untyped', 'Range', 'T::Range')
+	}
+	return t_typed_enumerable(args[0], 'T::Types::TypedRange', 'Range', 'T::Range') or {
+		panic(err)
+	}
 }
 
 // Ruby method `self.[](type)` at line 390.
 pub fn ruby_types_l390_d30_self(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.[]', ...args)
+	if args.len != 1 {
+		panic('T::Set.[] requires one type')
+	}
+	if args[0].type_name == 'T::Types::Untyped' {
+		return t_untyped_enumerable('T::Types::TypedSet::Untyped', 'Set', 'T::Set')
+	}
+	return t_typed_enumerable(args[0], 'T::Types::TypedSet', 'Set', 'T::Set') or {
+		panic(err)
+	}
 }
 
 // Ruby method `self.[](type)` at line 400.
 pub fn ruby_types_l400_d31_self(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.[]', ...args)
+	if args.len != 1 {
+		panic('T::Class.[] requires one type')
+	}
+	if args[0].type_name == 'T::Types::Untyped' {
+		return t_untyped_meta('Class', false)
+	}
+	if args[0].type_name == 'T::Types::Anything' {
+		return t_untyped_meta('Class', true)
+	}
+	return t_typed_meta(args[0], 'Class') or { panic(err) }
 }
 
 // Ruby method `self.[](type)` at line 412.
 pub fn ruby_types_l412_d32_self(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.[]', ...args)
+	if args.len != 1 {
+		panic('T::Module.[] requires one type')
+	}
+	if args[0].type_name == 'T::Types::Untyped' {
+		return t_untyped_meta('Module', false)
+	}
+	if args[0].type_name == 'T::Types::Anything' {
+		return t_untyped_meta('Module', true)
+	}
+	return t_typed_meta(args[0], 'Module') or { panic(err) }
 }
 
 // Original Ruby source (line-for-line):

@@ -1,63 +1,71 @@
 module bottles
 
-import brew_runtime
+import homebrew
 
 // Translated from Homebrew/brew `test/utils/bottles/tag_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "can parse macOS symbols with archs" do` at line 7.
-pub fn ruby_tag_spec_l7_d1_can(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('can', ...args)
+pub fn ruby_tag_spec_l7_d1_can() !bool {
+	tag := homebrew.bottle_tag_from_symbol('arm64_big_sur')!
+	return tag.system == 'big_sur' && tag.arch == 'arm64' && tag.macos_version()!.to_s() == '11' && tag.macos() && !tag.linux() && tag.symbol() == 'arm64_big_sur'
 }
 
 // Ruby it `it "can parse macOS symbols without archs" do` at line 18.
-pub fn ruby_tag_spec_l18_d2_can(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('can', ...args)
+pub fn ruby_tag_spec_l18_d2_can() !bool {
+	tag := homebrew.bottle_tag_from_symbol('big_sur')!
+	return tag.system == 'big_sur' && tag.arch == 'x86_64' && tag.macos_version()!.to_s() == '11' && tag.macos() && !tag.linux() && tag.symbol() == 'big_sur'
 }
 
 // Ruby it `it "can parse Linux symbols" do` at line 29.
-pub fn ruby_tag_spec_l29_d3_can(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('can', ...args)
+pub fn ruby_tag_spec_l29_d3_can() !bool {
+	tag := homebrew.bottle_tag_from_symbol('x86_64_linux')!
+	if _ := tag.macos_version() {
+		return false
+	}
+	return tag.system == 'linux' && tag.arch == 'x86_64' && !tag.macos() && tag.linux() && tag.symbol() == 'x86_64_linux'
 }
 
 // Ruby it `it "parses an explicit tag argument" do` at line 41.
-pub fn ruby_tag_spec_l41_d4_parses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('parses', ...args)
+pub fn ruby_tag_spec_l41_d4_parses() !bool {
+	actual := homebrew.bottle_tag_from_arg('arm64_big_sur', 'monterey', 'x86_64')!
+	return actual.equals(homebrew.new_bottle_tag('big_sur', 'arm64'))
 }
 
 // Ruby it `it "builds from the given os and arch when no argument is passed" do` at line 46.
-pub fn ruby_tag_spec_l46_d5_builds(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('builds', ...args)
+pub fn ruby_tag_spec_l46_d5_builds() !bool {
+	actual := homebrew.bottle_tag_from_arg(none, 'monterey', 'arm64')!
+	return actual.equals(homebrew.new_bottle_tag('monterey', 'arm64'))
 }
 
 // Ruby it `it "compares using the standardized arch" do` at line 53.
-pub fn ruby_tag_spec_l53_d6_compares(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('compares', ...args)
+pub fn ruby_tag_spec_l53_d6_compares() bool {
+	return homebrew.new_bottle_tag('monterey', 'intel').equals(homebrew.new_bottle_tag('monterey', 'x86_64'))
 }
 
 // Ruby specify `specify do` at line 62.
-pub fn ruby_tag_spec_l62_d7_do(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('do', ...args)
+pub fn ruby_tag_spec_l62_d7_do() bool {
+	return homebrew.new_bottle_tag('all', 'intel').standardized_arch() == 'x86_64' && homebrew.new_bottle_tag('all', 'arm').standardized_arch() == 'arm64'
 }
 
 // Ruby it `it "returns true for Intel" do` at line 69.
-pub fn ruby_tag_spec_l69_d8_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_tag_spec_l69_d8_returns() bool {
+	return homebrew.new_bottle_tag('big_sur', 'intel').valid_combination() && homebrew.new_bottle_tag('linux', 'x86_64').valid_combination()
 }
 
 // Ruby it `it "returns false for ARM on macOS Catalina" do` at line 76.
-pub fn ruby_tag_spec_l76_d9_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_tag_spec_l76_d9_returns() bool {
+	return !homebrew.new_bottle_tag('catalina', 'arm64').valid_combination()
 }
 
 // Ruby it `it "returns true for ARM on macOS Big Sur or newer" do` at line 81.
-pub fn ruby_tag_spec_l81_d10_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_tag_spec_l81_d10_returns() bool {
+	return homebrew.new_bottle_tag('big_sur', 'arm64').valid_combination() && homebrew.new_bottle_tag('monterey', 'arm').valid_combination() && homebrew.new_bottle_tag('ventura', 'arm').valid_combination()
 }
 
 // Ruby it `it "returns true for ARM on Linux" do` at line 90.
-pub fn ruby_tag_spec_l90_d11_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_tag_spec_l90_d11_returns() bool {
+	return homebrew.new_bottle_tag('linux', 'arm64').valid_combination() && homebrew.new_bottle_tag('linux', 'arm').valid_combination()
 }
 
 // Original Ruby source (line-for-line):

@@ -2,12 +2,60 @@ module test_bot
 
 import brew_runtime
 
+pub struct SetupStep {
+pub:
+	command []string
+	verbose bool
+	passed  bool = true
+}
+
+pub struct SetupRun {
+pub:
+	header string
+	steps  []SetupStep
+}
+
 // Translated from Homebrew/brew `test_bot/setup.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `run!(args:)` at line 8.
 pub fn ruby_setup_l8_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('run!', ...args)
+	verbose_doctor := if args.len > 0 {
+		args[0].bool_data
+	} else {
+		brew_runtime.environment_value('HOMEBREW_TEST_BOT_VERBOSE_DOCTOR') != ''
+	}
+	run := setup_run(verbose_doctor)
+	return brew_runtime.map_value({
+		'header':   brew_runtime.string_value(run.header)
+		'commands': brew_runtime.array_value(run.steps.map(brew_runtime.string_array_value(it.command)))
+		'verbose':  brew_runtime.array_value(run.steps.map(brew_runtime.bool_value(it.verbose)))
+		'passed':   brew_runtime.bool_value(run.steps.last().passed)
+	})
+}
+
+pub fn setup_run(verbose_doctor bool) SetupRun {
+	return SetupRun{
+		header: 'Running Setup#run!'
+		steps: [
+			SetupStep{
+				command: ['brew', 'install-bundler-gems',
+					'--add-groups=ast,audit,bottle,formula_test,livecheck,style']
+			},
+			SetupStep{
+				command: ['brew', 'config']
+				verbose: true
+			},
+			SetupStep{
+				command: if verbose_doctor {
+					['brew', 'doctor', '--debug']
+				} else {
+					['brew', 'doctor']
+				}
+				verbose: verbose_doctor
+			},
+		]
+	}
 }
 
 // Original Ruby source (line-for-line):

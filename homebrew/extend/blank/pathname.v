@@ -7,12 +7,14 @@ import brew_runtime
 
 // Ruby method `blank?` at line 18.
 pub fn ruby_pathname_l18_d1_blank(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('blank?', ...args)
+	if args.len == 0 { panic('Pathname#blank? requires a receiver') }
+	return brew_runtime.bool_value(value_is_blank(args[0]))
 }
 
 // Ruby method `present? = !blank? # :nodoc:` at line 23.
 pub fn ruby_pathname_l23_d2_present(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('present?', ...args)
+	if args.len == 0 { panic('Pathname#present? requires a receiver') }
+	return brew_runtime.bool_value(value_is_present(args[0]))
 }
 
 // Original Ruby source (line-for-line):

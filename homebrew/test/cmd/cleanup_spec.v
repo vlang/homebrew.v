@@ -1,13 +1,30 @@
 module cmd
 
-import brew_runtime
+import homebrew.cmd as cleanup_core
+import os
 
 // Translated from Homebrew/brew `test/cmd/cleanup_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "removes all files in Homebrew's cache" do` at line 20.
-pub fn ruby_cleanup_spec_l20_d1_removes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('removes', ...args)
+pub fn ruby_cleanup_spec_l20_d1_removes() !bool {
+	root := os.join_path(os.temp_dir(), 'brew-v-cleanup-command-spec')
+	if os.exists(root) {
+		os.rmdir_all(root)!
+	}
+	defer {
+		os.rmdir_all(root) or {}
+	}
+	os.mkdir_all(root)!
+	file := os.join_path(root, 'test')
+	os.write_file(file, 'test')!
+	result := cleanup_core.run_cleanup_command(cleanup_core.CleanupCommandRequest{
+		prune: 'all'
+		cache_files: [file]
+	})!
+	return (result.days or { -1 }) == 0 && result.removed == [file] && result.output == [
+		file,
+	] && !os.exists(file)
 }
 
 // Original Ruby source (line-for-line):

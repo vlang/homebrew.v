@@ -1,23 +1,43 @@
 module unpack_strategy
 
 import brew_runtime
+import os
 
 // Translated from Homebrew/brew `unpack_strategy/gzip.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `self.extensions` at line 10.
-pub fn ruby_gzip_l10_d1_self_extensions(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.extensions', ...args)
+pub fn ruby_gzip_l10_d1_self_extensions() []string {
+	return gzip_extensions()
 }
 
 // Ruby method `self.can_extract?(path)` at line 15.
-pub fn ruby_gzip_l15_d2_self_can_extract(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.can_extract?', ...args)
+pub fn ruby_gzip_l15_d2_self_can_extract(path string) bool {
+	return gzip_can_extract(path)
 }
 
 // Ruby method `extract_to_dir(unpack_dir, basename:, verbose:)` at line 22.
-pub fn ruby_gzip_l22_d3_extract_to_dir(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('extract_to_dir', ...args)
+pub fn ruby_gzip_l22_d3_extract_to_dir(path string, unpack_dir string, basename string, verbose bool) ! {
+	gzip_extract_to_dir(path, unpack_dir, basename, verbose)!
+}
+
+pub fn gzip_extensions() []string {
+	return ['.gz']
+}
+
+pub fn gzip_can_extract(path string) bool {
+	return file_starts_with(path, [u8(0x1f), 0x8b])
+}
+
+pub fn gzip_extract_to_dir(path string, unpack_dir string, basename string, verbose bool) ! {
+	target := brew_runtime.join_path(unpack_dir, basename)
+	os.cp(path, target)!
+	mut arguments := []string{}
+	if !verbose {
+		arguments << '-q'
+	}
+	arguments << ['-N', '--', target]
+	checked_command(command_path('gunzip')!, arguments)!
 }
 
 // Original Ruby source (line-for-line):

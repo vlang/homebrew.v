@@ -5,24 +5,37 @@ import brew_runtime
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/synchronization/full_memory_barrier.rb`.
 // The original source is retained below until every stub has a typed V body.
 
+// full_memory_barrier publishes all writes made by the calling thread before any
+// reads which follow the barrier. V's C backend exposes the same sequentially
+// consistent fence used by its lock-free collections.
+pub fn full_memory_barrier() {
+	// C11 memory_order_seq_cst. V's generated C preamble declares the fence.
+	C.atomic_thread_fence(5)
+}
+
+fn full_memory_barrier_value() brew_runtime.Value {
+	full_memory_barrier()
+	return brew_runtime.object_value('NilClass', 'nil')
+}
+
 // Ruby method `self.full_memory_barrier` at line 7.
 pub fn ruby_full_memory_barrier_l7_d1_self_full_memory_barrier(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.full_memory_barrier', ...args)
+	return full_memory_barrier_value()
 }
 
 // Ruby method `self.full_memory_barrier` at line 14.
 pub fn ruby_full_memory_barrier_l14_d2_self_full_memory_barrier(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.full_memory_barrier', ...args)
+	return full_memory_barrier_value()
 }
 
 // Ruby method `self.full_memory_barrier` at line 19.
 pub fn ruby_full_memory_barrier_l19_d3_self_full_memory_barrier(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.full_memory_barrier', ...args)
+	return full_memory_barrier_value()
 }
 
 // Ruby method `self.full_memory_barrier` at line 25.
 pub fn ruby_full_memory_barrier_l25_d4_self_full_memory_barrier(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.full_memory_barrier', ...args)
+	return full_memory_barrier_value()
 }
 
 // Original Ruby source (line-for-line):

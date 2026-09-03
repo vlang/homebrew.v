@@ -1,108 +1,164 @@
 module test
 
-import brew_runtime
+import homebrew
 
 // Translated from Homebrew/brew `test/bottle_specification_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:bottle_spec) { described_class.new }` at line 7.
-pub fn ruby_bottle_specification_spec_l7_d1_bottle_spec(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('bottle_spec', ...args)
+pub fn ruby_bottle_specification_spec_l7_d1_bottle_spec() homebrew.BottleSpecification {
+	return homebrew.new_bottle_specification()
+}
+
+fn bottle_specification_spec_add(mut specification homebrew.BottleSpecification, tag string,
+	digest string, cellar ?homebrew.BottleCellar) !homebrew.BottleTagSpecification {
+	specification.sha256(tag, digest, cellar)!
+	typed_tag := homebrew.bottle_tag_from_symbol(tag)!
+	return specification.tag_specification_for(typed_tag, false) or {
+		return error('missing bottle tag specification for ${tag}')
+	}
+}
+
+fn bottle_specification_spec_skip(cellar homebrew.BottleCellar, linux bool,
+	homebrew_version string) !bool {
+	mut specification := ruby_bottle_specification_spec_l7_d1_bottle_spec()
+	tag := homebrew.current_bottle_tag()
+	specification.sha256(tag.symbol(), ruby_bottle_specification_spec_l58_d7_digest(), cellar)!
+	return specification.skip_relocation(tag, homebrew.BottleLocationContext{
+		linux: linux
+		tab_homebrew_version: homebrew_version
+	})
 }
 
 // Ruby it `it "works without cellar" do` at line 10.
-pub fn ruby_bottle_specification_spec_l10_d2_works(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('works', ...args)
+pub fn ruby_bottle_specification_spec_l10_d2_works() !bool {
+	mut specification := ruby_bottle_specification_spec_l7_d1_bottle_spec()
+	checksums := {
+		'arm64_tahoe': 'deadbeef'.repeat(8)
+		'tahoe':       'faceb00c'.repeat(8)
+		'sequoia':     'baadf00d'.repeat(8)
+		'sonoma':      '8badf00d'.repeat(8)
+	}
+	for tag, digest in checksums {
+		tag_specification := bottle_specification_spec_add(mut specification, tag, digest, none)!
+		if tag_specification.checksum.hexdigest != digest {
+			return false
+		}
+	}
+	return true
 }
 
 // Ruby it `it "works with cellar" do` at line 25.
-pub fn ruby_bottle_specification_spec_l25_d3_works(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('works', ...args)
+pub fn ruby_bottle_specification_spec_l25_d3_works() !bool {
+	mut specification := ruby_bottle_specification_spec_l7_d1_bottle_spec()
+	entries := [
+		['arm64_tahoe', 'deadbeef'.repeat(8), 'any_skip_relocation'],
+		['tahoe', 'faceb00c'.repeat(8), 'any'],
+		['sequoia', 'baadf00d'.repeat(8), '/usr/local/Cellar'],
+		['sonoma', '8badf00d'.repeat(8), '/opt/homebrew/Cellar'],
+	]
+	for entry in entries {
+		cellar := homebrew.parse_bottle_cellar(entry[2])
+		tag_specification := bottle_specification_spec_add(mut specification, entry[0], entry[1], cellar)!
+		if tag_specification.checksum.hexdigest != entry[1] || tag_specification.tag.symbol() != entry[0] || !tag_specification.cellar.equals(cellar) {
+			return false
+		}
+	}
+	return true
 }
 
 // Ruby it `it "checks if the bottle cellar is relocatable" do` at line 45.
-pub fn ruby_bottle_specification_spec_l45_d4_checks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('checks', ...args)
+pub fn ruby_bottle_specification_spec_l45_d4_checks() bool {
+	specification := ruby_bottle_specification_spec_l7_d1_bottle_spec()
+	return !specification.compatible_locations(homebrew.current_bottle_tag(), homebrew.BottleLocationContext{
+		prefix: '/different-prefix'
+		cellar: '/different-prefix/Cellar'
+	})
 }
 
 // Ruby it `it "returns the cellar for a tag" do` at line 51.
-pub fn ruby_bottle_specification_spec_l51_d5_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_bottle_specification_spec_l51_d5_returns() bool {
+	tag := homebrew.current_bottle_tag()
+	return ruby_bottle_specification_spec_l7_d1_bottle_spec().tag_to_cellar(tag).equals(tag.default_cellar())
 }
 
 // Ruby let `let(:tag) { Utils::Bottles.tag.to_sym }` at line 57.
-pub fn ruby_bottle_specification_spec_l57_d6_tag(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tag', ...args)
+pub fn ruby_bottle_specification_spec_l57_d6_tag() string {
+	return homebrew.current_bottle_tag().symbol()
 }
 
 // Ruby let `let(:digest) { "deadbeef" * 8 }` at line 58.
-pub fn ruby_bottle_specification_spec_l58_d7_digest(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('digest', ...args)
+pub fn ruby_bottle_specification_spec_l58_d7_digest() string {
+	return 'deadbeef'.repeat(8)
 }
 
 // Ruby it `it "returns false when there is no matching spec" do` at line 60.
-pub fn ruby_bottle_specification_spec_l60_d8_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_bottle_specification_spec_l60_d8_returns() bool {
+	return !ruby_bottle_specification_spec_l7_d1_bottle_spec().skip_relocation(homebrew.current_bottle_tag(), homebrew.BottleLocationContext{})
 }
 
 // Ruby let `let(:tab) { Tab.new(homebrew_version: "5.1.15") }` at line 66.
-pub fn ruby_bottle_specification_spec_l66_d9_tab(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tab', ...args)
+pub fn ruby_bottle_specification_spec_l66_d9_tab() string {
+	return '5.1.15'
 }
 
 // Ruby it `it "returns true for `:any_skip_relocation` cellar" do` at line 68.
-pub fn ruby_bottle_specification_spec_l68_d10_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_bottle_specification_spec_l68_d10_returns() !bool {
+	return bottle_specification_spec_skip(homebrew.bottle_cellar_any_skip_relocation(), true, ruby_bottle_specification_spec_l66_d9_tab())
 }
 
 // Ruby it `it "returns false for `:any` cellar" do` at line 73.
-pub fn ruby_bottle_specification_spec_l73_d11_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_bottle_specification_spec_l73_d11_returns() !bool {
+	return !bottle_specification_spec_skip(homebrew.bottle_cellar_any(), true, ruby_bottle_specification_spec_l66_d9_tab())!
 }
 
 // Ruby let `let(:tab) { Tab.new(homebrew_version: "5.1.14") }` at line 80.
-pub fn ruby_bottle_specification_spec_l80_d12_tab(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tab', ...args)
+pub fn ruby_bottle_specification_spec_l80_d12_tab() string {
+	return '5.1.14'
 }
 
 // Ruby it `it "returns false for `:any_skip_relocation` cellar" do` at line 82.
-pub fn ruby_bottle_specification_spec_l82_d13_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_bottle_specification_spec_l82_d13_returns() !bool {
+	return !bottle_specification_spec_skip(homebrew.bottle_cellar_any_skip_relocation(), true, ruby_bottle_specification_spec_l80_d12_tab())!
 }
 
 // Ruby it `it "returns false for `:any` cellar" do` at line 87.
-pub fn ruby_bottle_specification_spec_l87_d14_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_bottle_specification_spec_l87_d14_returns() !bool {
+	return !bottle_specification_spec_skip(homebrew.bottle_cellar_any(), true, ruby_bottle_specification_spec_l80_d12_tab())!
 }
 
 // Ruby it `it "returns false for `:any_skip_relocation` cellar" do` at line 94.
-pub fn ruby_bottle_specification_spec_l94_d15_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_bottle_specification_spec_l94_d15_returns() !bool {
+	return !bottle_specification_spec_skip(homebrew.bottle_cellar_any_skip_relocation(), true, '')!
 }
 
 // Ruby it `it "returns false for `:any` cellar" do` at line 99.
-pub fn ruby_bottle_specification_spec_l99_d16_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_bottle_specification_spec_l99_d16_returns() !bool {
+	return !bottle_specification_spec_skip(homebrew.bottle_cellar_any(), true, '')!
 }
 
 // Ruby it `it "returns true for `:any_skip_relocation` cellar" do` at line 107.
-pub fn ruby_bottle_specification_spec_l107_d17_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_bottle_specification_spec_l107_d17_returns() !bool {
+	return bottle_specification_spec_skip(homebrew.bottle_cellar_any_skip_relocation(), false, '')
 }
 
 // Ruby it `it "returns false for `:any` cellar" do` at line 112.
-pub fn ruby_bottle_specification_spec_l112_d18_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_bottle_specification_spec_l112_d18_returns() !bool {
+	return !bottle_specification_spec_skip(homebrew.bottle_cellar_any(), false, '')!
 }
 
 // Ruby specify `specify "#rebuild" do` at line 119.
-pub fn ruby_bottle_specification_spec_l119_d19_rebuild(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#rebuild', ...args)
+pub fn ruby_bottle_specification_spec_l119_d19_rebuild() bool {
+	mut specification := ruby_bottle_specification_spec_l7_d1_bottle_spec()
+	specification.set_rebuild(1337)
+	return specification.rebuild() == 1337
 }
 
 // Ruby specify `specify "#root_url" do` at line 124.
-pub fn ruby_bottle_specification_spec_l124_d20_root_url(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#root_url', ...args)
+pub fn ruby_bottle_specification_spec_l124_d20_root_url() bool {
+	mut specification := ruby_bottle_specification_spec_l7_d1_bottle_spec()
+	specification.set_root_url('https://example.com', {})
+	return specification.root_url() == 'https://example.com'
 }
 
 // Original Ruby source (line-for-line):

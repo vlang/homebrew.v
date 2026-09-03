@@ -4,20 +4,104 @@ import brew_runtime
 
 // Translated from Homebrew/brew `sorbet/tapioca/compilers/cask/dsl.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub const cask_dsl_compiler_ordinary_artifacts = ['installer', 'app', 'app_image', 'artifact',
+	'audio_unit_plugin', 'binary', 'command_wrapper', 'colorpicker', 'dictionary', 'font',
+	'generated_script', 'input_method', 'internet_plugin', 'keyboard_layout', 'manpage', 'pkg',
+	'prefpane', 'qlplugin', 'mdimporter', 'screen_saver', 'service', 'stage_only', 'suite',
+	'vst_plugin', 'vst3_plugin', 'zsh_completion', 'fish_completion', 'bash_completion',
+	'generated_completion', 'uninstall', 'zap']
+
+pub const cask_dsl_compiler_block_artifacts = ['preflight', 'postflight']
+
+pub const cask_dsl_compiler_install_step_artifacts = ['preflight_steps', 'postflight_steps',
+	'uninstall_preflight_steps', 'uninstall_postflight_steps']
+
+pub struct CaskDslCompilerMethod {
+pub:
+	name        string
+	parameters  []string
+	return_type string
+}
+
+pub struct CaskDslCompilerDecoration {
+pub:
+	constant_name string
+	kind          string
+	methods       []CaskDslCompilerMethod
+}
+
+pub fn cask_dsl_compiler_block_type(dsl_class string) string {
+	return 'T.nilable(T.proc.bind(${dsl_class}).params(dsl: ${dsl_class}).void)'
+}
+
+pub fn cask_dsl_compiler_decoration() CaskDslCompilerDecoration {
+	mut methods := []CaskDslCompilerMethod{}
+	for artifact in cask_dsl_compiler_ordinary_artifacts {
+		methods << CaskDslCompilerMethod{
+			name: artifact
+			parameters: ['*args: T.anything', '**kwargs: T.anything']
+			return_type: 'void'
+		}
+	}
+	for artifact in cask_dsl_compiler_block_artifacts {
+		for key in [artifact, 'uninstall_${artifact}'] {
+			dsl_class := key.split('_').map(it.title()).join('')
+			full_class := 'Cask::DSL::${dsl_class}'
+			block_parameter := '&block: ${cask_dsl_compiler_block_type(full_class)}'
+			methods << CaskDslCompilerMethod{
+				name: key
+				parameters: [block_parameter]
+				return_type: 'void'
+			}
+		}
+	}
+	install_steps_block := '&block: ${cask_dsl_compiler_block_type('Homebrew::InstallSteps::DSL')}'
+	for artifact in cask_dsl_compiler_install_step_artifacts {
+		methods << CaskDslCompilerMethod{
+			name: artifact
+			parameters: ['steps: T.anything = nil', '**kwargs: T.anything', install_steps_block]
+			return_type: 'void'
+		}
+	}
+	return CaskDslCompilerDecoration{
+		constant_name: 'Cask::DSL'
+		kind: 'path'
+		methods: methods
+	}
+}
+
+fn cask_dsl_compiler_decoration_value(decoration CaskDslCompilerDecoration) brew_runtime.Value {
+	return brew_runtime.map_value({
+		'constant_name': brew_runtime.string_value(decoration.constant_name)
+		'kind':          brew_runtime.string_value(decoration.kind)
+		'methods':       brew_runtime.array_value(decoration.methods.map(brew_runtime.map_value({
+			'name':        brew_runtime.string_value(it.name)
+			'parameters':  brew_runtime.string_array_value(it.parameters)
+			'return_type': brew_runtime.string_value(it.return_type)
+		})))
+	})
+}
 
 // Ruby method `self.gather_constants = [Cask::DSL]` at line 13.
 pub fn ruby_dsl_l13_d1_self_gather_constants(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.gather_constants', ...args)
+	_ = args
+	return brew_runtime.array_value([
+		brew_runtime.object_value('Module', 'Cask::DSL'),
+	])
 }
 
 // Ruby method `decorate` at line 16.
 pub fn ruby_dsl_l16_d2_decorate(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('decorate', ...args)
+	_ = args
+	return cask_dsl_compiler_decoration_value(cask_dsl_compiler_decoration())
 }
 
 // Ruby method `block_type(dsl_class)` at line 57.
 pub fn ruby_dsl_l57_d3_block_type(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('block_type', ...args)
+	if args.len == 0 {
+		return brew_runtime.object_value('ArgumentError', 'block_type requires a DSL class')
+	}
+	return brew_runtime.string_value(cask_dsl_compiler_block_type(args[0].as_string()))
 }
 
 // Original Ruby source (line-for-line):

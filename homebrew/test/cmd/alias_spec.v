@@ -1,13 +1,18 @@
 module cmd
 
-import brew_runtime
+import homebrew.aliases
+import homebrew.cmd as brew_cmd
 
 // Translated from Homebrew/brew `test/cmd/alias_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "sets an alias", :integration_test do` at line 10.
-pub fn ruby_alias_spec_l10_d1_sets(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sets', ...args)
+pub fn ruby_alias_spec_l10_d1_sets(config aliases.AliasConfig,
+	editor aliases.AliasEditor) !bool {
+	brew_cmd.run_alias(config, 'foo-test=bar', false, editor)!
+	return brew_cmd.run_alias(config, none, false, editor)! == [
+		"brew alias foo-test='bar'",
+	]
 }
 
 // Original Ruby source (line-for-line):

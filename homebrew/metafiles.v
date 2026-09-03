@@ -5,14 +5,58 @@ import brew_runtime
 // Translated from Homebrew/brew `metafiles.rb`.
 // The original source is retained below until every stub has a typed V body.
 
+const metafile_licenses = ['copying', 'copyright', 'license', 'licence']
+const metafile_extensions = ['.adoc', '.asc', '.asciidoc', '.creole', '.html', '.markdown', '.md',
+	'.mdown', '.mediawiki', '.mkdn', '.org', '.pod', '.rdoc', '.rst', '.rtf', '.textile', '.txt',
+	'.wiki']
+const metafile_basenames = ['about', 'authors', 'changelog', 'changes', 'history', 'news', 'notes',
+	'notice', 'readme', 'todo']
+
+// is_metafile_listed translates Metafiles.list?.
+pub fn is_metafile_listed(file string) bool {
+	if file == '.DS_Store' || file == 'INSTALL_RECEIPT.json' {
+		return false
+	}
+	return !is_metafile_copied(file)
+}
+
+// is_metafile_copied translates Metafiles.copy?.
+pub fn is_metafile_copied(input string) bool {
+	mut file := input.to_lower()
+	mut separator := file.len
+	for candidate in [file.index('.') or { file.len }, file.index('-') or { file.len }] {
+		if candidate < separator {
+			separator = candidate
+		}
+	}
+	license := file[..separator]
+	if license in metafile_licenses {
+		return true
+	}
+	last_dot := file.last_index('.') or { -1 }
+	if last_dot >= 0 {
+		extension := file[last_dot..]
+		if extension in metafile_extensions {
+			file = file[..last_dot]
+		}
+	}
+	return file in metafile_basenames
+}
+
 // Ruby method `list?(file)` at line 19.
 pub fn ruby_metafiles_l19_d1_list(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('list?', ...args)
+	if args.len == 0 {
+		panic('Metafiles.list? requires a file')
+	}
+	return brew_runtime.bool_value(is_metafile_listed(args[0].as_string()))
 }
 
 // Ruby method `copy?(file)` at line 26.
 pub fn ruby_metafiles_l26_d2_copy(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('copy?', ...args)
+	if args.len == 0 {
+		panic('Metafiles.copy? requires a file')
+	}
+	return brew_runtime.bool_value(is_metafile_copied(args[0].as_string()))
 }
 
 // Original Ruby source (line-for-line):

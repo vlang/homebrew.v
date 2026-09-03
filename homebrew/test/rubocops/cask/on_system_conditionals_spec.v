@@ -1,133 +1,187 @@
 module cask
 
-import brew_runtime
+import homebrew.rubocops.cask as on_system_core
 
 // Translated from Homebrew/brew `test/rubocops/cask/on_system_conditionals_spec.rb`.
-// The original source is retained below until every stub has a typed V body.
+// Pinned at df30fd34cc7132abfb8dbe3b1d046e3d48a57d00.
 
 // Ruby it `it "accepts when there are no `on_*` blocks" do` at line 8.
-pub fn ruby_on_system_conditionals_spec_l8_d1_accepts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('accepts', ...args)
+pub fn ruby_on_system_conditionals_spec_l8_d1_accepts() bool {
+	source := "cask 'foo' do\n  postflight do\n    foobar\n  end\nend"
+	return on_system_core.audit_cask_on_system_conditionals(source).len == 0
 }
 
 // Ruby it `it "reports an offense it contains an `on_intel` block" do` at line 18.
-pub fn ruby_on_system_conditionals_spec_l18_d2_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_on_system_conditionals_spec_l18_d2_reports() bool {
+	source := "cask 'foo' do\n  postflight do\n    on_intel do\n      foobar\n    end\n  end\nend"
+	expected := "cask 'foo' do\n  postflight do\n    if Hardware::CPU.intel?\n      foobar\n    end\n  end\nend"
+	problems := on_system_core.audit_cask_on_system_conditionals(source)
+	return problems.len == 1 && source[problems[0].begin_pos..problems[0].end_pos] == 'on_intel do' && problems[0].message == 'Instead of using `on_intel` in `postflight do`, use `if Hardware::CPU.intel?`.' && on_system_core.correct_cask_on_system_conditionals(source) == expected
 }
 
 // Ruby it `it "reports an offense when it contains an `on_monterey` block" do` at line 41.
-pub fn ruby_on_system_conditionals_spec_l41_d3_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_on_system_conditionals_spec_l41_d3_reports() bool {
+	source := "cask 'foo' do\n  postflight do\n    on_monterey do\n      foobar\n    end\n  end\nend"
+	expected := "cask 'foo' do\n  postflight do\n    if MacOS.version == :monterey\n      foobar\n    end\n  end\nend"
+	problems := on_system_core.audit_cask_on_system_conditionals(source)
+	return problems.len == 1 && problems[0].message == 'Instead of using `on_monterey` in `postflight do`, use `if MacOS.version == :monterey`.' && on_system_core.correct_cask_on_system_conditionals(source) == expected
 }
 
 // Ruby it `it "reports an offense when it contains an `on_monterey :or_older` block" do` at line 64.
-pub fn ruby_on_system_conditionals_spec_l64_d4_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_on_system_conditionals_spec_l64_d4_reports() bool {
+	source := "cask 'foo' do\n  postflight do\n    on_monterey :or_older do\n      foobar\n    end\n  end\nend"
+	expected := "cask 'foo' do\n  postflight do\n    if MacOS.version <= :monterey\n      foobar\n    end\n  end\nend"
+	problems := on_system_core.audit_cask_on_system_conditionals(source)
+	return problems.len == 1 && source[problems[0].begin_pos..problems[0].end_pos] == 'on_monterey :or_older do' && on_system_core.correct_cask_on_system_conditionals(source) == expected
 }
 
 // Ruby it `it "accepts when there are no `on_arch` blocks" do` at line 89.
-pub fn ruby_on_system_conditionals_spec_l89_d5_accepts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('accepts', ...args)
+pub fn ruby_on_system_conditionals_spec_l89_d5_accepts() bool {
+	source := 'cask \'foo\' do\n  sha256 "67cdb8a02803ef37fdbf7e0be205863172e41a561ca446cd84f0d7ab35a99d94"\nend'
+	return on_system_core.audit_cask_on_system_conditionals(source).len == 0
 }
 
 // Ruby it `it "accepts when the `sha256` stanza is used with keyword arguments" do` at line 97.
-pub fn ruby_on_system_conditionals_spec_l97_d6_accepts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('accepts', ...args)
+pub fn ruby_on_system_conditionals_spec_l97_d6_accepts() bool {
+	source := 'cask \'foo\' do\n  sha256 arm:   "67cdb8a02803ef37fdbf7e0be205863172e41a561ca446cd84f0d7ab35a99d94",\n         intel: "8c62a2b791cf5f0da6066a0a4b6e85f62949cd60975da062df44adf887f4370b"\nend'
+	return on_system_core.audit_cask_on_system_conditionals(source).len == 0
 }
 
 // Ruby it `it "reports an offense when `sha256` has identical values for different architectures" do` at line 106.
-pub fn ruby_on_system_conditionals_spec_l106_d7_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_on_system_conditionals_spec_l106_d7_reports() bool {
+	sha := '5f42cb017dd07270409eaee7c3b4a164ffa7c0f21d85c65840c4f81aab21d457'
+	source := 'cask \'foo\' do\n  sha256 arm:   "${sha}",\n         intel: "${sha}"\nend'
+	problems := on_system_core.audit_cask_on_system_conditionals(source)
+	return problems.len == 1 && problems[0].message == on_system_core.on_system_identical_sha_message && source[problems[0].begin_pos..problems[0].end_pos] == 'sha256 arm:   "${sha}",\n         intel: "${sha}"'
 }
 
 // Ruby it `it "accepts when there is only one `on_arch` block" do` at line 116.
-pub fn ruby_on_system_conditionals_spec_l116_d8_accepts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('accepts', ...args)
+pub fn ruby_on_system_conditionals_spec_l116_d8_accepts() bool {
+	source := 'cask \'foo\' do\n  on_intel do\n    sha256 "67cdb8a02803ef37fdbf7e0be205863172e41a561ca446cd84f0d7ab35a99d94"\n  end\nend'
+	return on_system_core.audit_cask_on_system_conditionals(source).len == 0
 }
 
 // Ruby it `it "reports an offense when `sha256` is specified in all `on_arch` blocks" do` at line 126.
-pub fn ruby_on_system_conditionals_spec_l126_d9_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_on_system_conditionals_spec_l126_d9_reports() bool {
+	source := 'cask \'foo\' do\n  on_intel do\n    sha256 "67cdb8a02803ef37fdbf7e0be205863172e41a561ca446cd84f0d7ab35a99d94"\n  end\n  on_arm do\n    sha256 "8c62a2b791cf5f0da6066a0a4b6e85f62949cd60975da062df44adf887f4370b"\n  end\nend'
+	expected := 'cask \'foo\' do\n  sha256 arm: "8c62a2b791cf5f0da6066a0a4b6e85f62949cd60975da062df44adf887f4370b", intel: "67cdb8a02803ef37fdbf7e0be205863172e41a561ca446cd84f0d7ab35a99d94"\nend'
+	problems := on_system_core.audit_cask_on_system_conditionals(source)
+	return problems.len == 1 && problems[0].message == on_system_core.on_system_sha_only_message && source[problems[0].begin_pos..problems[0].end_pos].starts_with('on_arm do') && on_system_core.correct_cask_on_system_conditionals(source) == expected
 }
 
 // Ruby it `it "reports an offense but does not autocorrect when an `on_arch` block includes comments" do` at line 146.
-pub fn ruby_on_system_conditionals_spec_l146_d10_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_on_system_conditionals_spec_l146_d10_reports() bool {
+	source := 'cask \'foo\' do\n  on_intel do\n    # comment\n    sha256 "67cdb8a02803ef37fdbf7e0be205863172e41a561ca446cd84f0d7ab35a99d94"\n  end\n  on_arm do\n    sha256 "8c62a2b791cf5f0da6066a0a4b6e85f62949cd60975da062df44adf887f4370b"\n  end\nend'
+	problems := on_system_core.audit_cask_on_system_conditionals(source)
+	return problems.len == 1 && problems[0].replacement == '' && on_system_core.correct_cask_on_system_conditionals(source) == source
 }
 
 // Ruby it `it "accepts when there is also a `version` stanza inside the `on_arch` blocks with different versions" do` at line 163.
-pub fn ruby_on_system_conditionals_spec_l163_d11_accepts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('accepts', ...args)
+pub fn ruby_on_system_conditionals_spec_l163_d11_accepts() bool {
+	source := 'cask \'foo\' do\n  on_intel do\n    version "1.0.0"\n    sha256 "67cdb8a02803ef37fdbf7e0be205863172e41a561ca446cd84f0d7ab35a99d94"\n  end\n  on_arm do\n    version "2.0.0"\n    sha256 "8c62a2b791cf5f0da6066a0a4b6e85f62949cd60975da062df44adf887f4370b"\n  end\nend'
+	return on_system_core.audit_cask_on_system_conditionals(source).len == 0
 }
 
 // Ruby it `it "accepts when there is also a `version` stanza inside only a single `on_arch` block" do` at line 178.
-pub fn ruby_on_system_conditionals_spec_l178_d12_accepts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('accepts', ...args)
+pub fn ruby_on_system_conditionals_spec_l178_d12_accepts() bool {
+	source := 'cask \'foo\' do\n  on_intel do\n    version "2.0.0"\n    sha256 "67cdb8a02803ef37fdbf7e0be205863172e41a561ca446cd84f0d7ab35a99d94"\n  end\n  on_arm do\n    sha256 "8c62a2b791cf5f0da6066a0a4b6e85f62949cd60975da062df44adf887f4370b"\n  end\nend'
+	return on_system_core.audit_cask_on_system_conditionals(source).len == 0
 }
 
 // Ruby it `it "reports an offense when `version` is identical in both arch blocks but `sha256` differs" do` at line 194.
-pub fn ruby_on_system_conditionals_spec_l194_d13_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_on_system_conditionals_spec_l194_d13_reports() bool {
+	source := 'cask \'foo\' do\n  on_intel do\n    version "1.0.0"\n    sha256 "67cdb8a02803ef37fdbf7e0be205863172e41a561ca446cd84f0d7ab35a99d94"\n  end\n  on_arm do\n    version "1.0.0"\n    sha256 "8c62a2b791cf5f0da6066a0a4b6e85f62949cd60975da062df44adf887f4370b"\n  end\nend'
+	expected := 'cask \'foo\' do\n  version "1.0.0"\n  sha256 arm: "8c62a2b791cf5f0da6066a0a4b6e85f62949cd60975da062df44adf887f4370b", intel: "67cdb8a02803ef37fdbf7e0be205863172e41a561ca446cd84f0d7ab35a99d94"\nend'
+	problems := on_system_core.audit_cask_on_system_conditionals(source)
+	return problems.len == 1 && problems[0].message == on_system_core.on_system_identical_version_message && on_system_core.correct_cask_on_system_conditionals(source) == expected
 }
 
 // Ruby it `it "reports an offense when both `version` and `sha256` are identical in both arch blocks" do` at line 217.
-pub fn ruby_on_system_conditionals_spec_l217_d14_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_on_system_conditionals_spec_l217_d14_reports() bool {
+	sha := '67cdb8a02803ef37fdbf7e0be205863172e41a561ca446cd84f0d7ab35a99d94'
+	source := 'cask \'foo\' do\n  on_intel do\n    version "1.0.0"\n    sha256 "${sha}"\n  end\n  on_arm do\n    version "1.0.0"\n    sha256 "${sha}"\n  end\nend'
+	expected := 'cask \'foo\' do\n  version "1.0.0"\n  sha256 "${sha}"\nend'
+	problems := on_system_core.audit_cask_on_system_conditionals(source)
+	return problems.len == 1 && on_system_core.correct_cask_on_system_conditionals(source) == expected
 }
 
 // Ruby it `it "reports an offense but does not autocorrect when an `on_arch` block includes comments" do` at line 240.
-pub fn ruby_on_system_conditionals_spec_l240_d15_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_on_system_conditionals_spec_l240_d15_reports() bool {
+	source := 'cask \'foo\' do\n  on_intel do\n    version "1.0.0"\n    # comment\n    sha256 "67cdb8a02803ef37fdbf7e0be205863172e41a561ca446cd84f0d7ab35a99d94"\n  end\n  on_arm do\n    version "1.0.0"\n    sha256 "8c62a2b791cf5f0da6066a0a4b6e85f62949cd60975da062df44adf887f4370b"\n  end\nend'
+	problems := on_system_core.audit_cask_on_system_conditionals(source)
+	return problems.len == 1 && problems[0].replacement == '' && on_system_core.correct_cask_on_system_conditionals(source) == source
 }
 
 // Ruby it `it "reports an offense when `on_arch` blocks with identical versions are inside an `on_os` block" do` at line 261.
-pub fn ruby_on_system_conditionals_spec_l261_d16_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_on_system_conditionals_spec_l261_d16_reports() bool {
+	source := 'cask \'foo\' do\n  on_sonoma :or_newer do\n    on_intel do\n      version "1.0.0"\n      sha256 "67cdb8a02803ef37fdbf7e0be205863172e41a561ca446cd84f0d7ab35a99d94"\n    end\n    on_arm do\n      version "1.0.0"\n      sha256 "8c62a2b791cf5f0da6066a0a4b6e85f62949cd60975da062df44adf887f4370b"\n    end\n  end\nend'
+	expected := 'cask \'foo\' do\n  on_sonoma :or_newer do\n    version "1.0.0"\n    sha256 arm: "8c62a2b791cf5f0da6066a0a4b6e85f62949cd60975da062df44adf887f4370b", intel: "67cdb8a02803ef37fdbf7e0be205863172e41a561ca446cd84f0d7ab35a99d94"\n  end\nend'
+	problems := on_system_core.audit_cask_on_system_conditionals(source)
+	return problems.len == 1 && on_system_core.correct_cask_on_system_conditionals(source) == expected
 }
 
 // Ruby it `it "reports an offense when `on_arch` blocks with only `sha256` are inside an `on_os` block" do` at line 288.
-pub fn ruby_on_system_conditionals_spec_l288_d17_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_on_system_conditionals_spec_l288_d17_reports() bool {
+	source := 'cask \'foo\' do\n  on_sonoma :or_newer do\n    on_intel do\n      sha256 "67cdb8a02803ef37fdbf7e0be205863172e41a561ca446cd84f0d7ab35a99d94"\n    end\n    on_arm do\n      sha256 "8c62a2b791cf5f0da6066a0a4b6e85f62949cd60975da062df44adf887f4370b"\n    end\n  end\nend'
+	expected := 'cask \'foo\' do\n  on_sonoma :or_newer do\n    sha256 arm: "8c62a2b791cf5f0da6066a0a4b6e85f62949cd60975da062df44adf887f4370b", intel: "67cdb8a02803ef37fdbf7e0be205863172e41a561ca446cd84f0d7ab35a99d94"\n  end\nend'
+	return on_system_core.audit_cask_on_system_conditionals(source).len == 1 && on_system_core.correct_cask_on_system_conditionals(source) == expected
 }
 
 // Ruby it `it "reports offenses for every eligible `on_arch` pair across sibling `on_os` blocks" do` at line 312.
-pub fn ruby_on_system_conditionals_spec_l312_d18_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_on_system_conditionals_spec_l312_d18_reports() bool {
+	source := 'cask \'foo\' do\n  on_sonoma :or_newer do\n    on_intel do\n      version "1.0.0"\n      sha256 "67cdb8a02803ef37fdbf7e0be205863172e41a561ca446cd84f0d7ab35a99d94"\n    end\n    on_arm do\n      version "1.0.0"\n      sha256 "8c62a2b791cf5f0da6066a0a4b6e85f62949cd60975da062df44adf887f4370b"\n    end\n  end\n\n  on_sequoia :or_newer do\n    on_intel do\n      version "2.0.0"\n      sha256 "d72f430f8f4e71cbce4d3648f364f95f8f422bcdd668a8d3260f39ee3f6f3cec"\n    end\n    on_arm do\n      version "2.0.0"\n      sha256 "7686f28e546238da94ce4dc89be623f7dc801f7e44e7011fdb7f3f471675f5ee"\n    end\n  end\nend'
+	expected := 'cask \'foo\' do\n  on_sonoma :or_newer do\n    version "1.0.0"\n    sha256 arm: "8c62a2b791cf5f0da6066a0a4b6e85f62949cd60975da062df44adf887f4370b", intel: "67cdb8a02803ef37fdbf7e0be205863172e41a561ca446cd84f0d7ab35a99d94"\n  end\n\n  on_sequoia :or_newer do\n    version "2.0.0"\n    sha256 arm: "7686f28e546238da94ce4dc89be623f7dc801f7e44e7011fdb7f3f471675f5ee", intel: "d72f430f8f4e71cbce4d3648f364f95f8f422bcdd668a8d3260f39ee3f6f3cec"\n  end\nend'
+	problems := on_system_core.audit_cask_on_system_conditionals(source)
+	return problems.len == 2 && problems.all(it.kind == 'identical_arch_versions') && on_system_core.correct_cask_on_system_conditionals(source) == expected
 }
 
 // Ruby it `it "still autocorrects a matching pair when a later `on_os` block has only one arch block" do` at line 356.
-pub fn ruby_on_system_conditionals_spec_l356_d19_still(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('still', ...args)
+pub fn ruby_on_system_conditionals_spec_l356_d19_still() bool {
+	source := 'cask \'foo\' do\n  on_sonoma :or_newer do\n    on_intel do\n      version "1.0.0"\n      sha256 "67cdb8a02803ef37fdbf7e0be205863172e41a561ca446cd84f0d7ab35a99d94"\n    end\n    on_arm do\n      version "1.0.0"\n      sha256 "8c62a2b791cf5f0da6066a0a4b6e85f62949cd60975da062df44adf887f4370b"\n    end\n  end\n\n  on_sequoia :or_newer do\n    on_arm do\n      version "3.0.0"\n      sha256 "5f42cb017dd07270409eaee7c3b4a164ffa7c0f21d85c65840c4f81aab21d457"\n    end\n  end\nend'
+	expected := 'cask \'foo\' do\n  on_sonoma :or_newer do\n    version "1.0.0"\n    sha256 arm: "8c62a2b791cf5f0da6066a0a4b6e85f62949cd60975da062df44adf887f4370b", intel: "67cdb8a02803ef37fdbf7e0be205863172e41a561ca446cd84f0d7ab35a99d94"\n  end\n\n  on_sequoia :or_newer do\n    on_arm do\n      version "3.0.0"\n      sha256 "5f42cb017dd07270409eaee7c3b4a164ffa7c0f21d85c65840c4f81aab21d457"\n    end\n  end\nend'
+	return on_system_core.audit_cask_on_system_conditionals(source).len == 1 && on_system_core.correct_cask_on_system_conditionals(source) == expected
 }
 
 // Ruby it `it "reports an offense when `Hardware::CPU.arm?` is used" do` at line 399.
-pub fn ruby_on_system_conditionals_spec_l399_d20_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_on_system_conditionals_spec_l399_d20_reports() bool {
+	source := 'cask \'foo\' do\n  if Hardware::CPU.arm? && other_condition\n    sha256 "67cdb8a02803ef37fdbf7e0be205863172e41a561ca446cd84f0d7ab35a99d94"\n  else\n    sha256 "8c62a2b791cf5f0da6066a0a4b6e85f62949cd60975da062df44adf887f4370b"\n  end\nend'
+	problems := on_system_core.audit_cask_on_system_conditionals(source)
+	return problems.len == 1 && source[problems[0].begin_pos..problems[0].end_pos] == 'Hardware::CPU.arm?' && problems[0].message == 'Instead of `Hardware::CPU.arm?`, use `on_arm` and `on_intel` blocks.'
 }
 
 // Ruby it `it "reports an offense when `Hardware::CPU.intel?` is used" do` at line 412.
-pub fn ruby_on_system_conditionals_spec_l412_d21_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_on_system_conditionals_spec_l412_d21_reports() bool {
+	source := 'cask \'foo\' do\n  if Hardware::CPU.intel? && other_condition\n    sha256 "67cdb8a02803ef37fdbf7e0be205863172e41a561ca446cd84f0d7ab35a99d94"\n  else\n    sha256 "8c62a2b791cf5f0da6066a0a4b6e85f62949cd60975da062df44adf887f4370b"\n  end\nend'
+	problems := on_system_core.audit_cask_on_system_conditionals(source)
+	return problems.len == 1 && source[problems[0].begin_pos..problems[0].end_pos] == 'Hardware::CPU.intel?'
 }
 
 // Ruby it `it "reports an offense when `Hardware::CPU.arch` is used" do` at line 425.
-pub fn ruby_on_system_conditionals_spec_l425_d22_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_on_system_conditionals_spec_l425_d22_reports() bool {
+	source := 'cask \'foo\' do\n  version "1.2.3"\n  sha256 "67cdb8a02803ef37fdbf7e0be205863172e41a561ca446cd84f0d7ab35a99d94"\n\n  url "https://example.com/foo-#{version}-#{Hardware::CPU.arch}.zip"\nend'
+	problems := on_system_core.audit_cask_on_system_conditionals(source)
+	return problems.len == 1 && source[problems[0].begin_pos..problems[0].end_pos] == 'Hardware::CPU.arch'
 }
 
 // Ruby it `it "reports an offense when `MacOS.version ==` is used" do` at line 439.
-pub fn ruby_on_system_conditionals_spec_l439_d23_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_on_system_conditionals_spec_l439_d23_reports() bool {
+	source := 'cask \'foo\' do\n  if MacOS.version == :catalina\n    version "1.0.0"\n  else\n    version "2.0.0"\n  end\nend'
+	problems := on_system_core.audit_cask_on_system_conditionals(source)
+	return problems.len == 1 && problems[0].message == 'Instead of `if MacOS.version == :catalina`, use `on_catalina do`.' && source[problems[0].begin_pos..problems[0].end_pos].starts_with('if MacOS.version == :catalina')
 }
 
 // Ruby it `it "reports an offense when `MacOS.version <=` is used" do` at line 452.
-pub fn ruby_on_system_conditionals_spec_l452_d24_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_on_system_conditionals_spec_l452_d24_reports() bool {
+	source := 'cask \'foo\' do\n  if MacOS.version <= :catalina\n    version "1.0.0"\n  else\n    version "2.0.0"\n  end\nend'
+	problems := on_system_core.audit_cask_on_system_conditionals(source)
+	return problems.len == 1 && problems[0].message == 'Instead of `if MacOS.version <= :catalina`, use `on_catalina :or_older do`.'
 }
 
 // Ruby it `it "reports an offense when `MacOS.version >=` is used" do` at line 465.
-pub fn ruby_on_system_conditionals_spec_l465_d25_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_on_system_conditionals_spec_l465_d25_reports() bool {
+	source := 'cask \'foo\' do\n  if MacOS.version >= :catalina\n    version "1.0.0"\n  else\n    version "2.0.0"\n  end\nend'
+	problems := on_system_core.audit_cask_on_system_conditionals(source)
+	return problems.len == 1 && problems[0].message == 'Instead of `if MacOS.version >= :catalina`, use `on_catalina :or_newer do`.'
 }
 
 // Original Ruby source (line-for-line):

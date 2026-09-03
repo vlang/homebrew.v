@@ -23,10 +23,10 @@ Build the current command entry point with:
 v -o brew-v .
 ```
 
-Until the retained Ruby command graph has typed V bodies, the executable uses a
-native Homebrew installation as a compatibility backend and replaces itself with
-that process, forwarding arguments without shell interpolation. Set
-`BREW_V_BACKEND` to select the backend explicitly.
+The executable runs only translated V code. It does not invoke or fall back to a
+native Ruby Homebrew installation. Execution currently stops at the explicit
+`brew.rb:<top-level>` stub because the retained Ruby command graph does not yet
+have typed V bodies.
 
 ## Benchmarks
 
@@ -41,46 +41,37 @@ seconds.
 
 | Operation | Median | Range | Result |
 | --- | ---: | ---: | --- |
-| `v -prod -o brew-v .` | 1.392 | 1.353–1.429 | 231,048-byte native executable |
+| `v -prod -o brew-v .` | 0.839 | 0.825–0.854 | 126,808-byte native executable |
 | Compile Ruby `brew.rb` with `RubyVM::InstructionSequence.compile_file` | 0.028 | 0.027–0.031 | In-memory Ruby bytecode |
 | Compile all 2,176 `Library/Homebrew` Ruby files to VM bytecode | 0.464 | 0.454–0.499 | In-memory Ruby bytecode |
 
 Ruby Homebrew has no ahead-of-time build step, so these are deliberately
 different operations: V produces and links a native executable, while Ruby only
-parses source into process-local bytecode. The current V executable links the
-command frontend and compatibility runtime; the retained `homebrew` modules are
-validated separately and are not yet linked into that executable.
+parses source into process-local bytecode. The V executable includes the
+translated root `homebrew` module, but most entry points remain explicit stubs.
 
 ### Installing Neovim
 
-These are warm-cache installs of Neovim 0.12.4 with its dependencies already
-installed. Before each run, only Neovim was removed with
-`brew uninstall --ignore-dependencies neovim`; the six runs alternated between
-the two frontends. Neovim was left installed afterward.
-
-| Frontend | Samples | Median |
-| --- | --- | ---: |
-| Native Ruby `brew install neovim` | 1.31, 1.22, 1.24 | 1.24 s |
-| `brew-v install neovim` | 2.05, 1.22, 1.23 | 1.23 s |
-
-`brew-v` currently replaces itself with the same native Homebrew backend, so
-the difference is normal run-to-run noise, not an independent V installer
-speedup.
+There is no valid V installation benchmark yet. `brew-v install neovim` reaches
+the untranslated `brew.rb:<top-level>` boundary and exits without installing
+anything. Publishing the native Ruby Homebrew time as a `brew-v` result would be
+misleading.
 
 ### Updating Homebrew
 
-The initial real `brew update` took 35.70 s, updated Homebrew from 6.0.17 to
-6.0.20, and updated `homebrew/core` and `homebrew/cask`. After synchronization,
-three alternating no-change runs through each frontend produced:
+There is likewise no valid V update benchmark yet. `brew-v update` stops at the
+same untranslated top-level boundary. A native Ruby `brew update` measured
+35.70 s while updating two taps from Homebrew 6.0.17 to 6.0.20, but that is a
+Ruby Homebrew result, not a V result.
 
-| Frontend | Samples | Median |
-| --- | --- | ---: |
-| Native Ruby `brew update` | 1.15, 1.09, 1.14 | 1.14 s |
-| `brew-v update` | 1.34, 1.11, 1.11 | 1.11 s |
+## Translation status
 
-The one real network update cannot be replayed under identical remote state.
-The no-change comparison again measures two frontends entering the same native
-Homebrew implementation.
+The repository contains source-faithful V counterparts for all 2,180 Ruby files
+and retains all 320,780 Ruby source lines as comments. It currently has 23,530
+translated function or generated-method boundaries: 23,527 explicit stubs and
+three direct implementations. This is a complete mechanical translation
+scaffold under the project's explicit stub convention, not yet a behaviorally
+complete Homebrew implementation.
 
 ## Validation
 

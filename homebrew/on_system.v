@@ -4,80 +4,437 @@ import brew_runtime
 
 // Translated from Homebrew/brew `on_system.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub const on_system_arch_options = ['intel', 'arm']
+pub const on_system_base_os_options = ['macos', 'linux']
+pub const on_system_all_os_options = ['golden_gate', 'tahoe', 'sequoia', 'sonoma', 'ventura',
+	'monterey', 'big_sur', 'catalina', 'linux']
+
+pub struct OnSystemContext {
+pub:
+	current_os     string
+	current_arch   string
+	oldest_allowed string = 'catalina'
+}
+
+pub struct OnSystemState {
+pub mut:
+	on_system_blocks_exist bool
+	on_os_blocks_exist     bool
+	called_in_system_block bool
+	called_in_os_block     bool
+	minimum_os             string
+}
+
+pub struct OnSystemDefinitionSet {
+pub:
+	arch_methods    []string
+	base_os_methods []string
+	macos_methods   []string
+	conditional     []string
+}
+
+pub struct OnSystemBlockResult {
+pub:
+	called bool
+	value  string
+}
+
+pub fn on_system_all_os_arch_combinations() [][]string {
+	mut result := [][]string{}
+	for os_name in on_system_all_os_options {
+		for arch in on_system_arch_options {
+			result << [os_name, arch]
+		}
+	}
+	return result
+}
+
+pub fn on_system_arch_condition_met(arch string, context OnSystemContext) !bool {
+	if arch !in on_system_arch_options {
+		return error('Invalid arch condition: :${arch}')
+	}
+	return arch == context.current_arch
+}
+
+pub fn on_system_os_condition_met(os_name string, or_condition ?string,
+	context OnSystemContext) !bool {
+	if os_name in on_system_base_os_options {
+		return if os_name == 'macos' {
+			context.current_os != 'linux'
+		} else {
+			context.current_os == 'linux'
+		}
+	}
+	if os_name !in macos_symbol_versions() {
+		return error('Invalid OS condition: :${os_name}')
+	}
+	if condition := or_condition {
+		if condition !in ['or_newer', 'or_older'] {
+			return error('Invalid OS `or_*` condition: :${condition}')
+		}
+	}
+	if context.current_os == 'linux' {
+		return false
+	}
+	base_os := macos_version_from_symbol(os_name)!
+	current_os := if context.current_os == 'macos' {
+		null_macos_version()
+	} else {
+		macos_version_from_symbol(context.current_os)!
+	}
+	if condition := or_condition {
+		return if condition == 'or_newer' {
+			current_os.compare(base_os) >= 0
+		} else {
+			current_os.compare(base_os) <= 0
+		}
+	}
+	return current_os.compare(base_os) == 0
+}
+
+pub fn on_system_condition_from_method_name(method_name string) string {
+	return method_name.trim_left('on_')
+}
+
+pub fn on_system_arch_definitions() OnSystemDefinitionSet {
+	return OnSystemDefinitionSet{
+		arch_methods: on_system_arch_options.map('on_${it}')
+		conditional: ['on_arch_conditional']
+	}
+}
+
+pub fn on_system_base_os_definitions() OnSystemDefinitionSet {
+	return OnSystemDefinitionSet{
+		base_os_methods: on_system_base_os_options.map('on_${it}')
+		conditional: ['on_system', 'on_system_conditional']
+	}
+}
+
+pub fn on_system_macos_definitions() OnSystemDefinitionSet {
+	return OnSystemDefinitionSet{
+		macos_methods: macos_symbol_versions().keys().map('on_${it}')
+	}
+}
+
+pub fn on_system_run_arch(mut state OnSystemState, method_name string,
+	context OnSystemContext, block_value string) !OnSystemBlockResult {
+	state.on_system_blocks_exist = true
+	condition := on_system_condition_from_method_name(method_name)
+	if !on_system_arch_condition_met(condition, context)! {
+		return OnSystemBlockResult{}
+	}
+	state.called_in_system_block = true
+	result := block_value
+	state.called_in_system_block = false
+	return OnSystemBlockResult{ called: true, value: result }
+}
+
+pub fn on_system_arch_conditional(mut state OnSystemState, arm ?string, intel ?string,
+	context OnSystemContext) !OnSystemBlockResult {
+	state.on_system_blocks_exist = true
+	if on_system_arch_condition_met('arm', context)! {
+		value := arm or { return OnSystemBlockResult{} }
+		return OnSystemBlockResult{ called: true, value: value }
+	}
+	if on_system_arch_condition_met('intel', context)! {
+		value := intel or { return OnSystemBlockResult{} }
+		return OnSystemBlockResult{ called: true, value: value }
+	}
+	return OnSystemBlockResult{}
+}
+
+pub fn on_system_run_base_os(mut state OnSystemState, method_name string,
+	context OnSystemContext, block_value string) !OnSystemBlockResult {
+	state.on_system_blocks_exist = true
+	state.on_os_blocks_exist = true
+	condition := on_system_condition_from_method_name(method_name)
+	if !on_system_os_condition_met(condition, none, context)! {
+		return OnSystemBlockResult{}
+	}
+	state.called_in_system_block = true
+	state.called_in_os_block = true
+	result := block_value
+	state.called_in_system_block = false
+	state.called_in_os_block = false
+	return OnSystemBlockResult{ called: true, value: result }
+}
+
+pub fn on_system_run_system(mut state OnSystemState, linux string, macos string,
+	context OnSystemContext, block_value string) !OnSystemBlockResult {
+	state.on_system_blocks_exist = true
+	state.on_os_blocks_exist = true
+	if linux != 'linux' {
+		return error('The first argument to `on_system` must be `:linux`')
+	}
+	parts := macos.split('_or_')
+	version := parts[0]
+	condition := if parts.len > 1 { ?string('or_${parts[1]}') } else { none }
+	if !on_system_os_condition_met(version, condition, context)! && !on_system_os_condition_met('linux', none, context)! {
+		return OnSystemBlockResult{}
+	}
+	state.called_in_system_block = true
+	state.called_in_os_block = true
+	result := block_value
+	state.called_in_system_block = false
+	state.called_in_os_block = false
+	return OnSystemBlockResult{ called: true, value: result }
+}
+
+pub fn on_system_conditional(mut state OnSystemState, macos ?string, linux ?string,
+	context OnSystemContext) !OnSystemBlockResult {
+	state.on_system_blocks_exist = true
+	if on_system_os_condition_met('macos', none, context)! {
+		if value := macos {
+			if value != '' {
+				return OnSystemBlockResult{ called: true, value: value }
+			}
+		}
+	} else if on_system_os_condition_met('linux', none, context)! {
+		if value := linux {
+			if value != '' {
+				return OnSystemBlockResult{ called: true, value: value }
+			}
+		}
+	}
+	return OnSystemBlockResult{}
+}
+
+pub fn on_system_run_macos(mut state OnSystemState, method_name string,
+	or_condition ?string, context OnSystemContext, block_value string) !OnSystemBlockResult {
+	state.on_system_blocks_exist = true
+	state.on_os_blocks_exist = true
+	os_condition := on_system_condition_from_method_name(method_name)
+	if !on_system_os_condition_met(os_condition, or_condition, context)! {
+		return OnSystemBlockResult{}
+	}
+	if condition := or_condition {
+		if condition == 'or_older' {
+			if !state.called_in_system_block {
+				state.minimum_os = context.oldest_allowed
+			}
+		} else {
+			state.minimum_os = os_condition
+		}
+	} else {
+		state.minimum_os = os_condition
+	}
+	state.called_in_system_block = true
+	state.called_in_os_block = true
+	result := block_value
+	state.called_in_system_block = false
+	state.called_in_os_block = false
+	return OnSystemBlockResult{ called: true, value: result }
+}
+
+pub fn on_system_macos_and_linux_definitions() OnSystemDefinitionSet {
+	arch := on_system_arch_definitions()
+	base := on_system_base_os_definitions()
+	macos := on_system_macos_definitions()
+	mut conditional := arch.conditional.clone()
+	conditional << base.conditional
+	return OnSystemDefinitionSet{
+		arch_methods: arch.arch_methods
+		base_os_methods: base.base_os_methods
+		macos_methods: macos.macos_methods
+		conditional: conditional
+	}
+}
+
+pub fn on_system_macos_only_definitions() OnSystemDefinitionSet {
+	arch := on_system_arch_definitions()
+	macos := on_system_macos_definitions()
+	return OnSystemDefinitionSet{
+		arch_methods: arch.arch_methods
+		macos_methods: macos.macos_methods
+		conditional: arch.conditional
+	}
+}
+
+fn on_system_optional_value(result OnSystemBlockResult) brew_runtime.Value {
+	return if result.called {
+		brew_runtime.string_value(result.value)
+	} else {
+		brew_runtime.object_value('NilClass', 'nil')
+	}
+}
+
+fn on_system_context_from_args(args []brew_runtime.Value, offset int) OnSystemContext {
+	return OnSystemContext{
+		current_os: if args.len > offset {
+			args[offset].as_string().trim_left(':')} else {
+			'linux'}
+		current_arch: if args.len > offset + 1 {
+			args[offset + 1].as_string().trim_left(':')} else {
+			'arm'}
+		oldest_allowed: if args.len > offset + 2 {
+			args[offset + 2].as_string().trim_left(':')} else {
+			'catalina'}
+	}
+}
+
+fn on_system_definition_value(definitions OnSystemDefinitionSet) brew_runtime.Value {
+	return brew_runtime.map_value({
+		'arch_methods':    brew_runtime.string_array_value(definitions.arch_methods)
+		'base_os_methods': brew_runtime.string_array_value(definitions.base_os_methods)
+		'macos_methods':   brew_runtime.string_array_value(definitions.macos_methods)
+		'conditional':     brew_runtime.string_array_value(definitions.conditional)
+	})
+}
 
 // Ruby method `self.arch_condition_met?(arch)` at line 20.
 pub fn ruby_on_system_l20_d1_self_arch_condition_met(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.arch_condition_met?', ...args)
+	if args.len == 0 {
+		return brew_runtime.object_value('ArgumentError', 'arch is required')
+	}
+	matched := on_system_arch_condition_met(args[0].as_string().trim_left(':'), on_system_context_from_args(args, 1)) or {
+		return brew_runtime.object_value('ArgumentError', err.msg())
+	}
+	return brew_runtime.bool_value(matched)
 }
 
 // Ruby method `self.os_condition_met?(os_name, or_condition = nil)` at line 27.
 pub fn ruby_on_system_l27_d2_self_os_condition_met(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.os_condition_met?', ...args)
+	if args.len == 0 {
+		return brew_runtime.object_value('ArgumentError', 'OS is required')
+	}
+	condition := if args.len > 1 && args[1].type_name !in ['Nil', 'NilClass'] {
+		?string(args[1].as_string().trim_left(':'))
+	} else {
+		none
+	}
+	matched := on_system_os_condition_met(args[0].as_string().trim_left(':'), condition, on_system_context_from_args(args, 2)) or {
+		return brew_runtime.object_value('ArgumentError', err.msg())
+	}
+	return brew_runtime.bool_value(matched)
 }
 
 // Ruby method `self.condition_from_method_name(method_name)` at line 56.
 pub fn ruby_on_system_l56_d3_self_condition_from_method_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.condition_from_method_name', ...args)
+	if args.len == 0 {
+		return brew_runtime.object_value('ArgumentError', 'method name is required')
+	}
+	return brew_runtime.object_value('Symbol', ':${on_system_condition_from_method_name(args[0].as_string().trim_left(':'))}')
 }
 
 // Ruby method `self.setup_arch_methods(base)` at line 61.
 pub fn ruby_on_system_l61_d4_self_setup_arch_methods(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.setup_arch_methods', ...args)
+	return on_system_definition_value(on_system_arch_definitions())
 }
 
 // Ruby define_method `base.define_method(:"on_#{arch}") do |&block|` at line 63.
 pub fn ruby_on_system_l63_d5_on_arch(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('on_#{arch}', ...args)
+	if args.len < 2 {
+		return brew_runtime.object_value('ArgumentError', 'method and block value are required')
+	}
+	mut state := OnSystemState{}
+	result := on_system_run_arch(mut state, args[0].as_string().trim_left('on_'), on_system_context_from_args(args, 2), args[1].as_string()) or {
+		return brew_runtime.object_value('ArgumentError', err.msg())
+	}
+	return on_system_optional_value(result)
 }
 
 // Ruby define_method `base.define_method(:on_arch_conditional) do |arm: nil, intel: nil|` at line 76.
 pub fn ruby_on_system_l76_d6_on_arch_conditional(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('on_arch_conditional', ...args)
+	arm := if args.len > 0 && args[0].type_name !in ['Nil', 'NilClass'] {
+		?string(args[0].as_string())
+	} else {
+		none
+	}
+	intel := if args.len > 1 && args[1].type_name !in ['Nil', 'NilClass'] {
+		?string(args[1].as_string())
+	} else {
+		none
+	}
+	mut state := OnSystemState{}
+	result := on_system_arch_conditional(mut state, arm, intel, on_system_context_from_args(args, 2)) or {
+		return brew_runtime.object_value('ArgumentError', err.msg())
+	}
+	return on_system_optional_value(result)
 }
 
 // Ruby method `self.setup_base_os_methods(base)` at line 88.
 pub fn ruby_on_system_l88_d7_self_setup_base_os_methods(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.setup_base_os_methods', ...args)
+	return on_system_definition_value(on_system_base_os_definitions())
 }
 
 // Ruby define_method `base.define_method(:"on_#{base_os}") do |&block|` at line 90.
 pub fn ruby_on_system_l90_d8_on_base_os(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('on_#{base_os}', ...args)
+	if args.len < 2 {
+		return brew_runtime.object_value('ArgumentError', 'method and block value are required')
+	}
+	mut state := OnSystemState{}
+	result := on_system_run_base_os(mut state, args[0].as_string().trim_left('on_'), on_system_context_from_args(args, 2), args[1].as_string()) or {
+		return brew_runtime.object_value('ArgumentError', err.msg())
+	}
+	return on_system_optional_value(result)
 }
 
 // Ruby define_method `base.define_method(:on_system) do |linux, macos:, &block|` at line 106.
 pub fn ruby_on_system_l106_d9_on_system(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('on_system', ...args)
+	if args.len < 3 {
+		return brew_runtime.object_value('ArgumentError', 'linux, macOS, and block value are required')
+	}
+	mut state := OnSystemState{}
+	result := on_system_run_system(mut state, args[0].as_string().trim_left(':'), args[1].as_string().trim_left(':'), on_system_context_from_args(args, 3), args[2].as_string()) or {
+		return brew_runtime.object_value('ArgumentError', err.msg())
+	}
+	return on_system_optional_value(result)
 }
 
 // Ruby define_method `base.define_method(:on_system_conditional) do |macos: nil, linux: nil|` at line 128.
 pub fn ruby_on_system_l128_d10_on_system_conditional(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('on_system_conditional', ...args)
+	macos := if args.len > 0 && args[0].type_name !in ['Nil', 'NilClass'] {
+		?string(args[0].as_string())
+	} else {
+		none
+	}
+	linux := if args.len > 1 && args[1].type_name !in ['Nil', 'NilClass'] {
+		?string(args[1].as_string())
+	} else {
+		none
+	}
+	mut state := OnSystemState{}
+	result := on_system_conditional(mut state, macos, linux, on_system_context_from_args(args, 2)) or {
+		return brew_runtime.object_value('ArgumentError', err.msg())
+	}
+	return on_system_optional_value(result)
 }
 
 // Ruby method `self.setup_macos_methods(base)` at line 140.
 pub fn ruby_on_system_l140_d11_self_setup_macos_methods(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.setup_macos_methods', ...args)
+	return on_system_definition_value(on_system_macos_definitions())
 }
 
 // Ruby define_method `base.define_method(:"on_#{os_name}") do |or_condition = nil, &block|` at line 142.
 pub fn ruby_on_system_l142_d12_on_os_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('on_#{os_name}', ...args)
+	if args.len < 2 {
+		return brew_runtime.object_value('ArgumentError', 'method and block value are required')
+	}
+	condition := if args.len > 2 && args[2].type_name !in ['Nil', 'NilClass'] {
+		?string(args[2].as_string().trim_left(':'))
+	} else {
+		none
+	}
+	mut state := OnSystemState{}
+	result := on_system_run_macos(mut state, args[0].as_string().trim_left('on_'), condition, on_system_context_from_args(args, 3), args[1].as_string()) or {
+		return brew_runtime.object_value('ArgumentError', err.msg())
+	}
+	return on_system_optional_value(result)
 }
 
 // Ruby method `self.included(_base)` at line 169.
 pub fn ruby_on_system_l169_d13_self_included(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.included', ...args)
+	return brew_runtime.object_value('RuntimeError', 'Do not include `OnSystem` directly. Instead, include `OnSystem::MacOSAndLinux` or `OnSystem::MacOSOnly`')
 }
 
 // Ruby method `self.included(base)` at line 175.
 pub fn ruby_on_system_l175_d14_self_included(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.included', ...args)
+	return on_system_definition_value(on_system_macos_and_linux_definitions())
 }
 
 // Ruby method `self.included(base)` at line 184.
 pub fn ruby_on_system_l184_d15_self_included(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.included', ...args)
+	return on_system_definition_value(on_system_macos_only_definitions())
 }
 
 // Original Ruby source (line-for-line):

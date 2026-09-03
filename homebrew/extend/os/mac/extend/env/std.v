@@ -2,42 +2,186 @@ module env
 
 import brew_runtime
 
+pub struct MacStdenvConfig {
+pub:
+	homebrew_library  string
+	homebrew_prefix   string
+	macos_version     string
+	sdk_path          string
+	xcode_without_clt bool
+	xcode_prefix      string
+	xcode_toolchain   string
+	preferred_perl    string
+}
+
+fn mac_env_append(environment map[string]string, key string, value string) map[string]string {
+	mut result := environment.clone()
+	result[key] = if result[key] == '' { value } else { '${result[key]} ${value}' }
+	return result
+}
+
+fn mac_env_prepend(environment map[string]string, key string, value string) map[string]string {
+	mut result := environment.clone()
+	result[key] = if result[key] == '' { value } else { '${value} ${result[key]}' }
+	return result
+}
+
+fn mac_env_append_path(environment map[string]string, key string, value string) map[string]string {
+	mut result := environment.clone()
+	result[key] = if result[key] == '' { value } else { '${result[key]}:${value}' }
+	return result
+}
+
+fn mac_env_remove_token(environment map[string]string, key string, token string) map[string]string {
+	mut result := environment.clone()
+	result[key] = result[key].fields().filter(it != token).join(' ')
+	return result
+}
+
+pub fn mac_stdenv_extra_pkg_config_paths(library string, version string) []string {
+	return ['${library}/Homebrew/os/mac/pkgconfig/${version}']
+}
+
+pub fn mac_stdenv_remove_macosxsdk(environment map[string]string, prefix string,
+	sdk_fallback string) map[string]string {
+	mut result := environment.clone()
+	result['CFLAGS'] = result['CFLAGS'].fields().filter(!it.starts_with('-mmacosx-version-min=')).join(' ')
+	result.delete('CPATH')
+	result = mac_env_remove_token(result, 'LDFLAGS', '-L${prefix}/lib')
+	sdk := if result['SDKROOT'] != '' { result['SDKROOT'] } else { sdk_fallback }
+	if sdk == '' {
+		return result
+	}
+	result.delete('SDKROOT')
+	for key in ['CFLAGS', 'CPPFLAGS', 'LDFLAGS'] {
+		result = mac_env_remove_token(result, key, '-isysroot${sdk}')
+	}
+	if prefix == '/usr/local' {
+		result.delete('CMAKE_PREFIX_PATH')
+	} else {
+		result['CMAKE_PREFIX_PATH'] = prefix
+	}
+	result['CMAKE_FRAMEWORK_PATH'] = result['CMAKE_FRAMEWORK_PATH'].split(':').filter(it != '${sdk}/System/Library/Frameworks').join(':')
+	return result
+}
+
+pub fn mac_stdenv_macosxsdk(environment map[string]string, prefix string, version string,
+	sdk string) map[string]string {
+	mut result := mac_stdenv_remove_macosxsdk(environment, prefix, sdk)
+	result = mac_env_append(result, 'CFLAGS', '-mmacosx-version-min=${version}')
+	result['CPATH'] = '${prefix}/include'
+	result = mac_env_prepend(result, 'LDFLAGS', '-L${prefix}/lib')
+	result['SDKROOT'] = sdk
+	result = mac_env_append_path(result, 'CPATH', '${sdk}/usr/include')
+	result = mac_env_append(result, 'CFLAGS', '-isysroot${sdk}')
+	result = mac_env_append(result, 'CPPFLAGS', '-isysroot${sdk}')
+	result = mac_env_append(result, 'LDFLAGS', '-isysroot${sdk}')
+	result = mac_env_append_path(result, 'CMAKE_PREFIX_PATH', '${sdk}/usr')
+	result = mac_env_append_path(result, 'CMAKE_FRAMEWORK_PATH', '${sdk}/System/Library/Frameworks')
+	return result
+}
+
+pub fn mac_stdenv_setup(environment map[string]string, config MacStdenvConfig) map[string]string {
+	mut result := mac_setup_shared_build_environment(environment, config.preferred_perl)
+	result = mac_env_append(result, 'LDFLAGS', '-Wl,-headerpad_max_install_names')
+	result.delete('LC_ALL')
+	result['LC_CTYPE'] = 'C'
+	result = mac_stdenv_macosxsdk(result, config.homebrew_prefix, config.macos_version, config.sdk_path)
+	if config.xcode_without_clt {
+		result = mac_env_append_path(result, 'PATH', '${config.xcode_prefix}/usr/bin')
+		result = mac_env_append_path(result, 'PATH', '${config.xcode_toolchain}/usr/bin')
+	}
+	return result
+}
+
+pub fn mac_stdenv_libxml2(environment map[string]string, sdk string,
+	libxml_directory_exists bool) map[string]string {
+	if libxml_directory_exists {
+		return environment.clone()
+	}
+	return mac_env_append(environment, 'CPPFLAGS', '-I${sdk}/usr/include/libxml2')
+}
+
+pub fn mac_stdenv_no_weak_imports(environment map[string]string,
+	supported bool) map[string]string {
+	if !supported {
+		return environment.clone()
+	}
+	return mac_env_append(environment, 'LDFLAGS', '-Wl,-no_weak_imports')
+}
+
+pub fn mac_stdenv_no_fixup_chains(environment map[string]string,
+	supported bool) map[string]string {
+	if !supported {
+		return environment.clone()
+	}
+	return mac_env_append(environment, 'LDFLAGS', '-Wl,-no_fixup_chains')
+}
+
+fn mac_std_environment(args []brew_runtime.Value) map[string]string {
+	if args.len == 0 || args[0].type_name != 'Hash' {
+		return map[string]string{}
+	}
+	return mac_string_map_from_value(args[0]) or { map[string]string{} }
+}
+
 // Translated from Homebrew/brew `extend/os/mac/extend/ENV/std.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `homebrew_extra_pkg_config_paths` at line 13.
 pub fn ruby_std_l13_d1_homebrew_extra_pkg_config_paths(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('homebrew_extra_pkg_config_paths', ...args)
+	library := if args.len > 0 { args[0].as_string() } else { '' }
+	version := if args.len > 1 { args[1].as_string() } else { '' }
+	return brew_runtime.string_array_value(mac_stdenv_extra_pkg_config_paths(library, version))
 }
 
 // Ruby method `setup_build_environment(formula: nil, cc: nil, build_bottle: false, bottle_arch: nil,` at line 30.
 pub fn ruby_std_l30_d2_setup_build_environment(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('setup_build_environment', ...args)
+	if args.len < 6 {
+		panic('setup_build_environment requires environment and macOS toolchain configuration')
+	}
+	result := mac_stdenv_setup(mac_std_environment(args), MacStdenvConfig{
+		homebrew_library: args[1].as_string()
+		homebrew_prefix: args[2].as_string()
+		macos_version: args[3].as_string()
+		sdk_path: args[4].as_string()
+		preferred_perl: args[5].as_string()
+		xcode_without_clt: if args.len > 6 { args[6].as_bool() or { false } } else { false }
+		xcode_prefix: if args.len > 7 { args[7].as_string() } else { '' }
+		xcode_toolchain: if args.len > 8 { args[8].as_string() } else { '' }
+	})
+	return mac_string_map_value(result)
 }
 
 // Ruby method `remove_macosxsdk(version = nil)` at line 50.
 pub fn ruby_std_l50_d3_remove_macosxsdk(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('remove_macosxsdk', ...args)
+	if args.len < 3 { panic('remove_macosxsdk requires environment, prefix, and SDK') }
+	return mac_string_map_value(mac_stdenv_remove_macosxsdk(mac_std_environment(args), args[1].as_string(), args[2].as_string()))
 }
 
 // Ruby method `macosxsdk(version = nil, formula: nil, testing_formula: false)` at line 74.
 pub fn ruby_std_l74_d4_macosxsdk(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('macosxsdk', ...args)
+	if args.len < 4 { panic('macosxsdk requires environment, prefix, version, and SDK') }
+	return mac_string_map_value(mac_stdenv_macosxsdk(mac_std_environment(args), args[1].as_string(), args[2].as_string(), args[3].as_string()))
 }
 
 // Ruby method `libxml2` at line 108.
 pub fn ruby_std_l108_d5_libxml2(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('libxml2', ...args)
+	if args.len < 2 { panic('libxml2 requires environment and SDK') }
+	exists := if args.len > 2 { args[2].as_bool() or { false } } else { false }
+	return mac_string_map_value(mac_stdenv_libxml2(mac_std_environment(args), args[1].as_string(), exists))
 }
 
 // Ruby method `no_weak_imports` at line 115.
 pub fn ruby_std_l115_d6_no_weak_imports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('no_weak_imports', ...args)
+	supported := if args.len > 1 { args[1].as_bool() or { false } } else { true }
+	return mac_string_map_value(mac_stdenv_no_weak_imports(mac_std_environment(args), supported))
 }
 
 // Ruby method `no_fixup_chains` at line 122.
 pub fn ruby_std_l122_d7_no_fixup_chains(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('no_fixup_chains', ...args)
+	supported := if args.len > 1 { args[1].as_bool() or { false } } else { true }
+	return mac_string_map_value(mac_stdenv_no_fixup_chains(mac_std_environment(args), supported))
 }
 
 // Original Ruby source (line-for-line):

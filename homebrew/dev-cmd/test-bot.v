@@ -5,9 +5,81 @@ import brew_runtime
 // Translated from Homebrew/brew `dev-cmd/test-bot.rb`.
 // The original source is retained below until every stub has a typed V body.
 
+pub struct TestBotCommandOptions {
+pub:
+	github_actions          bool
+	only_cleanup_before     bool
+	only_setup              bool
+	only_tap_syntax         bool
+	only_formulae           bool
+	only_formulae_detect    bool
+	only_formulae_dependents bool
+	only_bottles_fetch      bool
+	only_cleanup_after      bool
+}
+
+pub struct TestBotCommandResult {
+pub:
+	environment    map[string]string
+	bundler_groups []string
+	run_test_bot   bool
+}
+
+pub fn run_test_bot_command(options TestBotCommandOptions) TestBotCommandResult {
+	mut environment := {
+		'HOMEBREW_TEST_BOT': '1'
+	}
+	if options.github_actions {
+		environment['HOMEBREW_COLOR'] = '1'
+		environment['HOMEBREW_GITHUB_ACTIONS'] = '1'
+	}
+	exclusive_mode := options.only_cleanup_before || options.only_setup || options.only_tap_syntax
+		|| options.only_formulae_detect || options.only_formulae_dependents
+		|| options.only_bottles_fetch || options.only_cleanup_after
+	return TestBotCommandResult{
+		environment: environment
+		bundler_groups: if options.only_formulae || !exclusive_mode { ['ast'] } else { []string{} }
+		run_test_bot: true
+	}
+}
+
+@[heap]
+pub struct TestBotCommandInput {
+pub:
+	options TestBotCommandOptions
+}
+
+pub fn test_bot_command_input_boundary(input &TestBotCommandInput) brew_runtime.Value {
+	return brew_runtime.structured_value('Homebrew::Cmd::TestBotCmd::Input', '', {
+		'test_bot_command_input_address': u64(voidptr(input)).str()
+	})
+}
+
+fn test_bot_command_input_from_value(value brew_runtime.Value) &TestBotCommandInput {
+	address := value.attributes['test_bot_command_input_address'] or {
+		panic('invalid TestBotCmd input')
+	}
+	return unsafe { &TestBotCommandInput(voidptr(address.u64())) }
+}
+
+fn test_bot_command_result_value(result TestBotCommandResult) brew_runtime.Value {
+	mut environment := map[string]brew_runtime.Value{}
+	for name, value in result.environment {
+		environment[name] = brew_runtime.string_value(value)
+	}
+	return brew_runtime.map_value({
+		'environment': brew_runtime.map_value(environment)
+		'bundler_groups': brew_runtime.string_array_value(result.bundler_groups)
+		'run_test_bot': brew_runtime.bool_value(result.run_test_bot)
+	})
+}
+
 // Ruby method `run` at line 124.
 pub fn ruby_test_bot_l124_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('run', ...args)
+	if args.len == 0 {
+		return brew_runtime.object_value('ArgumentError', 'command input is required')
+	}
+	return test_bot_command_result_value(run_test_bot_command(test_bot_command_input_from_value(args[0]).options))
 }
 
 // Original Ruby source (line-for-line):

@@ -1,63 +1,207 @@
 module homebrew
 
-import brew_runtime
+import homebrew.cli
+import os
 
 // Translated from Homebrew/brew `abstract_command.rb`.
 // The original source is retained below until every stub has a typed V body.
 
+// AbstractCommandParserBlock is the typed equivalent of the block passed to
+// AbstractCommand.cmd_args. The block is evaluated against a fresh parser each
+// time AbstractCommandClass.parser is called, just as in Ruby.
+pub type AbstractCommandParserBlock = fn(mut cli.Parser)
+
+pub struct AbstractCommandClassConfig {
+pub:
+	command_name  string
+	shell_command bool
+}
+
+// AbstractCommandClass carries the class-level state Ruby stores on each
+// AbstractCommand subclass.
+pub struct AbstractCommandClass {
+pub:
+	class_name    string
+	shell_command bool
+mut:
+	command_name_override string
+	parser_block          ?AbstractCommandParserBlock
+	args_class_name       ?string
+}
+
+pub struct AbstractCommandRegistry {
+mut:
+	subclasses []AbstractCommandClass
+}
+
+// AbstractCommand is a parsed command instance. parsed_args deliberately has a
+// different field name so args() remains the exact attr_reader-shaped API.
+pub struct AbstractCommand {
+pub:
+	command AbstractCommandClass
+mut:
+	parsed_args cli.Args
+}
+
+pub fn new_abstract_command_class(class_name string, config AbstractCommandClassConfig) AbstractCommandClass {
+	return AbstractCommandClass{
+		class_name: class_name
+		shell_command: config.shell_command
+		command_name_override: config.command_name
+	}
+}
+
+fn delete_command_suffix(name string) string {
+	if name.ends_with('-cmd') {
+		return name[..name.len - 4]
+	}
+	return name
+}
+
+// command_name_from_class_name mirrors Utils.underscore(name.split("::").last)
+// followed by the two Ruby suffix transformations.
+pub fn command_name_from_class_name(class_name string) !string {
+	if class_name.len == 0 {
+		return error('anonymous commands do not have names')
+	}
+	class_component := class_name.split('::').last()
+	return delete_command_suffix(underscore(class_component).replace('_', '-'))
+}
+
+pub fn (command AbstractCommandClass) command_name() !string {
+	if command.command_name_override.len > 0 {
+		return command.command_name_override
+	}
+	return command_name_from_class_name(command.class_name)
+}
+
+pub fn (command AbstractCommandClass) args_class() ?string {
+	return command.args_class_name
+}
+
+pub fn (command AbstractCommandClass) dev_cmd() bool {
+	return command.class_name.starts_with('Homebrew::DevCmd')
+}
+
+pub fn (command AbstractCommandClass) ruby_cmd() bool {
+	return !command.shell_command
+}
+
+pub fn (mut command AbstractCommandClass) define_args(block AbstractCommandParserBlock) {
+	command.parser_block = block
+	command.args_class_name = if command.class_name.len > 0 {
+		'${command.class_name}::Args'
+	} else {
+		'Args'
+	}
+}
+
+pub fn (command AbstractCommandClass) parser() !cli.Parser {
+	mut parser := cli.new_parser(command.command_name()!)
+	parser.set_developer_command(command.dev_cmd())
+	if block := command.parser_block {
+		block(mut parser)
+	}
+	return parser
+}
+
+pub fn (mut registry AbstractCommandRegistry) register(command AbstractCommandClass) {
+	registry.subclasses << command
+}
+
+pub fn (registry AbstractCommandRegistry) all() []AbstractCommandClass {
+	return registry.subclasses.clone()
+}
+
+pub fn (registry AbstractCommandRegistry) command(name string) ?AbstractCommandClass {
+	for candidate in registry.subclasses {
+		candidate_name := candidate.command_name() or { continue }
+		if candidate_name == name {
+			return candidate
+		}
+	}
+	return none
+}
+
+pub fn new_abstract_command(command AbstractCommandClass, argv []string) !AbstractCommand {
+	mut parser := command.parser()!
+	parsed_args := parser.parse(argv, false)!
+	return AbstractCommand{
+		command: command
+		parsed_args: parsed_args
+	}
+}
+
+pub fn new_abstract_command_from_process(command AbstractCommandClass) !AbstractCommand {
+	argv := if os.args.len > 1 { os.args[1..].clone() } else { []string{} }
+	return new_abstract_command(command, argv)
+}
+
+pub fn (command AbstractCommand) args() cli.Args {
+	return command.parsed_args
+}
+
+pub fn brew_abstract_command_class() AbstractCommandClass {
+	return new_abstract_command_class('Homebrew::Cmd::Brew', AbstractCommandClassConfig{})
+}
+
 // Ruby attr_reader `attr_reader :args_class` at line 29.
-pub fn ruby_abstract_command_l29_d1_args_class(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('args_class', ...args)
+pub fn ruby_abstract_command_l29_d1_args_class(command AbstractCommandClass) ?string {
+	return command.args_class()
 }
 
 // Ruby method `command_name` at line 32.
-pub fn ruby_abstract_command_l32_d2_command_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('command_name', ...args)
+pub fn ruby_abstract_command_l32_d2_command_name(command AbstractCommandClass) !string {
+	return command.command_name()
 }
 
 // Ruby method `command(name) = subclasses.find { it.command_name == name }` at line 42.
-pub fn ruby_abstract_command_l42_d3_command(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('command', ...args)
+pub fn ruby_abstract_command_l42_d3_command(registry AbstractCommandRegistry, name string) ?AbstractCommandClass {
+	return registry.command(name)
 }
 
 // Ruby method `dev_cmd? = T.must(name).start_with?("Homebrew::DevCmd")` at line 45.
-pub fn ruby_abstract_command_l45_d4_dev_cmd(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dev_cmd?', ...args)
+pub fn ruby_abstract_command_l45_d4_dev_cmd(command AbstractCommandClass) bool {
+	return command.dev_cmd()
 }
 
 // Ruby method `ruby_cmd? = !include?(Homebrew::ShellCommand)` at line 48.
-pub fn ruby_abstract_command_l48_d5_ruby_cmd(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ruby_cmd?', ...args)
+pub fn ruby_abstract_command_l48_d5_ruby_cmd(command AbstractCommandClass) bool {
+	return command.ruby_cmd()
 }
 
 // Ruby method `parser = CLI::Parser.new(self, &@parser_block)` at line 51.
-pub fn ruby_abstract_command_l51_d6_parser(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('parser', ...args)
+pub fn ruby_abstract_command_l51_d6_parser(command AbstractCommandClass) !cli.Parser {
+	return command.parser()
 }
 
 // Ruby method `cmd_args(&block)` at line 59.
-pub fn ruby_abstract_command_l59_d7_cmd_args(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cmd_args', ...args)
+pub fn ruby_abstract_command_l59_d7_cmd_args(mut command AbstractCommandClass, block AbstractCommandParserBlock) {
+	command.define_args(block)
 }
 
 // Ruby attr_reader `attr_reader :args` at line 66.
-pub fn ruby_abstract_command_l66_d8_args(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('args', ...args)
+pub fn ruby_abstract_command_l66_d8_args(command AbstractCommand) cli.Args {
+	return command.args()
 }
 
 // Ruby method `initialize(argv = ARGV.freeze)` at line 69.
-pub fn ruby_abstract_command_l69_d9_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+pub fn ruby_abstract_command_l69_d9_initialize(command AbstractCommandClass, argv []string) !AbstractCommand {
+	return new_abstract_command(command, argv)
 }
 
 // Ruby method `run; end` at line 77.
-pub fn ruby_abstract_command_l77_d10_run(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('run', ...args)
+pub fn ruby_abstract_command_l77_d10_run(_ AbstractCommand) {}
+
+pub fn (command AbstractCommand) run() {
+	ruby_abstract_command_l77_d10_run(command)
 }
 
 // Ruby method `run; end` at line 84.
-pub fn ruby_abstract_command_l84_d11_run(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('run', ...args)
+pub fn ruby_abstract_command_l84_d11_run(_ AbstractCommand) {}
+
+pub fn (command AbstractCommand) run_brew() {
+	ruby_abstract_command_l84_d11_run(command)
 }
 
 // Original Ruby source (line-for-line):

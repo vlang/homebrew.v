@@ -7,7 +7,13 @@ import brew_runtime
 
 // Ruby method `tag_start` at line 17.
 pub fn ruby_dynamic_section_l17_d1_tag_start(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tag_start', ...args)
+	if args.len == 0 { panic('DynamicSection#tag_start requires a header') }
+	offset := if args[0].type_name == 'Integer' {
+		args[0].as_int() or { panic(err) }
+	} else {
+		(args[0].attribute('sh_offset') or { '0' }).i64()
+	}
+	return brew_runtime.int_value(offset)
 }
 
 // Original Ruby source (line-for-line):

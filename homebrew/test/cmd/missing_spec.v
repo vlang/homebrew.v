@@ -1,23 +1,38 @@
 module cmd
 
-import brew_runtime
+import homebrew.cmd as brew_cmd
 
 // Translated from Homebrew/brew `test/cmd/missing_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "prints missing dependencies", :integration_test, :no_api do` at line 10.
-pub fn ruby_missing_spec_l10_d1_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+pub fn ruby_missing_spec_l10_d1_prints() bool {
+	result := brew_cmd.missing_command([
+		brew_cmd.MissingCommandPackage{ full_name: 'bar', display_name: 'bar', missing_dependencies: [
+			'foo',
+		] },
+	], [], true)
+	return result.failed && result.output == 'foo\n'
 }
 
 // Ruby it `it "prints missing cask dependencies", :cask, :no_api do` at line 28.
-pub fn ruby_missing_spec_l28_d2_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+pub fn ruby_missing_spec_l28_d2_prints() bool {
+	result := brew_cmd.missing_command([], [missing_everything_cask()], true)
+	return result.failed && result.output == 'local-caffeine unar\n'
 }
 
 // Ruby it `it "prints missing cask dependencies for named casks", :cask, :no_api do` at line 46.
-pub fn ruby_missing_spec_l46_d3_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+pub fn ruby_missing_spec_l46_d3_prints() bool {
+	result := brew_cmd.missing_command([], [missing_everything_cask()], true)
+	return result.failed && result.output == 'local-caffeine unar\n'
+}
+
+fn missing_everything_cask() brew_cmd.MissingCommandPackage {
+	return brew_cmd.MissingCommandPackage{
+		full_name: 'with-depends-on-everything'
+		display_name: 'with-depends-on-everything'
+		missing_dependencies: ['local-caffeine', 'unar']
+	}
 }
 
 // Original Ruby source (line-for-line):

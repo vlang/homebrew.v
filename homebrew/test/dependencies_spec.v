@@ -1,58 +1,97 @@
 module test
 
 import brew_runtime
+import homebrew
 
 // Translated from Homebrew/brew `test/dependencies_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:dependencies) { described_class.new }` at line 8.
 pub fn ruby_dependencies_spec_l8_d1_dependencies(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dependencies', ...args)
+	return homebrew.ruby_dependencies_l15_d1_initialize()
 }
 
 // Ruby it `it "returns itself" do` at line 11.
 pub fn ruby_dependencies_spec_l11_d2_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	mut dependencies := homebrew.new_dependencies()
+	result := dependencies.add(homebrew.new_dependency('foo', []string{}))
+	return brew_runtime.bool_value(result.equal(dependencies))
 }
 
 // Ruby it `it "preserves order" do` at line 15.
 pub fn ruby_dependencies_spec_l15_d3_preserves(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('preserves', ...args)
+	names := ['foo', 'bar', 'baz']
+	mut dependencies := homebrew.new_dependencies()
+	for name in names {
+		dependencies.add(homebrew.new_dependency(name, []string{}))
+	}
+	return brew_runtime.bool_value(dependencies.to_a().map(it.name) == names)
 }
 
 // Ruby specify `specify "#*" do` at line 28.
 pub fn ruby_dependencies_spec_l28_d4_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#*', ...args)
+	dependencies := homebrew.new_dependencies(homebrew.new_dependency('foo', []string{}), homebrew.new_dependency('bar', []string{}))
+	return brew_runtime.bool_value(dependencies.join(', ') == 'foo, bar')
 }
 
 // Ruby specify `specify "#to_a" do` at line 34.
 pub fn ruby_dependencies_spec_l34_d5_to_a(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#to_a', ...args)
+	dependency := homebrew.new_dependency('foo', []string{})
+	dependencies := homebrew.new_dependencies(dependency)
+	values := dependencies.to_a()
+	return brew_runtime.bool_value(values.len == 1 && values[0].equal(dependency))
 }
 
 // Ruby specify `specify "#to_ary" do` at line 40.
 pub fn ruby_dependencies_spec_l40_d6_to_ary(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#to_ary', ...args)
+	dependency := homebrew.new_dependency('foo', []string{})
+	dependencies := homebrew.new_dependencies(dependency)
+	values := dependencies.to_ary()
+	return brew_runtime.bool_value(values.len == 1 && values[0].equal(dependency))
 }
 
 // Ruby specify `specify "type helpers" do` at line 46.
 pub fn ruby_dependencies_spec_l46_d7_type(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('type', ...args)
+	foo := homebrew.new_dependency('foo', []string{})
+	bar := homebrew.new_dependency('bar', [':optional'])
+	baz := homebrew.new_dependency('baz', [':build'])
+	qux := homebrew.new_dependency('qux', [':recommended'])
+	quux := homebrew.new_dependency('quux', []string{})
+	dependencies := homebrew.new_dependencies(foo, bar, baz, qux, quux)
+	return brew_runtime.bool_value(dependencies.required().map(it.name) == ['foo', 'quux']
+		&& dependencies.optional().map(it.name) == ['bar']
+		&& dependencies.build().map(it.name) == ['baz']
+		&& dependencies.recommended().map(it.name) == ['qux']
+		&& dependencies.default_dependencies().map(it.name) == ['baz', 'foo', 'quux', 'qux'])
 }
 
 // Ruby specify `specify "equality" do` at line 60.
 pub fn ruby_dependencies_spec_l60_d8_equality(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('equality', ...args)
+	dependency := homebrew.new_dependency('foo', []string{})
+	mut a := homebrew.new_dependencies()
+	mut b := homebrew.new_dependencies()
+	a.add(dependency)
+	b.add(dependency)
+	equal_before := a.equal(b)
+	b.add(homebrew.new_dependency('bar', [':optional']))
+	return brew_runtime.bool_value(equal_before && !a.equal(b))
 }
 
 // Ruby specify `specify "#empty?" do` at line 78.
 pub fn ruby_dependencies_spec_l78_d9_empty(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#empty?', ...args)
+	mut dependencies := homebrew.new_dependencies()
+	empty_before := dependencies.empty()
+	dependencies.add(homebrew.new_dependency('foo', []string{}))
+	return brew_runtime.bool_value(empty_before && !dependencies.empty())
 }
 
 // Ruby specify `specify "#inspect" do` at line 85.
 pub fn ruby_dependencies_spec_l85_d10_inspect(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#inspect', ...args)
+	mut dependencies := homebrew.new_dependencies()
+	empty_inspect := dependencies.inspect()
+	dependencies.add(homebrew.new_dependency('foo', []string{}))
+	return brew_runtime.bool_value(empty_inspect == '#<Dependencies: []>'
+		&& dependencies.inspect() == '#<Dependencies: [#<Dependency: "foo" []>]>')
 }
 
 // Original Ruby source (line-for-line):

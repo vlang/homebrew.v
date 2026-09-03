@@ -1,13 +1,23 @@
 module utils
 
-import brew_runtime
-
 // Translated from Homebrew/brew `extend/os/linux/cask/utils/trash.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub struct LinuxTrashResult {
+pub:
+	trashed []string
+	failed  []string
+}
+
+pub type FreedesktopTrashAction = fn([]string) !LinuxTrashResult
+
+pub fn linux_trash(paths []string, action FreedesktopTrashAction) !LinuxTrashResult {
+	return action(paths)!
+}
 
 // Ruby method `trash(*paths, command: nil)` at line 14.
-pub fn ruby_trash_l14_d1_trash(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('trash', ...args)
+pub fn ruby_trash_l14_d1_trash(paths []string,
+	action FreedesktopTrashAction) !LinuxTrashResult {
+	return linux_trash(paths, action)!
 }
 
 // Original Ruby source (line-for-line):

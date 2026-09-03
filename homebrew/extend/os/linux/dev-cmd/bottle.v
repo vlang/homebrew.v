@@ -1,13 +1,22 @@
 module dev_cmd
 
-import brew_runtime
-
 // Translated from Homebrew/brew `extend/os/linux/dev-cmd/bottle.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub fn linux_formula_ignores(formula_name string, cellar string, prefix string,
+	base_ignores []string) []string {
+	mut ignores := base_ignores.clone()
+	if formula_name == 'gcc' || formula_name.starts_with('gcc@') {
+		ignores << '${cellar}/gcc|${prefix}/opt/gcc'
+	} else if formula_name == 'binutils' || formula_name.starts_with('binutils@') {
+		ignores << '${cellar}/binutils'
+	}
+	return ignores
+}
 
 // Ruby method `formula_ignores(formula)` at line 9.
-pub fn ruby_bottle_l9_d1_formula_ignores(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_ignores', ...args)
+pub fn ruby_bottle_l9_d1_formula_ignores(formula_name string, cellar string, prefix string,
+	base_ignores []string) []string {
+	return linux_formula_ignores(formula_name, cellar, prefix, base_ignores)
 }
 
 // Original Ruby source (line-for-line):

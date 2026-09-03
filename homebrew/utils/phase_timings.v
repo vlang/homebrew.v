@@ -1,53 +1,281 @@
 module utils
 
-import brew_runtime
+import json2
+import math
+import os
+import sync
+import time
 
 // Translated from Homebrew/brew `utils/phase_timings.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub struct PhaseTimingEvent {
+pub:
+	phase     string
+	start     i64
+	duration  i64
+	thread_id u64
+	detail    ?string @[omitempty]
+}
+
+pub struct PhaseTimingsOutput {
+pub:
+	schema_version int = 1
+	time_unit      string = 'microseconds'
+	command        []string
+	events         []PhaseTimingEvent
+}
+
+@[heap]
+pub struct PhaseTimings {
+mut:
+	command     []string
+	events      []PhaseTimingEvent
+	mutex       sync.Mutex
+	output_path string
+	started_at  f64
+}
+
+pub enum PhaseTimingVisibility {
+	private_method
+	protected_method
+	public_method
+}
+
+pub struct PhaseTimingMethod {
+pub:
+	receiver    string
+	method_name string
+	visibility  PhaseTimingVisibility
+}
+
+pub struct PhaseTimingInstrumentation {
+pub:
+	receiver    string
+	method_name string
+	phase       string
+	visibility  PhaseTimingVisibility
+}
+
+pub struct PhaseTimingDetailObject {
+pub:
+	full_name           string
+	download_queue_name string
+	value               string
+	string_like         bool
+}
+
+pub struct PhaseTimingDetailInput {
+pub:
+	formula ?PhaseTimingDetailObject
+	url     ?PhaseTimingDetailObject
+	args    []PhaseTimingDetailObject
+}
+
+pub fn new_phase_timings() &PhaseTimings {
+	return &PhaseTimings{}
+}
+
+pub fn phase_timings_monotonic_time() f64 {
+	return f64(time.sys_mono_now()) / 1_000_000_000.0
+}
+
+pub fn (mut timings PhaseTimings) record(phase string, started_at f64, completed_at f64,
+	detail ?string) {
+	event := PhaseTimingEvent{
+		phase: phase
+		start: i64(math.round((started_at - timings.started_at) * 1_000_000.0))
+		duration: i64(math.round((completed_at - started_at) * 1_000_000.0))
+		thread_id: sync.thread_id()
+		detail: detail
+	}
+	timings.mutex.lock()
+	timings.events << event
+	timings.mutex.unlock()
+}
+
+pub fn (mut timings PhaseTimings) start(output_path string, started_at f64, command []string) {
+	timings.output_path = output_path
+	timings.started_at = started_at
+	timings.command = command.clone()
+	timings.mutex.lock()
+	timings.events = []PhaseTimingEvent{}
+	timings.mutex.unlock()
+	timings.record('startup', started_at, phase_timings_monotonic_time(), none)
+}
+
+pub fn (mut timings PhaseTimings) measure[T](phase string, detail ?string,
+	operation fn() !T) !T {
+	// Recording is opt-in via `$HOMEBREW_PHASE_TIMINGS`, so callers on the
+	// startup path can measure unconditionally without paying for it.
+	if timings.output_path == '' {
+		return operation()
+	}
+	started_at := phase_timings_monotonic_time()
+	result := operation() or {
+		timings.record(phase, started_at, phase_timings_monotonic_time(), detail)
+		return err
+	}
+	timings.record(phase, started_at, phase_timings_monotonic_time(), detail)
+	return result
+}
+
+pub fn (mut timings PhaseTimings) events() []PhaseTimingEvent {
+	timings.mutex.lock()
+	events := timings.events.clone()
+	timings.mutex.unlock()
+	return events
+}
+
+pub fn (mut timings PhaseTimings) write() ! {
+	output_path := timings.output_path
+	if output_path == '' {
+		return
+	}
+	mut events := timings.events()
+	events.sort(a.start < b.start)
+	directory := os.dir(output_path)
+	if directory != '' && directory != '.' {
+		os.mkdir_all(directory)!
+	}
+	os.write_file(output_path, '${json2.encode(PhaseTimingsOutput{
+		command: timings.command.clone()
+		events: events
+	},
+		prettify: true
+		escape_unicode: true
+	)}\n')!
+}
+
+pub fn phase_timing_detail_for(input PhaseTimingDetailInput) ?string {
+	object := if formula := input.formula {
+		formula
+	} else if url := input.url {
+		url
+	} else if input.args.len > 0 {
+		input.args[0]
+	} else {
+		return none
+	}
+	if object.full_name != '' {
+		return object.full_name
+	}
+	if object.download_queue_name != '' {
+		return object.download_queue_name
+	}
+	if object.string_like {
+		return object.value
+	}
+	return none
+}
+
+pub fn phase_timing_instrument(available []PhaseTimingMethod, receiver string,
+	method_name string, phase string) ?PhaseTimingInstrumentation {
+	for visibility in [PhaseTimingVisibility.private_method, .protected_method, .public_method] {
+		for method in available {
+			if method.receiver == receiver && method.method_name == method_name && method.visibility == visibility {
+				return PhaseTimingInstrumentation{
+					receiver: receiver
+					method_name: method_name
+					phase: phase
+					visibility: visibility
+				}
+			}
+		}
+	}
+	return none
+}
+
+pub fn phase_timings_installation_plan(available []PhaseTimingMethod) []PhaseTimingInstrumentation {
+	candidates := [
+		['Homebrew::CLI::NamedArgs', 'to_formulae_and_casks', 'formula_resolution'],
+		['Formulary.singleton_class', 'factory', 'formula_inflation'],
+		['Homebrew::API.singleton_class', 'fetch_api_files!', 'api_metadata_load'],
+		['Homebrew::API::Internal.singleton_class', 'formula_struct', 'api_metadata_load'],
+		['Homebrew::Install.singleton_class', 'formula_installers', 'planning'],
+		['Homebrew::Install.singleton_class', 'perform_preinstall_checks_once', 'preinstall_checks'],
+		['FormulaInstaller', 'prelude', 'planning'],
+		['FormulaInstaller', 'compute_dependencies', 'dependency_resolution'],
+		['FormulaInstaller', 'pour', 'pour'],
+		['FormulaInstaller', 'link', 'link'],
+		['FormulaInstaller', 'clean', 'cleanup'],
+		['FormulaInstaller', 'post_install', 'postinstall'],
+		['Homebrew::DownloadQueue', 'enqueue', 'download_enqueue'],
+		['Utils::Curl', 'curl_headers', 'curl_headers'],
+		['Utils::Curl.singleton_class', 'curl_headers', 'curl_headers'],
+		['Utils::Curl', 'curl_download', 'curl_body'],
+		['Utils::Curl.singleton_class', 'curl_download', 'curl_body'],
+		['Downloadable::VerificationCache', 'verify', 'checksum'],
+		['AbstractFileDownloadStrategy', 'create_symlink_to_cached_download', 'symlink'],
+		['AbstractDownloadStrategy', 'stage', 'extraction'],
+		['Bottle', 'stage_from_download_queue', 'extraction'],
+		['Cask::Download', 'stage_from_download_queue', 'extraction'],
+		['Tab', 'write', 'tab_write'],
+		['Cleanup.singleton_class', 'install_formula_clean!', 'cleanup'],
+	]
+	mut plan := []PhaseTimingInstrumentation{}
+	for candidate in candidates {
+		if instrumentation := phase_timing_instrument(available, candidate[0], candidate[1], candidate[2]) {
+			plan << instrumentation
+		}
+	}
+	return plan
+}
+
+pub fn (mut timings PhaseTimings) run_instrumentation[T](instrumentation PhaseTimingInstrumentation,
+	input PhaseTimingDetailInput, operation fn() !T) !T {
+	detail := phase_timing_detail_for(input)
+	return timings.measure(instrumentation.phase, detail, operation)
+}
 
 // Ruby method `self.start!(output_path:, started_at:, command:)` at line 21.
-pub fn ruby_phase_timings_l21_d1_self_start(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.start!', ...args)
+pub fn ruby_phase_timings_l21_d1_self_start(mut timings PhaseTimings, output_path string,
+	started_at f64, command []string) {
+	timings.start(output_path, started_at, command)
 }
 
 // Ruby method `self.measure(phase, detail: nil, &_block)` at line 38.
-pub fn ruby_phase_timings_l38_d2_self_measure(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.measure', ...args)
+pub fn ruby_phase_timings_l38_d2_self_measure[T](mut timings PhaseTimings, phase string,
+	detail ?string, operation fn() !T) !T {
+	return timings.measure(phase, detail, operation)
 }
 
 // Ruby method `self.install!` at line 52.
-pub fn ruby_phase_timings_l52_d3_self_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.install!', ...args)
+pub fn ruby_phase_timings_l52_d3_self_install(available []PhaseTimingMethod) []PhaseTimingInstrumentation {
+	return phase_timings_installation_plan(available)
 }
 
 // Ruby method `self.write!` at line 92.
-pub fn ruby_phase_timings_l92_d4_self_write(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.write!', ...args)
+pub fn ruby_phase_timings_l92_d4_self_write(mut timings PhaseTimings) ! {
+	timings.write()!
 }
 
 // Ruby method `self.detail_for(receiver, args)` at line 109.
-pub fn ruby_phase_timings_l109_d5_self_detail_for(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.detail_for', ...args)
+pub fn ruby_phase_timings_l109_d5_self_detail_for(input PhaseTimingDetailInput) ?string {
+	return phase_timing_detail_for(input)
 }
 
 // Ruby method `self.instrument(klass, method_name, phase)` at line 128.
-pub fn ruby_phase_timings_l128_d6_self_instrument(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.instrument', ...args)
+pub fn ruby_phase_timings_l128_d6_self_instrument(available []PhaseTimingMethod, receiver string,
+	method_name string, phase string) ?PhaseTimingInstrumentation {
+	return phase_timing_instrument(available, receiver, method_name, phase)
 }
 
 // Ruby define_method `define_method(method_name) do |*args, **kwargs, &block|` at line 139.
-pub fn ruby_phase_timings_l139_d7_method_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('method_name', ...args)
+pub fn ruby_phase_timings_l139_d7_method_name[T](mut timings PhaseTimings,
+	instrumentation PhaseTimingInstrumentation, input PhaseTimingDetailInput,
+	operation fn() !T) !T {
+	return timings.run_instrumentation(instrumentation, input, operation)
 }
 
 // Ruby method `self.record(phase, started_at, completed_at, detail: nil)` at line 159.
-pub fn ruby_phase_timings_l159_d8_self_record(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.record', ...args)
+pub fn ruby_phase_timings_l159_d8_self_record(mut timings PhaseTimings, phase string,
+	started_at f64, completed_at f64, detail ?string) {
+	timings.record(phase, started_at, completed_at, detail)
 }
 
 // Ruby method `self.monotonic_time` at line 171.
-pub fn ruby_phase_timings_l171_d9_self_monotonic_time(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.monotonic_time', ...args)
+pub fn ruby_phase_timings_l171_d9_self_monotonic_time() f64 {
+	return phase_timings_monotonic_time()
 }
 
 // Original Ruby source (line-for-line):

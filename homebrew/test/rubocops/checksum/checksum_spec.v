@@ -1,38 +1,51 @@
 module checksum
 
 import brew_runtime
+import homebrew.rubocops as checksum_core
 
 // Translated from Homebrew/brew `test/rubocops/checksum/checksum_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:cop) { described_class.new }` at line 7.
 pub fn ruby_checksum_spec_l7_d1_cop(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cop', ...args)
+	return brew_runtime.object_value('RuboCop::Cop::FormulaAudit::Checksum', 'FormulaAudit/Checksum')
 }
 
 // Ruby it `it "reports an offense if a checksum is empty" do` at line 10.
-pub fn ruby_checksum_spec_l10_d2_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_checksum_spec_l10_d2_reports() bool {
+	return checksum_core.audit_formula_checksums('sha256 ""\nsha256 ""').map(it.kind) == [
+		'empty',
+		'empty',
+	]
 }
 
 // Ruby it `it "reports an offense if a checksum is not 64 characters" do` at line 29.
-pub fn ruby_checksum_spec_l29_d3_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_checksum_spec_l29_d3_reports() bool {
+	return checksum_core.audit_formula_checksums('sha256 "abc"').map(it.kind) == [
+		'length',
+	]
 }
 
 // Ruby it `it "reports an offense if a checksum contains invalid characters" do` at line 48.
-pub fn ruby_checksum_spec_l48_d4_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_checksum_spec_l48_d4_reports() bool {
+	checksum := '5cf6e1ae0a645b426c0k7cc7cd3f7d1605ffa1ac5756a39a8b2268ddc7ea0e9a'
+	return checksum_core.audit_formula_checksums('sha256 "${checksum}"').map(it.kind) == [
+		'invalid_characters',
+	]
 }
 
 // Ruby it `it "reports an offense if a checksum is not 64 characters in a bottle block without cellar" do` at line 67.
-pub fn ruby_checksum_spec_l67_d5_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_checksum_spec_l67_d5_reports() bool {
+	return checksum_core.audit_formula_checksums('sha256 catalina: "abc"').map(it.kind) == [
+		'length',
+	]
 }
 
 // Ruby it `it "reports an offense if a checksum is not 64 characters in a bottle block" do` at line 80.
-pub fn ruby_checksum_spec_l80_d6_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_checksum_spec_l80_d6_reports() bool {
+	return checksum_core.audit_formula_checksums('sha256 cellar: :any, catalina: "abc"').map(it.kind) == [
+		'length',
+	]
 }
 
 // Original Ruby source (line-for-line):

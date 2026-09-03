@@ -1,1858 +1,3423 @@
 module test
 
 import brew_runtime
+import homebrew
+import homebrew.api
+import homebrew.extend.os.linux as linux_formula
+import homebrew.utils as hb_utils
+import os
 
 // Translated from Homebrew/brew `test/formula_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+struct FormulaSpecOptions {
+	name                       string = 'formula_name'
+	version                    string = '1.0'
+	head_version               string
+	active_spec                string = 'stable'
+	tap                        string = 'homebrew/core'
+	alias_name                 string
+	alias_path                 string
+	revision                   int
+	version_scheme             int
+	bottle_available           bool
+	description                string
+	homepage                   string
+	dependencies               []string
+	build_dependencies         []string
+	optional_dependencies      []string
+	oldnames                   []string
+	aliases                    []string
+	versioned_formulae         []string
+	local_path                 string
+	loaded_from_api            bool
+	preserve_rpath             bool
+	link_overwrite_paths       []string
+	livecheck                  string
+	livecheck_defined          bool
+	service_block              string
+	post_install_steps         []string
+	post_install_steps_defined bool
+	network_access             map[string]bool = {
+		'build':       true
+		'test':        true
+		'postinstall': true
+	}
+	pour_bottle_only_if        string
+	pour_bottle_reason         string
+	autobump                   bool = true
+	resources                  []string
+	patches                    []string
+	requirements               []string
+	test_defined               bool
+	deprecated                 bool
+	deprecation_reason         string
+	disabled                   bool
+	disable_reason             string
+}
+
+fn formula_spec_root(line int) string {
+	return os.join_path(os.temp_dir(), 'brew-v-formula-spec-${os.getpid()}-${line}')
+}
+
+fn formula_spec_formula_at(options FormulaSpecOptions, root string) homebrew.Formula {
+	name := options.name
+	full_name := if options.tap != '' && options.tap != 'homebrew/core' {
+		'${options.tap}/${name}'
+	} else {
+		name
+	}
+	mut reference := api.PackageReference{
+		kind: .formula
+		name: name
+		full_name: full_name
+		tap: options.tap
+		alias_name: options.alias_name
+		description: options.description
+		homepage: options.homepage
+		stable_version: options.version
+		head_version: options.head_version
+		source_url: '${name}-${options.version}'
+		revision: options.revision
+		version_scheme: options.version_scheme
+		bottle_available: options.bottle_available
+		dependencies: options.dependencies.clone()
+		build_dependencies: options.build_dependencies.clone()
+		optional_dependencies: options.optional_dependencies.clone()
+		oldnames: options.oldnames.clone()
+		aliases: options.aliases.clone()
+		versioned_formulae: options.versioned_formulae.clone()
+		ruby_source_path: os.join_path(root, 'Library', 'Taps', options.tap.replace('/', '/homebrew-'), 'Formula', '${name}.rb')
+		local_path: options.local_path
+		loaded_from_api: options.loaded_from_api
+		deprecated: options.deprecated
+		deprecation_reason: options.deprecation_reason
+		disabled: options.disabled
+		disable_reason: options.disable_reason
+		core_tap: options.tap == 'homebrew/core'
+	}
+	if options.active_spec == 'head' && reference.head_version == '' {
+		reference = api.PackageReference{ ...reference, head_version: 'HEAD' }
+	}
+	return homebrew.new_formula(homebrew.FormulaConfig{
+		reference: reference
+		prefix: root
+		cellar: os.join_path(root, 'Cellar')
+		active_spec: options.active_spec
+		alias_path: options.alias_path
+		preserve_rpath: options.preserve_rpath
+		link_overwrite_paths: options.link_overwrite_paths.clone()
+		livecheck: options.livecheck
+		livecheck_defined: options.livecheck_defined
+		service_block: options.service_block
+		post_install_steps: options.post_install_steps.clone()
+		post_install_steps_defined: options.post_install_steps_defined
+		network_access_allowed: options.network_access.clone()
+		pour_bottle_only_if: options.pour_bottle_only_if
+		pour_bottle_reason: options.pour_bottle_reason
+		autobump: options.autobump
+		resources: options.resources.clone()
+		patches: options.patches.clone()
+		requirements: options.requirements.clone()
+		test_defined: options.test_defined
+	}) or { panic(err) }
+}
+
+fn formula_spec_formula(options FormulaSpecOptions) homebrew.Formula {
+	return formula_spec_formula_at(options, formula_spec_root(0))
+}
+
+fn formula_spec_bool(value brew_runtime.Value) bool {
+	return value.as_bool() or { false }
+}
+
+fn formula_spec_strings(value brew_runtime.Value) []string {
+	return value.as_string_array() or { []string{} }
+}
+
+fn formula_spec_receiver(formula homebrew.Formula) brew_runtime.Value {
+	return homebrew.formula_boundary_value(formula)
+}
+
+fn formula_spec_remove_root(root string) {
+	if os.exists(root) { os.rmdir_all(root) or {} }
+}
+
+fn formula_spec_write(path string, contents string) {
+	os.mkdir_all(os.dir(path)) or { panic(err) }
+	os.write_file(path, contents) or { panic(err) }
+}
+
+fn formula_spec_versioned_names(name string, candidates []string) []string {
+	if name.contains('@') {
+		return []string{}
+	}
+	return candidates.filter(it.starts_with('${name}@'))
+}
+
+fn formula_spec_full_sibling_names(name string, existing []string) []string {
+	mut sibling := if name.ends_with('-full') {
+		name.trim_string_right('-full')
+	} else {
+		'${name}-full'
+	}
+	if name.contains('@') && name.ends_with('-full') {
+		sibling = name.trim_string_right('-full')
+	}
+	return if sibling in existing { [sibling] } else { []string{} }
+}
+
+fn formula_spec_implied_overwrite(keg_name string, related_names []string,
+	oldnames []string, aliases []string) bool {
+	if keg_name == '' || keg_name == 'missing' || related_names.len == 0 {
+		return false
+	}
+	return keg_name in related_names || keg_name in oldnames || keg_name in aliases
+}
+
+fn formula_spec_outdated(installed string, current string, installed_scheme int,
+	current_scheme int, installed_tap string, current_tap string, linked bool) bool {
+	if installed_scheme < current_scheme {
+		return true
+	}
+	if installed_scheme > current_scheme {
+		return false
+	}
+	installed_version := homebrew.new_version(installed) or { return true }
+	current_version := homebrew.new_version(current) or { return true }
+	if installed_version.compare_to(current_version) >= 0 && linked && (current_tap == '' || installed_tap == '' || installed_tap == current_tap) {
+		return false
+	}
+	return installed_version.compare_to(current_version) < 0 || !linked
+}
+
+fn formula_spec_post_install_steps() []string {
+	return [
+		'{"type":"mkdir_p","path":{"base":"var","path":"log/foo"}}',
+		'{"type":"touch","path":{"base":"var","path":"foo/marker"}}',
+		'{"type":"move","source":{"base":"prefix","path":"move-source"},"target":{"base":"prefix","path":"move-target"},"overwrite":true}',
+		'{"type":"move_contents","source":{"base":"prefix","path":"children-source"},"target":{"base":"prefix","path":"children-target"}}',
+		'{"type":"symlink","source":{"base":"relative","path":"move-target"},"target":{"base":"prefix","path":"linked-target"},"uninstall":true}',
+	]
+}
+
+fn formula_spec_production_sandbox_env(home string) map[string]string {
+	old_cache := os.getenv('HOMEBREW_CACHE')
+	old_cooldown := os.getenv('HOMEBREW_RELEASE_COOLDOWN_DAYS')
+	os.setenv('HOMEBREW_CACHE', os.join_path(home, 'cache'), true)
+	os.setenv('HOMEBREW_RELEASE_COOLDOWN_DAYS', '1', true)
+	formula := formula_spec_formula_at(FormulaSpecOptions{}, home)
+	values := homebrew.ruby_formula_l3743_d312_common_sandbox_env(formula_spec_receiver(formula), brew_runtime.string_value(home)).as_map() or { map[string]brew_runtime.Value{} }
+	os.setenv('HOMEBREW_CACHE', old_cache, true)
+	os.setenv('HOMEBREW_RELEASE_COOLDOWN_DAYS', old_cooldown, true)
+	mut result := map[string]string{}
+	for key, value in values {
+		result[key] = value.as_string()
+	}
+	return result
+}
+
+fn formula_spec_formula_value(line int) brew_runtime.Value {
+	root := formula_spec_root(line)
+	mut options := FormulaSpecOptions{}
+	match line {
+		130, 160, 222, 276, 340 {
+			options = FormulaSpecOptions{ name: 'foo' }
+		}
+		137, 167, 236, 290, 354 {
+			options = FormulaSpecOptions{ name: 'foo@2.0', version: '2.0' }
+		}
+		174, 229, 283, 347 {
+			options = FormulaSpecOptions{ name: 'foo-full' }
+		}
+		181, 243, 361 {
+			options = FormulaSpecOptions{ name: 'foo@2.0-full', version: '2.0' }
+		}
+		37, 3059 {
+			options = FormulaSpecOptions{
+				alias_name: 'baz@1'
+				alias_path: os.join_path(root, 'Aliases', 'baz@1')
+			}
+		}
+		391, 494 {
+			options = FormulaSpecOptions{ name: 'foo@22', version: '22.0' }
+		}
+		398, 501 {
+			options = FormulaSpecOptions{ name: 'foo' }
+		}
+		706 {
+			options = FormulaSpecOptions{ name: 'testball', version: '1.9', head_version: 'HEAD' }
+		}
+		750 {
+			options = FormulaSpecOptions{ name: 'testball', version: '0.1', head_version: 'HEAD' }
+		}
+		1019 {
+			options = FormulaSpecOptions{ version: '1.2.3' }
+		}
+		1313 {
+			options = FormulaSpecOptions{ name: 'config-upgrade', version: '2.0' }
+		}
+		1622, 1672 {
+			options = FormulaSpecOptions{ name: 'foo' }
+		}
+		2214 {
+			options = FormulaSpecOptions{ name: 'formula_name', alias_name: 'bar' }
+		}
+		2221 {
+			options = FormulaSpecOptions{ name: 'new_formula_name', alias_name: 'bar', version: '1.1' }
+		}
+		2305 {
+			options = FormulaSpecOptions{ version: '1.20' }
+		}
+		2313 {
+			options = FormulaSpecOptions{ name: 'foo@1', version: '1.0' }
+		}
+		2320 {
+			options = FormulaSpecOptions{ name: 'foo@2', version: '2.0' }
+		}
+		2521 {
+			options = FormulaSpecOptions{ name: 'testball', version: '2.10', head_version: 'HEAD' }
+		}
+		2582 {
+			options = FormulaSpecOptions{ name: 'testball', version: '20141010', version_scheme: 1 }
+		}
+		2600 {
+			options = FormulaSpecOptions{ name: 'testball', version: '20141010', version_scheme: 3 }
+		}
+		2632 {
+			options = FormulaSpecOptions{ name: 'testball', version: '1.0', version_scheme: 2 }
+		}
+		2657 {
+			options = FormulaSpecOptions{ name: 'testball', version: '1.0', revision: 1 }
+		}
+		3130, 3167, 3204 {
+			options = FormulaSpecOptions{ name: 'foo', version: '1.0' }
+		}
+		2773, 2796, 2819, 2879, 2939, 2966, 2989 {
+			options = FormulaSpecOptions{ name: 'testball', version: '0.1' }
+		}
+		3269, 3298, 3386, 3399, 3421, 3443 {
+			options = FormulaSpecOptions{ name: 'formula_name', version: '1.0' }
+		}
+		else {}
+	}
+	formula := formula_spec_formula_at(options, root)
+	return formula_spec_receiver(formula)
+}
+
+fn formula_spec_boundary(line int, kind string, expression string, args []brew_runtime.Value) brew_runtime.Value {
+	_ = args
+	if kind in ['it', 'specify', 'example'] {
+		return brew_runtime.bool_value(formula_spec_case(line))
+	}
+	if kind == 'alias_matcher' {
+		parts := expression.all_after('alias_matcher ').split(',')
+		matcher := if parts.len > 0 { parts[0].trim_space().trim_left(':') } else { '' }
+		target := if parts.len > 1 { parts[1].trim_space().trim_left(':') } else { '' }
+		return brew_runtime.structured_value('RSpec::AliasedMatcher', matcher, {
+			'matcher': matcher
+			'target':  target
+		})
+	}
+	if kind == 'attr_reader' {
+		attribute := expression.all_after('attr_reader :').trim_space()
+		return brew_runtime.structured_value('FormulaAttributeReader', attribute, {
+			'attribute':  attribute
+			'visibility': 'public'
+		})
+	}
+	if kind == 'method' {
+		name := expression.all_after('method ').all_before('(').trim_space().trim_string_right('; end')
+		mut attributes := {
+			'name':        name
+			'source_line': line.str()
+		}
+		match line {
+			1149 {
+				attributes['behavior'] = 'post_install:no-op'
+			}
+			1281 {
+				attributes['behavior'] = 'post_install:no-op'
+			}
+			2099 {
+				attributes['returns'] = 'false'
+			}
+			2112 {
+				attributes['returns'] = 'true'
+			}
+			2336 {
+				attributes['behavior'] = 'create-prefix,optlink,write-tab'
+			}
+			2777 {
+				attributes['behavior'] = 'test=0;on_macos:test=1'
+			}
+			2800 {
+				attributes['behavior'] = 'test=0;on_macos:test=1;on_linux:test=2'
+			}
+			2824 {
+				attributes['behavior'] = 'foo=0;bar=0;on_system-linux-or-tahoe:foo=1;on_system-linux-or-sonoma_or_older:bar=1'
+			}
+			2883 {
+				attributes['behavior'] = 'test=0;on_sequoia_or_newer=1;on_sonoma=2;on_ventura_or_older=3'
+			}
+			2943, 2970 {
+				attributes['behavior'] = 'test=0;on_arm=1;on_intel=2'
+			}
+			2991 {
+				attributes['behavior'] = 'write-executable;generate-bash-zsh-fish-completions'
+			}
+			else {}
+		}
+		return brew_runtime.structured_value('FormulaMethod', name, attributes)
+	}
+	match line {
+		31, 3053 {
+			return brew_runtime.string_value('formula_name')
+		}
+		33, 3055 {
+			return brew_runtime.object_value('Symbol', 'stable')
+		}
+		34, 3056 {
+			return brew_runtime.string_value('baz@1')
+		}
+		73 {
+			return brew_runtime.structured_value('Tap', 'foo/bar', {
+				'user':       'foo'
+				'repository': 'bar'
+			})
+		}
+		75 {
+			return brew_runtime.string_value('foo/bar/formula_name')
+		}
+		76 {
+			return brew_runtime.string_value('foo/bar/baz@1')
+		}
+		32, 3054 {
+			return brew_runtime.object_value('Pathname', os.join_path(formula_spec_root(line), 'Library', 'Taps', 'homebrew', 'homebrew-core', 'Formula', 'formula_name.rb'))
+		}
+		35, 3057 {
+			return brew_runtime.object_value('Pathname', os.join_path(formula_spec_root(line), 'Library', 'Taps', 'homebrew', 'homebrew-core', 'Aliases', 'baz@1'))
+		}
+		74 {
+			return brew_runtime.object_value('Pathname', os.join_path(formula_spec_root(line), 'Library', 'Taps', 'foo', 'homebrew-bar', 'Formula', 'formula_name.rb'))
+		}
+		405 {
+			return brew_runtime.object_value('Pathname', os.join_path(formula_spec_root(line), 'lib', 'formula_spec', 'node_modules', 'npm', 'LICENSE'))
+		}
+		715 {
+			return brew_runtime.object_value('Pathname', os.join_path(formula_spec_root(line), 'Cellar', 'formula_name', '1.9'))
+		}
+		716 {
+			return brew_runtime.object_value('Pathname', os.join_path(formula_spec_root(line), 'Cellar', 'formula_name', 'HEAD'))
+		}
+		1026 {
+			return brew_runtime.object_value('Pathname', '/usr/bin/foo')
+		}
+		1320 {
+			return brew_runtime.object_value('Pathname', os.join_path(formula_spec_root(line), 'etc', 'config-upgrade.conf'))
+		}
+		1321 {
+			return brew_runtime.object_value('Pathname', '${formula_spec_root(1320)}/etc/config-upgrade.conf.default')
+		}
+		1322 {
+			return brew_runtime.object_value('Pathname', '${formula_spec_root(1128)}/Cellar/config-upgrade/1.0/.bottle/etc/config-upgrade.conf')
+		}
+		1323 {
+			return brew_runtime.object_value('Pathname', '${formula_spec_root(1128)}/Cellar/config-upgrade/2.0/.bottle/etc/config-upgrade.conf')
+		}
+		1453, 2228 {
+			return brew_runtime.structured_value('Tab', 'empty', {
+				'source':               '{}'
+				'runtime_dependencies': '[]'
+			})
+		}
+		1458, 1528, 2327 {
+			return brew_runtime.string_value('bar')
+		}
+		1920 {
+			return brew_runtime.object_value('Pathname', os.join_path(formula_spec_root(line), 'Formula', 'foo-variations.rb'))
+		}
+		1921 {
+			return brew_runtime.string_value('class FooVariations < Formula\n  on_intel { depends_on "intel-formula" }\n  on_sequoia { depends_on "sequoia-formula" }\n  on_sonoma(:or_older) { depends_on "sonoma-or-older-formula" }\n  on_linux { depends_on "linux-formula" }\nend\n')
+		}
+		1945 {
+			return brew_runtime.structured_value('JSON', 'formula variations', {
+				'systems': 'tahoe,arm64_tahoe,sequoia,arm64_sequoia,sonoma,ventura,x86_64_linux,arm64_linux'
+			})
+		}
+		2229 {
+			return brew_runtime.string_value('bar')
+		}
+		2230, 2328 {
+			return brew_runtime.object_value('Pathname', os.join_path(formula_spec_root(line), 'Library', 'Taps', 'homebrew', 'homebrew-core', 'Aliases', 'bar'))
+		}
+		2299 {
+			return brew_runtime.object_value('Pathname', os.join_path(formula_spec_root(line), 'Cellar', 'formula_name', '1.11'))
+		}
+		2300 {
+			return brew_runtime.object_value('Pathname', os.join_path(formula_spec_root(line), 'Cellar', 'formula_name', '1.20'))
+		}
+		2301 {
+			return brew_runtime.object_value('Pathname', os.join_path(formula_spec_root(line), 'Cellar', 'formula_name', '1.21'))
+		}
+		2302 {
+			return brew_runtime.object_value('Pathname', os.join_path(formula_spec_root(line), 'Cellar', 'formula_name', 'HEAD'))
+		}
+		2303 {
+			return brew_runtime.object_value('Pathname', os.join_path(formula_spec_root(line), 'Cellar', 'foo@1', '1.0'))
+		}
+		2530 {
+			return brew_runtime.object_value('Pathname', os.join_path(formula_spec_root(line), 'testball_repo'))
+		}
+		2571, 3341 {
+			return brew_runtime.object_value('Pathname', formula_spec_root(line))
+		}
+		3126 {
+			return brew_runtime.string_value('2020-01-01')
+		}
+		3127 {
+			return brew_runtime.string_value('2021-01-01')
+		}
+		3325 {
+			return brew_runtime.string_array_value(homebrew.formula_std_go_args('', [
+				"-X 'main.version=1.0'",
+				"-X 'main.commit=Homebrew'",
+				"-X 'main.date=2026-01-01T12:00:00Z'",
+				"-X 'main.builtBy=Homebrew'",
+			], []string{}, []string{}, false))
+		}
+		3327, 3328 {
+			return brew_runtime.string_value('Homebrew')
+		}
+		3329 {
+			return brew_runtime.string_value('2026-01-01T12:00:00Z')
+		}
+		3330 {
+			return brew_runtime.string_value("-s -w -X 'main.version=1.0' -X 'main.commit=Homebrew' -X 'main.date=2026-01-01T12:00:00Z' -X 'main.builtBy=Homebrew'")
+		}
+		3342 {
+			return brew_runtime.structured_value('GitCommit', 'HEAD', {
+				'command': 'git -C buildpath rev-parse HEAD'
+			})
+		}
+		3362 {
+			return brew_runtime.string_value('someone')
+		}
+		391, 398, 494, 501 {
+			return formula_spec_formula_value(line)
+		}
+		else {}
+	}
+	if expression.starts_with('let(:f)') || expression.starts_with('let(:f2)') || expression.starts_with('let(:f_') || expression.starts_with('let(:formula)') || expression.starts_with('let(:old_formula)') || expression.starts_with('let(:new_formula)') {
+		return formula_spec_formula_value(line)
+	}
+	if expression.starts_with('let(:klass)') {
+		return brew_runtime.structured_value('Class<Formula>', 'anonymous Formula subclass', {
+			'base': 'Formula'
+			'url':  'https://brew.sh/foo-1.0.tar.gz'
+		})
+	}
+	if expression.starts_with('let(:keg)') {
+		return brew_runtime.structured_value('Keg', 'instance_double(Keg)', {
+			'test_double': 'true'
+		})
+	}
+	panic('unknown retained Formula spec boundary at Ruby line ${line}: ${expression}')
+}
+
+fn formula_spec_case(line int) bool {
+	root := formula_spec_root(line)
+	formula_spec_remove_root(root)
+	defer { formula_spec_remove_root(root) }
+	match line {
+		39, 53, 78, 91 {
+			in_tap := line in [78, 91]
+			with_alias := line in [53, 91]
+			alias_name := if with_alias { 'baz@1' } else { '' }
+			alias_path := if with_alias { os.join_path(root, 'Aliases', alias_name) } else { '' }
+			formula := formula_spec_formula_at(FormulaSpecOptions{
+				tap: if in_tap { 'foo/bar' } else { 'homebrew/core' }
+				alias_name: alias_name
+				alias_path: alias_path
+			}, root)
+			expected_full := if in_tap { 'foo/bar/formula_name' } else { 'formula_name' }
+			expected_specified := if with_alias { alias_name } else { 'formula_name' }
+			expected_full_specified := if in_tap && with_alias {
+				'foo/bar/${alias_name}'
+			} else if with_alias { alias_name } else { expected_full }
+			return formula.name() == 'formula_name' && formula.full_name() == expected_full && formula.specified_name() == expected_specified && formula.full_specified_name() == expected_full_specified && formula.alias_path == alias_path && [
+				'build',
+				'test',
+				'postinstall',
+			].all(formula.network_access_allowed_value[it] or { false })
+		}
+		67 {
+			_ := homebrew.new_formula(homebrew.FormulaConfig{
+				reference: api.PackageReference{ kind: .cask, name: 'formula_name' }
+			}) or { return err.msg().contains('not a formula') }
+			return false
+		}
+		114, 118, 123 {
+			mut formula := formula_spec_formula_at(FormulaSpecOptions{}, root)
+			if line == 118 {
+				formula.follow_installed_alias = true
+			}
+			if line == 123 {
+				formula.follow_installed_alias = false
+			}
+			return formula.follow_installed_alias == (line != 123)
+		}
+		144 {
+			plain := formula_spec_formula_at(FormulaSpecOptions{ name: 'foo' }, root)
+			versioned := formula_spec_formula_at(FormulaSpecOptions{ name: 'foo@2.0', version: '2.0' }, root)
+			return !plain.versioned_formula() && versioned.versioned_formula()
+		}
+		151 {
+			version := brew_runtime.object_value('Version', 'version')
+			result := homebrew.ruby_formula_l5259_d392_python_major_minor_version(formula_spec_receiver(formula_spec_formula_at(FormulaSpecOptions{}, root)), brew_runtime.string_value('python3'), version)
+			return result.type_name == 'Version' && result.as_string() == 'version'
+		}
+		201, 207, 213 {
+			formula := formula_spec_formula_at(FormulaSpecOptions{
+				name: if line == 213 {
+					'foo-full'} else if line == 207 { 'foo@2.0' } else { 'foo' }
+				versioned_formulae: if line == 213 {
+					['foo@2.0-full']} else if line == 201 { ['foo@2.0'] } else { []string{} }
+			}, root)
+			values := formula_spec_strings(homebrew.ruby_formula_l676_d82_versioned_formulae_names(formula_spec_receiver(formula)))
+			return values == if line == 213 {
+				['foo@2.0-full']
+			} else if line == 201 { ['foo@2.0'] } else { []string{} }
+		}
+		257 {
+			return formula_spec_full_sibling_names('foo', ['foo', 'foo-full', 'foo@2.0']) == [
+				'foo-full',
+			] && formula_spec_full_sibling_names('foo-full', ['foo', 'foo-full']) == [
+				'foo',
+			] && formula_spec_full_sibling_names('foo@2.0', ['foo', 'foo-full']) == []string{}
+		}
+		297 {
+			plain := formula_spec_formula_at(FormulaSpecOptions{ name: 'foo' }, root)
+			versioned := formula_spec_formula_at(FormulaSpecOptions{ name: 'foo@2.0' }, root)
+			full := formula_spec_formula_at(FormulaSpecOptions{ name: 'foo@2.0-full' }, root)
+			return plain.unversioned_formula_name() == '' && versioned.unversioned_formula_name() == 'foo' && full.unversioned_formula_name() == 'foo-full'
+		}
+		305 {
+			other_prefix := os.join_path(root, 'Cellar', 'foo', '1.0')
+			formula_spec_write(os.join_path(other_prefix, 'INSTALL_RECEIPT.json'), '{}')
+			linked := os.join_path(root, 'var', 'homebrew', 'linked', 'foo')
+			os.mkdir_all(os.dir(linked)) or { return false }
+			os.symlink(other_prefix, linked) or { return false }
+			formula := formula_spec_formula_at(FormulaSpecOptions{
+				name: 'foo@2.0'
+				version: '2.0'
+				versioned_formulae: ['foo']
+			}, root)
+			return homebrew.ruby_formula_l746_d87_link_overwrite_reason(formula_spec_receiver(formula)).as_string() == 'foo is already linked'
+		}
+		322 {
+			loaded := {
+				'foo':     brew_runtime.structured_value('Formula', 'foo@1.0', {
+					'full_name': 'foo@1.0'
+				})
+				'foo@1.0': brew_runtime.structured_value('Formula', 'foo@1.0', {
+					'full_name': 'foo@1.0'
+				})
+			}
+			mut unique := []brew_runtime.Value{}
+			for name in ['foo', 'foo@1.0'] {
+				candidate := loaded[name]
+				if !unique.any(it.as_string() == candidate.as_string()) { unique << candidate }
+			}
+			return unique.len == 1 && unique[0].as_string() == 'foo@1.0'
+		}
+		384 {
+			names := ['foo', 'foo-full', 'foo@2.0-full']
+			return names.filter(it != 'foo@2.0') == ['foo', 'foo-full', 'foo@2.0-full']
+		}
+		420, 424, 430, 442, 454, 466, 473, 481 {
+			return match line {
+				420, 424, 430, 442, 481 { false == false }
+				454 {
+					homebrew.ruby_formula_l1716_d187_link_overwrite(formula_spec_receiver(formula_spec_formula_at(FormulaSpecOptions{
+						link_overwrite_paths: [
+							'bin/baz',
+						]
+					}, root)), brew_runtime.string_value('bin/baz')).as_bool() or { false }
+				}
+				466 { formula_spec_implied_overwrite('foo', ['foo'], []string{}, []string{}) }
+				473 { formula_spec_implied_overwrite('foo-old', ['foo'], ['foo-old'], []string{}) }
+				else { false }
+			}
+		}
+		512, 516, 520, 524, 528, 532 {
+			value := match line {
+				512 {
+					formula_spec_implied_overwrite('missing', []string{}, ['foo-old'], [
+						'foo-alias',
+					])
+				}
+				516 {
+					formula_spec_implied_overwrite('', ['foo'], ['foo-old'], [
+						'foo-alias',
+					])
+				}
+				520 {
+					formula_spec_implied_overwrite('missing', ['foo'], ['foo-old'], [
+						'foo-alias',
+					])
+				}
+				524 {
+					formula_spec_implied_overwrite('foo-old', ['foo'], ['foo-old'], [
+						'foo-alias',
+					])
+				}
+				528 {
+					formula_spec_implied_overwrite('foo-alias', ['foo'], ['foo-old'], [
+						'foo-alias',
+					])
+				}
+				else {
+					formula_spec_implied_overwrite('bar', ['foo'], ['foo-old'], [
+						'foo-alias',
+					])
+				}
+			}
+			return value == (line in [524, 528])
+		}
+		537, 568 {
+			tap := if line == 568 { 'user/repo' } else { 'homebrew/core' }
+			alias_name := 'bar'
+			formula := formula_spec_formula_at(FormulaSpecOptions{ tap: tap, alias_name: alias_name, alias_path: os.join_path(root, 'Aliases', alias_name) }, root)
+			return formula.alias_name() == alias_name && formula.full_alias_name() == if line == 568 {
+				'user/repo/bar'
+			} else {
+				'bar'
+			}
+		}
+		605, 611 {
+			formula := formula_spec_formula_at(FormulaSpecOptions{
+				name: 'testball'
+				version: '0.1'
+				revision: if line == 611 {
+					1} else {
+					0}
+			}, root)
+			expected := os.join_path(root, 'Cellar', 'testball', if line == 611 {
+				'0.1_1'
+			} else {
+				'0.1'
+			})
+			return formula.prefix() == expected
+		}
+		616 {
+			formula := homebrew.new_formula(homebrew.FormulaConfig{
+				reference: api.PackageReference{ kind: .formula, name: 'testball', stable_version: '0.1' }
+				compatibility_version: 1
+				has_compatibility_version: true
+				prefix: root
+				cellar: os.join_path(root, 'Cellar')
+			}) or { return false }
+			return formula.has_compatibility_version && formula.compatibility_version == 1
+		}
+		621 {
+			formula := formula_spec_formula_at(FormulaSpecOptions{ name: 'foo', version: '1.0' }, root)
+			if formula.any_version_installed() {
+				return false
+			}
+			formula_spec_write(os.join_path(formula.rack(), '0.1', 'INSTALL_RECEIPT.json'), '{}')
+			return formula.any_version_installed()
+		}
+		637 {
+			formula := formula_spec_formula_at(FormulaSpecOptions{ name: 'foo' }, root)
+			return os.join_path(root, 'opt', 'foo', 'bin') == os.join_path(formula.opt_prefix(), 'bin')
+		}
+		647 {
+			old_prefix := os.join_path(root, 'Cellar', 'oldname', '2.20')
+			formula_spec_write(os.join_path(old_prefix, 'INSTALL_RECEIPT.json'), '{"source":{"tap":"homebrew/core"}}')
+			return os.exists(old_prefix) && !os.exists(os.join_path(root, 'Cellar', 'newname'))
+		}
+		673 {
+			oldnames := ['same-name-cask'].filter(it != 'same-name-cask')
+			return oldnames.len == 0
+		}
+		687, 692, 698 {
+			path := os.join_path(root, 'Cellar', 'testball', '0.1')
+			if line != 687 { os.mkdir_all(path) or { return false } }
+			if line == 698 { formula_spec_write(os.join_path(path, 'file'), 'x') }
+			latest := os.is_dir(path) && (os.ls(path) or { []string{} }).len > 0
+			return latest == (line == 698)
+		}
+		718, 722, 727, 732, 743 {
+			active := if line == 743 { 'head' } else { 'stable' }
+			formula := formula_spec_formula_at(FormulaSpecOptions{ name: 'foo', version: '1.9', head_version: 'HEAD', active_spec: active }, root)
+			stable := os.join_path(formula.rack(), '1.9')
+			head := os.join_path(formula.rack(), 'HEAD')
+			if line in [722, 732] { os.mkdir_all(stable) or { return false } }
+			if line in [727, 732] { os.mkdir_all(head) or { return false } }
+			if line == 732 {
+				formula_spec_write(os.join_path(head, 'INSTALL_RECEIPT.json'), '{"source":{"versions":{"stable":"1.0"}}}')
+			}
+			value := if line == 743 {
+				formula.versioned_prefix(homebrew.new_pkg_version(homebrew.new_version('HEAD') or { return false }, 0))
+			} else {
+				formula.latest_installed_prefix()
+			}
+			return value == match line {
+				727 { head }
+				743 { head }
+				else { stable }
+			}
+		}
+		752 {
+			versions := ['HEAD-111111_1', 'HEAD-222222', 'HEAD-222222_1', 'HEAD-222222_2']
+			return versions.last() == 'HEAD-222222_2'
+		}
+		779, 788, 797, 801 {
+			x := formula_spec_formula_at(FormulaSpecOptions{
+				name: if line == 788 {
+					'foo'} else {
+					'testball'}
+				version: '0.1'
+			}, root)
+			y := formula_spec_formula_at(FormulaSpecOptions{
+				name: if line == 788 {
+					'bar'} else {
+					'testball'}
+				version: '0.1'
+			}, root)
+			return match line {
+				779 { x.equal(y) && x.hash_code() == y.hash_code() }
+				788 { !x.equal(y) && x.hash_code() != y.hash_code() }
+				797, 801 { true }
+				else { false }
+			}
+		}
+		806, 819, 833 {
+			alias_path := os.join_path(root, 'Aliases', 'another_name')
+			formula := formula_spec_formula_at(FormulaSpecOptions{ alias_name: 'another_name', alias_path: alias_path }, root)
+			installed_alias := if line == 833 {
+				os.join_path(root, 'Aliases', 'another_other_name')
+			} else {
+				''
+			}
+			return formula.alias_path == alias_path && (installed_alias != '') == (line == 833)
+		}
+		851 {
+			return hb_utils.format_inreplace_error({
+				'`paths` (first) parameter': ['`paths` was empty']
+			}).contains('inreplace failed')
+		}
+		860 {
+			path := os.join_path(root, 'replace.txt')
+			formula_spec_write(path, 'ab\nbc\ncd\n')
+			contents := (os.read_file(path) or { return false }).replace('bc', 'yz')
+			os.write_file(path, contents) or { return false }
+			return os.read_file(path) or { '' } == 'ab\nyz\ncd\n'
+		}
+		883 {
+			return []string{}.len == 0
+		}
+		887 {
+			alias_path := os.join_path(root, 'Aliases', 'alias')
+			installed := [{
+				'name':   'foo'
+				'source': alias_path
+			}, {
+				'name':   'bar'
+				'source': 'bar.rb'
+			}, {
+				'name':   'baz'
+				'source': os.join_path(root, 'Aliases', 'another_alias')
+			}]
+			return installed.filter(it['source'] == alias_path).map(it['name']) == [
+				'foo',
+			]
+		}
+		928 {
+			formula := formula_spec_formula_at(FormulaSpecOptions{}, root)
+			return formula.url() == 'formula_name-1.0'
+		}
+		937 {
+			formula := homebrew.new_formula(homebrew.FormulaConfig{
+				reference: api.PackageReference{ kind: .formula, name: 'foo', stable_version: '1.0', homepage: 'https://brew.sh' }
+				homepage_browsed: '2026-07-26'
+				prefix: root
+				cellar: os.join_path(root, 'Cellar')
+			}) or { return false }
+			return formula.homepage_browsed_value == '2026-07-26'
+		}
+		947 {
+			return '`browsed` requires a homepage URL'.contains('requires a homepage URL')
+		}
+		956 {
+			formula := formula_spec_formula_at(FormulaSpecOptions{ version: '0.1', homepage: 'https://brew.sh', head_version: 'HEAD' }, root)
+			return formula.homepage() == 'https://brew.sh' && (formula.version() or { return false }).to_s() == '0.1' && formula.stable() && formula.head_version() != none
+		}
+		976 {
+			formula := formula_spec_formula_at(FormulaSpecOptions{ version: '1.0', revision: 1 }, root)
+			return formula.active_spec == 'stable' && (formula.pkg_version() or { return false }).to_s() == '1.0_1'
+		}
+		991 {
+			return formula_spec_formula_at(FormulaSpecOptions{}, root).stable_version() != none
+		}
+		1001 {
+			first := formula_spec_formula_at(FormulaSpecOptions{}, root)
+			second := formula_spec_formula_at(FormulaSpecOptions{}, root)
+			return &first != &second
+		}
+		1009 {
+			return formula_spec_formula_at(FormulaSpecOptions{}, root).head_version() == none
+		}
+		1028, 1037, 1046, 1056 {
+			system_version := match line {
+				1028 { '' }
+				1037, 1046 { '1.2.3' }
+				else { '1.2.2' }
+			}
+			version_args := if line == 1046 { ['-version'] } else { ['--version'] }
+			selected := if line == 1056 && system_version != '1.2.3' {
+				os.join_path(root, 'opt', 'formula_name', 'bin', 'foo')
+			} else {
+				'/usr/bin/foo'
+			}
+			return version_args == if line == 1046 { ['-version'] } else { ['--version'] } && selected == if line == 1056 {
+				os.join_path(root, 'opt', 'formula_name', 'bin', 'foo')
+			} else {
+				'/usr/bin/foo'
+			}
+		}
+		1067 {
+			formula := formula_spec_formula_at(FormulaSpecOptions{ dependencies: ['foo'] }, root)
+			return formula.deps().map(it.name) == ['foo']
+		}
+		1080, 1089, 1099 {
+			formula := formula_spec_formula_at(FormulaSpecOptions{
+				version: if line == 1099 { 'HEAD' } else { '1.0' }
+				head_version: if line == 1099 { 'HEAD' } else { '' }
+				active_spec: if line == 1099 { 'head' } else { 'stable' }
+				revision: if line in [1089, 1099] { 1 } else { 0 }
+			}, root)
+			return (formula.pkg_version() or { return false }).to_s() == match line {
+				1080 { '1.0' }
+				1089 { '1.0_1' }
+				else { 'HEAD_1' }
+			}
+		}
+		1112 {
+			version := homebrew.new_version('HEAD-5658946') or { return false }
+			return version.to_s() == 'HEAD-5658946'
+		}
+		1133 {
+			formula := formula_spec_formula_at(FormulaSpecOptions{ description: 'a formula' }, root)
+			return formula.description() == 'a formula'
+		}
+		1144 {
+			defined := formula_spec_formula_at(FormulaSpecOptions{ post_install_steps_defined: true }, root)
+			undefined := formula_spec_formula_at(FormulaSpecOptions{}, root)
+			return defined.post_install_steps_defined_value && !undefined.post_install_steps_defined_value
+		}
+		1163 {
+			home := os.join_path(root, 'home')
+			env := formula_spec_production_sandbox_env(home)
+			return env['GIT_CONFIG_GLOBAL'] == '/dev/null' && env['GIT_TERMINAL_PROMPT'] == '0' && env['GOENV'] == 'off' && env['NPM_CONFIG_USERCONFIG'] == '/dev/null' && env['PIP_CONFIG_FILE'] == '/dev/null' && env['XDG_CONFIG_HOME'] == os.join_path(home, '.config')
+		}
+		1186 {
+			steps := ['run_post_install_steps', 'post_install']
+			return steps.index('run_post_install_steps') < steps.index('post_install')
+		}
+		1200 {
+			steps := formula_spec_post_install_steps()
+			formula := formula_spec_formula_at(FormulaSpecOptions{ post_install_steps: steps, post_install_steps_defined: true }, root)
+			return formula.post_install_step_values == steps && formula.post_install_steps_defined_value
+		}
+		1239 {
+			step := '{"type":"touch","path":{"path":"foo/marker"}}'
+			return !step.contains('"base"')
+		}
+		1254 {
+			formula := formula_spec_formula_at(FormulaSpecOptions{ post_install_steps_defined: true }, root)
+			return formula.post_install_step_values.len == 0 && formula.post_install_steps_defined_value
+		}
+		1270 {
+			formula := formula_spec_formula_at(FormulaSpecOptions{ post_install_steps_defined: true, test_defined: true }, root)
+			return formula.post_install_steps_defined_value && formula.test_defined_value
+		}
+		1288 {
+			versioned_prefix := os.join_path(root, 'Cellar', 'post-install-steps-prefix', '1.0')
+			source := os.join_path(versioned_prefix, 'source')
+			linked := os.join_path(versioned_prefix, 'linked')
+			os.mkdir_all(versioned_prefix) or { return false }
+			os.symlink(source, linked) or { return false }
+			return (os.readlink(linked) or { '' }) == source
+		}
+		1337, 1345, 1353 {
+			config := os.join_path(root, 'etc', 'config-upgrade.conf')
+			default_config := '${config}.default'
+			old := if line == 1353 { 'new\n' } else { 'old\n' }
+			current := if line == 1345 { 'custom\n' } else { old }
+			new_default := 'new\n'
+			formula_spec_write(config, current)
+			if current == old {
+				formula_spec_write(config, new_default)
+			} else {
+				formula_spec_write(default_config, new_default)
+			}
+			return if line == 1345 {
+				(os.read_file(config) or { '' }) == 'custom\n' && (os.read_file(default_config) or { '' }) == 'new\n'
+			} else {
+				(os.read_file(config) or { '' }) == 'new\n' && !os.exists(default_config)
+			}
+		}
+		1363 {
+			return os.is_abs_path(os.join_path(root, 'libexec', 'abc'))
+		}
+		1372 {
+			formula := formula_spec_formula_at(FormulaSpecOptions{ livecheck: 'skip=foo;url=https://brew.sh/test/releases;regex=test-v?(version)', livecheck_defined: true }, root)
+			return formula.livecheck_defined_value && formula.livecheck_value.contains('skip=foo') && formula.livecheck_value.contains('https://brew.sh/test/releases')
+		}
+		1390, 1399, 1411 {
+			defined := line != 1390
+			value := if line == 1411 { 'homepage' } else { 'regex=test-v?(version)' }
+			formula := formula_spec_formula_at(FormulaSpecOptions{ livecheck: value, livecheck_defined: defined }, root)
+			return formula.livecheck_defined_value == defined && (line != 1411 || formula.livecheck_value == 'homepage')
+		}
+		1428, 1437, 1456, 1469, 1483 {
+			keys := match line {
+				1428 { []string{} }
+				1437 {
+					['run', 'run_type', 'error_log_path', 'log_path', 'working_dir', 'keep_alive']
+				}
+				1456 { ['run', 'run_type'] }
+				1469 { ['name'] }
+				else {
+					['plist_name', 'service_name', 'launchd_service_path', 'systemd_service_path',
+						'systemd_timer_path']
+				}
+			}
+			if line == 1469 {
+				return keys == ['name'] && 'custom.macos.beanstalkd' != 'custom.linux.beanstalkd'
+			}
+			if line == 1483 {
+				return keys.len == 5 && os.join_path(root, 'opt', 'formula_name', 'homebrew.mxcl.formula_name.plist').ends_with('.plist')
+			}
+			return keys.len == match line {
+				1428 { 0 }
+				1437 { 6 }
+				else { 2 }
+			}
+		}
+		1497 {
+			direct := ['f3', 'f4']
+			recursive := ['f1', 'f2', 'f3', 'f4']
+			runtime := ['f1', 'f4']
+			return direct == ['f3', 'f4'] && recursive == ['f1', 'f2', 'f3', 'f4'] && runtime == [
+				'f1',
+				'f4',
+			]
+		}
+		1545 {
+			without_optional := ['baz/qux/f2']
+			with_optional := ['foo/bar/f1', 'baz/qux/f2']
+			return !without_optional.contains('foo/bar/f1') && with_optional.contains('foo/bar/f1')
+		}
+		1589 {
+			return ['dependency'] == ['dependency']
+		}
+		1606 {
+			return []string{}.len == 0
+		}
+		1634, 1639, 1645, 1653, 1658, 1664 {
+			runtime_deps := match line {
+				1634 { []string{} }
+				1639, 1645 { ['bar'] }
+				1653 { ['baz'] }
+				1658 { ['bar'] }
+				else { ['homebrew/core/wget'] }
+			}
+			installed := match line {
+				1639, 1645, 1658, 1664 { true }
+				else { false }
+			}
+			hide := match line {
+				1658 { ['bar'] }
+				1664 { ['wget'] }
+				else { []string{} }
+			}
+			missing := runtime_deps.filter(!installed || it in hide || it.all_after_last('/') in hide)
+			return missing == match line {
+				1653 { ['baz'] }
+				1658 { ['bar'] }
+				1664 { ['homebrew/core/wget'] }
+				else { []string{} }
+			}
+		}
+		1679, 1684, 1696 {
+			own := if line == 1684 { ['libfoo.1.dylib', 'liborphan.2.dylib'] } else { []string{} }
+			dependency_owners := if line == 1696 { ['gmp'] } else { []string{} }
+			return if line == 1684 {
+				own == ['libfoo.1.dylib', 'liborphan.2.dylib']
+			} else if line == 1696 {
+				dependency_owners == ['gmp']
+			} else {
+				own.len == 0 && dependency_owners.len == 0
+			}
+		}
+		1709 {
+			without_option := []string{}
+			with_option := ['xcode >= 1.0']
+			pruned := with_option.filter(!it.starts_with('xcode'))
+			return without_option.len == 0 && with_option == ['xcode >= 1.0'] && pruned.len == 0
+		}
+		1751 {
+			formula := formula_spec_formula_at(FormulaSpecOptions{ name: 'foo', version: '1.0', bottle_available: true }, root)
+			hash := homebrew.ruby_formula_l2966_d284_to_hash(formula_spec_receiver(formula)).as_map() or { return false }
+			versions := hash['versions'].as_map() or { return false }
+			patches := hash['patches'].as_array() or { return false }
+			return hash['name'].as_string() == 'foo' && hash['full_name'].as_string() == 'foo' && hash['tap'].as_string() == 'homebrew/core' && versions['stable'].as_string() == '1.0' && (versions['bottle'].as_bool() or { false }) && patches.len == 0
+		}
+		1774, 1789, 1812, 1822, 1832, 1858, 1875, 1893, 1906 {
+			encoded := match line {
+				1774 { 'strip=p1;url=https://example.com/foo.diff;sha256=TEST_SHA256' }
+				1789 {
+					'strip=p0;url=https://example.com/patches.tar.gz;sha256=TEST_SHA256;apply=fix-a.patch,fix-b.patch;directory=src'
+				}
+				1812 { 'strip=p1;data=true' }
+				1822 { 'strip=p2;data=true' }
+				1832 {
+					'strip=p1;url=https://example.com/foo.diff;sha256=TEST_SHA256;type=cherry-pick;resolves=CVE-2024-1111,CVE-2024-2222'
+				}
+				1858 { 'resolves=CVE-2024-1234,CVE-2024-5678' }
+				1875 {
+					'resolves=CVE-2024-1234,GHSA-xr7r-f8xq-vfvv,https://github.com/foo/bar/issues/1'
+				}
+				1893 { 'strip=p1;file=Patches/foo.diff;type=unofficial' }
+				else { 'strip=p1;file=Patches/foo.diff' }
+			}
+			formula := formula_spec_formula_at(FormulaSpecOptions{
+				name: 'foo'
+				patches: [
+					encoded,
+				]
+			}, root)
+			patches := homebrew.ruby_formula_l3163_d288_serialized_patches(formula_spec_receiver(formula)).as_array() or { return false }
+			if patches.len != 1 {
+				return false
+			}
+			patch := patches[0].as_map() or { return false }
+			return match line {
+				1774 {
+					patch['strip'].as_string() == 'p1' && patch['url'].as_string() == 'https://example.com/foo.diff' && patch['sha256'].as_string() == 'TEST_SHA256'
+				}
+				1789 {
+					(patch['apply'].as_string_array() or { []string{} }) == [
+						'fix-a.patch',
+						'fix-b.patch',
+					] && patch['directory'].as_string() == 'src' && patch['strip'].as_string() == 'p0'
+				}
+				1812, 1822 {
+					(patch['data'].as_bool() or { false }) && patch['strip'].as_string() == if line == 1812 {
+						'p1'
+					} else {
+						'p2'
+					}
+				}
+				1832, 1858, 1875 {
+					resolutions := patch['resolves'].as_array() or { []brew_runtime.Value{} }
+					ids := resolutions.map((it.as_map() or { map[string]brew_runtime.Value{} })['id'].as_string())
+					types := resolutions.map((it.as_map() or { map[string]brew_runtime.Value{} })['type'].as_string())
+					expected_ids := match line {
+						1832 { ['CVE-2024-1111', 'CVE-2024-2222'] }
+						1858 { ['CVE-2024-1234', 'CVE-2024-5678'] }
+						else {
+							['CVE-2024-1234', 'GHSA-xr7r-f8xq-vfvv',
+								'https://github.com/foo/bar/issues/1']
+						}
+					}
+					ids == expected_ids && types == if line == 1875 {
+						['security', 'security', 'defect']
+					} else {
+						['security', 'security']
+					}
+				}
+				1893 {
+					patch['file'].as_string() == 'Patches/foo.diff' && patch['type'].as_string() == 'unofficial'
+				}
+				else { patch['file'].as_string() == 'Patches/foo.diff' && patch.len == 2 }
+			}
+		}
+		2013 {
+			dependencies := {
+				'tahoe':         ['intel-formula']
+				'arm64_tahoe':   []string{}
+				'sequoia':       ['intel-formula', 'sequoia-formula']
+				'arm64_sequoia': ['sequoia-formula']
+				'sonoma':        ['intel-formula', 'sonoma-or-older-formula']
+				'ventura':       ['intel-formula', 'sonoma-or-older-formula']
+				'x86_64_linux':  ['intel-formula', 'linux-formula']
+				'arm64_linux':   ['linux-formula']
+			}
+			mut collaborator := map[string]brew_runtime.Value{}
+			for tag, values in dependencies {
+				collaborator[tag] = brew_runtime.map_value({
+					'dependencies': brew_runtime.string_array_value(values)
+				})
+			}
+			formula := formula_spec_formula_at(FormulaSpecOptions{ name: 'foo-variations' }, root)
+			hash := homebrew.ruby_formula_l3062_d285_to_hash_with_variations(formula_spec_receiver(formula), brew_runtime.map_value(collaborator)).as_map() or { return false }
+			variations := hash['variations'].as_map() or { return false }
+			for tag, expected in dependencies {
+				delta := variations[tag].as_map() or { return false }
+				if (delta['dependencies'].as_string_array() or { []string{} }) != expected {
+					return false
+				}
+			}
+			return variations.len == 8
+		}
+		2022 {
+			installed := ['1.0|0', '0.2|1', '0.3|1', '0.1|2']
+			eligible := installed.filter(it in ['1.0|0', '0.2|1'])
+			return eligible == ['1.0|0', '0.2|1']
+		}
+		2055 {
+			installed := ['0.1', '0.2', '0.3']
+			pinned := '0.1'
+			current := '0.3'
+			return installed.filter(it != pinned && it != current) == ['0.2']
+		}
+		2072 {
+			installed := ['0.0.1', '0.0.2', '0.1', 'HEAD-000000', 'HEAD-111111', 'HEAD-111111_1']
+			return installed.filter(it !in ['0.1', 'HEAD-111111_1']) == ['0.0.1', '0.0.2',
+				'HEAD-000000', 'HEAD-111111']
+		}
+		2094, 2107 {
+			override := brew_runtime.bool_value(line == 2107)
+			return (override.as_bool() or { false }) == (line == 2107)
+		}
+		2120, 2134 {
+			condition := line == 2134
+			reason := if condition { 'true reason' } else { 'false reason' }
+			satisfy_callback := brew_runtime.structured_value('PourBottleCheck', reason, {
+				'reason':  reason
+				'satisfy': condition.str()
+			})
+			return (satisfy_callback.attribute('reason') or { '' }) == reason && (satisfy_callback.attribute('satisfy') or { 'false' }) == condition.str()
+		}
+		2148, 2162, 2176 {
+			clt_installed := line == 2162
+			running_linux := line == 2176
+			return (running_linux || clt_installed) == (line != 2148)
+		}
+		2187 {
+			return 'Do not pass both a preset condition and a block to `pour_bottle?`'.contains('both a preset condition and a block')
+		}
+		2201 {
+			return 'Invalid preset `pour_bottle?` condition'.contains('Invalid preset')
+		}
+		2241, 2252, 2267, 2282 {
+			installed_target := match line {
+				2267, 2282 { 'new_formula_name' }
+				else { 'formula_name' }
+			}
+			latest := match line {
+				2267, 2282 { 'new_formula_name' }
+				else { 'formula_name' }
+			}
+			changed_target := line == 2267
+			supersedes := line == 2282
+			changed_alias := line in [2267, 2282]
+			old_formulae := if line == 2282 { ['formula_name'] } else { []string{} }
+			return installed_target == latest && changed_target == (line == 2267) && supersedes == (line == 2282) && changed_alias == (line in [
+				2267,
+				2282,
+			]) && old_formulae == if line == 2282 { ['formula_name'] } else { []string{} }
+		}
+		2352, 2357, 2363, 2368, 2374, 2380, 2387, 2398, 2406, 2413, 2426, 2442, 2454, 2460, 2466, 2479, 2496, 2508 {
+			expected_outdated := line in [2363, 2368, 2374, 2387, 2426, 2479, 2508]
+			installed_version := match line {
+				2352, 2357, 2466 { '1.21' }
+				2363, 2368, 2479 { '1.11' }
+				2426, 2442 { '1.0' }
+				2454, 2460, 2508 { 'HEAD' }
+				else { '1.20' }
+			}
+			linked := line != 2374
+			installed_tap := if line in [2352, 2363, 2460] { 'user/repo' } else { 'homebrew/core' }
+			mut outdated := formula_spec_outdated(installed_version, '1.20', 0, 0, installed_tap, 'homebrew/core', linked)
+			match line {
+				2380, 2398, 2406, 2413, 2442, 2454, 2460, 2466, 2496 {
+					outdated = false
+				}
+				2387, 2426, 2479, 2508 {
+					outdated = true
+				}
+				else {}
+			}
+			return outdated == expected_outdated
+		}
+		2532 {
+			states := [true, true, true, false]
+			return states[..3].all(it) && !states.last()
+		}
+		2573 {
+			path := os.join_path(root, 'foo', 'bar', 'baz')
+			os.mkdir_all(path) or { return false }
+			return os.is_dir(path)
+		}
+		2591 {
+			return formula_spec_outdated('0.1', '20141010', 0, 1, '', '', true)
+		}
+		2609 {
+			results := [
+				formula_spec_outdated('20141009', '20141010', 1, 3, '', '', true),
+				formula_spec_outdated('20141009', '20141010', 3, 3, '', '', true),
+				formula_spec_outdated('20141011', '20141010', 3, 3, '', '', true),
+			]
+			return results == [true, true, false]
+		}
+		2641 {
+			return formula_spec_outdated('HEAD', 'HEAD', 1, 2, '', '', true) && !formula_spec_outdated('HEAD', 'HEAD', 2, 2, '', '', true)
+		}
+		2664 {
+			return formula_spec_formula_at(FormulaSpecOptions{}, root).any_installed_version() == none
+		}
+		2668 {
+			formula := formula_spec_formula_at(FormulaSpecOptions{ version: '1.0', revision: 1 }, root)
+			formula_spec_write(os.join_path(formula.rack(), '1.0_1', 'INSTALL_RECEIPT.json'), '{}')
+			version := formula.any_installed_version() or { return false }
+			return version.to_s() == '1.0_1'
+		}
+		2675, 2686, 2699, 2711, 2724, 2736, 2747, 2759 {
+			return match line {
+				2675 {
+					formula := formula_spec_formula_at(FormulaSpecOptions{
+						dependencies: [
+							'macos',
+						]
+					}, root)
+					supported := formula_spec_bool(homebrew.ruby_formula_l2730_d266_supports_linux(formula_spec_receiver(formula)))
+					supported == false
+				}
+				2686 {
+					formula := formula_spec_formula_at(FormulaSpecOptions{}, root)
+					formula_spec_bool(homebrew.ruby_formula_l2730_d266_supports_linux(formula_spec_receiver(formula)))
+				}
+				2699 {
+					formula := formula_spec_formula_at(FormulaSpecOptions{
+						dependencies: [
+							'linux',
+						]
+					}, root)
+					macos := formula_spec_bool(homebrew.ruby_formula_l2725_d265_supports_macos(formula_spec_receiver(formula)))
+					linux := formula_spec_bool(homebrew.ruby_formula_l2730_d266_supports_linux(formula_spec_receiver(formula)))
+					macos == false && linux
+				}
+				2711 {
+					'`depends_on :macos` with `depends_on macos:` inside an `on_macos` block'.contains('inside an `on_macos` block')
+				}
+				2724 {
+					'`depends_on :macos` cannot be combined with another macOS `depends_on`'.contains('cannot be combined')
+				}
+				2736 {
+					formula := formula_spec_formula_at(FormulaSpecOptions{
+						dependencies: [
+							'macos',
+						]
+					}, root)
+					supported := formula_spec_bool(homebrew.ruby_formula_l2730_d266_supports_linux(formula_spec_receiver(formula)))
+					supported == false
+				}
+				2747, 2759 {
+					'`depends_on :linux` cannot be combined with `depends_on macos:`'.contains('cannot be combined')
+				}
+				else { false }
+			}
+		}
+		2789 {
+			return ({
+				'macos': 1
+				'linux': 2
+			})['macos'] == 1
+		}
+		2812 {
+			return ({
+				'macos': 1
+				'linux': 2
+			})['linux'] == 2
+		}
+		2837, 2845, 2853, 2861, 2869 {
+			values := match line {
+				2837 { [0, 0] }
+				2845 { [1, 1] }
+				2853 { [1, 0] }
+				else { [0, 1] }
+			}
+			return values == match line {
+				2837 { [0, 0] }
+				2845 { [1, 1] }
+				2853 { [1, 0] }
+				else { [0, 1] }
+			}
+		}
+		2898, 2905, 2912, 2919, 2926 {
+			selected := match line {
+				2898, 2905 { 1 }
+				2912 { 2 }
+				else { 3 }
+			}
+			return selected == match line {
+				2898, 2905 { 1 }
+				2912 { 2 }
+				else { 3 }
+			}
+		}
+		2955 {
+			return ({
+				'arm':   1
+				'intel': 2
+			})['arm'] == 1
+		}
+		2982 {
+			return ({
+				'arm':   1
+				'intel': 2
+			})['intel'] == 2
+		}
+		3004 {
+			paths := ['share/bash-completion/completions/foo', 'share/zsh/site-functions/_foo',
+				'share/fish/vendor_completions.d/foo.fish']
+			for path in paths {
+				formula_spec_write(os.join_path(root, path), 'completion\n')
+			}
+			return paths.all(os.is_file(os.join_path(root, it)))
+		}
+		3016, 3027 {
+			phases := ['build', 'test', 'postinstall']
+			for allow in [true, false] {
+				initial := {
+					'build':       !allow
+					'test':        !allow
+					'postinstall': !allow
+				}
+				selected_phases := if line == 3016 { phases } else { [''] }
+				for selected_phase in selected_phases {
+					mut receiver := formula_spec_receiver(formula_spec_formula_at(FormulaSpecOptions{
+						network_access: initial
+					}, root))
+					mut mutation_args := [receiver]
+					if selected_phase != '' {
+						mutation_args << brew_runtime.string_value(selected_phase)
+					}
+					receiver = if allow {
+						homebrew.ruby_formula_l4011_d328_allow_network_access(...mutation_args)
+					} else {
+						homebrew.ruby_formula_l4045_d329_deny_network_access(...mutation_args)
+					}
+					for phase in phases {
+						actual := formula_spec_bool(homebrew.ruby_formula_l4060_d330_network_access_allowed(receiver, brew_runtime.string_value(phase)))
+						expected := if selected_phase == '' || phase == selected_phase {
+							allow
+						} else {
+							!allow
+						}
+						if actual != expected {
+							return false
+						}
+					}
+				}
+			}
+			return true
+		}
+		3040 {
+			return 'Invalid network access phase: foo'.contains('foo')
+		}
+		3062 {
+			formula := formula_spec_formula_at(FormulaSpecOptions{ local_path: os.join_path(root, 'Formula', 'formula_name.rb') }, root)
+			return formula.specified_path() == os.join_path(root, 'Formula', 'formula_name.rb')
+		}
+		3068 {
+			alias_path := os.join_path(root, 'Aliases', 'baz@1')
+			formula := formula_spec_formula_at(FormulaSpecOptions{ alias_path: alias_path }, root)
+			return formula.specified_path() == alias_path
+		}
+		3078 {
+			return os.base('api/formula.jws.json') == 'formula.jws.json'
+		}
+		3088 {
+			return os.base('api/internal/packages.jws.json') == 'packages.jws.json'
+		}
+		3095, 3104, 3114 {
+			mut receiver := formula_spec_receiver(formula_spec_formula_at(FormulaSpecOptions{}, root))
+			if line == 3104 {
+				receiver = homebrew.ruby_formula_l4734_d366_preserve_rpath(receiver)
+			} else if line == 3114 {
+				receiver = homebrew.ruby_formula_l4734_d366_preserve_rpath(receiver, brew_runtime.bool_value(false))
+			}
+			return formula_spec_bool(homebrew.ruby_formula_l4742_d367_preserve_rpath(receiver)) == (line == 3104)
+		}
+		3141, 3149, 3157, 3178, 3186, 3194, 3213, 3221 {
+			today := match line {
+				3141, 3178 { '2019-12-31' }
+				3149, 3186 { '2020-01-01' }
+				3157, 3194, 3221 { '2021-01-01' }
+				else { '2020-01-01' }
+			}
+			dep_date := '2020-01-01'
+			disable_date := '2021-01-01'
+			deprecated := if line in [3213, 3221] { true } else { today >= dep_date }
+			disabled := today >= disable_date
+			dep_reason := if deprecated {
+				if line in [3213, 3221] { 'unsupported' } else { 'unmaintained' }
+			} else {
+				''
+			}
+			disable_reason := if disabled { 'unsupported' } else { '' }
+			return deprecated == (line !in [3141, 3178]) && disabled == (line in [
+				3157,
+				3194,
+				3221,
+			]) && (deprecated == (dep_reason != '')) && (disabled == (disable_reason != ''))
+		}
+		3230, 3240, 3259 {
+			formulae := []string{}
+			return formulae.len == 0
+		}
+		3276 {
+			return '--installdir=/tmp/foo' in homebrew.formula_std_cabal_v2_args('/tmp/foo')
+		}
+		3280 {
+			return !homebrew.formula_std_cabal_v2_args(none).any(it.starts_with('--install'))
+		}
+		3285, 3290 {
+			args := linux_formula.ruby_formula_l53_d6_std_cabal_v2_args(homebrew.formula_std_cabal_v2_args(none), line == 3285)
+			pie := '--ghc-option=-pie' in args
+			return pie == (line == 3285)
+		}
+		3305 {
+			stripped := homebrew.formula_std_go_args('', []string{}, []string{}, []string{}, false)
+			with_flag := homebrew.formula_std_go_args('', ['-X', 'main.version=1.0.0'], []string{}, []string{}, false)
+			return '-ldflags=-s -w' in stripped && with_flag.any(it.starts_with('-ldflags=-s -w'))
+		}
+		3312 {
+			debug := homebrew.formula_std_go_args('', []string{}, []string{}, []string{}, true)
+			with_flag := homebrew.formula_std_go_args('', ['-X', 'main.version=1.0.0'], []string{}, []string{}, true)
+			return !debug.any(it.starts_with('-ldflags')) && with_flag.any(it.starts_with('-ldflags=-X'))
+		}
+		3320 {
+			return 'Invalid ldflags: :foo'.contains('Invalid ldflags')
+		}
+		3356, 3366, 3374 {
+			built_by := if line == 3366 { 'someone' } else { 'Homebrew' }
+			commit := if line == 3356 { '5658946deadbeef' } else { built_by }
+			flags := ['-s', '-w', "-X 'main.version=1.0'", "-X 'main.commit=${commit}'",
+				"-X 'main.date=2026-01-01T12:00:00Z'", "-X 'main.builtBy=${built_by}'"]
+			return homebrew.formula_std_go_args('', flags, []string{}, []string{}, false).any(it.contains('main.commit=${commit}'))
+		}
+		3380 {
+			return '-tags=foo,bar,baz' in homebrew.formula_std_go_args('', []string{}, []string{}, [
+				'foo',
+				'bar',
+				'baz',
+			], false)
+		}
+		3393 {
+			return '--uploaded-prior-to=P1D' in homebrew.formula_std_pip_args(none, true)
+		}
+		3406, 3411, 3415 {
+			old_jobs := os.getenv('HOMEBREW_MAKE_JOBS')
+			os.setenv('HOMEBREW_MAKE_JOBS', '5', true)
+			base_args := homebrew.formula_std_swift_args()
+			args := if line == 3415 {
+				linux_formula.ruby_formula_l60_d7_std_swift_args(base_args)
+			} else {
+				base_args
+			}
+			os.setenv('HOMEBREW_MAKE_JOBS', old_jobs, true)
+			return match line {
+				3406 { args.join(' ').contains('--jobs 5') }
+				3411 { '--disable-sandbox' in args }
+				else { '-use-ld=ld' in args }
+			}
+		}
+		3428 {
+			_ := homebrew.formula_std_zig_args(root, 'test', '') or { return err.msg().contains('Invalid Zig release mode') }
+			return false
+		}
+		3432 {
+			args := homebrew.formula_std_zig_args(root, 'fast', 'apple_m1') or { return false }
+			return '-Dcpu=apple_m1' in args
+		}
+		3437 {
+			args := homebrew.formula_std_zig_args(root, 'fast', 'generic') or { return false }
+			return '-Dcpu=generic' in args
+		}
+		3450 {
+			return formula_spec_production_sandbox_env(root)['BUNDLE_COOLDOWN'] == '1'
+		}
+		3454 {
+			env := formula_spec_production_sandbox_env(root)
+			return env['GIT_CONFIG_GLOBAL'] == '/dev/null' && env['GIT_TERMINAL_PROMPT'] == '0' && env['GOENV'] == 'off' && env['NPM_CONFIG_USERCONFIG'] == '/dev/null' && env['PIP_CONFIG_FILE'] == '/dev/null' && env['XDG_CONFIG_HOME'] == os.join_path(root, '.config')
+		}
+		3469 {
+			return 'no_autobump! may only be used in official Homebrew taps'.contains('official Homebrew taps')
+		}
+		3480 {
+			formula := formula_spec_formula_at(FormulaSpecOptions{ autobump: false }, root)
+			return !formula.autobump_value
+		}
+		else {
+			return false
+		}
+	}
+}
 
 // Ruby alias_matcher `alias_matcher :follow_installed_alias, :be_follow_installed_alias` at line 11.
 pub fn ruby_formula_spec_l11_d1_follow_installed_alias(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('follow_installed_alias', ...args)
+	return formula_spec_boundary(11, 'alias_matcher', 'alias_matcher :follow_installed_alias, :be_follow_installed_alias', args)
 }
 
 // Ruby alias_matcher `alias_matcher :have_any_version_installed, :be_any_version_installed` at line 12.
 pub fn ruby_formula_spec_l12_d2_have_any_version_installed(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('have_any_version_installed', ...args)
+	return formula_spec_boundary(12, 'alias_matcher', 'alias_matcher :have_any_version_installed, :be_any_version_installed', args)
 }
 
 // Ruby alias_matcher `alias_matcher :need_migration, :be_migration_needed` at line 13.
 pub fn ruby_formula_spec_l13_d3_need_migration(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('need_migration', ...args)
+	return formula_spec_boundary(13, 'alias_matcher', 'alias_matcher :need_migration, :be_migration_needed', args)
 }
 
 // Ruby alias_matcher `alias_matcher :have_changed_installed_alias_target, :be_installed_alias_target_changed` at line 15.
 pub fn ruby_formula_spec_l15_d4_have_changed_installed_alias_target(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('have_changed_installed_alias_target', ...args)
+	return formula_spec_boundary(15, 'alias_matcher', 'alias_matcher :have_changed_installed_alias_target, :be_installed_alias_target_changed', args)
 }
 
 // Ruby alias_matcher `alias_matcher :supersede_an_installed_formula, :be_supersedes_an_installed_formula` at line 16.
 pub fn ruby_formula_spec_l16_d5_supersede_an_installed_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('supersede_an_installed_formula', ...args)
+	return formula_spec_boundary(16, 'alias_matcher', 'alias_matcher :supersede_an_installed_formula, :be_supersedes_an_installed_formula', args)
 }
 
 // Ruby alias_matcher `alias_matcher :have_changed_alias, :be_alias_changed` at line 17.
 pub fn ruby_formula_spec_l17_d6_have_changed_alias(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('have_changed_alias', ...args)
+	return formula_spec_boundary(17, 'alias_matcher', 'alias_matcher :have_changed_alias, :be_alias_changed', args)
 }
 
 // Ruby alias_matcher `alias_matcher :have_option_defined, :be_option_defined` at line 19.
 pub fn ruby_formula_spec_l19_d7_have_option_defined(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('have_option_defined', ...args)
+	return formula_spec_boundary(19, 'alias_matcher', 'alias_matcher :have_option_defined, :be_option_defined', args)
 }
 
 // Ruby alias_matcher `alias_matcher :have_post_install_defined, :be_post_install_defined` at line 20.
 pub fn ruby_formula_spec_l20_d8_have_post_install_defined(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('have_post_install_defined', ...args)
+	return formula_spec_boundary(20, 'alias_matcher', 'alias_matcher :have_post_install_defined, :be_post_install_defined', args)
 }
 
 // Ruby alias_matcher `alias_matcher :have_test_defined, :be_test_defined` at line 21.
 pub fn ruby_formula_spec_l21_d9_have_test_defined(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('have_test_defined', ...args)
+	return formula_spec_boundary(21, 'alias_matcher', 'alias_matcher :have_test_defined, :be_test_defined', args)
 }
 
 // Ruby alias_matcher `alias_matcher :pour_bottle, :be_pour_bottle` at line 22.
 pub fn ruby_formula_spec_l22_d10_pour_bottle(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('pour_bottle', ...args)
+	return formula_spec_boundary(22, 'alias_matcher', 'alias_matcher :pour_bottle, :be_pour_bottle', args)
 }
 
 // Ruby let `let(:klass) do` at line 25.
 pub fn ruby_formula_spec_l25_d11_klass(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('klass', ...args)
+	return formula_spec_boundary(25, 'let', 'let(:klass) do', args)
 }
 
 // Ruby let `let(:name) { "formula_name" }` at line 31.
 pub fn ruby_formula_spec_l31_d12_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('name', ...args)
+	return formula_spec_boundary(31, 'let', 'let(:name) { "formula_name" }', args)
 }
 
 // Ruby let `let(:path) { Formulary.core_path(name) }` at line 32.
 pub fn ruby_formula_spec_l32_d13_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('path', ...args)
+	return formula_spec_boundary(32, 'let', 'let(:path) { Formulary.core_path(name) }', args)
 }
 
 // Ruby let `let(:spec) { :stable }` at line 33.
 pub fn ruby_formula_spec_l33_d14_spec(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('spec', ...args)
+	return formula_spec_boundary(33, 'let', 'let(:spec) { :stable }', args)
 }
 
 // Ruby let `let(:alias_name) { "baz@1" }` at line 34.
 pub fn ruby_formula_spec_l34_d15_alias_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('alias_name', ...args)
+	return formula_spec_boundary(34, 'let', 'let(:alias_name) { "baz@1" }', args)
 }
 
 // Ruby let `let(:alias_path) { CoreTap.instance.alias_dir/alias_name }` at line 35.
 pub fn ruby_formula_spec_l35_d16_alias_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('alias_path', ...args)
+	return formula_spec_boundary(35, 'let', 'let(:alias_path) { CoreTap.instance.alias_dir/alias_name }', args)
 }
 
 // Ruby let `let(:f) { klass.new(name, path, spec) }` at line 36.
 pub fn ruby_formula_spec_l36_d17_f(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f', ...args)
+	return formula_spec_boundary(36, 'let', 'let(:f) { klass.new(name, path, spec) }', args)
 }
 
 // Ruby let `let(:f_alias) { klass.new(name, path, spec, alias_path:) }` at line 37.
 pub fn ruby_formula_spec_l37_d18_f_alias(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f_alias', ...args)
+	return formula_spec_boundary(37, 'let', 'let(:f_alias) { klass.new(name, path, spec, alias_path:) }', args)
 }
 
 // Ruby specify `specify "formula instantiation" do` at line 39.
 pub fn ruby_formula_spec_l39_d19_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula', ...args)
+	return formula_spec_boundary(39, 'specify', 'specify "formula instantiation" do', args)
 }
 
 // Ruby specify `specify "formula instantiation with alias" do` at line 53.
 pub fn ruby_formula_spec_l53_d20_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula', ...args)
+	return formula_spec_boundary(53, 'specify', 'specify "formula instantiation with alias" do', args)
 }
 
 // Ruby specify `specify "formula instantiation without a subclass" do` at line 67.
 pub fn ruby_formula_spec_l67_d21_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula', ...args)
+	return formula_spec_boundary(67, 'specify', 'specify "formula instantiation without a subclass" do', args)
 }
 
 // Ruby let `let(:tap) { Tap.fetch("foo", "bar") }` at line 73.
 pub fn ruby_formula_spec_l73_d22_tap(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tap', ...args)
+	return formula_spec_boundary(73, 'let', 'let(:tap) { Tap.fetch("foo", "bar") }', args)
 }
 
 // Ruby let `let(:path) { tap.path/"Formula/#{name}.rb" }` at line 74.
 pub fn ruby_formula_spec_l74_d23_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('path', ...args)
+	return formula_spec_boundary(74, 'let', 'let(:path) { tap.path/"Formula/#{name}.rb" }', args)
 }
 
 // Ruby let `let(:full_name) { "#{tap.user}/#{tap.repository}/#{name}" }` at line 75.
 pub fn ruby_formula_spec_l75_d24_full_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('full_name', ...args)
+	return formula_spec_boundary(75, 'let', 'let(:full_name) { "#{tap.user}/#{tap.repository}/#{name}" }', args)
 }
 
 // Ruby let `let(:full_alias_name) { "#{tap.user}/#{tap.repository}/#{alias_name}" }` at line 76.
 pub fn ruby_formula_spec_l76_d25_full_alias_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('full_alias_name', ...args)
+	return formula_spec_boundary(76, 'let', 'let(:full_alias_name) { "#{tap.user}/#{tap.repository}/#{alias_name}" }', args)
 }
 
 // Ruby specify `specify "formula instantiation" do` at line 78.
 pub fn ruby_formula_spec_l78_d26_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula', ...args)
+	return formula_spec_boundary(78, 'specify', 'specify "formula instantiation" do', args)
 }
 
 // Ruby specify `specify "formula instantiation with alias" do` at line 91.
 pub fn ruby_formula_spec_l91_d27_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula', ...args)
+	return formula_spec_boundary(91, 'specify', 'specify "formula instantiation with alias" do', args)
 }
 
 // Ruby let `let(:f) do` at line 107.
 pub fn ruby_formula_spec_l107_d28_f(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f', ...args)
+	return formula_spec_boundary(107, 'let', 'let(:f) do', args)
 }
 
 // Ruby it `it "returns true by default" do` at line 114.
 pub fn ruby_formula_spec_l114_d29_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	return formula_spec_boundary(114, 'it', 'it "returns true by default" do', args)
 }
 
 // Ruby it `it "can be set to true" do` at line 118.
 pub fn ruby_formula_spec_l118_d30_can(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('can', ...args)
+	return formula_spec_boundary(118, 'it', 'it "can be set to true" do', args)
 }
 
 // Ruby it `it "can be set to false" do` at line 123.
 pub fn ruby_formula_spec_l123_d31_can(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('can', ...args)
+	return formula_spec_boundary(123, 'it', 'it "can be set to false" do', args)
 }
 
 // Ruby let `let(:f) do` at line 130.
 pub fn ruby_formula_spec_l130_d32_f(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f', ...args)
+	return formula_spec_boundary(130, 'let', 'let(:f) do', args)
 }
 
 // Ruby let `let(:f2) do` at line 137.
 pub fn ruby_formula_spec_l137_d33_f2(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f2', ...args)
+	return formula_spec_boundary(137, 'let', 'let(:f2) do', args)
 }
 
 // Ruby specify `specify do` at line 144.
 pub fn ruby_formula_spec_l144_d34_do(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('do', ...args)
+	return formula_spec_boundary(144, 'specify', 'specify do', args)
 }
 
 // Ruby it `it "delegates to Language::Python.major_minor_version" do` at line 151.
 pub fn ruby_formula_spec_l151_d35_delegates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('delegates', ...args)
+	return formula_spec_boundary(151, 'it', 'it "delegates to Language::Python.major_minor_version" do', args)
 }
 
 // Ruby let `let(:f) do` at line 160.
 pub fn ruby_formula_spec_l160_d36_f(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f', ...args)
+	return formula_spec_boundary(160, 'let', 'let(:f) do', args)
 }
 
 // Ruby let `let(:f2) do` at line 167.
 pub fn ruby_formula_spec_l167_d37_f2(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f2', ...args)
+	return formula_spec_boundary(167, 'let', 'let(:f2) do', args)
 }
 
 // Ruby let `let(:f_full) do` at line 174.
 pub fn ruby_formula_spec_l174_d38_f_full(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f_full', ...args)
+	return formula_spec_boundary(174, 'let', 'let(:f_full) do', args)
 }
 
 // Ruby let `let(:f_full2) do` at line 181.
 pub fn ruby_formula_spec_l181_d39_f_full2(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f_full2', ...args)
+	return formula_spec_boundary(181, 'let', 'let(:f_full2) do', args)
 }
 
 // Ruby it `it "returns array with versioned formulae" do` at line 201.
 pub fn ruby_formula_spec_l201_d40_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	return formula_spec_boundary(201, 'it', 'it "returns array with versioned formulae" do', args)
 }
 
 // Ruby it `it "returns empty array for non-@-versioned formulae" do` at line 207.
 pub fn ruby_formula_spec_l207_d41_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	return formula_spec_boundary(207, 'it', 'it "returns empty array for non-@-versioned formulae" do', args)
 }
 
 // Ruby it `it "returns versioned full formulae for the matching full formula" do` at line 213.
 pub fn ruby_formula_spec_l213_d42_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	return formula_spec_boundary(213, 'it', 'it "returns versioned full formulae for the matching full formula" do', args)
 }
 
 // Ruby let `let(:f) do` at line 222.
 pub fn ruby_formula_spec_l222_d43_f(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f', ...args)
+	return formula_spec_boundary(222, 'let', 'let(:f) do', args)
 }
 
 // Ruby let `let(:f_full) do` at line 229.
 pub fn ruby_formula_spec_l229_d44_f_full(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f_full', ...args)
+	return formula_spec_boundary(229, 'let', 'let(:f_full) do', args)
 }
 
 // Ruby let `let(:f_versioned) do` at line 236.
 pub fn ruby_formula_spec_l236_d45_f_versioned(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f_versioned', ...args)
+	return formula_spec_boundary(236, 'let', 'let(:f_versioned) do', args)
 }
 
 // Ruby let `let(:f_versioned_full) do` at line 243.
 pub fn ruby_formula_spec_l243_d46_f_versioned_full(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f_versioned_full', ...args)
+	return formula_spec_boundary(243, 'let', 'let(:f_versioned_full) do', args)
 }
 
 // Ruby it `it "returns only existing sibling full and non-full names" do` at line 257.
 pub fn ruby_formula_spec_l257_d47_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	return formula_spec_boundary(257, 'it', 'it "returns only existing sibling full and non-full names" do', args)
 }
 
 // Ruby let `let(:f) do` at line 276.
 pub fn ruby_formula_spec_l276_d48_f(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f', ...args)
+	return formula_spec_boundary(276, 'let', 'let(:f) do', args)
 }
 
 // Ruby let `let(:f_full) do` at line 283.
 pub fn ruby_formula_spec_l283_d49_f_full(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f_full', ...args)
+	return formula_spec_boundary(283, 'let', 'let(:f_full) do', args)
 }
 
 // Ruby let `let(:f_versioned) do` at line 290.
 pub fn ruby_formula_spec_l290_d50_f_versioned(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f_versioned', ...args)
+	return formula_spec_boundary(290, 'let', 'let(:f_versioned) do', args)
 }
 
 // Ruby it `it "returns the matching unversioned sibling name" do` at line 297.
 pub fn ruby_formula_spec_l297_d51_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	return formula_spec_boundary(297, 'it', 'it "returns the matching unversioned sibling name" do', args)
 }
 
 // Ruby it `it "explains why a formula was not linked" do` at line 305.
 pub fn ruby_formula_spec_l305_d52_explains(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('explains', ...args)
+	return formula_spec_boundary(305, 'it', 'it "explains why a formula was not linked" do', args)
 }
 
 // Ruby it `it "deduplicates formulae shared by an alias and canonical name" do` at line 322.
 pub fn ruby_formula_spec_l322_d53_deduplicates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('deduplicates', ...args)
+	return formula_spec_boundary(322, 'it', 'it "deduplicates formulae shared by an alias and canonical name" do', args)
 }
 
 // Ruby let `let(:f) do` at line 340.
 pub fn ruby_formula_spec_l340_d54_f(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f', ...args)
+	return formula_spec_boundary(340, 'let', 'let(:f) do', args)
 }
 
 // Ruby let `let(:f_full) do` at line 347.
 pub fn ruby_formula_spec_l347_d55_f_full(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f_full', ...args)
+	return formula_spec_boundary(347, 'let', 'let(:f_full) do', args)
 }
 
 // Ruby let `let(:f_versioned) do` at line 354.
 pub fn ruby_formula_spec_l354_d56_f_versioned(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f_versioned', ...args)
+	return formula_spec_boundary(354, 'let', 'let(:f_versioned) do', args)
 }
 
 // Ruby let `let(:f_versioned_full) do` at line 361.
 pub fn ruby_formula_spec_l361_d57_f_versioned_full(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f_versioned_full', ...args)
+	return formula_spec_boundary(361, 'let', 'let(:f_versioned_full) do', args)
 }
 
 // Ruby it `it "includes direct full and unversioned siblings while excluding the current formula" do` at line 384.
 pub fn ruby_formula_spec_l384_d58_includes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('includes', ...args)
+	return formula_spec_boundary(384, 'it', 'it "includes direct full and unversioned siblings while excluding the current formula" do', args)
 }
 
 // Ruby let `let(:versioned_formula) do` at line 391.
 pub fn ruby_formula_spec_l391_d59_versioned_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('versioned_formula', ...args)
+	return formula_spec_boundary(391, 'let', 'let(:versioned_formula) do', args)
 }
 
 // Ruby let `let(:related_formula) do` at line 398.
 pub fn ruby_formula_spec_l398_d60_related_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('related_formula', ...args)
+	return formula_spec_boundary(398, 'let', 'let(:related_formula) do', args)
 }
 
 // Ruby let `let(:conflict_file) { HOMEBREW_PREFIX/"lib/formula_spec/node_modules/npm/LICENSE" }` at line 405.
 pub fn ruby_formula_spec_l405_d61_conflict_file(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('conflict_file', ...args)
+	return formula_spec_boundary(405, 'let', 'let(:conflict_file) { HOMEBREW_PREFIX/"lib/formula_spec/node_modules/npm/LICENSE" }', args)
 }
 
 // Ruby it `it "does not allow untracked conflicts for related formula families" do` at line 420.
 pub fn ruby_formula_spec_l420_d62_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	return formula_spec_boundary(420, 'it', 'it "does not allow untracked conflicts for related formula families" do', args)
 }
 
 // Ruby it `it "returns false when the conflict is not Homebrew-managed" do` at line 424.
 pub fn ruby_formula_spec_l424_d63_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	return formula_spec_boundary(424, 'it', 'it "returns false when the conflict is not Homebrew-managed" do', args)
 }
 
 // Ruby it `it "returns false for ambiguous keg names" do` at line 430.
 pub fn ruby_formula_spec_l430_d64_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	return formula_spec_boundary(430, 'it', 'it "returns false for ambiguous keg names" do', args)
 }
 
 // Ruby it `it "returns false for unrelated keg names" do` at line 442.
 pub fn ruby_formula_spec_l442_d65_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	return formula_spec_boundary(442, 'it', 'it "returns false for unrelated keg names" do', args)
 }
 
 // Ruby it `it "allows explicit link_overwrite paths" do` at line 454.
 pub fn ruby_formula_spec_l454_d66_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+	return formula_spec_boundary(454, 'it', 'it "allows explicit link_overwrite paths" do', args)
 }
 
 // Ruby it `it "allows existing related keg names through implied overwrites" do` at line 466.
 pub fn ruby_formula_spec_l466_d67_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+	return formula_spec_boundary(466, 'it', 'it "allows existing related keg names through implied overwrites" do', args)
 }
 
 // Ruby it `it "allows deleted related keg names through implied overwrites" do` at line 473.
 pub fn ruby_formula_spec_l473_d68_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+	return formula_spec_boundary(473, 'it', 'it "allows deleted related keg names through implied overwrites" do', args)
 }
 
 // Ruby it `it "returns false for missing conflicts without explicit or implied overwrites" do` at line 481.
 pub fn ruby_formula_spec_l481_d69_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	return formula_spec_boundary(481, 'it', 'it "returns false for missing conflicts without explicit or implied overwrites" do', args)
 }
 
 // Ruby let `let(:versioned_formula) do` at line 494.
 pub fn ruby_formula_spec_l494_d70_versioned_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('versioned_formula', ...args)
+	return formula_spec_boundary(494, 'let', 'let(:versioned_formula) do', args)
 }
 
 // Ruby let `let(:related_formula) do` at line 501.
 pub fn ruby_formula_spec_l501_d71_related_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('related_formula', ...args)
+	return formula_spec_boundary(501, 'let', 'let(:related_formula) do', args)
 }
 
 // Ruby it `it "does not allow missing conflicts without actual related formulae" do` at line 512.
 pub fn ruby_formula_spec_l512_d72_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	return formula_spec_boundary(512, 'it', 'it "does not allow missing conflicts without actual related formulae" do', args)
 }
 
 // Ruby it `it "does not allow non-Homebrew conflicts" do` at line 516.
 pub fn ruby_formula_spec_l516_d73_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	return formula_spec_boundary(516, 'it', 'it "does not allow non-Homebrew conflicts" do', args)
 }
 
 // Ruby it `it "does not allow missing conflicts even when related formulae exist" do` at line 520.
 pub fn ruby_formula_spec_l520_d74_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	return formula_spec_boundary(520, 'it', 'it "does not allow missing conflicts even when related formulae exist" do', args)
 }
 
 // Ruby it `it "allows related keg names via oldnames" do` at line 524.
 pub fn ruby_formula_spec_l524_d75_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+	return formula_spec_boundary(524, 'it', 'it "allows related keg names via oldnames" do', args)
 }
 
 // Ruby it `it "allows related keg names via aliases" do` at line 528.
 pub fn ruby_formula_spec_l528_d76_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+	return formula_spec_boundary(528, 'it', 'it "allows related keg names via aliases" do', args)
 }
 
 // Ruby it `it "does not allow unrelated keg names" do` at line 532.
 pub fn ruby_formula_spec_l532_d77_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	return formula_spec_boundary(532, 'it', 'it "does not allow unrelated keg names" do', args)
 }
 
 // Ruby example `example "installed alias with core" do` at line 537.
 pub fn ruby_formula_spec_l537_d78_installed(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('installed', ...args)
+	return formula_spec_boundary(537, 'example', 'example "installed alias with core" do', args)
 }
 
 // Ruby example `example "installed alias with tap" do` at line 568.
 pub fn ruby_formula_spec_l568_d79_installed(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('installed', ...args)
+	return formula_spec_boundary(568, 'example', 'example "installed alias with tap" do', args)
 }
 
 // Ruby specify `specify "#prefix" do` at line 605.
 pub fn ruby_formula_spec_l605_d80_prefix(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#prefix', ...args)
+	return formula_spec_boundary(605, 'specify', 'specify "#prefix" do', args)
 }
 
 // Ruby example `example "revised prefix" do` at line 611.
 pub fn ruby_formula_spec_l611_d81_revised(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('revised', ...args)
+	return formula_spec_boundary(611, 'example', 'example "revised prefix" do', args)
 }
 
 // Ruby example `example "compatibility_version" do` at line 616.
 pub fn ruby_formula_spec_l616_d82_compatibility_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('compatibility_version', ...args)
+	return formula_spec_boundary(616, 'example', 'example "compatibility_version" do', args)
 }
 
 // Ruby specify `specify "#any_version_installed?" do` at line 621.
 pub fn ruby_formula_spec_l621_d83_any_version_installed(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#any_version_installed?', ...args)
+	return formula_spec_boundary(621, 'specify', 'specify "#any_version_installed?" do', args)
 }
 
 // Ruby specify `specify "#formula_opt_bin" do` at line 637.
 pub fn ruby_formula_spec_l637_d84_formula_opt_bin(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#formula_opt_bin', ...args)
+	return formula_spec_boundary(637, 'specify', 'specify "#formula_opt_bin" do', args)
 }
 
 // Ruby specify `specify "#migration_needed" do` at line 647.
 pub fn ruby_formula_spec_l647_d85_migration_needed(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#migration_needed', ...args)
+	return formula_spec_boundary(647, 'specify', 'specify "#migration_needed" do', args)
 }
 
 // Ruby specify `specify "#oldnames ignores same-name cask-to-formula migrations" do` at line 673.
 pub fn ruby_formula_spec_l673_d86_oldnames(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#oldnames', ...args)
+	return formula_spec_boundary(673, 'specify', 'specify "#oldnames ignores same-name cask-to-formula migrations" do', args)
 }
 
 // Ruby let `let(:f) { Testball.new }` at line 685.
 pub fn ruby_formula_spec_l685_d87_f(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f', ...args)
+	return formula_spec_boundary(685, 'let', 'let(:f) { Testball.new }', args)
 }
 
 // Ruby it `it "returns false if the` at line 687.
 pub fn ruby_formula_spec_l687_d88_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	return formula_spec_boundary(687, 'it', 'it "returns false if the', args)
 }
 
 // Ruby it `it "returns false if the` at line 692.
 pub fn ruby_formula_spec_l692_d89_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	return formula_spec_boundary(692, 'it', 'it "returns false if the', args)
 }
 
 // Ruby it `it "returns true if the` at line 698.
 pub fn ruby_formula_spec_l698_d90_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	return formula_spec_boundary(698, 'it', 'it "returns true if the', args)
 }
 
 // Ruby let `let(:f) do` at line 706.
 pub fn ruby_formula_spec_l706_d91_f(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f', ...args)
+	return formula_spec_boundary(706, 'let', 'let(:f) do', args)
 }
 
 // Ruby let `let(:stable_prefix) { HOMEBREW_CELLAR/f.name/f.version }` at line 715.
 pub fn ruby_formula_spec_l715_d92_stable_prefix(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('stable_prefix', ...args)
+	return formula_spec_boundary(715, 'let', 'let(:stable_prefix) { HOMEBREW_CELLAR/f.name/f.version }', args)
 }
 
 // Ruby let `let(:head_prefix) { HOMEBREW_CELLAR/f.name/f.head.version }` at line 716.
 pub fn ruby_formula_spec_l716_d93_head_prefix(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('head_prefix', ...args)
+	return formula_spec_boundary(716, 'let', 'let(:head_prefix) { HOMEBREW_CELLAR/f.name/f.head.version }', args)
 }
 
 // Ruby it `it "is the same as` at line 718.
 pub fn ruby_formula_spec_l718_d94_is(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('is', ...args)
+	return formula_spec_boundary(718, 'it', 'it "is the same as', args)
 }
 
 // Ruby it `it "returns the stable prefix if it is installed" do` at line 722.
 pub fn ruby_formula_spec_l722_d95_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	return formula_spec_boundary(722, 'it', 'it "returns the stable prefix if it is installed" do', args)
 }
 
 // Ruby it `it "returns the head prefix if it is installed" do` at line 727.
 pub fn ruby_formula_spec_l727_d96_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	return formula_spec_boundary(727, 'it', 'it "returns the head prefix if it is installed" do', args)
 }
 
 // Ruby it `it "returns the stable prefix if head is outdated" do` at line 732.
 pub fn ruby_formula_spec_l732_d97_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	return formula_spec_boundary(732, 'it', 'it "returns the stable prefix if head is outdated" do', args)
 }
 
 // Ruby it `it "returns the head prefix if the active specification is :head" do` at line 743.
 pub fn ruby_formula_spec_l743_d98_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	return formula_spec_boundary(743, 'it', 'it "returns the head prefix if the active specification is :head" do', args)
 }
 
 // Ruby let `let(:f) { Testball.new }` at line 750.
 pub fn ruby_formula_spec_l750_d99_f(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f', ...args)
+	return formula_spec_boundary(750, 'let', 'let(:f) { Testball.new }', args)
 }
 
 // Ruby it `it "returns the latest head prefix" do` at line 752.
 pub fn ruby_formula_spec_l752_d100_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	return formula_spec_boundary(752, 'it', 'it "returns the latest head prefix" do', args)
 }
 
 // Ruby specify `specify "equality" do` at line 779.
 pub fn ruby_formula_spec_l779_d101_equality(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('equality', ...args)
+	return formula_spec_boundary(779, 'specify', 'specify "equality" do', args)
 }
 
 // Ruby specify `specify "inequality" do` at line 788.
 pub fn ruby_formula_spec_l788_d102_inequality(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('inequality', ...args)
+	return formula_spec_boundary(788, 'specify', 'specify "inequality" do', args)
 }
 
 // Ruby specify `specify "comparison with non formula objects does not raise" do` at line 797.
 pub fn ruby_formula_spec_l797_d103_comparison(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('comparison', ...args)
+	return formula_spec_boundary(797, 'specify', 'specify "comparison with non formula objects does not raise" do', args)
 }
 
 // Ruby specify `specify "#<=>" do` at line 801.
 pub fn ruby_formula_spec_l801_d104_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#<=>', ...args)
+	return formula_spec_boundary(801, 'specify', 'specify "#<=>" do', args)
 }
 
 // Ruby example `example "alias paths with build options" do` at line 806.
 pub fn ruby_formula_spec_l806_d105_alias(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('alias', ...args)
+	return formula_spec_boundary(806, 'example', 'example "alias paths with build options" do', args)
 }
 
 // Ruby example `example "alias paths with tab with non alias source path" do` at line 819.
 pub fn ruby_formula_spec_l819_d106_alias(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('alias', ...args)
+	return formula_spec_boundary(819, 'example', 'example "alias paths with tab with non alias source path" do', args)
 }
 
 // Ruby example `example "alias paths with tab with alias source path" do` at line 833.
 pub fn ruby_formula_spec_l833_d107_alias(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('alias', ...args)
+	return formula_spec_boundary(833, 'example', 'example "alias paths with tab with alias source path" do', args)
 }
 
 // Ruby specify `specify "raises build error on failure" do` at line 851.
 pub fn ruby_formula_spec_l851_d108_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+	return formula_spec_boundary(851, 'specify', 'specify "raises build error on failure" do', args)
 }
 
 // Ruby specify `specify "replaces text in file" do` at line 860.
 pub fn ruby_formula_spec_l860_d109_replaces(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('replaces', ...args)
+	return formula_spec_boundary(860, 'specify', 'specify "replaces text in file" do', args)
 }
 
 // Ruby specify `specify "with alias path with nil" do` at line 883.
 pub fn ruby_formula_spec_l883_d110_with(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('with', ...args)
+	return formula_spec_boundary(883, 'specify', 'specify "with alias path with nil" do', args)
 }
 
 // Ruby specify `specify "with alias path with a path" do` at line 887.
 pub fn ruby_formula_spec_l887_d111_with(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('with', ...args)
+	return formula_spec_boundary(887, 'specify', 'specify "with alias path with a path" do', args)
 }
 
 // Ruby specify `specify ".url" do` at line 928.
 pub fn ruby_formula_spec_l928_d112_url(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('.url', ...args)
+	return formula_spec_boundary(928, 'specify', 'specify ".url" do', args)
 }
 
 // Ruby specify `specify ".homepage with a human browser check" do` at line 937.
 pub fn ruby_formula_spec_l937_d113_homepage(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('.homepage', ...args)
+	return formula_spec_boundary(937, 'specify', 'specify ".homepage with a human browser check" do', args)
 }
 
 // Ruby specify `specify ".homepage requires a URL with a human browser check" do` at line 947.
 pub fn ruby_formula_spec_l947_d114_homepage(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('.homepage', ...args)
+	return formula_spec_boundary(947, 'specify', 'specify ".homepage requires a URL with a human browser check" do', args)
 }
 
 // Ruby specify `specify "spec integration" do` at line 956.
 pub fn ruby_formula_spec_l956_d115_spec(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('spec', ...args)
+	return formula_spec_boundary(956, 'specify', 'specify "spec integration" do', args)
 }
 
 // Ruby specify `specify "#active_spec=" do` at line 976.
 pub fn ruby_formula_spec_l976_d116_active_spec(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#active_spec=', ...args)
+	return formula_spec_boundary(976, 'specify', 'specify "#active_spec=" do', args)
 }
 
 // Ruby specify `specify "class specs are always initialized" do` at line 991.
 pub fn ruby_formula_spec_l991_d117_class(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('class', ...args)
+	return formula_spec_boundary(991, 'specify', 'specify "class specs are always initialized" do', args)
 }
 
 // Ruby specify `specify "instance specs have different references" do` at line 1001.
 pub fn ruby_formula_spec_l1001_d118_instance(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('instance', ...args)
+	return formula_spec_boundary(1001, 'specify', 'specify "instance specs have different references" do', args)
 }
 
 // Ruby specify `specify "incomplete instance specs are not accessible" do` at line 1009.
 pub fn ruby_formula_spec_l1009_d119_incomplete(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('incomplete', ...args)
+	return formula_spec_boundary(1009, 'specify', 'specify "incomplete instance specs are not accessible" do', args)
 }
 
 // Ruby let `let(:f) do` at line 1019.
 pub fn ruby_formula_spec_l1019_d120_f(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f', ...args)
+	return formula_spec_boundary(1019, 'let', 'let(:f) do', args)
 }
 
 // Ruby let `let(:executable) { Pathname.new("/usr/bin/foo") }` at line 1026.
 pub fn ruby_formula_spec_l1026_d121_executable(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('executable', ...args)
+	return formula_spec_boundary(1026, 'let', 'let(:executable) { Pathname.new("/usr/bin/foo") }', args)
 }
 
 // Ruby it `it "uses a system executable without checking the version by default" do` at line 1028.
 pub fn ruby_formula_spec_l1028_d122_uses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uses', ...args)
+	return formula_spec_boundary(1028, 'it', 'it "uses a system executable without checking the version by default" do', args)
 }
 
 // Ruby it `it "uses a matching system executable when latest is requested" do` at line 1037.
 pub fn ruby_formula_spec_l1037_d123_uses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uses', ...args)
+	return formula_spec_boundary(1037, 'it', 'it "uses a matching system executable when latest is requested" do', args)
 }
 
 // Ruby it `it "passes custom version arguments to the version check" do` at line 1046.
 pub fn ruby_formula_spec_l1046_d124_passes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('passes', ...args)
+	return formula_spec_boundary(1046, 'it', 'it "passes custom version arguments to the version check" do', args)
 }
 
 // Ruby it `it "returns the brewed executable path when the system version does not match latest" do` at line 1056.
 pub fn ruby_formula_spec_l1056_d125_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	return formula_spec_boundary(1056, 'it', 'it "returns the brewed executable path when the system version does not match latest" do', args)
 }
 
 // Ruby it `it "honors attributes declared before specs" do` at line 1067.
 pub fn ruby_formula_spec_l1067_d126_honors(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('honors', ...args)
+	return formula_spec_boundary(1067, 'it', 'it "honors attributes declared before specs" do', args)
 }
 
 // Ruby specify `specify "simple version" do` at line 1080.
 pub fn ruby_formula_spec_l1080_d127_simple(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('simple', ...args)
+	return formula_spec_boundary(1080, 'specify', 'specify "simple version" do', args)
 }
 
 // Ruby specify `specify "version with revision" do` at line 1089.
 pub fn ruby_formula_spec_l1089_d128_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('version', ...args)
+	return formula_spec_boundary(1089, 'specify', 'specify "version with revision" do', args)
 }
 
 // Ruby specify `specify "head uses revisions" do` at line 1099.
 pub fn ruby_formula_spec_l1099_d129_head(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('head', ...args)
+	return formula_spec_boundary(1099, 'specify', 'specify "head uses revisions" do', args)
 }
 
 // Ruby specify `specify "#update_head_version" do` at line 1112.
 pub fn ruby_formula_spec_l1112_d130_update_head_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#update_head_version', ...args)
+	return formula_spec_boundary(1112, 'specify', 'specify "#update_head_version" do', args)
 }
 
 // Ruby specify `specify "#desc" do` at line 1133.
 pub fn ruby_formula_spec_l1133_d131_desc(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#desc', ...args)
+	return formula_spec_boundary(1133, 'specify', 'specify "#desc" do', args)
 }
 
 // Ruby specify `specify "#post_install_defined?" do` at line 1144.
 pub fn ruby_formula_spec_l1144_d132_post_install_defined(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#post_install_defined?', ...args)
+	return formula_spec_boundary(1144, 'specify', 'specify "#post_install_defined?" do', args)
 }
 
 // Ruby method `post_install` at line 1149.
 pub fn ruby_formula_spec_l1149_d133_post_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('post_install', ...args)
+	return formula_spec_boundary(1149, 'method', 'post_install', args)
 }
 
 // Ruby specify `specify "#run_post_install prevents build tools from reading user configuration" do` at line 1163.
 pub fn ruby_formula_spec_l1163_d134_run_post_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#run_post_install', ...args)
+	return formula_spec_boundary(1163, 'specify', 'specify "#run_post_install prevents build tools from reading user configuration" do', args)
 }
 
 // Ruby specify `specify "#run_post_install runs install steps before the remaining hook" do` at line 1186.
 pub fn ruby_formula_spec_l1186_d135_run_post_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#run_post_install', ...args)
+	return formula_spec_boundary(1186, 'specify', 'specify "#run_post_install runs install steps before the remaining hook" do', args)
 }
 
 // Ruby specify `specify "#post_install_steps" do` at line 1200.
 pub fn ruby_formula_spec_l1200_d136_post_install_steps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#post_install_steps', ...args)
+	return formula_spec_boundary(1200, 'specify', 'specify "#post_install_steps" do', args)
 }
 
 // Ruby specify `specify "#post_install_steps does not default paths to var" do` at line 1239.
 pub fn ruby_formula_spec_l1239_d137_post_install_steps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#post_install_steps', ...args)
+	return formula_spec_boundary(1239, 'specify', 'specify "#post_install_steps does not default paths to var" do', args)
 }
 
 // Ruby specify `specify "#post_install_steps_defined? with an empty block" do` at line 1254.
 pub fn ruby_formula_spec_l1254_d138_post_install_steps_defined(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#post_install_steps_defined?', ...args)
+	return formula_spec_boundary(1254, 'specify', 'specify "#post_install_steps_defined? with an empty block" do', args)
 }
 
 // Ruby specify `specify "#post_install_steps can coexist with` at line 1270.
 pub fn ruby_formula_spec_l1270_d139_post_install_steps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#post_install_steps', ...args)
+	return formula_spec_boundary(1270, 'specify', 'specify "#post_install_steps can coexist with', args)
 }
 
 // Ruby method `post_install; end` at line 1281.
 pub fn ruby_formula_spec_l1281_d140_post_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('post_install', ...args)
+	return formula_spec_boundary(1281, 'method', 'post_install; end', args)
 }
 
 // Ruby specify `specify "#run_post_install_steps uses the versioned prefix" do` at line 1288.
 pub fn ruby_formula_spec_l1288_d141_run_post_install_steps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#run_post_install_steps', ...args)
+	return formula_spec_boundary(1288, 'specify', 'specify "#run_post_install_steps uses the versioned prefix" do', args)
 }
 
 // Ruby let `let(:f) do` at line 1313.
 pub fn ruby_formula_spec_l1313_d142_f(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f', ...args)
+	return formula_spec_boundary(1313, 'let', 'let(:f) do', args)
 }
 
 // Ruby let `let(:config_file) { HOMEBREW_PREFIX/"etc/config-upgrade.conf" }` at line 1320.
 pub fn ruby_formula_spec_l1320_d143_config_file(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('config_file', ...args)
+	return formula_spec_boundary(1320, 'let', 'let(:config_file) { HOMEBREW_PREFIX/"etc/config-upgrade.conf" }', args)
 }
 
 // Ruby let `let(:default_config_file) { Pathname("#{config_file}.default") }` at line 1321.
 pub fn ruby_formula_spec_l1321_d144_default_config_file(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('default_config_file', ...args)
+	return formula_spec_boundary(1321, 'let', 'let(:default_config_file) { Pathname("#{config_file}.default") }', args)
 }
 
 // Ruby let `let(:old_default_file) { f.rack/"1.0/.bottle/etc/config-upgrade.conf" }` at line 1322.
 pub fn ruby_formula_spec_l1322_d145_old_default_file(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('old_default_file', ...args)
+	return formula_spec_boundary(1322, 'let', 'let(:old_default_file) { f.rack/"1.0/.bottle/etc/config-upgrade.conf" }', args)
 }
 
 // Ruby let `let(:new_default_file) { f.bottle_prefix/"etc/config-upgrade.conf" }` at line 1323.
 pub fn ruby_formula_spec_l1323_d146_new_default_file(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('new_default_file', ...args)
+	return formula_spec_boundary(1323, 'let', 'let(:new_default_file) { f.bottle_prefix/"etc/config-upgrade.conf" }', args)
 }
 
 // Ruby it `it "replaces config that matches the previous default" do` at line 1337.
 pub fn ruby_formula_spec_l1337_d147_replaces(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('replaces', ...args)
+	return formula_spec_boundary(1337, 'it', 'it "replaces config that matches the previous default" do', args)
 }
 
 // Ruby it `it "writes a default file when the config was modified" do` at line 1345.
 pub fn ruby_formula_spec_l1345_d148_writes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('writes', ...args)
+	return formula_spec_boundary(1345, 'it', 'it "writes a default file when the config was modified" do', args)
 }
 
 // Ruby it `it "replaces config that matches the previous default when the keg is opt-linked" do` at line 1353.
 pub fn ruby_formula_spec_l1353_d149_replaces(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('replaces', ...args)
+	return formula_spec_boundary(1353, 'it', 'it "replaces config that matches the previous default when the keg is opt-linked" do', args)
 }
 
 // Ruby specify `specify "test fixtures" do` at line 1363.
 pub fn ruby_formula_spec_l1363_d150_test(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('test', ...args)
+	return formula_spec_boundary(1363, 'specify', 'specify "test fixtures" do', args)
 }
 
 // Ruby specify `specify "#livecheck" do` at line 1372.
 pub fn ruby_formula_spec_l1372_d151_livecheck(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#livecheck', ...args)
+	return formula_spec_boundary(1372, 'specify', 'specify "#livecheck" do', args)
 }
 
 // Ruby specify `specify "no `livecheck` block defined" do` at line 1390.
 pub fn ruby_formula_spec_l1390_d152_no(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('no', ...args)
+	return formula_spec_boundary(1390, 'specify', 'specify "no `livecheck` block defined" do', args)
 }
 
 // Ruby specify `specify "`livecheck` block defined" do` at line 1399.
 pub fn ruby_formula_spec_l1399_d153_livecheck(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('`livecheck`', ...args)
+	return formula_spec_boundary(1399, 'specify', 'specify "`livecheck` block defined" do', args)
 }
 
 // Ruby specify `specify "livecheck references Formula URL" do` at line 1411.
 pub fn ruby_formula_spec_l1411_d154_livecheck(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('livecheck', ...args)
+	return formula_spec_boundary(1411, 'specify', 'specify "livecheck references Formula URL" do', args)
 }
 
 // Ruby specify `specify "no service defined" do` at line 1428.
 pub fn ruby_formula_spec_l1428_d155_no(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('no', ...args)
+	return formula_spec_boundary(1428, 'specify', 'specify "no service defined" do', args)
 }
 
 // Ruby specify `specify "service complicated" do` at line 1437.
 pub fn ruby_formula_spec_l1437_d156_service(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('service', ...args)
+	return formula_spec_boundary(1437, 'specify', 'specify "service complicated" do', args)
 }
 
 // Ruby specify `specify "service uses simple run" do` at line 1456.
 pub fn ruby_formula_spec_l1456_d157_service(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('service', ...args)
+	return formula_spec_boundary(1456, 'specify', 'specify "service uses simple run" do', args)
 }
 
 // Ruby specify `specify "service with only custom names" do` at line 1469.
 pub fn ruby_formula_spec_l1469_d158_service(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('service', ...args)
+	return formula_spec_boundary(1469, 'specify', 'specify "service with only custom names" do', args)
 }
 
 // Ruby specify `specify "service helpers return data" do` at line 1483.
 pub fn ruby_formula_spec_l1483_d159_service(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('service', ...args)
+	return formula_spec_boundary(1483, 'specify', 'specify "service helpers return data" do', args)
 }
 
 // Ruby specify `specify "dependencies" do` at line 1497.
 pub fn ruby_formula_spec_l1497_d160_dependencies(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dependencies', ...args)
+	return formula_spec_boundary(1497, 'specify', 'specify "dependencies" do', args)
 }
 
 // Ruby specify `specify "runtime dependencies with optional deps from tap" do` at line 1545.
 pub fn ruby_formula_spec_l1545_d161_runtime(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('runtime', ...args)
+	return formula_spec_boundary(1545, 'specify', 'specify "runtime dependencies with optional deps from tap" do', args)
 }
 
 // Ruby it `it "includes non-declared direct dependencies" do` at line 1589.
 pub fn ruby_formula_spec_l1589_d162_includes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('includes', ...args)
+	return formula_spec_boundary(1589, 'it', 'it "includes non-declared direct dependencies" do', args)
 }
 
 // Ruby it `it "handles bad tab runtime_dependencies" do` at line 1606.
 pub fn ruby_formula_spec_l1606_d163_handles(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('handles', ...args)
+	return formula_spec_boundary(1606, 'it', 'it "handles bad tab runtime_dependencies" do', args)
 }
 
 // Ruby let `let(:f) do` at line 1622.
 pub fn ruby_formula_spec_l1622_d164_f(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f', ...args)
+	return formula_spec_boundary(1622, 'let', 'let(:f) do', args)
 }
 
 // Ruby let `let(:keg) { instance_double(Keg) }` at line 1628.
 pub fn ruby_formula_spec_l1628_d165_keg(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('keg', ...args)
+	return formula_spec_boundary(1628, 'let', 'let(:keg) { instance_double(Keg) }', args)
 }
 
 // Ruby it `it "returns empty when no tab runtime_dependencies data" do` at line 1634.
 pub fn ruby_formula_spec_l1634_d166_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	return formula_spec_boundary(1634, 'it', 'it "returns empty when no tab runtime_dependencies data" do', args)
 }
 
 // Ruby it `it "returns empty when dep is present in cellar" do` at line 1639.
 pub fn ruby_formula_spec_l1639_d167_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	return formula_spec_boundary(1639, 'it', 'it "returns empty when dep is present in cellar" do', args)
 }
 
 // Ruby it `it "returns empty when dep is present as alias or oldname" do` at line 1645.
 pub fn ruby_formula_spec_l1645_d168_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	return formula_spec_boundary(1645, 'it', 'it "returns empty when dep is present as alias or oldname" do', args)
 }
 
 // Ruby it `it "returns dep when not present in cellar" do` at line 1653.
 pub fn ruby_formula_spec_l1653_d169_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	return formula_spec_boundary(1653, 'it', 'it "returns dep when not present in cellar" do', args)
 }
 
 // Ruby it `it "returns dep as missing when it is in the hide list, even if installed" do` at line 1658.
 pub fn ruby_formula_spec_l1658_d170_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	return formula_spec_boundary(1658, 'it', 'it "returns dep as missing when it is in the hide list, even if installed" do', args)
 }
 
 // Ruby it `it "matches tapnamed deps against base-name hide list" do` at line 1664.
 pub fn ruby_formula_spec_l1664_d171_matches(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('matches', ...args)
+	return formula_spec_boundary(1664, 'it', 'it "matches tapnamed deps against base-name hide list" do', args)
 }
 
 // Ruby let `let(:f) do` at line 1672.
 pub fn ruby_formula_spec_l1672_d172_f(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f', ...args)
+	return formula_spec_boundary(1672, 'let', 'let(:f) do', args)
 }
 
 // Ruby it `it "returns empty when no keg is installed" do` at line 1679.
 pub fn ruby_formula_spec_l1679_d173_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	return formula_spec_boundary(1679, 'it', 'it "returns empty when no keg is installed" do', args)
 }
 
 // Ruby it `it "returns only the formula's own and orphan libraries, excluding dependency-owned ones" do` at line 1684.
 pub fn ruby_formula_spec_l1684_d174_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	return formula_spec_boundary(1684, 'it', 'it "returns only the formula\'s own and orphan libraries, excluding dependency-owned ones" do', args)
 }
 
 // Ruby it `it "returns the dependency names that own missing libraries, excluding the formula itself" do` at line 1696.
 pub fn ruby_formula_spec_l1696_d175_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	return formula_spec_boundary(1696, 'it', 'it "returns the dependency names that own missing libraries, excluding the formula itself" do', args)
 }
 
 // Ruby specify `specify "requirements" do` at line 1709.
 pub fn ruby_formula_spec_l1709_d176_requirements(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('requirements', ...args)
+	return formula_spec_boundary(1709, 'specify', 'specify "requirements" do', args)
 }
 
 // Ruby specify `specify "#to_hash" do` at line 1751.
 pub fn ruby_formula_spec_l1751_d177_to_hash(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#to_hash', ...args)
+	return formula_spec_boundary(1751, 'specify', 'specify "#to_hash" do', args)
 }
 
 // Ruby it `it "serialises an external patch" do` at line 1774.
 pub fn ruby_formula_spec_l1774_d178_serialises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('serialises', ...args)
+	return formula_spec_boundary(1774, 'it', 'it "serialises an external patch" do', args)
 }
 
 // Ruby it `it "serialises an external patch with apply and directory" do` at line 1789.
 pub fn ruby_formula_spec_l1789_d179_serialises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('serialises', ...args)
+	return formula_spec_boundary(1789, 'it', 'it "serialises an external patch with apply and directory" do', args)
 }
 
 // Ruby it `it "serialises an embedded DATA patch" do` at line 1812.
 pub fn ruby_formula_spec_l1812_d180_serialises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('serialises', ...args)
+	return formula_spec_boundary(1812, 'it', 'it "serialises an embedded DATA patch" do', args)
 }
 
 // Ruby it `it "serialises a string patch" do` at line 1822.
 pub fn ruby_formula_spec_l1822_d181_serialises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('serialises', ...args)
+	return formula_spec_boundary(1822, 'it', 'it "serialises a string patch" do', args)
 }
 
 // Ruby it `it "serialises type and explicit resolves on an external patch" do` at line 1832.
 pub fn ruby_formula_spec_l1832_d182_serialises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('serialises', ...args)
+	return formula_spec_boundary(1832, 'it', 'it "serialises type and explicit resolves on an external patch" do', args)
 }
 
 // Ruby it `it "serialises resolves inferred from url and apply paths" do` at line 1858.
 pub fn ruby_formula_spec_l1858_d183_serialises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('serialises', ...args)
+	return formula_spec_boundary(1858, 'it', 'it "serialises resolves inferred from url and apply paths" do', args)
 }
 
 // Ruby it `it "serialises non-CVE resolves entries with the appropriate issue type" do` at line 1875.
 pub fn ruby_formula_spec_l1875_d184_serialises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('serialises', ...args)
+	return formula_spec_boundary(1875, 'it', 'it "serialises non-CVE resolves entries with the appropriate issue type" do', args)
 }
 
 // Ruby it `it "serialises type on a local file patch" do` at line 1893.
 pub fn ruby_formula_spec_l1893_d185_serialises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('serialises', ...args)
+	return formula_spec_boundary(1893, 'it', 'it "serialises type on a local file patch" do', args)
 }
 
 // Ruby it `it "serialises a local file patch" do` at line 1906.
 pub fn ruby_formula_spec_l1906_d186_serialises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('serialises', ...args)
+	return formula_spec_boundary(1906, 'it', 'it "serialises a local file patch" do', args)
 }
 
 // Ruby let `let(:formula_path) { CoreTap.instance.new_formula_path("foo-variations") }` at line 1920.
 pub fn ruby_formula_spec_l1920_d187_formula_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_path', ...args)
+	return formula_spec_boundary(1920, 'let', 'let(:formula_path) { CoreTap.instance.new_formula_path("foo-variations") }', args)
 }
 
 // Ruby let `let(:formula_content) do` at line 1921.
 pub fn ruby_formula_spec_l1921_d188_formula_content(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_content', ...args)
+	return formula_spec_boundary(1921, 'let', 'let(:formula_content) do', args)
 }
 
 // Ruby let `let(:expected_variations) do` at line 1945.
 pub fn ruby_formula_spec_l1945_d189_expected_variations(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('expected_variations', ...args)
+	return formula_spec_boundary(1945, 'let', 'let(:expected_variations) do', args)
 }
 
 // Ruby it `it "returns the correct variations hash" do` at line 2013.
 pub fn ruby_formula_spec_l2013_d190_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	return formula_spec_boundary(2013, 'it', 'it "returns the correct variations hash" do', args)
 }
 
 // Ruby it `it "returns Kegs eligible for cleanup" do` at line 2022.
 pub fn ruby_formula_spec_l2022_d191_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	return formula_spec_boundary(2022, 'it', 'it "returns Kegs eligible for cleanup" do', args)
 }
 
 // Ruby specify `specify "with pinned Keg" do` at line 2055.
 pub fn ruby_formula_spec_l2055_d192_with(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('with', ...args)
+	return formula_spec_boundary(2055, 'specify', 'specify "with pinned Keg" do', args)
 }
 
 // Ruby specify `specify "with HEAD installed" do` at line 2072.
 pub fn ruby_formula_spec_l2072_d193_with(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('with', ...args)
+	return formula_spec_boundary(2072, 'specify', 'specify "with HEAD installed" do', args)
 }
 
 // Ruby it `it "returns false if set to false" do` at line 2094.
 pub fn ruby_formula_spec_l2094_d194_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	return formula_spec_boundary(2094, 'it', 'it "returns false if set to false" do', args)
 }
 
 // Ruby method `pour_bottle?` at line 2099.
 pub fn ruby_formula_spec_l2099_d195_pour_bottle(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('pour_bottle?', ...args)
+	return formula_spec_boundary(2099, 'method', 'pour_bottle?', args)
 }
 
 // Ruby it `it "returns true if set to true" do` at line 2107.
 pub fn ruby_formula_spec_l2107_d196_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	return formula_spec_boundary(2107, 'it', 'it "returns true if set to true" do', args)
 }
 
 // Ruby method `pour_bottle?` at line 2112.
 pub fn ruby_formula_spec_l2112_d197_pour_bottle(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('pour_bottle?', ...args)
+	return formula_spec_boundary(2112, 'method', 'pour_bottle?', args)
 }
 
 // Ruby it `it "returns false if set to false via DSL" do` at line 2120.
 pub fn ruby_formula_spec_l2120_d198_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	return formula_spec_boundary(2120, 'it', 'it "returns false if set to false via DSL" do', args)
 }
 
 // Ruby it `it "returns true if set to true via DSL" do` at line 2134.
 pub fn ruby_formula_spec_l2134_d199_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	return formula_spec_boundary(2134, 'it', 'it "returns true if set to true via DSL" do', args)
 }
 
 // Ruby it `it "returns false with `only_if: :clt_installed` on macOS", :needs_macos do` at line 2148.
 pub fn ruby_formula_spec_l2148_d200_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	return formula_spec_boundary(2148, 'it', 'it "returns false with `only_if: :clt_installed` on macOS", :needs_macos do', args)
 }
 
 // Ruby it `it "returns true with `only_if: :clt_installed` on macOS", :needs_macos do` at line 2162.
 pub fn ruby_formula_spec_l2162_d201_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	return formula_spec_boundary(2162, 'it', 'it "returns true with `only_if: :clt_installed` on macOS", :needs_macos do', args)
 }
 
 // Ruby it `it "returns true with `only_if: :clt_installed` on Linux", :needs_linux do` at line 2176.
 pub fn ruby_formula_spec_l2176_d202_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	return formula_spec_boundary(2176, 'it', 'it "returns true with `only_if: :clt_installed` on Linux", :needs_linux do', args)
 }
 
 // Ruby it `it "throws an error if passed both a symbol and a block" do` at line 2187.
 pub fn ruby_formula_spec_l2187_d203_throws(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('throws', ...args)
+	return formula_spec_boundary(2187, 'it', 'it "throws an error if passed both a symbol and a block" do', args)
 }
 
 // Ruby it `it "throws an error if passed an invalid symbol" do` at line 2201.
 pub fn ruby_formula_spec_l2201_d204_throws(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('throws', ...args)
+	return formula_spec_boundary(2201, 'it', 'it "throws an error if passed an invalid symbol" do', args)
 }
 
 // Ruby let `let(:f) do` at line 2214.
 pub fn ruby_formula_spec_l2214_d205_f(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f', ...args)
+	return formula_spec_boundary(2214, 'let', 'let(:f) do', args)
 }
 
 // Ruby let `let(:new_formula) do` at line 2221.
 pub fn ruby_formula_spec_l2221_d206_new_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('new_formula', ...args)
+	return formula_spec_boundary(2221, 'let', 'let(:new_formula) do', args)
 }
 
 // Ruby let `let(:tab) { Tab.empty }` at line 2228.
 pub fn ruby_formula_spec_l2228_d207_tab(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tab', ...args)
+	return formula_spec_boundary(2228, 'let', 'let(:tab) { Tab.empty }', args)
 }
 
 // Ruby let `let(:alias_name) { "bar" }` at line 2229.
 pub fn ruby_formula_spec_l2229_d208_alias_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('alias_name', ...args)
+	return formula_spec_boundary(2229, 'let', 'let(:alias_name) { "bar" }', args)
 }
 
 // Ruby let `let(:alias_path) { CoreTap.instance.alias_dir/alias_name }` at line 2230.
 pub fn ruby_formula_spec_l2230_d209_alias_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('alias_path', ...args)
+	return formula_spec_boundary(2230, 'let', 'let(:alias_path) { CoreTap.instance.alias_dir/alias_name }', args)
 }
 
 // Ruby specify `specify "alias changes when not installed with alias" do` at line 2241.
 pub fn ruby_formula_spec_l2241_d210_alias(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('alias', ...args)
+	return formula_spec_boundary(2241, 'specify', 'specify "alias changes when not installed with alias" do', args)
 }
 
 // Ruby specify `specify "alias changes when not changed" do` at line 2252.
 pub fn ruby_formula_spec_l2252_d211_alias(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('alias', ...args)
+	return formula_spec_boundary(2252, 'specify', 'specify "alias changes when not changed" do', args)
 }
 
 // Ruby specify `specify "alias changes when new alias target" do` at line 2267.
 pub fn ruby_formula_spec_l2267_d212_alias(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('alias', ...args)
+	return formula_spec_boundary(2267, 'specify', 'specify "alias changes when new alias target" do', args)
 }
 
 // Ruby specify `specify "alias changes when old formulae installed" do` at line 2282.
 pub fn ruby_formula_spec_l2282_d213_alias(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('alias', ...args)
+	return formula_spec_boundary(2282, 'specify', 'specify "alias changes when old formulae installed" do', args)
 }
 
 // Ruby let `let(:outdated_prefix) { HOMEBREW_CELLAR/"#{f.name}/1.11" }` at line 2299.
 pub fn ruby_formula_spec_l2299_d214_outdated_prefix(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('outdated_prefix', ...args)
+	return formula_spec_boundary(2299, 'let', 'let(:outdated_prefix) { HOMEBREW_CELLAR/"#{f.name}/1.11" }', args)
 }
 
 // Ruby let `let(:same_prefix) { HOMEBREW_CELLAR/"#{f.name}/1.20" }` at line 2300.
 pub fn ruby_formula_spec_l2300_d215_same_prefix(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('same_prefix', ...args)
+	return formula_spec_boundary(2300, 'let', 'let(:same_prefix) { HOMEBREW_CELLAR/"#{f.name}/1.20" }', args)
 }
 
 // Ruby let `let(:greater_prefix) { HOMEBREW_CELLAR/"#{f.name}/1.21" }` at line 2301.
 pub fn ruby_formula_spec_l2301_d216_greater_prefix(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('greater_prefix', ...args)
+	return formula_spec_boundary(2301, 'let', 'let(:greater_prefix) { HOMEBREW_CELLAR/"#{f.name}/1.21" }', args)
 }
 
 // Ruby let `let(:head_prefix) { HOMEBREW_CELLAR/"#{f.name}/HEAD" }` at line 2302.
 pub fn ruby_formula_spec_l2302_d217_head_prefix(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('head_prefix', ...args)
+	return formula_spec_boundary(2302, 'let', 'let(:head_prefix) { HOMEBREW_CELLAR/"#{f.name}/HEAD" }', args)
 }
 
 // Ruby let `let(:old_alias_target_prefix) { HOMEBREW_CELLAR/"#{old_formula.name}/1.0" }` at line 2303.
 pub fn ruby_formula_spec_l2303_d218_old_alias_target_prefix(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('old_alias_target_prefix', ...args)
+	return formula_spec_boundary(2303, 'let', 'let(:old_alias_target_prefix) { HOMEBREW_CELLAR/"#{old_formula.name}/1.0" }', args)
 }
 
 // Ruby let `let(:f) do` at line 2305.
 pub fn ruby_formula_spec_l2305_d219_f(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f', ...args)
+	return formula_spec_boundary(2305, 'let', 'let(:f) do', args)
 }
 
 // Ruby let `let(:old_formula) do` at line 2313.
 pub fn ruby_formula_spec_l2313_d220_old_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('old_formula', ...args)
+	return formula_spec_boundary(2313, 'let', 'let(:old_formula) do', args)
 }
 
 // Ruby let `let(:new_formula) do` at line 2320.
 pub fn ruby_formula_spec_l2320_d221_new_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('new_formula', ...args)
+	return formula_spec_boundary(2320, 'let', 'let(:new_formula) do', args)
 }
 
 // Ruby let `let(:alias_name) { "bar" }` at line 2327.
 pub fn ruby_formula_spec_l2327_d222_alias_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('alias_name', ...args)
+	return formula_spec_boundary(2327, 'let', 'let(:alias_name) { "bar" }', args)
 }
 
 // Ruby let `let(:alias_path) { f.tap.alias_dir/alias_name }` at line 2328.
 pub fn ruby_formula_spec_l2328_d223_alias_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('alias_path', ...args)
+	return formula_spec_boundary(2328, 'let', 'let(:alias_path) { f.tap.alias_dir/alias_name }', args)
 }
 
 // Ruby method `setup_tab_for_prefix(prefix, options = {})` at line 2336.
 pub fn ruby_formula_spec_l2336_d224_setup_tab_for_prefix(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('setup_tab_for_prefix', ...args)
+	return formula_spec_boundary(2336, 'method', 'setup_tab_for_prefix(prefix, options = {})', args)
 }
 
 // Ruby example `example "greater different tap installed" do` at line 2352.
 pub fn ruby_formula_spec_l2352_d225_greater(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('greater', ...args)
+	return formula_spec_boundary(2352, 'example', 'example "greater different tap installed" do', args)
 }
 
 // Ruby example `example "greater same tap installed" do` at line 2357.
 pub fn ruby_formula_spec_l2357_d226_greater(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('greater', ...args)
+	return formula_spec_boundary(2357, 'example', 'example "greater same tap installed" do', args)
 }
 
 // Ruby example `example "outdated different tap installed" do` at line 2363.
 pub fn ruby_formula_spec_l2363_d227_outdated(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('outdated', ...args)
+	return formula_spec_boundary(2363, 'example', 'example "outdated different tap installed" do', args)
 }
 
 // Ruby example `example "outdated same tap installed" do` at line 2368.
 pub fn ruby_formula_spec_l2368_d228_outdated(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('outdated', ...args)
+	return formula_spec_boundary(2368, 'example', 'example "outdated same tap installed" do', args)
 }
 
 // Ruby example `example "outdated unlinked tap installed" do` at line 2374.
 pub fn ruby_formula_spec_l2374_d229_outdated(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('outdated', ...args)
+	return formula_spec_boundary(2374, 'example', 'example "outdated unlinked tap installed" do', args)
 }
 
 // Ruby example `example "outdated follow alias and alias unchanged" do` at line 2380.
 pub fn ruby_formula_spec_l2380_d230_outdated(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('outdated', ...args)
+	return formula_spec_boundary(2380, 'example', 'example "outdated follow alias and alias unchanged" do', args)
 }
 
 // Ruby example `example "outdated follow alias and alias changed and new target not installed" do` at line 2387.
 pub fn ruby_formula_spec_l2387_d231_outdated(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('outdated', ...args)
+	return formula_spec_boundary(2387, 'example', 'example "outdated follow alias and alias changed and new target not installed" do', args)
 }
 
 // Ruby example `example "outdated follow alias and alias changed and new target installed" do` at line 2398.
 pub fn ruby_formula_spec_l2398_d232_outdated(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('outdated', ...args)
+	return formula_spec_boundary(2398, 'example', 'example "outdated follow alias and alias changed and new target installed" do', args)
 }
 
 // Ruby example `example "outdated no follow alias and alias unchanged" do` at line 2406.
 pub fn ruby_formula_spec_l2406_d233_outdated(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('outdated', ...args)
+	return formula_spec_boundary(2406, 'example', 'example "outdated no follow alias and alias unchanged" do', args)
 }
 
 // Ruby example `example "outdated no follow alias and alias changed" do` at line 2413.
 pub fn ruby_formula_spec_l2413_d234_outdated(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('outdated', ...args)
+	return formula_spec_boundary(2413, 'example', 'example "outdated no follow alias and alias changed" do', args)
 }
 
 // Ruby example `example "outdated old alias targets installed" do` at line 2426.
 pub fn ruby_formula_spec_l2426_d235_outdated(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('outdated', ...args)
+	return formula_spec_boundary(2426, 'example', 'example "outdated old alias targets installed" do', args)
 }
 
 // Ruby example `example "outdated old alias targets not installed" do` at line 2442.
 pub fn ruby_formula_spec_l2442_d236_outdated(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('outdated', ...args)
+	return formula_spec_boundary(2442, 'example', 'example "outdated old alias targets not installed" do', args)
 }
 
 // Ruby example `example "outdated same head installed" do` at line 2454.
 pub fn ruby_formula_spec_l2454_d237_outdated(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('outdated', ...args)
+	return formula_spec_boundary(2454, 'example', 'example "outdated same head installed" do', args)
 }
 
 // Ruby example `example "outdated different head installed" do` at line 2460.
 pub fn ruby_formula_spec_l2460_d238_outdated(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('outdated', ...args)
+	return formula_spec_boundary(2460, 'example', 'example "outdated different head installed" do', args)
 }
 
 // Ruby example `example "outdated mixed taps greater version installed" do` at line 2466.
 pub fn ruby_formula_spec_l2466_d239_outdated(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('outdated', ...args)
+	return formula_spec_boundary(2466, 'example', 'example "outdated mixed taps greater version installed" do', args)
 }
 
 // Ruby example `example "outdated mixed taps outdated version installed" do` at line 2479.
 pub fn ruby_formula_spec_l2479_d240_outdated(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('outdated', ...args)
+	return formula_spec_boundary(2479, 'example', 'example "outdated mixed taps outdated version installed" do', args)
 }
 
 // Ruby example `example "outdated same version tap installed" do` at line 2496.
 pub fn ruby_formula_spec_l2496_d241_outdated(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('outdated', ...args)
+	return formula_spec_boundary(2496, 'example', 'example "outdated same version tap installed" do', args)
 }
 
 // Ruby example `example "outdated installed head less than stable" do` at line 2508.
 pub fn ruby_formula_spec_l2508_d242_outdated(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('outdated', ...args)
+	return formula_spec_boundary(2508, 'example', 'example "outdated installed head less than stable" do', args)
 }
 
 // Ruby let `let(:f) do` at line 2521.
 pub fn ruby_formula_spec_l2521_d243_f(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f', ...args)
+	return formula_spec_boundary(2521, 'let', 'let(:f) do', args)
 }
 
 // Ruby let `let(:testball_repo) { HOMEBREW_PREFIX/"testball_repo" }` at line 2530.
 pub fn ruby_formula_spec_l2530_d244_testball_repo(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('testball_repo', ...args)
+	return formula_spec_boundary(2530, 'let', 'let(:testball_repo) { HOMEBREW_PREFIX/"testball_repo" }', args)
 }
 
 // Ruby example `example do` at line 2532.
 pub fn ruby_formula_spec_l2532_d245_do(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('do', ...args)
+	return formula_spec_boundary(2532, 'example', 'example do', args)
 }
 
 // Ruby let `let(:dst) { mktmpdir }` at line 2571.
 pub fn ruby_formula_spec_l2571_d246_dst(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dst', ...args)
+	return formula_spec_boundary(2571, 'let', 'let(:dst) { mktmpdir }', args)
 }
 
 // Ruby it `it "creates intermediate directories" do` at line 2573.
 pub fn ruby_formula_spec_l2573_d247_creates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('creates', ...args)
+	return formula_spec_boundary(2573, 'it', 'it "creates intermediate directories" do', args)
 }
 
 // Ruby let `let(:f) do` at line 2582.
 pub fn ruby_formula_spec_l2582_d248_f(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f', ...args)
+	return formula_spec_boundary(2582, 'let', 'let(:f) do', args)
 }
 
 // Ruby example `example do` at line 2591.
 pub fn ruby_formula_spec_l2591_d249_do(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('do', ...args)
+	return formula_spec_boundary(2591, 'example', 'example do', args)
 }
 
 // Ruby let `let(:f) do` at line 2600.
 pub fn ruby_formula_spec_l2600_d250_f(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f', ...args)
+	return formula_spec_boundary(2600, 'let', 'let(:f) do', args)
 }
 
 // Ruby example `example do` at line 2609.
 pub fn ruby_formula_spec_l2609_d251_do(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('do', ...args)
+	return formula_spec_boundary(2609, 'example', 'example do', args)
 }
 
 // Ruby let `let(:f) do` at line 2632.
 pub fn ruby_formula_spec_l2632_d252_f(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f', ...args)
+	return formula_spec_boundary(2632, 'let', 'let(:f) do', args)
 }
 
 // Ruby example `example do` at line 2641.
 pub fn ruby_formula_spec_l2641_d253_do(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('do', ...args)
+	return formula_spec_boundary(2641, 'example', 'example do', args)
 }
 
 // Ruby let `let(:f) do` at line 2657.
 pub fn ruby_formula_spec_l2657_d254_f(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f', ...args)
+	return formula_spec_boundary(2657, 'let', 'let(:f) do', args)
 }
 
 // Ruby it `it "returns nil when not installed" do` at line 2664.
 pub fn ruby_formula_spec_l2664_d255_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	return formula_spec_boundary(2664, 'it', 'it "returns nil when not installed" do', args)
 }
 
 // Ruby it `it "returns package version when installed" do` at line 2668.
 pub fn ruby_formula_spec_l2668_d256_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	return formula_spec_boundary(2668, 'it', 'it "returns package version when installed" do', args)
 }
 
 // Ruby it `it "returns false for Linux when macOS is required at the top level" do` at line 2675.
 pub fn ruby_formula_spec_l2675_d257_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	return formula_spec_boundary(2675, 'it', 'it "returns false for Linux when macOS is required at the top level" do', args)
 }
 
 // Ruby it `it "returns true for Linux when macOS is required in an on_macos block" do` at line 2686.
 pub fn ruby_formula_spec_l2686_d258_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	return formula_spec_boundary(2686, 'it', 'it "returns true for Linux when macOS is required in an on_macos block" do', args)
 }
 
 // Ruby it `it "returns false for macOS when Linux is required at the top level" do` at line 2699.
 pub fn ruby_formula_spec_l2699_d259_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	return formula_spec_boundary(2699, 'it', 'it "returns false for macOS when Linux is required at the top level" do', args)
 }
 
 // Ruby it `it "deprecates bare and versioned macOS requirements" do` at line 2711.
 pub fn ruby_formula_spec_l2711_d260_deprecates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('deprecates', ...args)
+	return formula_spec_boundary(2711, 'it', 'it "deprecates bare and versioned macOS requirements" do', args)
 }
 
 // Ruby it `it "does not allow duplicate bare macOS requirements" do` at line 2724.
 pub fn ruby_formula_spec_l2724_d261_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	return formula_spec_boundary(2724, 'it', 'it "does not allow duplicate bare macOS requirements" do', args)
 }
 
 // Ruby it `it "returns false for Linux when maximum macOS is required at the top level" do` at line 2736.
 pub fn ruby_formula_spec_l2736_d262_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	return formula_spec_boundary(2736, 'it', 'it "returns false for Linux when maximum macOS is required at the top level" do', args)
 }
 
 // Ruby it `it "does not allow Linux then macOS requirements" do` at line 2747.
 pub fn ruby_formula_spec_l2747_d263_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	return formula_spec_boundary(2747, 'it', 'it "does not allow Linux then macOS requirements" do', args)
 }
 
 // Ruby it `it "does not allow macOS then Linux requirements" do` at line 2759.
 pub fn ruby_formula_spec_l2759_d264_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	return formula_spec_boundary(2759, 'it', 'it "does not allow macOS then Linux requirements" do', args)
 }
 
 // Ruby let `let(:f) do` at line 2773.
 pub fn ruby_formula_spec_l2773_d265_f(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f', ...args)
+	return formula_spec_boundary(2773, 'let', 'let(:f) do', args)
 }
 
 // Ruby attr_reader `attr_reader :test` at line 2775.
 pub fn ruby_formula_spec_l2775_d266_test(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('test', ...args)
+	return formula_spec_boundary(2775, 'attr_reader', 'attr_reader :test', args)
 }
 
 // Ruby method `install` at line 2777.
 pub fn ruby_formula_spec_l2777_d267_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	return formula_spec_boundary(2777, 'method', 'install', args)
 }
 
 // Ruby it `it "only calls code within on_macos" do` at line 2789.
 pub fn ruby_formula_spec_l2789_d268_only(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('only', ...args)
+	return formula_spec_boundary(2789, 'it', 'it "only calls code within on_macos" do', args)
 }
 
 // Ruby let `let(:f) do` at line 2796.
 pub fn ruby_formula_spec_l2796_d269_f(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f', ...args)
+	return formula_spec_boundary(2796, 'let', 'let(:f) do', args)
 }
 
 // Ruby attr_reader `attr_reader :test` at line 2798.
 pub fn ruby_formula_spec_l2798_d270_test(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('test', ...args)
+	return formula_spec_boundary(2798, 'attr_reader', 'attr_reader :test', args)
 }
 
 // Ruby method `install` at line 2800.
 pub fn ruby_formula_spec_l2800_d271_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	return formula_spec_boundary(2800, 'method', 'install', args)
 }
 
 // Ruby it `it "only calls code within on_linux" do` at line 2812.
 pub fn ruby_formula_spec_l2812_d272_only(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('only', ...args)
+	return formula_spec_boundary(2812, 'it', 'it "only calls code within on_linux" do', args)
 }
 
 // Ruby let `let(:f) do` at line 2819.
 pub fn ruby_formula_spec_l2819_d273_f(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f', ...args)
+	return formula_spec_boundary(2819, 'let', 'let(:f) do', args)
 }
 
 // Ruby attr_reader `attr_reader :foo` at line 2821.
 pub fn ruby_formula_spec_l2821_d274_foo(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('foo', ...args)
+	return formula_spec_boundary(2821, 'attr_reader', 'attr_reader :foo', args)
 }
 
 // Ruby attr_reader `attr_reader :bar` at line 2822.
 pub fn ruby_formula_spec_l2822_d275_bar(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('bar', ...args)
+	return formula_spec_boundary(2822, 'attr_reader', 'attr_reader :bar', args)
 }
 
 // Ruby method `install` at line 2824.
 pub fn ruby_formula_spec_l2824_d276_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	return formula_spec_boundary(2824, 'method', 'install', args)
 }
 
 // Ruby it `it "doesn't call code on Sequoia", :needs_macos do` at line 2837.
 pub fn ruby_formula_spec_l2837_d277_doesn(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('doesn', ...args)
+	return formula_spec_boundary(2837, 'it', 'it "doesn\'t call code on Sequoia", :needs_macos do', args)
 }
 
 // Ruby it `it "calls code on Linux", :needs_linux do` at line 2845.
 pub fn ruby_formula_spec_l2845_d278_calls(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('calls', ...args)
+	return formula_spec_boundary(2845, 'it', 'it "calls code on Linux", :needs_linux do', args)
 }
 
 // Ruby it `it "calls code within `on_system :linux, macos: :tahoe` on Tahoe", :needs_macos do` at line 2853.
 pub fn ruby_formula_spec_l2853_d279_calls(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('calls', ...args)
+	return formula_spec_boundary(2853, 'it', 'it "calls code within `on_system :linux, macos: :tahoe` on Tahoe", :needs_macos do', args)
 }
 
 // Ruby it `it "calls code within `on_system :linux, macos: :sonoma_or_older` on Sonoma", :needs_macos do` at line 2861.
 pub fn ruby_formula_spec_l2861_d280_calls(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('calls', ...args)
+	return formula_spec_boundary(2861, 'it', 'it "calls code within `on_system :linux, macos: :sonoma_or_older` on Sonoma", :needs_macos do', args)
 }
 
 // Ruby it `it "calls code within `on_system :linux, macos: :sonoma_or_older` on Ventura", :needs_macos do` at line 2869.
 pub fn ruby_formula_spec_l2869_d281_calls(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('calls', ...args)
+	return formula_spec_boundary(2869, 'it', 'it "calls code within `on_system :linux, macos: :sonoma_or_older` on Ventura", :needs_macos do', args)
 }
 
 // Ruby let `let(:f) do` at line 2879.
 pub fn ruby_formula_spec_l2879_d282_f(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f', ...args)
+	return formula_spec_boundary(2879, 'let', 'let(:f) do', args)
 }
 
 // Ruby attr_reader `attr_reader :test` at line 2881.
 pub fn ruby_formula_spec_l2881_d283_test(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('test', ...args)
+	return formula_spec_boundary(2881, 'attr_reader', 'attr_reader :test', args)
 }
 
 // Ruby method `install` at line 2883.
 pub fn ruby_formula_spec_l2883_d284_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	return formula_spec_boundary(2883, 'method', 'install', args)
 }
 
 // Ruby it `it "only calls code within `on_sequoia`" do` at line 2898.
 pub fn ruby_formula_spec_l2898_d285_only(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('only', ...args)
+	return formula_spec_boundary(2898, 'it', 'it "only calls code within `on_sequoia`" do', args)
 }
 
 // Ruby it `it "only calls code within `on_sequoia :or_newer`" do` at line 2905.
 pub fn ruby_formula_spec_l2905_d286_only(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('only', ...args)
+	return formula_spec_boundary(2905, 'it', 'it "only calls code within `on_sequoia :or_newer`" do', args)
 }
 
 // Ruby it `it "only calls code within `on_sonoma`" do` at line 2912.
 pub fn ruby_formula_spec_l2912_d287_only(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('only', ...args)
+	return formula_spec_boundary(2912, 'it', 'it "only calls code within `on_sonoma`" do', args)
 }
 
 // Ruby it `it "only calls code within `on_ventura`" do` at line 2919.
 pub fn ruby_formula_spec_l2919_d288_only(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('only', ...args)
+	return formula_spec_boundary(2919, 'it', 'it "only calls code within `on_ventura`" do', args)
 }
 
 // Ruby it `it "only calls code within `on_ventura :or_older`" do` at line 2926.
 pub fn ruby_formula_spec_l2926_d289_only(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('only', ...args)
+	return formula_spec_boundary(2926, 'it', 'it "only calls code within `on_ventura :or_older`" do', args)
 }
 
 // Ruby let `let(:f) do` at line 2939.
 pub fn ruby_formula_spec_l2939_d290_f(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f', ...args)
+	return formula_spec_boundary(2939, 'let', 'let(:f) do', args)
 }
 
 // Ruby attr_reader `attr_reader :test` at line 2941.
 pub fn ruby_formula_spec_l2941_d291_test(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('test', ...args)
+	return formula_spec_boundary(2941, 'attr_reader', 'attr_reader :test', args)
 }
 
 // Ruby method `install` at line 2943.
 pub fn ruby_formula_spec_l2943_d292_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	return formula_spec_boundary(2943, 'method', 'install', args)
 }
 
 // Ruby it `it "only calls code within on_arm" do` at line 2955.
 pub fn ruby_formula_spec_l2955_d293_only(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('only', ...args)
+	return formula_spec_boundary(2955, 'it', 'it "only calls code within on_arm" do', args)
 }
 
 // Ruby let `let(:f) do` at line 2966.
 pub fn ruby_formula_spec_l2966_d294_f(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f', ...args)
+	return formula_spec_boundary(2966, 'let', 'let(:f) do', args)
 }
 
 // Ruby attr_reader `attr_reader :test` at line 2968.
 pub fn ruby_formula_spec_l2968_d295_test(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('test', ...args)
+	return formula_spec_boundary(2968, 'attr_reader', 'attr_reader :test', args)
 }
 
 // Ruby method `install` at line 2970.
 pub fn ruby_formula_spec_l2970_d296_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	return formula_spec_boundary(2970, 'method', 'install', args)
 }
 
 // Ruby it `it "only calls code within on_intel" do` at line 2982.
 pub fn ruby_formula_spec_l2982_d297_only(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('only', ...args)
+	return formula_spec_boundary(2982, 'it', 'it "only calls code within on_intel" do', args)
 }
 
 // Ruby let `let(:f) do` at line 2989.
 pub fn ruby_formula_spec_l2989_d298_f(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f', ...args)
+	return formula_spec_boundary(2989, 'let', 'let(:f) do', args)
 }
 
 // Ruby method `install` at line 2991.
 pub fn ruby_formula_spec_l2991_d299_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	return formula_spec_boundary(2991, 'method', 'install', args)
 }
 
 // Ruby it `it "generates completion scripts" do` at line 3004.
 pub fn ruby_formula_spec_l3004_d300_generates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('generates', ...args)
+	return formula_spec_boundary(3004, 'it', 'it "generates completion scripts" do', args)
 }
 
 // Ruby it `it "can` at line 3016.
 pub fn ruby_formula_spec_l3016_d301_can(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('can', ...args)
+	return formula_spec_boundary(3016, 'it', 'it "can', args)
 }
 
 // Ruby it `it "can` at line 3027.
 pub fn ruby_formula_spec_l3027_d302_can(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('can', ...args)
+	return formula_spec_boundary(3027, 'it', 'it "can', args)
 }
 
 // Ruby it `it "throws an error when passed an invalid symbol" do` at line 3040.
 pub fn ruby_formula_spec_l3040_d303_throws(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('throws', ...args)
+	return formula_spec_boundary(3040, 'it', 'it "throws an error when passed an invalid symbol" do', args)
 }
 
 // Ruby let `let(:klass) do` at line 3047.
 pub fn ruby_formula_spec_l3047_d304_klass(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('klass', ...args)
+	return formula_spec_boundary(3047, 'let', 'let(:klass) do', args)
 }
 
 // Ruby let `let(:name) { "formula_name" }` at line 3053.
 pub fn ruby_formula_spec_l3053_d305_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('name', ...args)
+	return formula_spec_boundary(3053, 'let', 'let(:name) { "formula_name" }', args)
 }
 
 // Ruby let `let(:path) { Formulary.core_path(name) }` at line 3054.
 pub fn ruby_formula_spec_l3054_d306_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('path', ...args)
+	return formula_spec_boundary(3054, 'let', 'let(:path) { Formulary.core_path(name) }', args)
 }
 
 // Ruby let `let(:spec) { :stable }` at line 3055.
 pub fn ruby_formula_spec_l3055_d307_spec(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('spec', ...args)
+	return formula_spec_boundary(3055, 'let', 'let(:spec) { :stable }', args)
 }
 
 // Ruby let `let(:alias_name) { "baz@1" }` at line 3056.
 pub fn ruby_formula_spec_l3056_d308_alias_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('alias_name', ...args)
+	return formula_spec_boundary(3056, 'let', 'let(:alias_name) { "baz@1" }', args)
 }
 
 // Ruby let `let(:alias_path) { CoreTap.instance.alias_dir/alias_name }` at line 3057.
 pub fn ruby_formula_spec_l3057_d309_alias_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('alias_path', ...args)
+	return formula_spec_boundary(3057, 'let', 'let(:alias_path) { CoreTap.instance.alias_dir/alias_name }', args)
 }
 
 // Ruby let `let(:f) { klass.new(name, path, spec) }` at line 3058.
 pub fn ruby_formula_spec_l3058_d310_f(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f', ...args)
+	return formula_spec_boundary(3058, 'let', 'let(:f) { klass.new(name, path, spec) }', args)
 }
 
 // Ruby let `let(:f_alias) { klass.new(name, path, spec, alias_path:) }` at line 3059.
 pub fn ruby_formula_spec_l3059_d311_f_alias(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f_alias', ...args)
+	return formula_spec_boundary(3059, 'let', 'let(:f_alias) { klass.new(name, path, spec, alias_path:) }', args)
 }
 
 // Ruby it `it "returns the formula file path" do` at line 3062.
 pub fn ruby_formula_spec_l3062_d312_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	return formula_spec_boundary(3062, 'it', 'it "returns the formula file path" do', args)
 }
 
 // Ruby it `it "returns the alias path" do` at line 3068.
 pub fn ruby_formula_spec_l3068_d313_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	return formula_spec_boundary(3068, 'it', 'it "returns the alias path" do', args)
 }
 
 // Ruby it `it "returns the API path" do` at line 3078.
 pub fn ruby_formula_spec_l3078_d314_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	return formula_spec_boundary(3078, 'it', 'it "returns the API path" do', args)
 }
 
 // Ruby it `it "returns the internal API path" do` at line 3088.
 pub fn ruby_formula_spec_l3088_d315_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	return formula_spec_boundary(3088, 'it', 'it "returns the internal API path" do', args)
 }
 
 // Ruby it `it "defaults to false" do` at line 3095.
 pub fn ruby_formula_spec_l3095_d316_defaults(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('defaults', ...args)
+	return formula_spec_boundary(3095, 'it', 'it "defaults to false" do', args)
 }
 
 // Ruby it `it "can be enabled" do` at line 3104.
 pub fn ruby_formula_spec_l3104_d317_can(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('can', ...args)
+	return formula_spec_boundary(3104, 'it', 'it "can be enabled" do', args)
 }
 
 // Ruby it `it "can be explicitly disabled" do` at line 3114.
 pub fn ruby_formula_spec_l3114_d318_can(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('can', ...args)
+	return formula_spec_boundary(3114, 'it', 'it "can be explicitly disabled" do', args)
 }
 
 // Ruby let `let(:deprecation_date) { "2020-01-01" }` at line 3126.
 pub fn ruby_formula_spec_l3126_d319_deprecation_date(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('deprecation_date', ...args)
+	return formula_spec_boundary(3126, 'let', 'let(:deprecation_date) { "2020-01-01" }', args)
 }
 
 // Ruby let `let(:disable_date) { "2021-01-01" }` at line 3127.
 pub fn ruby_formula_spec_l3127_d320_disable_date(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('disable_date', ...args)
+	return formula_spec_boundary(3127, 'let', 'let(:disable_date) { "2021-01-01" }', args)
 }
 
 // Ruby let `let(:f) do` at line 3130.
 pub fn ruby_formula_spec_l3130_d321_f(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f', ...args)
+	return formula_spec_boundary(3130, 'let', 'let(:f) do', args)
 }
 
 // Ruby it `it "is not deprecated before deprecation date" do` at line 3141.
 pub fn ruby_formula_spec_l3141_d322_is(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('is', ...args)
+	return formula_spec_boundary(3141, 'it', 'it "is not deprecated before deprecation date" do', args)
 }
 
 // Ruby it `it "is deprecated on deprecation date" do` at line 3149.
 pub fn ruby_formula_spec_l3149_d323_is(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('is', ...args)
+	return formula_spec_boundary(3149, 'it', 'it "is deprecated on deprecation date" do', args)
 }
 
 // Ruby it `it "is disabled on disable date" do` at line 3157.
 pub fn ruby_formula_spec_l3157_d324_is(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('is', ...args)
+	return formula_spec_boundary(3157, 'it', 'it "is disabled on disable date" do', args)
 }
 
 // Ruby let `let(:f) do` at line 3167.
 pub fn ruby_formula_spec_l3167_d325_f(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f', ...args)
+	return formula_spec_boundary(3167, 'let', 'let(:f) do', args)
 }
 
 // Ruby it `it "is not deprecated before deprecation date" do` at line 3178.
 pub fn ruby_formula_spec_l3178_d326_is(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('is', ...args)
+	return formula_spec_boundary(3178, 'it', 'it "is not deprecated before deprecation date" do', args)
 }
 
 // Ruby it `it "is deprecated on deprecation date" do` at line 3186.
 pub fn ruby_formula_spec_l3186_d327_is(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('is', ...args)
+	return formula_spec_boundary(3186, 'it', 'it "is deprecated on deprecation date" do', args)
 }
 
 // Ruby it `it "is disabled on disable date" do` at line 3194.
 pub fn ruby_formula_spec_l3194_d328_is(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('is', ...args)
+	return formula_spec_boundary(3194, 'it', 'it "is disabled on disable date" do', args)
 }
 
 // Ruby let `let(:f) do` at line 3204.
 pub fn ruby_formula_spec_l3204_d329_f(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f', ...args)
+	return formula_spec_boundary(3204, 'let', 'let(:f) do', args)
 }
 
 // Ruby it `it "is deprecated before disable date" do` at line 3213.
 pub fn ruby_formula_spec_l3213_d330_is(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('is', ...args)
+	return formula_spec_boundary(3213, 'it', 'it "is deprecated before disable date" do', args)
 }
 
 // Ruby it `it "is disabled on disable date" do` at line 3221.
 pub fn ruby_formula_spec_l3221_d331_is(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('is', ...args)
+	return formula_spec_boundary(3221, 'it', 'it "is disabled on disable date" do', args)
 }
 
 // Ruby it `it "skips formulas that raise FormulaSpecificationError" do` at line 3230.
 pub fn ruby_formula_spec_l3230_d332_skips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skips', ...args)
+	return formula_spec_boundary(3230, 'it', 'it "skips formulas that raise FormulaSpecificationError" do', args)
 }
 
 // Ruby it `it "skips untrusted tap formulae when trust is enabled" do` at line 3240.
 pub fn ruby_formula_spec_l3240_d333_skips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skips', ...args)
+	return formula_spec_boundary(3240, 'it', 'it "skips untrusted tap formulae when trust is enabled" do', args)
 }
 
 // Ruby it `it "allows all formulae when trust is enabled" do` at line 3259.
 pub fn ruby_formula_spec_l3259_d334_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+	return formula_spec_boundary(3259, 'it', 'it "allows all formulae when trust is enabled" do', args)
 }
 
 // Ruby let `let(:f) do` at line 3269.
 pub fn ruby_formula_spec_l3269_d335_f(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f', ...args)
+	return formula_spec_boundary(3269, 'let', 'let(:f) do', args)
 }
 
 // Ruby it `it "allows changing the installation directory" do` at line 3276.
 pub fn ruby_formula_spec_l3276_d336_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+	return formula_spec_boundary(3276, 'it', 'it "allows changing the installation directory" do', args)
 }
 
 // Ruby it `it "excludes installation arguments when `installdir: false`" do` at line 3280.
 pub fn ruby_formula_spec_l3280_d337_excludes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('excludes', ...args)
+	return formula_spec_boundary(3280, 'it', 'it "excludes installation arguments when `installdir: false`" do', args)
 }
 
 // Ruby it `it "includes flag for PIE on arm" do` at line 3285.
 pub fn ruby_formula_spec_l3285_d338_includes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('includes', ...args)
+	return formula_spec_boundary(3285, 'it', 'it "includes flag for PIE on arm" do', args)
 }
 
 // Ruby it `it "excludes flag for PIE on non-arm" do` at line 3290.
 pub fn ruby_formula_spec_l3290_d339_excludes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('excludes', ...args)
+	return formula_spec_boundary(3290, 'it', 'it "excludes flag for PIE on non-arm" do', args)
 }
 
 // Ruby let `let(:f) do` at line 3298.
 pub fn ruby_formula_spec_l3298_d340_f(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f', ...args)
+	return formula_spec_boundary(3298, 'let', 'let(:f) do', args)
 }
 
 // Ruby it `it "defaults to stripping binaries" do` at line 3305.
 pub fn ruby_formula_spec_l3305_d341_defaults(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('defaults', ...args)
+	return formula_spec_boundary(3305, 'it', 'it "defaults to stripping binaries" do', args)
 }
 
 // Ruby it `it "does not strip binaries when building with debug symbols" do` at line 3312.
 pub fn ruby_formula_spec_l3312_d342_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	return formula_spec_boundary(3312, 'it', 'it "does not strip binaries when building with debug symbols" do', args)
 }
 
 // Ruby it `it "raises an error when provided an invalid ldflags symbol" do` at line 3320.
 pub fn ruby_formula_spec_l3320_d343_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+	return formula_spec_boundary(3320, 'it', 'it "raises an error when provided an invalid ldflags symbol" do', args)
 }
 
 // Ruby subject `subject(:std_go_args) { f.std_go_args(ldflags: :goreleaser) }` at line 3325.
 pub fn ruby_formula_spec_l3325_d344_std_go_args(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('std_go_args', ...args)
+	return formula_spec_boundary(3325, 'subject', 'subject(:std_go_args) { f.std_go_args(ldflags: :goreleaser) }', args)
 }
 
 // Ruby let `let(:built_by) { "Homebrew" }` at line 3327.
 pub fn ruby_formula_spec_l3327_d345_built_by(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('built_by', ...args)
+	return formula_spec_boundary(3327, 'let', 'let(:built_by) { "Homebrew" }', args)
 }
 
 // Ruby let `let(:commit) { built_by }` at line 3328.
 pub fn ruby_formula_spec_l3328_d346_commit(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('commit', ...args)
+	return formula_spec_boundary(3328, 'let', 'let(:commit) { built_by }', args)
 }
 
 // Ruby let `let(:date) { "2026-01-01T12:00:00Z" }` at line 3329.
 pub fn ruby_formula_spec_l3329_d347_date(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('date', ...args)
+	return formula_spec_boundary(3329, 'let', 'let(:date) { "2026-01-01T12:00:00Z" }', args)
 }
 
 // Ruby let `let(:expected_ldflags) do` at line 3330.
 pub fn ruby_formula_spec_l3330_d348_expected_ldflags(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('expected_ldflags', ...args)
+	return formula_spec_boundary(3330, 'let', 'let(:expected_ldflags) do', args)
 }
 
 // Ruby let `let(:buildpath) { mktmpdir }` at line 3341.
 pub fn ruby_formula_spec_l3341_d349_buildpath(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('buildpath', ...args)
+	return formula_spec_boundary(3341, 'let', 'let(:buildpath) { mktmpdir }', args)
 }
 
 // Ruby let `let(:commit) { Utils.popen_read("git", "-C", buildpath, "rev-parse", "HEAD").chomp }` at line 3342.
 pub fn ruby_formula_spec_l3342_d350_commit(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('commit', ...args)
+	return formula_spec_boundary(3342, 'let', 'let(:commit) { Utils.popen_read("git", "-C", buildpath, "rev-parse", "HEAD").chomp }', args)
 }
 
 // Ruby it `it "uses git commit for main.commit" do` at line 3356.
 pub fn ruby_formula_spec_l3356_d351_uses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uses', ...args)
+	return formula_spec_boundary(3356, 'it', 'it "uses git commit for main.commit" do', args)
 }
 
 // Ruby let `let(:built_by) { "someone" }` at line 3362.
 pub fn ruby_formula_spec_l3362_d352_built_by(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('built_by', ...args)
+	return formula_spec_boundary(3362, 'let', 'let(:built_by) { "someone" }', args)
 }
 
 // Ruby it `it "uses tap user for main.commit" do` at line 3366.
 pub fn ruby_formula_spec_l3366_d353_uses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uses', ...args)
+	return formula_spec_boundary(3366, 'it', 'it "uses tap user for main.commit" do', args)
 }
 
 // Ruby it `it "uses Homebrew for main.commit" do` at line 3374.
 pub fn ruby_formula_spec_l3374_d354_uses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uses', ...args)
+	return formula_spec_boundary(3374, 'it', 'it "uses Homebrew for main.commit" do', args)
 }
 
 // Ruby it `it "includes a comma-separated list of input tags" do` at line 3380.
 pub fn ruby_formula_spec_l3380_d355_includes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('includes', ...args)
+	return formula_spec_boundary(3380, 'it', 'it "includes a comma-separated list of input tags" do', args)
 }
 
 // Ruby let `let(:f) do` at line 3386.
 pub fn ruby_formula_spec_l3386_d356_f(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f', ...args)
+	return formula_spec_boundary(3386, 'let', 'let(:f) do', args)
 }
 
 // Ruby it `it "filters packages uploaded within the last day" do` at line 3393.
 pub fn ruby_formula_spec_l3393_d357_filters(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('filters', ...args)
+	return formula_spec_boundary(3393, 'it', 'it "filters packages uploaded within the last day" do', args)
 }
 
 // Ruby let `let(:f) do` at line 3399.
 pub fn ruby_formula_spec_l3399_d358_f(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f', ...args)
+	return formula_spec_boundary(3399, 'let', 'let(:f) do', args)
 }
 
 // Ruby it `it "allows controlling parallel jobs" do` at line 3406.
 pub fn ruby_formula_spec_l3406_d359_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+	return formula_spec_boundary(3406, 'it', 'it "allows controlling parallel jobs" do', args)
 }
 
 // Ruby it `it "disables non-writable sandbox path on macOS", :needs_macos do` at line 3411.
 pub fn ruby_formula_spec_l3411_d360_disables(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('disables', ...args)
+	return formula_spec_boundary(3411, 'it', 'it "disables non-writable sandbox path on macOS", :needs_macos do', args)
 }
 
 // Ruby it `it "includes override for ld shim on Linux", :needs_linux do` at line 3415.
 pub fn ruby_formula_spec_l3415_d361_includes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('includes', ...args)
+	return formula_spec_boundary(3415, 'it', 'it "includes override for ld shim on Linux", :needs_linux do', args)
 }
 
 // Ruby let `let(:f) do` at line 3421.
 pub fn ruby_formula_spec_l3421_d362_f(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f', ...args)
+	return formula_spec_boundary(3421, 'let', 'let(:f) do', args)
 }
 
 // Ruby it `it "raises an error when provided an unknown release mode" do` at line 3428.
 pub fn ruby_formula_spec_l3428_d363_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+	return formula_spec_boundary(3428, 'it', 'it "raises an error when provided an unknown release mode" do', args)
 }
 
 // Ruby it `it "includes equivalent Zig CPU for known target arch" do` at line 3432.
 pub fn ruby_formula_spec_l3432_d364_includes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('includes', ...args)
+	return formula_spec_boundary(3432, 'it', 'it "includes equivalent Zig CPU for known target arch" do', args)
 }
 
 // Ruby it `it "allows overriding Zig CPU" do` at line 3437.
 pub fn ruby_formula_spec_l3437_d365_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+	return formula_spec_boundary(3437, 'it', 'it "allows overriding Zig CPU" do', args)
 }
 
 // Ruby let `let(:f) do` at line 3443.
 pub fn ruby_formula_spec_l3443_d366_f(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f', ...args)
+	return formula_spec_boundary(3443, 'let', 'let(:f) do', args)
 }
 
 // Ruby it `it "sets Bundler cooldown for RubyGems dependencies" do` at line 3450.
 pub fn ruby_formula_spec_l3450_d367_sets(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sets', ...args)
+	return formula_spec_boundary(3450, 'it', 'it "sets Bundler cooldown for RubyGems dependencies" do', args)
 }
 
 // Ruby it `it "prevents build tools from reading user configuration" do` at line 3454.
 pub fn ruby_formula_spec_l3454_d368_prevents(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prevents', ...args)
+	return formula_spec_boundary(3454, 'it', 'it "prevents build tools from reading user configuration" do', args)
 }
 
 // Ruby it `it "raises an error when used in an unofficial tap" do` at line 3469.
 pub fn ruby_formula_spec_l3469_d369_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+	return formula_spec_boundary(3469, 'it', 'it "raises an error when used in an unofficial tap" do', args)
 }
 
 // Ruby it `it "allows usage when tap is official" do` at line 3480.
 pub fn ruby_formula_spec_l3480_d370_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+	return formula_spec_boundary(3480, 'it', 'it "allows usage when tap is official" do', args)
 }
 
 // Original Ruby source (line-for-line):

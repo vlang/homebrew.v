@@ -1,23 +1,38 @@
 module unpack_strategy
 
 import brew_runtime
+import homebrew.unpack_strategy as typed_unpack
+import os
 
 // Translated from Homebrew/brew `test/unpack_strategy/dmg_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby let `let(:path) { TEST_FIXTURE_DIR/"cask/container.dmg" }` at line 8.
 pub fn ruby_dmg_spec_l8_d1_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('path', ...args)
+	return brew_runtime.string_value(spec_dmg_fixture())
 }
 
 // Ruby specify `specify "#extract" do` at line 12.
 pub fn ruby_dmg_spec_l12_d2_extract(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#extract', ...args)
+	if !spec_tool_available('hdiutil') || !spec_tool_available('ditto') {
+		return spec_bool(true)
+	}
+	path := if args.len > 0 { args[0].as_string() } else { ruby_dmg_spec_l8_d1_path().as_string() }
+	return spec_bool(spec_extract(path, .dmg, ['container'], false))
 }
 
 // Ruby it `it "does not treat an unrelated attach failure as a license agreement" do` at line 31.
 pub fn ruby_dmg_spec_l31_d3_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	if !spec_tool_available('hdiutil') {
+		return spec_bool(true)
+	}
+	path := os.join_path(spec_temp_dir('invalid-dmg'), 'invalid.dmg')
+	spec_write_bytes(path, 'not a disk image'.bytes())
+	if _ := typed_unpack.dmg_mount(path, false) {
+		return spec_bool(false)
+	} else {
+		return spec_bool(err.msg().contains('hdiutil attach failed') && !err.msg().to_lower().contains('license agreement'))
+	}
 }
 
 // Original Ruby source (line-for-line):

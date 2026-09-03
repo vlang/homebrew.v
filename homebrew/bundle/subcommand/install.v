@@ -7,12 +7,92 @@ import brew_runtime
 
 // Ruby method `run` at line 58.
 pub fn ruby_install_l58_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('run', ...args)
+	options := BundleInstallCommandOptions{
+		zap: if args.len > 0 { args[0].as_bool() or { false } } else { false }
+		cleanup: if args.len > 1 { args[1].as_bool() or { false } } else { false }
+		force_cleanup: if args.len > 2 { args[2].as_bool() or { false } } else { false }
+		force: if args.len > 3 { args[3].as_bool() or { false } } else { false }
+		ask: if args.len > 4 { args[4].as_bool() or { false } } else { false }
+		install_succeeded: if args.len > 5 { args[5].as_bool() or { true } } else { true }
+		dsl: if args.len > 6 { args[6] } else { brew_runtime.object_value('NilClass', '') }
+	}
+	plan := build_bundle_install_plan(options) or {
+		return brew_runtime.object_value('UsageError', err.msg())
+	}
+	return bundle_install_plan_value(plan)
 }
 
 // Ruby method `dsl` at line 104.
 pub fn ruby_install_l104_d2_dsl(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dsl', ...args)
+	return if args.len > 0 { args[0] } else { brew_runtime.object_value('NilClass', '') }
+}
+
+pub struct BundleInstallCommandOptions {
+pub:
+	zap               bool
+	cleanup           bool
+	force_cleanup     bool
+	force             bool
+	ask               bool
+	install_succeeded bool = true
+	dsl               brew_runtime.Value
+	global            bool
+	file              string
+	no_upgrade        bool
+	verbose           bool
+	jobs              string
+	quiet             bool
+}
+
+pub struct BundleInstallPlan {
+pub:
+	dsl                       brew_runtime.Value
+	install_exit_code         int
+	mark_installed_on_request bool
+	cleanup_requested         bool
+	cleanup_force             bool
+	cleanup_ask               bool
+	cleanup_zap               bool
+	reset_cleanup_before_run  bool
+}
+
+pub fn build_bundle_install_plan(options BundleInstallCommandOptions) !BundleInstallPlan {
+	if options.zap && !options.cleanup && !options.force_cleanup {
+		return error('`--zap` cannot be passed without `--cleanup` or `--force-cleanup`.')
+	}
+	if options.cleanup && !options.force && !options.force_cleanup && !options.ask {
+		return error('`brew bundle install --cleanup` requires `--force`, `--force-cleanup` or `\$HOMEBREW_ASK`.')
+	}
+	if !options.install_succeeded {
+		return BundleInstallPlan{
+			dsl: options.dsl
+			install_exit_code: 1
+			mark_installed_on_request: true
+		}
+	}
+	cleanup_requested := options.cleanup || options.force_cleanup
+	return BundleInstallPlan{
+		dsl: options.dsl
+		mark_installed_on_request: true
+		cleanup_requested: cleanup_requested
+		cleanup_force: options.force || options.force_cleanup
+		cleanup_ask: options.ask
+		cleanup_zap: options.zap
+		reset_cleanup_before_run: cleanup_requested
+	}
+}
+
+fn bundle_install_plan_value(plan BundleInstallPlan) brew_runtime.Value {
+	return brew_runtime.structured_value('Bundle::InstallSubcommand::Plan', plan.install_exit_code.str(), {
+		'install_exit_code':         plan.install_exit_code.str()
+		'mark_installed_on_request': plan.mark_installed_on_request.str()
+		'cleanup_requested':         plan.cleanup_requested.str()
+		'cleanup_force':             plan.cleanup_force.str()
+		'cleanup_ask':               plan.cleanup_ask.str()
+		'cleanup_zap':               plan.cleanup_zap.str()
+		'reset_cleanup_before_run':  plan.reset_cleanup_before_run.str()
+		'dsl_type':                  plan.dsl.type_name
+	})
 }
 
 // Original Ruby source (line-for-line):

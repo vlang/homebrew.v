@@ -4,55 +4,184 @@ import brew_runtime
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/sorbet-runtime-0.6.13412/lib/types/types/union.rb`.
 // The original source is retained below until every stub has a typed V body.
+fn union_coerce(value brew_runtime.Value) !&BaseType {
+	if type_value := base_type_from_value(value) {
+		return type_value
+	}
+	if value.type_name in ['Class', 'Module'] {
+		ancestors := value.attribute('ancestors') or { '' }
+		return new_simple_base_type(value.as_string(), ancestors.split(',').filter(it.len > 0))
+	}
+	return error('${value.type_name} cannot be coerced to a Sorbet type')
+}
+
+fn union_contains(types []&BaseType, candidate &BaseType) bool {
+	for type_value in types {
+		if type_value.equals(candidate) or { false } {
+			return true
+		}
+	}
+	return false
+}
+
+pub fn new_union_type(values []brew_runtime.Value) !&BaseType {
+	mut members := []&BaseType{}
+	for value in values {
+		type_value := union_coerce(value)!
+		if type_value.kind == .union_type {
+			for nested in type_value.members {
+				if !union_contains(members, nested) {
+					members << nested
+				}
+			}
+		} else if !union_contains(members, type_value) {
+			members << type_value
+		}
+	}
+	return new_union_base_type(members)
+}
+
+fn union_type_from_args(args []brew_runtime.Value) &BaseType {
+	if args.len == 0 {
+		panic('Union method requires a receiver')
+	}
+	type_value := base_type_from_value(args[0]) or { panic(err) }
+	if type_value.kind != .union_type {
+		panic('invalid Union receiver')
+	}
+	return type_value
+}
+
+fn union_members_value(type_value &BaseType) brew_runtime.Value {
+	return brew_runtime.array_value(type_value.members.map(base_type_boundary_value(it)))
+}
+
+fn union_is_named(type_value &BaseType, name string) bool {
+	return type_value.name() or { '' } == name
+}
+
+pub fn union_type_shortcuts(types []&BaseType) string {
+	if types.len == 1 {
+		return types[0].name() or { '' }
+	}
+	if types.any(union_is_named(it, 'NilClass')) {
+		remaining := types.filter(!union_is_named(it, 'NilClass'))
+		return 'T.nilable(${union_type_shortcuts(remaining)})'
+	}
+	if types.any(union_is_named(it, 'TrueClass')) && types.any(union_is_named(it, 'FalseClass')) {
+		mut remaining := [&BaseType(new_custom_base_type('T::Private::Types::StringHolder', 'T::Boolean', [], []))]
+		remaining << types.filter(!union_is_named(it, 'TrueClass') && !union_is_named(it, 'FalseClass'))
+		return union_type_shortcuts(remaining)
+	}
+	mut names := types.map(it.name() or { '' })
+	names.sort()
+	return 'T.any(${names.join(', ')})'
+}
+
+pub fn unwrap_nilable_union(type_value &BaseType) ?&BaseType {
+	remaining := type_value.members.filter(!union_is_named(it, 'NilClass'))
+	if remaining.len == type_value.members.len || remaining.len == 0 {
+		return none
+	}
+	if remaining.len == 1 {
+		return remaining[0]
+	}
+	return new_union_base_type(remaining)
+}
+
+pub fn union_of_type_values(type_a brew_runtime.Value, type_b brew_runtime.Value,
+	extra []brew_runtime.Value) !brew_runtime.Value {
+	mut values := [type_a, type_b]
+	values << extra
+	union_type := new_union_type(values)!
+	if union_type.members.len == 1 {
+		return base_type_boundary_value(union_type.members[0])
+	}
+	return base_type_boundary_value(union_type)
+}
 
 // Ruby method `initialize(types)` at line 9.
 pub fn ruby_union_l9_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	if args.len == 0 {
+		panic('Union#initialize requires types')
+	}
+	return base_type_boundary_value(new_union_type(args[0].as_array() or { panic(err) }) or {
+		panic(err)
+	})
 }
 
 // Ruby method `types` at line 13.
 pub fn ruby_union_l13_d2_types(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('types', ...args)
+	return union_members_value(union_type_from_args(args))
 }
 
 // Ruby method `build_type` at line 40.
 pub fn ruby_union_l40_d3_build_type(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('build_type', ...args)
+	union_type_from_args(args).build_type() or { panic(err) }
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Ruby method `name` at line 46.
 pub fn ruby_union_l46_d4_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('name', ...args)
+	return brew_runtime.string_value(union_type_shortcuts(union_type_from_args(args).members))
 }
 
 // Ruby method `type_shortcuts(types)` at line 51.
 pub fn ruby_union_l51_d5_type_shortcuts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('type_shortcuts', ...args)
+	if args.len < 2 {
+		panic('Union#type_shortcuts requires types')
+	}
+	values := args[1].as_array() or { panic(err) }
+	mut members := []&BaseType{}
+	for value in values {
+		members << union_coerce(value) or { panic(err) }
+	}
+	return brew_runtime.string_value(union_type_shortcuts(members))
 }
 
 // Ruby method `recursively_valid?(obj)` at line 75.
 pub fn ruby_union_l75_d6_recursively_valid(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('recursively_valid?', ...args)
+	if args.len < 2 {
+		panic('Union#recursively_valid? requires an object')
+	}
+	return brew_runtime.bool_value(union_type_from_args(args).recursively_valid(args[1]) or {
+		panic(err)
+	})
 }
 
 // Ruby method `valid?(obj)` at line 101.
 pub fn ruby_union_l101_d7_valid(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('valid?', ...args)
+	if args.len < 2 {
+		panic('Union#valid? requires an object')
+	}
+	return brew_runtime.bool_value(union_type_from_args(args).valid(args[1]) or { panic(err) })
 }
 
 // Ruby method `subtype_of_single?(other)` at line 125.
 pub fn ruby_union_l125_d8_subtype_of_single(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('subtype_of_single?', ...args)
+	union_type_from_args(args)
+	panic("This should never be reached if you're going through `subtype_of?` (and you should be)")
 }
 
 // Ruby method `unwrap_nilable` at line 129.
 pub fn ruby_union_l129_d9_unwrap_nilable(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('unwrap_nilable', ...args)
+	result := unwrap_nilable_union(union_type_from_args(args)) or {
+		return brew_runtime.object_value('NilClass', 'nil')
+	}
+	return base_type_boundary_value(result)
 }
 
 // Ruby method `self.union_of_types(type_a, type_b, types=EMPTY_ARRAY)` at line 157.
 pub fn ruby_union_l157_d10_self_union_of_types(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.union_of_types', ...args)
+	if args.len < 2 {
+		panic('Union.union_of_types requires two types')
+	}
+	extra := if args.len > 2 {
+		args[2].as_array() or { panic(err) }
+	} else {
+		[]brew_runtime.Value{}
+	}
+	return union_of_type_values(args[0], args[1], extra) or { panic(err) }
 }
 
 // Original Ruby source (line-for-line):

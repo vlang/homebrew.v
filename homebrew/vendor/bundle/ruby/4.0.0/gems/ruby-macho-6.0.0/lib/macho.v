@@ -1,18 +1,149 @@
 module lib
 
 import brew_runtime
+import encoding.binary
+import os
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/ruby-macho-6.0.0/lib/macho.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub const version = '6.0.0'
+
+const top_fat_magic = u32(0xcafe_babe)
+const top_fat_magic64 = u32(0xcafe_babf)
+const top_mh_magic = u32(0xfeed_face)
+const top_mh_cigam = u32(0xcefa_edfe)
+const top_mh_magic64 = u32(0xfeed_facf)
+const top_mh_cigam64 = u32(0xcffa_edfe)
+
+pub enum MachoFileKind {
+	thin
+	fat
+}
+
+// OpenedMachoFile is the standalone top-level adapter. The complete typed
+// MachoFile and FatFile implementations live in the sibling `macho` module;
+// V cannot import that module here because the generated vendored module path
+// contains dotted version-directory names.
+pub struct OpenedMachoFile {
+pub:
+	filename string
+	magic    u32
+	kind     MachoFileKind
+}
+
+pub struct MachoCodesignPlan {
+pub:
+	executable string
+	arguments  []string
+}
+
+fn top_macho_boundary(file &OpenedMachoFile) brew_runtime.Value {
+	return brew_runtime.structured_value(if file.kind == .fat {
+		'MachO::FatFile'
+	} else {
+		'MachO::MachOFile'
+	}, if file.kind == .fat { '#<MachO::FatFile>' } else { '#<MachO::MachOFile>' }, {
+		'filename': file.filename
+		'magic':    file.magic.str()
+		'kind':     file.kind.str()
+	})
+}
+
+fn top_macho_magic(magic u32) bool {
+	return magic in [top_mh_magic, top_mh_cigam, top_mh_magic64, top_mh_cigam64]
+}
+
+fn top_macho_fat_magic(magic u32) bool {
+	return magic in [top_fat_magic, top_fat_magic64]
+}
+
+fn top_macho_hex(value u32) string {
+	mut encoded := u64(value).hex()
+	if encoded.len < 2 {
+		encoded = '0'.repeat(2 - encoded.len) + encoded
+	}
+	return encoded
+}
+
+pub fn open(filename string) !&OpenedMachoFile {
+	if !os.is_file(filename) {
+		return error('${filename}: no such file')
+	}
+	data := os.read_bytes(filename)!
+	if data.len < 4 {
+		return error('File is too short to be a valid Mach-O')
+	}
+	magic := binary.big_endian_u32(data[..4])
+	if top_macho_fat_magic(magic) {
+		return &OpenedMachoFile{
+			filename: filename
+			magic: magic
+			kind: .fat
+		}
+	}
+	if top_macho_magic(magic) {
+		return &OpenedMachoFile{
+			filename: filename
+			magic: magic
+			kind: .thin
+		}
+	}
+	return error('Unrecognized Mach-O magic: 0x${top_macho_hex(magic)}')
+}
+
+pub fn codesign_plan(filename string) !MachoCodesignPlan {
+	if os.user_os() != 'macos' {
+		return error('platform ad-hoc codesigning is only available on macOS')
+	}
+	executable := os.find_abs_path_of_executable('codesign') or {
+		return error('the codesign executable is not available')
+	}
+	return MachoCodesignPlan{
+		executable: executable
+		arguments: ['--force', '--sign', '-', filename]
+	}
+}
+
+pub fn codesign(filename string) ! {
+	if !os.is_file(filename) {
+		return error('${filename}: no such file')
+	}
+	open(filename) or {
+		return error('${filename}: signing failed: ${err.msg()}')
+	}
+	plan := codesign_plan(filename) or {
+		return error('${filename}: signing failed: ${err.msg()}')
+	}
+	mut command_parts := [os.quoted_path(plan.executable)]
+	command_parts << plan.arguments.map(os.quoted_path(it))
+	command := command_parts.join(' ')
+	result := os.execute(command)
+	if result.exit_code != 0 {
+		message := result.output.trim_space()
+		detail := if message == '' {
+			'codesign exited with status ${result.exit_code}'
+		} else {
+			message
+		}
+		return error('${filename}: signing failed: ${detail}')
+	}
+}
 
 // Ruby method `self.open(filename)` at line 27.
 pub fn ruby_macho_l27_d1_self_open(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.open', ...args)
+	if args.len < 1 {
+		panic('open requires a filename')
+	}
+	return top_macho_boundary(open(args[0].as_string()) or { panic(err) })
 }
 
 // Ruby method `self.codesign!(filename)` at line 50.
 pub fn ruby_macho_l50_d2_self_codesign(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.codesign!', ...args)
+	if args.len < 1 {
+		panic('codesign! requires a filename')
+	}
+	codesign(args[0].as_string()) or { panic(err) }
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Original Ruby source (line-for-line):

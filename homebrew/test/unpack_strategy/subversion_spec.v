@@ -1,28 +1,59 @@
 module unpack_strategy
 
 import brew_runtime
+import os
 
 // Translated from Homebrew/brew `test/unpack_strategy/subversion_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+fn subversion_working_copy_fixture(repository string, suffix string) string {
+	root := spec_temp_dir('subversion-working-copy')
+	working_copy := os.join_path(root, 'checkout${suffix}')
+	if spec_tool_available('svnadmin') && spec_tool_available('svn') {
+		spec_run_command('svnadmin', ['create', repository], '') or { panic(err) }
+		os.mkdir_all(working_copy) or { panic(err) }
+		spec_run_command('svn', ['checkout', 'file://${repository}', working_copy], '') or {
+			panic(err)
+		}
+		os.write_file(os.join_path(working_copy, 'test'), '') or { panic(err) }
+		spec_run_command('svn', ['add', os.join_path(working_copy, 'test')], '') or { panic(err) }
+		spec_run_command('svn', ['commit', working_copy, '-m', 'Add `test` file.'], '') or {
+			panic(err)
+		}
+		return working_copy
+	}
+	os.mkdir_all(os.join_path(working_copy, '.svn')) or { panic(err) }
+	os.write_file(os.join_path(working_copy, 'test'), '') or { panic(err) }
+	return working_copy
+}
 
 // Ruby let `let(:repo) { mktmpdir }` at line 7.
 pub fn ruby_subversion_spec_l7_d1_repo(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('repo', ...args)
+	return brew_runtime.string_value(spec_temp_dir('subversion-repository'))
 }
 
 // Ruby let `let(:working_copy) { mktmpdir }` at line 8.
 pub fn ruby_subversion_spec_l8_d2_working_copy(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('working_copy', ...args)
+	repository := if args.len > 0 {
+		args[0].as_string()
+	} else {
+		spec_temp_dir('subversion-repository')
+	}
+	return brew_runtime.string_value(subversion_working_copy_fixture(repository, ''))
 }
 
 // Ruby let `let(:path) { working_copy }` at line 9.
 pub fn ruby_subversion_spec_l9_d3_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('path', ...args)
+	return if args.len > 0 { args[0] } else { ruby_subversion_spec_l8_d2_working_copy() }
 }
 
 // Ruby let `let(:working_copy) { mktmpdir(["", "@1.2.3"])  }` at line 24.
 pub fn ruby_subversion_spec_l24_d4_working_copy(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('working_copy', ...args)
+	repository := if args.len > 0 {
+		args[0].as_string()
+	} else {
+		spec_temp_dir('subversion-at-repository')
+	}
+	return brew_runtime.string_value(subversion_working_copy_fixture(repository, '@1.2.3'))
 }
 
 // Original Ruby source (line-for-line):

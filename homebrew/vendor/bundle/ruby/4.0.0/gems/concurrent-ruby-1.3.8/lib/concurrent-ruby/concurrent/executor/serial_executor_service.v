@@ -7,7 +7,7 @@ import brew_runtime
 
 // Ruby method `serialized?` at line 30.
 pub fn ruby_serial_executor_service_l30_d1_serialized(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('serialized?', ...args)
+	return brew_runtime.bool_value(true)
 }
 
 // Original Ruby source (line-for-line):

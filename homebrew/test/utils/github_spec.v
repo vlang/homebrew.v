@@ -1,93 +1,312 @@
 module utils
 
-import brew_runtime
+import homebrew.utils as github_core
+import homebrew.utils.github as github_api
+import x.json2
 
 // Translated from Homebrew/brew `test/utils/github_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+fn github_spec_inaccessible_graphql(_ github_core.GitHubGraphqlRequest) !json2.Any {
+	return json2.Any({
+		'organization': json2.Any({
+			'teams': json2.Any({
+				'nodes': json2.Any([]json2.Any{})
+			})
+			'team':  json2.null
+		})
+	})
+}
+
+fn github_spec_commit_main(request github_api.GitHubApiCommitRequest) !json2.Any {
+	if request.url != 'https://api.github.com/repos/Homebrew/brew/commits/main' || request.request_method != 'GET' {
+		return error('unexpected commit request: ${request}')
+	}
+	return json2.Any({
+		'sha': json2.Any('abc123')
+	})
+}
+
+fn github_spec_commit_branch(request github_api.GitHubApiCommitRequest) !json2.Any {
+	if request.url != 'https://api.github.com/repos/Homebrew/brew/commits/feature%2Ffoo' || request.request_method != 'GET' {
+		return error('unexpected commit request: ${request}')
+	}
+	return json2.Any({
+		'sha': json2.Any('def456')
+	})
+}
+
+fn github_spec_search_rest(request github_core.GitHubRestRequest) !json2.Any {
+	expected := 'https://api.github.com/search/issues?q=brew+search+repo%3AHomebrew%2Flegacy-homebrew+author%3AMikeMcQuaid+type%3Aissue+no%3Amilestone&per_page=100'
+	if request.url != expected {
+		return error('unexpected search URL: ${request.url}')
+	}
+	return json2.Any({
+		'items': json2.Any([
+			json2.Any({
+				'title': json2.Any('Shall we move more things to taps?')
+			}),
+		])
+	})
+}
+
+fn github_spec_comment_rest(request github_core.GitHubRestRequest) !json2.Any {
+	if request.url != 'https://api.github.com/repos/Homebrew/homebrew-core/issues/123/comments' || request.scopes != [
+		'repo',
+	] {
+		return error('unexpected comment request: ${request}')
+	}
+	data := if request.data is map[string]json2.Any {
+		request.data
+	} else {
+		return error('missing comment data')
+	}
+	if (data['body'] or { json2.null }).str() != 'Comment body' {
+		return error('unexpected comment body')
+	}
+	return json2.Any({
+		'html_url': json2.Any('https://github.com/Homebrew/homebrew-core/issues/123#issuecomment-1')
+	})
+}
+
+fn github_spec_empty_reviews(_ github_core.GitHubGraphqlRequest) !json2.Any {
+	return json2.Any({
+		'repository': json2.Any({
+			'pullRequest': json2.Any({
+				'reviews': json2.Any({
+					'nodes': json2.Any([]json2.Any{})
+				})
+			})
+		})
+	})
+}
+
+fn github_spec_workflow_rest(request github_core.GitHubRestRequest) !json2.Any {
+	if request.url.contains('/actions/workflows/') {
+		return json2.Any({
+			'id': json2.Any(1)
+		})
+	}
+	if request.url.ends_with('/pulls/50678') {
+		return json2.Any({
+			'commits_url': json2.Any('https://api.github.com/pr-commits')
+			'commits':     json2.Any(2)
+		})
+	}
+	return error('unexpected workflow REST request: ${request.url}')
+}
+
+fn github_spec_uppercase_workflow(_ github_core.GitHubGraphqlRequest) !json2.Any {
+	return github_spec_workflow_graphql_payload('abcdef', []json2.Any{})
+}
+
+fn github_spec_changed_workflow(_ github_core.GitHubGraphqlRequest) !json2.Any {
+	return github_spec_workflow_graphql_payload('actual', []json2.Any{})
+}
+
+fn github_spec_artifact_workflow(_ github_core.GitHubGraphqlRequest) !json2.Any {
+	suite := json2.Any({
+		'status':      json2.Any('COMPLETED')
+		'workflowRun': json2.Any({
+			'databaseId': json2.Any(99)
+			'url':        json2.Any('https://github.com/Homebrew/homebrew-core/actions/runs/99')
+			'workflow':   json2.Any({
+				'databaseId': json2.Any(1)
+			})
+		})
+	})
+	return github_spec_workflow_graphql_payload('abcdef', [suite])
+}
+
+fn github_spec_workflow_graphql_payload(oid string, suites []json2.Any) json2.Any {
+	return json2.Any({
+		'repository': json2.Any({
+			'pullRequest': json2.Any({
+				'commits': json2.Any({
+					'nodes': json2.Any([
+						json2.Any({
+							'commit': json2.Any({
+								'oid':         json2.Any(oid)
+								'checkSuites': json2.Any({
+									'nodes': json2.Any(suites)
+								})
+							})
+						}),
+					])
+				})
+			})
+		})
+	})
+}
+
+fn github_spec_artifacts(_ github_core.GitHubRestRequest) ![]json2.Any {
+	return [json2.Any({
+		'artifacts': json2.Any([
+			json2.Any({
+				'name':                 json2.Any('event_payload')
+				'created_at':           json2.Any('2026-01-01T00:00:00Z')
+				'archive_download_url': json2.Any('https://api.github.com/repos/Homebrew/homebrew-core/actions/artifacts/4457761305/zip')
+			}),
+		])
+	})]
+}
+
+fn github_spec_commits(request github_core.GitHubRestRequest) ![]json2.Any {
+	hashes := ['188606a4a9587365d930b02c98ad6857b1d00150', '25a71fe1ea1558415d6496d23834dc70778ddee5']
+	if request.per_page == 1 {
+		return hashes.map(json2.Any([json2.Any({
+			'sha': json2.Any(it)
+		})]))
+	}
+	return [json2.Any(hashes.map(json2.Any({
+		'sha': json2.Any(it)
+	})))]
+}
 
 // Ruby it `it "reports an inaccessible team without assuming the token scope is missing" do` at line 8.
-pub fn ruby_github_spec_l8_d1_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_github_spec_l8_d1_reports() bool {
+	mut client := github_core.GitHubClient{ open_graphql: github_spec_inaccessible_graphql }
+	client.members_by_team('Homebrew', 'maintainers') or {
+		return err.msg() == 'Could not access the team Homebrew/maintainers. Please check that your GitHub account has access to the team and that your token has the required permissions.'
+	}
+	return false
 }
 
 // Ruby it `it "fetches the main branch commit by default" do` at line 26.
-pub fn ruby_github_spec_l26_d2_fetches(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fetches', ...args)
+pub fn ruby_github_spec_l26_d2_fetches() !bool {
+	commit := github_api.ruby_api_l364_d18_self_commit('Homebrew', 'brew', 'main', github_spec_commit_main)!
+	return (commit['sha'] or { json2.null }).str() == 'abc123'
 }
 
 // Ruby it `it "fetches a commit for a branch ref with path separators" do` at line 37.
-pub fn ruby_github_spec_l37_d3_fetches(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fetches', ...args)
+pub fn ruby_github_spec_l37_d3_fetches() !bool {
+	commit := github_api.ruby_api_l364_d18_self_commit('Homebrew', 'brew', 'feature/foo', github_spec_commit_branch)!
+	return (commit['sha'] or { json2.null }).str() == 'def456'
 }
 
 // Ruby it `it "builds a query with the given hash parameters formatted as key:value" do` at line 50.
-pub fn ruby_github_spec_l50_d4_builds(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('builds', ...args)
+pub fn ruby_github_spec_l50_d4_builds() bool {
+	return github_core.ruby_github_l141_d14_self_search_query_string([], [
+		github_core.GitHubQualifier{ key: 'user', values: ['Homebrew'] },
+		github_core.GitHubQualifier{ key: 'repo', values: ['brew'] },
+	], '', '') == 'q=user%3AHomebrew+repo%3Abrew&per_page=100'
 }
 
 // Ruby it `it "adds a variable number of top-level string parameters to the query when provided" do` at line 55.
-pub fn ruby_github_spec_l55_d5_adds(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('adds', ...args)
+pub fn ruby_github_spec_l55_d5_adds() bool {
+	return github_core.ruby_github_l141_d14_self_search_query_string(['value1', 'value2'], [
+		github_core.GitHubQualifier{ key: 'user', values: ['Homebrew'] },
+	], '', '') == 'q=value1+value2+user%3AHomebrew&per_page=100'
 }
 
 // Ruby it `it "turns array values into multiple key:value parameters" do` at line 60.
-pub fn ruby_github_spec_l60_d6_turns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('turns', ...args)
+pub fn ruby_github_spec_l60_d6_turns() bool {
+	return github_core.ruby_github_l141_d14_self_search_query_string([], [
+		github_core.GitHubQualifier{ key: 'user', values: ['Homebrew', 'caskroom'] },
+	], '', '') == 'q=user%3AHomebrew+user%3Acaskroom&per_page=100'
 }
 
 // Ruby it `it "queries GitHub issues with the passed parameters" do` at line 67.
-pub fn ruby_github_spec_l67_d7_queries(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('queries', ...args)
+pub fn ruby_github_spec_l67_d7_queries() !bool {
+	mut client := github_core.GitHubClient{ open_rest: github_spec_search_rest }
+	issues := github_core.ruby_github_l30_d2_self_search_issues(mut client, 'brew search', [
+		github_core.GitHubQualifier{ key: 'repo', values: ['Homebrew/legacy-homebrew'] },
+		github_core.GitHubQualifier{ key: 'author', values: ['MikeMcQuaid'] },
+		github_core.GitHubQualifier{ key: 'type', values: ['issue'] },
+		github_core.GitHubQualifier{ key: 'no', values: ['milestone'] },
+	], '', '')!
+	return issues.len == 1 && (issues[0]['title'] or { json2.null }).str() == 'Shall we move more things to taps?'
 }
 
 // Ruby it `it "posts a GitHub issue comment" do` at line 86.
-pub fn ruby_github_spec_l86_d8_posts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('posts', ...args)
+pub fn ruby_github_spec_l86_d8_posts() !bool {
+	mut client := github_core.GitHubClient{ open_rest: github_spec_comment_rest }
+	response := github_core.ruby_github_l50_d5_self_create_issue_comment(mut client, 'Homebrew/homebrew-core', '123', 'Comment body')!
+	return (response['html_url'] or { json2.null }).str() == 'https://github.com/Homebrew/homebrew-core/issues/123#issuecomment-1'
 }
 
 // Ruby it `it "can get reviews for a pull request" do` at line 100.
-pub fn ruby_github_spec_l100_d9_can(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('can', ...args)
+pub fn ruby_github_spec_l100_d9_can() !bool {
+	mut client := github_core.GitHubClient{ open_graphql: github_spec_empty_reviews }
+	return github_core.ruby_github_l178_d17_self_repository_approved_reviews(mut client, 'Homebrew', 'homebrew-core', '1', 'deadbeef')!.len == 0
 }
 
 // Ruby it `it "matches uppercase expected pull request head SHAs" do` at line 107.
-pub fn ruby_github_spec_l107_d10_matches(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('matches', ...args)
+pub fn ruby_github_spec_l107_d10_matches() !bool {
+	mut client := github_core.GitHubClient{
+		open_rest: github_spec_workflow_rest
+		open_graphql: github_spec_uppercase_workflow
+	}
+	workflow := github_core.ruby_github_l287_d24_self_get_workflow_run(mut client, 'Homebrew', 'homebrew-core', '1', 'tests.yml', 'bottles{,_*}', 'ABCDEF')!
+	return workflow.check_suite.len == 0
 }
 
 // Ruby it `it "fails when the pull request head has changed" do` at line 128.
-pub fn ruby_github_spec_l128_d11_fails(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fails', ...args)
+pub fn ruby_github_spec_l128_d11_fails() bool {
+	mut client := github_core.GitHubClient{
+		open_rest: github_spec_workflow_rest
+		open_graphql: github_spec_changed_workflow
+	}
+	client.get_workflow_run('Homebrew', 'homebrew-core', '1', 'tests.yml', 'bottles{,_*}', 'expected') or { return err.msg().contains('Pull request #1 is at actual but expected expected') }
+	return false
 }
 
 // Ruby it `it "fails to find a nonexistent workflow" do` at line 153.
-pub fn ruby_github_spec_l153_d12_fails(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fails', ...args)
+pub fn ruby_github_spec_l153_d12_fails() !bool {
+	mut client := github_core.GitHubClient{
+		open_rest: github_spec_workflow_rest
+		open_graphql: github_spec_uppercase_workflow
+	}
+	workflow := client.get_workflow_run('Homebrew', 'homebrew-core', '1', 'tests.yml', 'bottles{,_*}', '')!
+	client.get_artifact_urls(workflow) or { return err.msg().contains('No matching check suite found') }
+	return false
 }
 
 // Ruby it `it "fails to find artifacts that don't exist" do` at line 161.
-pub fn ruby_github_spec_l161_d13_fails(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fails', ...args)
+pub fn ruby_github_spec_l161_d13_fails() !bool {
+	mut client := github_core.GitHubClient{
+		open_rest: github_spec_workflow_rest
+		open_graphql: github_spec_artifact_workflow
+		paginate_rest: github_spec_artifacts
+	}
+	workflow := client.get_workflow_run('Homebrew', 'homebrew-core', '252626', 'triage.yml', 'false_artifact', '')!
+	client.get_artifact_urls(workflow) or { return err.msg().contains('No artifacts with the pattern') }
+	return false
 }
 
 // Ruby it `it "gets artifact URLs" do` at line 170.
-pub fn ruby_github_spec_l170_d14_gets(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('gets', ...args)
+pub fn ruby_github_spec_l170_d14_gets() !bool {
+	mut client := github_core.GitHubClient{
+		open_rest: github_spec_workflow_rest
+		open_graphql: github_spec_artifact_workflow
+		paginate_rest: github_spec_artifacts
+	}
+	workflow := client.get_workflow_run('Homebrew', 'homebrew-core', '252626', 'triage.yml', 'event_payload', '')!
+	return client.get_artifact_urls(workflow)! == [
+		'https://api.github.com/repos/Homebrew/homebrew-core/actions/artifacts/4457761305/zip',
+	]
 }
 
 // Ruby let `let(:hashes) do` at line 180.
-pub fn ruby_github_spec_l180_d15_hashes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('hashes', ...args)
+pub fn ruby_github_spec_l180_d15_hashes() []string {
+	return ['188606a4a9587365d930b02c98ad6857b1d00150', '25a71fe1ea1558415d6496d23834dc70778ddee5']
 }
 
 // Ruby it `it "gets commit hashes for a pull request" do` at line 187.
-pub fn ruby_github_spec_l187_d16_gets(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('gets', ...args)
+pub fn ruby_github_spec_l187_d16_gets() !bool {
+	mut client := github_core.GitHubClient{
+		open_rest: github_spec_workflow_rest
+		paginate_rest: github_spec_commits
+	}
+	return client.pull_request_commits('Homebrew', 'legacy-homebrew', '50678', 100)! == ruby_github_spec_l180_d15_hashes()
 }
 
 // Ruby it `it "gets commit hashes for a paginated pull request API response" do` at line 191.
-pub fn ruby_github_spec_l191_d17_gets(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('gets', ...args)
+pub fn ruby_github_spec_l191_d17_gets() !bool {
+	mut client := github_core.GitHubClient{
+		open_rest: github_spec_workflow_rest
+		paginate_rest: github_spec_commits
+	}
+	return client.pull_request_commits('Homebrew', 'legacy-homebrew', '50678', 1)! == ruby_github_spec_l180_d15_hashes()
 }
 
 // Original Ruby source (line-for-line):

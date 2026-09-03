@@ -4,30 +4,68 @@ import brew_runtime
 
 // Translated from Homebrew/brew `formula_assertions.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub struct FormulaAssertions {
+mut:
+	assertion_count int
+pub:
+	verbose bool
+}
 
 // Ruby attr_writer `attr_writer :assertions` at line 20.
-pub fn ruby_formula_assertions_l20_d1_assertions(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('assertions=', ...args)
+pub fn ruby_formula_assertions_l20_d1_assertions(mut assertions FormulaAssertions,
+	value int) int {
+	assertions.assertion_count = value
+	return value
 }
 
 // Ruby method `assertions` at line 23.
-pub fn ruby_formula_assertions_l23_d2_assertions(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('assertions', ...args)
+pub fn ruby_formula_assertions_l23_d2_assertions(assertions &FormulaAssertions) int {
+	return assertions.assertion_count
 }
 
 // Ruby method `assert_equal(exp, act, msg = nil)` at line 28.
-pub fn ruby_formula_assertions_l28_d3_assert_equal(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('assert_equal', ...args)
+pub fn ruby_formula_assertions_l28_d3_assert_equal(mut assertions FormulaAssertions,
+	expected brew_runtime.Value, actual brew_runtime.Value, message string) !bool {
+	assertions.assertion_count++
+	if expected.type_name == actual.type_name && expected.repr == actual.repr {
+		return true
+	}
+	prefix := if message == '' { '' } else { '${message}: ' }
+	if expected.type_name == 'NilClass' {
+		return error('${prefix}Expected ${actual.repr} to be nil')
+	}
+	return error('${prefix}Expected ${expected.repr}, got ${actual.repr}')
 }
 
 // Ruby method `shell_output(cmd, result = 0)` at line 39.
-pub fn ruby_formula_assertions_l39_d4_shell_output(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('shell_output', ...args)
+pub fn ruby_formula_assertions_l39_d4_shell_output(mut assertions FormulaAssertions,
+	command string, expected_status int) !string {
+	result := brew_runtime.run_captured_command(['/bin/sh', '-c', command], brew_runtime.CapturedCommandOptions{ environment: brew_runtime.environment() })!
+	ruby_formula_assertions_l28_d3_assert_equal(mut assertions, brew_runtime.int_value(i64(expected_status)), brew_runtime.int_value(i64(result.exit_code)), 'command `${command}` exit status') or {
+		if assertions.verbose && result.stdout != '' {
+			return error('${err.msg()}\n${result.stdout}')
+		}
+		return err
+	}
+	return result.stdout
 }
 
 // Ruby method `pipe_output(cmd, input = nil, result = nil)` at line 55.
-pub fn ruby_formula_assertions_l55_d5_pipe_output(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('pipe_output', ...args)
+pub fn ruby_formula_assertions_l55_d5_pipe_output(mut assertions FormulaAssertions,
+	command string, input string, expected_status ?int) !string {
+	result := brew_runtime.run_captured_command(['/bin/sh', '-c', command], brew_runtime.CapturedCommandOptions{
+		environment: brew_runtime.environment()
+		input: input
+	})!
+	if status := expected_status {
+		ruby_formula_assertions_l28_d3_assert_equal(mut assertions, brew_runtime.int_value(i64(status)), brew_runtime.int_value(i64(result.exit_code)), 'command `${command}` exit status') or {
+			if assertions.verbose && result.stdout != '' {
+				return error('${err.msg()}\n${result.stdout}')
+			}
+			return err
+		}
+	}
+	return result.stdout
 }
 
 // Original Ruby source (line-for-line):

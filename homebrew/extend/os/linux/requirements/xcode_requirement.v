@@ -7,7 +7,11 @@ import brew_runtime
 
 // Ruby method `xcode_installed_version!` at line 8.
 pub fn ruby_xcode_requirement_l8_d1_xcode_installed_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('xcode_installed_version!', ...args)
+	return brew_runtime.bool_value(xcode_installed_version())
+}
+
+pub fn xcode_installed_version() bool {
+	return true
 }
 
 // Original Ruby source (line-for-line):

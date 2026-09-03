@@ -7,12 +7,12 @@ import brew_runtime
 
 // Ruby method `blank? = false` at line 11.
 pub fn ruby_time_l11_d1_blank(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('blank?', ...args)
+	return brew_runtime.bool_value(false)
 }
 
 // Ruby method `present? = true` at line 14.
 pub fn ruby_time_l14_d2_present(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('present?', ...args)
+	return brew_runtime.bool_value(true)
 }
 
 // Original Ruby source (line-for-line):

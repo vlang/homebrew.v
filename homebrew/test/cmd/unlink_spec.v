@@ -1,13 +1,22 @@
 module cmd
 
-import brew_runtime
+import homebrew.cmd as brew_cmd
 
 // Translated from Homebrew/brew `test/cmd/unlink_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "unlinks a Formula", :integration_test do` at line 10.
-pub fn ruby_unlink_spec_l10_d1_unlinks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('unlinks', ...args)
+pub fn ruby_unlink_spec_l10_d1_unlinks() bool {
+	result := brew_cmd.unlink_command([
+		brew_cmd.UnlinkCommandKeg{ name: 'testball', path: '/cellar/testball/1.0' },
+	], brew_cmd.UnlinkCommandOptions{}, unlink_spec_action) or { return false }
+	return result.output.starts_with('Unlinking /cellar/testball/1.0... ') && result.counts == [
+		2,
+	]
+}
+
+fn unlink_spec_action(_ brew_cmd.UnlinkCommandKeg, _ brew_cmd.UnlinkCommandOptions) !int {
+	return 2
 }
 
 // Original Ruby source (line-for-line):

@@ -2,6 +2,18 @@ module logger
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/logger-1.7.0/lib/logger/errors.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub struct LoggerError {
+pub:
+	message string
+}
+
+pub fn (err LoggerError) msg() string {
+	return err.message
+}
+
+pub struct ShiftingError {
+	LoggerError
+}
 
 // Original Ruby source (line-for-line):
 // 1: # frozen_string_literal: true

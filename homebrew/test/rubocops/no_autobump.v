@@ -1,53 +1,68 @@
 module rubocops
 
 import brew_runtime
+import homebrew.rubocops as no_autobump_core
 
 // Translated from Homebrew/brew `test/rubocops/no_autobump.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:cop) { RuboCop::Cop::FormulaAudit::NoAutobump.new }` at line 7.
 pub fn ruby_no_autobump_l7_d1_cop(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cop', ...args)
+	return brew_runtime.object_value('RuboCop::Cop::FormulaAudit::NoAutobump', 'FormulaAudit/NoAutobump')
 }
 
 // Ruby it `it "reports no offenses if `reason` is acceptable" do` at line 9.
-pub fn ruby_no_autobump_l9_d2_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_no_autobump_l9_d2_reports() bool {
+	return no_autobump_core.audit_formula_no_autobump('no_autobump! because: "some reason"').len == 0
 }
 
 // Ruby it `it "reports no offenses if `reason` is acceptable as a symbol" do` at line 18.
-pub fn ruby_no_autobump_l18_d3_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_no_autobump_l18_d3_reports() bool {
+	return no_autobump_core.audit_formula_no_autobump('no_autobump! because: :bumped_by_upstream').len == 0
 }
 
 // Ruby it `it "reports an offense if `reason` is absent" do` at line 27.
-pub fn ruby_no_autobump_l27_d4_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_no_autobump_l27_d4_reports() bool {
+	return no_autobump_core.audit_formula_no_autobump('no_autobump!').map(it.kind) == [
+		'missing_reason',
+	]
 }
 
 // Ruby it `it "reports an offense is `reason` should not be set manually" do` at line 37.
-pub fn ruby_no_autobump_l37_d5_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_no_autobump_l37_d5_reports() bool {
+	return no_autobump_core.audit_formula_no_autobump('no_autobump! because: :extract_plist').map(it.kind) == [
+		'disallowed_symbol',
+	]
 }
 
 // Ruby it `it "reports and corrects an offense if `reason` starts with 'it'" do` at line 47.
-pub fn ruby_no_autobump_l47_d6_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_no_autobump_l47_d6_reports() bool {
+	source := 'no_autobump! because: "it does something"'
+	return no_autobump_core.audit_formula_no_autobump(source).map(it.kind) == [
+		'starts_with_it',
+	] && no_autobump_core.correct_formula_no_autobump(source) == 'no_autobump! because: "does something"'
 }
 
 // Ruby it `it "reports and corrects an offense if `reason` ends with a period" do` at line 64.
-pub fn ruby_no_autobump_l64_d7_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_no_autobump_l64_d7_reports() bool {
+	return no_autobump_punctuation_case('.')
 }
 
 // Ruby it `it "reports and corrects an offense if `reason` ends with an exclamation point" do` at line 81.
-pub fn ruby_no_autobump_l81_d8_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_no_autobump_l81_d8_reports() bool {
+	return no_autobump_punctuation_case('!')
 }
 
 // Ruby it `it "reports and corrects an offense if `reason` ends with a question mark" do` at line 98.
-pub fn ruby_no_autobump_l98_d9_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_no_autobump_l98_d9_reports() bool {
+	return no_autobump_punctuation_case('?')
+}
+
+fn no_autobump_punctuation_case(mark string) bool {
+	source := 'no_autobump! because: "does something${mark}"'
+	return no_autobump_core.audit_formula_no_autobump(source).map(it.kind) == [
+		'trailing_punctuation',
+	] && no_autobump_core.correct_formula_no_autobump(source) == 'no_autobump! because: "does something"'
 }
 
 // Original Ruby source (line-for-line):

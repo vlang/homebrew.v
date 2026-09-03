@@ -1,28 +1,30 @@
 module lines
 
 import brew_runtime
+import homebrew.rubocops as line_cops
 
 // Translated from Homebrew/brew `test/rubocops/lines/libiconv_check_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:cop) { described_class.new }` at line 7.
 pub fn ruby_libiconv_check_spec_l7_d1_cop(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cop', ...args)
+	return brew_runtime.object_value('RuboCop::Cop::FormulaAudit::LibiconvCheck', 'LibiconvCheck')
 }
 
 // Ruby it `it "reports an offense when a formula depends on `libiconv`" do` at line 10.
 pub fn ruby_libiconv_check_spec_l10_d2_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	analysis := line_cops.audit_lines_libiconv(line_cops.LinesContext{ source: 'depends_on "libiconv"', tap: 'homebrew-core', formula_name: 'foo' })
+	return brew_runtime.bool_value(analysis.offenses.len == 1 && analysis.offenses[0].message == 'Formulae in homebrew/core should not use `depends_on "libiconv"`.')
 }
 
 // Ruby it `it "reports no offenses for `neomutt`" do` at line 22.
 pub fn ruby_libiconv_check_spec_l22_d3_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	return brew_runtime.bool_value(line_cops.audit_lines_libiconv(line_cops.LinesContext{ source: 'depends_on "libiconv"', tap: 'homebrew-core', formula_name: 'neomutt' }).offenses.len == 0)
 }
 
 // Ruby it `it "reports no offenses for libiconv dependencies" do` at line 35.
 pub fn ruby_libiconv_check_spec_l35_d4_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	return brew_runtime.bool_value(line_cops.audit_lines_libiconv(line_cops.LinesContext{ source: 'depends_on "libiconv"', tap: 'homebrew-cask', formula_name: 'foo' }).offenses.len == 0)
 }
 
 // Original Ruby source (line-for-line):

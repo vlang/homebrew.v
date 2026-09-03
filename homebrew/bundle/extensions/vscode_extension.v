@@ -1,93 +1,371 @@
 module extensions
 
 import brew_runtime
+import os
 
 // Translated from Homebrew/brew `bundle/extensions/vscode_extension.rb`.
 // The original source is retained below until every stub has a typed V body.
+@[heap]
+pub struct VscodeExtensionState {
+pub mut:
+	executable                  string
+	original_paths              []string
+	list_output                 string
+	wsl_distro_name             string
+	extensions                  []string
+	extensions_loaded           bool
+	installed_extensions        []string
+	installed_extensions_loaded bool
+	cask_installed              bool
+	brew_file                   string
+	environment                 map[string]string
+	commands                    [][]string
+	output                      []string
+}
+
+pub fn new_vscode_extension_state() &VscodeExtensionState {
+	return &VscodeExtensionState{
+		environment: map[string]string{}
+	}
+}
+
+pub fn vscode_extension_definition() ExtensionDefinition {
+	return ExtensionDefinition{
+		class_name: 'Homebrew::Bundle::VscodeExtension'
+		type_name: 'vscode'
+		banner_name: 'VSCode (and forks/variants) extensions'
+		check_label: 'VSCode Extension'
+		cleanup_heading: 'VSCode extensions'
+	}
+}
+
+fn vscode_ascii_alphanumeric(character u8) bool {
+	return (character >= `a` && character <= `z`) || (character >= `A` && character <= `Z`) || (character >= `0` && character <= `9`)
+}
+
+pub fn vscode_valid_extension_id(value string) bool {
+	dot := value.index('.') or { return false }
+	if dot == 0 || dot == value.len - 1 {
+		return false
+	}
+	for index, character in value.bytes() {
+		if index == dot || vscode_ascii_alphanumeric(character) {
+			continue
+		}
+		if index < dot {
+			if character != `-` {
+				return false
+			}
+		} else if character !in [`-`, `_`, `.`] {
+			return false
+		}
+	}
+	return vscode_ascii_alphanumeric(value[0]) && vscode_ascii_alphanumeric(value[dot + 1])
+}
+
+pub fn vscode_parse_extensions(output string) []string {
+	mut extensions := []string{}
+	for line in output.split_into_lines() {
+		extension := line.trim_space()
+		if vscode_valid_extension_id(extension) {
+			extensions << extension.to_lower()
+		}
+	}
+	return extensions
+}
+
+pub fn vscode_find_executable(paths []string) string {
+	for executable in ['code', 'codium', 'cursor', 'code-insiders'] {
+		for path in paths {
+			candidate := os.join_path(path, executable)
+			if os.is_file(candidate) && os.is_executable(candidate) {
+				return candidate
+			}
+		}
+	}
+	return ''
+}
+
+pub fn vscode_package_record(name string) string {
+	return name.to_lower()
+}
+
+pub fn vscode_dump(extensions []string) string {
+	return extensions.map(extension_dump_entry(vscode_extension_definition(), ExtensionPackage{
+		name: it
+	})).join('\n')
+}
+
+pub fn vscode_cleanup_items(entries []ExtensionEntry, extensions []string) []string {
+	mut kept := []string{}
+	for entry in entries {
+		if entry.entry_type == 'vscode' {
+			kept << entry.name.to_lower()
+		}
+	}
+	if kept.len == 0 {
+		return []
+	}
+	return extensions.filter(it !in kept)
+}
+
+pub fn (mut state VscodeExtensionState) reset() {
+	state.extensions = []
+	state.extensions_loaded = false
+	state.installed_extensions = []
+	state.installed_extensions_loaded = false
+}
+
+pub fn (mut state VscodeExtensionState) package_manager_executable() string {
+	if state.executable != '' {
+		return state.executable
+	}
+	state.executable = vscode_find_executable(state.original_paths)
+	return state.executable
+}
+
+pub fn (mut state VscodeExtensionState) discover_extensions() []string {
+	if state.extensions_loaded {
+		return state.extensions.clone()
+	}
+	state.extensions = if state.package_manager_executable() == '' {
+		[]
+	} else {
+		state.environment['WSL_DISTRO_NAME'] = state.wsl_distro_name
+		vscode_parse_extensions(state.list_output)
+	}
+	state.extensions_loaded = true
+	return state.extensions.clone()
+}
+
+pub fn (mut state VscodeExtensionState) discover_installed_extensions() []string {
+	if state.installed_extensions_loaded {
+		return state.installed_extensions.clone()
+	}
+	state.installed_extensions = state.discover_extensions()
+	state.installed_extensions_loaded = true
+	return state.installed_extensions.clone()
+}
+
+pub fn (mut state VscodeExtensionState) preinstall(name string, verbose bool) !bool {
+	if state.package_manager_executable() == '' && state.cask_installed {
+		if verbose {
+			state.output << 'Installing visual-studio-code. It is not currently installed.'
+		}
+		state.commands << [state.brew_file, 'install', '--cask', 'visual-studio-code']
+	}
+	if vscode_package_record(name) in state.discover_installed_extensions() {
+		if verbose {
+			state.output << 'Skipping install of ${name} VSCode extension. It is already installed.'
+		}
+		return false
+	}
+	if state.package_manager_executable() == '' {
+		return error('Unable to install ${name} VSCode extension. VSCode is not installed.')
+	}
+	return true
+}
+
+pub fn (mut state VscodeExtensionState) install_package(name string, result bool) !bool {
+	executable := state.package_manager_executable()
+	if executable == '' {
+		return error('vscode is not installed')
+	}
+	state.commands << [executable, '--install-extension', name]
+	return result
+}
+
+pub fn (mut state VscodeExtensionState) install(name string, preinstall bool, verbose bool,
+	result bool) !bool {
+	if !preinstall {
+		return true
+	}
+	if verbose {
+		state.output << 'Installing ${name} VSCode extension. It is not currently installed.'
+	}
+	if !state.install_package(name, result)! {
+		return false
+	}
+	package := vscode_package_record(name)
+	if package !in state.discover_installed_extensions() {
+		state.installed_extensions << package
+	}
+	if state.extensions_loaded {
+		if package !in state.extensions {
+			state.extensions << package
+		}
+	} else {
+		state.extensions = [package]
+		state.extensions_loaded = true
+	}
+	return true
+}
+
+pub fn (mut state VscodeExtensionState) cleanup(extensions []string) {
+	executable := state.package_manager_executable()
+	if executable == '' {
+		return
+	}
+	for extension in extensions {
+		state.commands << [executable, '--uninstall-extension', extension]
+	}
+}
+
+fn vscode_state_value(state &VscodeExtensionState) brew_runtime.Value {
+	return brew_runtime.structured_value('Homebrew::Bundle::VscodeExtension', '', {
+		'vscode_state_address': u64(voidptr(state)).str()
+	})
+}
+
+fn vscode_state_from_args(args []brew_runtime.Value, method string) &VscodeExtensionState {
+	if args.len == 0 || 'vscode_state_address' !in args[0].attributes {
+		panic('VscodeExtension.${method} requires translated state')
+	}
+	return unsafe { &VscodeExtensionState(voidptr(args[0].attributes['vscode_state_address'].u64())) }
+}
+
+pub fn vscode_extension_state_boundary(state &VscodeExtensionState) brew_runtime.Value {
+	return vscode_state_value(state)
+}
 
 // Ruby method `type = :vscode` at line 13.
 pub fn ruby_vscode_extension_l13_d1_type(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('type', ...args)
+	_ = args
+	return brew_runtime.object_value('Symbol', 'vscode')
 }
 
 // Ruby method `check_label = "VSCode Extension"` at line 16.
 pub fn ruby_vscode_extension_l16_d2_check_label(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('check_label', ...args)
+	_ = args
+	return brew_runtime.string_value(vscode_extension_definition().check_label)
 }
 
 // Ruby method `banner_name = "VSCode (and forks/variants) extensions"` at line 19.
 pub fn ruby_vscode_extension_l19_d3_banner_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('banner_name', ...args)
+	_ = args
+	return brew_runtime.string_value(vscode_extension_definition().banner_name)
 }
 
 // Ruby method `reset!` at line 22.
 pub fn ruby_vscode_extension_l22_d4_reset(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reset!', ...args)
+	mut state := vscode_state_from_args(args, 'reset!')
+	state.reset()
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Ruby method `cleanup_heading` at line 28.
 pub fn ruby_vscode_extension_l28_d5_cleanup_heading(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cleanup_heading', ...args)
+	_ = args
+	return brew_runtime.string_value(vscode_extension_definition().cleanup_heading or { '' })
 }
 
 // Ruby method `package_record(name, with: nil)` at line 33.
 pub fn ruby_vscode_extension_l33_d6_package_record(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('package_record', ...args)
+	if args.len == 0 {
+		return brew_runtime.object_value('ArgumentError', 'name is required')
+	}
+	return brew_runtime.string_value(vscode_package_record(args[0].as_string()))
 }
 
 // Ruby method `package_manager_executable` at line 40.
 pub fn ruby_vscode_extension_l40_d7_package_manager_executable(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('package_manager_executable', ...args)
+	mut state := vscode_state_from_args(args, 'package_manager_executable')
+	executable := state.package_manager_executable()
+	return if executable == '' {
+		brew_runtime.object_value('NilClass', 'nil')
+	} else {
+		brew_runtime.object_value('Pathname', executable)
+	}
 }
 
 // Ruby method `extensions` at line 48.
 pub fn ruby_vscode_extension_l48_d8_extensions(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('extensions', ...args)
+	mut state := vscode_state_from_args(args, 'extensions')
+	return brew_runtime.string_array_value(state.discover_extensions())
 }
 
 // Ruby method `packages` at line 64.
 pub fn ruby_vscode_extension_l64_d9_packages(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('packages', ...args)
+	mut state := vscode_state_from_args(args, 'packages')
+	return brew_runtime.string_array_value(state.discover_extensions())
 }
 
 // Ruby method `installed_packages` at line 69.
 pub fn ruby_vscode_extension_l69_d10_installed_packages(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('installed_packages', ...args)
+	mut state := vscode_state_from_args(args, 'installed_packages')
+	return brew_runtime.string_array_value(state.discover_installed_extensions())
 }
 
 // Ruby method `installed_extensions` at line 74.
 pub fn ruby_vscode_extension_l74_d11_installed_extensions(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('installed_extensions', ...args)
+	mut state := vscode_state_from_args(args, 'installed_extensions')
+	return brew_runtime.string_array_value(state.discover_installed_extensions())
 }
 
 // Ruby method `package_installed?(name, with: nil)` at line 82.
 pub fn ruby_vscode_extension_l82_d12_package_installed(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('package_installed?', ...args)
+	mut state := vscode_state_from_args(args, 'package_installed?')
+	if args.len < 2 {
+		return brew_runtime.bool_value(false)
+	}
+	return brew_runtime.bool_value(vscode_package_record(args[1].as_string()) in state.discover_installed_extensions())
 }
 
 // Ruby method `preinstall!(name, with: nil, no_upgrade: false, verbose: false, **_options)` at line 97.
 pub fn ruby_vscode_extension_l97_d13_preinstall(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('preinstall!', ...args)
+	mut state := vscode_state_from_args(args, 'preinstall!')
+	if args.len < 2 {
+		return brew_runtime.object_value('ArgumentError', 'name is required')
+	}
+	verbose := if args.len > 4 { args[4].bool_data } else { false }
+	return brew_runtime.bool_value(state.preinstall(args[1].as_string(), verbose) or {
+		return brew_runtime.object_value('RuntimeError', err.msg())
+	})
 }
 
 // Ruby method `install_package!(name, with: nil, verbose: false)` at line 125.
 pub fn ruby_vscode_extension_l125_d14_install_package(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install_package!', ...args)
+	mut state := vscode_state_from_args(args, 'install_package!')
+	if args.len < 2 {
+		return brew_runtime.object_value('ArgumentError', 'name is required')
+	}
+	result := if args.len > 4 { args[4].bool_data } else { false }
+	return brew_runtime.bool_value(state.install_package(args[1].as_string(), result) or {
+		return brew_runtime.object_value('RuntimeError', err.msg())
+	})
 }
 
 // Ruby method `install!(name, with: nil, preinstall: true, no_upgrade: false, verbose: false, force: false,` at line 146.
 pub fn ruby_vscode_extension_l146_d15_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install!', ...args)
+	mut state := vscode_state_from_args(args, 'install!')
+	if args.len < 2 {
+		return brew_runtime.object_value('ArgumentError', 'name is required')
+	}
+	preinstall := if args.len > 3 { args[3].bool_data } else { true }
+	verbose := if args.len > 5 { args[5].bool_data } else { false }
+	result := if args.len > 7 { args[7].bool_data } else { false }
+	return brew_runtime.bool_value(state.install(args[1].as_string(), preinstall, verbose, result) or {
+		return brew_runtime.object_value('RuntimeError', err.msg())
+	})
 }
 
 // Ruby method `cleanup_items(entries)` at line 169.
 pub fn ruby_vscode_extension_l169_d16_cleanup_items(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cleanup_items', ...args)
+	mut state := vscode_state_from_args(args, 'cleanup_items')
+	entries := if args.len > 1 {
+		(args[1].as_array() or { [] }).map(extension_entry_from_value(it))
+	} else {
+		[]
+	}
+	return brew_runtime.string_array_value(vscode_cleanup_items(entries, state.discover_extensions()))
 }
 
 // Ruby method `cleanup!(extensions)` at line 181.
 pub fn ruby_vscode_extension_l181_d17_cleanup(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cleanup!', ...args)
+	mut state := vscode_state_from_args(args, 'cleanup!')
+	extensions := if args.len > 1 { args[1].as_string_array() or { [] } } else { [] }
+	state.cleanup(extensions)
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Original Ruby source (line-for-line):

@@ -1,13 +1,14 @@
 module cmd
 
-import brew_runtime
+import homebrew.analytics
+import homebrew.utils
 
 // Translated from Homebrew/brew `cmd/analytics.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `run` at line 23.
-pub fn ruby_analytics_l23_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('run', ...args)
+pub fn ruby_analytics_l23_d1_run(arguments []string, mut state utils.AnalyticsState) !string {
+	return analytics.ruby_subcommand_l16_dispatch(arguments, mut state)
 }
 
 // Original Ruby source (line-for-line):

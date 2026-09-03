@@ -1,18 +1,20 @@
 module unpack_strategy
 
 import brew_runtime
+import os
 
 // Translated from Homebrew/brew `test/unpack_strategy/tar_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby let `let(:path) { TEST_FIXTURE_DIR/"cask/container.tar.gz" }` at line 7.
 pub fn ruby_tar_spec_l7_d1_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('path', ...args)
+	return brew_runtime.string_value(spec_tar_fixture())
 }
 
 // Ruby let `let(:path) do` at line 13.
 pub fn ruby_tar_spec_l13_d2_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('path', ...args)
+	path := os.join_path(spec_temp_dir('corrupt-tar'), 'test.tar')
+	return brew_runtime.string_value(spec_write_bytes(path, []u8{}))
 }
 
 // Original Ruby source (line-for-line):

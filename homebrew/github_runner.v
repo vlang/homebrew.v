@@ -1,28 +1,63 @@
 module homebrew
 
-import brew_runtime
-
 // Translated from Homebrew/brew `github_runner.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub type GitHubRunnerSpec = LinuxRunnerSpec | MacOSRunnerSpec
+
+pub struct GitHubRunner {
+pub:
+	platform      string
+	arch          string
+	spec          GitHubRunnerSpec
+	macos_version string
+pub mut:
+	active bool
+}
+
+pub fn new_github_runner(platform string, arch string, spec GitHubRunnerSpec,
+	macos_version string) GitHubRunner {
+	return GitHubRunner{
+		platform: platform
+		arch: arch
+		spec: spec
+		macos_version: macos_version
+	}
+}
+
+pub fn (runner GitHubRunner) macos() bool {
+	return runner.platform == 'macos'
+}
+
+pub fn (runner GitHubRunner) linux() bool {
+	return runner.platform == 'linux'
+}
+
+pub fn (runner GitHubRunner) x86_64() bool {
+	return runner.arch == 'x86_64'
+}
+
+pub fn (runner GitHubRunner) arm64() bool {
+	return runner.arch == 'arm64'
+}
 
 // Ruby method `macos?` at line 15.
-pub fn ruby_github_runner_l15_d1_macos(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('macos?', ...args)
+pub fn ruby_github_runner_l15_d1_macos(runner GitHubRunner) bool {
+	return runner.macos()
 }
 
 // Ruby method `linux?` at line 20.
-pub fn ruby_github_runner_l20_d2_linux(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('linux?', ...args)
+pub fn ruby_github_runner_l20_d2_linux(runner GitHubRunner) bool {
+	return runner.linux()
 }
 
 // Ruby method `x86_64?` at line 25.
-pub fn ruby_github_runner_l25_d3_x86_64(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('x86_64?', ...args)
+pub fn ruby_github_runner_l25_d3_x86_64(runner GitHubRunner) bool {
+	return runner.x86_64()
 }
 
 // Ruby method `arm64?` at line 30.
-pub fn ruby_github_runner_l30_d4_arm64(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('arm64?', ...args)
+pub fn ruby_github_runner_l30_d4_arm64(runner GitHubRunner) bool {
+	return runner.arm64()
 }
 
 // Original Ruby source (line-for-line):

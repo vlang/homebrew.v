@@ -1,13 +1,14 @@
 module linux
 
-import brew_runtime
-
 // Translated from Homebrew/brew `extend/os/linux/keg.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub fn linux_binary_executable_or_library_files(elf_files []string) []string {
+	return elf_files.clone()
+}
 
 // Ruby method `binary_executable_or_library_files = elf_files` at line 8.
-pub fn ruby_keg_l8_d1_binary_executable_or_library_files(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('binary_executable_or_library_files', ...args)
+pub fn ruby_keg_l8_d1_binary_executable_or_library_files(elf_files []string) []string {
+	return linux_binary_executable_or_library_files(elf_files)
 }
 
 // Original Ruby source (line-for-line):

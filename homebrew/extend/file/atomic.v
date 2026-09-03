@@ -1,18 +1,112 @@
 module file
 
 import brew_runtime
+import os
+import time
 
 // Translated from Homebrew/brew `extend/file/atomic.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `self.atomic_write(file_name, temp_dir = dirname(file_name), &_block)` at line 29.
 pub fn ruby_atomic_l29_d1_self_atomic_write(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.atomic_write', ...args)
+	if args.len < 2 {
+		return brew_runtime.object_value('ArgumentError', 'file name and contents are required')
+	}
+	file_name := args[0].as_string()
+	// The boundary accepts the common translated form `(file_name, contents)` and
+	// the source-shaped form `(file_name, temp_dir, contents, return_value)`.
+	temp_dir := if args.len > 2 { args[1].as_string() } else { os.dir(file_name) }
+	contents_index := if args.len > 2 { 2 } else { 1 }
+	atomic_write_contents(file_name, temp_dir, args[contents_index].as_string()) or {
+		return brew_runtime.object_value('IOError', err.msg())
+	}
+	return if args.len > contents_index + 1 {
+		args[contents_index + 1]
+	} else {
+		brew_runtime.string_value(args[contents_index].as_string())
+	}
 }
 
 // Ruby method `self.probe_stat_in(dir) # :nodoc:` at line 65.
 pub fn ruby_atomic_l65_d2_self_probe_stat_in(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.probe_stat_in', ...args)
+	if args.len == 0 {
+		return brew_runtime.object_value('NilClass', '')
+	}
+	stat := probe_stat_in(args[0].as_string()) or {
+		return brew_runtime.object_value('NilClass', '')
+	}
+	return atomic_file_stat_value(stat)
+}
+
+pub struct AtomicFileStat {
+pub:
+	uid  int
+	gid  int
+	mode int
+}
+
+fn atomic_file_stat(path string) !AtomicFileStat {
+	stat := os.stat(path)!
+	return AtomicFileStat{
+		uid: int(stat.uid)
+		gid: int(stat.gid)
+		mode: int(stat.get_mode().bitmask())
+	}
+}
+
+fn atomic_file_stat_value(stat AtomicFileStat) brew_runtime.Value {
+	return brew_runtime.structured_value('File::Stat', 'mode=${stat.mode:o}', {
+		'uid':  stat.uid.str()
+		'gid':  stat.gid.str()
+		'mode': stat.mode.str()
+	})
+}
+
+pub fn probe_stat_in(dir string) ?AtomicFileStat {
+	if !os.is_dir(dir) {
+		return none
+	}
+	probe := os.join_path(dir, '.permissions_check.${os.getpid()}.${time.now().unix_micro()}')
+	os.write_file(probe, '') or { return none }
+	defer {
+		os.rm(probe) or {}
+	}
+	return atomic_file_stat(probe) or { none }
+}
+
+pub fn atomic_write_contents(file_name string, temp_dir string, contents string) ! {
+	if file_name == '' {
+		return error('file name is required')
+	}
+	destination_dir := os.dir(file_name)
+	if !os.is_dir(destination_dir) {
+		return error('destination directory does not exist: ${destination_dir}')
+	}
+	if !os.is_dir(temp_dir) {
+		return error('temporary directory does not exist: ${temp_dir}')
+	}
+	temporary := os.join_path(temp_dir, '.${os.base(file_name)}.brew-v-${os.getpid()}-${time.now().unix_micro()}')
+	mut renamed := false
+	defer {
+		if !renamed {
+			os.rm(temporary) or {}
+		}
+	}
+	os.write_file(temporary, contents)!
+	mut old_stat := ?AtomicFileStat(none)
+	if os.exists(file_name) {
+		if stat := atomic_file_stat(file_name) {
+			old_stat = stat
+		}
+	} else {
+		old_stat = probe_stat_in(destination_dir)
+	}
+	if stat := old_stat {
+		os.chown(temporary, stat.uid, stat.gid) or {}
+		os.chmod(temporary, stat.mode) or {}
+	}
+	os.mv(temporary, file_name)!
+	renamed = true
 }
 
 // Original Ruby source (line-for-line):

@@ -1,213 +1,460 @@
 module python
 
 import brew_runtime
+import homebrew.language
+import os
+import time
 
 // Translated from Homebrew/brew `test/language/python/virtualenv_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby let `let(:venv) { instance_double(Language::Python::Virtualenv::Virtualenv) }` at line 9.
 pub fn ruby_virtualenv_spec_l9_d1_venv(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('venv', ...args)
+	root := virtualenv_spec_root(args, 'venv')
+	return virtualenv_spec_virtualenv(virtualenv_spec_formula(root), root, 'python')
 }
 
 // Ruby let `let(:f) do` at line 10.
 pub fn ruby_virtualenv_spec_l10_d2_f(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f', ...args)
+	return virtualenv_spec_formula(virtualenv_spec_root(args, 'formula'))
 }
 
 // Ruby let `let(:r_a) { f.resource("resource-a") }` at line 40.
 pub fn ruby_virtualenv_spec_l40_d3_r_a(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('r_a', ...args)
+	return virtualenv_spec_resource_from_args(args, 'resource-a')
 }
 
 // Ruby let `let(:r_b) { f.resource("resource-b") }` at line 41.
 pub fn ruby_virtualenv_spec_l41_d4_r_b(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('r_b', ...args)
+	return virtualenv_spec_resource_from_args(args, 'resource-b')
 }
 
 // Ruby let `let(:r_c) { f.resource("resource-c") }` at line 42.
 pub fn ruby_virtualenv_spec_l42_d5_r_c(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('r_c', ...args)
+	return virtualenv_spec_resource_from_args(args, 'resource-c')
 }
 
 // Ruby let `let(:r_d) { f.resource("resource-d") }` at line 43.
 pub fn ruby_virtualenv_spec_l43_d6_r_d(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('r_d', ...args)
+	return virtualenv_spec_resource_from_args(args, 'resource-d')
 }
 
 // Ruby let `let(:buildpath) { Pathname(TEST_TMPDIR) }` at line 44.
 pub fn ruby_virtualenv_spec_l44_d7_buildpath(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('buildpath', ...args)
+	return brew_runtime.string_value(virtualenv_spec_root(args, 'buildpath'))
 }
 
 // Ruby it `it "works with `using: \"python\"` and installs resources in order" do` at line 48.
 pub fn ruby_virtualenv_spec_l48_d8_works(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('works', ...args)
+	return virtualenv_spec_install_expect(args, 'python', [], [], [], ['resource-a', 'resource-b',
+		'resource-c', 'resource-d'])
 }
 
 // Ruby it `it "works with `using: \"python@3.12\"` and installs resources in order" do` at line 57.
 pub fn ruby_virtualenv_spec_l57_d9_works(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('works', ...args)
+	return virtualenv_spec_install_expect(args, 'python@3.12', [], [], [], [
+		'resource-a',
+		'resource-b',
+		'resource-c',
+		'resource-d',
+	])
 }
 
 // Ruby it `it "skips a `without` resource string and installs remaining resources in order" do` at line 66.
 pub fn ruby_virtualenv_spec_l66_d10_skips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skips', ...args)
+	return virtualenv_spec_install_expect(args, 'python', ['resource-c'], [], [], [
+		'resource-a',
+		'resource-b',
+		'resource-d',
+	])
 }
 
 // Ruby it `it "skips all resources in `without` array and installs remaining resources in order" do` at line 73.
 pub fn ruby_virtualenv_spec_l73_d11_skips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skips', ...args)
+	return virtualenv_spec_install_expect(args, 'python', ['resource-d', 'resource-a'], [], [], [
+		'resource-b',
+		'resource-c',
+	])
 }
 
 // Ruby it `it "errors if `without` resource string does not exist in formula" do` at line 80.
 pub fn ruby_virtualenv_spec_l80_d12_errors(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('errors', ...args)
+	return virtualenv_spec_install_errors(args, ['unknown'], [], [])
 }
 
 // Ruby it `it "errors if `without` resource array refers to a resource that does not exist in formula" do` at line 86.
 pub fn ruby_virtualenv_spec_l86_d13_errors(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('errors', ...args)
+	return virtualenv_spec_install_errors(args, ['resource-a', 'unknown'], [], [])
 }
 
 // Ruby it `it "installs a `start_with` resource string and then remaining resources in order" do` at line 92.
 pub fn ruby_virtualenv_spec_l92_d14_installs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('installs', ...args)
+	return virtualenv_spec_install_expect(args, 'python', [], ['resource-c'], [], [
+		'resource-c',
+		'resource-a',
+		'resource-b',
+		'resource-d',
+	])
 }
 
 // Ruby it `it "installs all resources in `start_with` array and then remaining resources in order" do` at line 99.
 pub fn ruby_virtualenv_spec_l99_d15_installs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('installs', ...args)
+	return virtualenv_spec_install_expect(args, 'python', [], ['resource-d', 'resource-b'], [], [
+		'resource-d',
+		'resource-b',
+		'resource-a',
+		'resource-c',
+	])
 }
 
 // Ruby it `it "errors if `start_with` resource string does not exist in formula" do` at line 106.
 pub fn ruby_virtualenv_spec_l106_d16_errors(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('errors', ...args)
+	return virtualenv_spec_install_errors(args, [], ['unknown'], [])
 }
 
 // Ruby it `it "errors if `start_with` resource array refers to a resource that does not exist in formula" do` at line 112.
 pub fn ruby_virtualenv_spec_l112_d17_errors(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('errors', ...args)
+	return virtualenv_spec_install_errors(args, [], ['resource-a', 'unknown'], [])
 }
 
 // Ruby it `it "installs an `end_with` resource string as last resource" do` at line 118.
 pub fn ruby_virtualenv_spec_l118_d18_installs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('installs', ...args)
+	return virtualenv_spec_install_expect(args, 'python', [], [], ['resource-b'], [
+		'resource-a',
+		'resource-c',
+		'resource-d',
+		'resource-b',
+	])
 }
 
 // Ruby it `it "installs all resources in `end_with` array after other resources are installed" do` at line 125.
 pub fn ruby_virtualenv_spec_l125_d19_installs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('installs', ...args)
+	return virtualenv_spec_install_expect(args, 'python', [], [], ['resource-c', 'resource-b'], [
+		'resource-a',
+		'resource-d',
+		'resource-c',
+		'resource-b',
+	])
 }
 
 // Ruby it `it "errors if `end_with` resource string does not exist in formula" do` at line 132.
 pub fn ruby_virtualenv_spec_l132_d20_errors(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('errors', ...args)
+	return virtualenv_spec_install_errors(args, [], [], ['unknown'])
 }
 
 // Ruby it `it "errors if `end_with` resource array refers to a resource that does not exist in formula" do` at line 138.
 pub fn ruby_virtualenv_spec_l138_d21_errors(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('errors', ...args)
+	return virtualenv_spec_install_errors(args, [], [], ['resource-a', 'unknown'])
 }
 
 // Ruby it `it "installs resources in correct order when combining `without`, `start_with` and `end_with" do` at line 144.
 pub fn ruby_virtualenv_spec_l144_d22_installs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('installs', ...args)
+	return virtualenv_spec_install_expect(args, 'python', ['resource-a'], ['resource-d'], [
+		'resource-b',
+	], ['resource-d', 'resource-c', 'resource-b'])
 }
 
 // Ruby subject `subject(:virtualenv) { described_class.new(formula, dir, "python") }` at line 154.
 pub fn ruby_virtualenv_spec_l154_d23_virtualenv(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('virtualenv', ...args)
+	root := virtualenv_spec_root(args, 'virtualenv')
+	formula := if args.len > 1 { args[1] } else { virtualenv_spec_formula(root) }
+	return virtualenv_spec_virtualenv(formula, root, 'python')
 }
 
 // Ruby let `let(:dir) { mktmpdir }` at line 156.
 pub fn ruby_virtualenv_spec_l156_d24_dir(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dir', ...args)
+	root := virtualenv_spec_root(args, 'dir')
+	os.mkdir_all(root) or { return brew_runtime.object_value('IOError', err.msg()) }
+	return brew_runtime.string_value(root)
 }
 
 // Ruby let `let(:resource) { instance_double(Resource, "resource", stage: true) }` at line 157.
 pub fn ruby_virtualenv_spec_l157_d25_resource(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('resource', ...args)
+	stage_path := if args.len > 0 { args[0].as_string() } else { os.getwd() }
+	return virtualenv_spec_resource('resource', '', stage_path)
 }
 
 // Ruby let `let(:formula_bin) { dir/"formula_bin" }` at line 158.
 pub fn ruby_virtualenv_spec_l158_d26_formula_bin(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_bin', ...args)
+	return brew_runtime.string_value(os.join_path(virtualenv_spec_root(args, 'dir'), 'formula_bin'))
 }
 
 // Ruby let `let(:formula_man) { dir/"formula_man" }` at line 159.
 pub fn ruby_virtualenv_spec_l159_d27_formula_man(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_man', ...args)
+	return brew_runtime.string_value(os.join_path(virtualenv_spec_root(args, 'dir'), 'formula_man'))
 }
 
 // Ruby let `let(:formula) { instance_double(Formula, "formula", resource:, bin: formula_bin, man: formula_man) }` at line 160.
 pub fn ruby_virtualenv_spec_l160_d28_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula', ...args)
+	return virtualenv_spec_formula(virtualenv_spec_root(args, 'dir'))
 }
 
 // Ruby it `it "creates a venv" do` at line 163.
 pub fn ruby_virtualenv_spec_l163_d29_creates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('creates', ...args)
+	root := virtualenv_spec_root(args, 'create')
+	os.mkdir_all(root) or { return brew_runtime.bool_value(false) }
+	defer {
+		if args.len == 0 { os.rmdir_all(root) or {} }
+	}
+	venv := virtualenv_spec_virtualenv(virtualenv_spec_formula(root), root, 'python')
+	created := language.ruby_python_l313_d18_create(venv, brew_runtime.bool_value(true), brew_runtime.bool_value(true))
+	command := virtualenv_spec_strings(created.map_data['command'] or { brew_runtime.string_array_value([]) })
+	return brew_runtime.bool_value(command == ['python', '-m', 'venv', '--system-site-packages',
+		'--without-pip', root])
 }
 
 // Ruby it `it "creates a venv with pip" do` at line 169.
 pub fn ruby_virtualenv_spec_l169_d30_creates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('creates', ...args)
+	root := virtualenv_spec_root(args, 'create-pip')
+	os.mkdir_all(root) or { return brew_runtime.bool_value(false) }
+	defer {
+		if args.len == 0 { os.rmdir_all(root) or {} }
+	}
+	venv := virtualenv_spec_virtualenv(virtualenv_spec_formula(root), root, 'python')
+	created := language.ruby_python_l313_d18_create(venv, brew_runtime.bool_value(true), brew_runtime.bool_value(false))
+	command := virtualenv_spec_strings(created.map_data['command'] or { brew_runtime.string_array_value([]) })
+	return brew_runtime.bool_value(command == ['python', '-m', 'venv', '--system-site-packages',
+		root])
 }
 
 // Ruby it `it "accepts a string" do` at line 176.
 pub fn ruby_virtualenv_spec_l176_d31_accepts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('accepts', ...args)
+	return virtualenv_spec_pip_expect(args, brew_runtime.string_value('foo'), true, [
+		['foo'],
+	])
 }
 
 // Ruby it `it "accepts a multi-line strings" do` at line 185.
 pub fn ruby_virtualenv_spec_l185_d32_accepts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('accepts', ...args)
+	return virtualenv_spec_pip_expect(args, brew_runtime.string_value('foo\nbar\n'), true, [
+		['foo', 'bar'],
+	])
 }
 
 // Ruby it `it "accepts an array" do` at line 198.
 pub fn ruby_virtualenv_spec_l198_d33_accepts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('accepts', ...args)
+	return virtualenv_spec_pip_expect(args, brew_runtime.string_array_value(['foo', 'bar']), true, [
+		['foo'],
+		['bar'],
+	])
 }
 
 // Ruby it `it "accepts a Resource" do` at line 214.
 pub fn ruby_virtualenv_spec_l214_d34_accepts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('accepts', ...args)
+	stage_path := if args.len > 0 { args[0].as_string() } else { os.getwd() }
+	return virtualenv_spec_pip_expect(args, virtualenv_spec_resource('test', '', stage_path), true, [
+		[stage_path],
+	])
 }
 
 // Ruby it `it "works without build isolation" do` at line 227.
 pub fn ruby_virtualenv_spec_l227_d35_works(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('works', ...args)
+	return virtualenv_spec_pip_expect(args, brew_runtime.string_value('foo'), false, [
+		['foo'],
+	])
 }
 
 // Ruby let `let(:src_bin) { dir/"bin" }` at line 238.
 pub fn ruby_virtualenv_spec_l238_d36_src_bin(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('src_bin', ...args)
+	return brew_runtime.string_value(os.join_path(virtualenv_spec_root(args, 'dir'), 'bin'))
 }
 
 // Ruby let `let(:src_man) { dir/"share/man" }` at line 239.
 pub fn ruby_virtualenv_spec_l239_d37_src_man(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('src_man', ...args)
+	return brew_runtime.string_value(os.join_path(virtualenv_spec_root(args, 'dir'), 'share/man'))
 }
 
 // Ruby let `let(:dest_bin) { formula.bin }` at line 240.
 pub fn ruby_virtualenv_spec_l240_d38_dest_bin(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dest_bin', ...args)
+	return brew_runtime.string_value(os.join_path(virtualenv_spec_root(args, 'dir'), 'formula_bin'))
 }
 
 // Ruby let `let(:dest_man) { formula.man }` at line 241.
 pub fn ruby_virtualenv_spec_l241_d39_dest_man(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dest_man', ...args)
+	return brew_runtime.string_value(os.join_path(virtualenv_spec_root(args, 'dir'), 'formula_man'))
 }
 
 // Ruby it `it "can link scripts" do` at line 243.
 pub fn ruby_virtualenv_spec_l243_d40_can(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('can', ...args)
+	root := virtualenv_spec_root(args, 'link-bin')
+	defer {
+		if args.len == 0 { os.rmdir_all(root) or {} }
+	}
+	src_bin := os.join_path(root, 'bin')
+	dest_bin := os.join_path(root, 'formula_bin')
+	os.mkdir_all(src_bin) or { return brew_runtime.bool_value(false) }
+	irrelevant := os.join_path(src_bin, 'irrelevant')
+	kilroy := os.join_path(src_bin, 'kilroy')
+	os.write_file(irrelevant, '') or { return brew_runtime.bool_value(false) }
+	os.write_file(kilroy, '') or { return brew_runtime.bool_value(false) }
+	formula := virtualenv_spec_formula(root)
+	venv := virtualenv_spec_virtualenv(formula, root, 'python')
+	result := language.ruby_python_l411_d20_pip_install_and_link(venv, brew_runtime.string_value('foo'), brew_runtime.bool_value(false), brew_runtime.bool_value(true), brew_runtime.string_array_value([
+		irrelevant,
+	]), brew_runtime.string_array_value([]), brew_runtime.string_array_value([
+		irrelevant,
+		kilroy,
+	]), brew_runtime.string_array_value([]))
+	linked := virtualenv_spec_strings(result.map_data['linked_bin'] or { brew_runtime.string_array_value([]) })
+	destination := os.join_path(dest_bin, 'kilroy')
+	return brew_runtime.bool_value(linked == [destination] && os.is_link(destination) && os.real_path(destination) == os.real_path(kilroy) && !os.exists(os.join_path(dest_bin, 'irrelevant')))
 }
 
 // Ruby it `it "can link manpages" do` at line 266.
 pub fn ruby_virtualenv_spec_l266_d41_can(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('can', ...args)
+	root := virtualenv_spec_root(args, 'link-man')
+	defer {
+		if args.len == 0 { os.rmdir_all(root) or {} }
+	}
+	src_man := os.join_path(root, 'share/man')
+	man1 := os.join_path(src_man, 'man1')
+	man3 := os.join_path(src_man, 'man3')
+	man5 := os.join_path(src_man, 'man5')
+	for directory in [man1, man3, man5] {
+		os.mkdir_all(directory) or { return brew_runtime.bool_value(false) }
+	}
+	irrelevant1 := os.join_path(man1, 'irrelevant.1')
+	irrelevant3 := os.join_path(man3, 'irrelevant.3')
+	kilroy1 := os.join_path(man1, 'kilroy.1')
+	kilroy5 := os.join_path(man5, 'kilroy.5')
+	for path in [irrelevant1, irrelevant3, kilroy1, kilroy5] {
+		os.write_file(path, '') or { return brew_runtime.bool_value(false) }
+	}
+	formula := virtualenv_spec_formula(root)
+	venv := virtualenv_spec_virtualenv(formula, root, 'python')
+	result := language.ruby_python_l411_d20_pip_install_and_link(venv, brew_runtime.string_value('foo'), brew_runtime.bool_value(true), brew_runtime.bool_value(true), brew_runtime.string_array_value([]), brew_runtime.string_array_value([
+		man1,
+		irrelevant1,
+		man3,
+		irrelevant3,
+	]), brew_runtime.string_array_value([]), brew_runtime.string_array_value([man1, irrelevant1,
+		kilroy1, man3, irrelevant3, man5, kilroy5]))
+	linked := virtualenv_spec_strings(result.map_data['linked_man'] or { brew_runtime.string_array_value([]) })
+	dest_man := os.join_path(root, 'formula_man')
+	dest1 := os.join_path(os.join_path(dest_man, 'man1'), 'kilroy.1')
+	dest5 := os.join_path(os.join_path(dest_man, 'man5'), 'kilroy.5')
+	return brew_runtime.bool_value(linked == [dest1, dest5] && os.is_link(dest1) && os.is_link(dest5) && os.real_path(dest1) == os.real_path(kilroy1) && !os.exists(os.join_path(os.join_path(dest_man, 'man1'), 'irrelevant.1')) && !os.exists(os.join_path(dest_man, 'man3')))
+}
+
+fn virtualenv_spec_value(type_name string, repr string,
+	values map[string]brew_runtime.Value) brew_runtime.Value {
+	return brew_runtime.Value{
+		type_name: type_name
+		repr: repr
+		map_data: values.clone()
+	}
+}
+
+fn virtualenv_spec_root(args []brew_runtime.Value, label string) string {
+	if args.len > 0 && args[0].type_name == 'String' {
+		return args[0].as_string()
+	}
+	return os.join_path(os.temp_dir(), 'brew-v-python-virtualenv-${label}-${os.getpid()}-${time.now().unix_micro()}')
+}
+
+fn virtualenv_spec_resource(name string, url string,
+	stage_path string) brew_runtime.Value {
+	return virtualenv_spec_value('Resource', name, {
+		'name':       brew_runtime.string_value(name)
+		'url':        brew_runtime.string_value(url)
+		'basename':   brew_runtime.string_value(os.base(url))
+		'stage_path': brew_runtime.string_value(stage_path)
+	})
+}
+
+fn virtualenv_spec_resources(root string) []brew_runtime.Value {
+	return [
+		virtualenv_spec_resource('resource-a', 'https://brew.sh/resource1.tar.gz', root),
+		virtualenv_spec_resource('resource-b', 'https://brew.sh/resource2.tar.gz', root),
+		virtualenv_spec_resource('resource-c', 'https://brew.sh/resource3.tar.gz', root),
+		virtualenv_spec_resource('resource-d', 'https://brew.sh/resource4.tar.gz', root),
+	]
+}
+
+fn virtualenv_spec_formula(root string) brew_runtime.Value {
+	return virtualenv_spec_value('Formula', 'foo', {
+		'name':          brew_runtime.string_value('foo')
+		'libexec':       brew_runtime.string_value(os.join_path(root, 'libexec'))
+		'buildpath':     brew_runtime.string_value(root)
+		'bin':           brew_runtime.string_value(os.join_path(root, 'formula_bin'))
+		'man':           brew_runtime.string_value(os.join_path(root, 'formula_man'))
+		'resources':     brew_runtime.array_value(virtualenv_spec_resources(root))
+		'formula_names': brew_runtime.string_array_value(['python@3.12'])
+	})
+}
+
+fn virtualenv_spec_resource_from_args(args []brew_runtime.Value,
+	name string) brew_runtime.Value {
+	formula := if args.len > 0 && args[0].type_name == 'Formula' {
+		args[0]
+	} else {
+		virtualenv_spec_formula(virtualenv_spec_root(args, 'formula'))
+	}
+	resources := formula.map_data['resources'] or { return brew_runtime.object_value('KeyError', name) }
+	for resource in resources.as_array() or { []brew_runtime.Value{} } {
+		if resource.repr == name {
+			return resource
+		}
+	}
+	return brew_runtime.object_value('KeyError', name)
+}
+
+fn virtualenv_spec_virtualenv(formula brew_runtime.Value, root string,
+	python string) brew_runtime.Value {
+	return language.ruby_python_l293_d15_initialize(formula, brew_runtime.string_value(root), brew_runtime.string_value(python))
+}
+
+fn virtualenv_spec_strings(value brew_runtime.Value) []string {
+	if strings := value.as_string_array() {
+		if strings.len > 0 {
+			return strings
+		}
+	}
+	return (value.as_array() or { []brew_runtime.Value{} }).map(it.as_string())
+}
+
+fn virtualenv_spec_resource_names(result brew_runtime.Value) []string {
+	resources := result.map_data['resources'] or { return []string{} }
+	return (resources.as_array() or { []brew_runtime.Value{} }).map(it.repr)
+}
+
+fn virtualenv_spec_install_expect(args []brew_runtime.Value, using string, without []string,
+	start_with []string, end_with []string, expected []string) brew_runtime.Value {
+	root := virtualenv_spec_root(args, 'install')
+	formula := virtualenv_spec_formula(root)
+	result := language.ruby_python_l229_d12_virtualenv_install_with_resources(formula, brew_runtime.string_value(using), brew_runtime.string_array_value(without), brew_runtime.string_array_value(start_with), brew_runtime.string_array_value(end_with), brew_runtime.bool_value(true), brew_runtime.bool_value(true), brew_runtime.bool_value(true))
+	python := if using == 'python@3.12' { 'python3.12' } else { using }
+	return brew_runtime.bool_value(result.type_name == 'Language::Python::Virtualenv::Virtualenv' && result.map_data['python'].as_string() == python && virtualenv_spec_resource_names(result) == expected)
+}
+
+fn virtualenv_spec_install_errors(args []brew_runtime.Value, without []string,
+	start_with []string, end_with []string) brew_runtime.Value {
+	root := virtualenv_spec_root(args, 'errors')
+	result := language.ruby_python_l229_d12_virtualenv_install_with_resources(virtualenv_spec_formula(root), brew_runtime.string_value('python'), brew_runtime.string_array_value(without), brew_runtime.string_array_value(start_with), brew_runtime.string_array_value(end_with))
+	return brew_runtime.bool_value(result.type_name == 'ArgumentError' && result.repr.contains('is not defined in formula or is already used'))
+}
+
+fn virtualenv_spec_pip_expect(args []brew_runtime.Value, targets brew_runtime.Value,
+	build_isolation bool, expected_targets [][]string) brew_runtime.Value {
+	root := virtualenv_spec_root(args, 'pip')
+	venv := virtualenv_spec_virtualenv(virtualenv_spec_formula(root), root, 'python')
+	commands_value := language.ruby_python_l383_d19_pip_install(venv, targets, brew_runtime.bool_value(build_isolation), brew_runtime.string_array_value([
+		'--std-pip-args',
+	]))
+	commands := commands_value.as_array() or { return brew_runtime.bool_value(false) }
+	if commands.len != expected_targets.len {
+		return brew_runtime.bool_value(false)
+	}
+	for index, command_value in commands {
+		command := virtualenv_spec_strings(command_value)
+		mut expected := ['python', '-m', 'pip', '--python=${os.join_path(root, 'bin/python')}',
+			'install', '--std-pip-args']
+		expected << expected_targets[index]
+		if command != expected {
+			return brew_runtime.bool_value(false)
+		}
+	}
+	return brew_runtime.bool_value(true)
 }
 
 // Original Ruby source (line-for-line):

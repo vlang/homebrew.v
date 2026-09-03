@@ -1,13 +1,68 @@
 module dev_cmd
 
 import brew_runtime
+import os
 
 // Translated from Homebrew/brew `test/dev-cmd/generate-internal-api_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
+pub fn generate_internal_api_spec_options(root string) GenerateInternalApiOptions {
+	return GenerateInternalApiOptions{
+		output_directory: root
+		formula_names: ['foo']
+		cask_files: ['c.rb']
+		formulas: {
+			'foo': GenerateInternalApiFormula{
+				name: 'foo'
+				hash: {
+					'name': brew_runtime.string_value('foo')
+				}
+				serialized_by_tag: {
+					'arm64_sonoma': {
+						'name':        brew_runtime.string_value('foo')
+						'executables': brew_runtime.string_array_value(['foo-tool', 'food'])
+					}
+				}
+			}
+		}
+		casks: {
+			'c.rb': GenerateInternalApiCask{
+				token: 'c'
+				hash: {
+					'token': brew_runtime.string_value('c')
+				}
+				serialized_by_tag: {
+					'arm64_sonoma': {
+						'token': brew_runtime.string_value('c')
+					}
+				}
+			}
+		}
+		formula_tap_git_head: 'formula-head'
+		cask_tap_git_head: 'cask-head'
+		executables_contents: 'foo(1.0.0):foo-tool food\n'
+		bottle_tags: ['arm64_sonoma']
+		homebrew_version: '4.2.18'
+		generated_at: 1_714_056_000
+	}
+}
+
+pub fn generate_internal_api_spec_writes(root string) !bool {
+	os.mkdir_all(root)!
+	run_generate_internal_api(generate_internal_api_spec_options(root))!
+	contents := os.read_file(os.join_path(root, 'api/internal/packages.arm64_sonoma.json'))!
+	json := brew_runtime.parse_json_value(contents)!.as_map()!
+	metadata := json['metadata']!.as_map()!
+	executables := json['formulae']!.as_map()!['foo']!.as_map()!['executables']!.as_array()!.map(it.as_string())
+	return metadata['homebrew_version']!.as_string() == '4.2.18'
+		&& metadata['bottle_tag']!.as_string() == 'arm64_sonoma'
+		&& metadata['generated_at']!.as_int()! == 1_714_056_000
+		&& executables == ['foo-tool', 'food']
+}
+
 // Ruby it `it "writes metadata and formula executables to each generated packages file" do` at line 10.
-pub fn ruby_generate_internal_api_spec_l10_d1_writes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('writes', ...args)
+pub fn ruby_generate_internal_api_spec_l10_d1_writes(root string) !bool {
+	return generate_internal_api_spec_writes(root)
 }
 
 // Original Ruby source (line-for-line):

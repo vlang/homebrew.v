@@ -1,108 +1,386 @@
 module collection
 
 import brew_runtime
+import math
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/collection/ruby_non_concurrent_priority_queue.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub enum PriorityQueueOrder {
+	max
+	min
+}
+
+pub type PriorityQueueComparator = fn(brew_runtime.Value, brew_runtime.Value) int
+
+pub type PriorityQueueEquality = fn(brew_runtime.Value, brew_runtime.Value) bool
+
+fn compare_priority_values(left brew_runtime.Value, right brew_runtime.Value) int {
+	if left.type_name in ['Integer', 'Float'] && right.type_name in ['Integer', 'Float'] {
+		left_number := left.as_float() or { return 2 }
+		right_number := right.as_float() or { return 2 }
+		if math.is_nan(left_number) || math.is_nan(right_number) {
+			return 2
+		}
+		return if left_number < right_number {
+			-1
+		} else if left_number > right_number { 1 } else { 0 }
+	}
+	if left.type_name == 'String' && right.type_name == 'String' {
+		return if left.repr < right.repr {
+			-1
+		} else if left.repr > right.repr { 1 } else { 0 }
+	}
+	return 2
+}
+
+fn equal_priority_values(left brew_runtime.Value, right brew_runtime.Value) bool {
+	if left.type_name in ['Integer', 'Float'] && right.type_name in ['Integer', 'Float'] {
+		return left.as_float() or { return false } == right.as_float() or { return false }
+	}
+	if left.type_name != right.type_name {
+		return false
+	}
+	return left.repr == right.repr && left.attributes == right.attributes
+}
+
+@[heap]
+pub struct RubyNonConcurrentPriorityQueue {
+	comparator PriorityQueueComparator = compare_priority_values
+	equality   PriorityQueueEquality = equal_priority_values
+pub:
+	order PriorityQueueOrder
+mut:
+	queue  []brew_runtime.Value
+	length int
+}
+
+pub fn new_ruby_non_concurrent_priority_queue(order PriorityQueueOrder) RubyNonConcurrentPriorityQueue {
+	mut result := RubyNonConcurrentPriorityQueue{
+		order: order
+	}
+	result.clear()
+	return result
+}
+
+pub fn new_ruby_non_concurrent_priority_queue_with_comparison(order PriorityQueueOrder, comparator PriorityQueueComparator, equality PriorityQueueEquality) RubyNonConcurrentPriorityQueue {
+	mut result := RubyNonConcurrentPriorityQueue{
+		order: order
+		comparator: comparator
+		equality: equality
+	}
+	result.clear()
+	return result
+}
+
+pub fn priority_queue_from_list_values(list []brew_runtime.Value, order PriorityQueueOrder) !RubyNonConcurrentPriorityQueue {
+	mut queue := new_ruby_non_concurrent_priority_queue(order)
+	for item in list {
+		queue.push(item)!
+	}
+	return queue
+}
+
+pub fn (mut queue RubyNonConcurrentPriorityQueue) clear() bool {
+	queue.queue = [brew_runtime.object_value('NilClass', 'nil')]
+	queue.length = 0
+	return true
+}
+
+pub fn (mut queue RubyNonConcurrentPriorityQueue) delete(item brew_runtime.Value) bool {
+	if queue.empty() {
+		return false
+	}
+	original_length := queue.length
+	mut k := 1
+	for k <= queue.length {
+		if queue.equality(queue.queue[k], item) {
+			queue.swap(k, queue.length)
+			queue.length--
+			if !queue.sink(k) {
+				queue.swim(k)
+			}
+			queue.queue.pop()
+		} else {
+			k++
+		}
+	}
+	return queue.length != original_length
+}
+
+pub fn (queue &RubyNonConcurrentPriorityQueue) empty() bool {
+	return queue.length == 0
+}
+
+pub fn (queue &RubyNonConcurrentPriorityQueue) include(item brew_runtime.Value) bool {
+	for index in 1 .. queue.length + 1 {
+		if queue.equality(queue.queue[index], item) {
+			return true
+		}
+	}
+	return false
+}
+
+pub fn (queue &RubyNonConcurrentPriorityQueue) size() int {
+	return queue.length
+}
+
+pub fn (queue &RubyNonConcurrentPriorityQueue) peek() brew_runtime.Value {
+	return if queue.empty() { brew_runtime.object_value('NilClass', 'nil') } else { queue.queue[1] }
+}
+
+pub fn (mut queue RubyNonConcurrentPriorityQueue) pop() brew_runtime.Value {
+	if queue.empty() {
+		return brew_runtime.object_value('NilClass', 'nil')
+	}
+	head := queue.queue[1]
+	queue.swap(1, queue.length)
+	queue.length--
+	queue.sink(1)
+	queue.queue.pop()
+	return head
+}
+
+pub fn (mut queue RubyNonConcurrentPriorityQueue) push(item brew_runtime.Value) !bool {
+	if item.type_name == 'NilClass' {
+		return error('cannot enqueue nil')
+	}
+	queue.length++
+	queue.queue << item
+	queue.swim(queue.length)
+	return true
+}
+
+pub fn (mut queue RubyNonConcurrentPriorityQueue) swap(x int, y int) brew_runtime.Value {
+	temporary := queue.queue[x]
+	queue.queue[x] = queue.queue[y]
+	queue.queue[y] = temporary
+	return temporary
+}
+
+pub fn (queue &RubyNonConcurrentPriorityQueue) ordered(x int, y int) bool {
+	wanted := if queue.order == .min { -1 } else { 1 }
+	return queue.comparator(queue.queue[x], queue.queue[y]) == wanted
+}
+
+pub fn (mut queue RubyNonConcurrentPriorityQueue) sink(start int) bool {
+	mut success := false
+	mut k := start
+	for 2 * k <= queue.length {
+		mut j := 2 * k
+		if j < queue.length && !queue.ordered(j, j + 1) {
+			j++
+		}
+		if queue.ordered(k, j) {
+			break
+		}
+		queue.swap(k, j)
+		success = true
+		k = j
+	}
+	return success
+}
+
+pub fn (mut queue RubyNonConcurrentPriorityQueue) swim(start int) bool {
+	mut success := false
+	mut k := start
+	for k > 1 && !queue.ordered(k / 2, k) {
+		queue.swap(k, k / 2)
+		k /= 2
+		success = true
+	}
+	return success
+}
+
+@[heap]
+struct PriorityQueueBoundaryState {
+mut:
+	queue RubyNonConcurrentPriorityQueue
+}
+
+fn priority_queue_order_from_value(value brew_runtime.Value) PriorityQueueOrder {
+	order := if item := value.map_data['order'] {
+		item.as_string().trim_left(':')
+	} else {
+		value.as_string().trim_left(':')
+	}
+	return if order in ['min', 'low'] { .min } else { .max }
+}
+
+fn priority_queue_boundary_new(type_name string, order PriorityQueueOrder) brew_runtime.Value {
+	state := &PriorityQueueBoundaryState{
+		queue: new_ruby_non_concurrent_priority_queue(order)
+	}
+	return brew_runtime.structured_value(type_name, '#<${type_name}>', {
+		'queue_address': u64(voidptr(state)).str()
+		'order':         order.str()
+	})
+}
+
+fn priority_queue_boundary_state(args []brew_runtime.Value) &PriorityQueueBoundaryState {
+	if args.len == 0 {
+		panic('priority queue method requires a receiver')
+	}
+	address := (args[0].attribute('queue_address') or {
+		panic('${args[0].type_name} has no translated priority queue state')
+	}).u64()
+	return unsafe { &PriorityQueueBoundaryState(voidptr(address)) }
+}
+
+fn priority_queue_boundary_initialize(type_name string, args []brew_runtime.Value) brew_runtime.Value {
+	order := if args.len > 0 {
+		priority_queue_order_from_value(args[0])
+	} else {
+		PriorityQueueOrder.max
+	}
+	return priority_queue_boundary_new(type_name, order)
+}
+
+fn priority_queue_boundary_from_list(type_name string, args []brew_runtime.Value) brew_runtime.Value {
+	if args.len == 0 {
+		panic('from_list requires a list')
+	}
+	order := if args.len > 1 {
+		priority_queue_order_from_value(args[1])
+	} else {
+		PriorityQueueOrder.max
+	}
+	receiver := priority_queue_boundary_new(type_name, order)
+	mut state := priority_queue_boundary_state([receiver])
+	for item in args[0].as_array() or { panic(err) } {
+		state.queue.push(item) or { panic(err) }
+	}
+	return receiver
+}
 
 // Ruby method `initialize(opts = {})` at line 11.
 pub fn ruby_ruby_non_concurrent_priority_queue_l11_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	return priority_queue_boundary_initialize('Concurrent::Collection::RubyNonConcurrentPriorityQueue', args)
 }
 
 // Ruby method `clear` at line 18.
 pub fn ruby_ruby_non_concurrent_priority_queue_l18_d2_clear(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('clear', ...args)
+	mut state := priority_queue_boundary_state(args)
+	return brew_runtime.bool_value(state.queue.clear())
 }
 
 // Ruby method `delete(item)` at line 25.
 pub fn ruby_ruby_non_concurrent_priority_queue_l25_d3_delete(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('delete', ...args)
+	if args.len < 2 {
+		panic('priority queue delete requires a receiver and item')
+	}
+	mut state := priority_queue_boundary_state(args)
+	return brew_runtime.bool_value(state.queue.delete(args[1]))
 }
 
 // Ruby method `empty?` at line 43.
 pub fn ruby_ruby_non_concurrent_priority_queue_l43_d4_empty(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('empty?', ...args)
+	return brew_runtime.bool_value(priority_queue_boundary_state(args).queue.empty())
 }
 
 // Ruby method `include?(item)` at line 48.
 pub fn ruby_ruby_non_concurrent_priority_queue_l48_d5_include(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('include?', ...args)
+	if args.len < 2 {
+		panic('priority queue include? requires a receiver and item')
+	}
+	return brew_runtime.bool_value(priority_queue_boundary_state(args).queue.include(args[1]))
 }
 
 // Ruby alias_method `alias_method :has_priority?, :include?` at line 51.
 pub fn ruby_ruby_non_concurrent_priority_queue_l51_d6_has_priority(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('has_priority?', ...args)
+	return ruby_ruby_non_concurrent_priority_queue_l48_d5_include(...args)
 }
 
 // Ruby method `length` at line 54.
 pub fn ruby_ruby_non_concurrent_priority_queue_l54_d7_length(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('length', ...args)
+	return brew_runtime.int_value(priority_queue_boundary_state(args).queue.size())
 }
 
 // Ruby alias_method `alias_method :size, :length` at line 57.
 pub fn ruby_ruby_non_concurrent_priority_queue_l57_d8_size(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('size', ...args)
+	return ruby_ruby_non_concurrent_priority_queue_l54_d7_length(...args)
 }
 
 // Ruby method `peek` at line 60.
 pub fn ruby_ruby_non_concurrent_priority_queue_l60_d9_peek(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('peek', ...args)
+	return priority_queue_boundary_state(args).queue.peek()
 }
 
 // Ruby method `pop` at line 65.
 pub fn ruby_ruby_non_concurrent_priority_queue_l65_d10_pop(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('pop', ...args)
+	mut state := priority_queue_boundary_state(args)
+	return state.queue.pop()
 }
 
 // Ruby alias_method `alias_method :deq, :pop` at line 74.
 pub fn ruby_ruby_non_concurrent_priority_queue_l74_d11_deq(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('deq', ...args)
+	return ruby_ruby_non_concurrent_priority_queue_l65_d10_pop(...args)
 }
 
 // Ruby alias_method `alias_method :shift, :pop` at line 75.
 pub fn ruby_ruby_non_concurrent_priority_queue_l75_d12_shift(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('shift', ...args)
+	return ruby_ruby_non_concurrent_priority_queue_l65_d10_pop(...args)
 }
 
 // Ruby method `push(item)` at line 78.
 pub fn ruby_ruby_non_concurrent_priority_queue_l78_d13_push(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('push', ...args)
+	if args.len < 2 {
+		panic('priority queue push requires a receiver and item')
+	}
+	mut state := priority_queue_boundary_state(args)
+	return brew_runtime.bool_value(state.queue.push(args[1]) or { panic(err) })
 }
 
 // Ruby alias_method `alias_method :<<, :push` at line 85.
 pub fn ruby_ruby_non_concurrent_priority_queue_l85_d14_push(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('push', ...args)
+	return ruby_ruby_non_concurrent_priority_queue_l78_d13_push(...args)
 }
 
 // Ruby alias_method `alias_method :enq, :push` at line 86.
 pub fn ruby_ruby_non_concurrent_priority_queue_l86_d15_enq(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('enq', ...args)
+	return ruby_ruby_non_concurrent_priority_queue_l78_d13_push(...args)
 }
 
 // Ruby method `self.from_list(list, opts = {})` at line 89.
 pub fn ruby_ruby_non_concurrent_priority_queue_l89_d16_self_from_list(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.from_list', ...args)
+	return priority_queue_boundary_from_list('Concurrent::Collection::RubyNonConcurrentPriorityQueue', args)
 }
 
 // Ruby method `swap(x, y)` at line 103.
 pub fn ruby_ruby_non_concurrent_priority_queue_l103_d17_swap(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('swap', ...args)
+	if args.len < 3 {
+		panic('priority queue swap requires a receiver and two indexes')
+	}
+	mut state := priority_queue_boundary_state(args)
+	return state.queue.swap(int(args[1].as_int() or { panic(err) }), int(args[2].as_int() or {
+		panic(err)
+	}))
 }
 
 // Ruby method `ordered?(x, y)` at line 119.
 pub fn ruby_ruby_non_concurrent_priority_queue_l119_d18_ordered(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ordered?', ...args)
+	if args.len < 3 {
+		panic('priority queue ordered? requires a receiver and two indexes')
+	}
+	state := priority_queue_boundary_state(args)
+	return brew_runtime.bool_value(state.queue.ordered(int(args[1].as_int() or { panic(err) }), int(args[2].as_int() or { panic(err) })))
 }
 
 // Ruby method `sink(k)` at line 128.
 pub fn ruby_ruby_non_concurrent_priority_queue_l128_d19_sink(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sink', ...args)
+	if args.len < 2 {
+		panic('priority queue sink requires a receiver and index')
+	}
+	mut state := priority_queue_boundary_state(args)
+	return brew_runtime.bool_value(state.queue.sink(int(args[1].as_int() or { panic(err) })))
 }
 
 // Ruby method `swim(k)` at line 147.
 pub fn ruby_ruby_non_concurrent_priority_queue_l147_d20_swim(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('swim', ...args)
+	if args.len < 2 {
+		panic('priority queue swim requires a receiver and index')
+	}
+	mut state := priority_queue_boundary_state(args)
+	return brew_runtime.bool_value(state.queue.swim(int(args[1].as_int() or { panic(err) })))
 }
 
 // Original Ruby source (line-for-line):

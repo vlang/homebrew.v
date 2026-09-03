@@ -1,63 +1,474 @@
 module cmd
 
 import brew_runtime
+import os
+import time
 
 // Translated from Homebrew/brew `test/cmd/update_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
+const update_spec_utility_names = ['api', 'cmd', 'executables', 'formatter', 'lock', 'tty']
+
+pub struct UpdateSpecScenarioResult {
+pub:
+	passed    bool
+	stdout    string
+	stderr    string
+	exit_code int
+	details   string
+}
+
+pub fn (result UpdateSpecScenarioResult) diagnostic() string {
+	return 'exit=${result.exit_code}\nstdout=${result.stdout}\nstderr=${result.stderr}\n${result.details}'
+}
+
+fn update_spec_repository(args []brew_runtime.Value) string {
+	if args.len > 0 && args[0].as_string() != '' {
+		return args[0].as_string()
+	}
+	if configured := os.getenv_opt('HOMEBREW_UPDATE_SPEC_REPOSITORY') {
+		return configured
+	}
+	return os.real_path(os.join_path(@VMODROOT, '..', '3rd', 'brew'))
+}
+
+pub fn update_spec_script(repository_root string) string {
+	return os.join_path(repository_root, 'Library', 'Homebrew', 'cmd', 'update.sh')
+}
+
+pub fn update_spec_create_test_root(repository_root string, label string) !string {
+	temporary_parent := os.join_path(repository_root, 'tmp')
+	os.mkdir_all(temporary_parent)!
+	path := os.join_path(temporary_parent, 'brew-update-${label}-${os.getpid()}-${time.now().unix_nano()}')
+	os.mkdir(path)!
+	return path
+}
+
+fn update_spec_environment(overrides map[string]string, unset_names []string) map[string]string {
+	mut environment := brew_runtime.environment()
+	for name in environment.keys() {
+		if name.starts_with('HOMEBREW_') {
+			environment.delete(name)
+		}
+	}
+	for name in unset_names {
+		environment.delete(name)
+	}
+	for name, value in overrides {
+		environment[name] = value
+	}
+	return environment
+}
+
+pub fn update_spec_run_update_shell(script string, overrides map[string]string,
+	unset_names []string) !brew_runtime.CapturedCommandResult {
+	return brew_runtime.run_captured_command(['/bin/bash', '-c', script], brew_runtime.CapturedCommandOptions{
+		environment: update_spec_environment(overrides, unset_names)
+	})
+}
+
+pub fn update_spec_setup_update_utils(test_root string, repository_root string) ![]string {
+	utils_directory := os.join_path(test_root, 'Library', 'Homebrew', 'utils')
+	os.mkdir_all(utils_directory)!
+	library_directory := os.join_path(test_root, 'Library', 'Homebrew')
+	os.symlink(os.join_path(repository_root, 'Library', 'Homebrew', 'utils.sh'), os.join_path(library_directory, 'utils.sh'))!
+	for name in update_spec_utility_names {
+		os.symlink(os.join_path(repository_root, 'Library', 'Homebrew', 'utils', '${name}.sh'), os.join_path(utils_directory, '${name}.sh'))!
+	}
+	return update_spec_utility_names.clone()
+}
+
+fn update_spec_result(passed bool, command brew_runtime.CapturedCommandResult,
+	details string) UpdateSpecScenarioResult {
+	return UpdateSpecScenarioResult{
+		passed: passed
+		stdout: command.stdout
+		stderr: command.stderr
+		exit_code: command.exit_code
+		details: details
+	}
+}
+
+fn update_spec_read(path string) string {
+	return os.read_file(path) or { '<read error: ${err.msg()}>' }
+}
+
+pub fn update_spec_retry_conditional_download(repository_root string) !UpdateSpecScenarioResult {
+	test_root := update_spec_create_test_root(repository_root, 'conditional')!
+	defer { os.rmdir_all(test_root) or {} }
+	update_spec_setup_update_utils(test_root, repository_root)!
+	cache_path := os.join_path(test_root, 'cache', 'api', 'formula.jws.json')
+	requests_file := os.join_path(test_root, 'requests.txt')
+	update_failed_file := os.join_path(test_root, 'update_failed.txt')
+	os.mkdir_all(os.dir(cache_path))!
+	os.write_file(cache_path, 'cached')!
+	script := [
+		r'source "$UPDATE_SCRIPT"',
+		'curl() {',
+		r'  if [[ "$*" == *"--time-cond"* ]]',
+		'  then',
+		r'    echo conditional >> "$REQUESTS_FILE"',
+		'    return 56',
+		'  fi',
+		r'  echo unconditional >> "$REQUESTS_FILE"',
+		r'  printf fresh > "$CACHE_PATH"',
+		'}',
+		r'fetch_api_file formula.jws.json "$UPDATE_FAILED_FILE"',
+	].join('\n')
+	result := update_spec_run_update_shell(script, {
+		'UPDATE_SCRIPT':               update_spec_script(repository_root)
+		'REQUESTS_FILE':               requests_file
+		'CACHE_PATH':                  cache_path
+		'UPDATE_FAILED_FILE':          update_failed_file
+		'HOMEBREW_API_DEFAULT_DOMAIN': 'https://formulae.example/api'
+		'HOMEBREW_CACHE':              os.join_path(test_root, 'cache')
+		'HOMEBREW_CURL_SPEED_LIMIT':   '100'
+		'HOMEBREW_CURL_SPEED_TIME':    '5'
+		'HOMEBREW_LIBRARY':            os.join_path(test_root, 'Library')
+		'HOMEBREW_USER_AGENT_CURL':    'Homebrew/test'
+	}, ['HOMEBREW_API_DOMAIN'])!
+	requests := update_spec_read(requests_file)
+	cache := update_spec_read(cache_path)
+	passed := result.exit_code == 0 && result.stderr == ''
+		&& requests == 'conditional\nunconditional\n' && cache == 'fresh'
+		&& !os.exists(update_failed_file)
+	return update_spec_result(passed, result, 'requests=${requests}\ncache=${cache}\nupdate_failed=${os.exists(update_failed_file)}')
+}
+
+pub fn update_spec_delegated_upgrade_arguments(repository_root string) !UpdateSpecScenarioResult {
+	test_root := update_spec_create_test_root(repository_root, 'upgrade-arguments')!
+	defer { os.rmdir_all(test_root) or {} }
+	update_spec_setup_update_utils(test_root, repository_root)!
+	args_file := os.join_path(test_root, 'brew-args.txt')
+	brew_wrapper := os.join_path(test_root, 'brew-wrapper')
+	os.write_file(brew_wrapper, [
+		'#!/bin/bash',
+		r'printf "%s\n" "$@" > "$ARGS_FILE"',
+	].join('\n'))!
+	os.chmod(brew_wrapper, 0o755)!
+	script := [
+		r'source "$UPDATE_SCRIPT"',
+		r'opoo() { echo "Warning: $*" >&2; }',
+		'homebrew-update testball --auto-update --merge',
+	].join('\n')
+	result := update_spec_run_update_shell(script, {
+		'UPDATE_SCRIPT':      update_spec_script(repository_root)
+		'ARGS_FILE':          args_file
+		'HOMEBREW_BREW_FILE': brew_wrapper
+		'HOMEBREW_LIBRARY':   os.join_path(test_root, 'Library')
+	}, [])!
+	arguments := update_spec_read(args_file)
+	expected_stderr := 'Warning: Use `brew upgrade testball --auto-update --merge` to upgrade formulae; running it instead.\n'
+	passed := result.exit_code == 0 && result.stderr == expected_stderr
+		&& arguments == 'upgrade\ntestball\n--auto-update\n--merge\n'
+	return update_spec_result(passed, result, 'arguments=${arguments}')
+}
+
+pub fn update_spec_auto_update_report_arguments(repository_root string) !UpdateSpecScenarioResult {
+	test_root := update_spec_create_test_root(repository_root, 'auto-update')!
+	defer { os.rmdir_all(test_root) or {} }
+	update_spec_setup_update_utils(test_root, repository_root)!
+	args_file := os.join_path(test_root, 'brew-args.txt')
+	repository := os.join_path(test_root, 'repository')
+	os.mkdir_all(os.join_path(test_root, 'cache'))!
+	os.mkdir_all(repository)!
+	script := [
+		r'source "$UPDATE_SCRIPT"',
+		r'brew() { printf "%s\n" "$@" > "$ARGS_FILE"; }',
+		'fetch_api_file() { :; }',
+		'git_init_if_necessary() { :; }',
+		r'git() { [[ "$1" == "--version" ]] && return 0; return 1; }',
+		'lock() { :; }',
+		r'odie() { echo "Error: $*" >&2; exit 1; }',
+		'ohai() { :; }',
+		r'onoe() { echo "Error: $*" >&2; }',
+		r'safe_cd() { cd "$1" >/dev/null || exit 1; }',
+		'setup_ca_certificates() { :; }',
+		'setup_curl() { :; }',
+		'setup_git() { :; }',
+		'homebrew-update --auto-update',
+	].join('\n')
+	result := update_spec_run_update_shell(script, {
+		'UPDATE_SCRIPT':                update_spec_script(repository_root)
+		'ARGS_FILE':                    args_file
+		'HOMEBREW_CACHE':               os.join_path(test_root, 'cache')
+		'HOMEBREW_CELLAR':              os.join_path(test_root, 'cellar')
+		'HOMEBREW_LIBRARY':             os.join_path(test_root, 'Library')
+		'HOMEBREW_NO_INSTALL_FROM_API': '1'
+		'HOMEBREW_PREFIX':              os.join_path(test_root, 'prefix')
+		'HOMEBREW_REPOSITORY':          repository
+	}, [])!
+	arguments := update_spec_read(args_file)
+	passed := result.exit_code == 0 && result.stderr == ''
+		&& arguments == 'update-report\n--auto-update\n'
+	return update_spec_result(passed, result, 'arguments=${arguments}')
+}
+
+fn update_spec_redirect_script() string {
+	return [
+		r'source "$UPDATE_SCRIPT"',
+		r'brew() { printf "%s\n" "$@" > "$ARGS_FILE"; [[ "$SCENARIO" != "noop" ]]; }',
+		'fetch_api_file() { :; }',
+		'git_init_if_necessary() { :; }',
+		'git() {',
+		r'  case "$*" in',
+		'    "--version") return 0 ;;',
+		'    "config --local --get remote.origin.url" | "config remote.origin.url")',
+		r'      if [[ "$PWD" == "$TAP_PATH" ]]; then',
+		'        echo "https://github.com/old/homebrew-foo"',
+		'      else',
+		'        echo "https://github.com/Homebrew/brew"',
+		'      fi',
+		'      return 0 ;;',
+		'    "symbolic-ref refs/remotes/origin/HEAD") echo "refs/remotes/origin/main"; return 0 ;;',
+		'    "rev-parse refs/remotes/origin/main" | "rev-parse -q --verify refs/remotes/origin/main" | "rev-parse -q --verify HEAD" | "rev-parse -q --verify main")',
+		'      echo abc; return 0 ;;',
+		'    "merge-base --is-ancestor abc abc") return 0 ;;',
+		'    "tag --list") echo "4.0.0"; return 0 ;;',
+		'    fetch*)',
+		r'      echo "$PWD" >> "$FETCHES_FILE"; return 0 ;;',
+		'  esac',
+		r'  printf "unexpected git %s\n" "$*" >&2',
+		'  return 1',
+		'}',
+		'curl() {',
+		'  local url',
+		r'  for url in "$@"; do :; done',
+		r'  case "$url" in',
+		'    "https://api.github.com/repos/Homebrew/brew/tags")',
+		r'      if [[ "$SCENARIO" == "force" ]]; then',
+		'        printf "unexpected brew API query\n" >&2; return 1',
+		'      fi',
+		r'      printf "304 %s" "$url" ;;',
+		'    "https://api.github.com/repos/old/homebrew-foo/commits/main")',
+		r'      if [[ "$SCENARIO" == "noop" ]]; then',
+		r'        printf "304 %s" "$url"',
+		'      else',
+		'        printf "304 https://api.github.com/repositories/456/commits/main"',
+		'      fi ;;',
+		'    "https://api.github.com/repos/Homebrew/brew")',
+		'      printf "unexpected brew metadata query\n" >&2; return 1 ;;',
+		'    "https://api.github.com/repos/old/homebrew-foo")',
+		r'      echo "$url" >> "$METADATA_QUERIES_FILE"',
+		r'      if [[ "$SCENARIO" == "noop" ]]; then',
+		'        printf "unexpected metadata query\n" >&2; return 1',
+		'      fi',
+		r'      printf "{\n  \"clone_url\": \"https://github.com/new/homebrew-foo.git\",\n  \"html_url\": \"https://github.com/new/homebrew-foo\"\n}\n" ;;',
+		'    *)',
+		r'      printf "unexpected curl %s\n" "$url" >&2; return 1 ;;',
+		'  esac',
+		'}',
+		'lock() { :; }',
+		r'odie() { echo "Error: $*" >&2; exit 1; }',
+		'ohai() { :; }',
+		r'onoe() { echo "Error: $*" >&2; }',
+		r'safe_cd() { cd "$1" >/dev/null || exit 1; }',
+		'setup_ca_certificates() { :; }',
+		'setup_curl() { :; }',
+		'setup_git() { :; }',
+		r'if [[ "$SCENARIO" == "force" ]]; then',
+		'  homebrew-update --auto-update --force --simulate-from-current-branch',
+		'else',
+		'  homebrew-update --auto-update',
+		'fi',
+	].join('\n')
+}
+
+fn update_spec_redirect_scenario(repository_root string, scenario string) !UpdateSpecScenarioResult {
+	test_root := update_spec_create_test_root(repository_root, 'redirect-${scenario}')!
+	defer { os.rmdir_all(test_root) or {} }
+	update_spec_setup_update_utils(test_root, repository_root)!
+	args_file := os.join_path(test_root, 'brew-args.txt')
+	fetches_file := os.join_path(test_root, 'fetches.txt')
+	metadata_queries_file := os.join_path(test_root, 'metadata-queries.txt')
+	repository := os.join_path(test_root, 'repository')
+	tap_path := os.join_path(test_root, 'Library', 'Taps', 'old', 'homebrew-foo')
+	os.mkdir_all(os.join_path(repository, '.git'))!
+	os.mkdir_all(os.join_path(tap_path, '.git'))!
+	os.mkdir_all(os.join_path(test_root, 'cache'))!
+	os.write_file(os.join_path(test_root, 'cache', 'all_commands_list.txt'), '')!
+	result := update_spec_run_update_shell(update_spec_redirect_script(), {
+		'UPDATE_SCRIPT':                    update_spec_script(repository_root)
+		'SCENARIO':                         scenario
+		'ARGS_FILE':                        args_file
+		'FETCHES_FILE':                     fetches_file
+		'METADATA_QUERIES_FILE':            metadata_queries_file
+		'TAP_PATH':                         tap_path
+		'HOMEBREW_BREW_DEFAULT_GIT_REMOTE': 'https://github.com/Homebrew/brew'
+		'HOMEBREW_BREW_GIT_REMOTE':         'https://github.com/Homebrew/brew'
+		'HOMEBREW_CACHE':                   os.join_path(test_root, 'cache')
+		'HOMEBREW_CASK_REPOSITORY':         os.join_path(test_root, 'cask')
+		'HOMEBREW_CELLAR':                  os.join_path(test_root, 'cellar')
+		'HOMEBREW_CORE_DEFAULT_GIT_REMOTE': 'https://github.com/Homebrew/homebrew-core'
+		'HOMEBREW_CORE_GIT_REMOTE':         'https://github.com/Homebrew/homebrew-core'
+		'HOMEBREW_CORE_REPOSITORY':         os.join_path(test_root, 'core')
+		'HOMEBREW_LIBRARY':                 os.join_path(test_root, 'Library')
+		'HOMEBREW_NO_ENV_HINTS':            '1'
+		'HOMEBREW_NO_INSTALL_FROM_API':     '1'
+		'HOMEBREW_PREFIX':                  os.join_path(test_root, 'prefix')
+		'HOMEBREW_REPOSITORY':              repository
+		'HOMEBREW_USER_AGENT_CURL':         'Homebrew/test'
+		'HOMEBREW_DEVELOPER':               if scenario == 'force' { '1' } else { '' }
+	}, ['HOMEBREW_DEV_CMD_RUN'])!
+	args_exists := os.exists(args_file)
+	fetches_exists := os.exists(fetches_file)
+	metadata_exists := os.exists(metadata_queries_file)
+	redirected_file := os.join_path(repository, '.git', 'REDIRECTED_REMOTES')
+	mut passed := result.exit_code == 0 && result.stderr == ''
+	if scenario == 'noop' {
+		passed = passed && !args_exists && !fetches_exists && !metadata_exists
+	} else {
+		expected_args := if scenario == 'force' {
+			'update-report\n--force\n--simulate-from-current-branch\n'
+		} else {
+			'update-report\n--auto-update\n'
+		}
+		passed = passed && update_spec_read(args_file) == expected_args
+			&& update_spec_read(redirected_file) == '${tap_path}\thttps://github.com/new/homebrew-foo.git\n'
+			&& update_spec_read(metadata_queries_file) == 'https://api.github.com/repos/old/homebrew-foo\n'
+		if scenario == 'redirect' {
+			passed = passed && update_spec_read(fetches_file) == '${tap_path}\n'
+		}
+	}
+	details := 'args=${if args_exists { update_spec_read(args_file) } else { '<absent>' }}\nfetches=${if fetches_exists {
+		update_spec_read(fetches_file)
+	} else {
+		'<absent>'
+	}}\nmetadata=${if metadata_exists {
+		update_spec_read(metadata_queries_file)
+	} else {
+		'<absent>'
+	}}\nredirect=${if os.exists(redirected_file) {
+		update_spec_read(redirected_file)
+	} else {
+		'<absent>'
+	}}'
+	return update_spec_result(passed, result, details)
+}
+
+pub fn update_spec_noop_redirect(repository_root string) !UpdateSpecScenarioResult {
+	return update_spec_redirect_scenario(repository_root, 'noop')
+}
+
+pub fn update_spec_redirected_sha(repository_root string) !UpdateSpecScenarioResult {
+	return update_spec_redirect_scenario(repository_root, 'redirect')
+}
+
+pub fn update_spec_metadata_only_for_taps(repository_root string) !UpdateSpecScenarioResult {
+	return update_spec_redirect_scenario(repository_root, 'force')
+}
+
+fn update_spec_shell_result_value(result brew_runtime.CapturedCommandResult) brew_runtime.Value {
+	status := brew_runtime.structured_value('Process::Status', result.exit_code.str(), {
+		'exit_code': result.exit_code.str()
+		'success':   (result.exit_code == 0).str()
+	})
+	return brew_runtime.array_value([
+		brew_runtime.string_value(result.stdout),
+		brew_runtime.string_value(result.stderr),
+		status,
+	])
+}
+
 // Ruby let `let(:update_script) { repository_root/"Library/Homebrew/cmd/update.sh" }` at line 10.
 pub fn ruby_update_spec_l10_d1_update_script(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('update_script', ...args)
+	return brew_runtime.object_value('Pathname', update_spec_script(update_spec_repository(args)))
 }
 
 // Ruby let `let(:test_root) do` at line 11.
 pub fn ruby_update_spec_l11_d2_test_root(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('test_root', ...args)
+	repository_root := update_spec_repository(args)
+	path := update_spec_create_test_root(repository_root, 'boundary') or {
+		return brew_runtime.object_value('IOError', err.msg())
+	}
+	return brew_runtime.object_value('Pathname', path)
 }
 
 // Ruby let `let(:repository_root) { Pathname(T.must(__dir__)).parent.parent.parent.parent }` at line 15.
 pub fn ruby_update_spec_l15_d3_repository_root(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('repository_root', ...args)
+	return brew_runtime.object_value('Pathname', update_spec_repository(args))
 }
 
 // Ruby method `run_update_shell(script, env)` at line 23.
 pub fn ruby_update_spec_l23_d4_run_update_shell(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('run_update_shell', ...args)
+	if args.len == 0 {
+		return brew_runtime.object_value('ArgumentError', 'script is required')
+	}
+	mut overrides := map[string]string{}
+	mut unset_names := []string{}
+	if args.len > 1 {
+		for name, value in args[1].map_data {
+			if value.type_name == 'NilClass' {
+				unset_names << name
+			} else {
+				overrides[name] = value.as_string()
+			}
+		}
+	}
+	result := update_spec_run_update_shell(args[0].as_string(), overrides, unset_names) or {
+		return brew_runtime.object_value('IOError', err.msg())
+	}
+	return update_spec_shell_result_value(result)
 }
 
 // Ruby method `setup_update_utils` at line 29.
 pub fn ruby_update_spec_l29_d5_setup_update_utils(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('setup_update_utils', ...args)
+	if args.len == 0 {
+		return brew_runtime.object_value('ArgumentError', 'test root is required')
+	}
+	repository_root := if args.len > 1 { args[1].as_string() } else { update_spec_repository([]) }
+	names := update_spec_setup_update_utils(args[0].as_string(), repository_root) or {
+		return brew_runtime.object_value('IOError', err.msg())
+	}
+	return brew_runtime.string_array_value(names)
 }
 
 // Ruby it `it "retries a failed conditional API download without the time condition" do` at line 38.
 pub fn ruby_update_spec_l38_d6_retries(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('retries', ...args)
+	result := update_spec_retry_conditional_download(update_spec_repository(args)) or {
+		return brew_runtime.bool_value(false)
+	}
+	return brew_runtime.bool_value(result.passed)
 }
 
 // Ruby it `it "passes all arguments through to delegated upgrades" do` at line 77.
 pub fn ruby_update_spec_l77_d7_passes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('passes', ...args)
+	result := update_spec_delegated_upgrade_arguments(update_spec_repository(args)) or {
+		return brew_runtime.bool_value(false)
+	}
+	return brew_runtime.bool_value(result.passed)
 }
 
 // Ruby it `it "passes `--auto-update` through to `update-report`" do` at line 106.
 pub fn ruby_update_spec_l106_d8_passes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('passes', ...args)
+	result := update_spec_auto_update_report_arguments(update_spec_repository(args)) or {
+		return brew_runtime.bool_value(false)
+	}
+	return brew_runtime.bool_value(result.passed)
 }
 
 // Ruby it `it "does not query redirected remote metadata for no-op tap updates" do` at line 147.
 pub fn ruby_update_spec_l147_d9_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	result := update_spec_noop_redirect(update_spec_repository(args)) or {
+		return brew_runtime.bool_value(false)
+	}
+	return brew_runtime.bool_value(result.passed)
 }
 
 // Ruby it `it "treats redirected tap SHA API checks as updates" do` at line 252.
 pub fn ruby_update_spec_l252_d10_treats(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('treats', ...args)
+	result := update_spec_redirected_sha(update_spec_repository(args)) or {
+		return brew_runtime.bool_value(false)
+	}
+	return brew_runtime.bool_value(result.passed)
 }
 
 // Ruby it `it "queries redirected remote metadata only for taps" do` at line 366.
 pub fn ruby_update_spec_l366_d11_queries(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('queries', ...args)
+	result := update_spec_metadata_only_for_taps(update_spec_repository(args)) or {
+		return brew_runtime.bool_value(false)
+	}
+	return brew_runtime.bool_value(result.passed)
 }
 
 // Original Ruby source (line-for-line):

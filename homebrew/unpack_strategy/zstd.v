@@ -1,28 +1,52 @@
 module unpack_strategy
 
 import brew_runtime
+import os
 
 // Translated from Homebrew/brew `unpack_strategy/zstd.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `self.extensions` at line 10.
-pub fn ruby_zstd_l10_d1_self_extensions(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.extensions', ...args)
+pub fn ruby_zstd_l10_d1_self_extensions() []string {
+	return zstd_extensions()
 }
 
 // Ruby method `self.can_extract?(path)` at line 15.
-pub fn ruby_zstd_l15_d2_self_can_extract(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.can_extract?', ...args)
+pub fn ruby_zstd_l15_d2_self_can_extract(path string) bool {
+	return zstd_can_extract(path)
 }
 
 // Ruby method `dependencies` at line 20.
-pub fn ruby_zstd_l20_d3_dependencies(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dependencies', ...args)
+pub fn ruby_zstd_l20_d3_dependencies() []string {
+	return zstd_dependencies()
 }
 
 // Ruby method `extract_to_dir(unpack_dir, basename:, verbose:)` at line 27.
-pub fn ruby_zstd_l27_d4_extract_to_dir(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('extract_to_dir', ...args)
+pub fn ruby_zstd_l27_d4_extract_to_dir(path string, unpack_dir string, basename string, verbose bool) ! {
+	zstd_extract_to_dir(path, unpack_dir, basename, verbose)!
+}
+
+pub fn zstd_extensions() []string {
+	return ['.zst']
+}
+
+pub fn zstd_can_extract(path string) bool {
+	return file_prefix_contains(path, [u8(0x28), 0xb5, 0x2f, 0xfd])
+}
+
+pub fn zstd_dependencies() []string {
+	return ['zstd']
+}
+
+pub fn zstd_extract_to_dir(path string, unpack_dir string, basename string, verbose bool) ! {
+	target := brew_runtime.join_path(unpack_dir, basename)
+	os.cp(path, target)!
+	mut args := []string{}
+	if !verbose { args << '-q' }
+	args << ['-T0', '--rm', '--', target]
+	unzstd := command_path('unzstd') or { command_path('zstd')! }
+	if os.file_name(unzstd) == 'zstd' { args.prepend('-d') }
+	checked_command(unzstd, args)!
 }
 
 // Original Ruby source (line-for-line):

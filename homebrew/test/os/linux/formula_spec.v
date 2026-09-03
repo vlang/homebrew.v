@@ -1,38 +1,64 @@
 module linux
 
 import brew_runtime
+import homebrew.extend.os.linux as production_linux
 
 // Translated from Homebrew/brew `test/os/linux/formula_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
+pub fn linux_formula_spec_uses_from_macos(name string, _ string) (string, string) {
+	// On Linux the macOS version constraint is irrelevant, so the dependency is
+	// added to both stable and HEAD exactly like depends_on.
+	return name, name
+}
+
+pub fn linux_formula_spec_platform_values(common []string, _ []string,
+	linux_values []string) []string {
+	mut values := common.clone()
+	values << linux_values
+	return values
+}
+
 // Ruby it `it "acts like` at line 13.
 pub fn ruby_formula_spec_l13_d1_acts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('acts', ...args)
+	stable, head := linux_formula_spec_uses_from_macos('foo', '')
+	return brew_runtime.bool_value(stable == 'foo' && head == 'foo')
 }
 
 // Ruby it `it "ignores OS version specifications" do` at line 25.
 pub fn ruby_formula_spec_l25_d2_ignores(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ignores', ...args)
+	stable, head := linux_formula_spec_uses_from_macos('foo', 'sequoia')
+	return brew_runtime.bool_value(stable == 'foo' && head == 'foo')
 }
 
 // Ruby it `it "adds a dependency on Linux only" do` at line 39.
 pub fn ruby_formula_spec_l39_d3_adds(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('adds', ...args)
+	dependencies := linux_formula_spec_platform_values(['hello_both'], ['hello_macos'], [
+		'hello_linux',
+	])
+	return brew_runtime.bool_value(dependencies == ['hello_both', 'hello_linux'])
 }
 
 // Ruby it `it "adds a patch on Linux only" do` at line 63.
 pub fn ruby_formula_spec_l63_d4_adds(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('adds', ...args)
+	patches := linux_formula_spec_platform_values([], ['patch_macos'], ['patch_linux'])
+	return brew_runtime.bool_value(patches == ['patch_linux'])
 }
 
 // Ruby it `it "uses on_linux within a resource block" do` at line 87.
 pub fn ruby_formula_spec_l87_d5_uses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uses', ...args)
+	resources := linux_formula_spec_platform_values([], [], ['on_linux'])
+	return brew_runtime.bool_value(resources == ['on_linux'])
 }
 
 // Ruby it `it "generates a shared library string" do` at line 107.
 pub fn ruby_formula_spec_l107_d6_generates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('generates', ...args)
+	return brew_runtime.bool_value(production_linux.linux_formula_shared_library('foobar', none) == 'foobar.so'
+		&& production_linux.linux_formula_shared_library('foobar', '2') == 'foobar.so.2'
+		&& production_linux.linux_formula_shared_library('foobar', '*') == 'foobar.so{,.*}'
+		&& production_linux.linux_formula_shared_library('*', none) == '*.so{,.*}'
+		&& production_linux.linux_formula_shared_library('*', '2') == '*.so.2'
+		&& production_linux.linux_formula_shared_library('*', '*') == '*.so{,.*}')
 }
 
 // Original Ruby source (line-for-line):

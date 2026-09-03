@@ -7,7 +7,7 @@ import brew_runtime
 
 // Ruby let `let(:path) { TEST_FIXTURE_DIR/"cask/container.xar" }` at line 7.
 pub fn ruby_xar_spec_l7_d1_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('path', ...args)
+	return brew_runtime.string_value(spec_xar_fixture())
 }
 
 // Original Ruby source (line-for-line):

@@ -1,118 +1,220 @@
 module utils
 
 import brew_runtime
+import homebrew.utils as autoremove_core
 
 // Translated from Homebrew/brew `test/utils/autoremove_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+fn autoremove_spec_tab(poured_from_bottle bool, installed_present bool,
+	installed_on_request bool, runtime_present bool, runtime_dependencies []string) autoremove_core.AutoremoveTab {
+	return autoremove_core.AutoremoveTab{
+		poured_from_bottle: poured_from_bottle
+		installed_on_request_present: installed_present
+		installed_on_request: installed_on_request
+		runtime_dependencies_present: runtime_present
+		runtime_dependencies: runtime_dependencies
+	}
+}
+
+fn autoremove_spec_formula(name string, runtime []string, build []string,
+	tab autoremove_core.AutoremoveTab) autoremove_core.AutoremoveFormula {
+	return autoremove_core.AutoremoveFormula{
+		name: name
+		possible_names: [name]
+		installed_runtime_dependencies: runtime
+		build_dependencies: build
+		tab_present: true
+		tab: tab
+	}
+}
+
+fn autoremove_spec_formulae(poured_from_bottle bool, installed_present bool,
+	installed_on_request bool, runtime_present bool) []autoremove_core.AutoremoveFormula {
+	shared_tab := autoremove_spec_tab(poured_from_bottle, installed_present, installed_on_request, runtime_present, [
+		'one',
+		'two',
+	])
+	empty_tab := autoremove_spec_tab(poured_from_bottle, installed_present, installed_on_request, runtime_present, []string{})
+	return [
+		autoremove_spec_formula('zero', ['one', 'two'], ['three'], shared_tab),
+		autoremove_spec_formula('one', ['two'], []string{}, if runtime_present {
+			shared_tab
+		} else {
+			empty_tab
+		}),
+		autoremove_spec_formula('two', []string{}, []string{}, empty_tab),
+		autoremove_spec_formula('three', []string{}, []string{}, empty_tab),
+	]
+}
+
+fn autoremove_spec_formulae_value(formulae []autoremove_core.AutoremoveFormula) brew_runtime.Value {
+	return brew_runtime.array_value(formulae.map(autoremove_core.autoremove_formula_value(it)))
+}
+
+fn autoremove_spec_cask(name string, dependencies []string) autoremove_core.AutoremoveCask {
+	return autoremove_core.AutoremoveCask{
+		name: name
+		formula_dependencies: dependencies
+	}
+}
+
+fn autoremove_spec_casks_value(casks []autoremove_core.AutoremoveCask) brew_runtime.Value {
+	return brew_runtime.array_value(casks.map(autoremove_core.autoremove_cask_value(it)))
+}
+
+fn autoremove_spec_names(formulae []autoremove_core.AutoremoveFormula) []string {
+	return formulae.map(it.name)
+}
+
+fn autoremove_spec_same_names(mut actual []string, mut expected []string) bool {
+	actual.sort()
+	expected.sort()
+	return actual == expected
+}
 
 // Ruby let `let(:formula_with_deps) do` at line 8.
 pub fn ruby_autoremove_spec_l8_d1_formula_with_deps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_with_deps', ...args)
+	return autoremove_core.autoremove_formula_value(autoremove_spec_formulae(true, true, false, false)[0])
 }
 
 // Ruby let `let(:first_formula_dep) do` at line 17.
 pub fn ruby_autoremove_spec_l17_d2_first_formula_dep(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('first_formula_dep', ...args)
+	return autoremove_core.autoremove_formula_value(autoremove_spec_formulae(true, true, false, false)[1])
 }
 
 // Ruby let `let(:second_formula_dep) do` at line 24.
 pub fn ruby_autoremove_spec_l24_d3_second_formula_dep(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('second_formula_dep', ...args)
+	return autoremove_core.autoremove_formula_value(autoremove_spec_formulae(true, true, false, false)[2])
 }
 
 // Ruby let `let(:formula_is_build_dep) do` at line 31.
 pub fn ruby_autoremove_spec_l31_d4_formula_is_build_dep(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_is_build_dep', ...args)
+	return autoremove_core.autoremove_formula_value(autoremove_spec_formulae(true, true, false, false)[3])
 }
 
 // Ruby let `let(:formulae) do` at line 38.
 pub fn ruby_autoremove_spec_l38_d5_formulae(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formulae', ...args)
+	return autoremove_spec_formulae_value(autoremove_spec_formulae(true, true, false, false))
 }
 
 // Ruby let `let(:tab_from_keg) { instance_double(Tab) }` at line 47.
 pub fn ruby_autoremove_spec_l47_d6_tab_from_keg(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tab_from_keg', ...args)
+	return brew_runtime.structured_value('Tab', 'tab', {
+		'poured_from_bottle': 'true'
+	})
 }
 
 // Ruby it `it "filters out runtime dependencies" do` at line 79.
-pub fn ruby_autoremove_spec_l79_d7_filters(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('filters', ...args)
+pub fn ruby_autoremove_spec_l79_d7_filters() bool {
+	formulae := autoremove_spec_formulae(true, true, false, false)
+	return autoremove_spec_names(autoremove_core.bottled_formulae_with_no_formula_dependents(formulae)) == [
+		'zero',
+		'three',
+	]
 }
 
 // Ruby it `it "filters out formulae" do` at line 88.
-pub fn ruby_autoremove_spec_l88_d8_filters(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('filters', ...args)
+pub fn ruby_autoremove_spec_l88_d8_filters() bool {
+	return autoremove_core.bottled_formulae_with_no_formula_dependents(autoremove_spec_formulae(false, true, false, false)).len == 0
 }
 
 // Ruby it `it "uses tab dep names without calling installed_runtime_formula_dependencies" do` at line 97.
-pub fn ruby_autoremove_spec_l97_d9_uses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uses', ...args)
+pub fn ruby_autoremove_spec_l97_d9_uses() bool {
+	formulae := autoremove_spec_formulae(true, true, false, true)
+	return autoremove_spec_names(autoremove_core.bottled_formulae_with_no_formula_dependents(formulae)) == [
+		'zero',
+		'three',
+	]
 }
 
 // Ruby specify `specify "installed on request" do` at line 118.
-pub fn ruby_autoremove_spec_l118_d10_installed(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('installed', ...args)
+pub fn ruby_autoremove_spec_l118_d10_installed() bool {
+	return autoremove_core.unused_formulae_with_no_formula_dependents(autoremove_spec_formulae(true, true, true, false)).len == 0
 }
 
 // Ruby specify `specify "not installed on request" do` at line 125.
-pub fn ruby_autoremove_spec_l125_d11_not(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('not', ...args)
+pub fn ruby_autoremove_spec_l125_d11_not() bool {
+	actual := autoremove_spec_names(autoremove_core.unused_formulae_with_no_formula_dependents(autoremove_spec_formulae(true, true, false, false)))
+	mut expected := ['zero', 'one', 'two', 'three']
+	mut sorted_actual := actual.clone()
+	return autoremove_spec_same_names(mut sorted_actual, mut expected)
 }
 
 // Ruby specify `specify "installed on request is null" do` at line 132.
-pub fn ruby_autoremove_spec_l132_d12_installed(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('installed', ...args)
+pub fn ruby_autoremove_spec_l132_d12_installed() bool {
+	return autoremove_core.unused_formulae_with_no_formula_dependents(autoremove_spec_formulae(true, false, false, false)).len == 0
 }
 
 // Ruby let `let(:cask_one_dep) do` at line 145.
 pub fn ruby_autoremove_spec_l145_d13_cask_one_dep(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask_one_dep', ...args)
+	return autoremove_core.autoremove_cask_value(autoremove_spec_cask('red', ['two']))
 }
 
 // Ruby let `let(:cask_multiple_deps) do` at line 153.
 pub fn ruby_autoremove_spec_l153_d14_cask_multiple_deps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask_multiple_deps', ...args)
+	return autoremove_core.autoremove_cask_value(autoremove_spec_cask('blue', ['zero']))
 }
 
 // Ruby let `let(:first_cask_no_deps) do` at line 161.
 pub fn ruby_autoremove_spec_l161_d15_first_cask_no_deps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('first_cask_no_deps', ...args)
+	return autoremove_core.autoremove_cask_value(autoremove_spec_cask('green', []string{}))
 }
 
 // Ruby let `let(:second_cask_no_deps) do` at line 168.
 pub fn ruby_autoremove_spec_l168_d16_second_cask_no_deps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('second_cask_no_deps', ...args)
+	return autoremove_core.autoremove_cask_value(autoremove_spec_cask('purple', []string{}))
 }
 
 // Ruby let `let(:casks_no_deps) { [first_cask_no_deps, second_cask_no_deps] }` at line 175.
 pub fn ruby_autoremove_spec_l175_d17_casks_no_deps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('casks_no_deps', ...args)
+	return autoremove_spec_casks_value([
+		autoremove_spec_cask('green', []string{}),
+		autoremove_spec_cask('purple', []string{}),
+	])
 }
 
 // Ruby let `let(:casks_one_dep) { [first_cask_no_deps, second_cask_no_deps, cask_one_dep] }` at line 176.
 pub fn ruby_autoremove_spec_l176_d18_casks_one_dep(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('casks_one_dep', ...args)
+	return autoremove_spec_casks_value([
+		autoremove_spec_cask('green', []string{}),
+		autoremove_spec_cask('purple', []string{}),
+		autoremove_spec_cask('red', ['two']),
+	])
 }
 
 // Ruby let `let(:casks_multiple_deps) { [first_cask_no_deps, second_cask_no_deps, cask_multiple_deps] }` at line 177.
 pub fn ruby_autoremove_spec_l177_d19_casks_multiple_deps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('casks_multiple_deps', ...args)
+	return autoremove_spec_casks_value([
+		autoremove_spec_cask('green', []string{}),
+		autoremove_spec_cask('purple', []string{}),
+		autoremove_spec_cask('blue', ['zero']),
+	])
 }
 
 // Ruby specify `specify "no dependents" do` at line 183.
-pub fn ruby_autoremove_spec_l183_d20_no(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('no', ...args)
+pub fn ruby_autoremove_spec_l183_d20_no() bool {
+	return autoremove_core.cask_dependent_formula_names([
+		autoremove_spec_cask('green', []string{}),
+		autoremove_spec_cask('purple', []string{}),
+	], autoremove_spec_formulae(true, true, false, false)).len == 0
 }
 
 // Ruby specify `specify "one dependent" do` at line 188.
-pub fn ruby_autoremove_spec_l188_d21_one(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('one', ...args)
+pub fn ruby_autoremove_spec_l188_d21_one() bool {
+	return autoremove_core.cask_dependent_formula_names([
+		autoremove_spec_cask('green', []string{}),
+		autoremove_spec_cask('purple', []string{}),
+		autoremove_spec_cask('red', ['two']),
+	], autoremove_spec_formulae(true, true, false, false)) == ['two']
 }
 
 // Ruby specify `specify "multiple dependents" do` at line 193.
-pub fn ruby_autoremove_spec_l193_d22_multiple(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('multiple', ...args)
+pub fn ruby_autoremove_spec_l193_d22_multiple() bool {
+	return autoremove_core.cask_dependent_formula_names([
+		autoremove_spec_cask('green', []string{}),
+		autoremove_spec_cask('purple', []string{}),
+		autoremove_spec_cask('blue', ['zero']),
+	], autoremove_spec_formulae(true, true, false, false)) == ['one', 'two', 'zero']
 }
 
 // Original Ruby source (line-for-line):

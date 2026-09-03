@@ -1,13 +1,54 @@
 module utils
 
 import brew_runtime
+import homebrew.cask.utils as base_trash
+import homebrew.os.mac.ffi
+import os
+
+pub type MacTrashRetry = fn(string) !string
+
+pub fn mac_trash_paths(paths []string, trash_directory string,
+	retry MacTrashRetry) base_trash.TrashResult {
+	trashed, untrashable := ffi.foundation_trash_paths(paths, trash_directory)
+	mut retried := []string{}
+	mut still_untrashable := []string{}
+	for path in untrashable {
+		destination := retry(path) or {
+			still_untrashable << path
+			continue
+		}
+		if destination == '' {
+			still_untrashable << path
+		} else {
+			retried << destination
+		}
+	}
+	mut all_trashed := trashed.clone()
+	all_trashed << retried
+	return base_trash.TrashResult{ trashed: all_trashed, untrashable: still_untrashable }
+}
+
+fn mac_trash_fixture_retry(path string) !string {
+	trash_directory := os.join_path(os.home_dir(), '.Trash')
+	return ffi.foundation_trash_item(path, trash_directory)
+}
 
 // Translated from Homebrew/brew `extend/os/mac/cask/utils/trash.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `trash(*paths, command: nil)` at line 16.
 pub fn ruby_trash_l16_d1_trash(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('trash', ...args)
+	paths := if args.len > 0 && args[0].type_name == 'Array' {
+		args[0].as_array() or { []brew_runtime.Value{} }.map(it.as_string())
+	} else {
+		args.filter(it.type_name in ['String', 'Pathname']).map(it.as_string())
+	}
+	trash_directory := if args.len > 1 && args[1].type_name == 'String' {
+		args[1].as_string()
+	} else {
+		os.join_path(os.home_dir(), '.Trash')
+	}
+	return base_trash.trash_result_value(mac_trash_paths(paths, trash_directory, mac_trash_fixture_retry))
 }
 
 // Original Ruby source (line-for-line):

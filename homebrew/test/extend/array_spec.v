@@ -1,33 +1,46 @@
 module extend
 
 import brew_runtime
+import homebrew.extend as array_ext
 
 // Translated from Homebrew/brew `test/extend/array_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby specify `specify do` at line 8.
 pub fn ruby_array_spec_l8_d1_do(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('do', ...args)
+	return brew_runtime.bool_value(array_ext.array_to_sentence([], ', ', ' and ', ' and ') == ''
+		&& array_ext.array_to_sentence(['one'], ', ', ' and ', ' and ') == 'one'
+		&& array_ext.array_to_sentence(['one', 'two'], ', ', ' and ', ' and ') == 'one and two'
+		&& array_ext.array_to_sentence(['one', 'two', 'three'], ', ', ' and ', ' and ') == 'one, two and three'
+		&& array_ext.array_to_sentence(['1'], ', ', ' and ', ' and ') == '1'
+		&& array_ext.array_to_sentence(['', 'one', '', 'two', 'three'], ', ', ' and ', ' and ') == ', one, , two and three')
 }
 
 // Ruby it `it "converts an array to a sentence with a custom connector" do` at line 21.
 pub fn ruby_array_spec_l21_d2_converts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('converts', ...args)
+	values := ['one', 'two', 'three']
+	return brew_runtime.bool_value(array_ext.array_to_sentence(values, ' ', ' and ', ' and ') == 'one two and three'
+		&& array_ext.array_to_sentence(values, ' & ', ' and ', ' and ') == 'one & two and three')
 }
 
 // Ruby it `it "converts an array to a sentence with a custom last word connector" do` at line 26.
 pub fn ruby_array_spec_l26_d3_converts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('converts', ...args)
+	values := ['one', 'two', 'three']
+	return brew_runtime.bool_value(array_ext.array_to_sentence(values, ', ', ' and ', ', and also ') == 'one, two, and also three'
+		&& array_ext.array_to_sentence(values, ', ', ' and ', ' ') == 'one, two three'
+		&& array_ext.array_to_sentence(values, ', ', ' and ', ' and ') == 'one, two and three')
 }
 
 // Ruby it `it "converts an array to a sentence with a custom two word connector" do` at line 33.
 pub fn ruby_array_spec_l33_d4_converts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('converts', ...args)
+	return brew_runtime.bool_value(array_ext.array_to_sentence(['one', 'two'], ', ', ' ', ' and ') == 'one two')
 }
 
 // Ruby it `it "creates a new string" do` at line 37.
 pub fn ruby_array_spec_l37_d5_creates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('creates', ...args)
+	elements := ['one']
+	result := array_ext.array_to_sentence(elements, ', ', ' and ', ' and ')
+	return brew_runtime.bool_value(result == elements[0] && result.len == elements[0].len)
 }
 
 // Original Ruby source (line-for-line):

@@ -1,18 +1,38 @@
 module utils
 
 import brew_runtime
+import homebrew.utils as brew_utils
 
 // Translated from Homebrew/brew `test/utils/clang_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby let `let(:config_dir) { Pathname(TEST_TMPDIR)/"clang-config" }` at line 8.
 pub fn ruby_clang_spec_l8_d1_config_dir(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('config_dir', ...args)
+	base := if args.len > 0 { args[0].as_string() } else { '' }
+	return brew_runtime.string_value(brew_runtime.join_path(base, 'clang-config'))
 }
 
 // Ruby specify `specify "writes Clang system configuration files" do` at line 12.
 pub fn ruby_clang_spec_l12_d2_writes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('writes', ...args)
+	if args.len == 0 {
+		return brew_runtime.bool_value(false)
+	}
+	config_dir := args[0].as_string()
+	brew_utils.write_clang_system_config_files(config_dir, '14', '23', 'arm64', '14',
+		'/Library/Developer/CommandLineTools/SDKs') or { return brew_runtime.bool_value(false) }
+	expected := [
+		'aarch64-apple-darwin23.cfg',
+		'aarch64-apple-macosx14.cfg',
+		'arm64-apple-darwin23.cfg',
+		'arm64-apple-macosx14.cfg',
+		'x86_64-apple-darwin23.cfg',
+		'x86_64-apple-macosx14.cfg',
+	]
+	mut actual := brew_runtime.list_dir(config_dir) or { return brew_runtime.bool_value(false) }
+	actual.sort()
+	return brew_runtime.bool_value(actual == expected && brew_runtime.read_file(brew_runtime.join_path(config_dir, 'arm64-apple-macosx14.cfg')) or {
+		''
+	} == '-isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX14.sdk\n')
 }
 
 // Original Ruby source (line-for-line):

@@ -1,13 +1,21 @@
 module extend
 
-import brew_runtime
-
 // Translated from Homebrew/brew `extend/os/linux/extend/pathname.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub struct ElfShimPath {
+pub:
+	path string
+}
+
+pub fn wrap_elf_path(path string) ElfShimPath {
+	return ElfShimPath{
+		path: path
+	}
+}
 
 // Ruby method `wrap(path)` at line 9.
-pub fn ruby_pathname_l9_d1_wrap(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('wrap', ...args)
+pub fn ruby_pathname_l9_d1_wrap(path string) ElfShimPath {
+	return wrap_elf_path(path)
 }
 
 // Original Ruby source (line-for-line):

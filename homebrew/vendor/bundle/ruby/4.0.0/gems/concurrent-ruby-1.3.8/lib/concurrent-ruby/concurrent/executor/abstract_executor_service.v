@@ -1,93 +1,258 @@
 module executor
 
 import brew_runtime
+import sync
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/executor/abstract_executor_service.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub type ExecutorTask = fn([]brew_runtime.Value) !
+
+pub type ExecutorPostFunction = fn(voidptr, ExecutorTask, []brew_runtime.Value) bool
+
+pub type ExecutorRunningFunction = fn(voidptr) bool
+
+pub struct ExecutorAdapter {
+pub:
+	context    voidptr
+	post_task  ExecutorPostFunction @[required]
+	is_running ExecutorRunningFunction @[required]
+}
+
+pub fn (adapter ExecutorAdapter) post(task ExecutorTask, args []brew_runtime.Value) bool {
+	return adapter.post_task(adapter.context, task, args)
+}
+
+pub fn (adapter ExecutorAdapter) running() bool {
+	return adapter.is_running(adapter.context)
+}
+
+pub enum FallbackPolicy {
+	abort
+	discard
+	caller_runs
+}
+
+pub struct AbstractExecutorOptions {
+pub:
+	auto_terminate  bool = true
+	name            string
+	fallback_policy FallbackPolicy = .abort
+}
+
+@[heap]
+pub struct AbstractExecutorService {
+mut:
+	lock sync.Mutex
+pub:
+	auto_terminate  bool
+	name            string
+	fallback_policy FallbackPolicy
+}
+
+pub fn new_abstract_executor_service(options AbstractExecutorOptions) &AbstractExecutorService {
+	return &AbstractExecutorService{
+		auto_terminate: options.auto_terminate
+		name: options.name
+		fallback_policy: options.fallback_policy
+	}
+}
+
+pub fn (executor &AbstractExecutorService) fallback_policy_name() string {
+	return executor.fallback_policy.str()
+}
+
+pub fn (executor &AbstractExecutorService) string() string {
+	base := '#<Concurrent::AbstractExecutorService>'
+	if executor.name.len == 0 {
+		return base
+	}
+	return '${base[..base.len - 1]} name: ${executor.name}>'
+}
+
+pub fn (mut executor AbstractExecutorService) running() bool {
+	executor.lock.lock()
+	executor.lock.unlock()
+	panic('NotImplementedError: AbstractExecutorService#ns_running?')
+}
+
+pub fn (mut executor AbstractExecutorService) shutting_down() bool {
+	executor.lock.lock()
+	executor.lock.unlock()
+	panic('NotImplementedError: AbstractExecutorService#ns_shuttingdown?')
+}
+
+pub fn (mut executor AbstractExecutorService) is_shutdown() bool {
+	executor.lock.lock()
+	executor.lock.unlock()
+	panic('NotImplementedError: AbstractExecutorService#ns_shutdown?')
+}
+
+pub fn (mut executor AbstractExecutorService) is_auto_terminate() bool {
+	executor.lock.lock()
+	value := executor.auto_terminate
+	executor.lock.unlock()
+	return value
+}
+
+pub fn (mut executor AbstractExecutorService) fallback(task ExecutorTask, args []brew_runtime.Value) !bool {
+	return match executor.fallback_policy {
+		.abort { error('RejectedExecutionError') }
+		.discard { false }
+		.caller_runs {
+			task(args) or {
+				// Ruby logs task failures at DEBUG and still reports that caller-runs handled it.
+			}
+			true
+		}
+	}
+}
+
+fn nil_executor_value() brew_runtime.Value {
+	return brew_runtime.object_value('NilClass', 'nil')
+}
+
+fn fallback_policy_from_string(value string) FallbackPolicy {
+	return match value.trim_left(':') {
+		'discard' { .discard }
+		'caller_runs' { .caller_runs }
+		else { .abort }
+	}
+}
+
+fn abstract_executor_options_from_boundary(args []brew_runtime.Value) AbstractExecutorOptions {
+	if args.len == 0 || args[0].type_name != 'Hash' {
+		return AbstractExecutorOptions{}
+	}
+	options := args[0].as_map() or { return AbstractExecutorOptions{} }
+	return AbstractExecutorOptions{
+		auto_terminate: if 'auto_terminate' in options {
+			options['auto_terminate'].as_bool() or { true }} else {
+			true}
+		name: if 'name' in options { options['name'].as_string() } else { '' }
+		fallback_policy: if 'fallback_policy' in options {
+			fallback_policy_from_string(options['fallback_policy'].as_string())} else {
+			.abort}
+	}
+}
+
+fn abstract_executor_boundary_value(executor &AbstractExecutorService) brew_runtime.Value {
+	return brew_runtime.structured_value('Concurrent::AbstractExecutorService', executor.string(), {
+		'abstract_executor_address': u64(voidptr(executor)).str()
+	})
+}
+
+fn abstract_executor_boundary_receiver(args []brew_runtime.Value) &AbstractExecutorService {
+	if args.len == 0 {
+		panic('AbstractExecutorService method requires a receiver')
+	}
+	address := (args[0].attribute('abstract_executor_address') or {
+		panic('${args[0].type_name} has no translated AbstractExecutorService state')
+	}).u64()
+	return unsafe { &AbstractExecutorService(voidptr(address)) }
+}
 
 // Ruby attr_reader `attr_reader :fallback_policy` at line 18.
 pub fn ruby_abstract_executor_service_l18_d1_fallback_policy(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fallback_policy', ...args)
+	executor := abstract_executor_boundary_receiver(args)
+	return brew_runtime.object_value('Symbol', ':${executor.fallback_policy_name()}')
 }
 
 // Ruby attr_reader `attr_reader :name` at line 20.
 pub fn ruby_abstract_executor_service_l20_d2_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('name', ...args)
+	executor := abstract_executor_boundary_receiver(args)
+	if executor.name.len == 0 {
+		return nil_executor_value()
+	}
+	return brew_runtime.string_value(executor.name)
 }
 
 // Ruby method `initialize(opts = {}, &block)` at line 23.
 pub fn ruby_abstract_executor_service_l23_d3_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	return abstract_executor_boundary_value(new_abstract_executor_service(abstract_executor_options_from_boundary(args)))
 }
 
 // Ruby method `to_s` at line 32.
 pub fn ruby_abstract_executor_service_l32_d4_to_s(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_s', ...args)
+	return brew_runtime.string_value(abstract_executor_boundary_receiver(args).string())
 }
 
 // Ruby method `shutdown` at line 37.
 pub fn ruby_abstract_executor_service_l37_d5_shutdown(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('shutdown', ...args)
+	panic('NotImplementedError: AbstractExecutorService#shutdown')
 }
 
 // Ruby method `kill` at line 42.
 pub fn ruby_abstract_executor_service_l42_d6_kill(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('kill', ...args)
+	panic('NotImplementedError: AbstractExecutorService#kill')
 }
 
 // Ruby method `wait_for_termination(timeout = nil)` at line 47.
 pub fn ruby_abstract_executor_service_l47_d7_wait_for_termination(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('wait_for_termination', ...args)
+	panic('NotImplementedError: AbstractExecutorService#wait_for_termination')
 }
 
 // Ruby method `running?` at line 52.
 pub fn ruby_abstract_executor_service_l52_d8_running(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('running?', ...args)
+	mut executor := abstract_executor_boundary_receiver(args)
+	return brew_runtime.bool_value(executor.running())
 }
 
 // Ruby method `shuttingdown?` at line 57.
 pub fn ruby_abstract_executor_service_l57_d9_shuttingdown(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('shuttingdown?', ...args)
+	mut executor := abstract_executor_boundary_receiver(args)
+	return brew_runtime.bool_value(executor.shutting_down())
 }
 
 // Ruby method `shutdown?` at line 62.
 pub fn ruby_abstract_executor_service_l62_d10_shutdown(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('shutdown?', ...args)
+	mut executor := abstract_executor_boundary_receiver(args)
+	return brew_runtime.bool_value(executor.is_shutdown())
 }
 
 // Ruby method `auto_terminate?` at line 67.
 pub fn ruby_abstract_executor_service_l67_d11_auto_terminate(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('auto_terminate?', ...args)
+	mut executor := abstract_executor_boundary_receiver(args)
+	return brew_runtime.bool_value(executor.is_auto_terminate())
 }
 
 // Ruby method `auto_terminate=(value)` at line 72.
 pub fn ruby_abstract_executor_service_l72_d12_auto_terminate(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('auto_terminate=', ...args)
+	// The Ruby setter is deprecated and deliberately has no effect.
+	return nil_executor_value()
 }
 
 // Ruby method `fallback_action(*args)` at line 85.
 pub fn ruby_abstract_executor_service_l85_d13_fallback_action(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fallback_action', ...args)
+	mut executor := abstract_executor_boundary_receiver(args)
+	task_args := if args.len > 1 { args[1..].clone() } else { []brew_runtime.Value{} }
+	return brew_runtime.bool_value(executor.fallback(boundary_noop_executor_task, task_args) or {
+		panic(err)
+	})
 }
 
 // Ruby method `ns_execute(*args, &task)` at line 106.
 pub fn ruby_abstract_executor_service_l106_d14_ns_execute(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ns_execute', ...args)
+	panic('NotImplementedError: AbstractExecutorService#ns_execute')
 }
 
 // Ruby method `ns_shutdown_execution` at line 114.
 pub fn ruby_abstract_executor_service_l114_d15_ns_shutdown_execution(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ns_shutdown_execution', ...args)
+	return nil_executor_value()
 }
 
 // Ruby method `ns_kill_execution` at line 122.
 pub fn ruby_abstract_executor_service_l122_d16_ns_kill_execution(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ns_kill_execution', ...args)
+	return nil_executor_value()
 }
 
 // Ruby method `ns_auto_terminate?` at line 126.
 pub fn ruby_abstract_executor_service_l126_d17_ns_auto_terminate(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ns_auto_terminate?', ...args)
+	mut executor := abstract_executor_boundary_receiver(args)
+	return brew_runtime.bool_value(executor.is_auto_terminate())
+}
+
+fn boundary_noop_executor_task(args []brew_runtime.Value) ! {
+	_ = args
 }
 
 // Original Ruby source (line-for-line):

@@ -1,18 +1,20 @@
 module lines
 
 import brew_runtime
+import homebrew.rubocops as line_cops
 
 // Translated from Homebrew/brew `test/rubocops/lines/quictls_check_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:cop) { described_class.new }` at line 7.
 pub fn ruby_quictls_check_spec_l7_d1_cop(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cop', ...args)
+	return brew_runtime.object_value('RuboCop::Cop::FormulaAudit::QuicTLSCheck', 'QuicTLSCheck')
 }
 
 // Ruby it `it "reports an offense when a formula depends on `quictls`" do` at line 10.
 pub fn ruby_quictls_check_spec_l10_d2_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	analysis := line_cops.audit_lines_quictls(line_cops.LinesContext{ source: 'depends_on "quictls"', tap: 'homebrew-core', formula_name: 'foo' })
+	return brew_runtime.bool_value(analysis.offenses.len == 1 && analysis.corrected == 'depends_on "openssl@3"' && analysis.offenses[0].message == 'Formulae in homebrew/core should use `depends_on "openssl@3"` instead of `depends_on "quictls"`.')
 }
 
 // Original Ruby source (line-for-line):

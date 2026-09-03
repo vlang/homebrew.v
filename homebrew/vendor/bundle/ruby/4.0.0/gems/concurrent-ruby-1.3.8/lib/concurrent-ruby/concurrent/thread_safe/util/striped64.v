@@ -1,218 +1,824 @@
 module util
 
 import brew_runtime
+import sync
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/thread_safe/util/striped64.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub type Striped64Update = fn(i64) !i64
+
+pub type Striped64BusyAction = fn() !
+
+@[heap]
+pub struct Striped64Cell {
+mut:
+	lock  sync.Mutex
+	value i64
+}
+
+struct Striped64CellSlot {
+mut:
+	set  bool
+	cell &Striped64Cell = unsafe { nil }
+}
+
+@[heap]
+pub struct Striped64CellTable {
+pub:
+	size int
+mut:
+	lock  sync.RwMutex
+	slots []Striped64CellSlot
+}
+
+@[heap]
+pub struct Striped64 {
+mut:
+	lock       sync.Mutex
+	cells      &Striped64CellTable = unsafe { nil }
+	has_cells  bool
+	base       i64
+	busy       bool
+	hash_codes map[u64]i64
+}
+
+pub fn new_striped64_cell(value i64) &Striped64Cell {
+	return &Striped64Cell{
+		value: value
+	}
+}
+
+pub fn (mut cell Striped64Cell) get() i64 {
+	cell.lock.lock()
+	value := cell.value
+	cell.lock.unlock()
+	return value
+}
+
+pub fn (mut cell Striped64Cell) set(value i64) i64 {
+	cell.lock.lock()
+	cell.value = value
+	cell.lock.unlock()
+	return value
+}
+
+pub fn (mut cell Striped64Cell) add(value i64) i64 {
+	cell.lock.lock()
+	cell.value += value
+	result := cell.value
+	cell.lock.unlock()
+	return result
+}
+
+pub fn (mut cell Striped64Cell) compare_and_set(expected i64, prospect i64) bool {
+	cell.lock.lock()
+	if cell.value != expected {
+		cell.lock.unlock()
+		return false
+	}
+	cell.value = prospect
+	cell.lock.unlock()
+	return true
+}
+
+pub fn (mut cell Striped64Cell) cas_computed(update Striped64Update) !bool {
+	cell.lock.lock()
+	current := cell.value
+	prospect := update(current) or {
+		cell.lock.unlock()
+		return err
+	}
+	cell.value = prospect
+	cell.lock.unlock()
+	return true
+}
+
+pub fn new_striped64_cell_table(size int) !&Striped64CellTable {
+	if size <= 0 || (size & (size - 1)) != 0 {
+		return error('size must be a power of 2 (${size} provided)')
+	}
+	return &Striped64CellTable{
+		size: size
+		slots: []Striped64CellSlot{len: size}
+	}
+}
+
+pub fn (table &Striped64CellTable) hash_to_index(hash i64) int {
+	return int((i64(table.size) - 1) & hash)
+}
+
+pub fn (mut table Striped64CellTable) get(index int) ?&Striped64Cell {
+	if index < 0 || index >= table.size {
+		return none
+	}
+	table.lock.rlock()
+	if !table.slots[index].set {
+		table.lock.runlock()
+		return none
+	}
+	cell := table.slots[index].cell
+	table.lock.runlock()
+	return cell
+}
+
+pub fn (mut table Striped64CellTable) get_by_hash(hash i64) ?&Striped64Cell {
+	return table.get(table.hash_to_index(hash))
+}
+
+pub fn (mut table Striped64CellTable) set(index int, cell &Striped64Cell) ! {
+	if index < 0 || index >= table.size {
+		return error('index ${index} outside cell table of size ${table.size}')
+	}
+	table.lock.lock()
+	table.slots[index].cell = cell
+	table.slots[index].set = true
+	table.lock.unlock()
+}
+
+pub fn (mut table Striped64CellTable) set_by_hash(hash i64, cell &Striped64Cell) ! {
+	table.set(table.hash_to_index(hash), cell)!
+}
+
+pub fn (mut table Striped64CellTable) next_in_size_table() !&Striped64CellTable {
+	mut next := new_striped64_cell_table(table.size * 2)!
+	table.lock.rlock()
+	for index, slot in table.slots {
+		if slot.set {
+			next.slots[index] = Striped64CellSlot{
+				set: true
+				cell: slot.cell
+			}
+		}
+	}
+	table.lock.runlock()
+	return next
+}
+
+pub fn new_striped64() &Striped64 {
+	return &Striped64{
+		hash_codes: map[u64]i64{}
+	}
+}
+
+pub fn (mut striped Striped64) cells_snapshot() ?&Striped64CellTable {
+	striped.lock.lock()
+	if !striped.has_cells {
+		striped.lock.unlock()
+		return none
+	}
+	table := striped.cells
+	striped.lock.unlock()
+	return table
+}
+
+pub fn (mut striped Striped64) set_cells(table &Striped64CellTable) &Striped64CellTable {
+	striped.lock.lock()
+	striped.cells = table
+	striped.has_cells = true
+	striped.lock.unlock()
+	return table
+}
+
+pub fn (mut striped Striped64) clear_cells() {
+	striped.lock.lock()
+	striped.cells = unsafe { nil }
+	striped.has_cells = false
+	striped.lock.unlock()
+}
+
+pub fn (mut striped Striped64) compare_and_set_cells(expected_address u64, prospect_address u64) bool {
+	striped.lock.lock()
+	current_address := if striped.has_cells { u64(voidptr(striped.cells)) } else { u64(0) }
+	if current_address != expected_address {
+		striped.lock.unlock()
+		return false
+	}
+	if prospect_address == 0 {
+		striped.cells = unsafe { nil }
+		striped.has_cells = false
+	} else {
+		striped.cells = unsafe { &Striped64CellTable(voidptr(prospect_address)) }
+		striped.has_cells = true
+	}
+	striped.lock.unlock()
+	return true
+}
+
+pub fn (mut striped Striped64) base_value() i64 {
+	striped.lock.lock()
+	value := striped.base
+	striped.lock.unlock()
+	return value
+}
+
+pub fn (mut striped Striped64) set_base(value i64) i64 {
+	striped.lock.lock()
+	striped.base = value
+	striped.lock.unlock()
+	return value
+}
+
+pub fn (mut striped Striped64) add_base(value i64) i64 {
+	striped.lock.lock()
+	striped.base += value
+	result := striped.base
+	striped.lock.unlock()
+	return result
+}
+
+pub fn (mut striped Striped64) compare_and_set_base(expected i64, prospect i64) bool {
+	striped.lock.lock()
+	if striped.base != expected {
+		striped.lock.unlock()
+		return false
+	}
+	striped.base = prospect
+	striped.lock.unlock()
+	return true
+}
+
+pub fn (mut striped Striped64) cas_base_computed(update Striped64Update) !bool {
+	striped.lock.lock()
+	current := striped.base
+	prospect := update(current) or {
+		striped.lock.unlock()
+		return err
+	}
+	striped.base = prospect
+	striped.lock.unlock()
+	return true
+}
+
+pub fn (mut striped Striped64) busy_value() bool {
+	striped.lock.lock()
+	value := striped.busy
+	striped.lock.unlock()
+	return value
+}
+
+pub fn (mut striped Striped64) set_busy(value bool) bool {
+	striped.lock.lock()
+	striped.busy = value
+	striped.lock.unlock()
+	return value
+}
+
+pub fn (mut striped Striped64) compare_and_set_busy(expected bool, prospect bool) bool {
+	striped.lock.lock()
+	if striped.busy != expected {
+		striped.lock.unlock()
+		return false
+	}
+	striped.busy = prospect
+	striped.lock.unlock()
+	return true
+}
+
+pub fn (mut striped Striped64) is_free() bool {
+	return !striped.busy_value()
+}
+
+pub fn (mut striped Striped64) hash_code() i64 {
+	context := sync.thread_id()
+	striped.lock.lock()
+	if context in striped.hash_codes {
+		value := striped.hash_codes[context]
+		striped.lock.unlock()
+		return value
+	}
+	mut value := initial_xorshift_seed() or { i64(context) | 1 }
+	if value == 0 {
+		value = 1
+	}
+	striped.hash_codes[context] = value
+	striped.lock.unlock()
+	return value
+}
+
+pub fn (mut striped Striped64) set_hash_code(value i64) i64 {
+	striped.lock.lock()
+	striped.hash_codes[sync.thread_id()] = value
+	striped.lock.unlock()
+	return value
+}
+
+pub fn (mut striped Striped64) internal_reset(initial_value i64) {
+	striped.set_base(initial_value)
+	if mut table := striped.cells_snapshot() {
+		for index in 0 .. table.size {
+			if mut cell := table.get(index) {
+				cell.set(initial_value)
+			}
+		}
+	}
+}
+
+pub fn (mut striped Striped64) try_initialize_cells(value i64, hash i64) !bool {
+	striped.lock.lock()
+	if striped.busy || striped.has_cells {
+		striped.lock.unlock()
+		return false
+	}
+	striped.busy = true
+	mut table := new_striped64_cell_table(2) or {
+		striped.busy = false
+		striped.lock.unlock()
+		return err
+	}
+	table.set_by_hash(hash, new_striped64_cell(value)) or {
+		striped.busy = false
+		striped.lock.unlock()
+		return err
+	}
+	striped.cells = table
+	striped.has_cells = true
+	striped.busy = false
+	striped.lock.unlock()
+	return true
+}
+
+pub fn (mut striped Striped64) expand_table_unless_stale(current &Striped64CellTable) !bool {
+	striped.lock.lock()
+	if striped.busy || !striped.has_cells || striped.cells != current {
+		striped.lock.unlock()
+		return false
+	}
+	striped.busy = true
+	mut current_mut := unsafe { current }
+	next := current_mut.next_in_size_table() or {
+		striped.busy = false
+		striped.lock.unlock()
+		return err
+	}
+	striped.cells = next
+	striped.busy = false
+	striped.lock.unlock()
+	return true
+}
+
+pub fn (mut striped Striped64) try_to_install_new_cell(cell &Striped64Cell, hash i64) !bool {
+	striped.lock.lock()
+	if striped.busy || !striped.has_cells {
+		striped.lock.unlock()
+		return false
+	}
+	striped.busy = true
+	mut table := striped.cells
+	index := table.hash_to_index(hash)
+	if _ := table.get(index) {
+		striped.busy = false
+		striped.lock.unlock()
+		return false
+	}
+	table.set(index, cell) or {
+		striped.busy = false
+		striped.lock.unlock()
+		return err
+	}
+	striped.busy = false
+	striped.lock.unlock()
+	return true
+}
+
+pub fn (mut striped Striped64) try_in_busy(action Striped64BusyAction) !bool {
+	if !striped.compare_and_set_busy(false, true) {
+		return false
+	}
+	action() or {
+		striped.set_busy(false)
+		return err
+	}
+	striped.set_busy(false)
+	return true
+}
+
+pub fn (mut striped Striped64) retry_update(value i64, hash_code i64, was_uncontended bool, update Striped64Update) ! {
+	mut hash := hash_code
+	mut uncontended := was_uncontended
+	mut collided := false
+	for {
+		if mut current_cells := striped.cells_snapshot() {
+			if mut cell := current_cells.get_by_hash(hash) {
+				if !uncontended {
+					uncontended = true
+				} else if cell.cas_computed(update)! {
+					break
+				} else if current_cells.size >= 16 {
+					collided = false
+				} else if collided && striped.expand_table_unless_stale(current_cells)! {
+					collided = false
+					continue
+				} else {
+					collided = true
+				}
+			} else if striped.busy_value() {
+				collided = false
+			} else if striped.try_to_install_new_cell(new_striped64_cell(value), hash)! {
+				break
+			} else {
+				continue
+			}
+			hash = xorshift_64(hash)
+		} else {
+			if striped.try_initialize_cells(value, hash)! {
+				break
+			}
+			if striped.cas_base_computed(update)! {
+				break
+			}
+		}
+	}
+	striped.set_hash_code(hash)
+}
+
+// Adder is the only source subclass of Striped64 in this vendored version. This
+// boundary helper is the concrete form of its `current_value + x` retry block.
+pub fn (mut striped Striped64) retry_add(value i64, hash_code i64, was_uncontended bool) ! {
+	mut hash := hash_code
+	mut uncontended := was_uncontended
+	for {
+		if mut current_cells := striped.cells_snapshot() {
+			if mut cell := current_cells.get_by_hash(hash) {
+				if !uncontended {
+					uncontended = true
+				} else {
+					cell.add(value)
+					break
+				}
+			} else if !striped.busy_value() && striped.try_to_install_new_cell(new_striped64_cell(value), hash)! {
+				break
+			}
+			hash = xorshift_64(hash)
+		} else if striped.try_initialize_cells(value, hash)! {
+			break
+		} else {
+			striped.add_base(value)
+			break
+		}
+	}
+	striped.set_hash_code(hash)
+}
+
+fn striped64_nil_value() brew_runtime.Value {
+	return brew_runtime.object_value('NilClass', 'nil')
+}
+
+fn striped64_cell_boundary(cell &Striped64Cell) brew_runtime.Value {
+	return brew_runtime.structured_value('Concurrent::ThreadSafe::Util::Striped64::Cell', '#<Striped64::Cell>', {
+		'striped64_cell_address': u64(voidptr(cell)).str()
+	})
+}
+
+fn striped64_cell_from_value(value brew_runtime.Value) &Striped64Cell {
+	address := (value.attribute('striped64_cell_address') or {
+		panic('${value.type_name} has no translated Striped64::Cell state')
+	}).u64()
+	return unsafe { &Striped64Cell(voidptr(address)) }
+}
+
+fn striped64_table_boundary(table &Striped64CellTable) brew_runtime.Value {
+	return brew_runtime.structured_value('Concurrent::ThreadSafe::Util::PowerOfTwoTuple', '#<PowerOfTwoTuple size=${table.size}>', {
+		'striped64_table_address': u64(voidptr(table)).str()
+		'size':                    table.size.str()
+	})
+}
+
+fn striped64_table_address(value brew_runtime.Value) u64 {
+	if value.type_name == 'NilClass' {
+		return 0
+	}
+	return (value.attribute('striped64_table_address') or {
+		panic('${value.type_name} has no translated Striped64 cell-table state')
+	}).u64()
+}
+
+fn striped64_boundary(striped &Striped64) brew_runtime.Value {
+	return brew_runtime.structured_value('Concurrent::ThreadSafe::Util::Striped64', '#<Striped64>', {
+		'striped64_address': u64(voidptr(striped)).str()
+	})
+}
+
+fn striped64_from_args(args []brew_runtime.Value) &Striped64 {
+	if args.len == 0 {
+		panic('Striped64 method requires a receiver')
+	}
+	address := (args[0].attribute('striped64_address') or {
+		panic('${args[0].type_name} has no translated Striped64 state')
+	}).u64()
+	return unsafe { &Striped64(voidptr(address)) }
+}
 
 // Ruby alias_method `alias_method :cas, :compare_and_set` at line 89.
 pub fn ruby_striped64_l89_d1_cas(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cas', ...args)
+	if args.len < 3 {
+		panic('Striped64::Cell#cas requires old and new values')
+	}
+	mut cell := striped64_cell_from_value(args[0])
+	return brew_runtime.bool_value(cell.compare_and_set(args[1].as_int() or { panic(err) }, args[2].as_int() or { panic(err) }))
 }
 
 // Ruby method `cas_computed` at line 91.
 pub fn ruby_striped64_l91_d2_cas_computed(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cas_computed', ...args)
+	if args.len < 2 {
+		panic('Striped64::Cell#cas_computed requires a translated computed value')
+	}
+	mut cell := striped64_cell_from_value(args[0])
+	current := cell.get()
+	return brew_runtime.bool_value(cell.compare_and_set(current, args[1].as_int() or { panic(err) }))
 }
 
 // Ruby method `self.padding` at line 96.
 pub fn ruby_striped64_l96_d3_self_padding(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.padding', ...args)
+	return brew_runtime.string_array_value([
+		'padding_0',
+		'padding_1',
+		'padding_2',
+		'padding_3',
+		'padding_4',
+		'padding_5',
+		'padding_6',
+		'padding_7',
+		'padding_8',
+		'padding_9',
+		'padding_10',
+		'padding_11',
+	])
 }
 
 // Ruby attr_reader `attr_reader :padding_0, :padding_1, :padding_2, :padding_3, :padding_4, :padding_5, :padding_6, :padding_7, :padding_8, :padding_9, :padding_10, :padding_11` at line 100.
 pub fn ruby_striped64_l100_d4_padding_0(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('padding_0', ...args)
+	return striped64_nil_value()
 }
 
 // Ruby attr_reader `attr_reader :padding_0, :padding_1, :padding_2, :padding_3, :padding_4, :padding_5, :padding_6, :padding_7, :padding_8, :padding_9, :padding_10, :padding_11` at line 100.
 pub fn ruby_striped64_l100_d5_padding_1(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('padding_1', ...args)
+	return striped64_nil_value()
 }
 
 // Ruby attr_reader `attr_reader :padding_0, :padding_1, :padding_2, :padding_3, :padding_4, :padding_5, :padding_6, :padding_7, :padding_8, :padding_9, :padding_10, :padding_11` at line 100.
 pub fn ruby_striped64_l100_d6_padding_2(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('padding_2', ...args)
+	return striped64_nil_value()
 }
 
 // Ruby attr_reader `attr_reader :padding_0, :padding_1, :padding_2, :padding_3, :padding_4, :padding_5, :padding_6, :padding_7, :padding_8, :padding_9, :padding_10, :padding_11` at line 100.
 pub fn ruby_striped64_l100_d7_padding_3(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('padding_3', ...args)
+	return striped64_nil_value()
 }
 
 // Ruby attr_reader `attr_reader :padding_0, :padding_1, :padding_2, :padding_3, :padding_4, :padding_5, :padding_6, :padding_7, :padding_8, :padding_9, :padding_10, :padding_11` at line 100.
 pub fn ruby_striped64_l100_d8_padding_4(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('padding_4', ...args)
+	return striped64_nil_value()
 }
 
 // Ruby attr_reader `attr_reader :padding_0, :padding_1, :padding_2, :padding_3, :padding_4, :padding_5, :padding_6, :padding_7, :padding_8, :padding_9, :padding_10, :padding_11` at line 100.
 pub fn ruby_striped64_l100_d9_padding_5(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('padding_5', ...args)
+	return striped64_nil_value()
 }
 
 // Ruby attr_reader `attr_reader :padding_0, :padding_1, :padding_2, :padding_3, :padding_4, :padding_5, :padding_6, :padding_7, :padding_8, :padding_9, :padding_10, :padding_11` at line 100.
 pub fn ruby_striped64_l100_d10_padding_6(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('padding_6', ...args)
+	return striped64_nil_value()
 }
 
 // Ruby attr_reader `attr_reader :padding_0, :padding_1, :padding_2, :padding_3, :padding_4, :padding_5, :padding_6, :padding_7, :padding_8, :padding_9, :padding_10, :padding_11` at line 100.
 pub fn ruby_striped64_l100_d11_padding_7(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('padding_7', ...args)
+	return striped64_nil_value()
 }
 
 // Ruby attr_reader `attr_reader :padding_0, :padding_1, :padding_2, :padding_3, :padding_4, :padding_5, :padding_6, :padding_7, :padding_8, :padding_9, :padding_10, :padding_11` at line 100.
 pub fn ruby_striped64_l100_d12_padding_8(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('padding_8', ...args)
+	return striped64_nil_value()
 }
 
 // Ruby attr_reader `attr_reader :padding_0, :padding_1, :padding_2, :padding_3, :padding_4, :padding_5, :padding_6, :padding_7, :padding_8, :padding_9, :padding_10, :padding_11` at line 100.
 pub fn ruby_striped64_l100_d13_padding_9(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('padding_9', ...args)
+	return striped64_nil_value()
 }
 
 // Ruby attr_reader `attr_reader :padding_0, :padding_1, :padding_2, :padding_3, :padding_4, :padding_5, :padding_6, :padding_7, :padding_8, :padding_9, :padding_10, :padding_11` at line 100.
 pub fn ruby_striped64_l100_d14_padding_10(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('padding_10', ...args)
+	return striped64_nil_value()
 }
 
 // Ruby attr_reader `attr_reader :padding_0, :padding_1, :padding_2, :padding_3, :padding_4, :padding_5, :padding_6, :padding_7, :padding_8, :padding_9, :padding_10, :padding_11` at line 100.
 pub fn ruby_striped64_l100_d15_padding_11(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('padding_11', ...args)
+	return striped64_nil_value()
 }
 
 // Ruby attr_volatile `attr_volatile :cells, :base, :busy` at line 106.
 pub fn ruby_striped64_l106_d16_cells(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cells', ...args)
+	mut striped := striped64_from_args(args)
+	return if table := striped.cells_snapshot() {
+		striped64_table_boundary(table)
+	} else {
+		striped64_nil_value()
+	}
 }
 
 // Ruby attr_volatile `attr_volatile :cells, :base, :busy` at line 106.
 pub fn ruby_striped64_l106_d17_cells(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cells=', ...args)
+	if args.len < 2 {
+		panic('Striped64#cells= requires a value')
+	}
+	mut striped := striped64_from_args(args)
+	address := striped64_table_address(args[1])
+	if address == 0 {
+		striped.clear_cells()
+	} else {
+		striped.set_cells(unsafe { &Striped64CellTable(voidptr(address)) })
+	}
+	return args[1]
 }
 
 // Ruby attr_volatile `attr_volatile :cells, :base, :busy` at line 106.
 pub fn ruby_striped64_l106_d18_compare_and_set_cells(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('compare_and_set_cells', ...args)
+	if args.len < 3 {
+		panic('Striped64#compare_and_set_cells requires old and new values')
+	}
+	mut striped := striped64_from_args(args)
+	return brew_runtime.bool_value(striped.compare_and_set_cells(striped64_table_address(args[1]), striped64_table_address(args[2])))
 }
 
 // Ruby attr_volatile `attr_volatile :cells, :base, :busy` at line 106.
 pub fn ruby_striped64_l106_d19_cas_cells(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cas_cells', ...args)
+	return ruby_striped64_l106_d18_compare_and_set_cells(...args)
 }
 
 // Ruby attr_volatile `attr_volatile :cells, :base, :busy` at line 106.
 pub fn ruby_striped64_l106_d20_lazy_set_cells(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('lazy_set_cells', ...args)
+	return ruby_striped64_l106_d17_cells(...args)
 }
 
 // Ruby attr_volatile `attr_volatile :cells, :base, :busy` at line 106.
 pub fn ruby_striped64_l106_d21_base(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('base', ...args)
+	mut striped := striped64_from_args(args)
+	return brew_runtime.int_value(striped.base_value())
 }
 
 // Ruby attr_volatile `attr_volatile :cells, :base, :busy` at line 106.
 pub fn ruby_striped64_l106_d22_base(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('base=', ...args)
+	if args.len < 2 {
+		panic('Striped64#base= requires a value')
+	}
+	mut striped := striped64_from_args(args)
+	return brew_runtime.int_value(striped.set_base(args[1].as_int() or { panic(err) }))
 }
 
 // Ruby attr_volatile `attr_volatile :cells, :base, :busy` at line 106.
 pub fn ruby_striped64_l106_d23_compare_and_set_base(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('compare_and_set_base', ...args)
+	if args.len < 3 {
+		panic('Striped64#compare_and_set_base requires old and new values')
+	}
+	mut striped := striped64_from_args(args)
+	return brew_runtime.bool_value(striped.compare_and_set_base(args[1].as_int() or { panic(err) }, args[2].as_int() or { panic(err) }))
 }
 
 // Ruby attr_volatile `attr_volatile :cells, :base, :busy` at line 106.
 pub fn ruby_striped64_l106_d24_cas_base(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cas_base', ...args)
+	return ruby_striped64_l106_d23_compare_and_set_base(...args)
 }
 
 // Ruby attr_volatile `attr_volatile :cells, :base, :busy` at line 106.
 pub fn ruby_striped64_l106_d25_lazy_set_base(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('lazy_set_base', ...args)
+	return ruby_striped64_l106_d22_base(...args)
 }
 
 // Ruby attr_volatile `attr_volatile :cells, :base, :busy` at line 106.
 pub fn ruby_striped64_l106_d26_busy(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('busy', ...args)
+	mut striped := striped64_from_args(args)
+	return brew_runtime.bool_value(striped.busy_value())
 }
 
 // Ruby attr_volatile `attr_volatile :cells, :base, :busy` at line 106.
 pub fn ruby_striped64_l106_d27_busy(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('busy=', ...args)
+	if args.len < 2 {
+		panic('Striped64#busy= requires a value')
+	}
+	mut striped := striped64_from_args(args)
+	return brew_runtime.bool_value(striped.set_busy(args[1].as_bool() or { panic(err) }))
 }
 
 // Ruby attr_volatile `attr_volatile :cells, :base, :busy` at line 106.
 pub fn ruby_striped64_l106_d28_compare_and_set_busy(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('compare_and_set_busy', ...args)
+	if args.len < 3 {
+		panic('Striped64#compare_and_set_busy requires old and new values')
+	}
+	mut striped := striped64_from_args(args)
+	return brew_runtime.bool_value(striped.compare_and_set_busy(args[1].as_bool() or { panic(err) }, args[2].as_bool() or { panic(err) }))
 }
 
 // Ruby attr_volatile `attr_volatile :cells, :base, :busy` at line 106.
 pub fn ruby_striped64_l106_d29_cas_busy(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cas_busy', ...args)
+	return ruby_striped64_l106_d28_compare_and_set_busy(...args)
 }
 
 // Ruby attr_volatile `attr_volatile :cells, :base, :busy` at line 106.
 pub fn ruby_striped64_l106_d30_lazy_set_busy(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('lazy_set_busy', ...args)
+	return ruby_striped64_l106_d27_busy(...args)
 }
 
 // Ruby alias_method `alias_method :busy?, :busy` at line 110.
 pub fn ruby_striped64_l110_d31_busy(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('busy?', ...args)
+	return ruby_striped64_l106_d26_busy(...args)
 }
 
 // Ruby method `initialize` at line 112.
 pub fn ruby_striped64_l112_d32_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	return striped64_boundary(new_striped64())
 }
 
 // Ruby method `retry_update(x, hash_code, was_uncontended) # :yields: current_value` at line 131.
 pub fn ruby_striped64_l131_d33_retry_update(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('retry_update', ...args)
+	if args.len < 4 {
+		panic('Striped64#retry_update requires value, hash, and contention state')
+	}
+	mut striped := striped64_from_args(args)
+	striped.retry_add(args[1].as_int() or { panic(err) }, args[2].as_int() or { panic(err) }, args[3].as_bool() or { panic(err) }) or { panic(err) }
+	return striped64_nil_value()
 }
 
 // Ruby method `hash_code` at line 176.
 pub fn ruby_striped64_l176_d34_hash_code(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('hash_code', ...args)
+	mut striped := striped64_from_args(args)
+	return brew_runtime.int_value(striped.hash_code())
 }
 
 // Ruby method `hash_code=(hash)` at line 180.
 pub fn ruby_striped64_l180_d35_hash_code(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('hash_code=', ...args)
+	if args.len < 2 {
+		panic('Striped64#hash_code= requires a value')
+	}
+	mut striped := striped64_from_args(args)
+	return brew_runtime.int_value(striped.set_hash_code(args[1].as_int() or { panic(err) }))
 }
 
 // Ruby method `internal_reset(initial_value)` at line 185.
 pub fn ruby_striped64_l185_d36_internal_reset(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('internal_reset', ...args)
+	if args.len < 2 {
+		panic('Striped64#internal_reset requires a value')
+	}
+	mut striped := striped64_from_args(args)
+	striped.internal_reset(args[1].as_int() or { panic(err) })
+	return striped64_nil_value()
 }
 
 // Ruby method `cas_base_computed` at line 195.
 pub fn ruby_striped64_l195_d37_cas_base_computed(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cas_base_computed', ...args)
+	if args.len < 2 {
+		panic('Striped64#cas_base_computed requires a translated computed value')
+	}
+	mut striped := striped64_from_args(args)
+	current := striped.base_value()
+	return brew_runtime.bool_value(striped.compare_and_set_base(current, args[1].as_int() or { panic(err) }))
 }
 
 // Ruby method `free?` at line 199.
 pub fn ruby_striped64_l199_d38_free(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('free?', ...args)
+	mut striped := striped64_from_args(args)
+	return brew_runtime.bool_value(striped.is_free())
 }
 
 // Ruby method `try_initialize_cells(x, hash)` at line 203.
 pub fn ruby_striped64_l203_d39_try_initialize_cells(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('try_initialize_cells', ...args)
+	if args.len < 3 {
+		panic('Striped64#try_initialize_cells requires value and hash')
+	}
+	mut striped := striped64_from_args(args)
+	return brew_runtime.bool_value(striped.try_initialize_cells(args[1].as_int() or { panic(err) }, args[2].as_int() or { panic(err) }) or { panic(err) })
 }
 
 // Ruby method `expand_table_unless_stale(current_cells)` at line 215.
 pub fn ruby_striped64_l215_d40_expand_table_unless_stale(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('expand_table_unless_stale', ...args)
+	if args.len < 2 {
+		panic('Striped64#expand_table_unless_stale requires a table')
+	}
+	mut striped := striped64_from_args(args)
+	address := striped64_table_address(args[1])
+	if address == 0 {
+		return brew_runtime.bool_value(false)
+	}
+	return brew_runtime.bool_value(striped.expand_table_unless_stale(unsafe {
+		&Striped64CellTable(voidptr(address))
+	}) or { panic(err) })
 }
 
 // Ruby method `try_to_install_new_cell(new_cell, hash)` at line 225.
 pub fn ruby_striped64_l225_d41_try_to_install_new_cell(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('try_to_install_new_cell', ...args)
+	if args.len < 3 {
+		panic('Striped64#try_to_install_new_cell requires cell and hash')
+	}
+	mut striped := striped64_from_args(args)
+	return brew_runtime.bool_value(striped.try_to_install_new_cell(striped64_cell_from_value(args[1]), args[2].as_int() or { panic(err) }) or { panic(err) })
 }
 
 // Ruby method `try_in_busy` at line 234.
 pub fn ruby_striped64_l234_d42_try_in_busy(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('try_in_busy', ...args)
+	mut striped := striped64_from_args(args)
+	if !striped.compare_and_set_busy(false, true) {
+		return brew_runtime.bool_value(false)
+	}
+	striped.set_busy(false)
+	return brew_runtime.bool_value(true)
 }
 
 // Original Ruby source (line-for-line):

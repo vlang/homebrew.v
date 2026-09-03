@@ -4,10 +4,51 @@ import brew_runtime
 
 // Translated from Homebrew/brew `cmd/unpin.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub fn unpin_packages(mut packages []PinPackageState) PinCommandResult {
+	mut warnings := []string{}
+	mut failures := []string{}
+	for package_kind in [PinPackageKind.formula, .cask] {
+		for mut package in packages {
+			if package.kind != package_kind {
+				continue
+			}
+			if package.pinned || (package.kind == .cask && package.pin_symlink) {
+				package.unpin()
+			} else if !package.installed || !package.pinnable {
+				failures << '${package.full_name} not installed'
+			} else {
+				warnings << '${package.full_name} not pinned'
+			}
+		}
+	}
+	return PinCommandResult{
+		warnings: warnings
+		failures: failures
+	}
+}
 
 // Ruby method `run` at line 28.
 pub fn ruby_unpin_l28_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('run', ...args)
+	mut packages := pin_boundary_packages(args)
+	result := unpin_packages(mut packages)
+	return unpin_command_result_value(result, packages)
+}
+
+fn unpin_command_result_value(result PinCommandResult, packages []PinPackageState) brew_runtime.Value {
+	mut messages := result.warnings.clone()
+	messages << result.failures
+	return brew_runtime.Value{
+		type_name: 'UnpinCommandResult'
+		repr: messages.join('\n')
+		map_data: {
+			'warnings': brew_runtime.string_array_value(result.warnings)
+			'failures': brew_runtime.string_array_value(result.failures)
+			'packages': brew_runtime.array_value(packages.map(pin_package_value(it)))
+		}
+		attributes: {
+			'failed': result.failed().str()
+		}
+	}
 }
 
 // Original Ruby source (line-for-line):

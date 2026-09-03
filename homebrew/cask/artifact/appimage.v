@@ -1,18 +1,85 @@
 module artifact
 
 import brew_runtime
+import os
 
 // Translated from Homebrew/brew `cask/artifact/appimage.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub struct ExecutableArtifactLinkResult {
+pub:
+	source             string
+	already_executable bool
+	chmod_applied      bool
+	sudo_required      bool
+	command_arguments  []string
+}
+
+pub fn resolve_appimage_target(appimagedir string, target string) string {
+	return os.join_path(appimagedir, target)
+}
+
+// link_executable_artifact performs the post-link executable repair shared by
+// AppImage and Binary. Non-writable sources return the exact sudo chmod plan so
+// callers can execute it through their SystemCommand boundary.
+pub fn link_executable_artifact(source string) !ExecutableArtifactLinkResult {
+	if !os.exists(source) {
+		return error('artifact source does not exist: ${source}')
+	}
+	if os.is_executable(source) {
+		return ExecutableArtifactLinkResult{
+			source: source
+			already_executable: true
+		}
+	}
+	if !os.is_writable(source) {
+		return ExecutableArtifactLinkResult{
+			source: source
+			sudo_required: true
+			command_arguments: ['+x', source]
+		}
+	}
+	mode := int(os.stat(source)!.get_mode().bitmask())
+	os.chmod(source, mode | 0o111)!
+	return ExecutableArtifactLinkResult{
+		source: source
+		chmod_applied: true
+		command_arguments: ['+x', source]
+	}
+}
+
+fn executable_artifact_link_value(result ExecutableArtifactLinkResult) brew_runtime.Value {
+	return brew_runtime.Value{
+		type_name: 'ExecutableArtifactLinkResult'
+		repr: result.source
+		attributes: {
+			'source':             result.source
+			'already_executable': result.already_executable.str()
+			'chmod_applied':      result.chmod_applied.str()
+			'sudo_required':      result.sudo_required.str()
+		}
+		map_data: {
+			'command_arguments': brew_runtime.string_array_value(result.command_arguments)
+		}
+	}
+}
 
 // Ruby method `resolve_target(target, base_dir: nil)` at line 11.
 pub fn ruby_appimage_l11_d1_resolve_target(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('resolve_target', ...args)
+	if args.len < 2 {
+		return brew_runtime.object_value('ArgumentError', 'AppImage#resolve_target requires target and appimagedir')
+	}
+	return brew_runtime.string_value(resolve_appimage_target(args[1].as_string(), args[0].as_string()))
 }
 
 // Ruby method `link(force: false, adopt: false, command: SystemCommand, **_options)` at line 23.
 pub fn ruby_appimage_l23_d2_link(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('link', ...args)
+	if args.len == 0 {
+		return brew_runtime.object_value('ArgumentError', 'AppImage#link requires a source')
+	}
+	result := link_executable_artifact(args[0].as_string()) or {
+		return brew_runtime.object_value('CaskError', err.msg())
+	}
+	return executable_artifact_link_value(result)
 }
 
 // Original Ruby source (line-for-line):

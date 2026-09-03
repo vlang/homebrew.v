@@ -4,40 +4,130 @@ import brew_runtime
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/sorbet-runtime-0.6.13412/lib/types/types/proc.rb`.
 // The original source is retained below until every stub has a typed V body.
+@[heap]
+pub struct ProcType {
+pub:
+	arg_types    map[string]brew_runtime.Value
+	returns_type brew_runtime.Value
+}
+
+pub fn new_proc_type(arg_types map[string]brew_runtime.Value, returns_type brew_runtime.Value) &ProcType {
+	return &ProcType{
+		arg_types: arg_types.clone()
+		returns_type: returns_type
+	}
+}
+
+fn proc_type_name(value brew_runtime.Value) string {
+	return value.attribute('name') or { value.as_string() }
+}
+
+fn proc_type_subtype(left brew_runtime.Value, right brew_runtime.Value) bool {
+	left_name := proc_type_name(left)
+	right_name := proc_type_name(right)
+	if left_name == right_name || right_name in ['T.anything', 'T.untyped'] {
+		return true
+	}
+	supertypes := left.attribute('supertypes') or { return false }
+	return supertypes.split(',').map(it.trim_space()).any(it == right_name)
+}
+
+pub fn (_ &ProcType) build_type() brew_runtime.Value {
+	return brew_runtime.object_value('NilClass', 'nil')
+}
+
+pub fn (proc_type &ProcType) name() string {
+	mut args := []string{}
+	for key, value in proc_type.arg_types {
+		args << '${key}: ${proc_type_name(value)}'
+	}
+	return 'T.proc.params(${args.join(', ')}).returns(${proc_type_name(proc_type.returns_type)})'
+}
+
+pub fn (_ &ProcType) valid(value brew_runtime.Value) bool {
+	return value.type_name == 'Proc'
+}
+
+pub fn (proc_type &ProcType) subtype_of_single(other &ProcType) bool {
+	if proc_type.arg_types.len != other.arg_types.len {
+		return false
+	}
+	left_values := proc_type.arg_types.values()
+	right_values := other.arg_types.values()
+	for index, left in left_values {
+		// Proc parameters are contravariant.
+		if !proc_type_subtype(right_values[index], left) {
+			return false
+		}
+	}
+	// Proc return values are covariant.
+	return proc_type_subtype(proc_type.returns_type, other.returns_type)
+}
+
+fn proc_type_value(proc_type &ProcType) brew_runtime.Value {
+	return brew_runtime.Value{
+		type_name: 'T::Types::Proc'
+		repr: proc_type.name()
+		map_data: {
+			'arg_types': brew_runtime.map_value(proc_type.arg_types)
+			'returns':   proc_type.returns_type
+		}
+		attributes: {
+			'proc_type_address': u64(voidptr(proc_type)).str()
+		}
+	}
+}
+
+fn proc_type_from_args(args []brew_runtime.Value) &ProcType {
+	if args.len == 0 {
+		panic('Proc type method requires a receiver')
+	}
+	address := args[0].attribute('proc_type_address') or { panic('invalid Proc type receiver') }
+	return unsafe { &ProcType(voidptr(address.u64())) }
+}
 
 // Ruby method `initialize(arg_types, returns)` at line 11.
 pub fn ruby_proc_l11_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	if args.len < 2 {
+		panic('Proc#initialize requires argument and return types')
+	}
+	return proc_type_value(new_proc_type(args[0].as_map() or { panic(err.msg()) }, args[1]))
 }
 
 // Ruby method `arg_types` at line 16.
 pub fn ruby_proc_l16_d2_arg_types(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('arg_types', ...args)
+	return brew_runtime.map_value(proc_type_from_args(args).arg_types)
 }
 
 // Ruby method `returns` at line 22.
 pub fn ruby_proc_l22_d3_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	return proc_type_from_args(args).returns_type
 }
 
 // Ruby method `build_type` at line 26.
 pub fn ruby_proc_l26_d4_build_type(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('build_type', ...args)
+	return proc_type_from_args(args).build_type()
 }
 
 // Ruby method `name` at line 33.
 pub fn ruby_proc_l33_d5_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('name', ...args)
+	return brew_runtime.string_value(proc_type_from_args(args).name())
 }
 
 // Ruby method `valid?(obj)` at line 42.
 pub fn ruby_proc_l42_d6_valid(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('valid?', ...args)
+	if args.len < 2 {
+		panic('Proc#valid? requires an object')
+	}
+	return brew_runtime.bool_value(proc_type_from_args(args).valid(args[1]))
 }
 
 // Ruby method `subtype_of_single?(other)` at line 47.
 pub fn ruby_proc_l47_d7_subtype_of_single(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('subtype_of_single?', ...args)
+	if args.len < 2 || args[1].type_name != 'T::Types::Proc' {
+		return brew_runtime.bool_value(false)
+	}
+	return brew_runtime.bool_value(proc_type_from_args(args).subtype_of_single(proc_type_from_args(args[1..])))
 }
 
 // Original Ruby source (line-for-line):

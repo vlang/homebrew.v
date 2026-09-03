@@ -1,423 +1,868 @@
 module utils
 
-import brew_runtime
+import os
+import homebrew.utils as spdx
+
+type SpdxLicenseExpression = spdx.SpdxLicenseExpression
+
+type SpdxLicenseToken = spdx.SpdxLicenseToken
+
+type SpdxLicenseVersionInfo = spdx.SpdxLicenseVersionInfo
+
+type SpdxParsedExpression = spdx.SpdxParsedExpression
+
+const spdx_licenseref_prefix = 'LicenseRef-Homebrew-'
+
+fn spdx_license_data() !spdx.SpdxLicenseData {
+	return spdx.spdx_license_data()
+}
+
+fn spdx_exception_data() !spdx.SpdxExceptionData {
+	return spdx.spdx_exception_data()
+}
+
+fn download_latest_spdx_license_data(destination string) ! {
+	spdx.download_latest_spdx_license_data(destination)!
+}
+
+fn spdx_license(value string) SpdxLicenseExpression {
+	return spdx.spdx_license(value)
+}
+
+fn spdx_symbol(value string) SpdxLicenseExpression {
+	return spdx.spdx_symbol(value)
+}
+
+fn spdx_any_of(children []SpdxLicenseExpression) SpdxLicenseExpression {
+	return spdx.spdx_any_of(children)
+}
+
+fn spdx_all_of(children []SpdxLicenseExpression) SpdxLicenseExpression {
+	return spdx.spdx_all_of(children)
+}
+
+fn spdx_license_with_exception(license string, exception string) SpdxLicenseExpression {
+	return spdx.spdx_license_with_exception(license, exception)
+}
+
+fn spdx_license_token(value string) SpdxLicenseToken {
+	return spdx.spdx_license_token(value)
+}
+
+fn spdx_symbol_token(value string) SpdxLicenseToken {
+	return spdx.spdx_symbol_token(value)
+}
+
+fn parse_spdx_license_expression(expression SpdxLicenseExpression) SpdxParsedExpression {
+	return spdx.parse_spdx_license_expression(expression)
+}
+
+fn valid_spdx_license(license SpdxLicenseToken) !bool {
+	return spdx.valid_spdx_license(license)
+}
+
+fn deprecated_spdx_license(license SpdxLicenseToken) !bool {
+	return spdx.deprecated_spdx_license(license)
+}
+
+fn valid_spdx_license_exception(exception string) !bool {
+	return spdx.valid_spdx_license_exception(exception)
+}
+
+fn spdx_license_expression_to_string(expression SpdxLicenseExpression, bracket bool) string {
+	return spdx.spdx_license_expression_to_string(expression, bracket)
+}
+
+fn string_to_spdx_license_expression(value string) ?SpdxLicenseExpression {
+	return spdx.string_to_spdx_license_expression(value)
+}
+
+fn truncate_spdx_license(license string, limit int) string {
+	return spdx.truncate_spdx_license(license, limit)
+}
+
+fn spdx_license_version_info(license SpdxLicenseToken) SpdxLicenseVersionInfo {
+	return spdx.spdx_license_version_info(license)
+}
+
+fn spdx_forbidden_license_map(licenses []SpdxLicenseToken) map[string]SpdxLicenseVersionInfo {
+	return spdx.spdx_forbidden_license_map(licenses)
+}
+
+fn spdx_licenses_forbid_installation(expression SpdxLicenseExpression,
+	forbidden map[string]SpdxLicenseVersionInfo) bool {
+	return spdx.spdx_licenses_forbid_installation(expression, forbidden)
+}
+
+fn forbidden_spdx_licenses_include(license SpdxLicenseToken,
+	forbidden map[string]SpdxLicenseVersionInfo) bool {
+	return spdx.forbidden_spdx_licenses_include(license, forbidden)
+}
 
 // Translated from Homebrew/brew `test/utils/spdx_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+fn spdx_spec_token_values(parsed SpdxParsedExpression) []string {
+	mut values := []string{}
+	for token in parsed.licenses {
+		values << if token.symbol { ':${token.value}' } else { token.value }
+	}
+	return values
+}
+
+fn spdx_spec_expression_shape(expression SpdxLicenseExpression) string {
+	match expression.kind {
+		.identifier {
+			return expression.value
+		}
+		.symbol {
+			return ':${expression.value}'
+		}
+		.with_exception {
+			return '${expression.value} WITH ${expression.exception}'
+		}
+		.any_of, .all_of {
+			mut children := []string{}
+			for child in expression.children {
+				children << spdx_spec_expression_shape(child)
+			}
+			kind := if expression.kind == .any_of { 'any' } else { 'all' }
+			return '${kind}(${children.join(',')})'
+		}
+	}
+}
+
+fn spdx_spec_forbidden(values ...string) map[string]SpdxLicenseVersionInfo {
+	mut tokens := []SpdxLicenseToken{}
+	for value in values {
+		tokens << spdx_license_token(value)
+	}
+	return spdx_forbidden_license_map(tokens)
+}
+
+fn spdx_spec_mit_forbidden() map[string]SpdxLicenseVersionInfo {
+	return spdx_spec_forbidden('MIT')
+}
+
+fn spdx_spec_epl_1_forbidden() map[string]SpdxLicenseVersionInfo {
+	return spdx_spec_forbidden('EPL-1.0')
+}
+
+fn spdx_spec_epl_1_plus_forbidden() map[string]SpdxLicenseVersionInfo {
+	return spdx_spec_forbidden('EPL-1.0+')
+}
+
+fn spdx_spec_multiple_forbidden() map[string]SpdxLicenseVersionInfo {
+	return spdx_spec_forbidden('MIT', '0BSD')
+}
+
+fn spdx_spec_any_of_license() SpdxLicenseExpression {
+	return spdx_any_of([spdx_license('MIT'), spdx_license('0BSD')])
+}
+
+fn spdx_spec_all_of_license() SpdxLicenseExpression {
+	return spdx_all_of([spdx_license('MIT'), spdx_license('0BSD')])
+}
+
+fn spdx_spec_nested_licenses() SpdxLicenseExpression {
+	return spdx_any_of([
+		spdx_license('MIT'),
+		spdx_license_with_exception('MIT', 'LLVM-exception'),
+		spdx_any_of([spdx_license('MIT'), spdx_license('0BSD')]),
+	])
+}
+
+fn spdx_spec_license_exception() SpdxLicenseExpression {
+	return spdx_license_with_exception('MIT', 'LLVM-exception')
+}
+
+fn spdx_spec_result(spec int) !bool {
+	match spec {
+		1 {
+			return spdx_license_data()!.license_list_version != ''
+		}
+		2 {
+			return spdx_license_data()!.release_date != ''
+		}
+		3 {
+			return spdx_license_data()!.licenses.len > 0
+		}
+		4 {
+			return spdx_exception_data()!.license_list_version != ''
+		}
+		5 {
+			return spdx_exception_data()!.release_date != ''
+		}
+		6 {
+			return spdx_exception_data()!.exceptions.len > 0
+		}
+		9 {
+			return spdx_spec_token_values(parse_spdx_license_expression(spdx_license('MIT'))) == [
+				'MIT',
+			] && spdx_spec_token_values(parse_spdx_license_expression(spdx_license('Apache-2.0+'))) == [
+				'Apache-2.0+',
+			] && spdx_spec_token_values(parse_spdx_license_expression(spdx_spec_any_of_license())) == [
+				'MIT',
+				'0BSD',
+			] && spdx_spec_token_values(parse_spdx_license_expression(spdx_spec_all_of_license())) == [
+				'MIT',
+				'0BSD',
+			] && spdx_spec_token_values(parse_spdx_license_expression(spdx_any_of([
+				spdx_license('MIT'),
+				spdx_license('EPL-1.0+'),
+			]))) == ['MIT', 'EPL-1.0+'] && spdx_spec_token_values(parse_spdx_license_expression(spdx_all_of([
+				spdx_license('MIT'),
+				spdx_license('EPL-1.0+'),
+			]))) == ['MIT', 'EPL-1.0+'] && spdx_spec_token_values(parse_spdx_license_expression(spdx_symbol('public_domain'))) == [
+				':public_domain',
+			] && spdx_spec_token_values(parse_spdx_license_expression(spdx_symbol('cannot_represent'))) == [
+				':cannot_represent',
+			]
+		}
+		10 {
+			parsed := parse_spdx_license_expression(spdx_spec_license_exception())
+			return spdx_spec_token_values(parsed) == ['MIT'] && parsed.exceptions == [
+				'LLVM-exception',
+			]
+		}
+		11 {
+			parsed := parse_spdx_license_expression(spdx_any_of([
+				spdx_license('MIT'),
+				spdx_symbol('public_domain'),
+				spdx_license_with_exception('curl', 'LLVM-exception'),
+				spdx_all_of([spdx_license('0BSD'), spdx_license('Zlib')]),
+			]))
+			return spdx_spec_token_values(parsed) == ['MIT', ':public_domain', 'curl', '0BSD', 'Zlib'] && parsed.exceptions == [
+				'LLVM-exception',
+			]
+		}
+		12 {
+			return valid_spdx_license(spdx_license_token('MIT'))!
+		}
+		13 {
+			return !valid_spdx_license(spdx_license_token('foo'))!
+		}
+		14 {
+			return valid_spdx_license(spdx_license_token('GPL-1.0'))!
+		}
+		15 {
+			return valid_spdx_license(spdx_license_token('Apache-2.0+'))!
+		}
+		16 {
+			return valid_spdx_license(spdx_symbol_token('public_domain'))!
+		}
+		17 {
+			return valid_spdx_license(spdx_symbol_token('cannot_represent'))!
+		}
+		18 {
+			return !valid_spdx_license(spdx_symbol_token('invalid_symbol'))!
+		}
+		19 {
+			return deprecated_spdx_license(spdx_license_token('GPL-1.0'))!
+		}
+		20 {
+			return deprecated_spdx_license(spdx_license_token('GPL-1.0+'))!
+		}
+		21 {
+			return !deprecated_spdx_license(spdx_license_token('MIT'))!
+		}
+		22 {
+			return !deprecated_spdx_license(spdx_license_token('EPL-1.0+'))!
+		}
+		23 {
+			return !deprecated_spdx_license(spdx_license_token('foo'))!
+		}
+		24 {
+			return !deprecated_spdx_license(spdx_symbol_token('public_domain'))!
+		}
+		25 {
+			return !deprecated_spdx_license(spdx_symbol_token('cannot_represent'))!
+		}
+		26 {
+			return valid_spdx_license_exception('LLVM-exception')!
+		}
+		27 {
+			return !valid_spdx_license_exception('foo')!
+		}
+		28 {
+			return !valid_spdx_license_exception('Nokia-Qt-exception-1.1')!
+		}
+		29 {
+			return spdx_license_expression_to_string(spdx_license('MIT'), false) == 'MIT'
+		}
+		30 {
+			return spdx_license_expression_to_string(spdx_license('Apache-2.0+'), false) == 'Apache-2.0+'
+		}
+		31 {
+			return spdx_license_expression_to_string(spdx_spec_any_of_license(), false) == 'MIT OR 0BSD'
+		}
+		32 {
+			return spdx_license_expression_to_string(spdx_spec_all_of_license(), false) == 'MIT AND 0BSD'
+		}
+		33 {
+			return spdx_license_expression_to_string(spdx_any_of([spdx_license('MIT'),
+				spdx_license('EPL-1.0+')]), false) == 'MIT OR EPL-1.0+'
+		}
+		34 {
+			return spdx_license_expression_to_string(spdx_spec_license_exception(), false) == 'MIT WITH LLVM-exception'
+		}
+		35 {
+			expression := spdx_any_of([
+				spdx_license('MIT'),
+				spdx_symbol('public_domain'),
+				spdx_all_of([spdx_license('0BSD'), spdx_license('Zlib')]),
+				spdx_license_with_exception('curl', 'LLVM-exception'),
+			])
+			return spdx_license_expression_to_string(expression, false) == 'MIT OR LicenseRef-Homebrew-public-domain OR (0BSD AND Zlib) OR (curl WITH LLVM-exception)'
+		}
+		36 {
+			return spdx_license_expression_to_string(spdx_symbol('public_domain'), false) == 'LicenseRef-Homebrew-public-domain'
+		}
+		37 {
+			return spdx_license_expression_to_string(spdx_symbol('cannot_represent'), false) == 'LicenseRef-Homebrew-cannot-represent'
+		}
+		38 {
+			return truncate_spdx_license('MIT AND Apache-2.0', 255) == 'MIT AND Apache-2.0'
+		}
+		39 {
+			return truncate_spdx_license('MIT AND Apache-2.0 AND BSD-3-Clause AND GPL-2.0-only', 40) == 'MIT AND LicenseRef-Homebrew-truncated'
+		}
+		40 {
+			return truncate_spdx_license('MIT OR Apache-2.0 OR BSD-3-Clause OR GPL-2.0-only', 40) == 'LicenseRef-Homebrew-cannot-represent'
+		}
+		41 {
+			return truncate_spdx_license('Apache-2.0 AND MIT AND BSD-3-Clause AND ISC', 20) == 'LicenseRef-Homebrew-cannot-represent'
+		}
+		42, 43 {
+			input := if spec == 42 {
+				'Apache-2.0 and (Apache-2.0 with LLVM-exception) and (MIT or NCSA)'
+			} else {
+				'Apache-2.0 AND (Apache-2.0 WITH LLVM-exception) AND (MIT OR NCSA)'
+			}
+			expression := string_to_spdx_license_expression(input) or { return false }
+			return spdx_spec_expression_shape(expression) == 'all(Apache-2.0,Apache-2.0 WITH LLVM-exception,any(MIT,NCSA))'
+		}
+		44 {
+			expression := string_to_spdx_license_expression('A AND (B OR (C AND D))') or {
+				return false
+			}
+			return spdx_spec_expression_shape(expression) == 'all(A,any(B,all(C,D)))'
+		}
+		45, 46 {
+			name := if spec == 45 { 'public_domain' } else { 'cannot_represent' }
+			expression := string_to_spdx_license_expression('${spdx_licenseref_prefix}${name.replace('_', '-')}') or {
+				return false
+			}
+			return spdx_spec_expression_shape(expression) == ':${name}'
+		}
+		47 {
+			return !spdx_license_version_info(spdx_license_token('MIT')).has_version
+		}
+		48 {
+			return !spdx_license_version_info(spdx_symbol_token('public_domain')).has_version
+		}
+		49, 50, 51, 52, 53, 54 {
+			license := match spec {
+				49 { 'Apache-2.0' }
+				50 { 'Apache-2.0+' }
+				51 { 'CC-BY-3.0-AT' }
+				52 { 'CC-BY-3.0-AT+' }
+				53 { 'GPL-3.0-only' }
+				else { 'GPL-3.0-or-later' }
+			}
+			info := spdx_license_version_info(spdx_license_token(license))
+			expected_name := if spec in [49, 50] {
+				'Apache'
+			} else if spec in [51, 52] { 'CC-BY' } else { 'GPL' }
+			expected_version := if spec in [49, 50] { '2.0' } else { '3.0' }
+			return info.name == expected_name && info.version == expected_version && info.or_later == (spec in [
+				50,
+				52,
+				54,
+			])
+		}
+		63 {
+			return !spdx_licenses_forbid_installation(spdx_license('MIT'), map[string]SpdxLicenseVersionInfo{})
+		}
+		64 {
+			return !spdx_licenses_forbid_installation(spdx_license('0BSD'), spdx_spec_mit_forbidden())
+		}
+		65 {
+			return spdx_licenses_forbid_installation(spdx_license('MIT'), spdx_spec_mit_forbidden())
+		}
+		66 {
+			return !spdx_licenses_forbid_installation(spdx_license('EPL-2.0'), spdx_spec_epl_1_forbidden())
+		}
+		67 {
+			return spdx_licenses_forbid_installation(spdx_license('EPL-2.0'), spdx_spec_epl_1_plus_forbidden())
+		}
+		68 {
+			return !spdx_licenses_forbid_installation(spdx_spec_any_of_license(), spdx_spec_mit_forbidden())
+		}
+		69 {
+			return spdx_licenses_forbid_installation(spdx_spec_any_of_license(), spdx_spec_multiple_forbidden())
+		}
+		70 {
+			return spdx_licenses_forbid_installation(spdx_spec_all_of_license(), spdx_spec_mit_forbidden())
+		}
+		71 {
+			return !spdx_licenses_forbid_installation(spdx_spec_license_exception(), spdx_spec_epl_1_forbidden())
+		}
+		72 {
+			return spdx_licenses_forbid_installation(spdx_spec_license_exception(), spdx_spec_mit_forbidden())
+		}
+		73 {
+			return !spdx_licenses_forbid_installation(spdx_spec_nested_licenses(), spdx_spec_epl_1_forbidden())
+		}
+		74 {
+			return !spdx_licenses_forbid_installation(spdx_spec_nested_licenses(), spdx_spec_mit_forbidden())
+		}
+		75 {
+			return spdx_licenses_forbid_installation(spdx_spec_nested_licenses(), spdx_spec_multiple_forbidden())
+		}
+		79 {
+			return !forbidden_spdx_licenses_include(spdx_license_token('MIT'), map[string]SpdxLicenseVersionInfo{})
+		}
+		80 {
+			return !forbidden_spdx_licenses_include(spdx_license_token('MIT'), spdx_spec_epl_1_forbidden())
+		}
+		81 {
+			return forbidden_spdx_licenses_include(spdx_license_token('MIT'), spdx_spec_mit_forbidden())
+		}
+		82 {
+			return !forbidden_spdx_licenses_include(spdx_license_token('EPL-2.0'), spdx_spec_epl_1_forbidden())
+		}
+		83 {
+			return forbidden_spdx_licenses_include(spdx_license_token('EPL-2.0'), spdx_spec_epl_1_plus_forbidden())
+		}
+		else {
+			return error('unknown SPDX spec ${spec}')
+		}
+	}
+}
 
 // Ruby it `it "has the license list version" do` at line 8.
-pub fn ruby_spdx_spec_l8_d1_has(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('has', ...args)
+pub fn ruby_spdx_spec_l8_d1_has() !bool {
+	return spdx_spec_result(1)
 }
 
 // Ruby it `it "has the release date" do` at line 12.
-pub fn ruby_spdx_spec_l12_d2_has(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('has', ...args)
+pub fn ruby_spdx_spec_l12_d2_has() !bool {
+	return spdx_spec_result(2)
 }
 
 // Ruby it `it "has licenses" do` at line 16.
-pub fn ruby_spdx_spec_l16_d3_has(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('has', ...args)
+pub fn ruby_spdx_spec_l16_d3_has() !bool {
+	return spdx_spec_result(3)
 }
 
 // Ruby it `it "has the license list version" do` at line 22.
-pub fn ruby_spdx_spec_l22_d4_has(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('has', ...args)
+pub fn ruby_spdx_spec_l22_d4_has() !bool {
+	return spdx_spec_result(4)
 }
 
 // Ruby it `it "has the release date" do` at line 26.
-pub fn ruby_spdx_spec_l26_d5_has(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('has', ...args)
+pub fn ruby_spdx_spec_l26_d5_has() !bool {
+	return spdx_spec_result(5)
 }
 
 // Ruby it `it "has exceptions" do` at line 30.
-pub fn ruby_spdx_spec_l30_d6_has(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('has', ...args)
+pub fn ruby_spdx_spec_l30_d6_has() !bool {
+	return spdx_spec_result(6)
 }
 
 // Ruby let `let(:download_dir) { mktmpdir }` at line 36.
-pub fn ruby_spdx_spec_l36_d7_download_dir(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('download_dir', ...args)
+pub fn ruby_spdx_spec_l36_d7_download_dir() !string {
+	directory := os.join_path(os.temp_dir(), 'homebrew-spdx-spec-${os.getpid()}')
+	if os.exists(directory) {
+		os.rmdir_all(directory)!
+	}
+	os.mkdir_all(directory)!
+	return directory
 }
 
 // Ruby it `it "downloads latest license data" do` at line 38.
-pub fn ruby_spdx_spec_l38_d8_downloads(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('downloads', ...args)
+pub fn ruby_spdx_spec_l38_d8_downloads() !bool {
+	directory := ruby_spdx_spec_l36_d7_download_dir()!
+	defer {
+		os.rmdir_all(directory) or {}
+	}
+	download_latest_spdx_license_data(directory)!
+	return os.exists(os.join_path(directory, 'spdx_licenses.json')) && os.exists(os.join_path(directory, 'spdx_exceptions.json'))
 }
 
 // Ruby specify `specify do` at line 46.
-pub fn ruby_spdx_spec_l46_d9_do(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('do', ...args)
+pub fn ruby_spdx_spec_l46_d9_do() !bool {
+	return spdx_spec_result(9)
 }
 
 // Ruby it `it "returns license and exception" do` at line 57.
-pub fn ruby_spdx_spec_l57_d10_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_spdx_spec_l57_d10_returns() !bool {
+	return spdx_spec_result(10)
 }
 
 // Ruby it `it "returns licenses and exceptions for complex license expressions" do` at line 62.
-pub fn ruby_spdx_spec_l62_d11_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_spdx_spec_l62_d11_returns() !bool {
+	return spdx_spec_result(11)
 }
 
 // Ruby it `it "returns true for valid license identifier" do` at line 78.
-pub fn ruby_spdx_spec_l78_d12_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_spdx_spec_l78_d12_returns() !bool {
+	return spdx_spec_result(12)
 }
 
 // Ruby it `it "returns false for invalid license identifier" do` at line 82.
-pub fn ruby_spdx_spec_l82_d13_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_spdx_spec_l82_d13_returns() !bool {
+	return spdx_spec_result(13)
 }
 
 // Ruby it `it "returns true for deprecated license identifier" do` at line 86.
-pub fn ruby_spdx_spec_l86_d14_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_spdx_spec_l86_d14_returns() !bool {
+	return spdx_spec_result(14)
 }
 
 // Ruby it `it "returns true for license identifier with plus" do` at line 90.
-pub fn ruby_spdx_spec_l90_d15_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_spdx_spec_l90_d15_returns() !bool {
+	return spdx_spec_result(15)
 }
 
 // Ruby it `it "returns true for :public_domain" do` at line 94.
-pub fn ruby_spdx_spec_l94_d16_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_spdx_spec_l94_d16_returns() !bool {
+	return spdx_spec_result(16)
 }
 
 // Ruby it `it "returns true for :cannot_represent" do` at line 98.
-pub fn ruby_spdx_spec_l98_d17_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_spdx_spec_l98_d17_returns() !bool {
+	return spdx_spec_result(17)
 }
 
 // Ruby it `it "returns false for invalid symbol" do` at line 102.
-pub fn ruby_spdx_spec_l102_d18_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_spdx_spec_l102_d18_returns() !bool {
+	return spdx_spec_result(18)
 }
 
 // Ruby it `it "returns true for deprecated license identifier" do` at line 108.
-pub fn ruby_spdx_spec_l108_d19_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_spdx_spec_l108_d19_returns() !bool {
+	return spdx_spec_result(19)
 }
 
 // Ruby it `it "returns true for deprecated license identifier with plus" do` at line 112.
-pub fn ruby_spdx_spec_l112_d20_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_spdx_spec_l112_d20_returns() !bool {
+	return spdx_spec_result(20)
 }
 
 // Ruby it `it "returns false for non-deprecated license identifier" do` at line 116.
-pub fn ruby_spdx_spec_l116_d21_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_spdx_spec_l116_d21_returns() !bool {
+	return spdx_spec_result(21)
 }
 
 // Ruby it `it "returns false for non-deprecated license identifier with plus" do` at line 120.
-pub fn ruby_spdx_spec_l120_d22_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_spdx_spec_l120_d22_returns() !bool {
+	return spdx_spec_result(22)
 }
 
 // Ruby it `it "returns false for invalid license identifier" do` at line 124.
-pub fn ruby_spdx_spec_l124_d23_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_spdx_spec_l124_d23_returns() !bool {
+	return spdx_spec_result(23)
 }
 
 // Ruby it `it "returns false for :public_domain" do` at line 128.
-pub fn ruby_spdx_spec_l128_d24_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_spdx_spec_l128_d24_returns() !bool {
+	return spdx_spec_result(24)
 }
 
 // Ruby it `it "returns false for :cannot_represent" do` at line 132.
-pub fn ruby_spdx_spec_l132_d25_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_spdx_spec_l132_d25_returns() !bool {
+	return spdx_spec_result(25)
 }
 
 // Ruby it `it "returns true for valid license exception identifier" do` at line 138.
-pub fn ruby_spdx_spec_l138_d26_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_spdx_spec_l138_d26_returns() !bool {
+	return spdx_spec_result(26)
 }
 
 // Ruby it `it "returns false for invalid license exception identifier" do` at line 142.
-pub fn ruby_spdx_spec_l142_d27_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_spdx_spec_l142_d27_returns() !bool {
+	return spdx_spec_result(27)
 }
 
 // Ruby it `it "returns false for deprecated license exception identifier" do` at line 146.
-pub fn ruby_spdx_spec_l146_d28_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_spdx_spec_l146_d28_returns() !bool {
+	return spdx_spec_result(28)
 }
 
 // Ruby it `it "returns a single license" do` at line 152.
-pub fn ruby_spdx_spec_l152_d29_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_spdx_spec_l152_d29_returns() !bool {
+	return spdx_spec_result(29)
 }
 
 // Ruby it `it "returns a single license with plus" do` at line 156.
-pub fn ruby_spdx_spec_l156_d30_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_spdx_spec_l156_d30_returns() !bool {
+	return spdx_spec_result(30)
 }
 
 // Ruby it `it "returns multiple licenses with :any" do` at line 160.
-pub fn ruby_spdx_spec_l160_d31_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_spdx_spec_l160_d31_returns() !bool {
+	return spdx_spec_result(31)
 }
 
 // Ruby it `it "returns multiple licenses with :all" do` at line 164.
-pub fn ruby_spdx_spec_l164_d32_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_spdx_spec_l164_d32_returns() !bool {
+	return spdx_spec_result(32)
 }
 
 // Ruby it `it "returns multiple licenses with plus" do` at line 168.
-pub fn ruby_spdx_spec_l168_d33_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_spdx_spec_l168_d33_returns() !bool {
+	return spdx_spec_result(33)
 }
 
 // Ruby it `it "returns license and exception" do` at line 172.
-pub fn ruby_spdx_spec_l172_d34_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_spdx_spec_l172_d34_returns() !bool {
+	return spdx_spec_result(34)
 }
 
 // Ruby it `it "returns licenses and exceptions for complex license expressions" do` at line 177.
-pub fn ruby_spdx_spec_l177_d35_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_spdx_spec_l177_d35_returns() !bool {
+	return spdx_spec_result(35)
 }
 
 // Ruby it `it "returns :public_domain" do` at line 191.
-pub fn ruby_spdx_spec_l191_d36_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_spdx_spec_l191_d36_returns() !bool {
+	return spdx_spec_result(36)
 }
 
 // Ruby it `it "returns :cannot_represent" do` at line 195.
-pub fn ruby_spdx_spec_l195_d37_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_spdx_spec_l195_d37_returns() !bool {
+	return spdx_spec_result(37)
 }
 
 // Ruby it `it "returns the license unchanged when within the limit" do` at line 202.
-pub fn ruby_spdx_spec_l202_d38_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_spdx_spec_l202_d38_returns() !bool {
+	return spdx_spec_result(38)
 }
 
 // Ruby it `it "truncates an over-long conjunction to a valid prefix with a marker" do` at line 206.
-pub fn ruby_spdx_spec_l206_d39_truncates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('truncates', ...args)
+pub fn ruby_spdx_spec_l206_d39_truncates() !bool {
+	return spdx_spec_result(39)
 }
 
 // Ruby it `it "falls back to :cannot_represent for over-long disjunctions" do` at line 211.
-pub fn ruby_spdx_spec_l211_d40_falls(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('falls', ...args)
+pub fn ruby_spdx_spec_l211_d40_falls() !bool {
+	return spdx_spec_result(40)
 }
 
 // Ruby it `it "falls back to :cannot_represent when even the first term does not fit" do` at line 216.
-pub fn ruby_spdx_spec_l216_d41_falls(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('falls', ...args)
+pub fn ruby_spdx_spec_l216_d41_falls() !bool {
+	return spdx_spec_result(41)
 }
 
 // Ruby it `it "returns the correct result for 'and', 'or' and 'with'" do` at line 223.
-pub fn ruby_spdx_spec_l223_d42_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_spdx_spec_l223_d42_returns() !bool {
+	return spdx_spec_result(42)
 }
 
 // Ruby it `it "returns the correct result for 'AND', 'OR' and 'WITH'" do` at line 234.
-pub fn ruby_spdx_spec_l234_d43_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_spdx_spec_l234_d43_returns() !bool {
+	return spdx_spec_result(43)
 }
 
 // Ruby it `it "handles nested brackets" do` at line 246.
-pub fn ruby_spdx_spec_l246_d44_handles(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('handles', ...args)
+pub fn ruby_spdx_spec_l246_d44_handles() !bool {
+	return spdx_spec_result(44)
 }
 
 // Ruby it `it "returns :public_domain" do` at line 258.
-pub fn ruby_spdx_spec_l258_d45_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_spdx_spec_l258_d45_returns() !bool {
+	return spdx_spec_result(45)
 }
 
 // Ruby it `it "returns :cannot_represent" do` at line 262.
-pub fn ruby_spdx_spec_l262_d46_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_spdx_spec_l262_d46_returns() !bool {
+	return spdx_spec_result(46)
 }
 
 // Ruby it `it "returns license without version" do` at line 269.
-pub fn ruby_spdx_spec_l269_d47_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_spdx_spec_l269_d47_returns() !bool {
+	return spdx_spec_result(47)
 }
 
 // Ruby it `it "returns :public_domain without version" do` at line 273.
-pub fn ruby_spdx_spec_l273_d48_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_spdx_spec_l273_d48_returns() !bool {
+	return spdx_spec_result(48)
 }
 
 // Ruby it `it "returns license with version" do` at line 277.
-pub fn ruby_spdx_spec_l277_d49_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_spdx_spec_l277_d49_returns() !bool {
+	return spdx_spec_result(49)
 }
 
 // Ruby it `it "returns license with version and plus" do` at line 281.
-pub fn ruby_spdx_spec_l281_d50_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_spdx_spec_l281_d50_returns() !bool {
+	return spdx_spec_result(50)
 }
 
 // Ruby it `it "returns more complicated license with version" do` at line 285.
-pub fn ruby_spdx_spec_l285_d51_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_spdx_spec_l285_d51_returns() !bool {
+	return spdx_spec_result(51)
 }
 
 // Ruby it `it "returns more complicated license with version and plus" do` at line 289.
-pub fn ruby_spdx_spec_l289_d52_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_spdx_spec_l289_d52_returns() !bool {
+	return spdx_spec_result(52)
 }
 
 // Ruby it `it "returns license with -only" do` at line 293.
-pub fn ruby_spdx_spec_l293_d53_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_spdx_spec_l293_d53_returns() !bool {
+	return spdx_spec_result(53)
 }
 
 // Ruby it `it "returns license with -or-later" do` at line 297.
-pub fn ruby_spdx_spec_l297_d54_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_spdx_spec_l297_d54_returns() !bool {
+	return spdx_spec_result(54)
 }
 
 // Ruby let `let(:mit_forbidden) { { "MIT" => described_class.license_version_info("MIT") } }` at line 303.
-pub fn ruby_spdx_spec_l303_d55_mit_forbidden(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('mit_forbidden', ...args)
+pub fn ruby_spdx_spec_l303_d55_mit_forbidden() map[string]SpdxLicenseVersionInfo {
+	return spdx_spec_mit_forbidden()
 }
 
 // Ruby let `let(:epl_1_forbidden) { { "EPL-1.0" => described_class.license_version_info("EPL-1.0") } }` at line 304.
-pub fn ruby_spdx_spec_l304_d56_epl_1_forbidden(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('epl_1_forbidden', ...args)
+pub fn ruby_spdx_spec_l304_d56_epl_1_forbidden() map[string]SpdxLicenseVersionInfo {
+	return spdx_spec_epl_1_forbidden()
 }
 
 // Ruby let `let(:epl_1_plus_forbidden) { { "EPL-1.0+" => described_class.license_version_info("EPL-1.0+") } }` at line 305.
-pub fn ruby_spdx_spec_l305_d57_epl_1_plus_forbidden(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('epl_1_plus_forbidden', ...args)
+pub fn ruby_spdx_spec_l305_d57_epl_1_plus_forbidden() map[string]SpdxLicenseVersionInfo {
+	return spdx_spec_epl_1_plus_forbidden()
 }
 
 // Ruby let `let(:multiple_forbidden) do` at line 306.
-pub fn ruby_spdx_spec_l306_d58_multiple_forbidden(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('multiple_forbidden', ...args)
+pub fn ruby_spdx_spec_l306_d58_multiple_forbidden() map[string]SpdxLicenseVersionInfo {
+	return spdx_spec_multiple_forbidden()
 }
 
 // Ruby let `let(:any_of_license) { { any_of: ["MIT", "0BSD"] } }` at line 312.
-pub fn ruby_spdx_spec_l312_d59_any_of_license(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('any_of_license', ...args)
+pub fn ruby_spdx_spec_l312_d59_any_of_license() SpdxLicenseExpression {
+	return spdx_spec_any_of_license()
 }
 
 // Ruby let `let(:all_of_license) { { all_of: ["MIT", "0BSD"] } }` at line 313.
-pub fn ruby_spdx_spec_l313_d60_all_of_license(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('all_of_license', ...args)
+pub fn ruby_spdx_spec_l313_d60_all_of_license() SpdxLicenseExpression {
+	return spdx_spec_all_of_license()
 }
 
 // Ruby let `let(:nested_licenses) do` at line 314.
-pub fn ruby_spdx_spec_l314_d61_nested_licenses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('nested_licenses', ...args)
+pub fn ruby_spdx_spec_l314_d61_nested_licenses() SpdxLicenseExpression {
+	return spdx_spec_nested_licenses()
 }
 
 // Ruby let `let(:license_exception) { { "MIT" => { with: "LLVM-exception" } } }` at line 323.
-pub fn ruby_spdx_spec_l323_d62_license_exception(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('license_exception', ...args)
+pub fn ruby_spdx_spec_l323_d62_license_exception() SpdxLicenseExpression {
+	return spdx_spec_license_exception()
 }
 
 // Ruby it `it "allows installation with no forbidden licenses" do` at line 325.
-pub fn ruby_spdx_spec_l325_d63_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+pub fn ruby_spdx_spec_l325_d63_allows() !bool {
+	return spdx_spec_result(63)
 }
 
 // Ruby it `it "allows installation with non-forbidden license" do` at line 329.
-pub fn ruby_spdx_spec_l329_d64_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+pub fn ruby_spdx_spec_l329_d64_allows() !bool {
+	return spdx_spec_result(64)
 }
 
 // Ruby it `it "forbids installation with forbidden license" do` at line 333.
-pub fn ruby_spdx_spec_l333_d65_forbids(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('forbids', ...args)
+pub fn ruby_spdx_spec_l333_d65_forbids() !bool {
+	return spdx_spec_result(65)
 }
 
 // Ruby it `it "allows installation of later license version" do` at line 337.
-pub fn ruby_spdx_spec_l337_d66_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+pub fn ruby_spdx_spec_l337_d66_allows() !bool {
+	return spdx_spec_result(66)
 }
 
 // Ruby it `it "forbids installation of later license version with plus in forbidden license list" do` at line 341.
-pub fn ruby_spdx_spec_l341_d67_forbids(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('forbids', ...args)
+pub fn ruby_spdx_spec_l341_d67_forbids() !bool {
+	return spdx_spec_result(67)
 }
 
 // Ruby it `it "allows installation when one of the any_of licenses is allowed" do` at line 345.
-pub fn ruby_spdx_spec_l345_d68_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+pub fn ruby_spdx_spec_l345_d68_allows() !bool {
+	return spdx_spec_result(68)
 }
 
 // Ruby it `it "forbids installation when none of the any_of licenses are allowed" do` at line 349.
-pub fn ruby_spdx_spec_l349_d69_forbids(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('forbids', ...args)
+pub fn ruby_spdx_spec_l349_d69_forbids() !bool {
+	return spdx_spec_result(69)
 }
 
 // Ruby it `it "forbids installation when one of the all_of licenses is allowed" do` at line 353.
-pub fn ruby_spdx_spec_l353_d70_forbids(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('forbids', ...args)
+pub fn ruby_spdx_spec_l353_d70_forbids() !bool {
+	return spdx_spec_result(70)
 }
 
 // Ruby it `it "allows installation with license + exception that aren't forbidden" do` at line 357.
-pub fn ruby_spdx_spec_l357_d71_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+pub fn ruby_spdx_spec_l357_d71_allows() !bool {
+	return spdx_spec_result(71)
 }
 
 // Ruby it `it "forbids installation with license + exception that are't forbidden" do` at line 361.
-pub fn ruby_spdx_spec_l361_d72_forbids(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('forbids', ...args)
+pub fn ruby_spdx_spec_l361_d72_forbids() !bool {
+	return spdx_spec_result(72)
 }
 
 // Ruby it `it "allows installation with nested licenses with no forbidden licenses" do` at line 365.
-pub fn ruby_spdx_spec_l365_d73_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+pub fn ruby_spdx_spec_l365_d73_allows() !bool {
+	return spdx_spec_result(73)
 }
 
 // Ruby it `it "allows installation with nested licenses when second hash item matches" do` at line 369.
-pub fn ruby_spdx_spec_l369_d74_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+pub fn ruby_spdx_spec_l369_d74_allows() !bool {
+	return spdx_spec_result(74)
 }
 
 // Ruby it `it "forbids installation with nested licenses when all licenses are forbidden" do` at line 373.
-pub fn ruby_spdx_spec_l373_d75_forbids(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('forbids', ...args)
+pub fn ruby_spdx_spec_l373_d75_forbids() !bool {
+	return spdx_spec_result(75)
 }
 
 // Ruby let `let(:mit_forbidden) { { "MIT" => described_class.license_version_info("MIT") } }` at line 379.
-pub fn ruby_spdx_spec_l379_d76_mit_forbidden(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('mit_forbidden', ...args)
+pub fn ruby_spdx_spec_l379_d76_mit_forbidden() map[string]SpdxLicenseVersionInfo {
+	return spdx_spec_mit_forbidden()
 }
 
 // Ruby let `let(:epl_1_forbidden) { { "EPL-1.0" => described_class.license_version_info("EPL-1.0") } }` at line 380.
-pub fn ruby_spdx_spec_l380_d77_epl_1_forbidden(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('epl_1_forbidden', ...args)
+pub fn ruby_spdx_spec_l380_d77_epl_1_forbidden() map[string]SpdxLicenseVersionInfo {
+	return spdx_spec_epl_1_forbidden()
 }
 
 // Ruby let `let(:epl_1_plus_forbidden) { { "EPL-1.0+" => described_class.license_version_info("EPL-1.0+") } }` at line 381.
-pub fn ruby_spdx_spec_l381_d78_epl_1_plus_forbidden(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('epl_1_plus_forbidden', ...args)
+pub fn ruby_spdx_spec_l381_d78_epl_1_plus_forbidden() map[string]SpdxLicenseVersionInfo {
+	return spdx_spec_epl_1_plus_forbidden()
 }
 
 // Ruby it `it "returns false with no forbidden licenses" do` at line 383.
-pub fn ruby_spdx_spec_l383_d79_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_spdx_spec_l383_d79_returns() !bool {
+	return spdx_spec_result(79)
 }
 
 // Ruby it `it "returns false with no matching forbidden licenses" do` at line 387.
-pub fn ruby_spdx_spec_l387_d80_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_spdx_spec_l387_d80_returns() !bool {
+	return spdx_spec_result(80)
 }
 
 // Ruby it `it "returns true with matching license" do` at line 391.
-pub fn ruby_spdx_spec_l391_d81_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_spdx_spec_l391_d81_returns() !bool {
+	return spdx_spec_result(81)
 }
 
 // Ruby it `it "returns false with later version of forbidden license" do` at line 395.
-pub fn ruby_spdx_spec_l395_d82_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_spdx_spec_l395_d82_returns() !bool {
+	return spdx_spec_result(82)
 }
 
 // Ruby it `it "returns true with later version of forbidden license with later versions forbidden" do` at line 399.
-pub fn ruby_spdx_spec_l399_d83_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_spdx_spec_l399_d83_returns() !bool {
+	return spdx_spec_result(83)
 }
 
 // Original Ruby source (line-for-line):

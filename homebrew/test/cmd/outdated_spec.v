@@ -1,88 +1,306 @@
 module cmd
 
 import brew_runtime
+import homebrew.cmd as outdated_cmd
 
 // Translated from Homebrew/brew `test/cmd/outdated_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+fn outdated_spec_truth(value bool) brew_runtime.Value {
+	return brew_runtime.bool_value(value)
+}
+
+fn outdated_spec_formula(name string, current string, installed string,
+	linked bool) outdated_cmd.OutdatedFormula {
+	kegs := if installed == '' {
+		[]outdated_cmd.OutdatedKeg{}
+	} else {
+		[outdated_cmd.OutdatedKeg{
+			full_name: name
+			version: installed
+		}]
+	}
+	return outdated_cmd.OutdatedFormula{
+		name: name
+		full_name: name
+		full_installed_name: name
+		pkg_version: current
+		latest_formula_name: name
+		latest_formula_version: current
+		latest_version_installed: linked && installed == current
+		outdated: installed != '' && installed != current
+		installed_kegs: kegs
+		outdated_kegs: if installed != '' && installed != current { kegs } else { [] }
+	}
+}
+
+fn outdated_spec_cask(installed string, auto_updates bool) outdated_cmd.OutdatedCask {
+	return outdated_cmd.OutdatedCask{
+		token: 'local-caffeine'
+		version: '1.2.3'
+		installed_version: installed
+		auto_updates: auto_updates
+		upgrade_auto_updates_casks: true
+		auto_updates_bundle_outdated: false
+	}
+}
+
+fn outdated_spec_run(options outdated_cmd.OutdatedCommandOptions) outdated_cmd.OutdatedCommandResult {
+	return outdated_cmd.run_outdated(options) or {
+		return outdated_cmd.OutdatedCommandResult{
+			error: err.msg()
+		}
+	}
+}
+
+fn outdated_spec_content_version(content string) string {
+	for field in content.split_any(' "\n\t') {
+		if field.starts_with('http') && field.contains('-') {
+			return field.all_after_last('-').trim_right('"')
+		}
+	}
+	return ''
+}
 
 // Ruby method `install_formula_version(name, version, linked: false)` at line 10.
 pub fn ruby_outdated_spec_l10_d1_install_formula_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install_formula_version', ...args)
+	if args.len < 2 {
+		return brew_runtime.object_value('ArgumentError', 'name and version are required')
+	}
+	linked := args.len > 2 && args[2].bool_data
+	name := args[0].as_string()
+	return outdated_cmd.outdated_formula_value(outdated_spec_formula(name, args[1].as_string(), args[1].as_string(), linked))
 }
 
 // Ruby method `write_formula(name, content)` at line 22.
 pub fn ruby_outdated_spec_l22_d2_write_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('write_formula', ...args)
+	if args.len < 2 {
+		return brew_runtime.object_value('ArgumentError', 'name and content are required')
+	}
+	name := args[0].as_string()
+	version := outdated_spec_content_version(args[1].as_string())
+	return outdated_cmd.outdated_formula_value(outdated_spec_formula(name, version, '', false))
 }
 
 // Ruby it `it "requires one named argument with --minimum-version" do` at line 34.
 pub fn ruby_outdated_spec_l34_d3_requires(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('requires', ...args)
+	result := outdated_spec_run(outdated_cmd.OutdatedCommandOptions{
+		minimum_version: '1.2.3'
+	})
+	return outdated_spec_truth(result.error.contains('requires exactly one formula or cask argument'))
 }
 
 // Ruby it `it "rejects multiple named arguments with --minimum-version" do` at line 39.
 pub fn ruby_outdated_spec_l39_d4_rejects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('rejects', ...args)
+	result := outdated_spec_run(outdated_cmd.OutdatedCommandOptions{
+		minimum_version: '1.2.3'
+		named: ['foo', 'bar']
+	})
+	return outdated_spec_truth(result.error.contains('requires exactly one formula or cask argument'))
 }
 
 // Ruby it `it "excludes non-outdated auto-updating casks without --greedy-auto-updates", :cask do` at line 44.
 pub fn ruby_outdated_spec_l44_d5_excludes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('excludes', ...args)
+	cask := outdated_cmd.OutdatedCask{
+		token: 'auto-updates'
+		version: '3.0'
+		installed_version: '2.57'
+		auto_updates: true
+		upgrade_auto_updates_casks: true
+		auto_updates_bundle_outdated: false
+	}
+	selected := outdated_cmd.select_outdated([outdated_cmd.OutdatedPackage(cask)], outdated_cmd.OutdatedCommandOptions{}) or { return outdated_spec_truth(false) }
+	return outdated_spec_truth(selected.len == 0)
 }
 
 // Ruby it `it "checks auto-updating casks with --greedy-auto-updates", :cask do` at line 54.
 pub fn ruby_outdated_spec_l54_d6_checks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('checks', ...args)
+	cask := outdated_cmd.OutdatedCask{
+		token: 'auto-updates'
+		version: '3.0'
+		installed_version: '2.57'
+		auto_updates: true
+	}
+	selected := outdated_cmd.select_outdated([outdated_cmd.OutdatedPackage(cask)], outdated_cmd.OutdatedCommandOptions{
+		greedy_auto_updates: true
+	}) or { return outdated_spec_truth(false) }
+	return outdated_spec_truth(selected.len == 1)
 }
 
 // Ruby it `it "excludes auto-updating casks when auto-update upgrades are disabled", :cask do` at line 64.
 pub fn ruby_outdated_spec_l64_d7_excludes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('excludes', ...args)
+	cask := outdated_cmd.OutdatedCask{
+		token: 'auto-updates'
+		version: '3.0'
+		installed_version: '2.57'
+		auto_updates: true
+		upgrade_auto_updates_casks: false
+		auto_updates_bundle_outdated: true
+	}
+	result := outdated_spec_run(outdated_cmd.OutdatedCommandOptions{
+		cask: true
+		casks: [cask]
+	})
+	return outdated_spec_truth(result.error == '' && result.stdout == '' && result.casks.len == 0)
 }
 
 // Ruby it `it "outputs JSON for outdated formulae and casks", :cask, :integration_test do` at line 89.
 pub fn ruby_outdated_spec_l89_d8_outputs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('outputs', ...args)
+	formula := outdated_spec_formula('testball', '0.1', '0.0.1', false)
+	cask := outdated_spec_cask('1.2.2', false)
+	result := outdated_spec_run(outdated_cmd.OutdatedCommandOptions{
+		json: 'v2'
+		formulae: [formula]
+		casks: [cask]
+	})
+	expected := [
+		'{',
+		'  "formulae": [',
+		'    {',
+		'      "name": "testball",',
+		'      "installed_versions": [',
+		'        "0.0.1"',
+		'      ],',
+		'      "current_version": "0.1",',
+		'      "pinned": false,',
+		'      "pinned_version": null',
+		'    }',
+		'  ],',
+		'  "casks": [',
+		'    {',
+		'      "name": "local-caffeine",',
+		'      "installed_versions": [',
+		'        "1.2.2"',
+		'      ],',
+		'      "current_version": "1.2.3",',
+		'      "pinned": false,',
+		'      "pinned_version": null',
+		'    }',
+		'  ]',
+		'}',
+	].join('\n') + '\n'
+	return outdated_spec_truth(result.error == '' && !result.failed && result.stdout == expected)
 }
 
 // Ruby it `it "reports a formula installed below the minimum version" do` at line 116.
 pub fn ruby_outdated_spec_l116_d9_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	formula := outdated_spec_formula('minimum-version-formula', '1.2.3', '1.2.2', false)
+	result := outdated_spec_run(outdated_cmd.OutdatedCommandOptions{
+		min_version: '1.2.3'
+		named: ['minimum-version-formula']
+		formulae: [formula]
+	})
+	return outdated_spec_truth(result.stdout == 'minimum-version-formula\n' && result.failed)
 }
 
 // Ruby it `it "does not report a formula installed at --minimum-version" do` at line 127.
 pub fn ruby_outdated_spec_l127_d10_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	formula := outdated_spec_formula('minimum-version-formula', '1.2.3', '1.2.3', true)
+	result := outdated_spec_run(outdated_cmd.OutdatedCommandOptions{
+		minimum_version: '1.2.3'
+		named: ['minimum-version-formula']
+		formulae: [formula]
+	})
+	return outdated_spec_truth(result.error == '' && result.stdout == '' && !result.failed)
 }
 
 // Ruby it `it "reports a cask installed below --minimum-version", :cask do` at line 137.
 pub fn ruby_outdated_spec_l137_d11_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	result := outdated_spec_run(outdated_cmd.OutdatedCommandOptions{
+		cask: true
+		minimum_version: '1.2.3'
+		named: ['local-caffeine']
+		casks: [outdated_spec_cask('1.2.2', false)]
+	})
+	return outdated_spec_truth(result.stdout == 'local-caffeine\n' && result.failed)
 }
 
 // Ruby it `it "does not report a cask installed at --minimum-version", :cask do` at line 145.
 pub fn ruby_outdated_spec_l145_d12_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	result := outdated_spec_run(outdated_cmd.OutdatedCommandOptions{
+		cask: true
+		minimum_version: '1.2.3'
+		named: ['local-caffeine']
+		casks: [outdated_spec_cask('1.2.3', false)]
+	})
+	return outdated_spec_truth(result.error == '' && result.stdout == '' && !result.failed)
 }
 
 // Ruby it `it "raises UsageError for an invalid cask --minimum-version", :cask do` at line 152.
 pub fn ruby_outdated_spec_l152_d13_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+	result := outdated_spec_run(outdated_cmd.OutdatedCommandOptions{
+		cask: true
+		minimum_version: '1/2'
+		named: ['local-caffeine']
+		casks: [outdated_spec_cask('1.2.3', false)]
+	})
+	return outdated_spec_truth(result.error == 'invalid `--minimum-version`: 1/2')
 }
 
 // Ruby it `it "does not report an uninstalled formula with --minimum-version" do` at line 159.
 pub fn ruby_outdated_spec_l159_d14_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	formula := outdated_spec_formula('minimum-version-formula', '1.2.3', '', false)
+	result := outdated_spec_run(outdated_cmd.OutdatedCommandOptions{
+		minimum_version: '1.2.3'
+		named: ['minimum-version-formula']
+		formulae: [formula]
+	})
+	return outdated_spec_truth(result.error == '' && result.stdout == '' && !result.failed)
 }
 
 // Ruby it `it "outputs JSON for a formula installed below --minimum-version" do` at line 168.
 pub fn ruby_outdated_spec_l168_d15_outputs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('outputs', ...args)
+	formula := outdated_spec_formula('minimum-version-formula', '1.2.3', '1.2.2', false)
+	result := outdated_spec_run(outdated_cmd.OutdatedCommandOptions{
+		json: 'v2'
+		minimum_version: '1.2.3'
+		named: ['minimum-version-formula']
+		formulae: [formula]
+	})
+	expected := [
+		'{',
+		'  "formulae": [',
+		'    {',
+		'      "name": "minimum-version-formula",',
+		'      "installed_versions": [',
+		'        "1.2.2"',
+		'      ],',
+		'      "current_version": "1.2.3",',
+		'      "pinned": false,',
+		'      "pinned_version": null',
+		'    }',
+		'  ],',
+		'  "casks": []',
+		'}',
+	].join('\n') + '\n'
+	return outdated_spec_truth(result.failed && result.stdout == expected)
 }
 
 // Ruby it `it "outputs JSON for a cask installed below --minimum-version", :cask do` at line 190.
 pub fn ruby_outdated_spec_l190_d16_outputs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('outputs', ...args)
+	result := outdated_spec_run(outdated_cmd.OutdatedCommandOptions{
+		cask: true
+		json: 'v2'
+		minimum_version: '1.2.3'
+		named: ['local-caffeine']
+		casks: [outdated_spec_cask('1.2.2', false)]
+	})
+	expected := [
+		'{',
+		'  "formulae": [],',
+		'  "casks": [',
+		'    {',
+		'      "name": "local-caffeine",',
+		'      "installed_versions": [',
+		'        "1.2.2"',
+		'      ],',
+		'      "current_version": "1.2.3",',
+		'      "pinned": false,',
+		'      "pinned_version": null',
+		'    }',
+		'  ]',
+		'}',
+	].join('\n') + '\n'
+	return outdated_spec_truth(result.failed && result.stdout == expected)
 }
 
 // Original Ruby source (line-for-line):

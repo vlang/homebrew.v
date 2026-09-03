@@ -7,7 +7,18 @@ import brew_runtime
 
 // Ruby it `it "runs a shell with the Homebrew environment", :integration_test do` at line 10.
 pub fn ruby_sh_spec_l10_d1_runs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('runs', ...args)
+	preferred_shell := if args.len > 0 { args[0].as_string() } else { '/usr/bin/true' }
+	plan := run_sh_command(ShOptions{
+		preferred_shell: preferred_shell
+		environment: {
+			'PATH': '/usr/bin:/bin'
+		}
+		homebrew_prefix: '/homebrew'
+		homebrew_library_path: '/homebrew/Library/Homebrew'
+	})
+	notice := plan.environment.notice or { '' }
+	return brew_runtime.bool_value(plan.mode == 'interactive' && !plan.safe
+		&& notice.contains('Your shell has been configured') && plan.prompt.command != '')
 }
 
 // Original Ruby source (line-for-line):

@@ -1,23 +1,83 @@
 module test
 
-import brew_runtime
+import homebrew
 
 // Translated from Homebrew/brew `test/readline_nonblock_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "returns only full lines", :aggregate_failures do` at line 8.
-pub fn ruby_readline_nonblock_spec_l8_d1_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_readline_nonblock_spec_l8_d1_returns() bool {
+	mut reader := homebrew.ReadlineNonblock{}
+	mut source := homebrew.ReadlineNonblockSource{
+		events: [
+			homebrew.readline_wait_readable(),
+			homebrew.readline_data('Test'),
+			homebrew.readline_wait_readable(),
+			homebrew.readline_data('1\n2'),
+			homebrew.readline_eof(),
+			homebrew.readline_eof(),
+		]
+	}
+	if !readline_spec_waits(mut reader, mut source) {
+		return false
+	}
+	if !readline_spec_waits(mut reader, mut source) {
+		return false
+	}
+	if reader.read(mut source) or { return false } != 'Test1\n' {
+		return false
+	}
+	if reader.read(mut source) or { return false } != '2' {
+		return false
+	}
+	return readline_spec_eof(mut reader, mut source)
 }
 
 // Ruby it `it "returns same lines from file as File.readlines" do` at line 22.
-pub fn ruby_readline_nonblock_spec_l22_d2_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_readline_nonblock_spec_l22_d2_returns() bool {
+	contents := 'First line\nSecond line\n\nFourth line\nFifth line'
+	mut reader := homebrew.ReadlineNonblock{}
+	mut source := homebrew.ReadlineNonblockSource{
+		events: [
+			homebrew.readline_data(contents[..17]),
+			homebrew.readline_data(contents[17..]),
+			homebrew.readline_eof(),
+		]
+	}
+	mut lines := []string{}
+	for {
+		line := reader.read(mut source) or {
+			if err is homebrew.ReadlineEofError {
+				break
+			}
+			return false
+		}
+		lines << line
+	}
+	return lines == ['First line\n', 'Second line\n', '\n', 'Fourth line\n', 'Fifth line']
 }
 
 // Ruby it `it "handles long lines" do` at line 48.
-pub fn ruby_readline_nonblock_spec_l48_d3_handles(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('handles', ...args)
+pub fn ruby_readline_nonblock_spec_l48_d3_handles() bool {
+	line_length := 10_000
+	mut reader := homebrew.ReadlineNonblock{}
+	mut source := homebrew.ReadlineNonblockSource{
+		events: [homebrew.readline_data('a'.repeat(line_length)), homebrew.readline_eof()]
+	}
+	line := reader.read(mut source) or { return false }
+	return line.len == line_length && line == 'a'.repeat(line_length) && source.last_request_size == homebrew.readline_nonblock_buffer_size && readline_spec_eof(mut reader, mut source)
+}
+
+fn readline_spec_waits(mut reader homebrew.ReadlineNonblock,
+	mut source homebrew.ReadlineNonblockSource) bool {
+	reader.read(mut source) or { return err is homebrew.ReadlineWaitReadableError }
+	return false
+}
+
+fn readline_spec_eof(mut reader homebrew.ReadlineNonblock,
+	mut source homebrew.ReadlineNonblockSource) bool {
+	reader.read(mut source) or { return err is homebrew.ReadlineEofError }
+	return false
 }
 
 // Original Ruby source (line-for-line):

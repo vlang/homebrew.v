@@ -4,45 +4,141 @@ import brew_runtime
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/sorbet-runtime-0.6.13412/lib/types/types/class_of.rb`.
 // The original source is retained below until every stub has a typed V body.
+@[heap]
+pub struct ClassOfType {
+pub:
+	type_value brew_runtime.Value
+}
+
+pub fn new_class_of_type(type_value brew_runtime.Value) &ClassOfType {
+	return &ClassOfType{
+		type_value: type_value
+	}
+}
+
+pub fn (_ &ClassOfType) build_type() brew_runtime.Value {
+	return brew_runtime.object_value('NilClass', 'nil')
+}
+
+pub fn (class_type &ClassOfType) name() string {
+	return 'T.class_of(${class_type.type_value.as_string()})'
+}
+
+fn class_value_is_a(value brew_runtime.Value, target string) bool {
+	if value.as_string() == target || value.type_name == target {
+		return true
+	}
+	ancestors := value.attribute('ancestors') or { return false }
+	return ancestors.split(',').map(it.trim_space()).any(it == target)
+}
+
+pub fn (class_type &ClassOfType) valid(value brew_runtime.Value) bool {
+	if value.type_name != 'Class' && value.type_name != 'Module' {
+		return false
+	}
+	return class_value_is_a(value, class_type.type_value.as_string())
+}
+
+pub fn (class_type &ClassOfType) subtype_of_single(other brew_runtime.Value) bool {
+	match other.type_name {
+		'T::Types::ClassOf' {
+			other_type := other.map_data['type'] or { return false }
+			return class_value_is_a(class_type.type_value, other_type.as_string())
+		}
+		'T::Types::Simple' {
+			raw_type := other.attribute('raw_type') or { return false }
+			return class_value_is_a(class_type.type_value, raw_type)
+		}
+		'T::Types::TypedClass', 'T::Types::TypedModule' {
+			underlying_class := other.attribute('underlying_class') or { return false }
+			return class_value_is_a(class_type.type_value, underlying_class)
+		}
+		else {
+			return false
+		}
+	}
+}
+
+pub fn (_ &ClassOfType) describe_obj(value brew_runtime.Value) string {
+	return value.as_string()
+}
+
+fn class_of_type_value(class_type &ClassOfType) brew_runtime.Value {
+	return brew_runtime.Value{
+		type_name: 'T::Types::ClassOf'
+		repr: class_type.name()
+		map_data: {
+			'type': class_type.type_value
+		}
+		attributes: {
+			'class_of_type_address': u64(voidptr(class_type)).str()
+		}
+	}
+}
+
+fn class_of_type_from_args(args []brew_runtime.Value) &ClassOfType {
+	if args.len == 0 {
+		panic('ClassOf method requires a receiver')
+	}
+	address := args[0].attribute('class_of_type_address') or {
+		panic('invalid ClassOf receiver')
+	}
+	return unsafe { &ClassOfType(voidptr(address.u64())) }
+}
 
 // Ruby attr_reader `attr_reader :type` at line 7.
 pub fn ruby_class_of_l7_d1_type(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('type', ...args)
+	return class_of_type_from_args(args).type_value
 }
 
 // Ruby method `initialize(type)` at line 9.
 pub fn ruby_class_of_l9_d2_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	if args.len == 0 {
+		panic('ClassOf#initialize requires a type')
+	}
+	return class_of_type_value(new_class_of_type(args[0]))
 }
 
 // Ruby method `build_type` at line 13.
 pub fn ruby_class_of_l13_d3_build_type(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('build_type', ...args)
+	return class_of_type_from_args(args).build_type()
 }
 
 // Ruby method `name` at line 18.
 pub fn ruby_class_of_l18_d4_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('name', ...args)
+	return brew_runtime.string_value(class_of_type_from_args(args).name())
 }
 
 // Ruby method `valid?(obj)` at line 23.
 pub fn ruby_class_of_l23_d5_valid(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('valid?', ...args)
+	if args.len < 2 {
+		panic('ClassOf#valid? requires an object')
+	}
+	return brew_runtime.bool_value(class_of_type_from_args(args).valid(args[1]))
 }
 
 // Ruby method `subtype_of_single?(other)` at line 28.
 pub fn ruby_class_of_l28_d6_subtype_of_single(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('subtype_of_single?', ...args)
+	if args.len < 2 {
+		panic('ClassOf#subtype_of_single? requires another type')
+	}
+	return brew_runtime.bool_value(class_of_type_from_args(args).subtype_of_single(args[1]))
 }
 
 // Ruby method `describe_obj(obj)` at line 42.
 pub fn ruby_class_of_l42_d7_describe_obj(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('describe_obj', ...args)
+	if args.len < 2 {
+		panic('ClassOf#describe_obj requires an object')
+	}
+	return brew_runtime.string_value(class_of_type_from_args(args).describe_obj(args[1]))
 }
 
 // Ruby method `[](*types)` at line 51.
 pub fn ruby_class_of_l51_d8_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('[]', ...args)
+	if args.len == 0 {
+		panic('ClassOf#[] requires a receiver')
+	}
+	return args[0]
 }
 
 // Original Ruby source (line-for-line):

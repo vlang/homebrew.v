@@ -1,183 +1,198 @@
 module rubocops
 
 import brew_runtime
+import homebrew.rubocops as shell_commands
 
 // Translated from Homebrew/brew `test/rubocops/shell_commands_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+fn shell_commands_spec_method(command string) string {
+	return 'def install\n  ${command}\nend'
+}
+
+fn shell_commands_spec_reports(source string, corrected string, method_name string,
+	good_args string) bool {
+	analysis := shell_commands.analyze_shell_commands(source) or { return false }
+	return analysis.offenses.len == 1 && analysis.offenses[0].message == 'Separate `${method_name}` commands into `${good_args}`' && analysis.offenses[0].replacement == good_args && analysis.corrected == corrected
+}
+
+fn shell_commands_spec_no_offense(source string) bool {
+	analysis := shell_commands.analyze_shell_commands(source) or { return false }
+	return analysis.offenses.len == 0 && analysis.corrected == source
+}
 
 // Ruby subject `subject(:cop) { described_class.new }` at line 7.
 pub fn ruby_shell_commands_spec_l7_d1_cop(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cop', ...args)
+	return brew_runtime.object_value('RuboCop::Cop::Homebrew::ShellCommands', 'ShellCommands')
 }
 
 // Ruby it `it "reports and corrects an offense when `system` arguments should be separated" do` at line 10.
 pub fn ruby_shell_commands_spec_l10_d2_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	return brew_runtime.bool_value(shell_commands_spec_reports(shell_commands_spec_method('system "foo bar"'), shell_commands_spec_method('system "foo", "bar"'), 'system', '"foo", "bar"'))
 }
 
 // Ruby method `install` at line 13.
 pub fn ruby_shell_commands_spec_l13_d3_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	return brew_runtime.string_value(shell_commands_spec_method('system "foo bar"'))
 }
 
 // Ruby method `install` at line 22.
 pub fn ruby_shell_commands_spec_l22_d4_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	return brew_runtime.string_value(shell_commands_spec_method('system "foo", "bar"'))
 }
 
 // Ruby it `it "reports and corrects an offense when `system` arguments involving interpolation should be separated" do` at line 29.
 pub fn ruby_shell_commands_spec_l29_d5_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	return brew_runtime.bool_value(shell_commands_spec_reports(shell_commands_spec_method('system "#{bin}/foo bar"'), shell_commands_spec_method('system "#{bin}/foo", "bar"'), 'system', '"#{bin}/foo", "bar"'))
 }
 
 // Ruby method `install` at line 32.
 pub fn ruby_shell_commands_spec_l32_d6_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	return brew_runtime.string_value(shell_commands_spec_method('system "#{bin}/foo bar"'))
 }
 
 // Ruby method `install` at line 41.
 pub fn ruby_shell_commands_spec_l41_d7_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	return brew_runtime.string_value(shell_commands_spec_method('system "#{bin}/foo", "bar"'))
 }
 
 // Ruby it `it "reports no offenses when `system` with metacharacter arguments are called" do` at line 48.
 pub fn ruby_shell_commands_spec_l48_d8_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	return brew_runtime.bool_value(shell_commands_spec_no_offense(shell_commands_spec_method('system "foo bar > baz"')))
 }
 
 // Ruby method `install` at line 51.
 pub fn ruby_shell_commands_spec_l51_d9_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	return brew_runtime.string_value(shell_commands_spec_method('system "foo bar > baz"'))
 }
 
 // Ruby it `it "reports no offenses when trailing arguments to `system` are unseparated" do` at line 58.
 pub fn ruby_shell_commands_spec_l58_d10_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	return brew_runtime.bool_value(shell_commands_spec_no_offense(shell_commands_spec_method('system "foo", "bar baz"')))
 }
 
 // Ruby method `install` at line 61.
 pub fn ruby_shell_commands_spec_l61_d11_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	return brew_runtime.string_value(shell_commands_spec_method('system "foo", "bar baz"'))
 }
 
 // Ruby it `it "reports no offenses when `Utils.popen` arguments are unseparated" do` at line 68.
 pub fn ruby_shell_commands_spec_l68_d12_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	return brew_runtime.bool_value(shell_commands_spec_no_offense(shell_commands_spec_method('Utils.popen("foo bar")')))
 }
 
 // Ruby method `install` at line 71.
 pub fn ruby_shell_commands_spec_l71_d13_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	return brew_runtime.string_value(shell_commands_spec_method('Utils.popen("foo bar")'))
 }
 
 // Ruby it `it "reports and corrects an offense when `Utils.popen_read` arguments are unseparated" do` at line 78.
 pub fn ruby_shell_commands_spec_l78_d14_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	return brew_runtime.bool_value(shell_commands_spec_reports(shell_commands_spec_method('Utils.popen_read("foo bar")'), shell_commands_spec_method('Utils.popen_read("foo", "bar")'), 'Utils.popen_read', '"foo", "bar"'))
 }
 
 // Ruby method `install` at line 81.
 pub fn ruby_shell_commands_spec_l81_d15_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	return brew_runtime.string_value(shell_commands_spec_method('Utils.popen_read("foo bar")'))
 }
 
 // Ruby method `install` at line 90.
 pub fn ruby_shell_commands_spec_l90_d16_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	return brew_runtime.string_value(shell_commands_spec_method('Utils.popen_read("foo", "bar")'))
 }
 
 // Ruby it `it "reports and corrects an offense when `Utils.safe_popen_read` arguments are unseparated" do` at line 97.
 pub fn ruby_shell_commands_spec_l97_d17_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	return brew_runtime.bool_value(shell_commands_spec_reports(shell_commands_spec_method('Utils.safe_popen_read("foo bar")'), shell_commands_spec_method('Utils.safe_popen_read("foo", "bar")'), 'Utils.safe_popen_read', '"foo", "bar"'))
 }
 
 // Ruby method `install` at line 100.
 pub fn ruby_shell_commands_spec_l100_d18_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	return brew_runtime.string_value(shell_commands_spec_method('Utils.safe_popen_read("foo bar")'))
 }
 
 // Ruby method `install` at line 109.
 pub fn ruby_shell_commands_spec_l109_d19_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	return brew_runtime.string_value(shell_commands_spec_method('Utils.safe_popen_read("foo", "bar")'))
 }
 
 // Ruby it `it "reports and corrects an offense when `Utils.popen_write` arguments are unseparated" do` at line 116.
 pub fn ruby_shell_commands_spec_l116_d20_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	return brew_runtime.bool_value(shell_commands_spec_reports(shell_commands_spec_method('Utils.popen_write("foo bar")'), shell_commands_spec_method('Utils.popen_write("foo", "bar")'), 'Utils.popen_write', '"foo", "bar"'))
 }
 
 // Ruby method `install` at line 119.
 pub fn ruby_shell_commands_spec_l119_d21_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	return brew_runtime.string_value(shell_commands_spec_method('Utils.popen_write("foo bar")'))
 }
 
 // Ruby method `install` at line 128.
 pub fn ruby_shell_commands_spec_l128_d22_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	return brew_runtime.string_value(shell_commands_spec_method('Utils.popen_write("foo", "bar")'))
 }
 
 // Ruby it `it "reports and corrects an offense when `Utils.safe_popen_write` arguments are unseparated" do` at line 135.
 pub fn ruby_shell_commands_spec_l135_d23_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	return brew_runtime.bool_value(shell_commands_spec_reports(shell_commands_spec_method('Utils.safe_popen_write("foo bar")'), shell_commands_spec_method('Utils.safe_popen_write("foo", "bar")'), 'Utils.safe_popen_write', '"foo", "bar"'))
 }
 
 // Ruby method `install` at line 138.
 pub fn ruby_shell_commands_spec_l138_d24_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	return brew_runtime.string_value(shell_commands_spec_method('Utils.safe_popen_write("foo bar")'))
 }
 
 // Ruby method `install` at line 147.
 pub fn ruby_shell_commands_spec_l147_d25_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	return brew_runtime.string_value(shell_commands_spec_method('Utils.safe_popen_write("foo", "bar")'))
 }
 
 // Ruby it `it "reports and corrects an offense when `Utils.popen_read` arguments with interpolation are unseparated" do` at line 154.
 pub fn ruby_shell_commands_spec_l154_d26_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	return brew_runtime.bool_value(shell_commands_spec_reports(shell_commands_spec_method('Utils.popen_read("#{bin}/foo bar")'), shell_commands_spec_method('Utils.popen_read("#{bin}/foo", "bar")'), 'Utils.popen_read', '"#{bin}/foo", "bar"'))
 }
 
 // Ruby method `install` at line 157.
 pub fn ruby_shell_commands_spec_l157_d27_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	return brew_runtime.string_value(shell_commands_spec_method('Utils.popen_read("#{bin}/foo bar")'))
 }
 
 // Ruby method `install` at line 166.
 pub fn ruby_shell_commands_spec_l166_d28_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	return brew_runtime.string_value(shell_commands_spec_method('Utils.popen_read("#{bin}/foo", "bar")'))
 }
 
 // Ruby it `it "reports no offenses when `Utils.popen_read` arguments with metacharacters are unseparated" do` at line 173.
 pub fn ruby_shell_commands_spec_l173_d29_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	return brew_runtime.bool_value(shell_commands_spec_no_offense(shell_commands_spec_method('Utils.popen_read("foo bar > baz")')))
 }
 
 // Ruby method `install` at line 176.
 pub fn ruby_shell_commands_spec_l176_d30_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	return brew_runtime.string_value(shell_commands_spec_method('Utils.popen_read("foo bar > baz")'))
 }
 
 // Ruby it `it "reports no offenses when trailing arguments to `Utils.popen_read` are unseparated" do` at line 183.
 pub fn ruby_shell_commands_spec_l183_d31_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	return brew_runtime.bool_value(shell_commands_spec_no_offense(shell_commands_spec_method('Utils.popen_read("foo", "bar baz")')))
 }
 
 // Ruby method `install` at line 186.
 pub fn ruby_shell_commands_spec_l186_d32_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	return brew_runtime.string_value(shell_commands_spec_method('Utils.popen_read("foo", "bar baz")'))
 }
 
 // Ruby it `it "reports and corrects an offense when `Utils.popen_read` arguments are unseparated after a shell env" do` at line 193.
 pub fn ruby_shell_commands_spec_l193_d33_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	return brew_runtime.bool_value(shell_commands_spec_reports(shell_commands_spec_method('Utils.popen_read({ "SHELL" => "bash"}, "foo bar")'), shell_commands_spec_method('Utils.popen_read({ "SHELL" => "bash"}, "foo", "bar")'), 'Utils.popen_read', '"foo", "bar"'))
 }
 
 // Ruby method `install` at line 196.
 pub fn ruby_shell_commands_spec_l196_d34_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	return brew_runtime.string_value(shell_commands_spec_method('Utils.popen_read({ "SHELL" => "bash"}, "foo bar")'))
 }
 
 // Ruby method `install` at line 205.
 pub fn ruby_shell_commands_spec_l205_d35_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	return brew_runtime.string_value(shell_commands_spec_method('Utils.popen_read({ "SHELL" => "bash"}, "foo", "bar")'))
 }
 
 // Original Ruby source (line-for-line):

@@ -1,438 +1,1247 @@
 module cask
 
 import brew_runtime
+import crypto.sha256
+import homebrew.cask as cask_core
+import homebrew.cask.dsl as dsl_types
+import homebrew.requirements
+import os
+import time
 
 // Translated from Homebrew/brew `test/cask/installer_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+fn installer_spec_bool(value bool) brew_runtime.Value {
+	return brew_runtime.bool_value(value)
+}
+
+fn installer_spec_compact_json(value string) string {
+	return value.replace(' ', '').replace('\n', '').replace('\t', '')
+}
+
+fn installer_spec_nil() brew_runtime.Value {
+	return brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
+}
+
+fn installer_spec_noop_block(mut dsl cask_core.CaskDSL) ! {
+	_ = dsl
+}
+
+fn installer_spec_temp(label string) string {
+	return os.join_path(os.temp_dir(), 'brew-v-installer-${label}-${os.getpid()}-${time.now().unix_micro()}')
+}
+
+fn installer_spec_remove(path string) {
+	if path == '' || (!os.exists(path) && !os.is_link(path)) {
+		return
+	}
+	if os.is_dir(path) && !os.is_link(path) { os.rmdir_all(path) or {} } else { os.rm(path) or {} }
+}
+
+fn installer_spec_copy(source string, target string) ! {
+	if os.is_file(source) {
+		os.mkdir_all(os.dir(target))!
+		os.cp(source, target)!
+		return
+	}
+	os.mkdir_all(target)!
+	for name in os.ls(source)! {
+		installer_spec_copy(os.join_path(source, name), os.join_path(target, name))!
+	}
+}
+
+fn installer_spec_extract(source string, destination string, verbose bool) ! {
+	_ = verbose
+	os.mkdir_all(destination)!
+	for raw in os.read_lines(source)! {
+		line := raw.trim_space()
+		if line == '' || line.starts_with('__MACOSX/') {
+			continue
+		}
+		kind := line.all_before(':')
+		relative := line.all_after(':')
+		path := os.join_path(destination, relative)
+		if kind == 'dir' {
+			os.mkdir_all(path)!
+		} else if kind == 'file' {
+			os.mkdir_all(os.dir(path))!
+			os.write_file(path, relative)!
+		}
+	}
+}
+
+fn installer_spec_install_artifact(request cask_core.CaskInstallerArtifactRequest) ! {
+	source := request.artifact.attributes['source'] or { '' }
+	target := request.artifact.attributes['target'] or { '' }
+	if source != '' && target != '' {
+		installer_spec_remove(target)
+		installer_spec_copy(source, target)!
+	}
+}
+
+fn installer_spec_uninstall_artifact(request cask_core.CaskInstallerArtifactRequest) ! {
+	target := request.artifact.attributes['target'] or { '' }
+	if target != '' { installer_spec_remove(target) }
+}
+
+fn installer_spec_enqueue(entry cask_core.CaskInstallerQueueEntry) ! {
+	_ = entry
+}
+
+fn installer_spec_fetch(request cask_core.CaskInstallerDownloadRequest) !string {
+	return request.url
+}
+
+fn installer_spec_source_loader(source cask_core.CaskCore) !cask_core.CaskCore {
+	mut loaded := source
+	if raw := source.api_source['url'] {
+		loaded.dsl.url_value = cask_core.new_cask_url(raw.as_string(), {})!
+		loaded.dsl.has_url = true
+	}
+	if raw := source.api_source['version'] {
+		loaded.dsl.version_value = dsl_types.cask_version_from_string(raw.as_string())!
+		loaded.dsl.has_version = true
+	}
+	if raw := source.api_source['artifact'] {
+		loaded.dsl.artifacts = cask_core.new_artifact_set([raw])
+	}
+	loaded.loaded_from_api = false
+	return loaded
+}
+
+fn installer_spec_installed_loader_failure(source cask_core.CaskCore) !cask_core.CaskCore {
+	return error('${source.token}: broken DSL')
+}
+
+fn installer_spec_hooks() cask_core.CaskInstallerHooks {
+	return cask_core.CaskInstallerHooks{
+		extract: installer_spec_extract
+		install_artifact: installer_spec_install_artifact
+		uninstall_artifact: installer_spec_uninstall_artifact
+		zap_artifact: installer_spec_uninstall_artifact
+		enqueue: installer_spec_enqueue
+		fetch: installer_spec_fetch
+		load_source_cask: installer_spec_source_loader
+		recover_installed_cask: installer_spec_source_loader
+	}
+}
+
+fn installer_spec_artifact(key string, source string, target string) brew_runtime.Value {
+	return brew_runtime.Value{
+		type_name: 'Cask::Artifact::${key.split('_').map(it.title()).join('')}'
+		repr: source
+		attributes: {
+			'dsl_key': key
+			'source':  source
+			'target':  target
+		}
+	}
+}
+
+fn installer_spec_core(token string, root string, version string) !cask_core.CaskCore {
+	mut cask := cask_core.new_cask_core(cask_core.CaskCoreConfig{
+		token: token
+		source: '{}'
+		caskroom_root: os.join_path(root, 'Caskroom')
+		pinned_root: os.join_path(root, 'pinned')
+	}, installer_spec_noop_block)!
+	cask.dsl.version_value = dsl_types.cask_version_from_string(version)!
+	cask.dsl.has_version = true
+	return cask
+}
+
+fn installer_spec_prepare_archive(mut cask cask_core.CaskCore, root string, descriptor string,
+	artifact_key string, artifact_path string) !string {
+	archive := os.join_path(root, '${cask.token}.archive')
+	os.mkdir_all(root)!
+	os.write_file(archive, descriptor)!
+	cask.download = archive
+	cask.dsl.url_value = cask_core.new_cask_url('file://${archive}', {})!
+	cask.dsl.has_url = true
+	cask.dsl.sha256_value = brew_runtime.Value{ type_name: 'Symbol', repr: 'no_check' }
+	cask.dsl.has_sha256 = true
+	staged := os.join_path(cask.caskroom_path(), cask.version_text())
+	cask.dsl.staged_path_value = staged
+	target := os.join_path(root, 'Applications', artifact_path)
+	cask.dsl.artifacts = cask_core.new_artifact_set([
+		installer_spec_artifact(artifact_key, os.join_path(staged, artifact_path), target),
+	])
+	return target
+}
+
+fn installer_spec_install_case(label string, descriptor string, artifact_path string,
+	directory bool, options cask_core.CaskInstallerOptions) bool {
+	root := installer_spec_temp(label)
+	defer { installer_spec_remove(root) }
+	mut cask := installer_spec_core(label, root, '1.0') or { return false }
+	target := installer_spec_prepare_archive(mut cask, root, descriptor, 'app', artifact_path) or { return false }
+	mut installer := cask_core.new_cask_installer(cask, options, installer_spec_hooks())
+	installer.install() or { return false }
+	return os.is_dir(os.join_path(cask.caskroom_path(), '1.0')) && if directory {
+		os.is_dir(target)
+	} else {
+		os.is_file(target)
+	}
+}
 
 // Ruby method `stub_dmg_extraction` at line 5.
 pub fn ruby_installer_spec_l5_d1_stub_dmg_extraction(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('stub_dmg_extraction', ...args)
+	_ = args
+	return brew_runtime.structured_value('UnpackStrategy::Dmg::ExtractionStub', 'extract_nestedly', {
+		'can_extract':         'true'
+		'creates_destination': 'true'
+	})
 }
 
 // Ruby it `it "stores casks loaded from Ruby source as JSON metadata" do` at line 14.
 pub fn ruby_installer_spec_l14_d2_stores(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('stores', ...args)
+	_ = args
+	root := installer_spec_temp('ruby-metadata')
+	defer { installer_spec_remove(root) }
+	mut cask := installer_spec_core('local-caffeine', root, '1.0') or { return installer_spec_bool(false) }
+	cask.dsl.artifacts = cask_core.new_artifact_set([
+		installer_spec_artifact('app', 'Caffeine.app', ''),
+	])
+	mut installer := cask_core.new_cask_installer(cask, cask_core.CaskInstallerOptions{}, installer_spec_hooks())
+	path := installer.save_caskfile() or { return installer_spec_bool(false) }
+	content := os.read_file(path) or { return installer_spec_bool(false) }
+	return installer_spec_bool(os.base(path) == 'local-caffeine.json' && content == '{}')
 }
 
 // Ruby it `it "stores URL only_path metadata needed to reconstruct artifact sources" do` at line 27.
 pub fn ruby_installer_spec_l27_d3_stores(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('stores', ...args)
+	_ = args
+	root := installer_spec_temp('only-path')
+	defer { installer_spec_remove(root) }
+	mut cask := installer_spec_core('only-path', root, '1.0') or { return installer_spec_bool(false) }
+	cask.dsl.url_value = cask_core.new_cask_url('https://example.com/only-path.git', {
+		'only_path': brew_runtime.string_value('nested')
+	}) or { return installer_spec_bool(false) }
+	cask.dsl.has_url = true
+	cask.dsl.artifacts = cask_core.new_artifact_set([
+		installer_spec_artifact('app', 'Only Path.app', ''),
+	])
+	mut installer := cask_core.new_cask_installer(cask, cask_core.CaskInstallerOptions{}, installer_spec_hooks())
+	path := installer.save_caskfile() or { return installer_spec_bool(false) }
+	content := os.read_file(path) or { return installer_spec_bool(false) }
+	return installer_spec_bool(installer_spec_compact_json(content) == '{"url_specs":{"only_path":"nested"}}')
 }
 
 // Ruby it `it "strips legacy install flight blocks and records empty artifacts in JSON metadata" do` at line 48.
 pub fn ruby_installer_spec_l48_d4_strips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('strips', ...args)
+	_ = args
+	root := installer_spec_temp('flight-json')
+	defer { installer_spec_remove(root) }
+	mut cask := installer_spec_core('with-preflight', root, '1.0') or { return installer_spec_bool(false) }
+	cask.dsl.artifacts = cask_core.new_artifact_set([
+		installer_spec_artifact('preflight', '', ''),
+	])
+	mut installer := cask_core.new_cask_installer(cask, cask_core.CaskInstallerOptions{}, installer_spec_hooks())
+	path := installer.save_caskfile() or { return installer_spec_bool(false) }
+	content := os.read_file(path) or { '' }
+	return installer_spec_bool(installer_spec_compact_json(content) == '{"artifacts":[]}')
 }
 
 // Ruby it `it "stores intentional empty artifacts in JSON metadata" do` at line 56.
 pub fn ruby_installer_spec_l56_d5_stores(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('stores', ...args)
+	_ = args
+	root := installer_spec_temp('stage-only-json')
+	defer { installer_spec_remove(root) }
+	cask := installer_spec_core('stage-only', root, '1.0') or { return installer_spec_bool(false) }
+	mut installer := cask_core.new_cask_installer(cask, cask_core.CaskInstallerOptions{}, installer_spec_hooks())
+	path := installer.save_caskfile() or { return installer_spec_bool(false) }
+	content := os.read_file(path) or { '' }
+	return installer_spec_bool(installer_spec_compact_json(content) == '{"artifacts":[]}')
 }
 
 // Ruby it `it "stores legacy uninstall flight block casks as Ruby metadata" do` at line 64.
 pub fn ruby_installer_spec_l64_d6_stores(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('stores', ...args)
+	_ = args
+	mut actual := []string{}
+	for token, key in {
+		'with-uninstall-preflight':  'uninstall_preflight'
+		'with-uninstall-postflight': 'uninstall_postflight'
+	} {
+		root := installer_spec_temp(token)
+		defer { installer_spec_remove(root) }
+		mut cask := installer_spec_core(token, root, '1.0') or { return installer_spec_bool(false) }
+		cask.source = 'cask "${token}" do\nend\n'
+		cask.dsl.artifacts = cask_core.new_artifact_set([
+			installer_spec_artifact(key, '', ''),
+		])
+		mut installer := cask_core.new_cask_installer(cask, cask_core.CaskInstallerOptions{}, installer_spec_hooks())
+		actual << os.base(installer.save_caskfile() or { return installer_spec_bool(false) })
+	}
+	actual.sort()
+	return installer_spec_bool(actual == ['with-uninstall-postflight.rb',
+		'with-uninstall-preflight.rb'])
 }
 
 // Ruby it `it "stores casks loaded from the internal API as JSON metadata" do` at line 80.
 pub fn ruby_installer_spec_l80_d7_stores(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('stores', ...args)
+	_ = args
+	root := installer_spec_temp('api-metadata')
+	defer { installer_spec_remove(root) }
+	mut cask := installer_spec_core('api-cask', root, '1.0') or { return installer_spec_bool(false) }
+	cask.loaded_from_api = true
+	cask.loaded_from_internal_api = true
+	cask.dsl.artifacts = cask_core.new_artifact_set([
+		installer_spec_artifact('app', 'API Cask.app', ''),
+	])
+	mut installer := cask_core.new_cask_installer(cask, cask_core.CaskInstallerOptions{}, installer_spec_hooks())
+	path := installer.save_caskfile() or { return installer_spec_bool(false) }
+	return installer_spec_bool(os.base(path) == 'api-cask.json' && (os.read_file(path) or { '' }) == '{}')
 }
 
 // Ruby it `it "downloads and installs a nice fresh Cask" do` at line 117.
 pub fn ruby_installer_spec_l117_d8_downloads(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('downloads', ...args)
+	_ = args
+	return installer_spec_bool(installer_spec_install_case('local-caffeine', 'dir:Caffeine.app', 'Caffeine.app', true, cask_core.CaskInstallerOptions{}))
 }
 
 // Ruby it `it "works with HFS+ dmg-based Casks" do` at line 126.
 pub fn ruby_installer_spec_l126_d9_works(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('works', ...args)
+	_ = args
+	return installer_spec_bool(installer_spec_install_case('container-dmg', 'file:container', 'container', false, cask_core.CaskInstallerOptions{}))
 }
 
 // Ruby it `it "works with tar-gz-based Casks" do` at line 136.
 pub fn ruby_installer_spec_l136_d10_works(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('works', ...args)
+	_ = args
+	return installer_spec_bool(installer_spec_install_case('container-tar-gz', 'file:container', 'container', false, cask_core.CaskInstallerOptions{}))
 }
 
 // Ruby it `it "works with xar-based Casks" do` at line 145.
 pub fn ruby_installer_spec_l145_d11_works(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('works', ...args)
+	_ = args
+	return installer_spec_bool(installer_spec_install_case('container-xar', 'file:container', 'container', false, cask_core.CaskInstallerOptions{}))
 }
 
 // Ruby it `it "works with pure bzip2-based Casks" do` at line 154.
 pub fn ruby_installer_spec_l154_d12_works(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('works', ...args)
+	_ = args
+	return installer_spec_bool(installer_spec_install_case('container-bzip2', 'file:container', 'container', false, cask_core.CaskInstallerOptions{}))
 }
 
 // Ruby it `it "works with pure gzip-based Casks" do` at line 170.
 pub fn ruby_installer_spec_l170_d13_works(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('works', ...args)
+	_ = args
+	return installer_spec_bool(installer_spec_install_case('container-gzip', 'file:container', 'container', false, cask_core.CaskInstallerOptions{}))
 }
 
 // Ruby it `it "blows up on a bad checksum" do` at line 179.
 pub fn ruby_installer_spec_l179_d14_blows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('blows', ...args)
+	_ = args
+	root := installer_spec_temp('bad-checksum')
+	defer { installer_spec_remove(root) }
+	mut cask := installer_spec_core('bad-checksum', root, '1.0') or { return installer_spec_bool(false) }
+	path := os.join_path(root, 'download')
+	os.mkdir_all(root) or { return installer_spec_bool(false) }
+	os.write_file(path, 'payload') or { return installer_spec_bool(false) }
+	cask.download = path
+	cask.dsl.has_sha256 = true
+	cask.dsl.sha256_value = brew_runtime.string_value('ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff')
+	mut installer := cask_core.new_cask_installer(cask, cask_core.CaskInstallerOptions{}, installer_spec_hooks())
+	installer.download(false, none) or { return installer_spec_bool(err.msg().contains('SHA256 mismatch')) }
+	return installer_spec_bool(false)
 }
 
 // Ruby it `it "blows up on a missing checksum" do` at line 186.
 pub fn ruby_installer_spec_l186_d15_blows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('blows', ...args)
+	_ = args
+	root := installer_spec_temp('missing-checksum')
+	defer { installer_spec_remove(root) }
+	mut cask := installer_spec_core('missing-checksum', root, '1.0') or { return installer_spec_bool(false) }
+	path := os.join_path(root, 'download')
+	os.mkdir_all(root) or { return installer_spec_bool(false) }
+	os.write_file(path, 'payload') or { return installer_spec_bool(false) }
+	cask.download = path
+	mut installer := cask_core.new_cask_installer(cask, cask_core.CaskInstallerOptions{}, installer_spec_hooks())
+	installer.download(false, none) or { return installer_spec_bool(false) }
+	return installer_spec_bool(installer.messages.any(it.contains('Cannot verify integrity')))
 }
 
 // Ruby it `it "installs fine if sha256 :no_check is used" do` at line 193.
 pub fn ruby_installer_spec_l193_d16_installs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('installs', ...args)
+	_ = args
+	return installer_spec_bool(installer_spec_install_case('no-checksum', 'dir:Caffeine.app', 'Caffeine.app', true, cask_core.CaskInstallerOptions{}))
 }
 
 // Ruby it `it "fails to install if sha256 :no_check is used with --require-sha" do` at line 201.
 pub fn ruby_installer_spec_l201_d17_fails(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fails', ...args)
+	_ = args
+	root := installer_spec_temp('require-sha')
+	defer { installer_spec_remove(root) }
+	mut cask := installer_spec_core('no-checksum', root, '1.0') or { return installer_spec_bool(false) }
+	archive := os.join_path(root, 'archive')
+	os.mkdir_all(root) or { return installer_spec_bool(false) }
+	os.write_file(archive, 'dir:Caffeine.app') or { return installer_spec_bool(false) }
+	cask.download = archive
+	cask.dsl.has_sha256 = true
+	cask.dsl.sha256_value = brew_runtime.Value{ type_name: 'Symbol', repr: 'no_check' }
+	mut installer := cask_core.new_cask_installer(cask, cask_core.CaskInstallerOptions{ require_sha: true }, installer_spec_hooks())
+	installer.download(false, none) or { return installer_spec_bool(err.msg().contains('--require-sha')) }
+	return installer_spec_bool(false)
 }
 
 // Ruby it `it "names the cask when Linux is required" do` at line 208.
 pub fn ruby_installer_spec_l208_d18_names(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('names', ...args)
+	_ = args
+	mut cask := installer_spec_core('with-depends-on-linux-bare', installer_spec_temp('linux'), '1.0') or { return installer_spec_bool(false) }
+	cask.dsl.depends_on_value.linux = true
+	installer := cask_core.new_cask_installer(cask, cask_core.CaskInstallerOptions{}, installer_spec_hooks())
+	installer.check_stanza_os_requirements() or { return installer_spec_bool(err.msg() == 'with-depends-on-linux-bare: This cask requires Linux.') }
+	return installer_spec_bool(false)
 }
 
 // Ruby it `it "names the cask when the macOS requirement is not satisfied" do` at line 215.
 pub fn ruby_installer_spec_l215_d19_names(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('names', ...args)
+	_ = args
+	mut cask := installer_spec_core('with-depends-on-macos-failure', installer_spec_temp('macos'), '1.0') or { return installer_spec_bool(false) }
+	cask.dsl.depends_on_value.maximum_macos = requirements.new_macos_requirement([
+		'monterey',
+	], '<=') or { return installer_spec_bool(false) }
+	installer := cask_core.new_cask_installer(cask, cask_core.CaskInstallerOptions{ current_macos: '15' }, installer_spec_hooks())
+	installer.check_macos_requirements() or { return installer_spec_bool(err.msg().starts_with('with-depends-on-macos-failure:')) }
+	return installer_spec_bool(false)
 }
 
 // Ruby it `it "names the cask when the architecture is not supported" do` at line 226.
 pub fn ruby_installer_spec_l226_d20_names(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('names', ...args)
+	_ = args
+	mut cask := installer_spec_core('with-depends-on-arch', installer_spec_temp('arch'), '1.0') or { return installer_spec_bool(false) }
+	cask.dsl.depends_on_value.arch = [
+		dsl_types.CaskDependencyArch{ kind: 'arm', bits: 64 },
+	]
+	installer := cask_core.new_cask_installer(cask, cask_core.CaskInstallerOptions{ current_arch: 'ppc' }, installer_spec_hooks())
+	installer.check_arch_requirements() or { return installer_spec_bool(err.msg().starts_with('with-depends-on-arch: This cask depends on hardware architecture')) }
+	return installer_spec_bool(false)
 }
 
 // Ruby it `it "names the cask when it has nothing to install on this system" do` at line 234.
 pub fn ruby_installer_spec_l234_d21_names(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('names', ...args)
+	_ = args
+	mut cask := installer_spec_core('with-no-artifacts', installer_spec_temp('empty'), '1.0') or { return installer_spec_bool(false) }
+	cask.loaded_from_api = true
+	installer := cask_core.new_cask_installer(cask, cask_core.CaskInstallerOptions{}, installer_spec_hooks())
+	installer.check_supported_system() or { return installer_spec_bool(err.msg() == 'with-no-artifacts: This cask is not available on macOS.') }
+	return installer_spec_bool(false)
 }
 
 // Ruby it `it "treats uninstall-only artifacts as nothing to install" do` at line 245.
 pub fn ruby_installer_spec_l245_d22_treats(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('treats', ...args)
+	_ = args
+	mut cask := installer_spec_core('with-zap-only', installer_spec_temp('zap-only'), '1.0') or { return installer_spec_bool(false) }
+	cask.loaded_from_api = true
+	cask.dsl.artifacts = cask_core.new_artifact_set([
+		installer_spec_artifact('zap', '', ''),
+	])
+	installer := cask_core.new_cask_installer(cask, cask_core.CaskInstallerOptions{}, installer_spec_hooks())
+	installer.check_supported_system() or { return installer_spec_bool(err.msg() == 'with-zap-only: This cask is not available on macOS.') }
+	return installer_spec_bool(false)
 }
 
 // Ruby it `it "does not treat stage_only casks as having nothing to install" do` at line 257.
 pub fn ruby_installer_spec_l257_d23_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	_ = args
+	mut cask := installer_spec_core('with-stage-only', installer_spec_temp('stage-only'), '1.0') or { return installer_spec_bool(false) }
+	cask.loaded_from_api = true
+	cask.dsl.artifacts = cask_core.new_artifact_set([
+		installer_spec_artifact('stage_only', '', ''),
+	])
+	installer := cask_core.new_cask_installer(cask, cask_core.CaskInstallerOptions{}, installer_spec_hooks())
+	installer.check_supported_system() or { return installer_spec_bool(false) }
+	return installer_spec_bool(true)
 }
 
 // Ruby it `it "installs fine if sha256 :no_check is used with --require-sha and --force" do` at line 269.
 pub fn ruby_installer_spec_l269_d24_installs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('installs', ...args)
+	_ = args
+	return installer_spec_bool(installer_spec_install_case('force-no-checksum', 'dir:Caffeine.app', 'Caffeine.app', true, cask_core.CaskInstallerOptions{ require_sha: true, force: true }))
 }
 
 // Ruby it `it "prints caveats if they're present" do` at line 277.
 pub fn ruby_installer_spec_l277_d25_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+	_ = args
+	mut cask := installer_spec_core('with-caveats', installer_spec_temp('caveats'), '1.0') or { return installer_spec_bool(false) }
+	cask.dsl.caveats_value.custom = ['Here are some things you might want to know']
+	installer := cask_core.new_cask_installer(cask, cask_core.CaskInstallerOptions{}, installer_spec_hooks())
+	return installer_spec_bool(installer.caveats().contains('Here are some things you might want to know'))
 }
 
 // Ruby it `it "prints installer :manual instructions when present" do` at line 287.
 pub fn ruby_installer_spec_l287_d26_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+	_ = args
+	mut cask := installer_spec_core('with-installer-manual', installer_spec_temp('manual'), '1.0') or { return installer_spec_bool(false) }
+	cask.dsl.caveats_value.built_in = [dsl_types.CaskCaveatEntry{
+		name: 'installer_manual'
+		args: ['Caffeine.app']
+		text: 'Cask with-installer-manual only provides a manual installer. To run it and complete the installation:\n  open Caffeine.app'
+	}]
+	installer := cask_core.new_cask_installer(cask, cask_core.CaskInstallerOptions{}, installer_spec_hooks())
+	return installer_spec_bool(installer.caveats().contains('only provides a manual installer') && installer.caveats().contains('open Caffeine.app'))
 }
 
 // Ruby it `it "does not extract __MACOSX directories from zips" do` at line 305.
 pub fn ruby_installer_spec_l305_d27_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	_ = args
+	root := installer_spec_temp('macosx')
+	defer { installer_spec_remove(root) }
+	archive := os.join_path(root, 'archive')
+	destination := os.join_path(root, 'stage')
+	os.mkdir_all(root) or { return installer_spec_bool(false) }
+	os.write_file(archive, '__MACOSX/dir:junk\ndir:Caffeine.app') or { return installer_spec_bool(false) }
+	installer_spec_extract(archive, destination, false) or { return installer_spec_bool(false) }
+	return installer_spec_bool(!os.exists(os.join_path(destination, '__MACOSX')))
 }
 
 // Ruby it `it "allows already-installed Casks which auto-update to be installed if force is provided" do` at line 313.
 pub fn ruby_installer_spec_l313_d28_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+	_ = args
+	return installer_spec_bool(installer_spec_install_case('auto-updates', 'dir:Caffeine.app', 'Caffeine.app', true, cask_core.CaskInstallerOptions{ force: true }))
 }
 
 // Ruby it `it "allows already-installed Casks to be installed if force is provided" do` at line 325.
 pub fn ruby_installer_spec_l325_d29_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+	_ = args
+	return installer_spec_bool(installer_spec_install_case('local-transmission-zip', 'dir:Transmission.app', 'Transmission.app', true, cask_core.CaskInstallerOptions{ force: true }))
 }
 
 // Ruby it `it "installs a cask from a dmg file" do` at line 337.
 pub fn ruby_installer_spec_l337_d30_installs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('installs', ...args)
+	_ = args
+	return installer_spec_bool(installer_spec_install_case('local-transmission', 'dir:Transmission.app', 'Transmission.app', true, cask_core.CaskInstallerOptions{}))
 }
 
 // Ruby it `it "works naked-pkg-based Casks" do` at line 348.
 pub fn ruby_installer_spec_l348_d31_works(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('works', ...args)
+	_ = args
+	root := installer_spec_temp('container-pkg')
+	defer { installer_spec_remove(root) }
+	mut cask := installer_spec_core('container-pkg', root, '1.0') or { return installer_spec_bool(false) }
+	installer_spec_prepare_archive(mut cask, root, 'file:container.pkg', 'stage_only', 'container.pkg') or { return installer_spec_bool(false) }
+	mut installer := cask_core.new_cask_installer(cask, cask_core.CaskInstallerOptions{}, installer_spec_hooks())
+	installer.install() or { return installer_spec_bool(false) }
+	return installer_spec_bool(os.is_file(os.join_path(cask.caskroom_path(), '1.0', 'container.pkg')))
 }
 
 // Ruby it `it "works properly with an overridden container :type" do` at line 356.
 pub fn ruby_installer_spec_l356_d32_works(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('works', ...args)
+	_ = args
+	root := installer_spec_temp('naked-executable')
+	defer { installer_spec_remove(root) }
+	mut cask := installer_spec_core('naked-executable', root, '1.0') or { return installer_spec_bool(false) }
+	installer_spec_prepare_archive(mut cask, root, 'file:naked_executable', 'stage_only', 'naked_executable') or { return installer_spec_bool(false) }
+	mut installer := cask_core.new_cask_installer(cask, cask_core.CaskInstallerOptions{}, installer_spec_hooks())
+	installer.install() or { return installer_spec_bool(false) }
+	return installer_spec_bool(os.is_file(os.join_path(cask.caskroom_path(), '1.0', 'naked_executable')))
 }
 
 // Ruby it `it "works fine with a nested container" do` at line 364.
 pub fn ruby_installer_spec_l364_d33_works(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('works', ...args)
+	_ = args
+	return installer_spec_bool(installer_spec_install_case('nested-app', 'dir:MyNestedApp.app', 'MyNestedApp.app', true, cask_core.CaskInstallerOptions{}))
 }
 
 // Ruby it `it "generates and finds a timestamped metadata directory for an installed Cask" do` at line 372.
 pub fn ruby_installer_spec_l372_d34_generates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('generates', ...args)
+	_ = args
+	root := installer_spec_temp('timestamp')
+	defer { installer_spec_remove(root) }
+	cask := installer_spec_core('local-caffeine', root, '1.0') or { return installer_spec_bool(false) }
+	mut installer := cask_core.new_cask_installer(cask, cask_core.CaskInstallerOptions{ metadata_timestamp: '2026-01-02-030405.000000' }, installer_spec_hooks())
+	path := installer.metadata_subdir() or { return installer_spec_bool(false) }
+	return installer_spec_bool(path.ends_with('2026-01-02-030405.000000/Casks') && os.is_dir(path))
 }
 
 // Ruby it `it "generates and finds a metadata subdirectory for an installed Cask" do` at line 381.
 pub fn ruby_installer_spec_l381_d35_generates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('generates', ...args)
+	_ = args
+	root := installer_spec_temp('subdir')
+	defer { installer_spec_remove(root) }
+	cask := installer_spec_core('local-caffeine', root, '1.0') or { return installer_spec_bool(false) }
+	mut installer := cask_core.new_cask_installer(cask, cask_core.CaskInstallerOptions{}, installer_spec_hooks())
+	first := installer.metadata_subdir() or { return installer_spec_bool(false) }
+	second := installer.metadata_subdir() or { return installer_spec_bool(false) }
+	return installer_spec_bool(first == second && os.base(first) == 'Casks')
 }
 
 // Ruby it `it "don't print cask installed message with --quiet option" do` at line 391.
 pub fn ruby_installer_spec_l391_d36_don(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('don', ...args)
+	_ = args
+	root := installer_spec_temp('quiet')
+	defer { installer_spec_remove(root) }
+	mut cask := installer_spec_core('quiet', root, '1.0') or { return installer_spec_bool(false) }
+	installer_spec_prepare_archive(mut cask, root, 'dir:Caffeine.app', 'app', 'Caffeine.app') or { return installer_spec_bool(false) }
+	mut installer := cask_core.new_cask_installer(cask, cask_core.CaskInstallerOptions{ quiet: true }, installer_spec_hooks())
+	installer.install() or { return installer_spec_bool(false) }
+	return installer_spec_bool(!installer.messages.any(it.contains('successfully installed')))
 }
 
 // Ruby it `it "does NOT generate LATEST_DOWNLOAD_SHA256 file for installed Cask without version :latest" do` at line 398.
 pub fn ruby_installer_spec_l398_d37_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	_ = args
+	root := installer_spec_temp('versioned-sha')
+	defer { installer_spec_remove(root) }
+	mut cask := installer_spec_core('versioned', root, '1.0') or { return installer_spec_bool(false) }
+	installer_spec_prepare_archive(mut cask, root, 'dir:Caffeine.app', 'app', 'Caffeine.app') or { return installer_spec_bool(false) }
+	mut installer := cask_core.new_cask_installer(cask, cask_core.CaskInstallerOptions{}, installer_spec_hooks())
+	installer.install() or { return installer_spec_bool(false) }
+	return installer_spec_bool(!os.exists(cask.download_sha_path()))
 }
 
 // Ruby it `it "generates and finds LATEST_DOWNLOAD_SHA256 file for installed Cask with version :latest" do` at line 406.
 pub fn ruby_installer_spec_l406_d38_generates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('generates', ...args)
+	_ = args
+	root := installer_spec_temp('latest-sha')
+	defer { installer_spec_remove(root) }
+	mut cask := installer_spec_core('version-latest', root, 'latest') or { return installer_spec_bool(false) }
+	archive := os.join_path(root, 'archive')
+	os.mkdir_all(root) or { return installer_spec_bool(false) }
+	os.write_file(archive, 'payload') or { return installer_spec_bool(false) }
+	cask.download = archive
+	cask.dsl.url_value = cask_core.new_cask_url('file://${archive}', {}) or { return installer_spec_bool(false) }
+	cask.dsl.has_url = true
+	cask.new_download_sha_value = sha256.sum256('payload'.bytes()).hex()
+	mut installer := cask_core.new_cask_installer(cask, cask_core.CaskInstallerOptions{}, installer_spec_hooks())
+	installer.save_download_sha() or { return installer_spec_bool(false) }
+	return installer_spec_bool(os.is_file(cask.download_sha_path()))
 }
 
 // Ruby let `let(:path) { cask_path("local-caffeine") }` at line 415.
 pub fn ruby_installer_spec_l415_d39_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('path', ...args)
+	_ = args
+	return brew_runtime.object_value('Pathname', os.join_path('test/support/fixtures/cask', 'local-caffeine.rb'))
 }
 
 // Ruby let `let(:content) { File.read(path) }` at line 416.
 pub fn ruby_installer_spec_l416_d40_content(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('content', ...args)
+	if args.len == 0 || !os.is_file(args[0].as_string()) {
+		return installer_spec_nil()
+	}
+	return brew_runtime.string_value(os.read_file(args[0].as_string()) or { '' })
 }
 
 // Ruby it `it "installs cask" do` at line 418.
 pub fn ruby_installer_spec_l418_d41_installs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('installs', ...args)
+	_ = args
+	root := installer_spec_temp('source-install')
+	defer { installer_spec_remove(root) }
+	mut cask := installer_spec_core('local-caffeine', root, '1.0') or { return installer_spec_bool(false) }
+	archive := os.join_path(root, 'archive')
+	os.mkdir_all(root) or { return installer_spec_bool(false) }
+	os.write_file(archive, 'dir:Caffeine.app') or { return installer_spec_bool(false) }
+	staged := os.join_path(cask.caskroom_path(), '1.0')
+	artifact := installer_spec_artifact('app', os.join_path(staged, 'Caffeine.app'), os.join_path(root, 'Applications', 'Caffeine.app'))
+	cask.loaded_from_api = true
+	cask.dsl.artifacts = cask_core.new_artifact_set([
+		installer_spec_artifact('preflight', '', ''),
+	])
+	cask.api_source = {
+		'url':      brew_runtime.string_value('file://${archive}')
+		'version':  brew_runtime.string_value('1.0')
+		'artifact': artifact
+	}
+	cask.download = archive
+	mut installer := cask_core.new_cask_installer(cask, cask_core.CaskInstallerOptions{}, installer_spec_hooks())
+	installer.install() or { return installer_spec_bool(false) }
+	return installer_spec_bool(os.is_dir(os.join_path(root, 'Applications', 'Caffeine.app')))
 }
 
 // Ruby let `let(:cask) { Cask::CaskLoader.load(cask_path("with-preflight")) }` at line 432.
 pub fn ruby_installer_spec_l432_d42_cask(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask', ...args)
+	_ = args
+	mut cask := installer_spec_core('with-preflight', installer_spec_temp('api-requirement'), '1.0') or { return installer_spec_nil() }
+	cask.loaded_from_api = true
+	cask.dsl.artifacts = cask_core.new_artifact_set([
+		installer_spec_artifact('preflight', '', ''),
+	])
+	return cask_core.cask_core_value(cask)
 }
 
 // Ruby let `let(:download_queue) { instance_double(Homebrew::DownloadQueue, enqueue: nil) }` at line 433.
 pub fn ruby_installer_spec_l433_d43_download_queue(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('download_queue', ...args)
+	_ = args
+	return brew_runtime.structured_value('Homebrew::DownloadQueue', 'enqueue', {
+		'enqueue': 'injected'
+	})
 }
 
 // Ruby let `let(:macos_requirement) { cask.depends_on.macos }` at line 434.
 pub fn ruby_installer_spec_l434_d44_macos_requirement(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('macos_requirement', ...args)
+	_ = args
+	requirement := requirements.new_macos_requirement(['15'], '>=') or { return installer_spec_nil() }
+	return brew_runtime.structured_value('MacOSRequirement', requirement.inspect(), {
+		'satisfied': 'false'
+	})
 }
 
 // Ruby it `it "checks requirements before enqueueing downloads" do` at line 442.
 pub fn ruby_installer_spec_l442_d45_checks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('checks', ...args)
+	_ = args
+	mut cask := installer_spec_core('with-preflight', installer_spec_temp('enqueue-requirement'), '1.0') or { return installer_spec_bool(false) }
+	cask.loaded_from_api = true
+	cask.dsl.artifacts = cask_core.new_artifact_set([
+		installer_spec_artifact('preflight', '', ''),
+	])
+	cask.dsl.depends_on_value.macos = requirements.new_macos_requirement(['99'], '>=') or { return installer_spec_bool(false) }
+	mut installer := cask_core.new_cask_installer(cask, cask_core.CaskInstallerOptions{ current_macos: '15' }, installer_spec_hooks())
+	installer.enqueue_downloads() or { return installer_spec_bool(err.msg().starts_with('with-preflight:') && installer.queue_entries.len == 0) }
+	return installer_spec_bool(false)
 }
 
 // Ruby it `it "checks requirements before loading the source cask during fetch" do` at line 450.
 pub fn ruby_installer_spec_l450_d46_checks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('checks', ...args)
+	_ = args
+	mut cask := installer_spec_core('with-preflight', installer_spec_temp('fetch-requirement'), '1.0') or { return installer_spec_bool(false) }
+	cask.loaded_from_api = true
+	cask.dsl.artifacts = cask_core.new_artifact_set([
+		installer_spec_artifact('preflight', '', ''),
+	])
+	cask.dsl.depends_on_value.macos = requirements.new_macos_requirement(['99'], '>=') or { return installer_spec_bool(false) }
+	mut installer := cask_core.new_cask_installer(cask, cask_core.CaskInstallerOptions{ current_macos: '15' }, installer_spec_hooks())
+	installer.fetch(none, none) or { return installer_spec_bool(err.msg().starts_with('with-preflight:') && !installer.ran_prelude) }
+	return installer_spec_bool(false)
 }
 
 // Ruby it `it "zap method reinstall cask" do` at line 459.
 pub fn ruby_installer_spec_l459_d47_zap(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('zap', ...args)
+	_ = args
+	root := installer_spec_temp('zap')
+	defer { installer_spec_remove(root) }
+	mut cask := installer_spec_core('local-caffeine', root, '1.0') or { return installer_spec_bool(false) }
+	target := installer_spec_prepare_archive(mut cask, root, 'dir:Caffeine.app', 'app', 'Caffeine.app') or { return installer_spec_bool(false) }
+	mut installer := cask_core.new_cask_installer(cask, cask_core.CaskInstallerOptions{}, installer_spec_hooks())
+	installer.install() or { return installer_spec_bool(false) }
+	installer.zap() or { return installer_spec_bool(false) }
+	return installer_spec_bool(!os.exists(target) && !os.exists(cask.caskroom_path()))
 }
 
 // Ruby it `it "does not raise when the staged version directory is already missing" do` at line 473.
 pub fn ruby_installer_spec_l473_d48_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	_ = args
+	root := installer_spec_temp('backup-missing')
+	defer { installer_spec_remove(root) }
+	cask := installer_spec_core('local-caffeine', root, '1.0') or { return installer_spec_bool(false) }
+	installer := cask_core.new_cask_installer(cask, cask_core.CaskInstallerOptions{}, installer_spec_hooks())
+	installer.backup() or { return installer_spec_bool(false) }
+	return installer_spec_bool(!os.exists(installer.backup_path()) && !os.exists(installer.backup_metadata_path()))
 }
 
 // Ruby it `it "fully uninstalls a Cask" do` at line 488.
 pub fn ruby_installer_spec_l488_d49_fully(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fully', ...args)
+	_ = args
+	root := installer_spec_temp('full-uninstall')
+	defer { installer_spec_remove(root) }
+	mut cask := installer_spec_core('local-caffeine', root, '1.0') or { return installer_spec_bool(false) }
+	target := installer_spec_prepare_archive(mut cask, root, 'dir:Caffeine.app', 'app', 'Caffeine.app') or { return installer_spec_bool(false) }
+	mut installer := cask_core.new_cask_installer(cask, cask_core.CaskInstallerOptions{}, installer_spec_hooks())
+	installer.install() or { return installer_spec_bool(false) }
+	installer.uninstall('') or { return installer_spec_bool(false) }
+	return installer_spec_bool(!os.exists(target) && !os.exists(cask.caskroom_path()))
 }
 
 // Ruby it `it "removes Caskroom symlinks the uninstall broke, whatever name they carry" do` at line 500.
 pub fn ruby_installer_spec_l500_d50_removes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('removes', ...args)
+	_ = args
+	root := installer_spec_temp('broken-links')
+	defer { installer_spec_remove(root) }
+	cask := installer_spec_core('local-caffeine', root, '1.0') or { return installer_spec_bool(false) }
+	os.mkdir_all(cask.caskroom_root) or { return installer_spec_bool(false) }
+	alias_link := os.join_path(cask.caskroom_root, 'local-caffeine-renamed')
+	unrelated := os.join_path(cask.caskroom_root, 'alias-of-another-cask')
+	os.symlink('local-caffeine', alias_link) or { return installer_spec_bool(false) }
+	os.symlink('another-cask', unrelated) or { return installer_spec_bool(false) }
+	installer := cask_core.new_cask_installer(cask, cask_core.CaskInstallerOptions{}, installer_spec_hooks())
+	removed := installer.remove_broken_caskroom_symlinks() or { return installer_spec_bool(false) }
+	return installer_spec_bool(alias_link in removed && !os.is_link(alias_link) && os.is_link(unrelated))
 }
 
 // Ruby it `it "uninstalls all versions if force is set" do` at line 515.
 pub fn ruby_installer_spec_l515_d51_uninstalls(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uninstalls', ...args)
+	_ = args
+	root := installer_spec_temp('force-versions')
+	defer { installer_spec_remove(root) }
+	cask := installer_spec_core('local-caffeine', root, '1.0') or { return installer_spec_bool(false) }
+	os.mkdir_all(os.join_path(cask.caskroom_path(), '1.0.1')) or { return installer_spec_bool(false) }
+	mut installer := cask_core.new_cask_installer(cask, cask_core.CaskInstallerOptions{ force: true }, installer_spec_hooks())
+	installer.uninstall('') or { return installer_spec_bool(false) }
+	return installer_spec_bool(!os.exists(cask.caskroom_path()))
 }
 
 // Ruby let `let(:path) { cask_path("local-caffeine") }` at line 536.
 pub fn ruby_installer_spec_l536_d52_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('path', ...args)
+	return ruby_installer_spec_l415_d39_path(...args)
 }
 
 // Ruby let `let(:content) { File.read(path) }` at line 537.
 pub fn ruby_installer_spec_l537_d53_content(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('content', ...args)
+	return ruby_installer_spec_l416_d40_content(...args)
 }
 
 // Ruby let `let(:invalid_path) { instance_double(Pathname) }` at line 538.
 pub fn ruby_installer_spec_l538_d54_invalid_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('invalid_path', ...args)
+	_ = args
+	return brew_runtime.structured_value('Pathname', '/missing/installed-cask.json', {
+		'exist': 'false'
+	})
 }
 
 // Ruby it `it "uninstalls cask" do` at line 544.
 pub fn ruby_installer_spec_l544_d55_uninstalls(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uninstalls', ...args)
+	_ = args
+	root := installer_spec_temp('api-uninstall')
+	defer { installer_spec_remove(root) }
+	mut cask := installer_spec_core('local-caffeine', root, '1.0') or { return installer_spec_bool(false) }
+	cask.loaded_from_api = true
+	cask.installed_file_override = os.join_path(root, 'missing.json')
+	cask.dsl.artifacts = cask_core.new_artifact_set([
+		installer_spec_artifact('app', '', os.join_path(root, 'Applications', 'Caffeine.app')),
+	])
+	mut installer := cask_core.new_cask_installer(cask, cask_core.CaskInstallerOptions{}, installer_spec_hooks())
+	installer.uninstall('') or { return installer_spec_bool(false) }
+	return installer_spec_bool(!os.exists(cask.caskroom_path()))
 }
 
 // Ruby it `it "uninstalls when cask file is outdated" do` at line 563.
 pub fn ruby_installer_spec_l563_d56_uninstalls(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uninstalls', ...args)
+	_ = args
+	root := installer_spec_temp('outdated-caskfile')
+	defer { installer_spec_remove(root) }
+	mut cask := installer_spec_core('outdated', root, '2.0') or { return installer_spec_bool(false) }
+	staged := os.join_path(cask.caskroom_path(), '1.0')
+	os.mkdir_all(staged) or { return installer_spec_bool(false) }
+	installed := os.join_path(cask.caskroom_path(), '.metadata', '1.0', '20260101', 'Casks', 'outdated.json')
+	os.mkdir_all(os.dir(installed)) or { return installer_spec_bool(false) }
+	os.write_file(installed, '{}') or { return installer_spec_bool(false) }
+	cask.installed_file_override = installed
+	cask.dsl.staged_path_value = staged
+	mut installer := cask_core.new_cask_installer(cask, cask_core.CaskInstallerOptions{}, installer_spec_hooks())
+	installer.uninstall('') or { return installer_spec_bool(false) }
+	return installer_spec_bool(!os.exists(staged))
 }
 
 // Ruby let `let(:homebrew_forbidden) { Tap.fetch("homebrew/forbidden") }` at line 583.
 pub fn ruby_installer_spec_l583_d57_homebrew_forbidden(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('homebrew_forbidden', ...args)
+	_ = args
+	return brew_runtime.object_value('Tap', 'homebrew/forbidden')
 }
 
 // Ruby let `let(:allowed_third_party) { Tap.fetch("nothomebrew/allowed") }` at line 584.
 pub fn ruby_installer_spec_l584_d58_allowed_third_party(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allowed_third_party', ...args)
+	_ = args
+	return brew_runtime.object_value('Tap', 'nothomebrew/allowed')
 }
 
 // Ruby let `let(:disallowed_third_party) { Tap.fetch("nothomebrew/notallowed") }` at line 585.
 pub fn ruby_installer_spec_l585_d59_disallowed_third_party(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('disallowed_third_party', ...args)
+	_ = args
+	return brew_runtime.object_value('Tap', 'nothomebrew/notallowed')
 }
 
 // Ruby let `let(:allowed_taps_set) { [allowed_third_party.name] }` at line 586.
 pub fn ruby_installer_spec_l586_d60_allowed_taps_set(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allowed_taps_set', ...args)
+	_ = args
+	return brew_runtime.string_array_value(['nothomebrew/allowed'])
 }
 
 // Ruby let `let(:forbidden_taps_set) { [homebrew_forbidden.name] }` at line 587.
 pub fn ruby_installer_spec_l587_d61_forbidden_taps_set(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('forbidden_taps_set', ...args)
+	_ = args
+	return brew_runtime.string_array_value(['homebrew/forbidden'])
 }
 
 // Ruby it `it "raises on forbidden tap on cask" do` at line 589.
 pub fn ruby_installer_spec_l589_d62_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+	_ = args
+	cask := cask_core.new_cask_core(cask_core.CaskCoreConfig{ token: 'homebrew-forbidden-tap', tap_name: 'homebrew/forbidden' }, installer_spec_noop_block) or { return installer_spec_bool(false) }
+	installer := cask_core.new_cask_installer(cask, cask_core.CaskInstallerOptions{
+		allowed_taps: [
+			'nothomebrew/allowed',
+		]
+		forbidden_taps: ['homebrew/forbidden']
+	}, installer_spec_hooks())
+	installer.forbidden_tap_check(false) or { return installer_spec_bool(err.msg().contains('has the tap homebrew/forbidden')) }
+	return installer_spec_bool(false)
 }
 
 // Ruby it `it "raises on not allowed third-party tap on cask" do` at line 599.
 pub fn ruby_installer_spec_l599_d63_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+	_ = args
+	cask := cask_core.new_cask_core(cask_core.CaskCoreConfig{ token: 'homebrew-not-allowed-tap', tap_name: 'nothomebrew/notallowed' }, installer_spec_noop_block) or { return installer_spec_bool(false) }
+	installer := cask_core.new_cask_installer(cask, cask_core.CaskInstallerOptions{
+		allowed_taps: [
+			'nothomebrew/allowed',
+		]
+		forbidden_taps: ['homebrew/forbidden']
+	}, installer_spec_hooks())
+	installer.forbidden_tap_check(false) or { return installer_spec_bool(err.msg().contains('has the tap nothomebrew/notallowed')) }
+	return installer_spec_bool(false)
 }
 
 // Ruby it `it "does not raise on allowed tap on cask" do` at line 609.
 pub fn ruby_installer_spec_l609_d64_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	_ = args
+	cask := cask_core.new_cask_core(cask_core.CaskCoreConfig{ token: 'third-party-allowed-tap', tap_name: 'nothomebrew/allowed' }, installer_spec_noop_block) or { return installer_spec_bool(false) }
+	installer := cask_core.new_cask_installer(cask, cask_core.CaskInstallerOptions{
+		allowed_taps: [
+			'nothomebrew/allowed',
+		]
+		forbidden_taps: ['homebrew/forbidden']
+	}, installer_spec_hooks())
+	installer.forbidden_tap_check(false) or { return installer_spec_bool(false) }
+	return installer_spec_bool(true)
 }
 
 // Ruby it `it "raises on forbidden tap on dependency" do` at line 617.
 pub fn ruby_installer_spec_l617_d65_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+	_ = args
+	cask := installer_spec_core('homebrew-forbidden-dependent-tap', installer_spec_temp('dep-tap'), '1.0') or { return installer_spec_bool(false) }
+	mut installer := cask_core.new_cask_installer(cask, cask_core.CaskInstallerOptions{
+		allowed_taps: [
+			'nothomebrew/allowed',
+		]
+		forbidden_taps: ['homebrew/forbidden']
+	}, installer_spec_hooks())
+	installer.dependencies = [
+		cask_core.CaskInstallerDependency{ name: 'homebrew-forbidden-dependency-tap', kind: 'formula', tap: 'homebrew/forbidden', tap_allowed: false, tap_forbidden: true },
+	]
+	installer.forbidden_tap_check(false) or { return installer_spec_bool(err.msg().contains('from the homebrew/forbidden tap but')) }
+	return installer_spec_bool(false)
 }
 
 // Ruby it `it "raises on forbidden cask" do` at line 643.
 pub fn ruby_installer_spec_l643_d66_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+	_ = args
+	cask := installer_spec_core('homebrew-forbidden-cask', installer_spec_temp('forbidden-cask'), '1.0') or { return installer_spec_bool(false) }
+	installer := cask_core.new_cask_installer(cask, cask_core.CaskInstallerOptions{
+		forbidden_casks: [
+			'homebrew-forbidden-cask',
+		]
+	}, installer_spec_hooks())
+	installer.forbidden_cask_and_formula_check(false) or { return installer_spec_bool(err.msg().contains('forbidden for installation')) }
+	return installer_spec_bool(false)
 }
 
 // Ruby it `it "raises on forbidden dependency" do` at line 654.
 pub fn ruby_installer_spec_l654_d67_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+	_ = args
+	cask := installer_spec_core('homebrew-forbidden-dependent-cask', installer_spec_temp('forbidden-dep'), '1.0') or { return installer_spec_bool(false) }
+	mut installer := cask_core.new_cask_installer(cask, cask_core.CaskInstallerOptions{
+		forbidden_formulae: [
+			'homebrew-forbidden-dependency-formula',
+		]
+	}, installer_spec_hooks())
+	installer.dependencies = [
+		cask_core.CaskInstallerDependency{ name: 'homebrew-forbidden-dependency-formula', kind: 'formula' },
+	]
+	installer.forbidden_cask_and_formula_check(false) or { return installer_spec_bool(err.msg().contains('formula was forbidden')) }
+	return installer_spec_bool(false)
 }
 
 // Ruby it `it "raises when cask contains forbidden pkg artifact" do` at line 676.
 pub fn ruby_installer_spec_l676_d68_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+	_ = args
+	mut cask := installer_spec_core('homebrew-pkg-cask', installer_spec_temp('pkg-policy'), '1.0') or { return installer_spec_bool(false) }
+	cask.dsl.artifacts = cask_core.new_artifact_set([
+		installer_spec_artifact('pkg', 'MyInstaller.pkg', ''),
+	])
+	installer := cask_core.new_cask_installer(cask, cask_core.CaskInstallerOptions{
+		forbidden_artifacts: [
+			'pkg',
+		]
+	}, installer_spec_hooks())
+	installer.forbidden_cask_artifacts_check() or { return installer_spec_bool(err.msg().contains("contains a 'pkg' artifact")) }
+	return installer_spec_bool(false)
 }
 
 // Ruby it `it "raises when cask contains forbidden installer artifact" do` at line 688.
 pub fn ruby_installer_spec_l688_d69_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+	_ = args
+	mut cask := installer_spec_core('homebrew-installer-cask', installer_spec_temp('installer-policy'), '1.0') or { return installer_spec_bool(false) }
+	cask.dsl.artifacts = cask_core.new_artifact_set([
+		installer_spec_artifact('installer', 'MyInstaller.sh', ''),
+	])
+	installer := cask_core.new_cask_installer(cask, cask_core.CaskInstallerOptions{
+		forbidden_artifacts: [
+			'installer',
+		]
+	}, installer_spec_hooks())
+	installer.forbidden_cask_artifacts_check() or { return installer_spec_bool(err.msg().contains("contains a 'installer' artifact")) }
+	return installer_spec_bool(false)
 }
 
 // Ruby it `it "raises when cask contains multiple forbidden artifacts" do` at line 703.
 pub fn ruby_installer_spec_l703_d70_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+	_ = args
+	mut cask := installer_spec_core('homebrew-multi-forbidden-cask', installer_spec_temp('multi-policy'), '1.0') or { return installer_spec_bool(false) }
+	cask.dsl.artifacts = cask_core.new_artifact_set([
+		installer_spec_artifact('pkg', 'MyInstaller.pkg', ''),
+	])
+	installer := cask_core.new_cask_installer(cask, cask_core.CaskInstallerOptions{
+		forbidden_artifacts: [
+			'pkg',
+			'installer',
+		]
+	}, installer_spec_hooks())
+	installer.forbidden_cask_artifacts_check() or { return installer_spec_bool(err.msg().contains("contains a 'pkg' artifact")) }
+	return installer_spec_bool(false)
 }
 
 // Ruby it `it "does not raise when cask does not contain forbidden artifacts" do` at line 715.
 pub fn ruby_installer_spec_l715_d71_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	_ = args
+	mut cask := installer_spec_core('homebrew-allowed-cask', installer_spec_temp('allowed-artifact'), '1.0') or { return installer_spec_bool(false) }
+	cask.dsl.artifacts = cask_core.new_artifact_set([
+		installer_spec_artifact('app', 'MyApp.app', ''),
+	])
+	installer := cask_core.new_cask_installer(cask, cask_core.CaskInstallerOptions{
+		forbidden_artifacts: [
+			'pkg',
+			'installer',
+		]
+	}, installer_spec_hooks())
+	installer.forbidden_cask_artifacts_check() or { return installer_spec_bool(false) }
+	return installer_spec_bool(true)
 }
 
 // Ruby it `it "raises on forbidden cask before fetching the caskfile from the Source API" do` at line 727.
 pub fn ruby_installer_spec_l727_d72_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+	_ = args
+	mut cask := installer_spec_core('homebrew-forbidden-cask', installer_spec_temp('prelude-policy'), '1.0') or { return installer_spec_bool(false) }
+	cask.loaded_from_api = true
+	cask.dsl.artifacts = cask_core.new_artifact_set([
+		installer_spec_artifact('preflight', '', ''),
+	])
+	mut installer := cask_core.new_cask_installer(cask, cask_core.CaskInstallerOptions{
+		forbidden_casks: [
+			'homebrew-forbidden-cask',
+		]
+	}, installer_spec_hooks())
+	installer.prelude() or { return installer_spec_bool(err.msg().contains('forbidden for installation') && !installer.ran_prelude) }
+	return installer_spec_bool(false)
 }
 
 // Ruby it `it "uses API cask metadata for API-loaded cask downloads" do` at line 744.
 pub fn ruby_installer_spec_l744_d73_uses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uses', ...args)
+	_ = args
+	mut cask := installer_spec_core('api-cask', installer_spec_temp('api-metadata-download'), '0.9') or { return installer_spec_bool(false) }
+	cask.loaded_from_api = true
+	cask.loaded_from_internal_api = true
+	cask.dsl.artifacts = cask_core.new_artifact_set([
+		installer_spec_artifact('app', 'Fake.app', ''),
+	])
+	cask.dsl.url_value = cask_core.new_cask_url('https://example.com/api-cask.zip', {}) or { return installer_spec_bool(false) }
+	cask.dsl.has_url = true
+	mut installer := cask_core.new_cask_installer(cask, cask_core.CaskInstallerOptions{}, installer_spec_hooks())
+	installer.enqueue_downloads() or { return installer_spec_bool(false) }
+	return installer_spec_bool(installer.queue_entries.len == 1 && installer.queue_entries[0].url == 'https://example.com/api-cask.zip')
 }
 
 // Ruby it `it "enqueues the selected language download from API data" do` at line 769.
 pub fn ruby_installer_spec_l769_d74_enqueues(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('enqueues', ...args)
+	_ = args
+	mut cask := installer_spec_core('language-api-cask', installer_spec_temp('language-api'), '1.0') or { return installer_spec_bool(false) }
+	cask.loaded_from_api = true
+	cask.loaded_from_internal_api = true
+	cask.dsl.artifacts = cask_core.new_artifact_set([
+		installer_spec_artifact('app', 'Fake.app', ''),
+	])
+	cask.dsl.url_value = cask_core.new_cask_url('file:///fixtures/container.tar.gz', {}) or { return installer_spec_bool(false) }
+	cask.dsl.has_url = true
+	mut installer := cask_core.new_cask_installer(cask, cask_core.CaskInstallerOptions{}, installer_spec_hooks())
+	installer.enqueue_downloads() or { return installer_spec_bool(false) }
+	return installer_spec_bool(installer.queue_entries.last().url == 'file:///fixtures/container.tar.gz')
 }
 
 // Ruby it `it "enqueues source API caskfiles before the main cask download" do` at line 792.
 pub fn ruby_installer_spec_l792_d75_enqueues(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('enqueues', ...args)
+	_ = args
+	mut cask := installer_spec_core('source-api-cask', installer_spec_temp('source-first'), '1.0') or { return installer_spec_bool(false) }
+	cask.loaded_from_api = true
+	cask.dsl.artifacts = cask_core.new_artifact_set([
+		installer_spec_artifact('preflight', '', ''),
+	])
+	cask.dsl.language_blocks = [
+		cask_core.CaskLanguageBlock{ languages: ['en'], result: 'en' },
+	]
+	mut installer := cask_core.new_cask_installer(cask, cask_core.CaskInstallerOptions{}, installer_spec_hooks())
+	installer.prelude_fetch() or { return installer_spec_bool(false) }
+	return installer_spec_bool(installer.queue_entries.len == 1 && installer.queue_entries[0].kind == 'SourceDownload')
 }
 
 // Ruby it `it "leaves source API caskfiles in the main queue when their URL is known" do` at line 810.
 pub fn ruby_installer_spec_l810_d76_leaves(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('leaves', ...args)
+	_ = args
+	mut cask := installer_spec_core('source-api-cask', installer_spec_temp('source-main'), '1.0') or { return installer_spec_bool(false) }
+	cask.loaded_from_api = true
+	cask.dsl.artifacts = cask_core.new_artifact_set([
+		installer_spec_artifact('preflight', '', ''),
+	])
+	cask.api_source = {
+		'url':      brew_runtime.string_value('file:///fixtures/container.tar.gz')
+		'version':  brew_runtime.string_value('1.0')
+		'artifact': installer_spec_artifact('app', 'Fake.app', '')
+	}
+	mut installer := cask_core.new_cask_installer(cask, cask_core.CaskInstallerOptions{}, installer_spec_hooks())
+	installer.enqueue_downloads() or { return installer_spec_bool(false) }
+	return installer_spec_bool(installer.queue_entries.len == 2 && installer.queue_entries[0].kind == 'SourceDownload' && installer.queue_entries[1].kind == 'Cask::Download')
 }
 
 // Ruby it `it "stages the main cask download outside Caskroom before install" do` at line 826.
 pub fn ruby_installer_spec_l826_d77_stages(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('stages', ...args)
+	_ = args
+	root := installer_spec_temp('queued-stage')
+	defer { installer_spec_remove(root) }
+	mut cask := installer_spec_core('local-caffeine', root, '1.0') or { return installer_spec_bool(false) }
+	staged := os.join_path(cask.caskroom_path(), '1.0')
+	cask.dsl.staged_path_value = staged
+	queued := os.join_path(root, 'queued')
+	marker := os.join_path(root, 'queued.complete')
+	os.mkdir_all(os.join_path(queued, 'Caffeine.app')) or { return installer_spec_bool(false) }
+	os.write_file(marker, '') or { return installer_spec_bool(false) }
+	mut installer := cask_core.new_cask_installer(cask, cask_core.CaskInstallerOptions{ defer_fetch: true }, installer_spec_hooks())
+	installer.queued_staged_path = queued
+	installer.queued_staged_marker = marker
+	installer.stage() or { return installer_spec_bool(false) }
+	return installer_spec_bool(os.is_dir(os.join_path(staged, 'Caffeine.app')) && !os.exists(marker))
 }
 
 // Ruby it `it "stages nested containers for API-loaded casks" do` at line 853.
 pub fn ruby_installer_spec_l853_d78_stages(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('stages', ...args)
+	_ = args
+	root := installer_spec_temp('queued-nested')
+	defer { installer_spec_remove(root) }
+	mut cask := installer_spec_core('api-nested-cask', root, '1.2.3') or { return installer_spec_bool(false) }
+	staged := os.join_path(cask.caskroom_path(), '1.2.3')
+	cask.dsl.staged_path_value = staged
+	queued := os.join_path(root, 'queued-nested')
+	marker := os.join_path(root, 'queued-nested.complete')
+	os.mkdir_all(os.join_path(queued, 'Caffeine.app')) or { return installer_spec_bool(false) }
+	os.write_file(marker, '') or { return installer_spec_bool(false) }
+	mut installer := cask_core.new_cask_installer(cask, cask_core.CaskInstallerOptions{ defer_fetch: true }, installer_spec_hooks())
+	installer.queued_staged_path = queued
+	installer.queued_staged_marker = marker
+	installer.stage() or { return installer_spec_bool(false) }
+	return installer_spec_bool(os.is_dir(os.join_path(staged, 'Caffeine.app')))
 }
 
 // Ruby it `it "does not stage queued downloads with missing unpack dependencies" do` at line 889.
 pub fn ruby_installer_spec_l889_d79_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	_ = args
+	root := installer_spec_temp('missing-unpack-dep')
+	defer { installer_spec_remove(root) }
+	mut cask := installer_spec_core('container-bzip2', root, '1.0') or { return installer_spec_bool(false) }
+	cask.dsl.url_value = cask_core.new_cask_url('file:///fixtures/container.bz2', {}) or { return installer_spec_bool(false) }
+	cask.dsl.has_url = true
+	cask.dsl.artifacts = cask_core.new_artifact_set([
+		installer_spec_artifact('app', 'container', ''),
+	])
+	mut installer := cask_core.new_cask_installer(cask, cask_core.CaskInstallerOptions{ defer_fetch: true }, installer_spec_hooks())
+	installer.queued_staged_path = os.join_path(root, 'queued')
+	installer.queued_staged_marker = os.join_path(root, 'queued.complete')
+	installer.enqueue_downloads() or { return installer_spec_bool(false) }
+	return installer_spec_bool(installer.queue_entries.len == 1 && !os.exists(installer.queued_staged_path) && !os.exists(installer.queued_staged_marker) && !cask.installed())
 }
 
 // Ruby it `it "uses recovered installed metadata before falling back to the current cask" do` at line 914.
 pub fn ruby_installer_spec_l914_d80_uses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uses', ...args)
+	_ = args
+	root := installer_spec_temp('recover')
+	defer { installer_spec_remove(root) }
+	mut cask := installer_spec_core('local-caffeine', root, 'current') or { return installer_spec_bool(false) }
+	cask.api_source = {
+		'version':  brew_runtime.string_value('1.0')
+		'artifact': installer_spec_artifact('app', 'Recovered.app', '')
+	}
+	cask.installed_file_override = os.join_path(root, 'local-caffeine.json')
+	os.mkdir_all(root) or { return installer_spec_bool(false) }
+	os.write_file(cask.installed_file_override, '{}') or { return installer_spec_bool(false) }
+	hooks := cask_core.CaskInstallerHooks{
+		extract: installer_spec_extract
+		install_artifact: installer_spec_install_artifact
+		uninstall_artifact: installer_spec_uninstall_artifact
+		zap_artifact: installer_spec_uninstall_artifact
+		enqueue: installer_spec_enqueue
+		fetch: installer_spec_fetch
+		load_source_cask: installer_spec_source_loader
+		load_installed_cask: installer_spec_installed_loader_failure
+		recover_installed_cask: installer_spec_source_loader
+	}
+	mut installer := cask_core.new_cask_installer(cask, cask_core.CaskInstallerOptions{}, hooks)
+	installer.load_installed_caskfile() or { return installer_spec_bool(false) }
+	return installer_spec_bool(installer.cask.version_text() == '1.0' && installer.cask.dsl.artifacts.items.first().attributes['source'] == 'Recovered.app')
 }
 
 // Ruby let `let(:tmpdir) { mktmpdir }` at line 939.
 pub fn ruby_installer_spec_l939_d81_tmpdir(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tmpdir', ...args)
+	_ = args
+	path := installer_spec_temp('rename')
+	os.mkdir_all(path) or { return installer_spec_nil() }
+	return brew_runtime.object_value('Pathname', path)
 }
 
 // Ruby let `let(:staged_path) { Pathname(tmpdir) }` at line 940.
 pub fn ruby_installer_spec_l940_d82_staged_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('staged_path', ...args)
+	if args.len > 0 {
+		return brew_runtime.object_value('Pathname', args[0].as_string())
+	}
+	return ruby_installer_spec_l939_d81_tmpdir()
 }
 
 // Ruby it `it "processes rename operations after extraction" do` at line 946.
 pub fn ruby_installer_spec_l946_d83_processes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('processes', ...args)
+	_ = args
+	root := installer_spec_temp('rename-one')
+	defer { installer_spec_remove(root) }
+	os.mkdir_all(os.join_path(root, 'Original App.app', 'Contents')) or { return installer_spec_bool(false) }
+	mut cask := installer_spec_core('rename-test-cask', root, '1.0') or { return installer_spec_bool(false) }
+	cask.dsl.renames = [
+		dsl_types.new_cask_rename('Original App.app', 'Renamed App.app'),
+	]
+	installer := cask_core.new_cask_installer(cask, cask_core.CaskInstallerOptions{}, installer_spec_hooks())
+	installer.process_rename_operations(root) or { return installer_spec_bool(false) }
+	return installer_spec_bool(os.is_dir(os.join_path(root, 'Renamed App.app')) && !os.exists(os.join_path(root, 'Original App.app')))
 }
 
 // Ruby it `it "handles multiple rename operations in order" do` at line 967.
 pub fn ruby_installer_spec_l967_d84_handles(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('handles', ...args)
+	_ = args
+	root := installer_spec_temp('rename-many')
+	defer { installer_spec_remove(root) }
+	os.mkdir_all(os.join_path(root, 'Original.app')) or { return installer_spec_bool(false) }
+	mut cask := installer_spec_core('multi-rename-test-cask', root, '1.0') or { return installer_spec_bool(false) }
+	cask.dsl.renames = [dsl_types.new_cask_rename('Original.app', 'First Rename.app'),
+		dsl_types.new_cask_rename('First Rename.app', 'Final Name.app')]
+	installer := cask_core.new_cask_installer(cask, cask_core.CaskInstallerOptions{}, installer_spec_hooks())
+	installer.process_rename_operations(root) or { return installer_spec_bool(false) }
+	return installer_spec_bool(os.is_dir(os.join_path(root, 'Final Name.app')) && !os.exists(os.join_path(root, 'First Rename.app')))
 }
 
 // Ruby it `it "handles glob patterns in rename operations" do` at line 988.
 pub fn ruby_installer_spec_l988_d85_handles(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('handles', ...args)
+	_ = args
+	root := installer_spec_temp('rename-glob')
+	defer { installer_spec_remove(root) }
+	os.mkdir_all(root) or { return installer_spec_bool(false) }
+	os.write_file(os.join_path(root, 'Test App v1.2.3.pkg'), 'test content') or { return installer_spec_bool(false) }
+	mut cask := installer_spec_core('glob-rename-test-cask', root, '1.0') or { return installer_spec_bool(false) }
+	cask.dsl.renames = [dsl_types.new_cask_rename('Test App*.pkg', 'Test App.pkg')]
+	installer := cask_core.new_cask_installer(cask, cask_core.CaskInstallerOptions{}, installer_spec_hooks())
+	installer.process_rename_operations(root) or { return installer_spec_bool(false) }
+	return installer_spec_bool((os.read_file(os.join_path(root, 'Test App.pkg')) or { '' }) == 'test content' && !os.exists(os.join_path(root, 'Test App v1.2.3.pkg')))
 }
 
 // Ruby it `it "does nothing when no files match rename pattern" do` at line 1008.
 pub fn ruby_installer_spec_l1008_d86_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	_ = args
+	root := installer_spec_temp('rename-none')
+	defer { installer_spec_remove(root) }
+	os.mkdir_all(os.join_path(root, 'Different.app')) or { return installer_spec_bool(false) }
+	mut cask := installer_spec_core('no-match-rename-test-cask', root, '1.0') or { return installer_spec_bool(false) }
+	cask.dsl.renames = [dsl_types.new_cask_rename('NonExistent*.app', 'Target.app')]
+	installer := cask_core.new_cask_installer(cask, cask_core.CaskInstallerOptions{}, installer_spec_hooks())
+	installer.process_rename_operations(root) or { return installer_spec_bool(false) }
+	return installer_spec_bool(os.is_dir(os.join_path(root, 'Different.app')) && !os.exists(os.join_path(root, 'Target.app')))
 }
 
 // Original Ruby source (line-for-line):

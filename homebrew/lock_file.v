@@ -1,38 +1,150 @@
 module homebrew
 
 import brew_runtime
+import os
+import os.filelock
 
 // Translated from Homebrew/brew `lock_file.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub const lock_contention_error_code = 75
+
+pub struct LockOperationInProgressError {
+pub:
+	locked_path string
+	waited      ?int
+}
+
+pub fn (lock_error LockOperationInProgressError) msg() string {
+	return operation_in_progress_exception(lock_error.locked_path, lock_error.waited, '', '').message
+}
+
+pub fn (lock_error LockOperationInProgressError) code() int {
+	return lock_contention_error_code
+}
+
+pub struct LockFile {
+pub:
+	path        string
+	locked_path string
+pub mut:
+	locked bool
+mut:
+	backend ?filelock.FileLock
+}
+
+pub type LockFileAction = fn() !brew_runtime.Value
+
+fn configured_locks_directory() string {
+	configured := brew_runtime.environment_value('HOMEBREW_LOCKS')
+	if configured != '' {
+		return configured
+	}
+	prefix := brew_runtime.environment_value('HOMEBREW_PREFIX')
+	return if prefix == '' {
+		os.join_path(os.temp_dir(), 'homebrew-locks')
+	} else {
+		os.join_path(prefix, 'var', 'homebrew', 'locks')
+	}
+}
+
+pub fn new_lock_file(lock_type string, locked_path string, locks_directory string) LockFile {
+	directory := if locks_directory == '' {
+		configured_locks_directory()
+	} else {
+		locks_directory
+	}
+	lock_name := os.base(locked_path)
+	return LockFile{
+		path: os.join_path(directory, '${lock_name}.${lock_type}.lock')
+		locked_path: locked_path
+	}
+}
+
+fn ensure_lock_file_exists(path string) ! {
+	os.mkdir_all(os.dir(path))!
+	mut handle := os.open_file(path, 'r+') or { os.create(path)! }
+	handle.close()
+}
+
+pub fn (mut lock_file LockFile) lock() ! {
+	if lock_file.locked {
+		return
+	}
+	ensure_lock_file_exists(lock_file.path)!
+	mut backend := filelock.new(lock_file.path)
+	if !backend.try_acquire() {
+		return LockOperationInProgressError{
+			locked_path: lock_file.locked_path
+		}
+	}
+	// `filelock.new` uses the platform's nonblocking exclusive flock, including
+	// contention between separate instances in this process. Re-checking the
+	// pathname closes the unlink/open race before publishing the held backend.
+	if !os.exists(lock_file.path) {
+		backend.release()
+		return lock_file.lock()
+	}
+	lock_file.backend = backend
+	lock_file.locked = true
+}
+
+pub fn (mut lock_file LockFile) unlock(unlink bool) ! {
+	if !lock_file.locked {
+		return
+	}
+	if mut backend := lock_file.backend {
+		if unlink {
+			os.rm(lock_file.path) or {}
+		}
+		backend.release()
+	}
+	lock_file.backend = none
+	lock_file.locked = false
+	// V's sidecar flock backend unlinks on release. Ruby keeps ordinary lock
+	// files for reuse unless `unlink: true`, so restore the empty inode here.
+	if !unlink {
+		ensure_lock_file_exists(lock_file.path)!
+	}
+}
+
+pub fn (mut lock_file LockFile) with_lock(action LockFileAction) !brew_runtime.Value {
+	lock_file.lock()!
+	defer {
+		lock_file.unlock(false) or {}
+	}
+	return action()
+}
 
 // Ruby attr_reader `attr_reader :path` at line 15.
-pub fn ruby_lock_file_l15_d1_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('path', ...args)
+pub fn ruby_lock_file_l15_d1_path(lock_file LockFile) string {
+	return lock_file.path
 }
 
 // Ruby attr_reader `attr_reader :locked_path` at line 18.
-pub fn ruby_lock_file_l18_d2_locked_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('locked_path', ...args)
+pub fn ruby_lock_file_l18_d2_locked_path(lock_file LockFile) string {
+	return lock_file.locked_path
 }
 
 // Ruby method `initialize(type, locked_path)` at line 21.
-pub fn ruby_lock_file_l21_d3_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+pub fn ruby_lock_file_l21_d3_initialize(lock_type string, locked_path string,
+	locks_directory string) LockFile {
+	return new_lock_file(lock_type, locked_path, locks_directory)
 }
 
 // Ruby method `lock` at line 29.
-pub fn ruby_lock_file_l29_d4_lock(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('lock', ...args)
+pub fn ruby_lock_file_l29_d4_lock(mut lock_file LockFile) ! {
+	lock_file.lock()!
 }
 
 // Ruby method `unlock(unlink: false)` at line 74.
-pub fn ruby_lock_file_l74_d5_unlock(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('unlock', ...args)
+pub fn ruby_lock_file_l74_d5_unlock(mut lock_file LockFile, unlink bool) ! {
+	lock_file.unlock(unlink)!
 }
 
 // Ruby method `with_lock(&_block)` at line 86.
-pub fn ruby_lock_file_l86_d6_with_lock(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('with_lock', ...args)
+pub fn ruby_lock_file_l86_d6_with_lock(mut lock_file LockFile,
+	action LockFileAction) !brew_runtime.Value {
+	return lock_file.with_lock(action)
 }
 
 // Original Ruby source (line-for-line):

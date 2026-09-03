@@ -1,13 +1,15 @@
 module unpack_strategy
 
 import brew_runtime
+import os
 
 // Translated from Homebrew/brew `test/unpack_strategy/xz_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby let `let(:path) { TEST_FIXTURE_DIR/"cask/container.xz" }` at line 7.
 pub fn ruby_xz_spec_l7_d1_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('path', ...args)
+	path := os.join_path(spec_temp_dir('xz'), 'container.xz')
+	return brew_runtime.string_value(spec_write_bytes(path, [u8(0xfd), 0x37, 0x7a, 0x58, 0x5a, 0x00]))
 }
 
 // Original Ruby source (line-for-line):

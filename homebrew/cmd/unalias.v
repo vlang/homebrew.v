@@ -1,13 +1,19 @@
 module cmd
 
-import brew_runtime
+import homebrew.aliases
 
 // Translated from Homebrew/brew `cmd/unalias.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub fn run_unalias(config aliases.AliasConfig, names []string) ! {
+	aliases.init_aliases(config)!
+	for name in names {
+		aliases.remove_alias(config, name)!
+	}
+}
 
 // Ruby method `run` at line 19.
-pub fn ruby_unalias_l19_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('run', ...args)
+pub fn ruby_unalias_l19_d1_run(config aliases.AliasConfig, names []string) ! {
+	run_unalias(config, names)!
 }
 
 // Original Ruby source (line-for-line):

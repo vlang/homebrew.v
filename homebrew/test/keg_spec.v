@@ -1,223 +1,528 @@
 module test
 
 import brew_runtime
+import homebrew
+
+struct KegSpecFixture {
+	root   string
+	prefix string
+	cellar string
+	path   string
+	keg    homebrew.Keg
+	dst    string
+}
+
+fn keg_spec_join(parts ...string) string {
+	if parts.len == 0 {
+		return ''
+	}
+	mut path := parts[0]
+	for part in parts[1..] {
+		path = brew_runtime.join_path(path, part)
+	}
+	return path
+}
+
+fn keg_spec_join_relative(root string, relative string) string {
+	mut path := root
+	for part in relative.split('/') {
+		path = brew_runtime.join_path(path, part)
+	}
+	return path
+}
+
+fn keg_spec_fixture(name string, version string) !KegSpecFixture {
+	root := keg_spec_join(brew_runtime.temporary_directory(), 'brew-v-keg-spec-${name}-${brew_runtime.process_id()}')
+	brew_runtime.remove_all(root) or {}
+	prefix := keg_spec_join(root, 'prefix')
+	cellar := keg_spec_join(prefix, 'Cellar')
+	path := keg_spec_join(cellar, name, version)
+	bin := keg_spec_join(path, 'bin')
+	brew_runtime.make_dir_all(bin)!
+	brew_runtime.make_dir_all(keg_spec_join(prefix, 'bin'))!
+	brew_runtime.make_dir_all(keg_spec_join(prefix, 'lib'))!
+	for file in ['hiworld', 'helloworld', 'goodbye_cruel_world'] {
+		brew_runtime.write_file(keg_spec_join(bin, file), '')!
+	}
+	return KegSpecFixture{
+		root: root
+		prefix: prefix
+		cellar: cellar
+		path: path
+		keg: homebrew.new_keg_with_paths(path, cellar, prefix)!
+		dst: keg_spec_join(prefix, 'bin', 'helloworld')
+	}
+}
+
+fn keg_spec_cleanup(fixture KegSpecFixture) {
+	fixture.keg.unlink(false) or {}
+	brew_runtime.remove_all(fixture.root) or {}
+}
+
+fn keg_spec_bool(value bool) brew_runtime.Value {
+	return brew_runtime.bool_value(value)
+}
+
+fn keg_spec_value(keg homebrew.Keg) brew_runtime.Value {
+	return brew_runtime.structured_value('Keg', keg.path, {
+		'name':   keg.name
+		'path':   keg.path
+		'prefix': keg.prefix
+		'cellar': keg.cellar
+	})
+}
+
+fn keg_spec_symlink(target string, link string) ! {
+	brew_runtime.make_dir_all(keg_spec_parent(link))!
+	result := brew_runtime.run_captured_command(['/bin/ln', '-s', target, link], brew_runtime.CapturedCommandOptions{})!
+	if result.exit_code != 0 {
+		return error(result.stderr)
+	}
+}
+
+fn keg_spec_parent(path string) string {
+	parts := path.split('/')
+	if parts.len < 2 {
+		return '.'
+	}
+	parent := parts[..parts.len - 1].join('/')
+	return if parent == '' { '/' } else { parent }
+}
+
+fn keg_spec_remove(path string) {
+	brew_runtime.run_captured_command(['/bin/rm', '-rf', path], brew_runtime.CapturedCommandOptions{}) or {}
+}
+
+fn keg_spec_readlink(path string) string {
+	result := brew_runtime.run_captured_command(['/usr/bin/readlink', path], brew_runtime.CapturedCommandOptions{}) or {
+		return ''
+	}
+	return result.stdout.trim_space()
+}
+
+fn keg_spec_link_directory(relative string, file string) bool {
+	fixture := keg_spec_fixture('foo-${relative.replace('/', '-')}', '1.0') or { return false }
+	defer { keg_spec_cleanup(fixture) }
+	directory := keg_spec_join_relative(fixture.path, relative)
+	brew_runtime.make_dir_all(directory) or { return false }
+	if file != '' {
+		brew_runtime.write_file(keg_spec_join(directory, file), '') or { return false }
+	}
+	fixture.keg.link(false, false) or { return false }
+	return brew_runtime.is_dir(keg_spec_join_relative(fixture.prefix, relative))
+}
+
+fn keg_spec_homebrew_created_file(name string) bool {
+	extension := name.all_after_last('.')
+	return name.starts_with('homebrew.') && extension in ['plist', 'service', 'timer']
+}
 
 // Translated from Homebrew/brew `test/keg_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby let `let(:dst) { HOMEBREW_PREFIX/"bin"/"helloworld" }` at line 8.
 pub fn ruby_keg_spec_l8_d1_dst(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dst', ...args)
+	fixture := keg_spec_fixture('foo', '1.0') or { return brew_runtime.string_value('') }
+	defer { keg_spec_cleanup(fixture) }
+	return brew_runtime.object_value('Pathname', fixture.dst)
 }
 
 // Ruby let `let(:nonexistent) { Pathname.new("/some/nonexistent/path") }` at line 9.
 pub fn ruby_keg_spec_l9_d2_nonexistent(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('nonexistent', ...args)
+	return brew_runtime.object_value('Pathname', '/some/nonexistent/path')
 }
 
 // Ruby let! `let!(:keg) { setup_test_keg("foo", "1.0") }` at line 10.
 pub fn ruby_keg_spec_l10_d3_keg(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('keg', ...args)
+	fixture := keg_spec_fixture('foo', '1.0') or { return brew_runtime.object_value('NilClass', 'nil') }
+	defer { keg_spec_cleanup(fixture) }
+	return keg_spec_value(fixture.keg)
 }
 
 // Ruby let `let(:kegs) { [] }` at line 11.
 pub fn ruby_keg_spec_l11_d4_kegs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('kegs', ...args)
+	return brew_runtime.array_value([]brew_runtime.Value{})
 }
 
 // Ruby method `setup_test_keg(name, version)` at line 15.
 pub fn ruby_keg_spec_l15_d5_setup_test_keg(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('setup_test_keg', ...args)
+	name := if args.len > 0 { args[0].as_string() } else { 'foo' }
+	version := if args.len > 1 { args[1].as_string() } else { '1.0' }
+	fixture := keg_spec_fixture(name, version) or { return brew_runtime.object_value('NilClass', 'nil') }
+	defer { keg_spec_cleanup(fixture) }
+	return keg_spec_value(fixture.keg)
 }
 
 // Ruby specify `specify "::all" do` at line 38.
 pub fn ruby_keg_spec_l38_d6_all(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('::all', ...args)
+	fixture := keg_spec_fixture('foo', '1.0') or { return keg_spec_bool(false) }
+	defer { keg_spec_cleanup(fixture) }
+	kegs := homebrew.all_kegs(fixture.cellar, fixture.prefix)
+	return keg_spec_bool(kegs.len == 1 && kegs[0].equal(fixture.keg))
 }
 
 // Ruby specify `specify "#empty_installation?" do` at line 42.
 pub fn ruby_keg_spec_l42_d7_empty_installation(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#empty_installation?', ...args)
+	fixture := keg_spec_fixture('foo', '1.0') or { return keg_spec_bool(false) }
+	defer { keg_spec_cleanup(fixture) }
+	for file in ['.DS_Store', homebrew.tab_filename, 'LICENSE.txt'] {
+		brew_runtime.write_file(keg_spec_join(fixture.path, file), '') or { return keg_spec_bool(false) }
+	}
+	initial := !fixture.keg.empty_installation()
+	keg_spec_remove(keg_spec_join(fixture.path, 'bin'))
+	empty := fixture.keg.empty_installation()
+	brew_runtime.make_dir_all(keg_spec_join(fixture.path, 'bin')) or { return keg_spec_bool(false) }
+	brew_runtime.write_file(keg_spec_join(fixture.path, 'bin', 'todo'), '') or { return keg_spec_bool(false) }
+	return keg_spec_bool(initial && empty && !fixture.keg.empty_installation())
 }
 
 // Ruby specify `specify "#oldname_opt_records" do` at line 59.
 pub fn ruby_keg_spec_l59_d8_oldname_opt_records(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#oldname_opt_records', ...args)
+	fixture := keg_spec_fixture('foo', '1.0') or { return keg_spec_bool(false) }
+	defer { keg_spec_cleanup(fixture) }
+	initial := fixture.keg.oldname_opt_records().len == 0
+	record := keg_spec_join(fixture.prefix, 'opt', 'oldfoo')
+	keg_spec_symlink(fixture.path, record) or { return keg_spec_bool(false) }
+	return keg_spec_bool(initial && fixture.keg.oldname_opt_records() == [record])
 }
 
 // Ruby specify `specify "#remove_oldname_opt_records" do` at line 66.
 pub fn ruby_keg_spec_l66_d9_remove_oldname_opt_records(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#remove_oldname_opt_records', ...args)
+	fixture := keg_spec_fixture('foo', '1.0') or { return keg_spec_bool(false) }
+	defer { keg_spec_cleanup(fixture) }
+	record := keg_spec_join(fixture.prefix, 'opt', 'oldfoo')
+	keg_spec_symlink(keg_spec_join(fixture.cellar, 'foo', '2.0'), record) or { return keg_spec_bool(false) }
+	fixture.keg.remove_oldname_opt_records() or { return keg_spec_bool(false) }
+	preserved := brew_runtime.is_link(record)
+	keg_spec_remove(record)
+	keg_spec_symlink(fixture.path, record) or { return keg_spec_bool(false) }
+	fixture.keg.remove_oldname_opt_records() or { return keg_spec_bool(false) }
+	return keg_spec_bool(preserved && !brew_runtime.is_link(record))
 }
 
 // Ruby it `it "links a Keg" do` at line 78.
 pub fn ruby_keg_spec_l78_d10_links(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('links', ...args)
+	fixture := keg_spec_fixture('foo', '1.0') or { return keg_spec_bool(false) }
+	defer { keg_spec_cleanup(fixture) }
+	count := fixture.keg.link(false, false) or { return keg_spec_bool(false) }
+	links := brew_runtime.list_dir(keg_spec_join(fixture.prefix, 'bin')) or { return keg_spec_bool(false) }
+	return keg_spec_bool(count == 3 && links.all(brew_runtime.is_link(keg_spec_join(fixture.prefix, 'bin', it)) && !keg_spec_readlink(keg_spec_join(fixture.prefix, 'bin', it)).starts_with('/')))
 }
 
 // Ruby let `let(:options) { { dry_run: true } }` at line 86.
 pub fn ruby_keg_spec_l86_d11_options(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('options', ...args)
+	return brew_runtime.structured_value('Hash', '{dry_run: true}', {
+		'dry_run': 'true'
+	})
 }
 
 // Ruby it `it "only prints what would be done" do` at line 88.
 pub fn ruby_keg_spec_l88_d12_only(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('only', ...args)
+	fixture := keg_spec_fixture('foo', '1.0') or { return keg_spec_bool(false) }
+	defer { keg_spec_cleanup(fixture) }
+	count := fixture.keg.link(true, false) or { return keg_spec_bool(false) }
+	return keg_spec_bool(count == 0 && !fixture.keg.linked() && !brew_runtime.is_link(fixture.dst))
 }
 
 // Ruby it `it "fails when already linked" do` at line 101.
 pub fn ruby_keg_spec_l101_d13_fails(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fails', ...args)
+	fixture := keg_spec_fixture('foo', '1.0') or { return keg_spec_bool(false) }
+	defer { keg_spec_cleanup(fixture) }
+	fixture.keg.link(false, false) or { return keg_spec_bool(false) }
+	fixture.keg.link(false, false) or { return keg_spec_bool(err.msg().contains('Another version is already linked')) }
+	return keg_spec_bool(false)
 }
 
 // Ruby it `it "fails when files exist" do` at line 107.
 pub fn ruby_keg_spec_l107_d14_fails(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fails', ...args)
+	fixture := keg_spec_fixture('foo', '1.0') or { return keg_spec_bool(false) }
+	defer { keg_spec_cleanup(fixture) }
+	brew_runtime.write_file(fixture.dst, '') or { return keg_spec_bool(false) }
+	fixture.keg.link(false, false) or { return keg_spec_bool(err.msg().contains('already exists')) }
+	return keg_spec_bool(false)
 }
 
 // Ruby it `it "ignores broken symlinks at target" do` at line 113.
 pub fn ruby_keg_spec_l113_d15_ignores(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ignores', ...args)
+	fixture := keg_spec_fixture('foo', '1.0') or { return keg_spec_bool(false) }
+	defer { keg_spec_cleanup(fixture) }
+	keg_spec_symlink('/some/nonexistent/path', fixture.dst) or { return keg_spec_bool(false) }
+	fixture.keg.link(false, false) or { return keg_spec_bool(false) }
+	return keg_spec_bool(brew_runtime.is_link(fixture.dst) && keg_spec_readlink(fixture.dst).contains('Cellar/foo/1.0/bin/helloworld'))
 }
 
 // Ruby let `let(:options) { { overwrite: true } }` at line 121.
 pub fn ruby_keg_spec_l121_d16_options(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('options', ...args)
+	return brew_runtime.structured_value('Hash', '{overwrite: true}', {
+		'overwrite': 'true'
+	})
 }
 
 // Ruby it `it "overwrite existing files" do` at line 123.
 pub fn ruby_keg_spec_l123_d17_overwrite(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('overwrite', ...args)
+	fixture := keg_spec_fixture('foo', '1.0') or { return keg_spec_bool(false) }
+	defer { keg_spec_cleanup(fixture) }
+	brew_runtime.write_file(fixture.dst, '') or { return keg_spec_bool(false) }
+	count := fixture.keg.link(false, true) or { return keg_spec_bool(false) }
+	return keg_spec_bool(count == 3 && fixture.keg.linked())
 }
 
 // Ruby it `it "overwrites broken symlinks" do` at line 129.
 pub fn ruby_keg_spec_l129_d18_overwrites(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('overwrites', ...args)
+	fixture := keg_spec_fixture('foo', '1.0') or { return keg_spec_bool(false) }
+	defer { keg_spec_cleanup(fixture) }
+	keg_spec_symlink('nowhere', fixture.dst) or { return keg_spec_bool(false) }
+	count := fixture.keg.link(false, true) or { return keg_spec_bool(false) }
+	return keg_spec_bool(count == 3 && fixture.keg.linked())
 }
 
 // Ruby it `it "still supports dryrun" do` at line 135.
 pub fn ruby_keg_spec_l135_d19_still(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('still', ...args)
+	fixture := keg_spec_fixture('foo', '1.0') or { return keg_spec_bool(false) }
+	defer { keg_spec_cleanup(fixture) }
+	brew_runtime.write_file(fixture.dst, '') or { return keg_spec_bool(false) }
+	count := fixture.keg.link(true, true) or { return keg_spec_bool(false) }
+	return keg_spec_bool(count == 0 && !fixture.keg.linked() && brew_runtime.is_file(fixture.dst))
 }
 
 // Ruby it `it "also creates an opt link" do` at line 150.
 pub fn ruby_keg_spec_l150_d20_also(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('also', ...args)
+	fixture := keg_spec_fixture('foo', '1.0') or { return keg_spec_bool(false) }
+	defer { keg_spec_cleanup(fixture) }
+	initial := !fixture.keg.optlinked()
+	fixture.keg.link(false, false) or { return keg_spec_bool(false) }
+	return keg_spec_bool(initial && fixture.keg.optlinked())
 }
 
 // Ruby specify `specify "pkgconfig directory is created" do` at line 156.
 pub fn ruby_keg_spec_l156_d21_pkgconfig(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('pkgconfig', ...args)
+	return keg_spec_bool(keg_spec_link_directory('lib/pkgconfig', ''))
 }
 
 // Ruby specify `specify "cmake directory is created" do` at line 163.
 pub fn ruby_keg_spec_l163_d22_cmake(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cmake', ...args)
+	return keg_spec_bool(keg_spec_link_directory('lib/cmake', ''))
 }
 
 // Ruby specify `specify "lib/cps directory is created" do` at line 170.
 pub fn ruby_keg_spec_l170_d23_lib_cps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('lib/cps', ...args)
+	return keg_spec_bool(keg_spec_link_directory('lib/cps', ''))
 }
 
 // Ruby specify `specify "share/cps directory is created" do` at line 177.
 pub fn ruby_keg_spec_l177_d24_share_cps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('share/cps', ...args)
+	return keg_spec_bool(keg_spec_link_directory('share/cps', ''))
 }
 
 // Ruby specify `specify "share/pwsh directory is created" do` at line 184.
 pub fn ruby_keg_spec_l184_d25_share_pwsh(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('share/pwsh', ...args)
+	return keg_spec_bool(keg_spec_link_directory('share/pwsh/completions', '_test.ps1'))
 }
 
 // Ruby specify `specify "symlinks are linked directly" do` at line 192.
 pub fn ruby_keg_spec_l192_d26_symlinks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('symlinks', ...args)
+	fixture := keg_spec_fixture('foo', '1.0') or { return keg_spec_bool(false) }
+	defer { keg_spec_cleanup(fixture) }
+	example := keg_spec_join(fixture.path, 'lib', 'example')
+	link := keg_spec_join(fixture.path, 'lib', 'pkgconfig')
+	brew_runtime.make_dir_all(example) or { return keg_spec_bool(false) }
+	keg_spec_symlink('example', link) or { return keg_spec_bool(false) }
+	fixture.keg.link(false, false) or { return keg_spec_bool(false) }
+	target := keg_spec_join(fixture.prefix, 'lib', 'pkgconfig')
+	return keg_spec_bool(brew_runtime.is_link(target))
 }
 
 // Ruby it `it "unlinks a Keg" do` at line 205.
 pub fn ruby_keg_spec_l205_d27_unlinks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('unlinks', ...args)
+	fixture := keg_spec_fixture('foo', '1.0') or { return keg_spec_bool(false) }
+	defer { keg_spec_cleanup(fixture) }
+	fixture.keg.link(false, false) or { return keg_spec_bool(false) }
+	before := brew_runtime.is_link(fixture.dst)
+	count := fixture.keg.unlink(false) or { return keg_spec_bool(false) }
+	return keg_spec_bool(before && count == 3 && !brew_runtime.is_link(fixture.dst))
 }
 
 // Ruby it `it "prunes empty top-level directories" do` at line 212.
 pub fn ruby_keg_spec_l212_d28_prunes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prunes', ...args)
+	fixture := keg_spec_fixture('foo', '1.0') or { return keg_spec_bool(false) }
+	defer { keg_spec_cleanup(fixture) }
+	prefix_directory := keg_spec_join(fixture.prefix, 'lib', 'foo', 'bar')
+	source_directory := keg_spec_join(fixture.path, 'lib', 'foo', 'bar')
+	brew_runtime.make_dir_all(prefix_directory) or { return keg_spec_bool(false) }
+	brew_runtime.make_dir_all(source_directory) or { return keg_spec_bool(false) }
+	brew_runtime.write_file(keg_spec_join(source_directory, 'file1'), '') or { return keg_spec_bool(false) }
+	fixture.keg.link(false, false) or { return keg_spec_bool(false) }
+	fixture.keg.unlink(false) or { return keg_spec_bool(false) }
+	return keg_spec_bool(!brew_runtime.is_dir(keg_spec_join(fixture.prefix, 'lib', 'foo')))
 }
 
 // Ruby it `it "ignores .DS_Store when pruning empty directories" do` at line 222.
 pub fn ruby_keg_spec_l222_d29_ignores(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ignores', ...args)
+	fixture := keg_spec_fixture('foo', '1.0') or { return keg_spec_bool(false) }
+	defer { keg_spec_cleanup(fixture) }
+	prefix_foo := keg_spec_join(fixture.prefix, 'lib', 'foo')
+	source_directory := keg_spec_join(fixture.path, 'lib', 'foo', 'bar')
+	brew_runtime.make_dir_all(keg_spec_join(prefix_foo, 'bar')) or { return keg_spec_bool(false) }
+	brew_runtime.write_file(keg_spec_join(prefix_foo, '.DS_Store'), '') or { return keg_spec_bool(false) }
+	brew_runtime.make_dir_all(source_directory) or { return keg_spec_bool(false) }
+	brew_runtime.write_file(keg_spec_join(source_directory, 'file1'), '') or { return keg_spec_bool(false) }
+	fixture.keg.link(false, false) or { return keg_spec_bool(false) }
+	fixture.keg.unlink(false) or { return keg_spec_bool(false) }
+	return keg_spec_bool(!brew_runtime.is_dir(prefix_foo) && !brew_runtime.path_exists(keg_spec_join(prefix_foo, '.DS_Store')))
 }
 
 // Ruby it `it "doesn't remove opt link" do` at line 234.
 pub fn ruby_keg_spec_l234_d30_doesn(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('doesn', ...args)
+	fixture := keg_spec_fixture('foo', '1.0') or { return keg_spec_bool(false) }
+	defer { keg_spec_cleanup(fixture) }
+	fixture.keg.link(false, false) or { return keg_spec_bool(false) }
+	fixture.keg.unlink(false) or { return keg_spec_bool(false) }
+	return keg_spec_bool(fixture.keg.optlinked())
 }
 
 // Ruby it `it "preverves broken symlinks pointing outside the Keg" do` at line 240.
 pub fn ruby_keg_spec_l240_d31_preverves(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('preverves', ...args)
+	fixture := keg_spec_fixture('foo', '1.0') or { return keg_spec_bool(false) }
+	defer { keg_spec_cleanup(fixture) }
+	fixture.keg.link(false, false) or { return keg_spec_bool(false) }
+	keg_spec_remove(fixture.dst)
+	keg_spec_symlink('/some/nonexistent/path', fixture.dst) or { return keg_spec_bool(false) }
+	fixture.keg.unlink(false) or { return keg_spec_bool(false) }
+	return keg_spec_bool(brew_runtime.is_link(fixture.dst))
 }
 
 // Ruby it `it "preverves broken symlinks pointing into the Keg" do` at line 248.
 pub fn ruby_keg_spec_l248_d32_preverves(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('preverves', ...args)
+	fixture := keg_spec_fixture('foo', '1.0') or { return keg_spec_bool(false) }
+	defer { keg_spec_cleanup(fixture) }
+	fixture.keg.link(false, false) or { return keg_spec_bool(false) }
+	source := keg_spec_join(fixture.path, 'bin', 'helloworld')
+	keg_spec_remove(source)
+	fixture.keg.unlink(false) or { return keg_spec_bool(false) }
+	return keg_spec_bool(brew_runtime.is_link(fixture.dst))
 }
 
 // Ruby it `it "preverves symlinks pointing outside the Keg" do` at line 255.
 pub fn ruby_keg_spec_l255_d33_preverves(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('preverves', ...args)
+	fixture := keg_spec_fixture('foo', '1.0') or { return keg_spec_bool(false) }
+	defer { keg_spec_cleanup(fixture) }
+	fixture.keg.link(false, false) or { return keg_spec_bool(false) }
+	keg_spec_remove(fixture.dst)
+	keg_spec_symlink('/bin/sh', fixture.dst) or { return keg_spec_bool(false) }
+	fixture.keg.unlink(false) or { return keg_spec_bool(false) }
+	return keg_spec_bool(brew_runtime.is_link(fixture.dst))
 }
 
 // Ruby it `it "preserves real files" do` at line 263.
 pub fn ruby_keg_spec_l263_d34_preserves(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('preserves', ...args)
+	fixture := keg_spec_fixture('foo', '1.0') or { return keg_spec_bool(false) }
+	defer { keg_spec_cleanup(fixture) }
+	fixture.keg.link(false, false) or { return keg_spec_bool(false) }
+	keg_spec_remove(fixture.dst)
+	brew_runtime.write_file(fixture.dst, '') or { return keg_spec_bool(false) }
+	fixture.keg.unlink(false) or { return keg_spec_bool(false) }
+	return keg_spec_bool(brew_runtime.is_file(fixture.dst))
 }
 
 // Ruby it `it "ignores nonexistent file" do` at line 271.
 pub fn ruby_keg_spec_l271_d35_ignores(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ignores', ...args)
+	fixture := keg_spec_fixture('foo', '1.0') or { return keg_spec_bool(false) }
+	defer { keg_spec_cleanup(fixture) }
+	fixture.keg.link(false, false) or { return keg_spec_bool(false) }
+	keg_spec_remove(fixture.dst)
+	count := fixture.keg.unlink(false) or { return keg_spec_bool(false) }
+	return keg_spec_bool(count == 2)
 }
 
 // Ruby it `it "doesn't remove links to symlinks" do` at line 277.
 pub fn ruby_keg_spec_l277_d36_doesn(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('doesn', ...args)
+	root := keg_spec_join(brew_runtime.temporary_directory(), 'brew-v-keg-spec-conflict-${brew_runtime.process_id()}')
+	brew_runtime.remove_all(root) or {}
+	defer { brew_runtime.remove_all(root) or {} }
+	prefix := keg_spec_join(root, 'prefix')
+	cellar := keg_spec_join(prefix, 'Cellar')
+	a_path := keg_spec_join(cellar, 'a', '1.0')
+	b_path := keg_spec_join(cellar, 'b', '1.0')
+	brew_runtime.make_dir_all(keg_spec_join(a_path, 'lib', 'example')) or { return keg_spec_bool(false) }
+	keg_spec_symlink('example', keg_spec_join(a_path, 'lib', 'example2')) or { return keg_spec_bool(false) }
+	brew_runtime.make_dir_all(keg_spec_join(b_path, 'lib', 'example2')) or { return keg_spec_bool(false) }
+	a := homebrew.new_keg_with_paths(a_path, cellar, prefix) or { return keg_spec_bool(false) }
+	b := homebrew.new_keg_with_paths(b_path, cellar, prefix) or { return keg_spec_bool(false) }
+	a.link(false, false) or { return keg_spec_bool(false) }
+	before := (brew_runtime.list_dir(keg_spec_join(prefix, 'lib')) or { return keg_spec_bool(false) }).len
+	b.link(false, false) or {
+		after := (brew_runtime.list_dir(keg_spec_join(prefix, 'lib')) or { return keg_spec_bool(false) }).len
+		return keg_spec_bool(err.msg().contains('already exists') && before == 2 && after == 2)
+	}
+	return keg_spec_bool(false)
 }
 
 // Ruby it `it "removes broken symlinks that conflict with directories" do` at line 295.
 pub fn ruby_keg_spec_l295_d37_removes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('removes', ...args)
+	fixture := keg_spec_fixture('a', '1.0') or { return keg_spec_bool(false) }
+	defer { keg_spec_cleanup(fixture) }
+	source := keg_spec_join(fixture.path, 'lib', 'foo')
+	link := keg_spec_join(fixture.prefix, 'lib', 'foo')
+	brew_runtime.make_dir_all(source) or { return keg_spec_bool(false) }
+	keg_spec_symlink('/some/nonexistent/path', link) or { return keg_spec_bool(false) }
+	fixture.keg.link(false, false) or { return keg_spec_bool(false) }
+	return keg_spec_bool(brew_runtime.is_dir(link) && !brew_runtime.is_link(link))
 }
 
 // Ruby it `it "creates an opt link" do` at line 312.
 pub fn ruby_keg_spec_l312_d38_creates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('creates', ...args)
+	fixture := keg_spec_fixture('foo', '2.0') or { return keg_spec_bool(false) }
+	defer { keg_spec_cleanup(fixture) }
+	old_record := keg_spec_join(fixture.prefix, 'opt', 'oldfoo')
+	keg_spec_symlink(keg_spec_join(fixture.cellar, 'foo', '1.0'), old_record) or { return keg_spec_bool(false) }
+	fixture.keg.optlink(false, false) or { return keg_spec_bool(false) }
+	updated := brew_runtime.real_path(old_record) == brew_runtime.real_path(fixture.path)
+	fixture.keg.uninstall() or { return keg_spec_bool(false) }
+	return keg_spec_bool(updated && !brew_runtime.is_link(old_record))
 }
 
 // Ruby it `it "doesn't fail if already opt-linked" do` at line 324.
 pub fn ruby_keg_spec_l324_d39_doesn(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('doesn', ...args)
+	fixture := keg_spec_fixture('foo', '1.0') or { return keg_spec_bool(false) }
+	defer { keg_spec_cleanup(fixture) }
+	fixture.keg.optlink(false, false) or { return keg_spec_bool(false) }
+	fixture.keg.optlink(false, false) or { return keg_spec_bool(false) }
+	return keg_spec_bool(fixture.keg.optlinked())
 }
 
 // Ruby it `it "replaces an existing directory" do` at line 330.
 pub fn ruby_keg_spec_l330_d40_replaces(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('replaces', ...args)
+	fixture := keg_spec_fixture('foo', '1.0') or { return keg_spec_bool(false) }
+	defer { keg_spec_cleanup(fixture) }
+	brew_runtime.make_dir_all(fixture.keg.opt_record) or { return keg_spec_bool(false) }
+	fixture.keg.optlink(false, false) or { return keg_spec_bool(false) }
+	return keg_spec_bool(fixture.keg.optlinked())
 }
 
 // Ruby it `it "replaces an existing file" do` at line 336.
 pub fn ruby_keg_spec_l336_d41_replaces(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('replaces', ...args)
+	fixture := keg_spec_fixture('foo', '1.0') or { return keg_spec_bool(false) }
+	defer { keg_spec_cleanup(fixture) }
+	brew_runtime.make_dir_all(keg_spec_parent(fixture.keg.opt_record)) or { return keg_spec_bool(false) }
+	brew_runtime.write_file(fixture.keg.opt_record, 'foo') or { return keg_spec_bool(false) }
+	fixture.keg.optlink(false, false) or { return keg_spec_bool(false) }
+	return keg_spec_bool(fixture.keg.optlinked())
 }
 
 // Ruby it `it "identifies Homebrew service files" do` at line 345.
 pub fn ruby_keg_spec_l345_d42_identifies(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('identifies', ...args)
+	return keg_spec_bool(keg_spec_homebrew_created_file('homebrew.foo.plist') && keg_spec_homebrew_created_file('homebrew.foo.service') && keg_spec_homebrew_created_file('homebrew.foo.timer') && !keg_spec_homebrew_created_file('readme.txt') && !keg_spec_homebrew_created_file('com.example.foo.plist'))
 }
 
 // Ruby specify `specify "#link and` at line 367.
 pub fn ruby_keg_spec_l367_d43_link(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#link', ...args)
+	fixture := keg_spec_fixture('foo', '1.0') or { return keg_spec_bool(false) }
+	defer { keg_spec_cleanup(fixture) }
+	initial := !fixture.keg.linked()
+	fixture.keg.link(false, false) or { return keg_spec_bool(false) }
+	linked := fixture.keg.linked()
+	fixture.keg.unlink(false) or { return keg_spec_bool(false) }
+	return keg_spec_bool(initial && linked && !fixture.keg.linked())
 }
 
 // Original Ruby source (line-for-line):

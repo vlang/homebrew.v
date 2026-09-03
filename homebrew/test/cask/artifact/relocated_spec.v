@@ -1,43 +1,98 @@
 module artifact
 
 import brew_runtime
+import homebrew.cask.artifact as relocated_artifact
+import os
 
 // Translated from Homebrew/brew `test/cask/artifact/relocated_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby let `let(:cask) do` at line 7.
 pub fn ruby_relocated_spec_l7_d1_cask(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask', ...args)
+	root := if args.len > 0 {
+		args[0].as_string()
+	} else {
+		os.join_path(os.temp_dir(), 'brew-v-relocated-spec')
+	}
+	return brew_runtime.Value{
+		type_name: 'Cask::Cask'
+		repr: 'test-cask'
+		map_data: {
+			'staged_path': brew_runtime.string_value(os.join_path(root, 'staged'))
+			'appdir':      brew_runtime.string_value(os.join_path(root, 'Applications'))
+		}
+		attributes: {
+			'token':     'test-cask'
+			'dirmethod': 'appdir'
+			'home':      os.join_path(root, 'home')
+		}
+	}
 }
 
 // Ruby let `let(:command) { NeverSudoSystemCommand }` at line 16.
 pub fn ruby_relocated_spec_l16_d2_command(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('command', ...args)
+	return brew_runtime.object_value('NeverSudoSystemCommand', 'NeverSudoSystemCommand')
 }
 
 // Ruby let `let(:artifact) { described_class.new(cask, "test_file.txt") }` at line 17.
 pub fn ruby_relocated_spec_l17_d3_artifact(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('artifact', ...args)
+	cask := if args.len > 0 { args[0] } else { ruby_relocated_spec_l7_d1_cask() }
+	return relocated_artifact.ruby_relocated_l46_d3_initialize(cask, brew_runtime.string_value('test_file.txt'))
 }
 
 // Ruby let `let(:file) { Pathname("/tmp/test_file.txt") }` at line 20.
 pub fn ruby_relocated_spec_l20_d4_file(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('file', ...args)
+	return brew_runtime.Value{
+		type_name: 'Pathname'
+		repr: '/tmp/test_file.txt'
+		map_data: {
+			'basename':           brew_runtime.string_value('test_file.txt')
+			'real_path':          brew_runtime.string_value('/tmp/test_file.txt')
+			'writable':           brew_runtime.bool_value(true)
+			'real_path_writable': brew_runtime.bool_value(true)
+		}
+	}
 }
 
 // Ruby let `let(:altname) { Pathname("alternate_name.txt") }` at line 21.
 pub fn ruby_relocated_spec_l21_d5_altname(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('altname', ...args)
+	return brew_runtime.object_value('Pathname', 'alternate_name.txt')
 }
 
 // Ruby it `it "is a no-op and does not call xattr commands" do` at line 28.
 pub fn ruby_relocated_spec_l28_d6_is(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('is', ...args)
+	artifact := ruby_relocated_spec_l17_d3_artifact()
+	result := relocated_artifact.ruby_relocated_l87_d8_add_altname_metadata(artifact, ruby_relocated_spec_l20_d4_file(), ruby_relocated_spec_l21_d5_altname(), brew_runtime.map_value({
+		'platform': brew_runtime.string_value('linux')
+	}))
+	return brew_runtime.bool_value(result.type_name == 'NilClass')
 }
 
 // Ruby it `it "calls xattr commands to set metadata" do` at line 43.
 pub fn ruby_relocated_spec_l43_d7_calls(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('calls', ...args)
+	artifact := ruby_relocated_spec_l17_d3_artifact()
+	result := relocated_artifact.ruby_relocated_l87_d8_add_altname_metadata(artifact, ruby_relocated_spec_l20_d4_file(), ruby_relocated_spec_l21_d5_altname(), brew_runtime.map_value({
+		'platform':     brew_runtime.string_value('macos')
+		'xattr_stdout': brew_runtime.string_value('')
+	}))
+	commands := (result.map_data['commands'] or { return brew_runtime.bool_value(false) }).as_array() or {
+		return brew_runtime.bool_value(false)
+	}
+	if commands.len != 3 {
+		return brew_runtime.bool_value(false)
+	}
+	first_args := (commands[0].map_data['args'] or { return brew_runtime.bool_value(false) }).as_string_array() or {
+		return brew_runtime.bool_value(false)
+	}
+	return brew_runtime.bool_value((commands[0].map_data['executable'] or {
+		brew_runtime.string_value('')
+	}).as_string() == '/usr/bin/xattr' && first_args == ['-p',
+		'com.apple.metadata:kMDItemAlternateNames', '/tmp/test_file.txt']
+		&& (commands[1].map_data['must_succeed'] or { brew_runtime.bool_value(false) }).as_bool() or {
+			false
+		} && (commands[2].map_data['must_succeed'] or { brew_runtime.bool_value(false) }).as_bool() or {
+		false
+	})
 }
 
 // Original Ruby source (line-for-line):

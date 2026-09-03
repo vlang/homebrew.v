@@ -5,184 +5,435 @@ import brew_runtime
 // Translated from Homebrew/brew `test/dev-cmd/bump_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
+const bump_spec_now = i64(2_000_000_000)
+
+fn bump_spec_versions_value(versions BumpVersions) brew_runtime.Value {
+	return brew_runtime.map_value({
+		'general': brew_runtime.string_value(versions.general)
+		'arm':     brew_runtime.string_value(versions.arm)
+		'intel':   brew_runtime.string_value(versions.intel)
+	})
+}
+
+fn bump_spec_basic_formula() BumpPackage {
+	return BumpPackage{
+		kind: .formula
+		name: 'basic_formula'
+		full_name: 'homebrew/core/basic_formula'
+		version: '1.2.3'
+		current_versions: {
+			'general': '1.2.3'
+		}
+		latest_versions: {
+			'general': '1.2.3'
+		}
+		allow_bump: true
+		livecheck_defined: true
+	}
+}
+
+fn bump_spec_basic_cask() BumpPackage {
+	return BumpPackage{
+		kind: .cask
+		name: 'basic-cask'
+		full_name: 'homebrew/cask/basic-cask'
+		version: '1.2.3'
+		current_versions: {
+			'general': '1.2.3'
+		}
+		latest_versions: {
+			'general': '1.2.3'
+		}
+		allow_bump: true
+		livecheck_defined: true
+	}
+}
+
+fn bump_spec_arch_cask(name string, arches []string) BumpPackage {
+	return BumpPackage{
+		kind: .cask
+		name: name
+		full_name: 'homebrew/cask/${name}'
+		version: '1.2.3'
+		current_versions: {
+			'general': '1.2.3'
+		}
+		latest_versions: {
+			'general': '1.2.4'
+		}
+		allow_bump: true
+		on_system_blocks: true
+		supported_archs: arches
+		livecheck_defined: true
+	}
+}
+
+fn bump_spec_message_strings() []string {
+	return ['error: message', 'skipped', 'skipped - deprecated', 'unable to get versions',
+		'unable to get throttled versions']
+}
+
 // Ruby subject `subject(:bump) { described_class.new(["test"]) }` at line 9.
 pub fn ruby_bump_spec_l9_d1_bump(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('bump', ...args)
+	_ = args
+	return brew_runtime.map_value({
+		'named': brew_runtime.string_array_value(['test'])
+	})
 }
 
 // Ruby let `let(:f_basic) do` at line 11.
 pub fn ruby_bump_spec_l11_d2_f_basic(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f_basic', ...args)
+	_ = args
+	return bump_package_value(bump_spec_basic_formula())
 }
 
 // Ruby let `let(:c_basic) do` at line 18.
 pub fn ruby_bump_spec_l18_d3_c_basic(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('c_basic', ...args)
+	_ = args
+	return bump_package_value(bump_spec_basic_cask())
 }
 
 // Ruby let `let(:c_latest) do` at line 28.
 pub fn ruby_bump_spec_l28_d4_c_latest(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('c_latest', ...args)
+	_ = args
+	return bump_package_value(BumpPackage{
+		kind: .cask
+		name: 'latest-cask'
+		full_name: 'homebrew/cask/latest-cask'
+		version: 'latest'
+		latest_cask: true
+	})
 }
 
 // Ruby it `it "returns no data and prints a message for HEAD-only formulae" do` at line 45.
 pub fn ruby_bump_spec_l45_d5_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	skip, message := skip_ineligible_bump(BumpPackage{
+		kind: .formula
+		name: 'headonly'
+		head_only: true
+	})
+	return brew_runtime.bool_value(skip && message.contains('HEAD-only'))
 }
 
 // Ruby it `it "gives an error for `--tap` with official taps" do` at line 60.
 pub fn ruby_bump_spec_l60_d6_gives(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('gives', ...args)
+	_ = args
+	result := run_bump(BumpRunRequest{
+		options: BumpOptions{ tap: 'homebrew/core' }
+		taps: [BumpTap{ name: 'homebrew/core', official: true }]
+	}, bump_spec_now)
+	return brew_runtime.structured_value('UsageError', result.error, {
+		'message': result.error
+	})
 }
 
 // Ruby it `it "prints a legible message for casks using `version :latest`" do` at line 68.
 pub fn ruby_bump_spec_l68_d7_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+	_ = args
+	skip, message := skip_ineligible_bump(BumpPackage{
+		kind: .cask
+		latest_cask: true
+	})
+	return brew_runtime.bool_value(skip
+		&& message == 'Cask uses `version :latest` so `brew bump` cannot check it.')
 }
 
 // Ruby it `it "returns a hash with `:multiple_versions` and `:newer_than_upstream` values" do` at line 76.
 pub fn ruby_bump_spec_l76_d8_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	general := BumpVersions{ general: '1.2.3' }
+	split := BumpVersions{ arm: '1.2.3', intel: '1.2.2' }
+	higher := BumpVersions{ arm: '1.2.4', intel: '1.2.2' }
+	skipped := BumpVersions{ general: 'skipped' }
+	mixed := BumpVersions{ arm: '1.2.3', intel: 'skipped' }
+	same_general := compare_bump_versions(general, general)
+	same_split := compare_bump_versions(split, split)
+	merge := compare_bump_versions(split, general)
+	divide := compare_bump_versions(general, split)
+	divide_higher := compare_bump_versions(general, higher)
+	divide_mixed := compare_bump_versions(general, mixed)
+	message := compare_bump_versions(general, skipped)
+	return brew_runtime.bool_value(!same_general.multiple_current && !same_general.multiple_new
+		&& !(same_general.newer_than_upstream['general'] or { false })
+		&& same_split.multiple_current && same_split.multiple_new
+		&& !(same_split.newer_than_upstream['arm'] or { false })
+		&& merge.multiple_current && !merge.multiple_new
+		&& !divide.multiple_current && divide.multiple_new
+		&& !(divide_higher.newer_than_upstream['general'] or { false })
+		&& !(divide_mixed.newer_than_upstream['general'] or { false })
+		&& !(message.newer_than_upstream['general'] or { false }))
 }
 
 // Ruby subject `subject(:bump) { described_class.new(["--open-pr", "test"]) }` at line 157.
 pub fn ruby_bump_spec_l157_d9_bump(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('bump', ...args)
+	_ = args
+	return brew_runtime.map_value({
+		'open_pr': brew_runtime.bool_value(true)
+		'named':   brew_runtime.string_array_value(['test'])
+	})
 }
 
 // Ruby it `it "passes arch-specific version arguments when a cask moves from one version to arch-specific versions" do` at line 164.
 pub fn ruby_bump_spec_l164_d10_passes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('passes', ...args)
+	_ = args
+	current := BumpVersions{ general: '1.2.3' }
+	proposed := BumpVersions{ arm: '1.2.5', intel: '1.2.4' }
+	comparison := compare_bump_versions(current, proposed)
+	return brew_runtime.bool_value(version_args_for_bump(current, proposed, comparison, 'basic-cask') == [
+		'--version-arm=1.2.5',
+		'--version-intel=1.2.4',
+	])
 }
 
 // Ruby it `it "passes arch-specific version arguments when an arch-specific cask moves to one version" do` at line 195.
 pub fn ruby_bump_spec_l195_d11_passes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('passes', ...args)
+	_ = args
+	current := BumpVersions{ arm: '1.2.3', intel: '1.2.2' }
+	proposed := BumpVersions{ general: '1.2.4' }
+	comparison := compare_bump_versions(current, proposed)
+	return brew_runtime.bool_value(version_args_for_bump(current, proposed, comparison, 'basic-cask') == [
+		'--version-arm=1.2.4',
+		'--version-intel=1.2.4',
+	])
 }
 
 // Ruby it `it "notes when a newer upstream version was skipped due to release cooldown" do` at line 226.
 pub fn ruby_bump_spec_l226_d12_notes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('notes', ...args)
+	_ = args
+	mut package := bump_spec_basic_formula()
+	package = BumpPackage{
+		...package
+		latest_versions: {
+			'general': '1.2.4'
+		}
+		livecheck_strategy: 'RubyGems'
+		releases: [
+			BumpRelease{ version: '1.2.4', released_at: bump_spec_now - 3600 },
+			BumpRelease{ version: '1.2.3', released_at: bump_spec_now - 8 * 86_400 },
+		]
+	}
+	display := retrieve_display_and_open_pr(package, 'basic_formula', [], false, BumpOptions{}, bump_spec_now)
+	return brew_runtime.bool_value(display.lines.any(it.contains('release cooldown')))
 }
 
 // Ruby let `let(:c_arm_only) do` at line 257.
 pub fn ruby_bump_spec_l257_d13_c_arm_only(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('c_arm_only', ...args)
+	_ = args
+	return bump_package_value(bump_spec_arch_cask('arm-only-cask', ['arm']))
 }
 
 // Ruby let `let(:c_intel_only) do` at line 274.
 pub fn ruby_bump_spec_l274_d14_c_intel_only(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('c_intel_only', ...args)
+	_ = args
+	return bump_package_value(bump_spec_arch_cask('intel-only-cask', ['intel']))
 }
 
 // Ruby let `let(:c_multi_arch) do` at line 291.
 pub fn ruby_bump_spec_l291_d15_c_multi_arch(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('c_multi_arch', ...args)
+	_ = args
+	return bump_package_value(bump_spec_arch_cask('multi-arch-cask', ['arm', 'intel']))
 }
 
 // Ruby it `it "simulates only arm and consolidates to a general version when `depends_on arch:` restricts to arm-only" do` at line 307.
 pub fn ruby_bump_spec_l307_d16_simulates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('simulates', ...args)
+	_ = args
+	info := retrieve_bump_versions(bump_spec_arch_cask('arm-only-cask', ['arm']), [], 'arm-only-cask', BumpOptions{}, bump_spec_now)
+	return brew_runtime.bool_value(info.new_version == BumpVersions{ general: '1.2.4' })
 }
 
 // Ruby it `it "simulates only intel and consolidates to a general version when `depends_on arch:` restricts to intel-only" do` at line 318.
 pub fn ruby_bump_spec_l318_d17_simulates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('simulates', ...args)
+	_ = args
+	info := retrieve_bump_versions(bump_spec_arch_cask('intel-only-cask', ['intel']), [], 'intel-only-cask', BumpOptions{}, bump_spec_now)
+	return brew_runtime.bool_value(info.new_version == BumpVersions{ general: '1.2.4' })
 }
 
 // Ruby it `it "records the upstream version skipped due to release cooldown" do` at line 329.
 pub fn ruby_bump_spec_l329_d18_records(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('records', ...args)
+	_ = args
+	mut package := bump_spec_basic_formula()
+	package = BumpPackage{
+		...package
+		latest_versions: {
+			'general': '1.2.4'
+		}
+		livecheck_strategy: 'RubyGems'
+		releases: [BumpRelease{ version: '1.2.4', released_at: bump_spec_now - 3600 },
+			BumpRelease{ version: '1.2.3', released_at: bump_spec_now - 8 * 86_400 }]
+	}
+	info := retrieve_bump_versions(package, [], 'basic_formula', BumpOptions{}, bump_spec_now)
+	return brew_runtime.bool_value(info.cooldown_skipped_versions == {
+		'general': '1.2.4'
+	})
 }
 
 // Ruby it `it "records cooldown-skipped versions per architecture" do` at line 338.
 pub fn ruby_bump_spec_l338_d19_records(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('records', ...args)
+	_ = args
+	mut package := bump_spec_arch_cask('multi-arch-cask', ['arm', 'intel'])
+	package = BumpPackage{
+		...package
+		latest_versions: {
+			'arm':   '1.2.5'
+			'intel': '1.2.4'
+		}
+		livecheck_strategy: 'RubyGems'
+		releases: [BumpRelease{ version: '1.2.5', released_at: bump_spec_now - 1800 },
+			BumpRelease{ version: '1.2.4', released_at: bump_spec_now - 3600 },
+			BumpRelease{ version: '1.2.3', released_at: bump_spec_now - 8 * 86_400 }]
+	}
+	info := retrieve_bump_versions(package, [], 'multi-arch-cask', BumpOptions{}, bump_spec_now)
+	return brew_runtime.bool_value(info.cooldown_skipped_versions == {
+		'arm':   '1.2.5'
+		'intel': '1.2.4'
+	})
 }
 
 // Ruby let `let(:version) { Version.new("1.2.3") }` at line 355.
 pub fn ruby_bump_spec_l355_d20_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('version', ...args)
+	_ = args
+	return brew_runtime.object_value('Version', '1.2.3')
 }
 
 // Ruby let `let(:cask_version) { Cask::DSL::Version.new("1.2.3,4") }` at line 356.
 pub fn ruby_bump_spec_l356_d21_cask_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask_version', ...args)
+	_ = args
+	return brew_runtime.object_value('Cask::DSL::Version', '1.2.3,4')
 }
 
 // Ruby let `let(:message_strings) do` at line 357.
 pub fn ruby_bump_spec_l357_d22_message_strings(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('message_strings', ...args)
+	_ = args
+	return brew_runtime.string_array_value(bump_spec_message_strings())
 }
 
 // Ruby it `it "returns false when value is not a `Cask::DSL::Version` or string" do` at line 367.
 pub fn ruby_bump_spec_l367_d23_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	return brew_runtime.bool_value(!ruby_bump_l698_d7_message(brew_runtime.object_value('Version', '1.2.3')).bool_data && !ruby_bump_l698_d7_message(brew_runtime.object_value('NilClass', 'nil')).bool_data)
 }
 
 // Ruby it `it "returns false when `Cask::DSL::Version` or string is not a message" do` at line 372.
 pub fn ruby_bump_spec_l372_d24_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	return brew_runtime.bool_value(!ruby_bump_l698_d7_message(brew_runtime.object_value('Cask::DSL::Version', '1.2.3,4')).bool_data && !ruby_bump_l698_d7_message(brew_runtime.string_value('Not a message string')).bool_data)
 }
 
 // Ruby it `it "returns true when `Cask::DSL::Version` or string is a message" do` at line 377.
 pub fn ruby_bump_spec_l377_d25_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	for message in bump_spec_message_strings() {
+		if !ruby_bump_l698_d7_message(brew_runtime.object_value('Cask::DSL::Version', message)).bool_data
+			|| !ruby_bump_l698_d7_message(brew_runtime.string_value(message)).bool_data {
+			return brew_runtime.bool_value(false)
+		}
+	}
+	return brew_runtime.bool_value(true)
 }
 
 // Ruby let `let(:current_general) { Homebrew::BumpVersionParser.new(general: "1.2.5") }` at line 386.
 pub fn ruby_bump_spec_l386_d26_current_general(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('current_general', ...args)
+	_ = args
+	return bump_spec_versions_value(BumpVersions{ general: '1.2.5' })
 }
 
 // Ruby let `let(:new_split) do` at line 387.
 pub fn ruby_bump_spec_l387_d27_new_split(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('new_split', ...args)
+	_ = args
+	return bump_spec_versions_value(BumpVersions{ arm: '1.2.6', intel: '1.2.5' })
 }
 
 // Ruby let `let(:current_split) do` at line 393.
 pub fn ruby_bump_spec_l393_d28_current_split(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('current_split', ...args)
+	_ = args
+	return bump_spec_versions_value(BumpVersions{ arm: '1.2.3', intel: '1.2.2' })
 }
 
 // Ruby let `let(:new_general) { Homebrew::BumpVersionParser.new(general: "1.2.4") }` at line 399.
 pub fn ruby_bump_spec_l399_d29_new_general(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('new_general', ...args)
+	_ = args
+	return bump_spec_versions_value(BumpVersions{ general: '1.2.4' })
 }
 
 // Ruby it `it "emits only changed arch arguments when a general cask version becomes arch-specific" do` at line 401.
 pub fn ruby_bump_spec_l401_d30_emits(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('emits', ...args)
+	_ = args
+	return brew_runtime.bool_value(version_args_for_bump(BumpVersions{ general: '1.2.5' }, BumpVersions{ arm: '1.2.6', intel: '1.2.5' }, BumpVersionComparison{
+		multiple_new: true
+	}, 'foo') == ['--version-arm=1.2.6'])
 }
 
 // Ruby it `it "emits arch arguments for both architectures when split cask versions merge" do` at line 410.
 pub fn ruby_bump_spec_l410_d31_emits(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('emits', ...args)
+	_ = args
+	return brew_runtime.bool_value(version_args_for_bump(BumpVersions{
+		arm: '1.2.3'
+		intel: '1.2.2'
+	}, BumpVersions{ general: '1.2.4' }, BumpVersionComparison{
+		multiple_current: true
+	}, 'foo') == ['--version-arm=1.2.4', '--version-intel=1.2.4'])
 }
 
 // Ruby it `it "keeps existing split-to-split routing" do` at line 419.
 pub fn ruby_bump_spec_l419_d32_keeps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('keeps', ...args)
+	_ = args
+	return brew_runtime.bool_value(version_args_for_bump(BumpVersions{
+		arm: '1.2.3'
+		intel: '1.2.2'
+	}, BumpVersions{ arm: '1.2.4', intel: '1.2.2' }, BumpVersionComparison{
+		multiple_current: true
+		multiple_new: true
+	}, 'foo') == ['--version-arm=1.2.4'])
 }
 
 // Ruby it `it "keeps existing general version routing" do` at line 433.
 pub fn ruby_bump_spec_l433_d33_keeps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('keeps', ...args)
+	_ = args
+	return brew_runtime.bool_value(version_args_for_bump(BumpVersions{ general: '1.2.5' }, BumpVersions{ general: '1.2.4' }, BumpVersionComparison{}, 'foo') == [
+		'--version=1.2.4',
+	])
 }
 
 // Ruby it `it "ignores message versions in arch-specific routing" do` at line 442.
 pub fn ruby_bump_spec_l442_d34_ignores(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ignores', ...args)
+	_ = args
+	return brew_runtime.bool_value(version_args_for_bump(BumpVersions{ general: '1.2.5' }, BumpVersions{ arm: '1.2.6', intel: 'skipped' }, BumpVersionComparison{
+		multiple_new: true
+	}, 'foo') == ['--version-arm=1.2.6'])
 }
 
 // Ruby it `it "uses RubyGems version creation times" do` at line 458.
 pub fn ruby_bump_spec_l458_d35_uses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uses', ...args)
+	_ = args
+	selected := version_with_release_cooldown(BumpCooldownInfo{
+		latest: '1.2.4'
+		strategy: 'RubyGems'
+		original_url: 'https://rubygems.org/downloads/example-package-1.2.3.gem'
+		releases: [
+			BumpRelease{ version: '1.2.4', released_at: bump_spec_now - 3600 },
+			BumpRelease{ version: '1.2.3', released_at: bump_spec_now - 8 * 86_400 },
+		]
+		now: bump_spec_now
+	}, '1.2.2')
+	return brew_runtime.bool_value(selected == '1.2.3')
 }
 
 // Ruby it `it "uses platform-specific RubyGems releases for native gems" do` at line 506.
 pub fn ruby_bump_spec_l506_d36_uses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uses', ...args)
+	_ = args
+	selected := version_with_release_cooldown(BumpCooldownInfo{
+		latest: '1.2.4'
+		strategy: 'RubyGems'
+		original_url: 'https://rubygems.org/downloads/example-package-1.2.3-arm64-darwin.gem'
+		releases: [
+			BumpRelease{ version: '1.2.4', released_at: bump_spec_now - 3600, platform: 'arm64-darwin' },
+			BumpRelease{ version: '1.2.3', released_at: bump_spec_now - 8 * 86_400, platform: 'arm64-darwin' },
+			BumpRelease{ version: '1.2.4', released_at: bump_spec_now - 30 * 86_400 },
+		]
+		now: bump_spec_now
+	}, '1.2.2')
+	return brew_runtime.bool_value(selected == '1.2.3')
 }
 
 // Original Ruby source (line-for-line):

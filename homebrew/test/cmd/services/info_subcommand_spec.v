@@ -1,38 +1,95 @@
 module services
 
 import brew_runtime
+import homebrew.services.subcommand as info_subcommand
 
 // Translated from Homebrew/brew `test/cmd/services/info_subcommand_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+fn info_subcommand_spec_bool(value bool) brew_runtime.Value {
+	return brew_runtime.bool_value(value)
+}
+
+fn info_subcommand_spec_formula(pid bool, verbose bool) map[string]brew_runtime.Value {
+	mut formula := {
+		'name':        brew_runtime.string_value('service')
+		'user':        brew_runtime.string_value('user')
+		'status':      brew_runtime.object_value('Symbol', 'started')
+		'file':        brew_runtime.string_value('/dev/null')
+		'running':     brew_runtime.bool_value(true)
+		'loaded':      brew_runtime.bool_value(true)
+		'schedulable': brew_runtime.bool_value(false)
+	}
+	if pid {
+		formula['pid'] = brew_runtime.int_value(42)
+	}
+	if verbose {
+		formula['registered'] = brew_runtime.bool_value(true)
+		formula['command'] = brew_runtime.string_value('/bin/command')
+		formula['working_dir'] = brew_runtime.string_value('/working/dir')
+		formula['root_dir'] = brew_runtime.string_value('/root/dir')
+		formula['log_path'] = brew_runtime.string_value('/log/dir')
+		formula['error_log_path'] = brew_runtime.string_value('/log/dir/error')
+		formula['interval'] = brew_runtime.int_value(3600)
+		formula['cron'] = brew_runtime.string_value('5 * * * *')
+	}
+	return formula
+}
 
 // Ruby it `it "fails with empty list" do` at line 12.
 pub fn ruby_info_subcommand_spec_l12_d1_fails(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fails', ...args)
+	_ = args
+	if _ := info_subcommand.run_service_info(info_subcommand.ServiceInfoRequest{}) {
+		return info_subcommand_spec_bool(false)
+	} else {
+		return info_subcommand_spec_bool(err.msg() == 'Invalid usage: Formula(e) missing, please provide a formula name or use `--all`.')
+	}
 }
 
 // Ruby it `it "succeeds with items" do` at line 20.
 pub fn ruby_info_subcommand_spec_l20_d2_succeeds(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('succeeds', ...args)
+	_ = args
+	output := info_subcommand.run_service_info(info_subcommand.ServiceInfoRequest{
+		targets: [info_subcommand_spec_formula(false, false)]
+	}) or { return info_subcommand_spec_bool(false) }
+	return info_subcommand_spec_bool(output == 'service ()\nRunning: true\nLoaded: true\nSchedulable: false\n')
 }
 
 // Ruby it `it "succeeds with items - JSON" do` at line 37.
 pub fn ruby_info_subcommand_spec_l37_d3_succeeds(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('succeeds', ...args)
+	_ = args
+	output := info_subcommand.run_service_info(info_subcommand.ServiceInfoRequest{
+		targets: [info_subcommand_spec_formula(false, false)]
+		json: true
+	}) or { return info_subcommand_spec_bool(false) }
+	expected := '[\n  {\n    "name": "service",\n    "user": "user",\n    "status": "started",\n    "file": "/dev/null",\n    "running": true,\n    "loaded": true,\n    "schedulable": false\n  }\n]\n'
+	return info_subcommand_spec_bool(output == expected)
 }
 
 // Ruby it `it "returns minimal output" do` at line 57.
 pub fn ruby_info_subcommand_spec_l57_d4_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	output := info_subcommand.service_info_output(info_subcommand_spec_formula(false, false), false, false, false, info_subcommand.ServiceInfoStyle{})
+	expected := 'service ()\nRunning: true\nLoaded: true\nSchedulable: false\n'
+	return info_subcommand_spec_bool(output == expected)
 }
 
 // Ruby it `it "returns normal output" do` at line 72.
 pub fn ruby_info_subcommand_spec_l72_d5_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	output := info_subcommand.service_info_output(info_subcommand_spec_formula(true, false), false, false, false, info_subcommand.ServiceInfoStyle{})
+	expected := 'service ()\nRunning: true\nLoaded: true\nSchedulable: false\nUser: user\nPID: 42\n'
+	return info_subcommand_spec_bool(output == expected)
 }
 
 // Ruby it `it "returns verbose output" do` at line 89.
 pub fn ruby_info_subcommand_spec_l89_d6_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	output := info_subcommand.service_info_output(info_subcommand_spec_formula(true, true), true, false, false, info_subcommand.ServiceInfoStyle{})
+	mut expected := 'service ()\nRunning: true\nLoaded: true\nSchedulable: false\n'
+	expected += 'User: user\nPID: 42\nFile: /dev/null true\nRegistered at login: true\nCommand: /bin/command\n'
+	expected += 'Working directory: /working/dir\nRoot directory: /root/dir\nLog: /log/dir\nError log: /log/dir/error\n'
+	expected += 'Interval: 3600s\nCron: 5 * * * *\n'
+	return info_subcommand_spec_bool(output == expected)
 }
 
 // Original Ruby source (line-for-line):

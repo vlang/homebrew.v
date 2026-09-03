@@ -1,18 +1,48 @@
 module unpack_strategy
 
 import brew_runtime
+import homebrew.unpack_strategy as core_unpack
+import os
 
 // Translated from Homebrew/brew `extend/os/mac/unpack_strategy/zip.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `extract_to_dir(unpack_dir, basename:, verbose:)` at line 16.
-pub fn ruby_zip_l16_d1_extract_to_dir(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('extract_to_dir', ...args)
+pub fn ruby_zip_l16_d1_extract_to_dir(path string, unpack_dir string, basename string, verbose bool, merge_xattrs bool) ! {
+	macos_zip_extract_to_dir(path, unpack_dir, basename, verbose, merge_xattrs)!
 }
 
 // Ruby method `contains_extended_attributes?(path)` at line 64.
-pub fn ruby_zip_l64_d2_contains_extended_attributes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('contains_extended_attributes?', ...args)
+pub fn ruby_zip_l64_d2_contains_extended_attributes(path string) bool {
+	return zip_contains_extended_attributes(path)
+}
+
+pub fn zip_contains_extended_attributes(path string) bool {
+	for member in core_unpack.zip_member_names(path) or { return false } {
+		if member.starts_with('__MACOSX') || os.file_name(member).starts_with('._') { return true }
+	}
+	return false
+}
+
+pub fn macos_zip_extract_to_dir(path string, unpack_dir string, basename string, verbose bool, merge_xattrs bool) ! {
+	if merge_xattrs && zip_contains_extended_attributes(path) {
+		members := core_unpack.zip_member_names(path)!
+		core_unpack.validate_archive_member_names(members)!
+		ditto := brew_runtime.find_executable('ditto')!
+		result := brew_runtime.run_command(ditto, ['-x', '-k', path, unpack_dir])
+		if result.exit_code != 0 {
+			return error('ditto failed (${result.exit_code}): ${result.output.trim_space()}')
+		}
+		return
+	}
+	core_unpack.zip_extract_to_dir(path, unpack_dir, basename, verbose) or {
+		if !err.msg().contains('End-of-central-directory signature not found') { return err }
+		ditto := brew_runtime.find_executable('ditto')!
+		result := brew_runtime.run_command(ditto, ['-x', '-k', path, unpack_dir])
+		if result.exit_code != 0 {
+			return error('ditto failed (${result.exit_code}): ${result.output.trim_space()}')
+		}
+	}
 }
 
 // Original Ruby source (line-for-line):

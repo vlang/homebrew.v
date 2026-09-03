@@ -1,43 +1,79 @@
 module hardware
 
 import brew_runtime
+import homebrew
+import homebrew.extend.os.mac.hardware as mac_hardware
+import homebrew.extend.os.mac.hardware.cpu as mac_cpu
+
+fn cpu_spec_types() []string {
+	return ['arm', 'intel', 'ppc', 'dunno']
+}
+
+fn cpu_spec_families() []string {
+	return ['alderlake', 'amd_k7', 'amd_k8', 'amd_k8_k10_hybrid', 'amd_k10', 'amd_k10_llano', 'arm',
+		'arm_blizzard_avalanche', 'arm_brava', 'arm_donan', 'arm_firestorm_icestorm', 'arm_hidra',
+		'arm_hurricane_zephyr', 'arm_ibiza', 'arm_lightning_thunder', 'arm_lobos',
+		'arm_monsoon_mistral', 'arm_palma', 'arm_sotra', 'arm_twister', 'arm_typhoon',
+		'arm_vortex_tempest', 'arrowlake', 'atom', 'bobcat', 'broadwell', 'bulldozer', 'cannonlake',
+		'cometlake', 'core', 'core2', 'dothan', 'graniterapids', 'haswell', 'icelake', 'ivybridge',
+		'jaguar', 'kabylake', 'merom', 'nehalem', 'pantherlake', 'penryn', 'ppc', 'prescott',
+		'presler', 'rocketlake', 'sandybridge', 'sapphirerapids', 'skylake', 'tigerlake', 'westmere',
+		'zen', 'zen2', 'zen3', 'zen4', 'zen5', 'dunno']
+}
 
 // Translated from Homebrew/brew `test/hardware/cpu_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby let `let(:cpu_types) do` at line 8.
 pub fn ruby_cpu_spec_l8_d1_cpu_types(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cpu_types', ...args)
+	return brew_runtime.string_array_value(cpu_spec_types())
 }
 
 // Ruby it `it "returns the current CPU's type as a symbol, or :dunno if it cannot be detected" do` at line 17.
 pub fn ruby_cpu_spec_l17_d2_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	return brew_runtime.bool_value(homebrew.hardware_cpu_type(homebrew.current_hardware_cpu().platform) in cpu_spec_types())
 }
 
 // Ruby it `it "falls back when hw.cputype cannot be detected on a Mac", :needs_macos do` at line 21.
 pub fn ruby_cpu_spec_l21_d3_falls(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('falls', ...args)
+	properties := mac_cpu.MacCpuProperties{
+		values: {
+			'hw.cputype': '0'
+		}
+	}
+	return brew_runtime.bool_value(mac_hardware.mac_hardware_cpu_type(properties, 'arm64') != 'dunno')
 }
 
 // Ruby let `let(:cpu_families) do` at line 30.
 pub fn ruby_cpu_spec_l30_d4_cpu_families(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cpu_families', ...args)
+	return brew_runtime.string_array_value(cpu_spec_families())
 }
 
 // Ruby it `it "returns the current CPU's family name as a symbol, or :dunno if it cannot be detected" do` at line 92.
 pub fn ruby_cpu_spec_l92_d5_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	cpu := homebrew.current_hardware_cpu()
+	family := if cpu.family == '' { 'dunno' } else { cpu.family }
+	return brew_runtime.bool_value(family in cpu_spec_families())
 }
 
 // Ruby it `it "returns :arm_firestorm_icestorm on ARM" do` at line 104.
 pub fn ruby_cpu_spec_l104_d6_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	properties := mac_cpu.MacCpuProperties{
+		values: {
+			'hw.cpufamily': '1463508716'
+		}
+	}
+	return brew_runtime.bool_value(mac_hardware.mac_hardware_cpu_family(properties, true, false) == 'arm_firestorm_icestorm')
 }
 
 // Ruby it `it "returns :westmere on Intel" do` at line 110.
 pub fn ruby_cpu_spec_l110_d7_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	properties := mac_cpu.MacCpuProperties{
+		values: {
+			'hw.cpufamily': '1463508716'
+		}
+	}
+	return brew_runtime.bool_value(mac_hardware.mac_hardware_cpu_family(properties, false, true) == 'westmere')
 }
 
 // Original Ruby source (line-for-line):

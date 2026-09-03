@@ -1,13 +1,30 @@
 module cask
 
-import brew_runtime
-
 // Translated from Homebrew/brew `extend/os/linux/cask/config.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub struct LinuxCaskDefaults {
+pub:
+	languages   []string
+	directories map[string]string
+}
+
+pub fn linux_cask_defaults(languages []string, xdg_data_home string) LinuxCaskDefaults {
+	data_home := if xdg_data_home == '' { '~/.local/share' } else { xdg_data_home }
+	return LinuxCaskDefaults{
+		languages: languages.clone()
+		directories: {
+			'vst_plugindir':  '~/.vst'
+			'vst3_plugindir': '~/.vst3'
+			'fontdir':        '${data_home}/fonts'
+			'appdir':         '~/.config/apps'
+			'appimagedir':    '~/Applications'
+		}
+	}
+}
 
 // Ruby method `defaults` at line 20.
-pub fn ruby_config_l20_d1_defaults(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('defaults', ...args)
+pub fn ruby_config_l20_d1_defaults(languages []string, xdg_data_home string) LinuxCaskDefaults {
+	return linux_cask_defaults(languages, xdg_data_home)
 }
 
 // Original Ruby source (line-for-line):

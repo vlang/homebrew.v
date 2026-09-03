@@ -1,388 +1,655 @@
 module vulns
 
 import brew_runtime
+import homebrew.vulns as identify_core
 
 // Translated from Homebrew/brew `test/vulns/identify_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+fn identify_spec_optional_equal(actual ?string, expected ?string) bool {
+	actual_value := actual or { return expected == none }
+	expected_value := expected or { return false }
+	return actual_value == expected_value
+}
+
+fn identify_spec_repo(urls []string, expected ?string) bool {
+	return identify_spec_optional_equal(identify_core.identify_repo_url(urls), expected)
+}
+
+fn identify_spec_tag(url ?string, expected ?string) bool {
+	return identify_spec_optional_equal(identify_core.identify_tag(url), expected)
+}
+
+fn identify_spec_package(url ?string, ecosystem string, name string, version string,
+	purl string) bool {
+	package := identify_core.identify_registry_package(url) or { return false }
+	return package.ecosystem == ecosystem && package.name == name && package.version == version && package.purl == purl
+}
+
+fn identify_spec_no_package(url ?string) bool {
+	return identify_core.identify_registry_package(url) == none
+}
+
+fn identify_spec_case(index int) bool {
+	return match index {
+		1 {
+			identify_spec_repo([
+				'https://github.com/nektos/act/archive/refs/tags/v0.2.84.tar.gz',
+			], 'https://github.com/nektos/act')
+		}
+		2 {
+			identify_spec_repo([
+				'https://github.com/owner/repo/releases/download/v1.2.3/source.tar.gz',
+			], 'https://github.com/owner/repo')
+		}
+		3 {
+			identify_spec_repo(['https://github.com/AomediaOrg/aom.git'], 'https://github.com/aomediaorg/aom') && identify_spec_repo([
+				'https://github.com/FFmpeg/FFmpeg.git',
+			], 'https://github.com/ffmpeg/ffmpeg')
+		}
+		4 {
+			identify_spec_repo(['https://gitlab.gnome.org/GNOME/glib.git'], 'https://gitlab.gnome.org/GNOME/glib')
+		}
+		5 {
+			identify_spec_repo([
+				'https://gitlab.com/owner/repo/-/archive/v1.2.3/repo-v1.2.3.tar.gz',
+			], 'https://gitlab.com/owner/repo')
+		}
+		6 {
+			identify_spec_repo(['https://codeberg.org/owner/repo/archive/v1.2.3.tar.gz'], 'https://codeberg.org/owner/repo')
+		}
+		7 {
+			identify_spec_repo([
+				'https://gitlab.gnome.org/Archive/pangox-compat/-/archive/0.0.2/pangox-compat-0.0.2.tar.gz',
+			], 'https://gitlab.gnome.org/Archive/pangox-compat')
+		}
+		8 {
+			identify_spec_repo([
+				'https://gitlab.freedesktop.org/xorg/lib/libx11/-/archive/libX11-1.8.7/libx11-libX11-1.8.7.tar.gz',
+			], 'https://gitlab.freedesktop.org/xorg/lib/libx11')
+		}
+		9 {
+			identify_spec_repo(['https://gitlab.freedesktop.org/cairo/cairo.git'], 'https://gitlab.freedesktop.org/cairo/cairo')
+		}
+		10 {
+			identify_spec_repo(['https://invent.kde.org/frameworks/karchive.git'], 'https://invent.kde.org/frameworks/karchive')
+		}
+		11 {
+			identify_spec_repo([
+				'https://gitlab.com/gitlab-org/security/gitlab/-/archive/v16.0.0/gitlab-v16.0.0.tar.gz',
+			], 'https://gitlab.com/gitlab-org/security/gitlab')
+		}
+		12 {
+			identify_spec_repo([
+				'https://gitlab.com/akkuscm/akku/uploads/9a82f6a11e35c67f0e0086/akku-1.1.0.tar.gz',
+			], 'https://gitlab.com/akkuscm/akku')
+		}
+		13 {
+			identify_spec_repo(['https://gitlab.gnome.org/GNOME/gjs/wikis/Home'], 'https://gitlab.gnome.org/GNOME/gjs')
+		}
+		14 {
+			identify_spec_repo(['https://gitlab.com/gsasl/libntlm/'], 'https://gitlab.com/gsasl/libntlm')
+		}
+		15 {
+			identify_spec_repo([
+				'https://gitlab.freedesktop.org/-/project/62/uploads/54a0f9/spice-0.16.0.tar.bz2',
+				'https://gitlab.freedesktop.org/spice/spice.git',
+			], 'https://gitlab.freedesktop.org/spice/spice')
+		}
+		16 {
+			identify_spec_repo([
+				'https://gitlab.freedesktop.org/api/v4/projects/1205/releases',
+			], none)
+		}
+		17 {
+			identify_spec_repo([
+				'https://web.archive.org/web/20180102081127/https://github.com/satori-com/tcpkali',
+			], 'https://github.com/satori-com/tcpkali')
+		}
+		18 {
+			identify_spec_repo(['https://aomedia.googlesource.com/aom.git',
+				'https://github.com/AomediaOrg/aom.git'], 'https://github.com/aomediaorg/aom')
+		}
+		19 {
+			identify_spec_repo(['https://libssh2.org/download/libssh2-1.11.0.tar.gz', '',
+				'https://github.com/libssh2/libssh2'], 'https://github.com/libssh2/libssh2')
+		}
+		20 { identify_spec_repo(['https://example.com/source.tar.gz'], none) }
+		21 { identify_spec_repo(['', ''], none) }
+		22 {
+			identify_spec_tag('https://github.com/nektos/act/archive/refs/tags/v0.2.84.tar.gz', 'v0.2.84')
+		}
+		23 {
+			identify_spec_tag('https://github.com/abseil/abseil-cpp/archive/refs/tags/20250814.1.tar.gz', '20250814.1')
+		}
+		24 {
+			identify_spec_tag('https://github.com/owner/repo/archive/refs/tags/v1.0.0.zip', 'v1.0.0')
+		}
+		25 { identify_spec_tag('https://codeberg.org/owner/repo/archive/v1.2.3.tar.gz', 'v1.2.3') }
+		26 {
+			identify_spec_tag('https://github.com/owner/repo/releases/download/v1.2.3/source.tar.gz', 'v1.2.3')
+		}
+		27 { identify_spec_tag('https://github.com/owner/repo/tarball/v1.2.3', 'v1.2.3') }
+		28 {
+			identify_spec_tag('https://example.com/source.tar.gz', none) && identify_spec_tag(none, none)
+		}
+		29 { identify_spec_no_package(none) }
+		30 {
+			identify_spec_package('https://files.pythonhosted.org/packages/00/2a/e8/jmespath-1.0.1.tar.gz', 'PyPI', 'jmespath', '1.0.1', 'pkg:pypi/jmespath@1.0.1')
+		}
+		31 {
+			identify_spec_package('https://files.pythonhosted.org/packages/00/07/d1/types_setuptools-80.9.0.20251223.tar.gz', 'PyPI', 'types-setuptools', '80.9.0.20251223', 'pkg:pypi/types-setuptools@80.9.0.20251223')
+		}
+		32 {
+			identify_spec_package('https://files.pythonhosted.org/packages/aa/bb/cc/iso-639-2025.2.18.tar.gz', 'PyPI', 'iso-639', '2025.2.18', 'pkg:pypi/iso-639@2025.2.18')
+		}
+		33 {
+			identify_spec_package('https://files.pythonhosted.org/packages/aa/bb/cc/ruamel.yaml-0.18.6.tar.gz', 'PyPI', 'ruamel-yaml', '0.18.6', 'pkg:pypi/ruamel.yaml@0.18.6')
+		}
+		34 {
+			identify_spec_no_package('https://files.pythonhosted.org/packages/aa/bb/cc/foo-1.0-py3-none-any.whl')
+		}
+		35 {
+			identify_spec_package('https://registry.npmjs.org/@angular/cli/-/cli-22.0.3.tgz', 'npm', '@angular/cli', '22.0.3', 'pkg:npm/%40angular/cli@22.0.3')
+		}
+		36 {
+			identify_spec_package('https://registry.npmjs.org/reveal-md/-/reveal-md-6.1.4.tgz', 'npm', 'reveal-md', '6.1.4', 'pkg:npm/reveal-md@6.1.4')
+		}
+		37 {
+			identify_spec_package('https://registry.npmjs.org/es5-shim/-/es5-shim-4.6.7.tgz', 'npm', 'es5-shim', '4.6.7', 'pkg:npm/es5-shim@4.6.7')
+		}
+		38 {
+			identify_spec_package('https://registry.npmjs.org/react/-/react-19.0.0-rc.1.tgz', 'npm', 'react', '19.0.0-rc.1', 'pkg:npm/react@19.0.0-rc.1')
+		}
+		39 {
+			identify_spec_package('https://registry.npmjs.org/%40angular/cli/-/cli-22.0.3.tgz', 'npm', '@angular/cli', '22.0.3', 'pkg:npm/%40angular/cli@22.0.3')
+		}
+		40 {
+			identify_core.identify_decode('caf%C3%A9') == 'café' && identify_core.identify_decode('%80').bytes() == [
+				u8(0x80),
+			]
+		}
+		41 { identify_spec_no_package('https://registry.npmjs.org/foo/-/bar-1.0.0.tgz') }
+		42 {
+			identify_spec_package('https://static.crates.io/crates/cargo-llvm-cov/cargo-llvm-cov-0.8.7.crate', 'crates.io', 'cargo-llvm-cov', '0.8.7', 'pkg:cargo/cargo-llvm-cov@0.8.7')
+		}
+		43 { identify_spec_no_package('https://static.crates.io/crates/foo/bar-1.0.0.crate') }
+		44 {
+			identify_spec_package('https://rubygems.org/downloads/activesupport-8.1.1.gem', 'RubyGems', 'activesupport', '8.1.1', 'pkg:gem/activesupport@8.1.1')
+		}
+		45 {
+			identify_spec_package('https://rubygems.org/gems/addressable-2.8.6.gem', 'RubyGems', 'addressable', '2.8.6', 'pkg:gem/addressable@2.8.6')
+		}
+		46 {
+			identify_spec_package('https://rubygems.org/downloads/iso-639-0.3.6.gem', 'RubyGems', 'iso-639', '0.3.6', 'pkg:gem/iso-639@0.3.6')
+		}
+		47 {
+			identify_spec_package('https://rubygems.org/downloads/nokogiri-1.16.0-arm64-darwin.gem', 'RubyGems', 'nokogiri', '1.16.0', 'pkg:gem/nokogiri@1.16.0')
+		}
+		48 {
+			identify_spec_package('https://rubygems.org/downloads/couchbase-3.5.1-arm64-darwin-22.gem', 'RubyGems', 'couchbase', '3.5.1', 'pkg:gem/couchbase@3.5.1')
+		}
+		49 {
+			identify_spec_package('https://rubygems.org/downloads/jrubyfx-2.0.0-java.gem', 'RubyGems', 'jrubyfx', '2.0.0', 'pkg:gem/jrubyfx@2.0.0')
+		}
+		50 {
+			identify_spec_package('https://rubygems.org/downloads/ffi-1.17.4-x86_64-linux-musl.gem', 'RubyGems', 'ffi', '1.17.4', 'pkg:gem/ffi@1.17.4')
+		}
+		51 {
+			identify_spec_package('https://rubygems.org/downloads/ruby-prof-2.0.4-x64-mingw-ucrt.gem', 'RubyGems', 'ruby-prof', '2.0.4', 'pkg:gem/ruby-prof@2.0.4')
+		}
+		52 {
+			identify_spec_package('https://rubygems.org/downloads/sass-embedded-1.97.2-riscv64-linux-gnu.gem', 'RubyGems', 'sass-embedded', '1.97.2', 'pkg:gem/sass-embedded@1.97.2')
+		}
+		53 {
+			identify_spec_package('https://rubygems.org/downloads/concurrent-ruby-0.7.1-x86-solaris-2.11.gem', 'RubyGems', 'concurrent-ruby', '0.7.1', 'pkg:gem/concurrent-ruby@0.7.1')
+		}
+		54 {
+			identify_spec_package('https://rubygems.org/downloads/rails-8.0.0.beta1.gem', 'RubyGems', 'rails', '8.0.0.beta1', 'pkg:gem/rails@8.0.0.beta1')
+		}
+		55 {
+			identify_spec_package('https://hackage.haskell.org/package/Allure-0.11.0.0/Allure-0.11.0.0.tar.gz', 'Hackage', 'Allure', '0.11.0.0', 'pkg:hackage/Allure@0.11.0.0')
+		}
+		56 {
+			identify_spec_package('https://hackage.haskell.org/package/base64-bytestring-1.2.1.0/base64-bytestring-1.2.1.0.tar.gz', 'Hackage', 'base64-bytestring', '1.2.1.0', 'pkg:hackage/base64-bytestring@1.2.1.0')
+		}
+		57 {
+			identify_spec_package('https://repo.hex.pm/tarballs/phoenix-1.7.0-rc.0.tar', 'Hex', 'phoenix', '1.7.0-rc.0', 'pkg:hex/phoenix@1.7.0-rc.0')
+		}
+		58 {
+			identify_spec_package('https://cpan.metacpan.org/authors/id/A/AB/ABIGAIL/Regexp-Common-2024080801.tar.gz', 'CPAN', 'Regexp-Common', '2024080801', 'pkg:cpan/ABIGAIL/Regexp-Common@2024080801')
+		}
+		59 {
+			identify_spec_package('https://cpan.metacpan.org/authors/id/C/CF/CFRANKS/Perl6-Junction-1.60000.tar.gz', 'CPAN', 'Perl6-Junction', '1.60000', 'pkg:cpan/CFRANKS/Perl6-Junction@1.60000')
+		}
+		60 {
+			identify_spec_package('https://cpan.metacpan.org/authors/id/L/LE/LEONT/ExtUtils-HasCompiler-v0.25.0.tar.gz', 'CPAN', 'ExtUtils-HasCompiler', 'v0.25.0', 'pkg:cpan/LEONT/ExtUtils-HasCompiler@v0.25.0')
+		}
+		61 {
+			identify_spec_package('https://cpan.metacpan.org/authors/id/A/AM/AMBS/BibTeX/Text-BibTeX-0.91.tar.gz', 'CPAN', 'Text-BibTeX', '0.91', 'pkg:cpan/AMBS/Text-BibTeX@0.91')
+		}
+		62 {
+			identify_spec_package('https://cpan.metacpan.org/authors/id/E/ET/ETHER/Moose-2.2207_01.tar.gz', 'CPAN', 'Moose', '2.2207_01', 'pkg:cpan/ETHER/Moose@2.2207_01')
+		}
+		63 {
+			identify_spec_package('https://cpan.metacpan.org/authors/id/E/ET/ETHER/Moose-2.2200-TRIAL.tar.gz', 'CPAN', 'Moose', '2.2200', 'pkg:cpan/ETHER/Moose@2.2200')
+		}
+		64 {
+			identify_spec_package('https://repo.maven.apache.org/maven2/com/github/spotbugs/spotbugs/4.10.2/spotbugs-4.10.2.tgz', 'Maven', 'com.github.spotbugs:spotbugs', '4.10.2', 'pkg:maven/com.github.spotbugs/spotbugs@4.10.2')
+		}
+		65 {
+			identify_spec_package('https://search.maven.org/remotecontent?filepath=org/gradle/profiler/gradle-profiler/0.24.0/gradle-profiler-0.24.0.zip', 'Maven', 'org.gradle.profiler:gradle-profiler', '0.24.0', 'pkg:maven/org.gradle.profiler/gradle-profiler@0.24.0')
+		}
+		66 {
+			identify_spec_no_package('https://repo.maven.apache.org/maven2/com/madgag/bfg/maven-metadata.xml')
+		}
+		67 {
+			identify_spec_no_package('https://maven.fabricmc.net/net/fabricmc/fabric-installer/1.1.1/fabric-installer-1.1.1.jar')
+		}
+		68 {
+			identify_spec_no_package('https://dl.google.com/dl/android/maven2/com/android/tools/build/gradle/8.0.0/gradle-8.0.0.jar')
+		}
+		69 {
+			identify_spec_package('https://cran.r-project.org/src/contrib/data.table_1.15.4.tar.gz', 'CRAN', 'data.table', '1.15.4', 'pkg:cran/data.table@1.15.4')
+		}
+		70 {
+			identify_spec_package('https://cran.r-project.org/src/contrib/Archive/rlang/rlang_1.1.3.tar.gz', 'CRAN', 'rlang', '1.1.3', 'pkg:cran/rlang@1.1.3')
+		}
+		71 {
+			identify_spec_package('https://cloud.r-project.org/src/contrib/IRkernel_1.3.2.tar.gz', 'CRAN', 'IRkernel', '1.3.2', 'pkg:cran/IRkernel@1.3.2')
+		}
+		72 {
+			identify_spec_package('https://api.nuget.org/v3-flatcontainer/newtonsoft.json/13.0.3/newtonsoft.json.13.0.3.nupkg', 'NuGet', 'newtonsoft.json', '13.0.3', 'pkg:nuget/newtonsoft.json@13.0.3')
+		}
+		73 {
+			identify_spec_package('https://www.nuget.org/api/v2/package/Newtonsoft.Json/13.0.3', 'NuGet', 'Newtonsoft.Json', '13.0.3', 'pkg:nuget/Newtonsoft.Json@13.0.3')
+		}
+		74 { identify_spec_no_package('https://example.com/foo-1.0.tar.gz') }
+		75 {
+			identify_spec_no_package('https://github.com/nektos/act/archive/refs/tags/v0.2.84.tar.gz')
+		}
+		76 { identify_spec_no_package(none) }
+		else { false }
+	}
+}
 
 // Ruby it `it "extracts a GitHub repo from an archive/refs/tags URL" do` at line 8.
-pub fn ruby_identify_spec_l8_d1_extracts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('extracts', ...args)
+pub fn ruby_identify_spec_l8_d1_extracts() bool {
+	return identify_spec_case(1)
 }
 
 // Ruby it `it "extracts a GitHub repo from a releases/download URL" do` at line 13.
-pub fn ruby_identify_spec_l13_d2_extracts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('extracts', ...args)
+pub fn ruby_identify_spec_l13_d2_extracts() bool {
+	return identify_spec_case(2)
 }
 
 // Ruby it `it "extracts a GitHub repo from a .git URL, lowercasing the path (OSV normalises github.com)" do` at line 18.
-pub fn ruby_identify_spec_l18_d3_extracts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('extracts', ...args)
+pub fn ruby_identify_spec_l18_d3_extracts() bool {
+	return identify_spec_case(3)
 }
 
 // Ruby it `it "preserves path case for GitLab (case-sensitive host)" do` at line 25.
-pub fn ruby_identify_spec_l25_d4_preserves(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('preserves', ...args)
+pub fn ruby_identify_spec_l25_d4_preserves() bool {
+	return identify_spec_case(4)
 }
 
 // Ruby it `it "extracts a GitLab repo, stripping the /-/ path segment" do` at line 30.
-pub fn ruby_identify_spec_l30_d5_extracts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('extracts', ...args)
+pub fn ruby_identify_spec_l30_d5_extracts() bool {
+	return identify_spec_case(5)
 }
 
 // Ruby it `it "extracts a Codeberg repo" do` at line 35.
-pub fn ruby_identify_spec_l35_d6_extracts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('extracts', ...args)
+pub fn ruby_identify_spec_l35_d6_extracts() bool {
+	return identify_spec_case(6)
 }
 
 // Ruby it `it "extracts a gitlab.gnome.org repo from an archive URL" do` at line 40.
-pub fn ruby_identify_spec_l40_d7_extracts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('extracts', ...args)
+pub fn ruby_identify_spec_l40_d7_extracts() bool {
+	return identify_spec_case(7)
 }
 
 // Ruby it `it "extracts a gitlab.freedesktop.org repo with a nested subgroup path" do` at line 45.
-pub fn ruby_identify_spec_l45_d8_extracts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('extracts', ...args)
+pub fn ruby_identify_spec_l45_d8_extracts() bool {
+	return identify_spec_case(8)
 }
 
 // Ruby it `it "extracts a gitlab.freedesktop.org repo from a bare .git URL" do` at line 51.
-pub fn ruby_identify_spec_l51_d9_extracts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('extracts', ...args)
+pub fn ruby_identify_spec_l51_d9_extracts() bool {
+	return identify_spec_case(9)
 }
 
 // Ruby it `it "extracts an invent.kde.org repo" do` at line 56.
-pub fn ruby_identify_spec_l56_d10_extracts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('extracts', ...args)
+pub fn ruby_identify_spec_l56_d10_extracts() bool {
+	return identify_spec_case(10)
 }
 
 // Ruby it `it "extracts a gitlab.com repo with a nested subgroup path" do` at line 61.
-pub fn ruby_identify_spec_l61_d11_extracts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('extracts', ...args)
+pub fn ruby_identify_spec_l61_d11_extracts() bool {
+	return identify_spec_case(11)
 }
 
 // Ruby it `it "extracts a GitLab repo from a legacy /uploads/ URL" do` at line 66.
-pub fn ruby_identify_spec_l66_d12_extracts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('extracts', ...args)
+pub fn ruby_identify_spec_l66_d12_extracts() bool {
+	return identify_spec_case(12)
 }
 
 // Ruby it `it "extracts a GitLab repo from a /wikis/ URL" do` at line 71.
-pub fn ruby_identify_spec_l71_d13_extracts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('extracts', ...args)
+pub fn ruby_identify_spec_l71_d13_extracts() bool {
+	return identify_spec_case(13)
 }
 
 // Ruby it `it "extracts a GitLab repo from a URL with a trailing slash" do` at line 76.
-pub fn ruby_identify_spec_l76_d14_extracts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('extracts', ...args)
+pub fn ruby_identify_spec_l76_d14_extracts() bool {
+	return identify_spec_case(14)
 }
 
 // Ruby it `it "rejects a GitLab host-level /-/ route and falls back to a later URL" do` at line 81.
-pub fn ruby_identify_spec_l81_d15_rejects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('rejects', ...args)
+pub fn ruby_identify_spec_l81_d15_rejects() bool {
+	return identify_spec_case(15)
 }
 
 // Ruby it `it "returns nil for a GitLab /api/ route" do` at line 87.
-pub fn ruby_identify_spec_l87_d16_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_identify_spec_l87_d16_returns() bool {
+	return identify_spec_case(16)
 }
 
 // Ruby it `it "unwraps a Wayback Machine snapshot URL" do` at line 92.
-pub fn ruby_identify_spec_l92_d17_unwraps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('unwraps', ...args)
+pub fn ruby_identify_spec_l92_d17_unwraps() bool {
+	return identify_spec_case(17)
 }
 
 // Ruby it `it "falls back to the head URL when the stable URL is not a supported forge" do` at line 97.
-pub fn ruby_identify_spec_l97_d18_falls(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('falls', ...args)
+pub fn ruby_identify_spec_l97_d18_falls() bool {
+	return identify_spec_case(18)
 }
 
 // Ruby it `it "falls back to the homepage when neither stable nor head is a supported forge" do` at line 103.
-pub fn ruby_identify_spec_l103_d19_falls(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('falls', ...args)
+pub fn ruby_identify_spec_l103_d19_falls() bool {
+	return identify_spec_case(19)
 }
 
 // Ruby it `it "returns nil for unsupported hosts" do` at line 109.
-pub fn ruby_identify_spec_l109_d20_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_identify_spec_l109_d20_returns() bool {
+	return identify_spec_case(20)
 }
 
 // Ruby it `it "returns nil for nil input" do` at line 113.
-pub fn ruby_identify_spec_l113_d21_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_identify_spec_l113_d21_returns() bool {
+	return identify_spec_case(21)
 }
 
 // Ruby it `it "extracts from archive/refs/tags .tar.gz" do` at line 120.
-pub fn ruby_identify_spec_l120_d22_extracts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('extracts', ...args)
+pub fn ruby_identify_spec_l120_d22_extracts() bool {
+	return identify_spec_case(22)
 }
 
 // Ruby it `it "extracts a tag without a v prefix" do` at line 125.
-pub fn ruby_identify_spec_l125_d23_extracts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('extracts', ...args)
+pub fn ruby_identify_spec_l125_d23_extracts() bool {
+	return identify_spec_case(23)
 }
 
 // Ruby it `it "extracts from archive/refs/tags .zip" do` at line 130.
-pub fn ruby_identify_spec_l130_d24_extracts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('extracts', ...args)
+pub fn ruby_identify_spec_l130_d24_extracts() bool {
+	return identify_spec_case(24)
 }
 
 // Ruby it `it "extracts from archive/<tag>.tar.gz" do` at line 135.
-pub fn ruby_identify_spec_l135_d25_extracts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('extracts', ...args)
+pub fn ruby_identify_spec_l135_d25_extracts() bool {
+	return identify_spec_case(25)
 }
 
 // Ruby it `it "extracts from releases/download/<tag>/" do` at line 140.
-pub fn ruby_identify_spec_l140_d26_extracts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('extracts', ...args)
+pub fn ruby_identify_spec_l140_d26_extracts() bool {
+	return identify_spec_case(26)
 }
 
 // Ruby it `it "extracts from tarball/<tag>" do` at line 145.
-pub fn ruby_identify_spec_l145_d27_extracts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('extracts', ...args)
+pub fn ruby_identify_spec_l145_d27_extracts() bool {
+	return identify_spec_case(27)
 }
 
 // Ruby it `it "returns nil when no tag pattern matches" do` at line 149.
-pub fn ruby_identify_spec_l149_d28_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_identify_spec_l149_d28_returns() bool {
+	return identify_spec_case(28)
 }
 
 // Ruby method `result(url)` at line 157.
 pub fn ruby_identify_spec_l157_d29_result(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('result', ...args)
+	return identify_core.ruby_identify_l118_d3_self_registry_package(...args)
 }
 
 // Ruby it `it "parses a simple package" do` at line 162.
-pub fn ruby_identify_spec_l162_d30_parses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('parses', ...args)
+pub fn ruby_identify_spec_l162_d30_parses() bool {
+	return identify_spec_case(30)
 }
 
 // Ruby it `it "normalises an underscored name" do` at line 168.
-pub fn ruby_identify_spec_l168_d31_normalises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('normalises', ...args)
+pub fn ruby_identify_spec_l168_d31_normalises() bool {
+	return identify_spec_case(31)
 }
 
 // Ruby it `it "handles a name containing a hyphen followed by digits" do` at line 175.
-pub fn ruby_identify_spec_l175_d32_handles(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('handles', ...args)
+pub fn ruby_identify_spec_l175_d32_handles() bool {
+	return identify_spec_case(32)
 }
 
 // Ruby it `it "PEP 503-normalises a dotted name for OSV while preserving the dot in the purl" do` at line 181.
-pub fn ruby_identify_spec_l181_d33_pep(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('PEP', ...args)
+pub fn ruby_identify_spec_l181_d33_pep() bool {
+	return identify_spec_case(33)
 }
 
 // Ruby it `it "returns nil for a wheel" do` at line 187.
-pub fn ruby_identify_spec_l187_d34_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_identify_spec_l187_d34_returns() bool {
+	return identify_spec_case(34)
 }
 
 // Ruby it `it "parses a scoped package" do` at line 194.
-pub fn ruby_identify_spec_l194_d35_parses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('parses', ...args)
+pub fn ruby_identify_spec_l194_d35_parses() bool {
+	return identify_spec_case(35)
 }
 
 // Ruby it `it "parses an unscoped package" do` at line 200.
-pub fn ruby_identify_spec_l200_d36_parses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('parses', ...args)
+pub fn ruby_identify_spec_l200_d36_parses() bool {
+	return identify_spec_case(36)
 }
 
 // Ruby it `it "handles a name containing a hyphen followed by digits" do` at line 206.
-pub fn ruby_identify_spec_l206_d37_handles(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('handles', ...args)
+pub fn ruby_identify_spec_l206_d37_handles() bool {
+	return identify_spec_case(37)
 }
 
 // Ruby it `it "handles a semver prerelease version" do` at line 212.
-pub fn ruby_identify_spec_l212_d38_handles(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('handles', ...args)
+pub fn ruby_identify_spec_l212_d38_handles() bool {
+	return identify_spec_case(38)
 }
 
 // Ruby it `it "decodes a percent-encoded scope" do` at line 219.
-pub fn ruby_identify_spec_l219_d39_decodes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('decodes', ...args)
+pub fn ruby_identify_spec_l219_d39_decodes() bool {
+	return identify_spec_case(39)
 }
 
 // Ruby it `it "decodes multi-byte percent escapes without an encoding error" do` at line 225.
-pub fn ruby_identify_spec_l225_d40_decodes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('decodes', ...args)
+pub fn ruby_identify_spec_l225_d40_decodes() bool {
+	return identify_spec_case(40)
 }
 
 // Ruby it `it "returns nil when the tarball filename does not match the path name" do` at line 230.
-pub fn ruby_identify_spec_l230_d41_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_identify_spec_l230_d41_returns() bool {
+	return identify_spec_case(41)
 }
 
 // Ruby it `it "parses the crate name from the path and version from the filename" do` at line 236.
-pub fn ruby_identify_spec_l236_d42_parses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('parses', ...args)
+pub fn ruby_identify_spec_l236_d42_parses() bool {
+	return identify_spec_case(42)
 }
 
 // Ruby it `it "returns nil when the filename does not match the path name" do` at line 242.
-pub fn ruby_identify_spec_l242_d43_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_identify_spec_l242_d43_returns() bool {
+	return identify_spec_case(43)
 }
 
 // Ruby it `it "parses a /downloads/ URL" do` at line 248.
-pub fn ruby_identify_spec_l248_d44_parses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('parses', ...args)
+pub fn ruby_identify_spec_l248_d44_parses() bool {
+	return identify_spec_case(44)
 }
 
 // Ruby it `it "parses a /gems/ URL" do` at line 254.
-pub fn ruby_identify_spec_l254_d45_parses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('parses', ...args)
+pub fn ruby_identify_spec_l254_d45_parses() bool {
+	return identify_spec_case(45)
 }
 
 // Ruby it `it "handles a name containing a hyphen followed by digits" do` at line 260.
-pub fn ruby_identify_spec_l260_d46_handles(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('handles', ...args)
+pub fn ruby_identify_spec_l260_d46_handles() bool {
+	return identify_spec_case(46)
 }
 
 // Ruby it `it "strips a trailing platform suffix" do` at line 266.
-pub fn ruby_identify_spec_l266_d47_strips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('strips', ...args)
+pub fn ruby_identify_spec_l266_d47_strips() bool {
+	return identify_spec_case(47)
 }
 
 // Ruby it `it "strips a platform suffix ending in a numeric OS version" do` at line 272.
-pub fn ruby_identify_spec_l272_d48_strips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('strips', ...args)
+pub fn ruby_identify_spec_l272_d48_strips() bool {
+	return identify_spec_case(48)
 }
 
 // Ruby it `it "strips a bare-word platform suffix" do` at line 278.
-pub fn ruby_identify_spec_l278_d49_strips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('strips', ...args)
+pub fn ruby_identify_spec_l278_d49_strips() bool {
+	return identify_spec_case(49)
 }
 
 // Ruby it `it "strips a musl platform suffix" do` at line 284.
-pub fn ruby_identify_spec_l284_d50_strips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('strips', ...args)
+pub fn ruby_identify_spec_l284_d50_strips() bool {
+	return identify_spec_case(50)
 }
 
 // Ruby it `it "strips a mingw-ucrt platform suffix" do` at line 290.
-pub fn ruby_identify_spec_l290_d51_strips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('strips', ...args)
+pub fn ruby_identify_spec_l290_d51_strips() bool {
+	return identify_spec_case(51)
 }
 
 // Ruby it `it "strips a platform suffix with an unenumerated CPU" do` at line 296.
-pub fn ruby_identify_spec_l296_d52_strips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('strips', ...args)
+pub fn ruby_identify_spec_l296_d52_strips() bool {
+	return identify_spec_case(52)
 }
 
 // Ruby it `it "strips a platform suffix with a dotted OS version" do` at line 302.
-pub fn ruby_identify_spec_l302_d53_strips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('strips', ...args)
+pub fn ruby_identify_spec_l302_d53_strips() bool {
+	return identify_spec_case(53)
 }
 
 // Ruby it `it "keeps a prerelease segment in the version" do` at line 308.
-pub fn ruby_identify_spec_l308_d54_keeps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('keeps', ...args)
+pub fn ruby_identify_spec_l308_d54_keeps() bool {
+	return identify_spec_case(54)
 }
 
 // Ruby it `it "parses a package identifier from the path" do` at line 316.
-pub fn ruby_identify_spec_l316_d55_parses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('parses', ...args)
+pub fn ruby_identify_spec_l316_d55_parses() bool {
+	return identify_spec_case(55)
 }
 
 // Ruby it `it "handles a name containing a hyphen followed by digits" do` at line 322.
-pub fn ruby_identify_spec_l322_d56_handles(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('handles', ...args)
+pub fn ruby_identify_spec_l322_d56_handles() bool {
+	return identify_spec_case(56)
 }
 
 // Ruby it `it "parses name and version, keeping a semver prerelease" do` at line 332.
-pub fn ruby_identify_spec_l332_d57_parses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('parses', ...args)
+pub fn ruby_identify_spec_l332_d57_parses() bool {
+	return identify_spec_case(57)
 }
 
 // Ruby it `it "uses the distribution alone as the CPANSA name and includes the author in the purl" do` at line 340.
-pub fn ruby_identify_spec_l340_d58_uses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uses', ...args)
+pub fn ruby_identify_spec_l340_d58_uses() bool {
+	return identify_spec_case(58)
 }
 
 // Ruby it `it "handles a distribution name containing a digit-led segment" do` at line 347.
-pub fn ruby_identify_spec_l347_d59_handles(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('handles', ...args)
+pub fn ruby_identify_spec_l347_d59_handles() bool {
+	return identify_spec_case(59)
 }
 
 // Ruby it `it "handles a v-prefixed version" do` at line 354.
-pub fn ruby_identify_spec_l354_d60_handles(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('handles', ...args)
+pub fn ruby_identify_spec_l354_d60_handles() bool {
+	return identify_spec_case(60)
 }
 
 // Ruby it `it "handles a subdirectory below the author directory" do` at line 361.
-pub fn ruby_identify_spec_l361_d61_handles(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('handles', ...args)
+pub fn ruby_identify_spec_l361_d61_handles() bool {
+	return identify_spec_case(61)
 }
 
 // Ruby it `it "keeps a developer _NN suffix in the version" do` at line 367.
-pub fn ruby_identify_spec_l367_d62_keeps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('keeps', ...args)
+pub fn ruby_identify_spec_l367_d62_keeps() bool {
+	return identify_spec_case(62)
 }
 
 // Ruby it `it "strips a -TRIAL suffix from the version" do` at line 373.
-pub fn ruby_identify_spec_l373_d63_strips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('strips', ...args)
+pub fn ruby_identify_spec_l373_d63_strips() bool {
+	return identify_spec_case(63)
 }
 
 // Ruby it `it "parses groupId, artifactId and version from repo.maven.apache.org" do` at line 381.
-pub fn ruby_identify_spec_l381_d64_parses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('parses', ...args)
+pub fn ruby_identify_spec_l381_d64_parses() bool {
+	return identify_spec_case(64)
 }
 
 // Ruby it `it "parses a search.maven.org remotecontent URL" do` at line 389.
-pub fn ruby_identify_spec_l389_d65_parses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('parses', ...args)
+pub fn ruby_identify_spec_l389_d65_parses() bool {
+	return identify_spec_case(65)
 }
 
 // Ruby it `it "returns nil for a maven-metadata.xml URL" do` at line 397.
-pub fn ruby_identify_spec_l397_d66_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_identify_spec_l397_d66_returns() bool {
+	return identify_spec_case(66)
 }
 
 // Ruby it `it "returns nil for a third-party Maven repository (Central-only by design)" do` at line 402.
-pub fn ruby_identify_spec_l402_d67_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_identify_spec_l402_d67_returns() bool {
+	return identify_spec_case(67)
 }
 
 // Ruby it `it "returns nil for a non-Central host with a /maven2/ path" do` at line 408.
-pub fn ruby_identify_spec_l408_d68_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_identify_spec_l408_d68_returns() bool {
+	return identify_spec_case(68)
 }
 
 // Ruby it `it "parses name and version from a src/contrib URL" do` at line 416.
-pub fn ruby_identify_spec_l416_d69_parses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('parses', ...args)
+pub fn ruby_identify_spec_l416_d69_parses() bool {
+	return identify_spec_case(69)
 }
 
 // Ruby it `it "parses an Archive/ URL" do` at line 422.
-pub fn ruby_identify_spec_l422_d70_parses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('parses', ...args)
+pub fn ruby_identify_spec_l422_d70_parses() bool {
+	return identify_spec_case(70)
 }
 
 // Ruby it `it "parses a cloud.r-project.org URL" do` at line 428.
-pub fn ruby_identify_spec_l428_d71_parses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('parses', ...args)
+pub fn ruby_identify_spec_l428_d71_parses() bool {
+	return identify_spec_case(71)
 }
 
 // Ruby it `it "parses a v3 flatcontainer URL" do` at line 436.
-pub fn ruby_identify_spec_l436_d72_parses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('parses', ...args)
+pub fn ruby_identify_spec_l436_d72_parses() bool {
+	return identify_spec_case(72)
 }
 
 // Ruby it `it "parses a v2 API URL" do` at line 443.
-pub fn ruby_identify_spec_l443_d73_parses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('parses', ...args)
+pub fn ruby_identify_spec_l443_d73_parses() bool {
+	return identify_spec_case(73)
 }
 
 // Ruby it `it "returns nil for a non-registry URL" do` at line 450.
-pub fn ruby_identify_spec_l450_d74_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_identify_spec_l450_d74_returns() bool {
+	return identify_spec_case(74)
 }
 
 // Ruby it `it "returns nil for a supported forge URL" do` at line 454.
-pub fn ruby_identify_spec_l454_d75_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_identify_spec_l454_d75_returns() bool {
+	return identify_spec_case(75)
 }
 
 // Ruby it `it "returns nil for nil input" do` at line 458.
-pub fn ruby_identify_spec_l458_d76_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_identify_spec_l458_d76_returns() bool {
+	return identify_spec_case(76)
 }
 
 // Original Ruby source (line-for-line):

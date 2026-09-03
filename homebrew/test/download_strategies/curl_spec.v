@@ -1,383 +1,714 @@
 module download_strategies
 
-import brew_runtime
+import homebrew.download_strategy
+import os
+import regex
+import time
 
 // Translated from Homebrew/brew `test/download_strategies/curl_spec.rb`.
-// The original source is retained below until every stub has a typed V body.
+// The original source is retained below for source parity.
+const curl_spec_deferred_header = 'PRIVATE-TOKEN: {{HOMEBREW_DEFERRED_ENV:HOMEBREW_PRIVATE_TOKEN}}'
+
+pub struct CurlSpecStatus {
+pub:
+	success     bool
+	exit_status int
+	term_signal ?int
+}
+
+struct CurlSpecFetchResult {
+	commands        [][]string
+	error_message   string
+	cached_location string
+}
+
+struct CurlSpecCurlFixture {
+	root                 string
+	log_path             string
+	previous_path        string
+	previous_log         string
+	previous_head        string
+	previous_final_url   string
+	previous_failure_url string
+}
+
+fn curl_spec_fixture(final_url string, failure_url string) !CurlSpecCurlFixture {
+	root := os.join_path(os.temp_dir(), 'brew-v-curl-strategy-spec-${os.getpid()}-${time.now().unix_micro()}')
+	bin := os.join_path(root, 'bin')
+	os.mkdir_all(bin)!
+	log_path := os.join_path(root, 'curl.log')
+	script_path := os.join_path(bin, 'curl')
+	script := r'#!/bin/sh
+printf "%s\n" "__COMMAND__" >> "$BREW_V_CURL_SPEC_LOG"
+is_head=0
+output=""
+previous=""
+last=""
+for arg in "$@"; do
+  printf "%s\n" "$arg" >> "$BREW_V_CURL_SPEC_LOG"
+  if [ "$arg" = "--head" ]; then is_head=1; fi
+  if [ "$previous" = "--output" ]; then output="$arg"; fi
+  previous="$arg"
+  last="$arg"
+done
+if [ "$is_head" = "1" ]; then
+  printf "%s" "$BREW_V_CURL_SPEC_HEAD"
+  effective="$last"
+  if [ -n "$BREW_V_CURL_SPEC_FINAL_URL" ]; then effective="$BREW_V_CURL_SPEC_FINAL_URL"; fi
+  printf "\n__BREW_EFFECTIVE_URL__:%s\n" "$effective"
+  exit 0
+fi
+if [ -n "$BREW_V_CURL_SPEC_FAILURE_URL" ]; then
+  for arg in "$@"; do
+    if [ "$arg" = "$BREW_V_CURL_SPEC_FAILURE_URL" ]; then exit 6; fi
+  done
+fi
+if [ -n "$output" ] && [ "$output" != "/dev/null" ]; then : > "$output"; fi
+exit 0
+'
+	os.write_file(script_path, script)!
+	os.chmod(script_path, 0o755)!
+	fixture := CurlSpecCurlFixture{
+		root: root
+		log_path: log_path
+		previous_path: os.getenv('PATH')
+		previous_log: os.getenv('BREW_V_CURL_SPEC_LOG')
+		previous_head: os.getenv('BREW_V_CURL_SPEC_HEAD')
+		previous_final_url: os.getenv('BREW_V_CURL_SPEC_FINAL_URL')
+		previous_failure_url: os.getenv('BREW_V_CURL_SPEC_FAILURE_URL')
+	}
+	os.setenv('PATH', '${bin}:${fixture.previous_path}', true)
+	os.setenv('BREW_V_CURL_SPEC_LOG', log_path, true)
+	os.setenv('BREW_V_CURL_SPEC_HEAD', 'HTTP/2 200\r\nContent-Length: 0\r\n\r\n', true)
+	os.setenv('BREW_V_CURL_SPEC_FINAL_URL', final_url, true)
+	os.setenv('BREW_V_CURL_SPEC_FAILURE_URL', failure_url, true)
+	return fixture
+}
+
+fn (fixture CurlSpecCurlFixture) close() {
+	os.setenv('PATH', fixture.previous_path, true)
+	os.setenv('BREW_V_CURL_SPEC_LOG', fixture.previous_log, true)
+	os.setenv('BREW_V_CURL_SPEC_HEAD', fixture.previous_head, true)
+	os.setenv('BREW_V_CURL_SPEC_FINAL_URL', fixture.previous_final_url, true)
+	os.setenv('BREW_V_CURL_SPEC_FAILURE_URL', fixture.previous_failure_url, true)
+	os.rmdir_all(fixture.root) or {}
+}
+
+fn (fixture CurlSpecCurlFixture) commands() ![][]string {
+	if !os.is_file(fixture.log_path) {
+		return []
+	}
+	mut commands := [][]string{}
+	mut current := []string{}
+	for line in os.read_lines(fixture.log_path)! {
+		if line == '__COMMAND__' {
+			if current.len > 0 {
+				commands << current
+			}
+			current = []
+		} else {
+			current << line
+		}
+	}
+	if current.len > 0 {
+		commands << current
+	}
+	return commands
+}
+
+fn curl_spec_capture_download(url string, meta download_strategy.DownloadMeta, resolved_url string, expand_deferred bool) ![]string {
+	fixture := curl_spec_fixture('', '')!
+	defer {
+		fixture.close()
+	}
+	mut strategy := download_strategy.new_curl_download_strategy(url, 'foo', '1.2.3', meta)
+	if expand_deferred {
+		strategy.allow_deferred_environment_expansion()
+	}
+	strategy.curl_download(resolved_url, os.join_path(fixture.root, 'download'), none)!
+	commands := fixture.commands()!
+	if commands.len == 0 {
+		return error('curl command was not recorded')
+	}
+	return commands.last()
+}
+
+fn curl_spec_run_fetch(url string, source_meta download_strategy.DownloadMeta, final_url string, failure_url string) !CurlSpecFetchResult {
+	fixture := curl_spec_fixture(final_url, failure_url)!
+	defer {
+		fixture.close()
+	}
+	mut meta := source_meta
+	meta.cache = os.join_path(fixture.root, 'cache')
+	mut strategy := download_strategy.new_curl_download_strategy(url, 'foo', '1.2.3', meta)
+	mut error_message := ''
+	strategy.fetch(none) or { error_message = err.msg() }
+	return CurlSpecFetchResult{
+		commands: fixture.commands()!
+		error_message: error_message
+		cached_location: strategy.cached_location()
+	}
+}
+
+fn curl_spec_has_pair(arguments []string, first string, second string) bool {
+	if arguments.len < 2 {
+		return false
+	}
+	for index in 0 .. arguments.len - 1 {
+		if arguments[index] == first && arguments[index + 1] == second {
+			return true
+		}
+	}
+	return false
+}
+
+fn curl_spec_download_commands(commands [][]string) [][]string {
+	return commands.filter('--head' !in it)
+}
+
+fn curl_spec_metadata(headers map[string]string) download_strategy.UrlMetadata {
+	mut output := 'HTTP/2 200\r\n'
+	mut keys := headers.keys()
+	keys.sort()
+	for key in keys {
+		output += '${key}: ${headers[key]}\r\n'
+	}
+	output += '\r\n__BREW_EFFECTIVE_URL__:https://example.com/foo.tar.gz\n'
+	return download_strategy.parse_curl_header_metadata('https://example.com/foo.tar.gz', output)
+}
+
+fn curl_spec_cache() string {
+	return os.join_path(os.temp_dir(), 'brew-v-curl-strategy-spec-cache')
+}
 
 // Ruby subject `subject(:strategy) { described_class.new(url, name, version, **specs) }` at line 7.
-pub fn ruby_curl_spec_l7_d1_strategy(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('strategy', ...args)
+pub fn ruby_curl_spec_l7_d1_strategy(specs download_strategy.DownloadMeta) download_strategy.CurlDownloadStrategy {
+	return download_strategy.new_curl_download_strategy(ruby_curl_spec_l10_d3_url(), ruby_curl_spec_l9_d2_name(), ruby_curl_spec_l11_d4_version(), specs)
 }
 
 // Ruby let `let(:name) { "foo" }` at line 9.
-pub fn ruby_curl_spec_l9_d2_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('name', ...args)
+pub fn ruby_curl_spec_l9_d2_name() string {
+	return 'foo'
 }
 
 // Ruby let `let(:url) { "https://example.com/foo.tar.gz" }` at line 10.
-pub fn ruby_curl_spec_l10_d3_url(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('url', ...args)
+pub fn ruby_curl_spec_l10_d3_url() string {
+	return 'https://example.com/foo.tar.gz'
 }
 
 // Ruby let `let(:version) { "1.2.3" }` at line 11.
-pub fn ruby_curl_spec_l11_d4_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('version', ...args)
+pub fn ruby_curl_spec_l11_d4_version() string {
+	return '1.2.3'
 }
 
 // Ruby let `let(:specs) { { user: "download:123456" } }` at line 12.
-pub fn ruby_curl_spec_l12_d5_specs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('specs', ...args)
+pub fn ruby_curl_spec_l12_d5_specs() download_strategy.DownloadMeta {
+	return download_strategy.DownloadMeta{
+		user: 'download:123456'
+	}
 }
 
 // Ruby let `let(:artifact_domain) { nil }` at line 13.
-pub fn ruby_curl_spec_l13_d6_artifact_domain(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('artifact_domain', ...args)
+pub fn ruby_curl_spec_l13_d6_artifact_domain() ?string {
+	return none
 }
 
 // Ruby let `let(:headers) do` at line 14.
-pub fn ruby_curl_spec_l14_d7_headers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('headers', ...args)
+pub fn ruby_curl_spec_l14_d7_headers() map[string]string {
+	return {
+		'accept-ranges':  'bytes'
+		'content-length': '37182'
+	}
 }
 
 // Ruby it `it "parses the opts and sets the corresponding args" do` at line 26.
-pub fn ruby_curl_spec_l26_d8_parses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('parses', ...args)
+pub fn ruby_curl_spec_l26_d8_parses() bool {
+	strategy := ruby_curl_spec_l7_d1_strategy(ruby_curl_spec_l12_d5_specs())
+	return strategy.curl_args() == ['--user', 'download:123456']
 }
 
 // Ruby let `let(:specs) { { headers: [header] } }` at line 31.
-pub fn ruby_curl_spec_l31_d9_specs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('specs', ...args)
+pub fn ruby_curl_spec_l31_d9_specs() download_strategy.DownloadMeta {
+	return download_strategy.DownloadMeta{
+		headers: [ruby_curl_spec_l32_d10_header()]
+	}
 }
 
 // Ruby let `let(:header) do` at line 32.
-pub fn ruby_curl_spec_l32_d10_header(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('header', ...args)
+pub fn ruby_curl_spec_l32_d10_header() string {
+	return curl_spec_deferred_header
 }
 
 // Ruby it `it "does not expand the placeholder outside Downloadable#fetch" do` at line 39.
-pub fn ruby_curl_spec_l39_d11_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_curl_spec_l39_d11_does() bool {
+	header := ruby_curl_spec_l32_d10_header()
+	strategy := ruby_curl_spec_l7_d1_strategy(ruby_curl_spec_l31_d9_specs())
+	arguments := strategy.curl_args()
+	return header.contains('{{HOMEBREW_DEFERRED_ENV:') && header in arguments && curl_spec_has_pair(arguments, '--max-redirs', '0')
 }
 
 // Ruby let `let(:url) do` at line 47.
-pub fn ruby_curl_spec_l47_d12_url(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('url', ...args)
+pub fn ruby_curl_spec_l47_d12_url() string {
+	return 'https://example.com/foo.tar.gz?private_token={{HOMEBREW_DEFERRED_ENV:HOMEBREW_PRIVATE_TOKEN}}'
 }
 
 // Ruby it `it "does not expand the placeholder outside Downloadable#fetch" do` at line 56.
-pub fn ruby_curl_spec_l56_d13_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_curl_spec_l56_d13_does() bool {
+	url := ruby_curl_spec_l47_d12_url()
+	arguments := curl_spec_capture_download(url, download_strategy.DownloadMeta{}, url, false) or { return false }
+	return url.contains('{{HOMEBREW_DEFERRED_ENV:') && url in arguments
 }
 
 // Ruby it `it "calls curl with default arguments" do` at line 80.
-pub fn ruby_curl_spec_l80_d14_calls(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('calls', ...args)
+pub fn ruby_curl_spec_l80_d14_calls() bool {
+	url := ruby_curl_spec_l10_d3_url()
+	arguments := curl_spec_capture_download(url, ruby_curl_spec_l12_d5_specs(), url, false) or { return false }
+	return curl_spec_has_pair(arguments, '--remote-time', '--output') && curl_spec_has_pair(arguments, '--continue-at', '-') && curl_spec_has_pair(arguments, '--location', url)
 }
 
 // Ruby let `let(:specs) { { user_agent: "Mozilla/25.0.1" } }` at line 95.
-pub fn ruby_curl_spec_l95_d15_specs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('specs', ...args)
+pub fn ruby_curl_spec_l95_d15_specs() download_strategy.DownloadMeta {
+	return download_strategy.DownloadMeta{
+		user_agent: 'Mozilla/25.0.1'
+	}
 }
 
 // Ruby it `it "adds the appropriate curl args" do` at line 97.
-pub fn ruby_curl_spec_l97_d16_adds(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('adds', ...args)
+pub fn ruby_curl_spec_l97_d16_adds() bool {
+	arguments := curl_spec_capture_download(ruby_curl_spec_l10_d3_url(), ruby_curl_spec_l95_d15_specs(), ruby_curl_spec_l10_d3_url(), false) or { return false }
+	return curl_spec_has_pair(arguments, '--user-agent', 'Mozilla/25.0.1')
 }
 
 // Ruby alias_matcher `alias_matcher :a_string_matching, :match` at line 111.
-pub fn ruby_curl_spec_l111_d17_a_string_matching(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('a_string_matching', ...args)
+pub fn ruby_curl_spec_l111_d17_a_string_matching(value string) bool {
+	mut expression := regex.regex_opt('Mozilla.*Mac OS X 10_15_7.*AppleWebKit') or {
+		return false
+	}
+	start, _ := expression.find(value)
+	return start >= 0
 }
 
 // Ruby let `let(:specs) { { user_agent: :fake } }` at line 113.
-pub fn ruby_curl_spec_l113_d18_specs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('specs', ...args)
+pub fn ruby_curl_spec_l113_d18_specs() download_strategy.DownloadMeta {
+	return download_strategy.DownloadMeta{
+		user_agent: 'fake'
+	}
 }
 
 // Ruby it `it "adds the appropriate curl args" do` at line 115.
-pub fn ruby_curl_spec_l115_d19_adds(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('adds', ...args)
+pub fn ruby_curl_spec_l115_d19_adds() bool {
+	arguments := curl_spec_capture_download(ruby_curl_spec_l10_d3_url(), ruby_curl_spec_l113_d18_specs(), ruby_curl_spec_l10_d3_url(), false) or { return false }
+	index := arguments.index('--user-agent')
+	return index >= 0 && index + 1 < arguments.len && ruby_curl_spec_l111_d17_a_string_matching(arguments[index + 1])
 }
 
 // Ruby let `let(:specs) do` at line 132.
-pub fn ruby_curl_spec_l132_d20_specs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('specs', ...args)
+pub fn ruby_curl_spec_l132_d20_specs() download_strategy.DownloadMeta {
+	return download_strategy.DownloadMeta{
+		cookies: {
+			'coo': 'k/e'
+			'mon': 'ster'
+		}
+	}
 }
 
 // Ruby it `it "adds the appropriate curl args and does not URL-encode the cookies" do` at line 141.
-pub fn ruby_curl_spec_l141_d21_adds(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('adds', ...args)
+pub fn ruby_curl_spec_l141_d21_adds() bool {
+	arguments := curl_spec_capture_download(ruby_curl_spec_l10_d3_url(), ruby_curl_spec_l132_d20_specs(), ruby_curl_spec_l10_d3_url(), false) or { return false }
+	return curl_spec_has_pair(arguments, '-b', 'coo=k/e;mon=ster')
 }
 
 // Ruby let `let(:specs) { { referer: "https://somehost/also" } }` at line 155.
-pub fn ruby_curl_spec_l155_d22_specs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('specs', ...args)
+pub fn ruby_curl_spec_l155_d22_specs() download_strategy.DownloadMeta {
+	return download_strategy.DownloadMeta{
+		referer: 'https://somehost/also'
+	}
 }
 
 // Ruby it `it "adds the appropriate curl args" do` at line 157.
-pub fn ruby_curl_spec_l157_d23_adds(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('adds', ...args)
+pub fn ruby_curl_spec_l157_d23_adds() bool {
+	arguments := curl_spec_capture_download(ruby_curl_spec_l10_d3_url(), ruby_curl_spec_l155_d22_specs(), ruby_curl_spec_l10_d3_url(), false) or { return false }
+	return curl_spec_has_pair(arguments, '-e', 'https://somehost/also')
 }
 
 // Ruby alias_matcher `alias_matcher :a_string_matching, :match` at line 171.
-pub fn ruby_curl_spec_l171_d24_a_string_matching(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('a_string_matching', ...args)
+pub fn ruby_curl_spec_l171_d24_a_string_matching(value string) bool {
+	return ruby_curl_spec_l111_d17_a_string_matching(value)
 }
 
 // Ruby let `let(:specs) { { headers: ["foo", "bar"] } }` at line 173.
-pub fn ruby_curl_spec_l173_d25_specs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('specs', ...args)
+pub fn ruby_curl_spec_l173_d25_specs() download_strategy.DownloadMeta {
+	return download_strategy.DownloadMeta{
+		headers: ['foo', 'bar']
+	}
 }
 
 // Ruby it `it "adds the appropriate curl args" do` at line 175.
-pub fn ruby_curl_spec_l175_d26_adds(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('adds', ...args)
+pub fn ruby_curl_spec_l175_d26_adds() bool {
+	arguments := curl_spec_capture_download(ruby_curl_spec_l10_d3_url(), ruby_curl_spec_l173_d25_specs(), ruby_curl_spec_l10_d3_url(), false) or { return false }
+	return curl_spec_has_pair(arguments, '--header', 'foo') && curl_spec_has_pair(arguments, '--header', 'bar')
 }
 
 // Ruby let `let(:specs) { { headers: [header] } }` at line 191.
-pub fn ruby_curl_spec_l191_d27_specs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('specs', ...args)
+pub fn ruby_curl_spec_l191_d27_specs() download_strategy.DownloadMeta {
+	return download_strategy.DownloadMeta{
+		headers: [ruby_curl_spec_l192_d28_header()]
+	}
 }
 
 // Ruby let `let(:header) do` at line 192.
-pub fn ruby_curl_spec_l192_d28_header(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('header', ...args)
+pub fn ruby_curl_spec_l192_d28_header() string {
+	return curl_spec_deferred_header
 }
 
 // Ruby it `it "keeps location handling but refuses redirects while sending caller-supplied headers" do` at line 203.
-pub fn ruby_curl_spec_l203_d29_keeps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('keeps', ...args)
+pub fn ruby_curl_spec_l203_d29_keeps() bool {
+	os.setenv('HOMEBREW_PRIVATE_TOKEN', 'glpat-secret', true)
+	defer {
+		os.unsetenv('HOMEBREW_PRIVATE_TOKEN')
+	}
+	arguments := curl_spec_capture_download(ruby_curl_spec_l10_d3_url(), ruby_curl_spec_l191_d27_specs(), ruby_curl_spec_l10_d3_url(), true) or { return false }
+	return curl_spec_has_pair(arguments, '--header', 'PRIVATE-TOKEN: glpat-secret') && '--location' in arguments && curl_spec_has_pair(arguments, '--max-redirs', '0')
 }
 
 // Ruby let `let(:specs) { { headers: ["PRIVATE-TOKEN: glpat-secret"] } }` at line 217.
-pub fn ruby_curl_spec_l217_d30_specs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('specs', ...args)
+pub fn ruby_curl_spec_l217_d30_specs() download_strategy.DownloadMeta {
+	return download_strategy.DownloadMeta{
+		headers: ['PRIVATE-TOKEN: glpat-secret']
+	}
 }
 
 // Ruby it `it "does not forward caller-supplied headers to the new host" do` at line 224.
-pub fn ruby_curl_spec_l224_d31_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_curl_spec_l224_d31_does() bool {
+	result := curl_spec_run_fetch(ruby_curl_spec_l10_d3_url(), ruby_curl_spec_l217_d30_specs(), 'https://other.example.org/foo.tar.gz', '') or { return false }
+	downloads := curl_spec_download_commands(result.commands)
+	return result.error_message == '' && downloads.len == 1 && 'PRIVATE-TOKEN: glpat-secret' !in downloads[0]
 }
 
 // Ruby let `let(:artifact_domain) { "https://mirror.example.com/oci" }` at line 235.
-pub fn ruby_curl_spec_l235_d32_artifact_domain(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('artifact_domain', ...args)
+pub fn ruby_curl_spec_l235_d32_artifact_domain() string {
+	return 'https://mirror.example.com/oci'
 }
 
 // Ruby it `it "leaves the URL unchanged" do` at line 238.
-pub fn ruby_curl_spec_l238_d33_leaves(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('leaves', ...args)
+pub fn ruby_curl_spec_l238_d33_leaves() bool {
+	strategy := download_strategy.new_curl_download_strategy(ruby_curl_spec_l10_d3_url(), ruby_curl_spec_l9_d2_name(), ruby_curl_spec_l11_d4_version(), download_strategy.DownloadMeta{
+		artifact_domain: ruby_curl_spec_l235_d32_artifact_domain()
+	})
+	return strategy.candidate_urls() == [ruby_curl_spec_l10_d3_url()]
 }
 
 // Ruby let `let(:resource_path) { "v2/homebrew/core/spec/manifests/0.0" }` at line 252.
-pub fn ruby_curl_spec_l252_d34_resource_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('resource_path', ...args)
+pub fn ruby_curl_spec_l252_d34_resource_path() string {
+	return 'v2/homebrew/core/spec/manifests/0.0'
 }
 
 // Ruby let `let(:url) { "http://#{GitHubPackages::URL_DOMAIN}/#{resource_path}" }` at line 253.
-pub fn ruby_curl_spec_l253_d35_url(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('url', ...args)
+pub fn ruby_curl_spec_l253_d35_url() string {
+	return 'http://ghcr.io/${ruby_curl_spec_l252_d34_resource_path()}'
 }
 
 // Ruby let `let(:status) { instance_double(Process::Status, success?: true, exitstatus: 0) }` at line 254.
-pub fn ruby_curl_spec_l254_d36_status(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('status', ...args)
+pub fn ruby_curl_spec_l254_d36_status() CurlSpecStatus {
+	return CurlSpecStatus{
+		success: true
+		exit_status: 0
+	}
 }
 
 // Ruby it `it "rewrites the URL correctly" do` at line 256.
-pub fn ruby_curl_spec_l256_d37_rewrites(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('rewrites', ...args)
+pub fn ruby_curl_spec_l256_d37_rewrites() bool {
+	strategy := download_strategy.new_curl_download_strategy(ruby_curl_spec_l253_d35_url(), ruby_curl_spec_l9_d2_name(), ruby_curl_spec_l11_d4_version(), download_strategy.DownloadMeta{
+		artifact_domain: ruby_curl_spec_l235_d32_artifact_domain()
+	})
+	return strategy.candidate_urls()[0] == '${ruby_curl_spec_l235_d32_artifact_domain()}/${ruby_curl_spec_l252_d34_resource_path()}'
 }
 
 // Ruby let `let(:resource_path) { "v2/homebrew/core/spec/manifests/0.0" }` at line 270.
-pub fn ruby_curl_spec_l270_d38_resource_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('resource_path', ...args)
+pub fn ruby_curl_spec_l270_d38_resource_path() string {
+	return 'v2/homebrew/core/spec/manifests/0.0'
 }
 
 // Ruby let `let(:url) { "https://#{GitHubPackages::URL_DOMAIN}/#{resource_path}" }` at line 271.
-pub fn ruby_curl_spec_l271_d39_url(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('url', ...args)
+pub fn ruby_curl_spec_l271_d39_url() string {
+	return 'https://ghcr.io/${ruby_curl_spec_l270_d38_resource_path()}'
 }
 
 // Ruby let `let(:status) { instance_double(Process::Status, success?: true, exitstatus: 0) }` at line 272.
-pub fn ruby_curl_spec_l272_d40_status(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('status', ...args)
+pub fn ruby_curl_spec_l272_d40_status() CurlSpecStatus {
+	return CurlSpecStatus{
+		success: true
+		exit_status: 0
+	}
 }
 
 // Ruby it `it "rewrites the URL correctly" do` at line 274.
-pub fn ruby_curl_spec_l274_d41_rewrites(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('rewrites', ...args)
+pub fn ruby_curl_spec_l274_d41_rewrites() bool {
+	strategy := download_strategy.new_curl_download_strategy(ruby_curl_spec_l271_d39_url(), ruby_curl_spec_l9_d2_name(), ruby_curl_spec_l11_d4_version(), download_strategy.DownloadMeta{
+		artifact_domain: ruby_curl_spec_l235_d32_artifact_domain()
+	})
+	return strategy.candidate_urls()[0] == '${ruby_curl_spec_l235_d32_artifact_domain()}/${ruby_curl_spec_l270_d38_resource_path()}'
 }
 
 // Ruby let `let(:artifact_domain) { "https://mirror.example.com/v2/oci" }` at line 287.
-pub fn ruby_curl_spec_l287_d42_artifact_domain(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('artifact_domain', ...args)
+pub fn ruby_curl_spec_l287_d42_artifact_domain() string {
+	return 'https://mirror.example.com/v2/oci'
 }
 
 // Ruby it `it "does not duplicate the /v2/ API path" do` at line 289.
-pub fn ruby_curl_spec_l289_d43_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_curl_spec_l289_d43_does() bool {
+	strategy := download_strategy.new_curl_download_strategy(ruby_curl_spec_l271_d39_url(), ruby_curl_spec_l9_d2_name(), ruby_curl_spec_l11_d4_version(), download_strategy.DownloadMeta{
+		artifact_domain: ruby_curl_spec_l287_d42_artifact_domain()
+	})
+	return strategy.candidate_urls()[0] == 'https://mirror.example.com/v2/oci/homebrew/core/spec/manifests/0.0'
 }
 
 // Ruby let `let(:artifact_domain) { "https://mirror.example.com/v2/oci/" }` at line 302.
-pub fn ruby_curl_spec_l302_d44_artifact_domain(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('artifact_domain', ...args)
+pub fn ruby_curl_spec_l302_d44_artifact_domain() string {
+	return 'https://mirror.example.com/v2/oci/'
 }
 
 // Ruby it `it "does not duplicate the /v2/ API path" do` at line 304.
-pub fn ruby_curl_spec_l304_d45_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_curl_spec_l304_d45_does() bool {
+	strategy := download_strategy.new_curl_download_strategy(ruby_curl_spec_l271_d39_url(), ruby_curl_spec_l9_d2_name(), ruby_curl_spec_l11_d4_version(), download_strategy.DownloadMeta{
+		artifact_domain: ruby_curl_spec_l302_d44_artifact_domain()
+	})
+	return strategy.candidate_urls()[0] == 'https://mirror.example.com/v2/oci/homebrew/core/spec/manifests/0.0'
 }
 
 // Ruby let `let(:failed_status) { instance_double(Process::Status, success?: false, exitstatus: 6, termsig: nil) }` at line 318.
-pub fn ruby_curl_spec_l318_d46_failed_status(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('failed_status', ...args)
+pub fn ruby_curl_spec_l318_d46_failed_status() CurlSpecStatus {
+	return CurlSpecStatus{
+		exit_status: 6
+	}
 }
 
 // Ruby it `it "falls back to the original ghcr.io URL" do` at line 320.
-pub fn ruby_curl_spec_l320_d47_falls(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('falls', ...args)
+pub fn ruby_curl_spec_l320_d47_falls() bool {
+	url := ruby_curl_spec_l271_d39_url()
+	artifact_url := 'https://mirror.example.com/v2/oci/homebrew/core/spec/manifests/0.0'
+	result := curl_spec_run_fetch(url, download_strategy.DownloadMeta{
+		artifact_domain: ruby_curl_spec_l287_d42_artifact_domain()
+	}, '', artifact_url) or { return false }
+	downloads := curl_spec_download_commands(result.commands)
+	return result.error_message == '' && downloads.len == 2 && artifact_url in downloads[0] && url in downloads[1]
 }
 
 // Ruby let `let(:failed_status) { instance_double(Process::Status, success?: false, exitstatus: 6, termsig: nil) }` at line 343.
-pub fn ruby_curl_spec_l343_d48_failed_status(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('failed_status', ...args)
+pub fn ruby_curl_spec_l343_d48_failed_status() CurlSpecStatus {
+	return CurlSpecStatus{
+		exit_status: 6
+	}
 }
 
 // Ruby it `it "falls back to the original ghcr.io URL" do` at line 345.
-pub fn ruby_curl_spec_l345_d49_falls(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('falls', ...args)
+pub fn ruby_curl_spec_l345_d49_falls() bool {
+	url := ruby_curl_spec_l271_d39_url()
+	artifact_url := '${ruby_curl_spec_l235_d32_artifact_domain()}/${ruby_curl_spec_l270_d38_resource_path()}'
+	result := curl_spec_run_fetch(url, download_strategy.DownloadMeta{
+		artifact_domain: ruby_curl_spec_l235_d32_artifact_domain()
+	}, '', artifact_url) or { return false }
+	downloads := curl_spec_download_commands(result.commands)
+	return result.error_message == '' && downloads.len == 2 && artifact_url in downloads[0] && url in downloads[1]
 }
 
 // Ruby let `let(:failed_status) { instance_double(Process::Status, success?: false, exitstatus: 6, termsig: nil) }` at line 367.
-pub fn ruby_curl_spec_l367_d50_failed_status(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('failed_status', ...args)
+pub fn ruby_curl_spec_l367_d50_failed_status() CurlSpecStatus {
+	return CurlSpecStatus{
+		exit_status: 6
+	}
 }
 
 // Ruby it `it "does not fall back to the original URL" do` at line 373.
-pub fn ruby_curl_spec_l373_d51_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_curl_spec_l373_d51_does() bool {
+	url := ruby_curl_spec_l271_d39_url()
+	artifact_url := '${ruby_curl_spec_l235_d32_artifact_domain()}/${ruby_curl_spec_l270_d38_resource_path()}'
+	result := curl_spec_run_fetch(url, download_strategy.DownloadMeta{
+		artifact_domain: ruby_curl_spec_l235_d32_artifact_domain()
+		artifact_domain_no_fallback: true
+	}, '', artifact_url) or { return false }
+	downloads := curl_spec_download_commands(result.commands)
+	return result.error_message.contains('Failed to download') && downloads.len == 1 && artifact_url in downloads[0] && url !in downloads[0]
 }
 
 // Ruby let `let(:headers) do` at line 391.
-pub fn ruby_curl_spec_l391_d52_headers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('headers', ...args)
+pub fn ruby_curl_spec_l391_d52_headers() map[string]string {
+	return {
+		'content-length': '1024'
+	}
 }
 
 // Ruby it `it "returns the content-length value" do` at line 397.
-pub fn ruby_curl_spec_l397_d53_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_curl_spec_l397_d53_returns() bool {
+	metadata := curl_spec_metadata(ruby_curl_spec_l391_d52_headers())
+	return metadata.has_file_size && metadata.file_size == 1024
 }
 
 // Ruby let `let(:headers) do` at line 404.
-pub fn ruby_curl_spec_l404_d54_headers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('headers', ...args)
+pub fn ruby_curl_spec_l404_d54_headers() map[string]string {
+	return {
+		'content-range': 'bytes 0-1023/1024'
+	}
 }
 
 // Ruby it `it "returns the total size from content-range" do` at line 410.
-pub fn ruby_curl_spec_l410_d55_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_curl_spec_l410_d55_returns() bool {
+	metadata := curl_spec_metadata(ruby_curl_spec_l404_d54_headers())
+	return metadata.has_file_size && metadata.file_size == 1024
 }
 
 // Ruby let `let(:headers) do` at line 417.
-pub fn ruby_curl_spec_l417_d56_headers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('headers', ...args)
+pub fn ruby_curl_spec_l417_d56_headers() map[string]string {
+	return {
+		'content-length': '0'
+		'content-range':  'bytes 0-999/1000'
+	}
 }
 
 // Ruby it `it "falls back to content-range" do` at line 424.
-pub fn ruby_curl_spec_l424_d57_falls(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('falls', ...args)
+pub fn ruby_curl_spec_l424_d57_falls() bool {
+	metadata := curl_spec_metadata(ruby_curl_spec_l417_d56_headers())
+	return metadata.has_file_size && metadata.file_size == 1000
 }
 
 // Ruby let `let(:headers) do` at line 431.
-pub fn ruby_curl_spec_l431_d58_headers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('headers', ...args)
+pub fn ruby_curl_spec_l431_d58_headers() map[string]string {
+	return {
+		'content-range': 'bytes */67589'
+	}
 }
 
 // Ruby it `it "extracts size from unsatisfied range format" do` at line 437.
-pub fn ruby_curl_spec_l437_d59_extracts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('extracts', ...args)
+pub fn ruby_curl_spec_l437_d59_extracts() bool {
+	metadata := curl_spec_metadata(ruby_curl_spec_l431_d58_headers())
+	return metadata.has_file_size && metadata.file_size == 67589
 }
 
 // Ruby let `let(:headers) do` at line 444.
-pub fn ruby_curl_spec_l444_d60_headers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('headers', ...args)
+pub fn ruby_curl_spec_l444_d60_headers() map[string]string {
+	return {
+		'content-range': 'bytes 0-1023/*'
+	}
 }
 
 // Ruby it `it "raises when size cannot be determined" do` at line 450.
-pub fn ruby_curl_spec_l450_d61_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+pub fn ruby_curl_spec_l450_d61_raises() bool {
+	url := ruby_curl_spec_l10_d3_url()
+	mut strategy := ruby_curl_spec_l7_d1_strategy(download_strategy.DownloadMeta{})
+	strategy.resolved_info_cache[url] = curl_spec_metadata(ruby_curl_spec_l444_d60_headers())
+	strategy.resolved_time_file_size(none) or {
+		return err.msg().contains('could not be determined')
+	}
+	return false
 }
 
 // Ruby let `let(:headers) do` at line 458.
-pub fn ruby_curl_spec_l458_d62_headers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('headers', ...args)
+pub fn ruby_curl_spec_l458_d62_headers(invalid_value string) map[string]string {
+	return {
+		'content-range': invalid_value
+	}
 }
 
 // Ruby it `it "raises when size cannot be parsed" do` at line 464.
-pub fn ruby_curl_spec_l464_d63_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+pub fn ruby_curl_spec_l464_d63_raises() bool {
+	url := ruby_curl_spec_l10_d3_url()
+	for invalid_value in ['invalid-format', 'bytes 0-1023', 'bytes 0-1023/abc', 'bytes 0-1023/',
+		''] {
+		mut strategy := ruby_curl_spec_l7_d1_strategy(download_strategy.DownloadMeta{})
+		strategy.resolved_info_cache[url] = curl_spec_metadata(ruby_curl_spec_l458_d62_headers(invalid_value))
+		strategy.resolved_time_file_size(none) or { continue }
+		return false
+	}
+	return true
 }
 
 // Ruby subject `subject(:cached_location) { strategy.cached_location }` at line 473.
-pub fn ruby_curl_spec_l473_d64_cached_location(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cached_location', ...args)
+pub fn ruby_curl_spec_l473_d64_cached_location() string {
+	mut strategy := ruby_curl_spec_l7_d1_strategy(download_strategy.DownloadMeta{
+		cache: curl_spec_cache()
+	})
+	return strategy.cached_location()
 }
 
 // Ruby it `it "falls back to the file name in the URL" do` at line 476.
-pub fn ruby_curl_spec_l476_d65_falls(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('falls', ...args)
+pub fn ruby_curl_spec_l476_d65_falls() bool {
+	expected := os.join_path(curl_spec_cache(), 'downloads', '3d1c0ae7da22be9d83fb1eb774df96b7c4da71d3cf07e1cb28555cf9a5e5af70--foo.tar.gz')
+	return ruby_curl_spec_l473_d64_cached_location() == expected
 }
 
 // Ruby let `let(:url) { "https://example.com/foo.tar.gz/from/this/mirror" }` at line 484.
-pub fn ruby_curl_spec_l484_d66_url(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('url', ...args)
+pub fn ruby_curl_spec_l484_d66_url() string {
+	return 'https://example.com/foo.tar.gz/from/this/mirror'
 }
 
 // Ruby it `it "falls back to the file name in the URL" do` at line 486.
-pub fn ruby_curl_spec_l486_d67_falls(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('falls', ...args)
+pub fn ruby_curl_spec_l486_d67_falls() bool {
+	mut strategy := download_strategy.new_curl_download_strategy(ruby_curl_spec_l484_d66_url(), ruby_curl_spec_l9_d2_name(), ruby_curl_spec_l11_d4_version(), download_strategy.DownloadMeta{
+		cache: curl_spec_cache()
+	})
+	expected := os.join_path(curl_spec_cache(), 'downloads', '1ab61269ba52c83994510b1e28dd04167a2f2e8393a35a9c50c1f7d33fd8f619--foo.tar.gz')
+	return strategy.cached_location() == expected
 }
 
 // Ruby let `let(:url) { "https://example.com/cask.dmg" }` at line 494.
-pub fn ruby_curl_spec_l494_d68_url(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('url', ...args)
+pub fn ruby_curl_spec_l494_d68_url() string {
+	return 'https://example.com/cask.dmg'
 }
 
 // Ruby it `it "falls back to the file extension in the URL" do` at line 496.
-pub fn ruby_curl_spec_l496_d69_falls(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('falls', ...args)
+pub fn ruby_curl_spec_l496_d69_falls() bool {
+	mut strategy := download_strategy.new_curl_download_strategy(ruby_curl_spec_l494_d68_url(), ruby_curl_spec_l9_d2_name(), ruby_curl_spec_l11_d4_version(), download_strategy.DownloadMeta{
+		cache: curl_spec_cache()
+	})
+	return os.file_ext(strategy.cached_location()) == '.dmg'
 }
 
 // Ruby let `let(:url) { "https://example.com/download?file=cask.zip&a=1" }` at line 502.
-pub fn ruby_curl_spec_l502_d70_url(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('url', ...args)
+pub fn ruby_curl_spec_l502_d70_url() string {
+	return 'https://example.com/download?file=cask.zip&a=1'
 }
 
 // Ruby it `it "falls back to the file extension in the URL" do` at line 504.
-pub fn ruby_curl_spec_l504_d71_falls(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('falls', ...args)
+pub fn ruby_curl_spec_l504_d71_falls() bool {
+	mut strategy := download_strategy.new_curl_download_strategy(ruby_curl_spec_l502_d70_url(), ruby_curl_spec_l9_d2_name(), ruby_curl_spec_l11_d4_version(), download_strategy.DownloadMeta{
+		cache: curl_spec_cache()
+	})
+	return os.file_ext(strategy.cached_location()) == '.zip'
 }
 
 // Ruby let `let(:url) { "https://example.com/dl?a=1&file=cask.zip&b=2" }` at line 510.
-pub fn ruby_curl_spec_l510_d72_url(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('url', ...args)
+pub fn ruby_curl_spec_l510_d72_url() string {
+	return 'https://example.com/dl?a=1&file=cask.zip&b=2'
 }
 
 // Ruby it `it "falls back to the file extension in the URL" do` at line 512.
-pub fn ruby_curl_spec_l512_d73_falls(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('falls', ...args)
+pub fn ruby_curl_spec_l512_d73_falls() bool {
+	mut strategy := download_strategy.new_curl_download_strategy(ruby_curl_spec_l510_d72_url(), ruby_curl_spec_l9_d2_name(), ruby_curl_spec_l11_d4_version(), download_strategy.DownloadMeta{
+		cache: curl_spec_cache()
+	})
+	return os.file_ext(strategy.cached_location()) == '.zip'
 }
 
 // Ruby let `let(:url) do` at line 518.
-pub fn ruby_curl_spec_l518_d74_url(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('url', ...args)
+pub fn ruby_curl_spec_l518_d74_url() string {
+	return ['https://node49152.ssl.fancycdn.example.com', '/fancycdn/node/49152/file/upload/download',
+		'?cask_class=zf920df', '&cask_group=2348779087242312', '&cask_archive_file_name=cask.zip',
+		'&signature=CGmDulxL8pmutKTlCleNTUY%2FyO9Xyl5u9yVZUE0',
+		'uWrjadjuz67Jp7zx3H7NEOhSyOhu8nzicEHRBjr3uSoOJzwkLC8L',
+		'BLKnz%2B2X%2Biq5m6IdwSVFcLp2Q1Hr2kR7ETn3rF1DIq5o0lHC',
+		'yzMmyNe5giEKJNW8WF0KXriULhzLTWLSA3ZTLCIofAdRiiGje1kN',
+		'YY3C0SBqymQB8CG3ONn5kj7CIGbxrDOq5xI2ZSJdIyPysSX7SLvE',
+		'DBw2KdR24q9t1wfjS9LUzelf5TWk6ojj8p9%2FHjl%2Fi%2FVCXN',
+		'N4o1mW%2FMayy2tTY1qcC%2FTmqI1ulZS8SNuaSgr9Iys9oDF1%2', 'BPK%2B4Sg=='].join('')
 }
 
 // Ruby it `it "falls back to the file extension in the URL" do` at line 536.
-pub fn ruby_curl_spec_l536_d75_falls(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('falls', ...args)
+pub fn ruby_curl_spec_l536_d75_falls() bool {
+	mut strategy := download_strategy.new_curl_download_strategy(ruby_curl_spec_l518_d74_url(), ruby_curl_spec_l9_d2_name(), ruby_curl_spec_l11_d4_version(), download_strategy.DownloadMeta{
+		cache: curl_spec_cache()
+	})
+	location := strategy.cached_location()
+	return os.file_ext(location) == '.zip' && location.len > 0 && location.len <= 255
 }
 
 // Original Ruby source (line-for-line):

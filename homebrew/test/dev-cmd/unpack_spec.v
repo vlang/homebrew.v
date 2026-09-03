@@ -1,18 +1,75 @@
 module dev_cmd
 
 import brew_runtime
+import os
 
 // Translated from Homebrew/brew `test/dev-cmd/unpack_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
+fn unpack_spec_root(args []brew_runtime.Value, label string) string {
+	base := if args.len > 0 {
+		args[0].as_string()
+	} else {
+		os.join_path(os.temp_dir(), 'brew-v-unpack-spec-${os.getpid()}')
+	}
+	return os.join_path(base, label)
+}
+
+fn unpack_spec_reset(path string) ! {
+	if os.exists(path) {
+		os.rmdir_all(path)!
+	}
+	os.mkdir_all(path)!
+}
+
 // Ruby it `it "unpacks a given Formula's archive", :integration_test do` at line 10.
 pub fn ruby_unpack_spec_l10_d1_unpacks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('unpacks', ...args)
+	root := unpack_spec_root(args, 'formula')
+	unpack_spec_reset(root) or { return brew_runtime.bool_value(false) }
+	source := os.join_path(root, 'source')
+	destination := os.join_path(root, 'destination')
+	os.mkdir_all(source) or { return brew_runtime.bool_value(false) }
+	os.write_file(os.join_path(source, 'README'), 'testball source') or {
+		return brew_runtime.bool_value(false)
+	}
+	package := UnpackPackage{
+		kind: .formula
+		name: 'testball'
+		version: '0.1'
+		full_name: 'testball'
+		source_path: source
+	}
+	result := run_unpack(UnpackOptions{
+		named: ['testball']
+		packages: [package]
+		destdir: destination
+	}) or { return brew_runtime.bool_value(false) }
+	stage_dir := os.join_path(destination, 'testball-0.1')
+	return brew_runtime.bool_value(result.items.len == 1 && os.is_dir(stage_dir)
+		&& os.read_file(os.join_path(stage_dir, 'README')) or { '' } == 'testball source')
 }
 
 // Ruby it `it "unpacks a given Cask's archive" do` at line 21.
 pub fn ruby_unpack_spec_l21_d2_unpacks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('unpacks', ...args)
+	root := unpack_spec_root(args, 'cask')
+	unpack_spec_reset(root) or { return brew_runtime.bool_value(false) }
+	destination := os.join_path(root, 'destination')
+	archive := '/Users/alex/code/3rd/brew/Library/Homebrew/test/support/fixtures/cask/caffeine.zip'
+	package := UnpackPackage{
+		kind: .cask
+		token: 'local-caffeine'
+		version: '1.2.3'
+		full_name: 'local-caffeine'
+		fetched_download: archive
+	}
+	result := run_unpack(UnpackOptions{
+		named: ['local-caffeine']
+		packages: [package]
+		destdir: destination
+	}) or { return brew_runtime.bool_value(false) }
+	stage_dir := os.join_path(destination, 'local-caffeine-1.2.3')
+	return brew_runtime.bool_value(result.items.len == 1 && os.is_dir(stage_dir)
+		&& result.items[0].fetched && result.items[0].extract_nestedly)
 }
 
 // Original Ruby source (line-for-line):

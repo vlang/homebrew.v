@@ -1,93 +1,255 @@
 module utility
 
 import brew_runtime
+import os
+import runtime
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/utility/processor_counter.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub struct ProcessorCounter {
+pub:
+	processor_count          int
+	physical_processor_count int
+	cpu_quota                ?f64
+	cpu_shares               ?f64
+}
+
+pub fn new_processor_counter() ProcessorCounter {
+	logical := compute_processor_count()
+	return ProcessorCounter{
+		processor_count: logical
+		physical_processor_count: compute_physical_processor_count(logical)
+		cpu_quota: compute_cpu_quota()
+		cpu_shares: compute_cpu_shares()
+	}
+}
+
+pub fn (counter ProcessorCounter) available_processor_count() f64 {
+	logical := f64(counter.processor_count)
+	quota := counter.cpu_quota or { return logical }
+	return if quota > logical { logical } else { quota }
+}
+
+pub fn compute_processor_count() int {
+	count := runtime.nr_cpus()
+	return if count > 0 { count } else { 1 }
+}
+
+fn digits_from_line(line string) string {
+	mut digits := ''
+	for character in line {
+		if character >= `0` && character <= `9` {
+			digits += character.ascii_str()
+		}
+	}
+	return digits
+}
+
+pub fn physical_processor_count_from_linux_cpuinfo(cpuinfo string, fallback int) int {
+	mut physical_id := '0'
+	mut cores := map[string]bool{}
+	for line in cpuinfo.split_into_lines() {
+		if line.starts_with('physical id') {
+			physical_id = digits_from_line(line)
+		} else if line.starts_with('core id') {
+			core_id := digits_from_line(line)
+			if core_id.len > 0 {
+				cores['${physical_id}:${core_id}'] = true
+			}
+		}
+	}
+	return if cores.len > 0 { cores.len } else { fallback }
+}
+
+pub fn compute_physical_processor_count(fallback int) int {
+	$if macos {
+		result := os.execute('/usr/sbin/sysctl -n hw.physicalcpu')
+		if result.exit_code == 0 && result.output.trim_space().int() > 0 {
+			return result.output.trim_space().int()
+		}
+	} $else $if linux {
+		cpuinfo := os.read_file('/proc/cpuinfo') or { return fallback }
+		return physical_processor_count_from_linux_cpuinfo(cpuinfo, fallback)
+	} $else $if windows {
+		result := os.execute('powershell -command "Get-CimInstance -ClassName Win32_Processor -Property NumberOfCores | Select-Object -Property NumberOfCores"')
+		if result.exit_code == 0 {
+			mut total := 0
+			for part in result.output.fields() {
+				if part.int() > 0 {
+					total += part.int()
+				}
+			}
+			if total > 0 {
+				return total
+			}
+		}
+	}
+	return if fallback > 0 { fallback } else { 1 }
+}
+
+pub fn cpu_quota_from_v2(content string) ?f64 {
+	fields := content.fields()
+	if fields.len < 2 || fields[0] == 'max' {
+		return none
+	}
+	maximum := fields[0].f64()
+	period := fields[1].f64()
+	if maximum <= 0 || period <= 0 {
+		return none
+	}
+	return maximum / period
+}
+
+pub fn cpu_quota_from_v1(maximum_text string, period_text string) ?f64 {
+	maximum := maximum_text.trim_space().f64()
+	period := period_text.trim_space().f64()
+	if maximum <= 0 || period <= 0 {
+		return none
+	}
+	return maximum / period
+}
+
+pub fn compute_cpu_quota() ?f64 {
+	$if linux {
+		if os.is_file('/sys/fs/cgroup/cpu.max') {
+			return cpu_quota_from_v2(os.read_file('/sys/fs/cgroup/cpu.max') or { return none })
+		}
+		quota_path := '/sys/fs/cgroup/cpu,cpuacct/cpu.cfs_quota_us'
+		period_path := '/sys/fs/cgroup/cpu,cpuacct/cpu.cfs_period_us'
+		if os.is_file(quota_path) && os.is_file(period_path) {
+			return cpu_quota_from_v1(os.read_file(quota_path) or { return none }, os.read_file(period_path) or { return none })
+		}
+	}
+	return none
+}
+
+pub fn cpu_shares_from_v2(weight f64) f64 {
+	return ((((weight - 1.0) * 262142.0) / 9999.0) + 2.0) / 1024.0
+}
+
+pub fn compute_cpu_shares() ?f64 {
+	$if linux {
+		if os.is_file('/sys/fs/cgroup/cpu.weight') {
+			weight := (os.read_file('/sys/fs/cgroup/cpu.weight') or { return none }).trim_space().f64()
+			return cpu_shares_from_v2(weight)
+		}
+		if os.is_file('/sys/fs/cgroup/cpu/cpu.shares') {
+			shares := (os.read_file('/sys/fs/cgroup/cpu/cpu.shares') or { return none }).trim_space().f64()
+			return shares / 1024.0
+		}
+	}
+	return none
+}
+
+pub fn run_processor_command(command string) ?string {
+	result := os.execute(command)
+	if result.exit_code != 0 {
+		return none
+	}
+	return result.output
+}
+
+fn optional_float_value(value ?f64) brew_runtime.Value {
+	resolved := value or { return brew_runtime.object_value('NilClass', 'nil') }
+	return brew_runtime.float_value(resolved)
+}
+
+fn processor_counter_value(counter ProcessorCounter) brew_runtime.Value {
+	return brew_runtime.structured_value('ProcessorCounter', '#<Concurrent::Utility::ProcessorCounter>', {
+		'processor_count':          counter.processor_count.str()
+		'physical_processor_count': counter.physical_processor_count.str()
+	})
+}
 
 // Ruby method `initialize` at line 11.
 pub fn ruby_processor_counter_l11_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	return processor_counter_value(new_processor_counter())
 }
 
 // Ruby method `processor_count` at line 18.
 pub fn ruby_processor_counter_l18_d2_processor_count(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('processor_count', ...args)
+	return brew_runtime.int_value(new_processor_counter().processor_count)
 }
 
 // Ruby method `physical_processor_count` at line 22.
 pub fn ruby_processor_counter_l22_d3_physical_processor_count(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('physical_processor_count', ...args)
+	return brew_runtime.int_value(new_processor_counter().physical_processor_count)
 }
 
 // Ruby method `available_processor_count` at line 26.
 pub fn ruby_processor_counter_l26_d4_available_processor_count(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('available_processor_count', ...args)
+	return brew_runtime.float_value(new_processor_counter().available_processor_count())
 }
 
 // Ruby method `cpu_quota` at line 41.
 pub fn ruby_processor_counter_l41_d5_cpu_quota(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cpu_quota', ...args)
+	return optional_float_value(new_processor_counter().cpu_quota)
 }
 
 // Ruby method `cpu_shares` at line 45.
 pub fn ruby_processor_counter_l45_d6_cpu_shares(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cpu_shares', ...args)
+	return optional_float_value(new_processor_counter().cpu_shares)
 }
 
 // Ruby method `compute_processor_count` at line 51.
 pub fn ruby_processor_counter_l51_d7_compute_processor_count(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('compute_processor_count', ...args)
+	return brew_runtime.int_value(compute_processor_count())
 }
 
 // Ruby method `compute_physical_processor_count` at line 59.
 pub fn ruby_processor_counter_l59_d8_compute_physical_processor_count(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('compute_physical_processor_count', ...args)
+	return brew_runtime.int_value(compute_physical_processor_count(compute_processor_count()))
 }
 
 // Ruby method `run(command)` at line 99.
 pub fn ruby_processor_counter_l99_d9_run(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('run', ...args)
+	if args.len == 0 {
+		panic('run requires a command')
+	}
+	result := run_processor_command(args[0].as_string()) or {
+		return brew_runtime.object_value('NilClass', 'nil')
+	}
+	return brew_runtime.string_value(result)
 }
 
 // Ruby method `compute_cpu_quota` at line 104.
 pub fn ruby_processor_counter_l104_d10_compute_cpu_quota(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('compute_cpu_quota', ...args)
+	return optional_float_value(compute_cpu_quota())
 }
 
 // Ruby method `compute_cpu_shares` at line 124.
 pub fn ruby_processor_counter_l124_d11_compute_cpu_shares(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('compute_cpu_shares', ...args)
+	return optional_float_value(compute_cpu_shares())
 }
 
 // Ruby attr_reader `singleton_class.send :attr_reader, :processor_counter` at line 142.
 pub fn ruby_processor_counter_l142_d12_processor_counter(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('processor_counter', ...args)
+	return processor_counter_value(new_processor_counter())
 }
 
 // Ruby method `self.processor_count` at line 160.
 pub fn ruby_processor_counter_l160_d13_self_processor_count(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.processor_count', ...args)
+	return ruby_processor_counter_l18_d2_processor_count(...args)
 }
 
 // Ruby method `self.physical_processor_count` at line 181.
 pub fn ruby_processor_counter_l181_d14_self_physical_processor_count(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.physical_processor_count', ...args)
+	return ruby_processor_counter_l22_d3_physical_processor_count(...args)
 }
 
 // Ruby method `self.available_processor_count` at line 194.
 pub fn ruby_processor_counter_l194_d15_self_available_processor_count(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.available_processor_count', ...args)
+	return ruby_processor_counter_l26_d4_available_processor_count(...args)
 }
 
 // Ruby method `self.cpu_quota` at line 209.
 pub fn ruby_processor_counter_l209_d16_self_cpu_quota(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.cpu_quota', ...args)
+	return ruby_processor_counter_l41_d5_cpu_quota(...args)
 }
 
 // Ruby method `self.cpu_shares` at line 217.
 pub fn ruby_processor_counter_l217_d17_self_cpu_shares(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.cpu_shares', ...args)
+	return ruby_processor_counter_l45_d6_cpu_shares(...args)
 }
 
 // Original Ruby source (line-for-line):

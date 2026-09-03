@@ -6,13 +6,24 @@ import brew_runtime
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `self.extensions` at line 10.
-pub fn ruby_self_extracting_executable_l10_d1_self_extensions(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.extensions', ...args)
+pub fn ruby_self_extracting_executable_l10_d1_self_extensions() []string {
+	return self_extracting_executable_extensions()
 }
 
 // Ruby method `self.can_extract?(path)` at line 15.
-pub fn ruby_self_extracting_executable_l15_d2_self_can_extract(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.can_extract?', ...args)
+pub fn ruby_self_extracting_executable_l15_d2_self_can_extract(path string) bool {
+	return self_extracting_executable_can_extract(path)
+}
+
+pub fn self_extracting_executable_extensions() []string {
+	return []
+}
+
+pub fn self_extracting_executable_can_extract(path string) bool {
+	if !file_starts_with(path, 'MZ'.bytes()) { return false }
+	file := command_path('file') or { return false }
+	result := brew_runtime.run_command(file, ['-b', path])
+	return result.exit_code == 0 && result.output.to_lower().contains('self-extracting archive')
 }
 
 // Original Ruby source (line-for-line):

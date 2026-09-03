@@ -2,47 +2,128 @@ module ffi
 
 import brew_runtime
 
+pub fn core_foundation_autorelease(pointer NativePointer) NativePointer {
+	if pointer.is_null() {
+		return pointer
+	}
+	return NativePointer{ ...pointer, free_symbol: 'CFRelease', properties: pointer.properties.clone() }
+}
+
+pub fn core_foundation_constant(name string, dereference bool) NativePointer {
+	base := stable_pointer_address('CoreFoundation:${name}')
+	return NativePointer{
+		address: if dereference { base ^ u64(0x9e3779b97f4a7c15) } else { base }
+		value: name
+		properties: map[string]string{}
+	}
+}
+
+pub fn core_foundation_string_create(value string, encoding string) NativePointer {
+	cf_encoding := match encoding {
+		'UTF-8' { '0x08000100' }
+		'US-ASCII' { '0x0600' }
+		'ASCII-8BIT', 'ISO-8859-1' { '0x0201' }
+		else { '0x08000100' }
+	}
+	return core_foundation_autorelease(NativePointer{
+		address: stable_pointer_address('CFString:${cf_encoding}:${value}')
+		value: value
+		properties: {
+			'encoding': cf_encoding
+		}
+	})
+}
+
+pub fn core_foundation_dictionary_create(values map[u64]NativePointer) NativePointer {
+	mut properties := map[string]string{}
+	for key, value in values {
+		properties[key.str()] = value.address.str()
+	}
+	return core_foundation_autorelease(NativePointer{
+		address: stable_pointer_address('CFDictionary:${properties.str()}')
+		value: 'dictionary'
+		properties: properties
+	})
+}
+
+pub fn core_foundation_url_create(path NativePointer) NativePointer {
+	if path.is_null() {
+		return NativePointer{}
+	}
+	return core_foundation_autorelease(NativePointer{
+		address: stable_pointer_address('CFURL:${path.value}')
+		value: path.value
+		properties: {
+			'path_style': 'POSIX'
+			'directory':  'false'
+		}
+	})
+}
+
+pub fn core_foundation_url_set_property(mut url NativePointer, key NativePointer,
+	value NativePointer) bool {
+	if url.is_null() || key.is_null() {
+		return false
+	}
+	url.properties[key.value] = value.value
+	return true
+}
+
 // Translated from Homebrew/brew `os/mac/ffi/core_foundation.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `self.autorelease(ptr)` at line 16.
 pub fn ruby_core_foundation_l16_d1_self_autorelease(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.autorelease', ...args)
+	pointer := NativePointer{ address: (args[0].attributes['address'] or { '0' }).u64(), value: args[0].as_string(), properties: map[string]string{} }
+	return native_pointer_value(core_foundation_autorelease(pointer))
 }
 
 // Ruby method `self.type_dictionary_key_call_backs = constant("kCFTypeDictionaryKeyCallBacks")` at line 28.
 pub fn ruby_core_foundation_l28_d2_self_type_dictionary_key_call_backs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.type_dictionary_key_call_backs', ...args)
+	return native_pointer_value(core_foundation_constant('kCFTypeDictionaryKeyCallBacks', false))
 }
 
 // Ruby method `self.type_dictionary_value_call_backs = constant("kCFTypeDictionaryValueCallBacks")` at line 33.
 pub fn ruby_core_foundation_l33_d3_self_type_dictionary_value_call_backs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.type_dictionary_value_call_backs', ...args)
+	return native_pointer_value(core_foundation_constant('kCFTypeDictionaryValueCallBacks', false))
 }
 
 // Ruby method `self.url_quarantine_properties_key = constant("kCFURLQuarantinePropertiesKey", dereference: true)` at line 38.
 pub fn ruby_core_foundation_l38_d4_self_url_quarantine_properties_key(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.url_quarantine_properties_key', ...args)
+	return native_pointer_value(core_foundation_constant('kCFURLQuarantinePropertiesKey', true))
 }
 
 // Ruby method `self.string_create(string)` at line 43.
 pub fn ruby_core_foundation_l43_d5_self_string_create(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.string_create', ...args)
+	encoding := if args.len > 1 { args[1].as_string() } else { 'UTF-8' }
+	return native_pointer_value(core_foundation_string_create(args[0].as_string(), encoding))
 }
 
 // Ruby method `self.dictionary_create(hash)` at line 76.
 pub fn ruby_core_foundation_l76_d6_self_dictionary_create(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.dictionary_create', ...args)
+	mut values := map[u64]NativePointer{}
+	for key, value in args[0].map_data {
+		values[key.u64()] = NativePointer{
+			address: (value.attributes['address'] or { '0' }).u64()
+			value: value.as_string()
+			properties: map[string]string{}
+		}
+	}
+	return native_pointer_value(core_foundation_dictionary_create(values))
 }
 
 // Ruby method `self.url_create_with_file_system_path(path)` at line 103.
 pub fn ruby_core_foundation_l103_d7_self_url_create_with_file_system_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.url_create_with_file_system_path', ...args)
+	path := NativePointer{ address: (args[0].attributes['address'] or { '0' }).u64(), value: args[0].as_string(), properties: map[string]string{} }
+	return native_pointer_value(core_foundation_url_create(path))
 }
 
 // Ruby method `self.url_set_resource_property_for_key(url, key, value)` at line 116.
 pub fn ruby_core_foundation_l116_d8_self_url_set_resource_property_for_key(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.url_set_resource_property_for_key', ...args)
+	mut url := NativePointer{ address: (args[0].attributes['address'] or { '0' }).u64(), value: args[0].as_string(), properties: map[string]string{} }
+	key := NativePointer{ address: (args[1].attributes['address'] or { '0' }).u64(), value: args[1].as_string(), properties: map[string]string{} }
+	value := NativePointer{ address: (args[2].attributes['address'] or { '0' }).u64(), value: args[2].as_string(), properties: map[string]string{} }
+	return brew_runtime.bool_value(core_foundation_url_set_property(mut url, key, value))
 }
 
 // Original Ruby source (line-for-line):

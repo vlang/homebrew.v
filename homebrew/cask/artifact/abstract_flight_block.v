@@ -2,52 +2,176 @@ module artifact
 
 import brew_runtime
 
+pub struct FlightBlock {
+pub:
+	cask           string
+	class_name     string
+	directive_keys []string
+}
+
+pub struct FlightPhaseResult {
+pub:
+	invoked  bool
+	dsl_key  string
+	dsl_type string
+	cask     string
+}
+
 // Translated from Homebrew/brew `cask/artifact/abstract_flight_block.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `self.dsl_key` at line 11.
 pub fn ruby_abstract_flight_block_l11_d1_self_dsl_key(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.dsl_key', ...args)
+	class_name := if args.len > 0 { args[0].as_string() } else { 'AbstractFlightBlock' }
+	return brew_runtime.string_value(flight_dsl_key(class_name))
 }
 
 // Ruby method `self.uninstall_dsl_key` at line 16.
 pub fn ruby_abstract_flight_block_l16_d2_self_uninstall_dsl_key(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.uninstall_dsl_key', ...args)
+	class_name := if args.len > 0 { args[0].as_string() } else { 'AbstractFlightBlock' }
+	return brew_runtime.string_value(flight_uninstall_dsl_key(class_name))
 }
 
 // Ruby attr_reader `attr_reader :directives` at line 21.
 pub fn ruby_abstract_flight_block_l21_d3_directives(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('directives', ...args)
+	return brew_runtime.string_array_value(if args.len > 0 {
+		args[0].as_string_array() or { []string{} }
+	} else {
+		[]string{}
+	})
 }
 
 // Ruby method `initialize(cask, **directives)` at line 24.
 pub fn ruby_abstract_flight_block_l24_d4_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	block := new_flight_block(if args.len > 0 { args[0].as_string() } else { '' }, if args.len > 1 {
+		args[1].as_string()
+	} else {
+		'AbstractFlightBlock'
+	}, if args.len > 2 { args[2].as_string_array() or { []string{} } } else { []string{} })
+	return flight_block_value(block)
 }
 
 // Ruby method `install_phase(**_options)` at line 30.
 pub fn ruby_abstract_flight_block_l30_d5_install_phase(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install_phase', ...args)
+	block := flight_block_from_args(args)
+	return flight_phase_value(flight_install_phase(block))
 }
 
 // Ruby method `uninstall_phase(**_options)` at line 35.
 pub fn ruby_abstract_flight_block_l35_d6_uninstall_phase(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uninstall_phase', ...args)
+	block := flight_block_from_args(args)
+	return flight_phase_value(flight_uninstall_phase(block))
 }
 
 // Ruby method `summarize` at line 40.
 pub fn ruby_abstract_flight_block_l40_d7_summarize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('summarize', ...args)
+	directives := if args.len > 0 {
+		args[0].as_string_array() or { []string{} }
+	} else {
+		[]string{}
+	}
+	return brew_runtime.string_value(flight_summarize(directives))
 }
 
 // Ruby method `self.class_for_dsl_key(dsl_key)` at line 45.
 pub fn ruby_abstract_flight_block_l45_d8_self_class_for_dsl_key(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.class_for_dsl_key', ...args)
+	class_name := if args.len > 0 {
+		args[0].as_string()
+	} else {
+		'Cask::Artifact::AbstractFlightBlock'
+	}
+	dsl_key := if args.len > 1 { args[1].as_string() } else { flight_dsl_key(class_name) }
+	return brew_runtime.object_value('Class', flight_class_for_dsl_key(class_name, dsl_key))
 }
 
 // Ruby method `abstract_phase(dsl_key)` at line 56.
 pub fn ruby_abstract_flight_block_l56_d9_abstract_phase(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('abstract_phase', ...args)
+	block := flight_block_from_args(args)
+	dsl_key := if args.len > 3 { args[3].as_string() } else { flight_dsl_key(block.class_name) }
+	return flight_phase_value(flight_abstract_phase(block, dsl_key))
+}
+
+pub fn new_flight_block(cask string, class_name string, directive_keys []string) FlightBlock {
+	return FlightBlock{
+		cask: cask
+		class_name: class_name
+		directive_keys: directive_keys.clone()
+	}
+}
+
+pub fn flight_dsl_key(class_name string) string {
+	short_name := class_name.all_after_last('::')
+	mut snake := ''
+	for index, character in short_name {
+		if character >= `A` && character <= `Z` {
+			if index > 0 {
+				snake += '_'
+			}
+			snake += (character + 32).ascii_str()
+		} else {
+			snake += character.ascii_str()
+		}
+	}
+	return snake.trim_string_right('_block')
+}
+
+pub fn flight_uninstall_dsl_key(class_name string) string {
+	return 'uninstall_${flight_dsl_key(class_name)}'
+}
+
+pub fn flight_class_for_dsl_key(class_name string, dsl_key string) string {
+	namespace := class_name.all_before('::')
+	class_parts := dsl_key.split('_').map(if it == '' { '' } else { it[..1].to_upper() + it[1..] })
+	return '${namespace}::DSL::${class_parts.join('')}'
+}
+
+pub fn flight_install_phase(block FlightBlock) FlightPhaseResult {
+	return flight_abstract_phase(block, flight_dsl_key(block.class_name))
+}
+
+pub fn flight_uninstall_phase(block FlightBlock) FlightPhaseResult {
+	return flight_abstract_phase(block, flight_uninstall_dsl_key(block.class_name))
+}
+
+pub fn flight_abstract_phase(block FlightBlock, dsl_key string) FlightPhaseResult {
+	if dsl_key !in block.directive_keys {
+		return FlightPhaseResult{ dsl_key: dsl_key }
+	}
+	return FlightPhaseResult{
+		invoked: true
+		dsl_key: dsl_key
+		dsl_type: flight_class_for_dsl_key(block.class_name, dsl_key)
+		cask: block.cask
+	}
+}
+
+pub fn flight_summarize(directive_keys []string) string {
+	return directive_keys.join(', ')
+}
+
+fn flight_block_from_args(args []brew_runtime.Value) FlightBlock {
+	return new_flight_block(if args.len > 0 { args[0].as_string() } else { '' }, if args.len > 1 {
+		args[1].as_string()
+	} else {
+		'Cask::Artifact::AbstractFlightBlock'
+	}, if args.len > 2 { args[2].as_string_array() or { []string{} } } else { []string{} })
+}
+
+fn flight_block_value(block FlightBlock) brew_runtime.Value {
+	return brew_runtime.structured_value(block.class_name, block.cask, {
+		'cask':       block.cask
+		'class_name': block.class_name
+		'directives': block.directive_keys.join(', ')
+	})
+}
+
+fn flight_phase_value(result FlightPhaseResult) brew_runtime.Value {
+	return brew_runtime.map_value({
+		'invoked':  brew_runtime.bool_value(result.invoked)
+		'dsl_key':  brew_runtime.string_value(result.dsl_key)
+		'dsl_type': brew_runtime.string_value(result.dsl_type)
+		'cask':     brew_runtime.string_value(result.cask)
+	})
 }
 
 // Original Ruby source (line-for-line):

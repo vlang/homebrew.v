@@ -1,78 +1,206 @@
 module cask
 
 import brew_runtime
+import homebrew.cask as cask_list
 
 // Translated from Homebrew/brew `test/cask/list_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
+fn cask_list_spec_fixture(token string) cask_list.CaskListCask {
+	return match token {
+		'local-caffeine' {
+			cask_list.CaskListCask{
+				token: 'local-caffeine'
+				full_name: 'local-caffeine'
+				installed: true
+				installed_version: '1.2.3'
+				artifacts: [cask_list.CaskListArtifact{
+					class_name: 'Cask::Artifact::App'
+					english_name: 'App'
+					display: '/Applications/Caffeine.app'
+					summary: 'Missing App: /Applications/Caffeine.app'
+					summarizes_installed: true
+				}]
+			}
+		}
+		'local-transmission', 'local-transmission-zip' {
+			cask_list.CaskListCask{
+				token: 'local-transmission'
+				full_name: 'local-transmission'
+				installed: true
+				installed_version: '2.61'
+				artifacts: [cask_list.CaskListArtifact{
+					class_name: 'Cask::Artifact::App'
+					english_name: 'App'
+					display: '/Applications/Transmission.app'
+					summary: '/Applications/Transmission.app (/Applications/Transmission.app)'
+					summarizes_installed: true
+				}]
+			}
+		}
+		'third-party/tap/third-party-cask' {
+			cask_list.CaskListCask{
+				token: 'third-party-cask'
+				full_name: 'third-party/tap/third-party-cask'
+				installed: true
+				installed_version: '1.0'
+			}
+		}
+		else {
+			cask_list.CaskListCask{
+				token: token.all_after_last('/')
+				full_name: token
+				installed: true
+			}
+		}
+	}
+}
+
+fn cask_list_spec_version_casks() []cask_list.CaskListCask {
+	return [cask_list_spec_fixture('local-caffeine'), cask_list_spec_fixture('local-transmission')]
+}
+
+fn cask_list_spec_expected_versions() string {
+	return 'local-caffeine 1.2.3\nlocal-transmission 2.61\n'
+}
+
 // Ruby it `it "lists the installed Casks in a pretty fashion" do` at line 7.
 pub fn ruby_list_spec_l7_d1_lists(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('lists', ...args)
+	output := cask_list.cask_list_casks(cask_list.CaskListRequest{
+		caskroom_casks: cask_list_spec_version_casks()
+	}) or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value(output == 'local-caffeine\nlocal-transmission\n')
 }
 
 // Ruby it `it "lists oneline" do` at line 22.
 pub fn ruby_list_spec_l22_d2_lists(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('lists', ...args)
+	output := cask_list.cask_list_casks(cask_list.CaskListRequest{
+		caskroom_casks: [
+			cask_list_spec_fixture('local-caffeine'),
+			cask_list_spec_fixture('local-transmission'),
+			cask_list_spec_fixture('third-party/tap/third-party-cask'),
+		]
+		options: cask_list.CaskListOptions{
+			one: true
+		}
+	}) or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value(output == 'local-caffeine\nlocal-transmission\nthird-party-cask\n')
 }
 
 // Ruby it `it "lists full names" do` at line 45.
 pub fn ruby_list_spec_l45_d3_lists(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('lists', ...args)
+	output := cask_list.cask_list_casks(cask_list.CaskListRequest{
+		caskroom_casks: [
+			cask_list_spec_fixture('third-party/tap/third-party-cask'),
+			cask_list_spec_fixture('local-transmission'),
+			cask_list_spec_fixture('local-caffeine'),
+		]
+		options: cask_list.CaskListOptions{
+			full_name: true
+		}
+	}) or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value(output == 'local-caffeine\nlocal-transmission\nthird-party/tap/third-party-cask\n')
 }
 
 // Ruby let `let(:casks) do` at line 69.
 pub fn ruby_list_spec_l69_d4_casks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('casks', ...args)
+	return brew_runtime.array_value(cask_list_spec_version_casks().map(cask_list.cask_list_cask_value(it)))
 }
 
 // Ruby let `let(:expected_output) do` at line 75.
 pub fn ruby_list_spec_l75_d5_expected_output(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('expected_output', ...args)
+	return brew_runtime.string_value(cask_list_spec_expected_versions())
 }
 
 // Ruby it `it "of all installed Casks" do` at line 88.
 pub fn ruby_list_spec_l88_d6_of(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('of', ...args)
+	output := cask_list.cask_list_casks(cask_list.CaskListRequest{
+		caskroom_casks: cask_list_spec_version_casks()
+		options: cask_list.CaskListOptions{
+			versions: true
+		}
+	}) or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value(output == cask_list_spec_expected_versions())
 }
 
 // Ruby it `it "of given Casks" do` at line 94.
 pub fn ruby_list_spec_l94_d7_of(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('of', ...args)
+	output := cask_list.cask_list_casks(cask_list.CaskListRequest{
+		casks: cask_list_spec_version_casks()
+		options: cask_list.CaskListOptions{
+			versions: true
+		}
+	}) or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value(output == cask_list_spec_expected_versions())
 }
 
 // Ruby let `let(:caffeine) { Cask::CaskLoader.load(cask_path("local-caffeine")) }` at line 102.
 pub fn ruby_list_spec_l102_d8_caffeine(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('caffeine', ...args)
+	return cask_list.cask_list_cask_value(cask_list_spec_fixture('local-caffeine'))
 }
 
 // Ruby let `let(:transmission) { Cask::CaskLoader.load(cask_path("local-transmission-zip")) }` at line 103.
 pub fn ruby_list_spec_l103_d9_transmission(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('transmission', ...args)
+	return cask_list.cask_list_cask_value(cask_list_spec_fixture('local-transmission-zip'))
 }
 
 // Ruby let `let(:casks) { [caffeine, transmission] }` at line 104.
 pub fn ruby_list_spec_l104_d10_casks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('casks', ...args)
+	return brew_runtime.array_value([
+		ruby_list_spec_l102_d8_caffeine(),
+		ruby_list_spec_l103_d9_transmission(),
+	])
 }
 
 // Ruby it `it "lists the installed files for those Casks" do` at line 106.
 pub fn ruby_list_spec_l106_d11_lists(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('lists', ...args)
+	output := cask_list.cask_list_casks(cask_list.CaskListRequest{
+		casks: [
+			cask_list_spec_fixture('local-transmission-zip'),
+			cask_list_spec_fixture('local-caffeine'),
+		]
+	}) or { return brew_runtime.bool_value(false) }
+	expected := '==> App\n/Applications/Transmission.app (/Applications/Transmission.app)\n==> App\nMissing App: /Applications/Caffeine.app\n'
+	return brew_runtime.bool_value(output == expected)
 }
 
 // Ruby it `it "alphabetizes the strings" do` at line 126.
 pub fn ruby_list_spec_l126_d12_alphabetizes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('alphabetizes', ...args)
+	return brew_runtime.bool_value(cask_list.cask_list_sort_tap_and_name(['a', 'b']) == [
+		'a',
+		'b',
+	] && cask_list.cask_list_sort_tap_and_name(['b', 'a']) == ['a', 'b'])
 }
 
 // Ruby it `it "alphabetizes the strings" do` at line 133.
 pub fn ruby_list_spec_l133_d13_alphabetizes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('alphabetizes', ...args)
+	return brew_runtime.bool_value(cask_list.cask_list_sort_tap_and_name(['a/z/z', 'b/z/z']) == [
+		'a/z/z',
+		'b/z/z',
+	] && cask_list.cask_list_sort_tap_and_name(['b/z/z', 'a/z/z']) == [
+		'a/z/z',
+		'b/z/z',
+	] && cask_list.cask_list_sort_tap_and_name(['z/a/z', 'z/b/z']) == [
+		'z/a/z',
+		'z/b/z',
+	] && cask_list.cask_list_sort_tap_and_name(['z/b/z', 'z/a/z']) == [
+		'z/a/z',
+		'z/b/z',
+	] && cask_list.cask_list_sort_tap_and_name(['z/z/a', 'z/z/b']) == [
+		'z/z/a',
+		'z/z/b',
+	] && cask_list.cask_list_sort_tap_and_name(['z/z/b', 'z/z/a']) == [
+		'z/z/a',
+		'z/z/b',
+	])
 }
 
 // Ruby it `it "prefers the string without tap" do` at line 146.
 pub fn ruby_list_spec_l146_d14_prefers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prefers', ...args)
+	return brew_runtime.bool_value(cask_list.cask_list_sort_tap_and_name(['a/z/z', 'z']) == [
+		'z',
+		'a/z/z',
+	] && cask_list.cask_list_sort_tap_and_name(['z', 'a/z/z']) == ['z', 'a/z/z'])
 }
 
 // Original Ruby source (line-for-line):

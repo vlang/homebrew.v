@@ -1,23 +1,38 @@
 module dev_cmd
 
 import brew_runtime
+import os
 
 // Translated from Homebrew/brew `test/dev-cmd/irb_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "deprecates the Pry option" do` at line 10.
 pub fn ruby_irb_spec_l10_d1_deprecates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('deprecates', ...args)
+	argv := if args.len > 0 { args[0].as_string_array() or { ['--pry'] } } else { ['--pry'] }
+	initialize_irb(argv, [], true) or {
+		return brew_runtime.bool_value(err.msg().to_lower().contains('default irb backend')
+			&& err.msg().to_lower().contains('pry is largely unmaintained upstream'))
+	}
+	return brew_runtime.bool_value(false)
 }
 
 // Ruby let `let(:history_file) { Pathname("#{Dir.home}/.brew_irb_history") }` at line 16.
 pub fn ruby_irb_spec_l16_d2_history_file(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('history_file', ...args)
+	home := if args.len > 0 { args[0].as_string() } else { os.home_dir() }
+	return brew_runtime.string_value(os.join_path(home, '.brew_irb_history'))
 }
 
 // Ruby it `it "starts an interactive Homebrew shell session", :integration_test do` at line 22.
 pub fn ruby_irb_spec_l22_d3_starts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('starts', ...args)
+	_ = args
+	plan := irb_plan(IrbOptions{
+		library_path: '/brew/Library/Homebrew'
+		ruby_bindir: '/portable/bin'
+		load_path: ['/brew/Library/Homebrew', '/brew/Library/Homebrew/vendor']
+		named: ['/tmp/irb-test.rb']
+	}) or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value(plan.heading == 'Interactive Homebrew Shell'
+		&& plan.required_files == ['keg', 'cask'] && plan.command.last() == '/tmp/irb-test.rb')
 }
 
 // Original Ruby source (line-for-line):

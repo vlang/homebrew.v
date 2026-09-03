@@ -7,37 +7,121 @@ import brew_runtime
 
 // Ruby it `it "does not open HTML profiles outside a TTY" do` at line 16.
 pub fn ruby_prof_spec_l16_d1_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	tty := args.len > 0 && (args[0].as_bool() or { false })
+	plan := prof_plan(prof_spec_options(ProfOptions{
+		named: ['help']
+		command_extension: '.rb'
+		stdout_tty: tty
+	})) or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value(plan.command == [
+		'ruby-prof',
+		'--printer=call_stack',
+		'--file=prof/call_stack.html',
+		'/brew/Library/Homebrew/brew.rb',
+		'--',
+		'help',
+	] && plan.browser_path == if tty { 'prof/call_stack.html' } else { '' })
 }
 
 // Ruby it `it "runs Vernier without passing it to child Ruby processes" do` at line 28.
 pub fn ruby_prof_spec_l28_d2_runs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('runs', ...args)
+	_ = args
+	plan := prof_plan(prof_spec_options(ProfOptions{
+		named: ['commands']
+		command_extension: '.rb'
+		vernier: true
+	})) or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value(plan.environment == {
+		'HOMEBREW_SPAWN_SYSTEM': '1'
+		'VERNIER_ALLOCATION_INTERVAL': '500'
+		'VERNIER_OUTPUT': 'prof/vernier.json'
+	} && plan.command == [
+		'/portable/bin/ruby',
+		'-I',
+		'/gems/vernier/lib',
+		'-r',
+		'vernier/autorun',
+		'-r',
+		'/brew/Library/Homebrew/prof/vernier_fork_guard',
+		'/brew/Library/Homebrew/brew.rb',
+		'commands',
+	])
 }
 
 // Ruby it `it "records phase timings without loading a sampling profiler" do` at line 51.
 pub fn ruby_prof_spec_l51_d3_records(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('records', ...args)
+	_ = args
+	plan := prof_plan(prof_spec_options(ProfOptions{
+		named: ['help']
+		command_extension: '.rb'
+		timings: true
+	})) or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value(!plan.install_bundler_gems && !plan.setup_gem_environment
+		&& plan.environment['HOMEBREW_PHASE_TIMINGS'] == 'prof/timings.json'
+		&& plan.command == ['/portable/bin/ruby', '/brew/Library/Homebrew/brew.rb', 'help'])
 }
 
 // Ruby it `it "works using ruby-prof (the default)" do` at line 80.
 pub fn ruby_prof_spec_l80_d4_works(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('works', ...args)
+	_ = args
+	plan := prof_plan(prof_spec_options(ProfOptions{
+		named: ['help']
+		command_extension: '.rb'
+	})) or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value(plan.mode == 'ruby-prof' && plan.command.last() == 'help')
 }
 
 // Ruby it `it "works using stackprof" do` at line 87.
 pub fn ruby_prof_spec_l87_d5_works(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('works', ...args)
+	_ = args
+	plan := prof_plan(prof_spec_options(ProfOptions{
+		named: ['help']
+		command_extension: '.rb'
+		stackprof: true
+	})) or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value(plan.mode == 'stackprof'
+		&& plan.environment['HOMEBREW_STACKPROF'] == '1'
+		&& plan.post_command == ['stackprof --d3-flamegraph prof/stackprof.dump > prof/d3-flamegraph.html'])
 }
 
 // Ruby it `it "works using vernier with child processes" do` at line 94.
 pub fn ruby_prof_spec_l94_d6_works(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('works', ...args)
+	_ = args
+	plan := prof_plan(prof_spec_options(ProfOptions{
+		named: ['config']
+		command_extension: '.rb'
+		vernier: true
+	})) or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value(plan.mode == 'vernier' && plan.command.last() == 'config'
+		&& plan.messages[0] == 'Profiling complete!')
 }
 
 // Ruby it `it "records fetch phases" do` at line 100.
 pub fn ruby_prof_spec_l100_d7_records(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('records', ...args)
+	phases := if args.len > 0 { args[0].as_string_array() or { []string{} } } else { [
+		'startup',
+		'cli_parse',
+		'command_load',
+		'formula_resolution',
+		'formula_inflation',
+		'download_enqueue',
+		'curl_body',
+		'checksum',
+		'symlink',
+	] }
+	expected := ['startup', 'cli_parse', 'command_load', 'formula_resolution', 'formula_inflation',
+		'download_enqueue', 'curl_body', 'checksum', 'symlink']
+	return brew_runtime.bool_value(expected.all(it in phases))
+}
+
+fn prof_spec_options(overrides ProfOptions) ProfOptions {
+	return ProfOptions{
+		...overrides
+		library_path: if overrides.library_path.len > 0 { overrides.library_path } else { '/brew/Library/Homebrew' }
+		ruby_exec_args: if overrides.ruby_exec_args.len > 0 { overrides.ruby_exec_args } else { ['/portable/bin/ruby'] }
+		ruby_path: if overrides.ruby_path.len > 0 { overrides.ruby_path } else { '/portable/bin/ruby' }
+		vernier_gem_path: if overrides.vernier_gem_path.len > 0 { overrides.vernier_gem_path } else { '/gems/vernier' }
+	}
 }
 
 // Original Ruby source (line-for-line):

@@ -1,83 +1,321 @@
 module api
 
 import brew_runtime
+import homebrew.api as brew_api
 
 // Translated from Homebrew/brew `test/api/cask_struct_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "constructs a valid struct from a hash with all field types" do` at line 8.
-pub fn ruby_cask_struct_spec_l8_d1_constructs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('constructs', ...args)
+pub fn ruby_cask_struct_spec_l8_d1_constructs() bool {
+	mut hash := cask_struct_spec_minimal_hash()
+	hash['names'] = brew_runtime.string_array_value(['Test Cask'])
+	hash['desc'] = brew_runtime.string_value('A test cask')
+	hash['homepage'] = brew_runtime.string_value('https://example.com')
+	hash['auto_updates'] = brew_runtime.bool_value(true)
+	hash['languages'] = brew_runtime.string_array_value(['en'])
+	hash['url_args'] = brew_runtime.string_array_value(['https://example.com/file.dmg'])
+	hash['url_kwargs'] = brew_runtime.map_value({
+		'user_agent': brew_runtime.string_value(':fake')
+	})
+	hash['conflicts_with_args'] = brew_runtime.map_value({
+		'cask': brew_runtime.string_array_value(['other-cask'])
+	})
+	hash['depends_on_args'] = brew_runtime.map_value({
+		'macos': brew_runtime.string_value('>= :catalina')
+	})
+	hash['container_args'] = brew_runtime.map_value({
+		'type': brew_runtime.object_value('Symbol', ':zip')
+	})
+	hash['deprecate_args'] = brew_runtime.map_value({
+		'date': brew_runtime.string_value('2025-01-01')
+	})
+	hash['raw_artifacts'] = brew_runtime.array_value([cask_struct_spec_artifact_value('app', [
+		brew_runtime.string_value('Test.app'),
+	], {}, false)])
+	hash['raw_caveats'] = brew_runtime.string_value('Requires restart.')
+	cask := brew_api.cask_struct_from_hash(hash, cask_struct_spec_paths(), false)
+	desc := cask.desc or { '' }
+	homepage := cask.homepage or { '' }
+	return cask.sha256 == 'abc123' && cask.version == '1.0.0' && cask.names == [
+		'Test Cask',
+	] && desc == 'A test cask' && homepage == 'https://example.com' && cask.auto_updates && cask.languages == [
+		'en',
+	]
 }
 
 // Ruby it `it "ignores unknown/extra keys" do` at line 39.
-pub fn ruby_cask_struct_spec_l39_d2_ignores(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ignores', ...args)
+pub fn ruby_cask_struct_spec_l39_d2_ignores() bool {
+	mut hash := cask_struct_spec_minimal_hash()
+	hash['totally_unknown_key'] = brew_runtime.string_value('should be ignored')
+	hash['another_unknown'] = brew_runtime.int_value(42)
+	cask := brew_api.cask_struct_from_hash(hash, cask_struct_spec_paths(), false)
+	serialized := cask.serialize()
+	return cask.sha256 == 'abc123' && 'totally_unknown_key' !in serialized && 'another_unknown' !in serialized
 }
 
 // Ruby it `it "defaults all predicates to false for a minimal struct" do` at line 53.
-pub fn ruby_cask_struct_spec_l53_d3_defaults(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('defaults', ...args)
+pub fn ruby_cask_struct_spec_l53_d3_defaults() bool {
+	cask := cask_struct_spec_minimal()
+	return brew_api.cask_struct_predicate_names.all(!cask.predicate(it))
 }
 
 // Ruby it `it "returns true when the corresponding _present field is set" do` at line 66.
-pub fn ruby_cask_struct_spec_l66_d4_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_cask_struct_spec_l66_d4_returns() bool {
+	mut hash := cask_struct_spec_minimal_hash()
+	for name in brew_api.cask_struct_predicate_names {
+		hash['${name}_present'] = brew_runtime.bool_value(true)
+	}
+	cask := brew_api.cask_struct_from_hash(hash, cask_struct_spec_paths(), false)
+	return brew_api.cask_struct_predicate_names.all(cask.predicate(it))
 }
 
 // Ruby it `it "replaces placeholders in artifact arguments" do` at line 86.
-pub fn ruby_cask_struct_spec_l86_d5_replaces(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('replaces', ...args)
+pub fn ruby_cask_struct_spec_l86_d5_replaces() bool {
+	mut hash := cask_struct_spec_minimal_hash()
+	hash['raw_artifacts'] = brew_runtime.array_value([cask_struct_spec_artifact_value('app', [
+		brew_runtime.string_value('\$APPDIR/Test.app'),
+	], {}, false)])
+	cask := brew_api.cask_struct_from_hash(hash, cask_struct_spec_paths(), false)
+	artifacts := cask.artifacts('/Applications', cask_struct_spec_paths())
+	return artifacts.len == 1 && artifacts[0].key == 'app' && artifacts[0].args[0].as_string() == '/Applications/Test.app'
 }
 
 // Ruby it `it "replaces placeholders in caveats string" do` at line 101.
-pub fn ruby_cask_struct_spec_l101_d6_replaces(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('replaces', ...args)
+pub fn ruby_cask_struct_spec_l101_d6_replaces() bool {
+	mut hash := cask_struct_spec_minimal_hash()
+	hash['raw_caveats'] = brew_runtime.string_value('Installed to \$HOMEBREW_PREFIX/bin')
+	cask := brew_api.cask_struct_from_hash(hash, cask_struct_spec_paths(), false)
+	caveats := cask.caveats('/Applications', cask_struct_spec_paths()) or { '' }
+	return caveats == 'Installed to /opt/testbrew/bin'
 }
 
 // Ruby it `it "returns nil when raw_caveats is nil" do` at line 114.
-pub fn ruby_cask_struct_spec_l114_d7_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_cask_struct_spec_l114_d7_returns() bool {
+	return cask_struct_spec_minimal().caveats('/Applications', cask_struct_spec_paths()) == none
 }
 
 // Ruby it `it "selects matching locale groups and falls back to the default" do` at line 126.
-pub fn ruby_cask_struct_spec_l126_d8_selects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('selects', ...args)
+pub fn ruby_cask_struct_spec_l126_d8_selects() bool {
+	mut hash := cask_struct_spec_minimal_hash()
+	hash['sha256'] = brew_runtime.string_value('english')
+	hash['url_args'] = brew_runtime.string_array_value(['https://example.com/en.dmg'])
+	hash['language_variations'] = brew_runtime.array_value([
+		brew_runtime.map_value({
+			'languages': brew_runtime.string_array_value(['zh', 'CN'])
+			'value':     brew_runtime.string_value('zh-CN')
+			'overrides': brew_runtime.map_value({
+				'sha256':   brew_runtime.string_value('chinese')
+				'url_args': brew_runtime.string_array_value(['https://example.com/zh.dmg'])
+				'names':    brew_runtime.string_array_value([':Chinese'])
+			})
+		}),
+		brew_runtime.map_value({
+			'languages': brew_runtime.string_array_value(['en'])
+			'default':   brew_runtime.bool_value(true)
+			'value':     brew_runtime.string_value('en-US')
+			'overrides': brew_runtime.map_value({})
+		}),
+	])
+	cask := brew_api.cask_struct_from_hash(hash, cask_struct_spec_paths(), false)
+	chinese := cask.localise(['zh-Hans-CN'], cask_struct_spec_paths())
+	fallback := cask.localise(['fr'], cask_struct_spec_paths())
+	chinese_language := cask.language(['zh-Hans-CN']) or { '' }
+	fallback_language := cask.language(['fr']) or { '' }
+	return chinese.sha256 == 'chinese' && chinese.url_args == [
+		'https://example.com/zh.dmg',
+	] && chinese.names == [':Chinese'] && chinese_language == 'zh-CN' && fallback.sha256 == 'english' && fallback.url_args == [
+		'https://example.com/en.dmg',
+	] && fallback_language == 'en-US'
 }
 
 // Ruby specify `specify "#serialize_artifact_args", :aggregate_failures do` at line 158.
-pub fn ruby_cask_struct_spec_l158_d9_serialize_artifact_args(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#serialize_artifact_args', ...args)
+pub fn ruby_cask_struct_spec_l158_d9_serialize_artifact_args() bool {
+	cask := cask_struct_spec_minimal()
+	with_block := cask.serialize_artifact_args(brew_api.CaskArtifact{
+		key: 'preflight'
+		has_block: true
+	})
+	with_args := cask.serialize_artifact_args(brew_api.CaskArtifact{
+		key: 'preflight'
+		args: [brew_runtime.string_value('foo')]
+		kwargs: {
+			'bar': brew_runtime.string_value('baz')
+		}
+	})
+	return with_block.len == 2 && with_block[1].as_string() == ':empty_block' && with_args.len == 3 && with_args[1].array_data[0].as_string() == 'foo' && with_args[2].map_data['bar'].as_string() == 'baz'
 }
 
 // Ruby it `it "preserves zero values in serialized artifact arguments" do` at line 172.
-pub fn ruby_cask_struct_spec_l172_d10_preserves(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('preserves', ...args)
+pub fn ruby_cask_struct_spec_l172_d10_preserves() bool {
+	mut hash := cask_struct_spec_minimal_hash()
+	hash['raw_artifacts'] = brew_runtime.array_value([cask_struct_spec_artifact_value('pkg', [
+		brew_runtime.string_value('Test.pkg'),
+	], {
+		':choices': brew_runtime.array_value([
+			brew_runtime.map_value({
+				':choiceIdentifier': brew_runtime.string_value('choice1')
+				':choiceAttribute':  brew_runtime.string_value('selected')
+				':attributeSetting': brew_runtime.int_value(0)
+			}),
+		])
+	}, false)])
+	serialized := brew_api.cask_struct_from_hash(hash, cask_struct_spec_paths(), false).serialize()
+	artifact := serialized['raw_artifacts'].array_data[0].array_data
+	setting := artifact[2].map_data[':choices'].array_data[0].map_data[':attributeSetting']
+	return setting.type_name == 'Integer' && setting.int_data == 0
 }
 
 // Ruby it `it "preserves false values in serialized artifact arguments" do` at line 198.
-pub fn ruby_cask_struct_spec_l198_d11_preserves(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('preserves', ...args)
+pub fn ruby_cask_struct_spec_l198_d11_preserves() bool {
+	mut hash := cask_struct_spec_minimal_hash()
+	hash['raw_artifacts'] = brew_runtime.array_value([cask_struct_spec_artifact_value('uninstall', [], {
+		':script': brew_runtime.map_value({
+			':executable':   brew_runtime.string_value('/usr/bin/pkill')
+			':must_succeed': brew_runtime.bool_value(false)
+		})
+	}, false)])
+	serialized := brew_api.cask_struct_from_hash(hash, cask_struct_spec_paths(), false).serialize()
+	artifact := serialized['raw_artifacts'].array_data[0].array_data
+	must_succeed := artifact[1].map_data[':script'].map_data[':must_succeed']
+	return must_succeed.type_name == 'Bool' && !must_succeed.bool_data
 }
 
 // Ruby specify `specify "::deserialize_artifact_args", :aggregate_failures do` at line 222.
-pub fn ruby_cask_struct_spec_l222_d12_deserialize_artifact_args(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('::deserialize_artifact_args', ...args)
+pub fn ruby_cask_struct_spec_l222_d12_deserialize_artifact_args() bool {
+	key := brew_runtime.object_value('Symbol', ':foo')
+	array := brew_runtime.string_array_value(['abc', 'def'])
+	hash := brew_runtime.map_value({
+		'ghi': brew_runtime.string_value('jkl')
+	})
+	block := brew_runtime.object_value('Symbol', ':empty_block')
+	cases := [
+		brew_api.cask_struct_deserialize_artifact_args([key]),
+		brew_api.cask_struct_deserialize_artifact_args([key, array]),
+		brew_api.cask_struct_deserialize_artifact_args([key, hash]),
+		brew_api.cask_struct_deserialize_artifact_args([key, block]),
+		brew_api.cask_struct_deserialize_artifact_args([key, array, hash]),
+		brew_api.cask_struct_deserialize_artifact_args([key, array, block]),
+		brew_api.cask_struct_deserialize_artifact_args([key, hash, block]),
+		brew_api.cask_struct_deserialize_artifact_args([key, array, hash, block]),
+	]
+	return cases.all(it.key == 'foo') && cases[0].args.len == 0 && cases[0].kwargs.len == 0 && cases[1].args.len == 2 && cases[2].kwargs['ghi'].as_string() == 'jkl' && cases[3].has_block && cases[4].args.len == 2 && cases[4].kwargs.len == 1 && cases[5].has_block && cases[5].args.len == 2 && cases[6].has_block && cases[6].kwargs.len == 1 && cases[7].has_block && cases[7].args.len == 2 && cases[7].kwargs.len == 1
 }
 
 // Ruby it `it "populates predicate fields to false when not specified" do` at line 249.
-pub fn ruby_cask_struct_spec_l249_d13_populates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('populates', ...args)
+pub fn ruby_cask_struct_spec_l249_d13_populates() bool {
+	cask := brew_api.cask_struct_deserialize(cask_struct_spec_minimal_hash(), cask_struct_spec_paths())
+	return brew_api.cask_struct_predicate_names.all(!cask.predicate(it))
 }
 
 // Ruby it `it "populates special predicate fields", :aggregate_failures do` at line 263.
-pub fn ruby_cask_struct_spec_l263_d14_populates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('populates', ...args)
+pub fn ruby_cask_struct_spec_l263_d14_populates() bool {
+	mut hash := cask_struct_spec_minimal_hash()
+	hash['auto_updates'] = brew_runtime.bool_value(true)
+	hash['raw_caveats'] = brew_runtime.string_value('Some caveats')
+	hash['conflicts_with_args'] = brew_runtime.map_value({
+		'cask': brew_runtime.string_array_value(['other-cask'])
+	})
+	hash['container_args'] = brew_runtime.map_value({
+		'type': brew_runtime.object_value('Symbol', ':zip')
+	})
+	hash['depends_on_args'] = brew_runtime.map_value({
+		'macos': brew_runtime.string_value('>= :catalina')
+	})
+	hash['deprecate_args'] = brew_runtime.map_value({
+		'date': brew_runtime.string_value('2025-01-01')
+	})
+	hash['desc'] = brew_runtime.string_value('A description')
+	hash['disable_args'] = brew_runtime.map_value({
+		'date': brew_runtime.string_value('2025-01-01')
+	})
+	hash['homepage'] = brew_runtime.string_value('https://example.com')
+	cask := brew_api.cask_struct_deserialize(hash, cask_struct_spec_paths())
+	return brew_api.cask_struct_predicate_names.all(cask.predicate(it))
 }
 
 // Ruby it `it "reconstructs an equivalent struct after serialize then deserialize", :needs_macos do` at line 288.
-pub fn ruby_cask_struct_spec_l288_d15_reconstructs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reconstructs', ...args)
+pub fn ruby_cask_struct_spec_l288_d15_reconstructs() bool {
+	original := cask_struct_spec_round_trip()
+	restored := brew_api.cask_struct_deserialize(original.serialize(), cask_struct_spec_paths())
+	return restored.equals(original)
+}
+
+fn cask_struct_spec_paths() brew_api.ApiStructPaths {
+	return brew_api.ApiStructPaths{
+		prefix: '/opt/testbrew'
+		cellar: '/opt/testbrew/Cellar'
+		home: '/Users/tester'
+		appdir: '/Applications'
+	}
+}
+
+fn cask_struct_spec_minimal_hash() map[string]brew_runtime.Value {
+	return {
+		'sha256':               brew_runtime.string_value('abc123')
+		'version':              brew_runtime.string_value('1.0.0')
+		'ruby_source_checksum': brew_runtime.map_value({
+			'sha256': brew_runtime.string_value('def456')
+		})
+	}
+}
+
+fn cask_struct_spec_minimal() brew_api.CaskStruct {
+	return brew_api.cask_struct_from_hash(cask_struct_spec_minimal_hash(), cask_struct_spec_paths(), false)
+}
+
+fn cask_struct_spec_artifact_value(key string, args []brew_runtime.Value,
+	kwargs map[string]brew_runtime.Value, has_block bool) brew_runtime.Value {
+	return brew_runtime.array_value([
+		brew_runtime.object_value('Symbol', ':${key}'),
+		brew_runtime.array_value(args),
+		brew_runtime.map_value(kwargs),
+		if has_block {
+			brew_runtime.object_value('Symbol', ':empty_block')
+		} else {
+			brew_runtime.object_value('NilClass', '')
+		},
+	])
+}
+
+fn cask_struct_spec_round_trip() brew_api.CaskStruct {
+	mut hash := cask_struct_spec_minimal_hash()
+	hash['auto_updates'] = brew_runtime.bool_value(true)
+	hash['conflicts_with_args'] = brew_runtime.map_value({
+		'cask': brew_runtime.string_array_value(['other-cask'])
+	})
+	hash['container_args'] = brew_runtime.map_value({
+		'nested': brew_runtime.object_value('NilClass', '')
+		'type':   brew_runtime.object_value('Symbol', ':zip')
+	})
+	hash['depends_on_args'] = brew_runtime.map_value({
+		'macos': brew_runtime.string_value('>= :catalina')
+	})
+	hash['deprecate_args'] = brew_runtime.map_value({
+		'date': brew_runtime.string_value('2025-01-01')
+	})
+	hash['desc'] = brew_runtime.string_value('A description')
+	hash['disable_args'] = brew_runtime.map_value({
+		'date': brew_runtime.string_value('2025-01-01')
+	})
+	hash['homepage'] = brew_runtime.string_value('https://example.com')
+	hash['languages'] = brew_runtime.string_array_value(['en'])
+	hash['names'] = brew_runtime.string_array_value(['Test Cask'])
+	hash['raw_artifacts'] = brew_runtime.array_value([cask_struct_spec_artifact_value('app', [
+		brew_runtime.string_value('\$APPDIR/Test.app'),
+	], {}, false)])
+	hash['raw_caveats'] = brew_runtime.string_value('Some caveats')
+	hash['renames'] = brew_runtime.array_value([brew_runtime.string_array_value([
+		'Old Name',
+		'New Name',
+	])])
+	hash['ruby_source_path'] = brew_runtime.string_value('/path/to/source')
+	hash['tap_string'] = brew_runtime.string_value('homebrew/cask')
+	hash['url_args'] = brew_runtime.string_array_value(['https://example.com/file.dmg'])
+	hash['url_kwargs'] = brew_runtime.map_value({
+		'user_agent': brew_runtime.string_value(':fake')
+	})
+	return brew_api.cask_struct_from_hash(hash, cask_struct_spec_paths(), false)
 }
 
 // Original Ruby source (line-for-line):

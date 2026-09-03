@@ -6,23 +6,46 @@ import brew_runtime
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `self.extensions` at line 10.
-pub fn ruby_air_l10_d1_self_extensions(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.extensions', ...args)
+pub fn ruby_air_l10_d1_self_extensions() []string {
+	return air_extensions()
 }
 
 // Ruby method `self.can_extract?(path)` at line 15.
-pub fn ruby_air_l15_d2_self_can_extract(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.can_extract?', ...args)
+pub fn ruby_air_l15_d2_self_can_extract(path string) bool {
+	return air_can_extract(path)
 }
 
 // Ruby method `dependencies` at line 21.
-pub fn ruby_air_l21_d3_dependencies(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dependencies', ...args)
+pub fn ruby_air_l21_d3_dependencies() []string {
+	return air_dependencies()
 }
 
 // Ruby method `extract_to_dir(unpack_dir, basename:, verbose:)` at line 33.
-pub fn ruby_air_l33_d4_extract_to_dir(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('extract_to_dir', ...args)
+pub fn ruby_air_l33_d4_extract_to_dir(path string, unpack_dir string, basename string, verbose bool) ! {
+	air_extract_to_dir(path, unpack_dir, basename, verbose)!
+}
+
+pub fn air_extensions() []string {
+	return ['.air']
+}
+
+pub fn air_can_extract(path string) bool {
+	return file_has_bytes_at(path, 59,
+		'application/vnd.adobe.air-application-installer-package+zip'.bytes())
+}
+
+pub fn air_dependencies() []string {
+	return ['adobe-air']
+}
+
+pub fn air_extract_to_dir(path string, unpack_dir string, basename string, verbose bool) ! {
+	_ = basename
+	_ = verbose
+	installer := '/Applications/Utilities/Adobe AIR Application Installer.app/Contents/MacOS/Adobe AIR Application Installer'
+	if !brew_runtime.is_file(installer) {
+		return error('Adobe AIR Application Installer is required to extract ${path}')
+	}
+	checked_command(installer, ['-silent', '-location', unpack_dir, path])!
 }
 
 // Original Ruby source (line-for-line):

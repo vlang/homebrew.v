@@ -7,17 +7,27 @@ import brew_runtime
 
 // Ruby method `initialize(name = "failball", path = Pathname.new(__FILE__).expand_path, spec = :stable,` at line 7.
 pub fn ruby_failball_l7_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	return fixture_formula_value(fixture_formula_from_args(args, 'Failball', 'failball', false, false))
 }
 
 // Ruby method `self.inherited(other)` at line 20.
 pub fn ruby_failball_l20_d2_self_inherited(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.inherited', ...args)
+	other := if args.len > 0 {
+		args[0]
+	} else {
+		brew_runtime.object_value('Class', 'FailballSubclass')
+	}
+	return fixture_inherited_value(other, fixture_formula_from_args([], 'Failball', 'failball', false, false))
 }
 
 // Ruby method `install` at line 25.
 pub fn ruby_failball_l25_d3_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	fail_build := if args.len > 0 {
+		args[0].bool_data
+	} else {
+		brew_runtime.environment_value('FAILBALL_BUILD_ERROR') != ''
+	}
+	return fixture_install_value(fixture_install_plan('failball', fail_build))
 }
 
 // Original Ruby source (line-for-line):

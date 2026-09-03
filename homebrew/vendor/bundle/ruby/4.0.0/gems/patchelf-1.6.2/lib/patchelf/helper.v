@@ -1,38 +1,139 @@
 module patchelf
 
 import brew_runtime
+import os
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/patchelf-1.6.2/lib/patchelf/helper.rb`.
 // The original source is retained below until every stub has a typed V body.
+const helper_escape_reset = '\x1b[0m'
+
+@[heap]
+pub struct CloseFileAction {
+mut:
+	file     &os.File = unsafe { nil }
+	has_file bool
+}
+
+pub fn patch_elf_page_size(machine int) int {
+	return if machine in [2, 8, 20, 21, 183, 191, 258] { 0x10000 } else { 0x1000 }
+}
+
+pub fn patch_elf_colorize(text string, kind string, enabled bool) string {
+	if !enabled {
+		return text
+	}
+	color := match kind.trim_string_left(':') {
+		'info' { '\x1b[38;5;82m' }
+		'warn' { '\x1b[38;5;230m' }
+		'error' { '\x1b[38;5;196m' }
+		else { '' }
+	}
+	return '${color}${text.replace_once(helper_escape_reset, color)}${helper_escape_reset}'
+}
+
+pub fn patch_elf_color_enabled() bool {
+	return os.is_atty(2) != 0
+}
+
+pub fn patch_elf_align_down(value i64, alignment i64) i64 {
+	return value - (value & (alignment - 1))
+}
+
+pub fn patch_elf_align_up(value i64, alignment i64) i64 {
+	return if value & (alignment - 1) == 0 {
+		value
+	} else {
+		patch_elf_align_down(value, alignment) + alignment
+	}
+}
+
+pub fn new_close_file_action(file &os.File) &CloseFileAction {
+	return &CloseFileAction{
+		file: file
+		has_file: true
+	}
+}
+
+pub fn new_empty_close_file_action() &CloseFileAction {
+	return &CloseFileAction{}
+}
+
+pub fn (mut action CloseFileAction) call() {
+	if action.has_file && action.file.is_opened {
+		action.file.close()
+	}
+}
+
+fn helper_file_value(file &os.File) brew_runtime.Value {
+	return brew_runtime.structured_value('File', '#<File:${file.fd}>', {
+		'helper_file_address': u64(voidptr(file)).str()
+	})
+}
+
+fn close_file_action_value(action &CloseFileAction) brew_runtime.Value {
+	return brew_runtime.structured_value('Proc', '#<Proc:close_file>', {
+		'close_file_action_address': u64(voidptr(action)).str()
+	})
+}
+
+fn close_file_action_from_value(value brew_runtime.Value) &CloseFileAction {
+	address := value.attribute('close_file_action_address') or {
+		panic('invalid PatchELF close-file action')
+	}
+	return unsafe { &CloseFileAction(voidptr(address.u64())) }
+}
 
 // Ruby method `page_size(e_machine = nil)` at line 17.
 pub fn ruby_helper_l17_d1_page_size(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('page_size', ...args)
+	machine := if args.len == 0 || args[0].type_name == 'NilClass' {
+		-1
+	} else {
+		int(args[0].as_int() or { panic(err) })
+	}
+	return brew_runtime.int_value(patch_elf_page_size(machine))
 }
 
 // Ruby method `colorize(str, type)` at line 40.
 pub fn ruby_helper_l40_d2_colorize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('colorize', ...args)
+	if args.len < 2 {
+		panic('PatchELF::Helper.colorize requires a string and type')
+	}
+	return brew_runtime.string_value(patch_elf_colorize(args[0].as_string(), args[1].as_string(), patch_elf_color_enabled()))
 }
 
 // Ruby method `color_enabled?` at line 50.
 pub fn ruby_helper_l50_d3_color_enabled(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('color_enabled?', ...args)
+	return brew_runtime.bool_value(patch_elf_color_enabled())
 }
 
 // Ruby method `aligndown(val, align = page_size)` at line 65.
 pub fn ruby_helper_l65_d4_aligndown(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('aligndown', ...args)
+	if args.len == 0 {
+		panic('PatchELF::Helper.aligndown requires a value')
+	}
+	value := args[0].as_int() or { panic(err) }
+	alignment := if args.len > 1 { args[1].as_int() or { panic(err) } } else { i64(0x1000) }
+	return brew_runtime.int_value(patch_elf_align_down(value, alignment))
 }
 
 // Ruby method `alignup(val, align = page_size)` at line 80.
 pub fn ruby_helper_l80_d5_alignup(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('alignup', ...args)
+	if args.len == 0 {
+		panic('PatchELF::Helper.alignup requires a value')
+	}
+	value := args[0].as_int() or { panic(err) }
+	alignment := if args.len > 1 { args[1].as_int() or { panic(err) } } else { i64(0x1000) }
+	return brew_runtime.int_value(patch_elf_align_up(value, alignment))
 }
 
 // Ruby method `close_file_proc(file)` at line 87.
 pub fn ruby_helper_l87_d6_close_file_proc(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('close_file_proc', ...args)
+	if args.len == 0 || args[0].type_name == 'NilClass' {
+		return close_file_action_value(new_empty_close_file_action())
+	}
+	address := args[0].attribute('helper_file_address') or { panic('invalid File receiver') }
+	file := unsafe { &os.File(voidptr(address.u64())) }
+	return close_file_action_value(new_close_file_action(file))
 }
 
 // Original Ruby source (line-for-line):

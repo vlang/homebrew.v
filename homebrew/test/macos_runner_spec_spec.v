@@ -1,23 +1,31 @@
 module test
 
-import brew_runtime
+import homebrew
+import json2
 
 // Translated from Homebrew/brew `test/macos_runner_spec_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby let `let(:spec) { described_class.new(name: "macOS 11-arm64", runner: "11-arm64", timeout: 90, cleanup: true) }` at line 7.
-pub fn ruby_macos_runner_spec_spec_l7_d1_spec(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('spec', ...args)
+pub fn ruby_macos_runner_spec_spec_l7_d1_spec() homebrew.MacOSRunnerSpec {
+	return homebrew.MacOSRunnerSpec{
+		name: 'macOS 11-arm64'
+		runner: '11-arm64'
+		timeout: 90
+		cleanup: true
+	}
 }
 
 // Ruby it `it "has immutable attributes" do` at line 9.
-pub fn ruby_macos_runner_spec_spec_l9_d2_has(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('has', ...args)
+pub fn ruby_macos_runner_spec_spec_l9_d2_has() bool {
+	specification := ruby_macos_runner_spec_spec_l7_d1_spec()
+	return specification.name == 'macOS 11-arm64' && specification.runner == '11-arm64' && specification.timeout == 90 && specification.cleanup
 }
 
 // Ruby it `it "returns an object that responds to `#to_json`" do` at line 16.
-pub fn ruby_macos_runner_spec_spec_l16_d3_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_macos_runner_spec_spec_l16_d3_returns() bool {
+	value := homebrew.macos_runner_spec_to_map(ruby_macos_runner_spec_spec_l7_d1_spec())
+	return json2.encode(value, escape_unicode: true).starts_with('{') && value['testing_formulae'].as_string() == ''
 }
 
 // Original Ruby source (line-for-line):

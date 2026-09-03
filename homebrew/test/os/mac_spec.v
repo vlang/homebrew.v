@@ -1,48 +1,64 @@
 module os
 
-import brew_runtime
+import homebrew.os as macos
+import homebrew.os.mac as sdk
+
+fn mac_spec_context(clt_installed bool) &macos.MacContext {
+	mut clt_locator := sdk.new_sdk_locator('', 'clt')
+	clt_locator.loaded = true
+	clt_locator.sdks = [
+		sdk.MacSdk{ version: '26', path: '/tmp/clt/MacOS.sdk', source: 'clt' },
+	]
+	mut xcode_locator := sdk.new_sdk_locator('', 'xcode')
+	xcode_locator.loaded = true
+	xcode_locator.sdks = [
+		sdk.MacSdk{ version: '26', path: '/tmp/xcode/MacOS.sdk', source: 'xcode' },
+	]
+	return macos.new_mac_context('15.0', '(\n "en-US",\n "fr-FR"\n)', '', '/Applications/Xcode.app/Contents/Developer', clt_installed, clt_locator, xcode_locator)
+}
 
 // Translated from Homebrew/brew `test/os/mac_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "returns a list of all languages" do` at line 9.
-pub fn ruby_mac_spec_l9_d1_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_mac_spec_l9_d1_returns() bool {
+	return mac_spec_context(false).languages.len > 0
 }
 
 // Ruby it `it "returns the first item from` at line 15.
-pub fn ruby_mac_spec_l15_d2_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_mac_spec_l15_d2_returns() bool {
+	context := mac_spec_context(false)
+	return context.language() or { return false } == context.languages[0]
 }
 
 // Ruby let `let(:clt_sdk_path) { Pathname("/tmp/clt/MacOS.sdk") }` at line 21.
-pub fn ruby_mac_spec_l21_d3_clt_sdk_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('clt_sdk_path', ...args)
+pub fn ruby_mac_spec_l21_d3_clt_sdk_path() string {
+	return '/tmp/clt/MacOS.sdk'
 }
 
 // Ruby let `let(:clt_sdk) { OS::Mac::SDK.new(MacOSVersion.new("26"), clt_sdk_path, :clt) }` at line 22.
-pub fn ruby_mac_spec_l22_d4_clt_sdk(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('clt_sdk', ...args)
+pub fn ruby_mac_spec_l22_d4_clt_sdk() sdk.MacSdk {
+	return sdk.MacSdk{ version: '26', path: ruby_mac_spec_l21_d3_clt_sdk_path(), source: 'clt' }
 }
 
 // Ruby let `let(:xcode_sdk_path) { Pathname("/tmp/xcode/MacOS.sdk") }` at line 23.
-pub fn ruby_mac_spec_l23_d5_xcode_sdk_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('xcode_sdk_path', ...args)
+pub fn ruby_mac_spec_l23_d5_xcode_sdk_path() string {
+	return '/tmp/xcode/MacOS.sdk'
 }
 
 // Ruby let `let(:xcode_sdk) { OS::Mac::SDK.new(MacOSVersion.new("26"), xcode_sdk_path, :xcode) }` at line 24.
-pub fn ruby_mac_spec_l24_d6_xcode_sdk(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('xcode_sdk', ...args)
+pub fn ruby_mac_spec_l24_d6_xcode_sdk() sdk.MacSdk {
+	return sdk.MacSdk{ version: '26', path: ruby_mac_spec_l23_d5_xcode_sdk_path(), source: 'xcode' }
 }
 
 // Ruby it `it "returns the Xcode SDK path on Xcode-only systems" do` at line 31.
-pub fn ruby_mac_spec_l31_d7_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_mac_spec_l31_d7_returns() bool {
+	return mac_spec_context(false).sdk_path('26') or { return false } == ruby_mac_spec_l23_d5_xcode_sdk_path()
 }
 
 // Ruby it `it "returns the CLT SDK path on CLT-only systems" do` at line 37.
-pub fn ruby_mac_spec_l37_d8_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_mac_spec_l37_d8_returns() bool {
+	return mac_spec_context(true).sdk_path('26') or { return false } == ruby_mac_spec_l21_d3_clt_sdk_path()
 }
 
 // Original Ruby source (line-for-line):

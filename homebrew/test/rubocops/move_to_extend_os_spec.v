@@ -1,58 +1,65 @@
 module rubocops
 
 import brew_runtime
+import homebrew.rubocops as move_to_extend_os_core
 
 // Translated from Homebrew/brew `test/rubocops/move_to_extend_os_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:cop) { described_class.new }` at line 7.
 pub fn ruby_move_to_extend_os_spec_l7_d1_cop(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cop', ...args)
+	return brew_runtime.object_value('RuboCop::Cop::Homebrew::MoveToExtendOS', 'Homebrew/MoveToExtendOS')
 }
 
 // Ruby it `it "registers an offense when using `OS.linux?`" do` at line 9.
-pub fn ruby_move_to_extend_os_spec_l9_d2_registers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('registers', ...args)
+pub fn ruby_move_to_extend_os_spec_l9_d2_registers() bool {
+	offenses := move_to_extend_os_core.audit_move_to_extend_os('OS.linux?', 'example.rb')
+	return offenses.len == 1 && offenses[0].begin_pos == 0 && offenses[0].end_pos == 9 && offenses[0].message == move_to_extend_os_core.move_to_extend_os_non_extend_message
 }
 
 // Ruby it `it "registers an offense when using `OS.mac?`" do` at line 16.
-pub fn ruby_move_to_extend_os_spec_l16_d3_registers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('registers', ...args)
+pub fn ruby_move_to_extend_os_spec_l16_d3_registers() bool {
+	offenses := move_to_extend_os_core.audit_move_to_extend_os('OS.mac?', 'example.rb')
+	return offenses.len == 1 && offenses[0].begin_pos == 0 && offenses[0].end_pos == 7 && offenses[0].message == move_to_extend_os_core.move_to_extend_os_non_extend_message
 }
 
 // Ruby it `it "allows `OS.linux?` in requirements" do` at line 23.
-pub fn ruby_move_to_extend_os_spec_l23_d4_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+pub fn ruby_move_to_extend_os_spec_l23_d4_allows() bool {
+	return move_to_extend_os_core.audit_move_to_extend_os('OS.linux?', 'Library/Homebrew/requirements/linux_requirement.rb').len == 0
 }
 
 // Ruby it `it "allows `OS.mac?` in tests" do` at line 29.
-pub fn ruby_move_to_extend_os_spec_l29_d5_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+pub fn ruby_move_to_extend_os_spec_l29_d5_allows() bool {
+	return move_to_extend_os_core.audit_move_to_extend_os('OS.mac?', 'Library/Homebrew/test/example_spec.rb').len == 0
 }
 
 // Ruby it `it "allows OS checks in the OS loader" do` at line 35.
-pub fn ruby_move_to_extend_os_spec_l35_d6_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+pub fn ruby_move_to_extend_os_spec_l35_d6_allows() bool {
+	return move_to_extend_os_core.audit_move_to_extend_os('OS.mac?', 'Library/Homebrew/os.rb').len == 0
 }
 
 // Ruby it `it "registers an offense when using `OS.linux?`" do` at line 42.
-pub fn ruby_move_to_extend_os_spec_l42_d7_registers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('registers', ...args)
+pub fn ruby_move_to_extend_os_spec_l42_d7_registers() bool {
+	offenses := move_to_extend_os_core.audit_move_to_extend_os('OS.linux?', 'Library/Homebrew/extend/os/mac/foo.rb')
+	return offenses.len == 1 && offenses[0].message == "Don't use `OS.linux?` in `extend/os/mac`, it is always `false`."
 }
 
 // Ruby it `it "registers an offense when using `OS.mac?`" do` at line 49.
-pub fn ruby_move_to_extend_os_spec_l49_d8_registers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('registers', ...args)
+pub fn ruby_move_to_extend_os_spec_l49_d8_registers() bool {
+	offenses := move_to_extend_os_core.audit_move_to_extend_os('OS.mac?', 'Library/Homebrew/extend/os/mac/foo.rb')
+	return offenses.len == 1 && offenses[0].message == "Don't use `OS.mac?` in `extend/os/mac`, it is always `true`."
 }
 
 // Ruby it `it "registers an offense when using `OS.mac?`" do` at line 58.
-pub fn ruby_move_to_extend_os_spec_l58_d9_registers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('registers', ...args)
+pub fn ruby_move_to_extend_os_spec_l58_d9_registers() bool {
+	offenses := move_to_extend_os_core.audit_move_to_extend_os('OS.mac?', 'Library/Homebrew/extend/os/linux/foo.rb')
+	return offenses.len == 1 && offenses[0].message == "Don't use `OS.mac?` in `extend/os/linux`, it is always `false`."
 }
 
 // Ruby it `it "registers an offense when using `OS.linux?`" do` at line 65.
-pub fn ruby_move_to_extend_os_spec_l65_d10_registers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('registers', ...args)
+pub fn ruby_move_to_extend_os_spec_l65_d10_registers() bool {
+	offenses := move_to_extend_os_core.audit_move_to_extend_os('OS.linux?', 'Library/Homebrew/extend/os/linux/foo.rb')
+	return offenses.len == 1 && offenses[0].message == "Don't use `OS.linux?` in `extend/os/linux`, it is always `true`."
 }
 
 // Original Ruby source (line-for-line):

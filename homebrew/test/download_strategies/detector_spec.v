@@ -1,73 +1,97 @@
 module download_strategies
 
 import brew_runtime
+import homebrew.download_strategy
 
 // Translated from Homebrew/brew `test/download_strategies/detector_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:strategy_detector) { described_class.detect(url, strategy) }` at line 8.
 pub fn ruby_detector_spec_l8_d1_strategy_detector(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('strategy_detector', ...args)
+	url := if args.len > 0 { args[0].as_string() } else { 'invalidurl' }
+	if args.len > 1 && args[1].type_name !in ['Nil', 'NilClass'] {
+		if args[1].type_name != 'Symbol' {
+			return brew_runtime.object_value('TypeError', 'Unknown download strategy specification: ${args[1].repr}')
+		}
+		strategy := download_strategy.detect_with_symbol(url, args[1].as_string()) or {
+			return brew_runtime.object_value('TypeError', err.msg())
+		}
+		return brew_runtime.object_value('Class', strategy.class_name())
+	}
+	return brew_runtime.object_value('Class', download_strategy.detect_from_url(url).class_name())
 }
 
 // Ruby let `let(:url) { "invalidurl" }` at line 10.
 pub fn ruby_detector_spec_l10_d2_url(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('url', ...args)
+	_ = args
+	return brew_runtime.string_value('invalidurl')
 }
 
 // Ruby let `let(:strategy) { nil }` at line 11.
 pub fn ruby_detector_spec_l11_d3_strategy(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('strategy', ...args)
+	_ = args
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Ruby let `let(:url) { "git://example.com/foo.git" }` at line 14.
 pub fn ruby_detector_spec_l14_d4_url(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('url', ...args)
+	_ = args
+	return brew_runtime.string_value('git://example.com/foo.git')
 }
 
 // Ruby it `it { is_expected.to eq(GitDownloadStrategy) }` at line 16.
 pub fn ruby_detector_spec_l16_d5_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('{', ...args)
+	_ = args
+	return brew_runtime.bool_value(download_strategy.detect_from_url(ruby_detector_spec_l14_d4_url().as_string()) == .git)
 }
 
 // Ruby let `let(:url) { "ssh://git@example.com/foo.git" }` at line 20.
 pub fn ruby_detector_spec_l20_d6_url(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('url', ...args)
+	_ = args
+	return brew_runtime.string_value('ssh://git@example.com/foo.git')
 }
 
 // Ruby it `it { is_expected.to eq(GitDownloadStrategy) }` at line 22.
 pub fn ruby_detector_spec_l22_d7_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('{', ...args)
+	_ = args
+	return brew_runtime.bool_value(download_strategy.detect_from_url(ruby_detector_spec_l20_d6_url().as_string()) == .git)
 }
 
 // Ruby let `let(:url) { "https://github.com/homebrew/brew.git" }` at line 26.
 pub fn ruby_detector_spec_l26_d8_url(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('url', ...args)
+	_ = args
+	return brew_runtime.string_value('https://github.com/homebrew/brew.git')
 }
 
 // Ruby it `it { is_expected.to eq(GitHubGitDownloadStrategy) }` at line 28.
 pub fn ruby_detector_spec_l28_d9_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('{', ...args)
+	_ = args
+	return brew_runtime.bool_value(download_strategy.detect_from_url(ruby_detector_spec_l26_d8_url().as_string()) == .github_git)
 }
 
 // Ruby let `let(:url) do` at line 32.
 pub fn ruby_detector_spec_l32_d10_url(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('url', ...args)
+	_ = args
+	return brew_runtime.string_value('https://files.pythonhosted.org/packages/ab/cd/efg/example-package-1.2.3.tar.gz')
 }
 
 // Ruby it `it { is_expected.to eq(PyPIDownloadStrategy) }` at line 36.
 pub fn ruby_detector_spec_l36_d11_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('{', ...args)
+	_ = args
+	return brew_runtime.bool_value(download_strategy.detect_from_url(ruby_detector_spec_l32_d10_url().as_string()) == .pypi)
 }
 
 // Ruby it `it "defaults to curl" do` at line 39.
 pub fn ruby_detector_spec_l39_d12_defaults(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('defaults', ...args)
+	_ = args
+	return brew_runtime.bool_value(download_strategy.detect_from_url('invalidurl') == .curl)
 }
 
 // Ruby it `it "raises an error when passed an unrecognized strategy" do` at line 43.
 pub fn ruby_detector_spec_l43_d13_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+	_ = args
+	result := ruby_detector_spec_l8_d1_strategy_detector(brew_runtime.string_value('foo'), brew_runtime.object_value('Class', '#<Class>'))
+	return brew_runtime.bool_value(result.type_name == 'TypeError')
 }
 
 // Original Ruby source (line-for-line):

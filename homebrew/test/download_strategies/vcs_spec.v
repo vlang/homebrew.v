@@ -1,23 +1,27 @@
 module download_strategies
 
 import brew_runtime
+import homebrew.download_strategy
+import os
 
 // Translated from Homebrew/brew `test/download_strategies/vcs_spec.rb`.
-// The original source is retained below until every stub has a typed V body.
+// The original source is retained below for line-for-line traceability.
 
 // Ruby let `let(:url) { "https://example.com/bar" }` at line 7.
 pub fn ruby_vcs_spec_l7_d1_url(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('url', ...args)
+	return brew_runtime.string_value('https://example.com/bar')
 }
 
 // Ruby let `let(:version) { nil }` at line 8.
 pub fn ruby_vcs_spec_l8_d2_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('version', ...args)
+	return brew_runtime.object_value('NilClass', '')
 }
 
 // Ruby it `it "returns the path of the cached resource" do` at line 11.
 pub fn ruby_vcs_spec_l11_d3_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	cache := if args.len > 0 { args[0].as_string() } else { os.temp_dir() }
+	downloader := download_strategy.new_vcs_download_strategy('https://example.com/bar', 'baz', '', download_strategy.VCSDownloadMeta{ cache: cache }, 'foo', .abstract)
+	return brew_runtime.bool_value(downloader.cached_location() == os.join_path(cache, 'baz--foo'))
 }
 
 // Original Ruby source (line-for-line):

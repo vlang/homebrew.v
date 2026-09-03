@@ -1,63 +1,168 @@
 module bundle
 
 import brew_runtime
+import homebrew.bundle.extensions
+import os
+import time
 
 // Translated from Homebrew/brew `test/bundle/go_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+fn go_spec_root(line int) string {
+	return os.join_path(os.temp_dir(), 'brew-v-go-spec-${os.getpid()}-${line}-${time.now().unix_micro()}')
+}
+
+fn go_spec_package() string {
+	return 'github.com/charmbracelet/crush'
+}
+
+fn go_spec_case(line int) bool {
+	package := go_spec_package()
+	match line {
+		18 {
+			mut state := extensions.new_go_state()
+			packages := state.discover_packages()
+			return packages.len == 0 && extensions.go_dump(packages) == ''
+		}
+		30 {
+			root := go_spec_root(line)
+			bin_directory := os.join_path(root, 'bin')
+			binary := os.join_path(bin_directory, 'crush')
+			os.mkdir_all(bin_directory) or { return false }
+			os.write_file(binary, '#!/bin/sh\n') or { return false }
+			os.chmod(binary, 0o755) or { return false }
+			defer {
+				os.rmdir_all(root) or {}
+			}
+			mut state := extensions.new_go_state()
+			state.executable = 'go'
+			state.gobin = bin_directory
+			state.version_outputs[binary] = '\tpath\t${package}\n'
+			return state.discover_packages() == [package]
+		}
+		42 {
+			return extensions.go_dump([package]) == 'go "${package}"'
+		}
+		56 {
+			if _ := extensions.go_preinstall('', [], package) {
+				return false
+			}
+			return true
+		}
+		63 {
+			upgrade_formulae := ['foo', 'bar']
+			if _ := extensions.go_preinstall('', [], package) {}
+			return upgrade_formulae == ['foo', 'bar']
+		}
+		85 {
+			return !(extensions.go_preinstall('go', [package], package) or { return false })
+		}
+		96 {
+			mut state := extensions.new_go_state()
+			state.executable = 'go'
+			state.packages_loaded = true
+			state.installed_packages_loaded = true
+			preinstall := extensions.go_preinstall(state.executable, state.installed_packages, package) or { return false }
+			installed := state.install(package, true, false, true) or { return false }
+			return preinstall && installed && state.commands == [[state.executable, 'install',
+				'${package}@latest']]
+		}
+		104 {
+			mut state := extensions.new_go_state()
+			state.executable = 'go'
+			state.packages_loaded = true
+			state.installed_packages_loaded = true
+			if !(state.install(package, true, false, true) or { return false }) {
+				return false
+			}
+			return extensions.go_dump(state.packages) == 'go "${package}"'
+		}
+		128 {
+			entries := [extensions.ExtensionEntry{
+				entry_type: 'go'
+				name: package
+			}]
+			packages := [package, 'github.com/golangci/golangci-lint/v2/cmd/golangci-lint']
+			return extensions.go_cleanup_items(entries, 'go', packages) == [
+				packages[1],
+			]
+		}
+		134 {
+			entries := [extensions.ExtensionEntry{
+				entry_type: 'go'
+				name: package
+			}]
+			return extensions.go_cleanup_items(entries, '', [package]).len == 0
+		}
+		else {
+			return false
+		}
+	}
+}
 
 // Ruby subject `subject(:dumper) { described_class }` at line 10.
 pub fn ruby_go_spec_l10_d1_dumper(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dumper', ...args)
+	_ = args
+	return brew_runtime.object_value('Homebrew::Bundle::Go', 'Homebrew::Bundle::Go')
 }
 
 // Ruby specify `specify do` at line 18.
 pub fn ruby_go_spec_l18_d2_do(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('do', ...args)
+	_ = args
+	return brew_runtime.bool_value(go_spec_case(18))
 }
 
 // Ruby it `it "returns package list" do` at line 30.
 pub fn ruby_go_spec_l30_d3_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	return brew_runtime.bool_value(go_spec_case(30))
 }
 
 // Ruby it `it "dumps package list" do` at line 42.
 pub fn ruby_go_spec_l42_d4_dumps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dumps', ...args)
+	_ = args
+	return brew_runtime.bool_value(go_spec_case(42))
 }
 
 // Ruby it `it "tries to install go" do` at line 56.
 pub fn ruby_go_spec_l56_d5_tries(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tries', ...args)
+	_ = args
+	return brew_runtime.bool_value(go_spec_case(56))
 }
 
 // Ruby it `it "preserves upgrade_formulae while bootstrapping Go" do` at line 63.
 pub fn ruby_go_spec_l63_d6_preserves(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('preserves', ...args)
+	_ = args
+	return brew_runtime.bool_value(go_spec_case(63))
 }
 
 // Ruby it `it "skips" do` at line 85.
 pub fn ruby_go_spec_l85_d7_skips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skips', ...args)
+	_ = args
+	return brew_runtime.bool_value(go_spec_case(85))
 }
 
 // Ruby it `it "installs package" do` at line 96.
 pub fn ruby_go_spec_l96_d8_installs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('installs', ...args)
+	_ = args
+	return brew_runtime.bool_value(go_spec_case(96))
 }
 
 // Ruby it `it "updates dump output after install in the same process" do` at line 104.
 pub fn ruby_go_spec_l104_d9_updates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('updates', ...args)
+	_ = args
+	return brew_runtime.bool_value(go_spec_case(104))
 }
 
 // Ruby it `it "returns packages not in Brewfile entries" do` at line 128.
 pub fn ruby_go_spec_l128_d10_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	return brew_runtime.bool_value(go_spec_case(128))
 }
 
 // Ruby it `it "returns frozen empty array when go is not installed" do` at line 134.
 pub fn ruby_go_spec_l134_d11_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	return brew_runtime.bool_value(go_spec_case(134))
 }
 
 // Original Ruby source (line-for-line):

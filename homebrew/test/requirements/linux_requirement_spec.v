@@ -1,18 +1,21 @@
 module requirements
 
 import brew_runtime
+import homebrew.requirements as brew_requirements
 
 // Translated from Homebrew/brew `test/requirements/linux_requirement_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:requirement) { described_class.new }` at line 7.
 pub fn ruby_linux_requirement_spec_l7_d1_requirement(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('requirement', ...args)
+	return brew_runtime.structured_value('LinuxRequirement', 'Linux', {
+		'fatal': 'true'
+	})
 }
 
 // Ruby it `it "returns true on Linux" do` at line 10.
 pub fn ruby_linux_requirement_spec_l10_d2_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	return brew_runtime.bool_value(brew_requirements.linux_requirement_satisfied() == (brew_runtime.kernel_info().name == 'Linux'))
 }
 
 // Original Ruby source (line-for-line):

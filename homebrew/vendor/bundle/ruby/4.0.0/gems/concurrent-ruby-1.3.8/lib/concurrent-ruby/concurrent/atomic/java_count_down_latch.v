@@ -7,22 +7,26 @@ import brew_runtime
 
 // Ruby method `initialize(count = 1)` at line 12.
 pub fn ruby_java_count_down_latch_l12_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	return latch_boundary_new(latch_boundary_count(args, 0, 1), 'Concurrent::JavaCountDownLatch')
 }
 
 // Ruby method `wait(timeout = nil)` at line 19.
 pub fn ruby_java_count_down_latch_l19_d2_wait(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('wait', ...args)
+	mut latch := latch_boundary_receiver(args)
+	return brew_runtime.bool_value(latch.wait(latch_boundary_timeout(args, 1)))
 }
 
 // Ruby method `count_down` at line 33.
 pub fn ruby_java_count_down_latch_l33_d3_count_down(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('count_down', ...args)
+	mut latch := latch_boundary_receiver(args)
+	latch.count_down()
+	return args[0]
 }
 
 // Ruby method `count` at line 38.
 pub fn ruby_java_count_down_latch_l38_d4_count(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('count', ...args)
+	mut latch := latch_boundary_receiver(args)
+	return brew_runtime.int_value(latch.count())
 }
 
 // Original Ruby source (line-for-line):

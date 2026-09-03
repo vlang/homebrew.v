@@ -1,283 +1,551 @@
 module cli
 
-import brew_runtime
+import homebrew.api
+import homebrew.cli as brew_cli
+import os
 
 // Translated from Homebrew/brew `test/cli/named_args_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby let `let(:foo) do` at line 7.
-pub fn ruby_named_args_spec_l7_d1_foo(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('foo', ...args)
+pub fn ruby_named_args_spec_l7_d1_foo() api.PackageReference {
+	return named_args_spec_formula('foo', 'homebrew/core', '/path/to/foo.rb')
 }
 
 // Ruby let `let(:bar) do` at line 14.
-pub fn ruby_named_args_spec_l14_d2_bar(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('bar', ...args)
+pub fn ruby_named_args_spec_l14_d2_bar() api.PackageReference {
+	return named_args_spec_formula('bar', 'homebrew/core', '/path/to/bar.rb')
 }
 
 // Ruby let `let(:baz) do` at line 21.
-pub fn ruby_named_args_spec_l21_d3_baz(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('baz', ...args)
+pub fn ruby_named_args_spec_l21_d3_baz() api.PackageReference {
+	return named_args_spec_cask('baz', '/path/to/baz.rb')
 }
 
 // Ruby let `let(:foo_cask) do` at line 28.
-pub fn ruby_named_args_spec_l28_d4_foo_cask(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('foo_cask', ...args)
+pub fn ruby_named_args_spec_l28_d4_foo_cask() api.PackageReference {
+	return named_args_spec_cask('foo', '/path/to/foo-cask.rb')
 }
 
 // Ruby method `setup_unredable_formula(name)` at line 36.
-pub fn ruby_named_args_spec_l36_d5_setup_unredable_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('setup_unredable_formula', ...args)
+pub fn ruby_named_args_spec_l36_d5_setup_unredable_formula(name string) brew_cli.NamedArgsConfig {
+	return brew_cli.NamedArgsConfig{
+		without_api: true
+		formula_errors: {
+			name: 'FormulaUnreadableError: ${name}: testing'
+		}
+	}
 }
 
 // Ruby method `setup_unredable_cask(name)` at line 41.
-pub fn ruby_named_args_spec_l41_d6_setup_unredable_cask(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('setup_unredable_cask', ...args)
+pub fn ruby_named_args_spec_l41_d6_setup_unredable_cask(name string) brew_cli.NamedArgsConfig {
+	return brew_cli.NamedArgsConfig{
+		without_api: true
+		cask_errors: {
+			name: 'CaskUnreadableError: ${name}: testing'
+		}
+	}
 }
 
 // Ruby it `it "returns formulae" do` at line 50.
-pub fn ruby_named_args_spec_l50_d7_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_named_args_spec_l50_d7_returns() bool {
+	args := named_args_spec_args(['foo', 'bar'], [ruby_named_args_spec_l7_d1_foo(),
+		ruby_named_args_spec_l14_d2_bar()], []api.PackageReference{}, brew_cli.NamedArgsConfig{})
+	return (args.to_formulae() or { return false }).map(it.name) == ['foo', 'bar']
 }
 
 // Ruby it `it "raises an error when a Formula is unavailable" do` at line 57.
-pub fn ruby_named_args_spec_l57_d8_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+pub fn ruby_named_args_spec_l57_d8_raises() bool {
+	args := named_args_spec_args(['mxcl'], []api.PackageReference{}, []api.PackageReference{}, brew_cli.NamedArgsConfig{})
+	args.to_formulae() or { return err.msg().contains('FormulaUnavailable') || err.msg().contains('formula unavailable') }
+	return false
 }
 
 // Ruby it `it "returns an empty array when there are no Formulae" do` at line 61.
-pub fn ruby_named_args_spec_l61_d9_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_named_args_spec_l61_d9_returns() bool {
+	return (named_args_spec_args([]string{}, []api.PackageReference{}, []api.PackageReference{}, brew_cli.NamedArgsConfig{}).to_formulae() or { return false }).len == 0
 }
 
 // Ruby it `it "returns formulae and casks", :needs_macos do` at line 67.
-pub fn ruby_named_args_spec_l67_d10_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_named_args_spec_l67_d10_returns() bool {
+	args := named_args_spec_args(['foo', 'baz'], [ruby_named_args_spec_l7_d1_foo()], [
+		ruby_named_args_spec_l21_d3_baz(),
+	], brew_cli.NamedArgsConfig{})
+	return (args.to_formulae_and_casks() or { return false }).map(it.name) == ['foo', 'baz']
 }
 
 // Ruby it `it "returns formula by default" do` at line 80.
-pub fn ruby_named_args_spec_l80_d11_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_named_args_spec_l80_d11_returns() bool {
+	args := named_args_spec_both_foo(false)
+	packages := args.to_formulae_and_casks() or { return false }
+	return packages.len == 1 && packages[0].kind == .formula
 }
 
 // Ruby it `it "returns formula if loading formula only" do` at line 84.
-pub fn ruby_named_args_spec_l84_d12_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_named_args_spec_l84_d12_returns() bool {
+	packages := named_args_spec_both_foo(false).resolve_formulae_and_casks(brew_cli.PackageConversionOptions{
+		only: 'formula'
+		unique: true
+	}) or { return false }
+	return packages.len == 1 && packages[0].kind == .formula
 }
 
 // Ruby it `it "returns cask if loading cask only" do` at line 88.
-pub fn ruby_named_args_spec_l88_d13_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_named_args_spec_l88_d13_returns() bool {
+	packages := named_args_spec_both_foo(false).resolve_formulae_and_casks(brew_cli.PackageConversionOptions{
+		only: 'cask'
+		unique: true
+	}) or { return false }
+	return packages.len == 1 && packages[0].kind == .cask
 }
 
 // Ruby let `let(:non_core_formula) do` at line 94.
-pub fn ruby_named_args_spec_l94_d14_non_core_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('non_core_formula', ...args)
+pub fn ruby_named_args_spec_l94_d14_non_core_formula() api.PackageReference {
+	return named_args_spec_formula('foo', 'some/tap', '/path/to/some-tap/foo.rb')
 }
 
 // Ruby it `it "returns the cask by default" do` at line 107.
-pub fn ruby_named_args_spec_l107_d15_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_named_args_spec_l107_d15_returns() bool {
+	packages := named_args_spec_both_foo(true).to_formulae_and_casks() or { return false }
+	return packages.len == 1 && packages[0].kind == .cask
 }
 
 // Ruby it `it "returns formula if loading formula only" do` at line 111.
-pub fn ruby_named_args_spec_l111_d16_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_named_args_spec_l111_d16_returns() bool {
+	packages := named_args_spec_both_foo(true).resolve_formulae_and_casks(brew_cli.PackageConversionOptions{
+		only: 'formula'
+		unique: true
+	}) or { return false }
+	return packages.len == 1 && packages[0].tap == 'some/tap'
 }
 
 // Ruby it `it "returns cask if loading cask only" do` at line 115.
-pub fn ruby_named_args_spec_l115_d17_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_named_args_spec_l115_d17_returns() bool {
+	packages := named_args_spec_both_foo(true).to_casks() or { return false }
+	return packages.len == 1 && packages[0].kind == .cask
 }
 
 // Ruby it `it "raises an error" do` at line 126.
-pub fn ruby_named_args_spec_l126_d18_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+pub fn ruby_named_args_spec_l126_d18_raises() bool {
+	args := named_args_spec_unreadable(true, true, []api.PackageReference{})
+	args.to_formulae_and_casks() or { return err.msg().contains('FormulaUnreadableError') }
+	return false
 }
 
 // Ruby it `it "raises an error if loading formula only" do` at line 130.
-pub fn ruby_named_args_spec_l130_d19_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+pub fn ruby_named_args_spec_l130_d19_raises() bool {
+	args := named_args_spec_unreadable(true, true, []api.PackageReference{})
+	args.to_formulae() or { return err.msg().contains('FormulaUnreadableError') }
+	return false
 }
 
 // Ruby it `it "raises an error if loading cask only" do` at line 135.
-pub fn ruby_named_args_spec_l135_d20_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+pub fn ruby_named_args_spec_l135_d20_raises() bool {
+	args := named_args_spec_unreadable(true, true, []api.PackageReference{})
+	args.to_casks() or { return err.msg().contains('CaskUnreadableError') }
+	return false
 }
 
 // Ruby it `it "raises an error when neither formula nor cask is present" do` at line 141.
-pub fn ruby_named_args_spec_l141_d21_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+pub fn ruby_named_args_spec_l141_d21_raises() bool {
+	args := named_args_spec_args(['foo'], []api.PackageReference{}, []api.PackageReference{}, brew_cli.NamedArgsConfig{})
+	args.to_formulae_and_casks() or { return err.msg().contains('FormulaOrCaskUnavailableError') }
+	return false
 }
 
 // Ruby it `it "returns formula when formula is present and cask is unreadable", :needs_macos do` at line 147.
-pub fn ruby_named_args_spec_l147_d22_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_named_args_spec_l147_d22_returns() bool {
+	args := named_args_spec_unreadable(false, true, [ruby_named_args_spec_l7_d1_foo()])
+	resolved := args.resolve_formula_or_cask('foo', '', '', true) or { return false }
+	return resolved.package.kind == .formula && resolved.warnings.len == 1
 }
 
 // Ruby it `it "returns cask when formula is unreadable and cask is present", :needs_macos do` at line 157.
-pub fn ruby_named_args_spec_l157_d23_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_named_args_spec_l157_d23_returns() bool {
+	args := named_args_spec_unreadable(true, false, [
+		ruby_named_args_spec_l28_d4_foo_cask(),
+	])
+	resolved := args.resolve_formula_or_cask('foo', '', '', true) or { return false }
+	return resolved.package.kind == .cask && resolved.warnings.len == 1
 }
 
 // Ruby it `it "raises an error when formula is absent and cask is unreadable", :needs_macos do` at line 167.
-pub fn ruby_named_args_spec_l167_d24_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+pub fn ruby_named_args_spec_l167_d24_raises() bool {
+	args := named_args_spec_unreadable(false, true, []api.PackageReference{})
+	args.to_formulae_and_casks() or { return err.msg().contains('CaskUnreadableError') }
+	return false
 }
 
 // Ruby it `it "raises an error when formula is unreadable and cask is absent" do` at line 173.
-pub fn ruby_named_args_spec_l173_d25_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+pub fn ruby_named_args_spec_l173_d25_raises() bool {
+	args := named_args_spec_unreadable(true, false, []api.PackageReference{})
+	args.to_formulae_and_casks() or { return err.msg().contains('FormulaUnreadableError') }
+	return false
 }
 
 // Ruby it `it "returns resolved formulae" do` at line 181.
-pub fn ruby_named_args_spec_l181_d26_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_named_args_spec_l181_d26_returns() bool {
+	args := named_args_spec_args(['foo', 'bar'], [ruby_named_args_spec_l7_d1_foo(),
+		ruby_named_args_spec_l14_d2_bar()], []api.PackageReference{}, brew_cli.NamedArgsConfig{})
+	return (args.to_resolved_formulae(true) or { return false }).map(it.name) == ['foo', 'bar']
 }
 
 // Ruby it `it "returns resolved formulae, as well as casks", :needs_macos do` at line 189.
-pub fn ruby_named_args_spec_l189_d27_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_named_args_spec_l189_d27_returns() bool {
+	args := named_args_spec_args(['foo', 'baz'], [ruby_named_args_spec_l7_d1_foo()], [
+		ruby_named_args_spec_l21_d3_baz(),
+	], brew_cli.NamedArgsConfig{})
+	partition := args.to_resolved_formulae_to_casks('') or { return false }
+	return partition.formulae.map(it.name) == ['foo'] && partition.casks.map(it.name) == [
+		'baz',
+	]
 }
 
 // Ruby it `it "returns casks" do` at line 202.
-pub fn ruby_named_args_spec_l202_d28_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_named_args_spec_l202_d28_returns() bool {
+	args := named_args_spec_args(['baz'], []api.PackageReference{}, [
+		ruby_named_args_spec_l21_d3_baz(),
+	], brew_cli.NamedArgsConfig{})
+	return (args.to_casks() or { return false }).map(it.name) == ['baz']
 }
 
 // Ruby it `it "resolves kegs with` at line 216.
-pub fn ruby_named_args_spec_l216_d29_resolves(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('resolves', ...args)
+pub fn ruby_named_args_spec_l216_d29_resolves() bool {
+	return (named_args_spec_keg_args(['foo', 'bar']).to_keg_references('kegs') or {
+		return false
+	}).map(it.name) == ['foo', 'foo', 'bar']
 }
 
 // Ruby specify `specify do` at line 220.
-pub fn ruby_named_args_spec_l220_d30_do(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('do', ...args)
+pub fn ruby_named_args_spec_l220_d30_do() bool {
+	versions := (named_args_spec_keg_args(['foo']).to_keg_references('kegs') or {
+		return false
+	}).map(it.stable_version).sorted()
+	empty := named_args_spec_keg_args([]string{}).to_keg_references('kegs') or { return false }
+	return versions == ['1.0', '2.0'] && empty.len == 0
 }
 
 // Ruby it `it "raises an error when a Keg is unavailable" do` at line 225.
-pub fn ruby_named_args_spec_l225_d31_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+pub fn ruby_named_args_spec_l225_d31_raises() bool {
+	named_args_spec_keg_args(['missing']).to_keg_references('kegs') or {
+		return err.msg().contains('NoSuchKegError')
+	}
+	return false
 }
 
 // Ruby let `let(:tab) { instance_double(Tab, tap: Tap.fetch("user", "repo")) }` at line 230.
-pub fn ruby_named_args_spec_l230_d32_tab(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tab', ...args)
+pub fn ruby_named_args_spec_l230_d32_tab() brew_cli.NamedKeg {
+	return brew_cli.NamedKeg{
+		name: 'bar'
+		path: '/cellar/bar/1.0'
+		version: '1.0'
+		tap: 'user/repo'
+	}
 }
 
 // Ruby it `it "returns kegs if no tap is specified" do` at line 236.
-pub fn ruby_named_args_spec_l236_d33_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_named_args_spec_l236_d33_returns() bool {
+	args := named_args_spec_tapped_keg_args('bar')
+	return (args.to_keg_references('kegs') or { return false }).map(it.name) == ['bar']
 }
 
 // Ruby it `it "returns kegs if the tap is specified" do` at line 242.
-pub fn ruby_named_args_spec_l242_d34_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_named_args_spec_l242_d34_returns() bool {
+	args := named_args_spec_tapped_keg_args('user/repo/bar')
+	return (args.to_keg_references('kegs') or { return false }).map(it.name) == ['bar']
 }
 
 // Ruby it `it "raises an error if there is no tap match" do` at line 248.
-pub fn ruby_named_args_spec_l248_d35_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+pub fn ruby_named_args_spec_l248_d35_raises() bool {
+	args := named_args_spec_tapped_keg_args('other/tap/bar')
+	args.to_keg_references('kegs') or {
+		return err.msg().contains('other/tap')
+	}
+	return false
 }
 
 // Ruby it `it "resolves kegs with` at line 267.
-pub fn ruby_named_args_spec_l267_d36_resolves(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('resolves', ...args)
+pub fn ruby_named_args_spec_l267_d36_resolves() bool {
+	return (named_args_spec_keg_args(['foo', 'bar']).to_keg_references('default_kegs') or {
+		return false
+	}).map(it.name) == ['foo', 'bar']
 }
 
 // Ruby it `it "resolves the default keg" do` at line 271.
-pub fn ruby_named_args_spec_l271_d37_resolves(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('resolves', ...args)
+pub fn ruby_named_args_spec_l271_d37_resolves() bool {
+	return (named_args_spec_keg_args(['foo']).to_keg_references('default_kegs') or {
+		return false
+	}).map(it.stable_version) == ['2.0']
 }
 
 // Ruby it `it "when there are no matching kegs returns an empty array" do` at line 275.
-pub fn ruby_named_args_spec_l275_d38_when(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('when', ...args)
+pub fn ruby_named_args_spec_l275_d38_when() bool {
+	return (named_args_spec_keg_args([]string{}).to_keg_references('default_kegs') or {
+		return false
+	}).len == 0
 }
 
 // Ruby it `it "resolves the latest kegs with` at line 291.
-pub fn ruby_named_args_spec_l291_d39_resolves(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('resolves', ...args)
+pub fn ruby_named_args_spec_l291_d39_resolves() bool {
+	latest := named_args_spec_keg_args(['foo', 'bar', 'baz']).to_keg_references('latest_kegs') or {
+		return false
+	}
+	return latest.map(it.name) == ['foo', 'bar', 'baz'] && latest.map(it.stable_version) == [
+		'2.0',
+		'1.0',
+		'HEAD-2',
+	]
 }
 
 // Ruby it `it "when there are no matching kegs returns an empty array" do` at line 297.
-pub fn ruby_named_args_spec_l297_d40_when(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('when', ...args)
+pub fn ruby_named_args_spec_l297_d40_when() bool {
+	return (named_args_spec_keg_args([]string{}).to_keg_references('latest_kegs') or {
+		return false
+	}).len == 0
 }
 
 // Ruby it `it "returns kegs, as well as casks", :needs_macos do` at line 307.
-pub fn ruby_named_args_spec_l307_d41_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_named_args_spec_l307_d41_returns() bool {
+	config := named_args_spec_keg_config()
+	args := named_args_spec_args(['foo', 'baz'], []api.PackageReference{}, [
+		ruby_named_args_spec_l21_d3_baz(),
+	], config)
+	partition := args.to_kegs_to_casks('', false, false) or { return false }
+	return partition.formulae.map(it.name) == ['foo'] && partition.casks.map(it.name) == [
+		'baz',
+	]
 }
 
 // Ruby specify `specify do` at line 318.
-pub fn ruby_named_args_spec_l318_d42_do(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('do', ...args)
+pub fn ruby_named_args_spec_l318_d42_do() bool {
+	with_cask := brew_cli.new_named_args(['foo', 'homebrew/cask/local-caffeine'])
+	without := brew_cli.new_named_args(['foo'])
+	return with_cask.homebrew_tap_cask_names() == ['homebrew/cask/local-caffeine'] && without.homebrew_tap_cask_names().len == 0
 }
 
 // Ruby let `let(:existing_path) { mktmpdir }` at line 326.
-pub fn ruby_named_args_spec_l326_d43_existing_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('existing_path', ...args)
+pub fn ruby_named_args_spec_l326_d43_existing_path() string {
+	return os.temp_dir()
 }
 
 // Ruby let `let(:formula_path) { Pathname("/path/to/foo.rb") }` at line 327.
-pub fn ruby_named_args_spec_l327_d44_formula_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_path', ...args)
+pub fn ruby_named_args_spec_l327_d44_formula_path() string {
+	return '/path/to/foo.rb'
 }
 
 // Ruby let `let(:cask_path) { Pathname("/path/to/baz.rb") }` at line 328.
-pub fn ruby_named_args_spec_l328_d45_cask_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask_path', ...args)
+pub fn ruby_named_args_spec_l328_d45_cask_path() string {
+	return '/path/to/baz.rb'
 }
 
 // Ruby it `it "returns taps, cask formula and existing paths", :needs_macos do` at line 338.
-pub fn ruby_named_args_spec_l338_d46_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_named_args_spec_l338_d46_returns() bool {
+	existing := ruby_named_args_spec_l326_d43_existing_path()
+	args := named_args_spec_path_args(['homebrew/core', 'foo', 'baz', existing])
+	return (args.to_paths('', false) or { return false }) == ['/taps/homebrew/core',
+		ruby_named_args_spec_l327_d44_formula_path(), ruby_named_args_spec_l328_d45_cask_path(),
+		os.abs_path(existing)]
 }
 
 // Ruby it `it "returns both cask and formula paths if they exist", :needs_macos do` at line 346.
-pub fn ruby_named_args_spec_l346_d47_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_named_args_spec_l346_d47_returns() bool {
+	args := named_args_spec_path_args(['foo', 'baz'])
+	return (args.to_paths('', false) or { return false }) == [
+		ruby_named_args_spec_l327_d44_formula_path(),
+		ruby_named_args_spec_l328_d45_cask_path(),
+	]
 }
 
 // Ruby it `it "returns only formulae when `only: :formula` is specified" do` at line 353.
-pub fn ruby_named_args_spec_l353_d48_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_named_args_spec_l353_d48_returns() bool {
+	args := named_args_spec_path_args(['foo', 'baz'])
+	return (args.to_paths('formula', false) or { return false }) == [
+		ruby_named_args_spec_l327_d44_formula_path(),
+		'/formula/b/baz.rb',
+	]
 }
 
 // Ruby it `it "returns only casks when `only: :cask` is specified" do` at line 360.
-pub fn ruby_named_args_spec_l360_d49_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_named_args_spec_l360_d49_returns() bool {
+	args := named_args_spec_path_args(['foo', 'baz'])
+	return (args.to_paths('cask', false) or { return false }) == [os.abs_path('foo'),
+		ruby_named_args_spec_l328_d45_cask_path()]
 }
 
 // Ruby it `it "returns a bare path for an API-known formula when the tap is not installed" do` at line 367.
-pub fn ruby_named_args_spec_l367_d50_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_named_args_spec_l367_d50_returns() bool {
+	args := named_args_spec_args(['foo'], []api.PackageReference{}, []api.PackageReference{}, brew_cli.NamedArgsConfig{
+		without_api: true
+	})
+	paths := args.to_paths('', false) or { return false }
+	return paths.len == 1 && !paths[0].contains('homebrew-core/Formula')
 }
 
 // Ruby it `it "returns taps" do` at line 387.
-pub fn ruby_named_args_spec_l387_d51_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_named_args_spec_l387_d51_returns() bool {
+	return (brew_cli.new_named_args(['homebrew/foo', 'bar/baz']).to_taps() or {
+		return false
+	}) == ['homebrew/foo', 'bar/baz']
 }
 
 // Ruby it `it "raises an error for invalid tap" do` at line 392.
-pub fn ruby_named_args_spec_l392_d52_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+pub fn ruby_named_args_spec_l392_d52_raises() bool {
+	brew_cli.new_named_args(['homebrew/foo', 'barbaz']).to_taps() or {
+		return err.msg().contains('Invalid tap name')
+	}
+	return false
 }
 
 // Ruby it `it "returns installed taps" do` at line 403.
-pub fn ruby_named_args_spec_l403_d53_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_named_args_spec_l403_d53_returns() bool {
+	args := brew_cli.new_named_args_with_config(['homebrew/foo'], brew_cli.NamedArgsConfig{
+		installed_taps: ['homebrew/foo']
+	})
+	return (args.to_installed_taps() or { return false }) == ['homebrew/foo']
 }
 
 // Ruby it `it "raises an error for uninstalled tap" do` at line 408.
-pub fn ruby_named_args_spec_l408_d54_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+pub fn ruby_named_args_spec_l408_d54_raises() bool {
+	args := brew_cli.new_named_args_with_config(['homebrew/foo', 'bar/baz'], brew_cli.NamedArgsConfig{
+		installed_taps: ['homebrew/foo']
+	})
+	args.to_installed_taps() or { return err.msg().contains('TapUnavailableError') }
+	return false
 }
 
 // Ruby it `it "raises an error for invalid tap" do` at line 413.
-pub fn ruby_named_args_spec_l413_d55_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+pub fn ruby_named_args_spec_l413_d55_raises() bool {
+	args := brew_cli.new_named_args_with_config(['homebrew/foo', 'barbaz'], brew_cli.NamedArgsConfig{
+		installed_taps: ['homebrew/foo']
+	})
+	args.to_installed_taps() or { return err.msg().contains('Invalid tap name') }
+	return false
+}
+
+fn named_args_spec_formula(name string, tap string, local_path string) api.PackageReference {
+	return api.PackageReference{
+		kind: .formula
+		name: name
+		full_name: name
+		tap: tap
+		stable_version: '1.0'
+		local_path: local_path
+		core_tap: tap == 'homebrew/core'
+		tap_installed: true
+	}
+}
+
+fn named_args_spec_cask(name string, local_path string) api.PackageReference {
+	return api.PackageReference{
+		kind: .cask
+		name: name
+		full_name: name
+		tap: 'homebrew/cask'
+		stable_version: '1.0'
+		local_path: local_path
+		core_cask_tap: true
+		tap_installed: true
+	}
+}
+
+fn named_args_spec_args(values []string, formulae []api.PackageReference,
+	casks []api.PackageReference, extra brew_cli.NamedArgsConfig) brew_cli.NamedArgs {
+	mut formula_map := map[string]api.PackageReference{}
+	for formula in formulae {
+		formula_map[formula.name] = formula
+	}
+	mut cask_map := map[string]api.PackageReference{}
+	for cask in casks {
+		cask_map[cask.name] = cask
+	}
+	return brew_cli.new_named_args_with_config(values, brew_cli.NamedArgsConfig{
+		...extra
+		without_api: true
+		formulae: formula_map
+		casks: cask_map
+	})
+}
+
+fn named_args_spec_both_foo(non_core bool) brew_cli.NamedArgs {
+	formula := if non_core {
+		ruby_named_args_spec_l94_d14_non_core_formula()
+	} else {
+		ruby_named_args_spec_l7_d1_foo()
+	}
+	return named_args_spec_args(['foo'], [formula], [
+		ruby_named_args_spec_l28_d4_foo_cask(),
+	], brew_cli.NamedArgsConfig{})
+}
+
+fn named_args_spec_unreadable(formula_unreadable bool, cask_unreadable bool,
+	packages []api.PackageReference) brew_cli.NamedArgs {
+	mut formulae := []api.PackageReference{}
+	mut casks := []api.PackageReference{}
+	for package in packages {
+		if package.kind == .formula {
+			formulae << package
+		} else if package.kind == .cask {
+			casks << package
+		}
+	}
+	return named_args_spec_args(['foo'], formulae, casks, brew_cli.NamedArgsConfig{
+		formula_errors: if formula_unreadable {
+			{
+				'foo': 'FormulaUnreadableError: foo: testing'
+			}} else {
+			map[string]string{}}
+		cask_errors: if cask_unreadable {
+			{
+				'foo': 'CaskUnreadableError: foo: testing'
+			}} else {
+			map[string]string{}}
+	})
+}
+
+fn named_args_spec_keg_config() brew_cli.NamedArgsConfig {
+	return brew_cli.NamedArgsConfig{
+		without_api: true
+		kegs: {
+			'foo': [
+				brew_cli.NamedKeg{ name: 'foo', path: '/cellar/foo/1.0', version: '1.0' },
+				brew_cli.NamedKeg{ name: 'foo', path: '/cellar/foo/2.0', version: '2.0' },
+			]
+			'bar': [
+				brew_cli.NamedKeg{ name: 'bar', path: '/cellar/bar/1.0', version: '1.0' },
+			]
+			'baz': [
+				brew_cli.NamedKeg{ name: 'baz', path: '/cellar/baz/HEAD-1', version: 'HEAD-1', head: true, source_modified_time: 1 },
+				brew_cli.NamedKeg{ name: 'baz', path: '/cellar/baz/HEAD-2', version: 'HEAD-2', head: true, source_modified_time: 2 },
+			]
+		}
+		linked_prefixes: {
+			'foo': '/cellar/foo/2.0'
+		}
+	}
+}
+
+fn named_args_spec_keg_args(values []string) brew_cli.NamedArgs {
+	return named_args_spec_args(values, []api.PackageReference{}, []api.PackageReference{}, named_args_spec_keg_config())
+}
+
+fn named_args_spec_tapped_keg_args(name string) brew_cli.NamedArgs {
+	return named_args_spec_args([name], []api.PackageReference{}, []api.PackageReference{}, brew_cli.NamedArgsConfig{
+		without_api: true
+		kegs: {
+			'bar': [ruby_named_args_spec_l230_d32_tab()]
+		}
+	})
+}
+
+fn named_args_spec_path_args(values []string) brew_cli.NamedArgs {
+	return named_args_spec_args(values, [ruby_named_args_spec_l7_d1_foo()], [
+		ruby_named_args_spec_l21_d3_baz(),
+	], brew_cli.NamedArgsConfig{
+		formula_directory: '/formula'
+		tap_paths: {
+			'homebrew/core': '/taps/homebrew/core'
+		}
+	})
 }
 
 // Original Ruby source (line-for-line):

@@ -1,18 +1,24 @@
 module unpack_strategy
 
-import brew_runtime
-
 // Translated from Homebrew/brew `unpack_strategy/compress.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `self.extensions` at line 10.
-pub fn ruby_compress_l10_d1_self_extensions(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.extensions', ...args)
+pub fn ruby_compress_l10_d1_self_extensions() []string {
+	return compress_extensions()
 }
 
 // Ruby method `self.can_extract?(path)` at line 15.
-pub fn ruby_compress_l15_d2_self_can_extract(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.can_extract?', ...args)
+pub fn ruby_compress_l15_d2_self_can_extract(path string) bool {
+	return compress_can_extract(path)
+}
+
+pub fn compress_extensions() []string {
+	return ['.Z']
+}
+
+pub fn compress_can_extract(path string) bool {
+	return file_starts_with(path, [u8(0x1f), 0x9d])
 }
 
 // Original Ruby source (line-for-line):

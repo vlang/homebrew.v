@@ -5,29 +5,92 @@ import brew_runtime
 // Translated from Homebrew/brew `test/support/extend/cachable.rb`.
 // The original source is retained below until every stub has a typed V body.
 
+@[heap]
+pub struct CachableTestRegistry {
+pub mut:
+	class_list []string
+	cleared    []string
+}
+
+pub fn new_cachable_test_registry() &CachableTestRegistry {
+	return &CachableTestRegistry{}
+}
+
+pub fn cachable_included(singleton_class bool) ! {
+	if singleton_class {
+		return error("Don't use Cachable with singleton classes")
+	}
+}
+
+pub fn (mut registry CachableTestRegistry) extend_class(name string) {
+	registry.class_list << name
+}
+
+pub fn (mut registry CachableTestRegistry) inherit_class(name string, has_clear_cache bool) {
+	if has_clear_cache {
+		registry.class_list << name
+	}
+}
+
+pub fn (mut registry CachableTestRegistry) clear_all_caches() {
+	registry.cleared << registry.class_list
+}
+
+pub fn cachable_test_registry_value(registry &CachableTestRegistry) brew_runtime.Value {
+	return brew_runtime.structured_value('Cachable::Registry', '', {
+		'cachable_registry_address': u64(voidptr(registry)).str()
+	})
+}
+
+fn cachable_test_registry_from_value(value brew_runtime.Value) &CachableTestRegistry {
+	address := value.attributes['cachable_registry_address'] or { panic('invalid Cachable registry') }
+	return unsafe { &CachableTestRegistry(voidptr(address.u64())) }
+}
+
 // Ruby method `self.included(klass)` at line 8.
 pub fn ruby_cachable_l8_d1_self_included(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.included', ...args)
+	singleton_class := args.len > 0 && (args[0].attributes['singleton_class'] == 'true'
+		|| (args[0].type_name == 'Bool' && (args[0].as_bool() or { false })))
+	cachable_included(singleton_class) or {
+		return brew_runtime.object_value('ArgumentError', err.msg())
+	}
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Ruby method `self.extended(klass)` at line 16.
 pub fn ruby_cachable_l16_d2_self_extended(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.extended', ...args)
+	if args.len > 1 && args[0].type_name == 'Cachable::Registry' {
+		mut registry := cachable_test_registry_from_value(args[0])
+		registry.extend_class(args[1].as_string())
+	}
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Ruby method `inherited(klass)` at line 25.
 pub fn ruby_cachable_l25_d3_inherited(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('inherited', ...args)
+	if args.len > 2 && args[0].type_name == 'Cachable::Registry' {
+		mut registry := cachable_test_registry_from_value(args[0])
+		registry.inherit_class(args[1].as_string(), args[2].as_bool() or { false })
+	}
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Ruby method `self.class_list` at line 39.
 pub fn ruby_cachable_l39_d4_self_class_list(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.class_list', ...args)
+	if args.len == 0 || args[0].type_name != 'Cachable::Registry' {
+		return brew_runtime.string_array_value([])
+	}
+	registry := cachable_test_registry_from_value(args[0])
+	return brew_runtime.string_array_value(registry.class_list)
 }
 
 // Ruby method `self.clear_all_caches` at line 48.
 pub fn ruby_cachable_l48_d5_self_clear_all_caches(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.clear_all_caches', ...args)
+	if args.len > 0 && args[0].type_name == 'Cachable::Registry' {
+		mut registry := cachable_test_registry_from_value(args[0])
+		registry.clear_all_caches()
+	}
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Original Ruby source (line-for-line):

@@ -1,83 +1,414 @@
 module concurrent
 
 import brew_runtime
+import sync
+import time
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/timer_task.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub const timer_task_execution_interval = 60.0
+
+pub enum TimerTaskIntervalType {
+	fixed_delay
+	fixed_rate
+}
+
+pub type TimerTaskAction = fn(&TimerTask) !brew_runtime.Value
+
+pub type TimerTaskObserver = fn(time.Time, brew_runtime.Value, string)
+
+pub struct TimerTaskOptions {
+pub:
+	execution_interval f64 = timer_task_execution_interval
+	run_now            bool
+	interval_type      TimerTaskIntervalType = .fixed_delay
+}
+
+@[heap]
+pub struct TimerTask {
+	mutex     &sync.Mutex
+	scheduler &ScheduledTaskScheduler
+	executor_ ScheduledExecutor
+	task      TimerTaskAction @[required]
+mut:
+	execution_interval_ f64
+	run_now_            bool
+	interval_type_      TimerTaskIntervalType
+	running_            bool
+	stopped_            bool
+	age_                i64
+	value_              brew_runtime.Value
+	reason_             string
+	executions_         i64
+	observers_          []TimerTaskObserver
+}
+
+pub fn new_timer_task_on(options TimerTaskOptions, scheduler &ScheduledTaskScheduler,
+	executor ScheduledExecutor, task TimerTaskAction) !&TimerTask {
+	if options.execution_interval <= 0 {
+		return error('must be greater than zero')
+	}
+	return &TimerTask{
+		mutex: sync.new_mutex()
+		scheduler: scheduler
+		executor_: executor
+		task: task
+		execution_interval_: options.execution_interval
+		run_now_: options.run_now
+		interval_type_: options.interval_type
+		value_: brew_runtime.object_value('NilClass', 'nil')
+	}
+}
+
+pub fn new_timer_task(options TimerTaskOptions, task TimerTaskAction) !&TimerTask {
+	return new_timer_task_on(options, global_timer_set(), global_io_executor().adapter, task)
+}
+
+pub fn (timer &TimerTask) running() bool {
+	timer.mutex.lock()
+	running := timer.running_
+	timer.mutex.unlock()
+	return running
+}
+
+pub fn (timer &TimerTask) is_shutdown() bool {
+	timer.mutex.lock()
+	stopped := timer.stopped_
+	timer.mutex.unlock()
+	return stopped
+}
+
+pub fn (mut timer TimerTask) execute() &TimerTask {
+	timer.mutex.lock()
+	if timer.running_ || timer.stopped_ {
+		timer.mutex.unlock()
+		return timer
+	}
+	timer.running_ = true
+	timer.age_++
+	delay := if timer.run_now_ { 0.0 } else { timer.execution_interval_ }
+	timer.mutex.unlock()
+	timer.schedule_next_task(delay)
+	return timer
+}
+
+pub fn (timer &TimerTask) execution_interval() f64 {
+	timer.mutex.lock()
+	interval := timer.execution_interval_
+	timer.mutex.unlock()
+	return interval
+}
+
+pub fn (mut timer TimerTask) set_execution_interval(value f64) !f64 {
+	if value <= 0 {
+		return error('must be greater than zero')
+	}
+	timer.mutex.lock()
+	timer.execution_interval_ = value
+	timer.mutex.unlock()
+	return value
+}
+
+pub fn (timer &TimerTask) interval_type() TimerTaskIntervalType {
+	return timer.interval_type_
+}
+
+pub fn (timer &TimerTask) timeout_interval() ?f64 {
+	eprintln('TimerTask timeouts are now ignored as these were not able to be implemented correctly')
+	return none
+}
+
+pub fn (timer &TimerTask) set_timeout_interval(value f64) ?f64 {
+	eprintln('TimerTask timeouts are now ignored as these were not able to be implemented correctly')
+	return none
+}
+
+pub fn (mut timer TimerTask) shutdown() bool {
+	timer.mutex.lock()
+	timer.running_ = false
+	timer.stopped_ = true
+	timer.age_++
+	timer.mutex.unlock()
+	return true
+}
+
+pub fn (mut timer TimerTask) kill() bool {
+	return timer.shutdown()
+}
+
+pub fn (mut timer TimerTask) add_observer(observer TimerTaskObserver) {
+	timer.mutex.lock()
+	timer.observers_ << observer
+	timer.mutex.unlock()
+}
+
+pub fn (timer &TimerTask) value() brew_runtime.Value {
+	timer.mutex.lock()
+	value := timer.value_
+	timer.mutex.unlock()
+	return value
+}
+
+pub fn (timer &TimerTask) reason() string {
+	timer.mutex.lock()
+	reason := timer.reason_
+	timer.mutex.unlock()
+	return reason
+}
+
+pub fn (timer &TimerTask) execution_count() i64 {
+	timer.mutex.lock()
+	count := timer.executions_
+	timer.mutex.unlock()
+	return count
+}
+
+fn timer_task_scheduled_action(args []brew_runtime.Value) !brew_runtime.Value {
+	if args.len < 2 {
+		return error('TimerTask scheduled callback requires its receiver and age')
+	}
+	address := (args[0].attribute('timer_task_address') or { return error(err.msg()) }).u64()
+	mut timer := unsafe { &TimerTask(voidptr(address)) }
+	age := args[1].as_int()!
+	timer.execute_task(age)
+	return brew_runtime.object_value('NilClass', 'nil')
+}
+
+pub fn (mut timer TimerTask) schedule_next_task(interval f64) {
+	timer.mutex.lock()
+	age := timer.age_
+	running := timer.running_
+	timer.mutex.unlock()
+	if !running {
+		return
+	}
+	arguments := [timer_task_boundary_value(timer), brew_runtime.int_value(age)]
+	mut scheduled := new_scheduled_task_on(interval, arguments, timer.scheduler, timer.executor_, timer_task_scheduled_action) or { return }
+	scheduled.execute()
+}
+
+pub fn (mut timer TimerTask) execute_task(age_when_scheduled i64) {
+	timer.mutex.lock()
+	if !timer.running_ || timer.age_ != age_when_scheduled {
+		timer.mutex.unlock()
+		return
+	}
+	timer.executions_++
+	timer.mutex.unlock()
+	start_time := scheduled_monotonic_seconds()
+	value := timer.task(timer) or {
+		timer.mutex.lock()
+		timer.value_ = brew_runtime.object_value('NilClass', 'nil')
+		timer.reason_ = err.msg()
+		running := timer.running_ && timer.age_ == age_when_scheduled
+		observers := timer.observers_.clone()
+		timer.mutex.unlock()
+		if running {
+			timer.schedule_next_task(timer.calculate_next_interval(start_time))
+		}
+		observed_at := time.now()
+		for observer in observers {
+			observer(observed_at, brew_runtime.object_value('NilClass', 'nil'), err.msg())
+		}
+		return
+	}
+	timer.mutex.lock()
+	timer.value_ = value
+	timer.reason_ = ''
+	running := timer.running_ && timer.age_ == age_when_scheduled
+	observers := timer.observers_.clone()
+	timer.mutex.unlock()
+	if running {
+		timer.schedule_next_task(timer.calculate_next_interval(start_time))
+	}
+	observed_at := time.now()
+	for observer in observers {
+		observer(observed_at, value, '')
+	}
+}
+
+pub fn (timer &TimerTask) calculate_next_interval(start_time f64) f64 {
+	if timer.interval_type_ == .fixed_rate {
+		run_time := scheduled_monotonic_seconds() - start_time
+		remaining := timer.execution_interval() - run_time
+		return if remaining > 0 { remaining } else { 0 }
+	}
+	return timer.execution_interval()
+}
+
+fn timer_task_boundary_action(timer &TimerTask) !brew_runtime.Value {
+	return brew_runtime.int_value(timer.execution_count())
+}
+
+fn timer_task_boundary_value(timer &TimerTask) brew_runtime.Value {
+	return brew_runtime.structured_value('Concurrent::TimerTask', '#<Concurrent::TimerTask>', {
+		'timer_task_address': u64(voidptr(timer)).str()
+	})
+}
+
+fn timer_task_boundary_receiver(args []brew_runtime.Value) &TimerTask {
+	if args.len == 0 {
+		panic('TimerTask method requires a receiver')
+	}
+	address := (args[0].attribute('timer_task_address') or {
+		panic('${args[0].type_name} has no translated TimerTask state')
+	}).u64()
+	return unsafe { &TimerTask(voidptr(address)) }
+}
+
+fn timer_task_options_from_boundary(args []brew_runtime.Value, index int) TimerTaskOptions {
+	if args.len <= index || args[index].type_name != 'Hash' {
+		return TimerTaskOptions{}
+	}
+	options := args[index].as_map() or { panic(err) }
+	interval := if 'execution' in options {
+		options['execution'].as_float() or { panic(err) }
+	} else if 'execution_interval' in options {
+		options['execution_interval'].as_float() or { panic(err) }
+	} else {
+		timer_task_execution_interval
+	}
+	run_now := if 'now' in options {
+		options['now'].as_bool() or { panic(err) }
+	} else if 'run_now' in options {
+		options['run_now'].as_bool() or { panic(err) }
+	} else {
+		false
+	}
+	interval_type := if 'interval_type' in options {
+		match options['interval_type'].as_string().trim_left(':') {
+			'fixed_delay' { TimerTaskIntervalType.fixed_delay }
+			'fixed_rate' { TimerTaskIntervalType.fixed_rate }
+			else { panic('interval_type must be either :fixed_delay or :fixed_rate') }
+		}
+	} else {
+		TimerTaskIntervalType.fixed_delay
+	}
+	if 'timeout' in options || 'timeout_interval' in options {
+		eprintln('TimeTask timeouts are now ignored as these were not able to be implemented correctly')
+	}
+	return TimerTaskOptions{
+		execution_interval: interval
+		run_now: run_now
+		interval_type: interval_type
+	}
+}
+
+fn timer_task_from_boundary(args []brew_runtime.Value, index int) &TimerTask {
+	return new_timer_task(timer_task_options_from_boundary(args, index), timer_task_boundary_action) or {
+		panic(err)
+	}
+}
 
 // Ruby method `initialize(opts = {}, &task)` at line 210.
 pub fn ruby_timer_task_l210_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	return timer_task_boundary_value(timer_task_from_boundary(args, 0))
 }
 
 // Ruby method `running?` at line 219.
 pub fn ruby_timer_task_l219_d2_running(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('running?', ...args)
+	return brew_runtime.bool_value(timer_task_boundary_receiver(args).running())
 }
 
 // Ruby method `execute` at line 236.
 pub fn ruby_timer_task_l236_d3_execute(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('execute', ...args)
+	mut timer := timer_task_boundary_receiver(args)
+	return timer_task_boundary_value(timer.execute())
 }
 
 // Ruby method `self.execute(opts = {}, &task)` at line 254.
 pub fn ruby_timer_task_l254_d4_self_execute(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.execute', ...args)
+	mut timer := timer_task_from_boundary(args, 0)
+	return timer_task_boundary_value(timer.execute())
 }
 
 // Ruby method `execution_interval` at line 261.
 pub fn ruby_timer_task_l261_d5_execution_interval(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('execution_interval', ...args)
+	return brew_runtime.float_value(timer_task_boundary_receiver(args).execution_interval())
 }
 
 // Ruby method `execution_interval=(value)` at line 268.
 pub fn ruby_timer_task_l268_d6_execution_interval(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('execution_interval=', ...args)
+	if args.len < 2 {
+		panic('TimerTask#execution_interval= requires a value')
+	}
+	mut timer := timer_task_boundary_receiver(args)
+	value := args[1].as_float() or { panic(err) }
+	return brew_runtime.float_value(timer.set_execution_interval(value) or { panic(err) })
 }
 
 // Ruby attr_reader `attr_reader :interval_type` at line 278.
 pub fn ruby_timer_task_l278_d7_interval_type(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('interval_type', ...args)
+	return brew_runtime.object_value('Symbol', ':${timer_task_boundary_receiver(args).interval_type()}')
 }
 
 // Ruby method `timeout_interval` at line 283.
 pub fn ruby_timer_task_l283_d8_timeout_interval(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('timeout_interval', ...args)
+	timer_task_boundary_receiver(args).timeout_interval()
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Ruby method `timeout_interval=(value)` at line 290.
 pub fn ruby_timer_task_l290_d9_timeout_interval(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('timeout_interval=', ...args)
+	if args.len < 2 {
+		panic('TimerTask#timeout_interval= requires a value')
+	}
+	timer_task_boundary_receiver(args).set_timeout_interval(args[1].as_float() or { panic(err) })
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Ruby method `ns_initialize(opts, &task)` at line 298.
 pub fn ruby_timer_task_l298_d10_ns_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ns_initialize', ...args)
+	return timer_task_boundary_value(timer_task_from_boundary(args, if args.len > 0 && args[0].type_name == 'Concurrent::TimerTask' {
+		1
+	} else {
+		0
+	}))
 }
 
 // Ruby method `ns_shutdown_execution` at line 321.
 pub fn ruby_timer_task_l321_d11_ns_shutdown_execution(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ns_shutdown_execution', ...args)
+	mut timer := timer_task_boundary_receiver(args)
+	return brew_runtime.bool_value(timer.shutdown())
 }
 
 // Ruby method `ns_kill_execution` at line 327.
 pub fn ruby_timer_task_l327_d12_ns_kill_execution(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ns_kill_execution', ...args)
+	mut timer := timer_task_boundary_receiver(args)
+	return brew_runtime.bool_value(timer.kill())
 }
 
 // Ruby method `schedule_next_task(interval = execution_interval)` at line 333.
 pub fn ruby_timer_task_l333_d13_schedule_next_task(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('schedule_next_task', ...args)
+	mut timer := timer_task_boundary_receiver(args)
+	interval := if args.len > 1 {
+		args[1].as_float() or { panic(err) }
+	} else {
+		timer.execution_interval()
+	}
+	timer.schedule_next_task(interval)
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Ruby method `execute_task(completion, age_when_scheduled)` at line 339.
 pub fn ruby_timer_task_l339_d14_execute_task(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('execute_task', ...args)
+	if args.len < 3 {
+		panic('TimerTask#execute_task requires completion and age')
+	}
+	mut timer := timer_task_boundary_receiver(args)
+	timer.execute_task(args[2].as_int() or { panic(err) })
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Ruby method `calculate_next_interval(start_time)` at line 357.
 pub fn ruby_timer_task_l357_d15_calculate_next_interval(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('calculate_next_interval', ...args)
+	if args.len < 2 {
+		panic('TimerTask#calculate_next_interval requires a start time')
+	}
+	timer := timer_task_boundary_receiver(args)
+	return brew_runtime.float_value(timer.calculate_next_interval(args[1].as_float() or {
+		panic(err)
+	}))
 }
 
 // Original Ruby source (line-for-line):

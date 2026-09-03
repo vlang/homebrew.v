@@ -1,93 +1,381 @@
 module concurrent
 
 import brew_runtime
+import os
+import sync
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/async.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub type AsyncDelegate = fn(string, []brew_runtime.Value) !brew_runtime.Value
+
+struct AsyncCall {
+	ivar   &IVar
+	method string
+	args   []brew_runtime.Value
+}
+
+@[heap]
+pub struct AsyncDelegator {
+	mutex     &sync.Mutex
+	delegate  AsyncDelegate @[required]
+	arities   map[string]int
+	allow_any bool
+mut:
+	queue    []AsyncCall
+	ruby_pid int
+}
+
+@[heap]
+pub struct AwaitDelegator {
+	delegate &AsyncDelegator
+}
+
+@[heap]
+pub struct AsyncRuntime {
+	async_delegator &AsyncDelegator
+	await_delegator &AwaitDelegator
+}
+
+pub fn validate_async_argc(arities map[string]int, allow_any bool, method string, args []brew_runtime.Value) ! {
+	if method !in arities {
+		if allow_any {
+			return
+		}
+		return error('NameError: undefined method `${method}`')
+	}
+	argc := args.len
+	mut arity := arities[method]
+	if arity >= 0 && argc != arity {
+		return error('ArgumentError: wrong number of arguments (${argc} for ${arity})')
+	}
+	if arity < 0 {
+		arity = -(arity + 1)
+		if arity > argc {
+			return error('ArgumentError: wrong number of arguments (${argc} for ${arity}..*)')
+		}
+	}
+}
+
+pub fn new_async_delegator(delegate AsyncDelegate, arities map[string]int) &AsyncDelegator {
+	return &AsyncDelegator{
+		mutex: sync.new_mutex()
+		delegate: delegate
+		arities: arities.clone()
+		ruby_pid: os.getpid()
+	}
+}
+
+fn new_dynamic_async_delegator(delegate AsyncDelegate) &AsyncDelegator {
+	return &AsyncDelegator{
+		mutex: sync.new_mutex()
+		delegate: delegate
+		allow_any: true
+		ruby_pid: os.getpid()
+	}
+}
+
+pub fn new_await_delegator(delegate &AsyncDelegator) &AwaitDelegator {
+	return &AwaitDelegator{
+		delegate: delegate
+	}
+}
+
+pub fn new_async_runtime(delegate AsyncDelegate, arities map[string]int) &AsyncRuntime {
+	async_delegator := new_async_delegator(delegate, arities)
+	return &AsyncRuntime{
+		async_delegator: async_delegator
+		await_delegator: new_await_delegator(async_delegator)
+	}
+}
+
+fn new_dynamic_async_runtime(delegate AsyncDelegate) &AsyncRuntime {
+	async_delegator := new_dynamic_async_delegator(delegate)
+	return &AsyncRuntime{
+		async_delegator: async_delegator
+		await_delegator: new_await_delegator(async_delegator)
+	}
+}
+
+fn perform_async_calls(mut delegator AsyncDelegator) {
+	delegator.perform()
+}
+
+fn (mut delegator AsyncDelegator) reset_if_forked_locked() bool {
+	current_pid := os.getpid()
+	if current_pid == delegator.ruby_pid {
+		return false
+	}
+	delegator.queue.clear()
+	delegator.ruby_pid = current_pid
+	return true
+}
+
+pub fn (mut delegator AsyncDelegator) reset_if_forked() bool {
+	delegator.mutex.lock()
+	reset := delegator.reset_if_forked_locked()
+	delegator.mutex.unlock()
+	return reset
+}
+
+pub fn (mut delegator AsyncDelegator) respond_to(method string) bool {
+	return delegator.allow_any || method in delegator.arities
+}
+
+pub fn (mut delegator AsyncDelegator) post(method string, args []brew_runtime.Value) !&IVar {
+	validate_async_argc(delegator.arities, delegator.allow_any, method, args)!
+	ivar := new_ivar()
+	delegator.mutex.lock()
+	delegator.reset_if_forked_locked()
+	delegator.queue << AsyncCall{
+		ivar: ivar
+		method: method
+		args: args.clone()
+	}
+	start_worker := delegator.queue.len == 1
+	delegator.mutex.unlock()
+	if start_worker {
+		spawn perform_async_calls(mut delegator)
+	}
+	return ivar
+}
+
+pub fn (mut delegator AsyncDelegator) perform() {
+	for {
+		delegator.mutex.lock()
+		if delegator.queue.len == 0 {
+			delegator.mutex.unlock()
+			return
+		}
+		call := delegator.queue[0]
+		delegator.mutex.unlock()
+
+		value := delegator.delegate(call.method, call.args) or {
+			mut failed_ivar := call.ivar
+			failed_ivar.fail(err.msg()) or { panic(err) }
+			delegator.mutex.lock()
+			if delegator.queue.len > 0 {
+				delegator.queue.delete(0)
+			}
+			delegator.mutex.unlock()
+			continue
+		}
+		mut successful_ivar := call.ivar
+		successful_ivar.set(value) or { panic(err) }
+
+		delegator.mutex.lock()
+		if delegator.queue.len > 0 {
+			delegator.queue.delete(0)
+		}
+		empty := delegator.queue.len == 0
+		delegator.mutex.unlock()
+		if empty {
+			return
+		}
+	}
+}
+
+pub fn (mut delegator AwaitDelegator) call(method string, args []brew_runtime.Value) !&IVar {
+	mut async_delegator := delegator.delegate
+	mut ivar := async_delegator.post(method, args)!
+	ivar.wait(none)
+	return ivar
+}
+
+pub fn (mut delegator AwaitDelegator) respond_to(method string) bool {
+	mut async_delegator := delegator.delegate
+	return async_delegator.respond_to(method)
+}
+
+pub fn (runtime &AsyncRuntime) async_proxy() &AsyncDelegator {
+	return runtime.async_delegator
+}
+
+pub fn (runtime &AsyncRuntime) cast() &AsyncDelegator {
+	return runtime.async_proxy()
+}
+
+pub fn (runtime &AsyncRuntime) await_proxy() &AwaitDelegator {
+	return runtime.await_delegator
+}
+
+pub fn (runtime &AsyncRuntime) call_proxy() &AwaitDelegator {
+	return runtime.await_proxy()
+}
+
+fn async_delegator_boundary_value(delegator &AsyncDelegator) brew_runtime.Value {
+	return brew_runtime.structured_value('Concurrent::Async::AsyncDelegator', '#<Concurrent::Async::AsyncDelegator>', {
+		'async_delegator_address': u64(voidptr(delegator)).str()
+	})
+}
+
+fn async_delegator_boundary_receiver(args []brew_runtime.Value) &AsyncDelegator {
+	if args.len == 0 {
+		panic('AsyncDelegator method requires a receiver')
+	}
+	address := (args[0].attribute('async_delegator_address') or {
+		panic('${args[0].type_name} has no translated AsyncDelegator state')
+	}).u64()
+	return unsafe { &AsyncDelegator(voidptr(address)) }
+}
+
+fn await_delegator_boundary_value(delegator &AwaitDelegator) brew_runtime.Value {
+	return brew_runtime.structured_value('Concurrent::Async::AwaitDelegator', '#<Concurrent::Async::AwaitDelegator>', {
+		'await_delegator_address': u64(voidptr(delegator)).str()
+	})
+}
+
+fn await_delegator_boundary_receiver(args []brew_runtime.Value) &AwaitDelegator {
+	if args.len == 0 {
+		panic('AwaitDelegator method requires a receiver')
+	}
+	address := (args[0].attribute('await_delegator_address') or {
+		panic('${args[0].type_name} has no translated AwaitDelegator state')
+	}).u64()
+	return unsafe { &AwaitDelegator(voidptr(address)) }
+}
+
+fn async_runtime_boundary_value(runtime &AsyncRuntime) brew_runtime.Value {
+	return brew_runtime.structured_value('Concurrent::Async::Runtime', '#<Concurrent::Async>', {
+		'async_runtime_address': u64(voidptr(runtime)).str()
+	})
+}
+
+fn async_runtime_boundary_receiver(args []brew_runtime.Value) &AsyncRuntime {
+	if args.len == 0 {
+		panic('Async method requires a receiver')
+	}
+	address := (args[0].attribute('async_runtime_address') or {
+		panic('${args[0].type_name} has no translated Async state')
+	}).u64()
+	return unsafe { &AsyncRuntime(voidptr(address)) }
+}
+
+fn async_boundary_delegate(_ string, args []brew_runtime.Value) !brew_runtime.Value {
+	return if args.len > 0 { args[args.len - 1] } else { ivar_nil_value() }
+}
+
+fn async_boundary_method(args []brew_runtime.Value) string {
+	if args.len < 2 {
+		panic('method_missing requires a method')
+	}
+	return args[1].as_string().trim_left(':')
+}
 
 // Ruby method `self.validate_argc(obj, method, *args)` at line 250.
 pub fn ruby_async_l250_d1_self_validate_argc(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.validate_argc', ...args)
+	if args.len < 2 {
+		panic('validate_argc requires an object and method')
+	}
+	method := args[1].as_string().trim_left(':')
+	attribute := args[0].attribute('arity:${method}') or { '' }
+	if attribute.len == 0 {
+		return ivar_nil_value()
+	}
+	validate_async_argc({
+		method: attribute.int()
+	}, false, method, args[2..]) or { panic(err) }
+	return ivar_nil_value()
 }
 
 // Ruby method `self.included(base)` at line 262.
 pub fn ruby_async_l262_d2_self_included(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.included', ...args)
+	if args.len == 0 {
+		panic('included requires a base')
+	}
+	return args[0]
 }
 
 // Ruby alias_method `base.singleton_class.send(:alias_method, :original_new, :new)` at line 263.
 pub fn ruby_async_l263_d3_original_new(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('original_new', ...args)
+	return if args.len > 0 { args[0] } else { ivar_nil_value() }
 }
 
 // Ruby method `new(*args, &block)` at line 270.
 pub fn ruby_async_l270_d4_new(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('new', ...args)
+	return async_runtime_boundary_value(new_dynamic_async_runtime(async_boundary_delegate))
 }
 
 // Ruby method `initialize(delegate)` at line 288.
 pub fn ruby_async_l288_d5_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	return async_delegator_boundary_value(new_dynamic_async_delegator(async_boundary_delegate))
 }
 
 // Ruby method `method_missing(method, *args, &block)` at line 305.
 pub fn ruby_async_l305_d6_method_missing(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('method_missing', ...args)
+	mut delegator := async_delegator_boundary_receiver(args)
+	method := async_boundary_method(args)
+	ivar := delegator.post(method, args[2..]) or { panic(err) }
+	return ivar_boundary_value(ivar)
 }
 
 // Ruby method `respond_to_missing?(method, include_private = false)` at line 322.
 pub fn ruby_async_l322_d7_respond_to_missing(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('respond_to_missing?', ...args)
+	mut delegator := async_delegator_boundary_receiver(args)
+	return brew_runtime.bool_value(delegator.respond_to(async_boundary_method(args)))
 }
 
 // Ruby method `perform` at line 330.
 pub fn ruby_async_l330_d8_perform(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('perform', ...args)
+	mut delegator := async_delegator_boundary_receiver(args)
+	delegator.perform()
+	return ivar_nil_value()
 }
 
 // Ruby method `reset_if_forked` at line 348.
 pub fn ruby_async_l348_d9_reset_if_forked(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reset_if_forked', ...args)
+	mut delegator := async_delegator_boundary_receiver(args)
+	delegator.reset_if_forked()
+	return ivar_nil_value()
 }
 
 // Ruby method `initialize(delegate)` at line 365.
 pub fn ruby_async_l365_d10_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	delegator := async_delegator_boundary_receiver(args)
+	return await_delegator_boundary_value(new_await_delegator(delegator))
 }
 
 // Ruby method `method_missing(method, *args, &block)` at line 378.
 pub fn ruby_async_l378_d11_method_missing(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('method_missing', ...args)
+	mut delegator := await_delegator_boundary_receiver(args)
+	method := async_boundary_method(args)
+	ivar := delegator.call(method, args[2..]) or { panic(err) }
+	return ivar_boundary_value(ivar)
 }
 
 // Ruby method `respond_to_missing?(method, include_private = false)` at line 387.
 pub fn ruby_async_l387_d12_respond_to_missing(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('respond_to_missing?', ...args)
+	mut delegator := await_delegator_boundary_receiver(args)
+	return brew_runtime.bool_value(delegator.respond_to(async_boundary_method(args)))
 }
 
 // Ruby method `async` at line 412.
 pub fn ruby_async_l412_d13_async(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('async', ...args)
+	runtime := async_runtime_boundary_receiver(args)
+	return async_delegator_boundary_value(runtime.async_proxy())
 }
 
 // Ruby alias_method `alias_method :cast, :async` at line 415.
 pub fn ruby_async_l415_d14_cast(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cast', ...args)
+	return ruby_async_l412_d13_async(...args)
 }
 
 // Ruby method `await` at line 430.
 pub fn ruby_async_l430_d15_await(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('await', ...args)
+	runtime := async_runtime_boundary_receiver(args)
+	return await_delegator_boundary_value(runtime.await_proxy())
 }
 
 // Ruby alias_method `alias_method :call, :await` at line 433.
 pub fn ruby_async_l433_d16_call(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('call', ...args)
+	return ruby_async_l430_d15_await(...args)
 }
 
 // Ruby method `init_synchronization` at line 441.
 pub fn ruby_async_l441_d17_init_synchronization(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('init_synchronization', ...args)
+	if args.len > 0 && args[0].type_name == 'Concurrent::Async::Runtime' {
+		return args[0]
+	}
+	return async_runtime_boundary_value(new_dynamic_async_runtime(async_boundary_delegate))
 }
 
 // Original Ruby source (line-for-line):

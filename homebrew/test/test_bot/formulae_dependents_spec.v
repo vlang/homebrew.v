@@ -1,28 +1,66 @@
 module test_bot
 
-import brew_runtime
+import homebrew.test_bot as formulae_dependents_core
 
 // Translated from Homebrew/brew `test/test_bot/formulae_dependents_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:formulae_dependents) do` at line 7.
-pub fn ruby_formulae_dependents_spec_l7_d1_formulae_dependents(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formulae_dependents', ...args)
+pub fn ruby_formulae_dependents_spec_l7_d1_formulae_dependents() &formulae_dependents_core.FormulaeDependents {
+	return formulae_dependents_core.new_formulae_dependents(formulae_dependents_core.FormulaeDependentsConfig{})
 }
 
 // Ruby it `it "keeps dependent formulae that depend on each other in the same shard" do` at line 12.
-pub fn ruby_formulae_dependents_spec_l12_d2_keeps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('keeps', ...args)
+pub fn ruby_formulae_dependents_spec_l12_d2_keeps() bool {
+	dependency := formulae_dependents_core.FormulaeDependentsFormula{
+		name: 'dependent-a'
+		full_name: 'dependent-a'
+	}
+	dependent := formulae_dependents_core.FormulaeDependentsFormula{
+		name: 'dependent-b'
+		full_name: 'dependent-b'
+	}
+	independent := formulae_dependents_core.FormulaeDependentsFormula{
+		name: 'dependent-c'
+		full_name: 'dependent-c'
+	}
+	shard := formulae_dependents_core.dependents_for_shard([
+		formulae_dependents_core.FormulaeDependentPair{
+			dependent: dependency
+		},
+		formulae_dependents_core.FormulaeDependentPair{
+			dependent: dependent
+			dependencies: [formulae_dependents_core.FormulaeDependentsDependency{
+				name: 'dependent-a'
+				formula_name: 'dependent-a'
+			}]
+		},
+		formulae_dependents_core.FormulaeDependentPair{
+			dependent: independent
+		},
+	], '1/2') or { return false }
+	names := shard.map(it.dependent.name)
+	return names.len == 2 && 'dependent-a' in names && 'dependent-b' in names
 }
 
 // Ruby it `it "rejects invalid shard indexes" do` at line 43.
-pub fn ruby_formulae_dependents_spec_l43_d3_rejects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('rejects', ...args)
+pub fn ruby_formulae_dependents_spec_l43_d3_rejects() bool {
+	formulae_dependents_core.dependents_for_shard([]formulae_dependents_core.FormulaeDependentPair{}, '2/1') or { return err.msg().contains('must not be greater') }
+	return false
 }
 
 // Ruby it `it "returns no formulae for an empty shard" do` at line 48.
-pub fn ruby_formulae_dependents_spec_l48_d4_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_formulae_dependents_spec_l48_d4_returns() bool {
+	dependent := formulae_dependents_core.FormulaeDependentsFormula{
+		name: 'dependent-a'
+		full_name: 'dependent-a'
+	}
+	shard := formulae_dependents_core.dependents_for_shard([
+		formulae_dependents_core.FormulaeDependentPair{
+			dependent: dependent
+		},
+	], '2/2') or { return false }
+	return shard.len == 0
 }
 
 // Original Ruby source (line-for-line):

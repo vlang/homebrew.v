@@ -1,33 +1,62 @@
 module utils
 
 import brew_runtime
+import homebrew.utils as production_utils
 
 // Translated from Homebrew/brew `test/utils/repology_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `stub_curl(success:, stdout: "", stderr: "", exit_status: 0)` at line 17.
 pub fn ruby_repology_spec_l17_d1_stub_curl(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('stub_curl', ...args)
+	success := args.len > 0 && (args[0].as_bool() or { false })
+	stdout := if args.len > 1 { args[1].as_string() } else { '' }
+	stderr := if args.len > 2 { args[2].as_string() } else { '' }
+	exit_status := if args.len > 3 { args[3].as_int() or { 0 } } else { 0 }
+	return brew_runtime.map_value({
+		'success':     brew_runtime.bool_value(success)
+		'stdout':      brew_runtime.string_value(stdout)
+		'stderr':      brew_runtime.string_value(stderr)
+		'exit_status': brew_runtime.int_value(exit_status)
+	})
 }
 
 // Ruby it `it "URL-encodes the project name and passes --fail" do` at line 21.
 pub fn ruby_repology_spec_l21_d2_url_encodes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('URL-encodes', ...args)
+	_ = args
+	result := production_utils.repology_single_package_query('gtk+3', production_utils.repology_homebrew_core, true, production_utils.RepologyCurlResult{ success: true, stdout: '[]' }, false)
+	return brew_runtime.bool_value('--fail' in result.arguments
+		&& '${production_utils.repology_api_base}/project/gtk%2B3' in result.arguments
+		&& result.data.map_data['gtk+3'].type_name == 'Array')
 }
 
 // Ruby it `it "returns nil (rather than raising) on HTTP failure" do` at line 30.
 pub fn ruby_repology_spec_l30_d3_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	result := production_utils.repology_single_package_query('curl', production_utils.repology_homebrew_core, true, production_utils.RepologyCurlResult{
+		stderr: 'The requested URL returned error: 503'
+		exit_status: 22
+	}, false)
+	return brew_runtime.bool_value(result.error_output.len > 0 && result.data.type_name == '')
 }
 
 // Ruby it `it "returns nil on invalid JSON" do` at line 38.
 pub fn ruby_repology_spec_l38_d4_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	result := production_utils.repology_single_package_query('curl', production_utils.repology_homebrew_core, true, production_utils.RepologyCurlResult{
+		success: true
+		stdout: 'not json'
+	}, false)
+	return brew_runtime.bool_value(result.error_output.len > 0 && result.data.type_name == '')
 }
 
 // Ruby it `it "URL-encodes the pagination cursor" do` at line 46.
 pub fn ruby_repology_spec_l46_d5_url_encodes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('URL-encodes', ...args)
+	_ = args
+	result := production_utils.repology_query_api('gtk+3', production_utils.repology_homebrew_core, true, production_utils.RepologyCurlResult{
+		success: true
+		stdout: '{}'
+	}, false) or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value(result.url == '${production_utils.repology_api_base}/projects/gtk%2B3/?inrepo=${production_utils.repology_homebrew_core}&outdated=1')
 }
 
 // Original Ruby source (line-for-line):

@@ -1,208 +1,306 @@
 module test
 
 import brew_runtime
+import homebrew
+import homebrew.extend.os.mac as missing_formula_mac
+
+fn missing_formula_spec_nil() brew_runtime.Value {
+	return brew_runtime.object_value('NilClass', 'nil')
+}
+
+fn missing_formula_spec_bool(value bool) brew_runtime.Value {
+	return brew_runtime.bool_value(value)
+}
+
+fn missing_formula_spec_reason_value(reason homebrew.MissingFormulaReason) brew_runtime.Value {
+	if !reason.present {
+		return missing_formula_spec_nil()
+	}
+	return brew_runtime.string_value(reason.text)
+}
+
+fn missing_formula_spec_tap(target string) homebrew.MissingFormulaTap {
+	return homebrew.MissingFormulaTap{
+		name: 'homebrew/foo'
+		issues_url: 'https://github.com/Homebrew/homebrew-foo/issues'
+		migrations: {
+			'migrated-formula': target
+		}
+	}
+}
+
+fn missing_formula_spec_migration_reason(formula string, target string) homebrew.MissingFormulaReason {
+	return homebrew.missing_formula_tap_migration_reason(formula, [
+		missing_formula_spec_tap(target),
+	])
+}
+
+fn missing_formula_spec_deleted_reason(formula string, core_tap bool) homebrew.MissingFormulaReason {
+	deleted := formula.ends_with('/deleted-formula')
+	return homebrew.missing_formula_deleted_reason(homebrew.MissingDeletedFormula{
+		name: formula
+		tap_name: 'homebrew/foo'
+		tap_issues_url: 'https://github.com/Homebrew/homebrew-foo/issues'
+		path_exists: false
+		tap_path_exists: true
+		core_tap: core_tap
+		deleted_in_diff: deleted
+		commit_hash: if deleted { '0123456789abcdef' } else { '' }
+		short_hash: if deleted { '0123456' } else { '' }
+		commit_message: if deleted { "delete formula 'deleted-formula'" } else { '' }
+		relative_path: 'Formula/${formula.all_after_last('/')}.rb'
+		relative_path_string: if deleted {
+			'Formula/deleted-formula.rb'} else {
+			''}
+	})
+}
+
+fn missing_formula_spec_cask(name string, installed bool) homebrew.MissingFormulaCask {
+	return homebrew.MissingFormulaCask{
+		name: name
+		available: name == 'local-caffeine'
+		installed: installed
+		info: '==> local-caffeine: 1.2.3\nhttps://example.com/local-caffeine\n'
+	}
+}
 
 // Translated from Homebrew/brew `test/missing_formula_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject { described_class.reason("gem") }` at line 8.
 pub fn ruby_missing_formula_spec_l8_d1_subject_dynamic(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('subject_dynamic', ...args)
+	return missing_formula_spec_reason_value(homebrew.missing_formula_reason('gem', false, false, homebrew.MissingFormulaContext{}))
 }
 
 // Ruby it `it { is_expected.not_to be_nil }` at line 10.
 pub fn ruby_missing_formula_spec_l10_d2_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('{', ...args)
+	return missing_formula_spec_bool(ruby_missing_formula_spec_l8_d1_subject_dynamic().type_name != 'NilClass')
 }
 
 // Ruby matcher `matcher :disallow do |name|` at line 14.
 pub fn ruby_missing_formula_spec_l14_d3_disallow(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('disallow', ...args)
+	name := if args.len > 0 { args[0].as_string() } else { 'gem' }
+	return missing_formula_spec_bool(homebrew.missing_formula_disallowed_reason(name).present)
 }
 
 // Ruby specify `specify(:aggregate_failures) do` at line 20.
 pub fn ruby_missing_formula_spec_l20_d4_aggregate_failures(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('aggregate_failures', ...args)
+	return missing_formula_spec_bool([
+		'gem',
+		'pip',
+		'pil',
+		'macruby',
+		'lzma',
+		'gsutil',
+		'gfortran',
+		'play',
+		'haskell-platform',
+		'mysqldump-secure',
+		'ngrok',
+	].all(homebrew.missing_formula_disallowed_reason(it).present))
 }
 
 // Ruby it `it("disallows Xcode", :needs_macos) { is_expected.to disallow("xcode") }` at line 34.
 pub fn ruby_missing_formula_spec_l34_d5_disallows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('disallows', ...args)
+	return missing_formula_spec_bool(missing_formula_mac.mac_missing_formula_disallowed_reason('xcode').present)
 }
 
 // Ruby subject `subject(:reason) { described_class.tap_migration_reason(formula) }` at line 38.
 pub fn ruby_missing_formula_spec_l38_d6_reason(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reason', ...args)
+	formula := if args.len > 0 { args[0].as_string() } else { 'migrated-formula' }
+	target := if args.len > 1 { args[1].as_string() } else { 'homebrew/bar' }
+	return missing_formula_spec_reason_value(missing_formula_spec_migration_reason(formula, target))
 }
 
 // Ruby let `let(:migration_target) { "homebrew/bar" }` at line 40.
 pub fn ruby_missing_formula_spec_l40_d7_migration_target(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('migration_target', ...args)
+	return brew_runtime.string_value('homebrew/bar')
 }
 
 // Ruby let `let(:formula) { "migrated-formula" }` at line 51.
 pub fn ruby_missing_formula_spec_l51_d8_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula', ...args)
+	return brew_runtime.string_value('migrated-formula')
 }
 
 // Ruby it `it { is_expected.not_to be_nil }` at line 53.
 pub fn ruby_missing_formula_spec_l53_d9_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('{', ...args)
+	return missing_formula_spec_bool(ruby_missing_formula_spec_l38_d6_reason().type_name != 'NilClass')
 }
 
 // Ruby let `let(:formula) { "missing-formula" }` at line 57.
 pub fn ruby_missing_formula_spec_l57_d10_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula', ...args)
+	return brew_runtime.string_value('missing-formula')
 }
 
 // Ruby it `it { is_expected.to be_nil }` at line 59.
 pub fn ruby_missing_formula_spec_l59_d11_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('{', ...args)
+	result := ruby_missing_formula_spec_l38_d6_reason(ruby_missing_formula_spec_l57_d10_formula(), ruby_missing_formula_spec_l40_d7_migration_target())
+	return missing_formula_spec_bool(result.type_name == 'NilClass')
 }
 
 // Ruby let `let(:formula) { "migrated-formula" }` at line 63.
 pub fn ruby_missing_formula_spec_l63_d12_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula', ...args)
+	return brew_runtime.string_value('migrated-formula')
 }
 
 // Ruby let `let(:migration_target) { "renamed-formula" }` at line 64.
 pub fn ruby_missing_formula_spec_l64_d13_migration_target(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('migration_target', ...args)
+	return brew_runtime.string_value('renamed-formula')
 }
 
 // Ruby specify `specify(:aggregate_failures) do` at line 66.
 pub fn ruby_missing_formula_spec_l66_d14_aggregate_failures(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('aggregate_failures', ...args)
+	reason := missing_formula_spec_migration_reason('migrated-formula', 'renamed-formula')
+	return missing_formula_spec_bool(reason.present && reason.text.contains('brew install renamed-formula') && !reason.text.contains('brew tap'))
 }
 
 // Ruby subject `subject { described_class.deleted_reason(formula, silent: true) }` at line 74.
 pub fn ruby_missing_formula_spec_l74_d15_subject_dynamic(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('subject_dynamic', ...args)
+	formula := if args.len > 0 {
+		args[0].as_string()
+	} else {
+		'homebrew/foo/deleted-formula'
+	}
+	return missing_formula_spec_reason_value(missing_formula_spec_deleted_reason(formula, false))
 }
 
 // Ruby let `let(:formula) { "homebrew/foo/deleted-formula" }` at line 94.
 pub fn ruby_missing_formula_spec_l94_d16_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula', ...args)
+	return brew_runtime.string_value('homebrew/foo/deleted-formula')
 }
 
 // Ruby it `it { is_expected.not_to be_nil }` at line 96.
 pub fn ruby_missing_formula_spec_l96_d17_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('{', ...args)
+	formula := ruby_missing_formula_spec_l94_d16_formula().as_string()
+	return missing_formula_spec_bool(missing_formula_spec_deleted_reason(formula, false).present && missing_formula_spec_deleted_reason(formula, true).present)
 }
 
 // Ruby let `let(:formula) { "homebrew/foo/missing-formula" }` at line 100.
 pub fn ruby_missing_formula_spec_l100_d18_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula', ...args)
+	return brew_runtime.string_value('homebrew/foo/missing-formula')
 }
 
 // Ruby it `it { is_expected.to be_nil }` at line 102.
 pub fn ruby_missing_formula_spec_l102_d19_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('{', ...args)
+	formula := ruby_missing_formula_spec_l100_d18_formula().as_string()
+	return missing_formula_spec_bool(!missing_formula_spec_deleted_reason(formula, false).present && !missing_formula_spec_deleted_reason(formula, true).present)
 }
 
 // Ruby subject `subject(:reason) { described_class.cask_reason(formula, show_info:) }` at line 118.
 pub fn ruby_missing_formula_spec_l118_d20_reason(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reason', ...args)
+	formula := if args.len > 0 { args[0].as_string() } else { 'local-caffeine' }
+	show_info := args.len > 1 && args[1].bool_data
+	reason := missing_formula_mac.mac_missing_formula_cask_reason(formula, false, show_info, missing_formula_spec_cask(formula, false))
+	return missing_formula_spec_reason_value(reason)
 }
 
 // Ruby let `let(:formula) { "local-caffeine" }` at line 121.
 pub fn ruby_missing_formula_spec_l121_d21_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula', ...args)
+	return brew_runtime.string_value('local-caffeine')
 }
 
 // Ruby let `let(:show_info) { false }` at line 122.
 pub fn ruby_missing_formula_spec_l122_d22_show_info(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('show_info', ...args)
+	return brew_runtime.bool_value(false)
 }
 
 // Ruby specify `specify(:aggregate_failures) do` at line 124.
 pub fn ruby_missing_formula_spec_l124_d23_aggregate_failures(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('aggregate_failures', ...args)
+	reason := ruby_missing_formula_spec_l118_d20_reason().as_string()
+	return missing_formula_spec_bool(reason.contains('Found a cask named "local-caffeine" instead.') && reason.contains('Try\n  brew install --cask local-caffeine'))
 }
 
 // Ruby let `let(:formula) { "local-caffeine" }` at line 131.
 pub fn ruby_missing_formula_spec_l131_d24_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula', ...args)
+	return brew_runtime.string_value('local-caffeine')
 }
 
 // Ruby let `let(:show_info) { true }` at line 132.
 pub fn ruby_missing_formula_spec_l132_d25_show_info(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('show_info', ...args)
+	return brew_runtime.bool_value(true)
 }
 
 // Ruby it `it { is_expected.to match(/Found a cask named "local-caffeine" instead.\n\n==> local-caffeine: 1.2.3\n/) }` at line 134.
 pub fn ruby_missing_formula_spec_l134_d26_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('{', ...args)
+	reason := ruby_missing_formula_spec_l118_d20_reason(ruby_missing_formula_spec_l131_d24_formula(), ruby_missing_formula_spec_l132_d25_show_info()).as_string()
+	return missing_formula_spec_bool(reason.contains('Found a cask named "local-caffeine" instead.\n\n==> local-caffeine: 1.2.3\n'))
 }
 
 // Ruby let `let(:formula) { "missing-formula" }` at line 138.
 pub fn ruby_missing_formula_spec_l138_d27_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula', ...args)
+	return brew_runtime.string_value('missing-formula')
 }
 
 // Ruby let `let(:show_info) { false }` at line 139.
 pub fn ruby_missing_formula_spec_l139_d28_show_info(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('show_info', ...args)
+	return brew_runtime.bool_value(false)
 }
 
 // Ruby it `it { is_expected.to be_nil }` at line 141.
 pub fn ruby_missing_formula_spec_l141_d29_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('{', ...args)
+	result := ruby_missing_formula_spec_l118_d20_reason(ruby_missing_formula_spec_l138_d27_formula(), ruby_missing_formula_spec_l139_d28_show_info())
+	return missing_formula_spec_bool(result.type_name == 'NilClass')
 }
 
 // Ruby subject `subject(:reason) { described_class.suggest_command(name, command) }` at line 146.
 pub fn ruby_missing_formula_spec_l146_d30_reason(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reason', ...args)
+	name := if args.len > 0 { args[0].as_string() } else { 'local-caffeine' }
+	command := if args.len > 1 { args[1].as_string() } else { 'install' }
+	installed := args.len > 2 && args[2].bool_data
+	return missing_formula_spec_reason_value(missing_formula_mac.mac_missing_formula_suggest_command(name, command, missing_formula_spec_cask(name, installed)))
 }
 
 // Ruby let `let(:name) { "local-caffeine" }` at line 149.
 pub fn ruby_missing_formula_spec_l149_d31_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('name', ...args)
+	return brew_runtime.string_value('local-caffeine')
 }
 
 // Ruby let `let(:command) { "install" }` at line 150.
 pub fn ruby_missing_formula_spec_l150_d32_command(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('command', ...args)
+	return brew_runtime.string_value('install')
 }
 
 // Ruby specify `specify(:aggregate_failures) do` at line 152.
 pub fn ruby_missing_formula_spec_l152_d33_aggregate_failures(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('aggregate_failures', ...args)
+	reason := ruby_missing_formula_spec_l146_d30_reason().as_string()
+	return missing_formula_spec_bool(reason.contains('Found a cask named "local-caffeine" instead.') && reason.contains('Try\n  brew install --cask local-caffeine'))
 }
 
 // Ruby let `let(:name) { "local-caffeine" }` at line 159.
 pub fn ruby_missing_formula_spec_l159_d34_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('name', ...args)
+	return brew_runtime.string_value('local-caffeine')
 }
 
 // Ruby let `let(:command) { "uninstall" }` at line 160.
 pub fn ruby_missing_formula_spec_l160_d35_command(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('command', ...args)
+	return brew_runtime.string_value('uninstall')
 }
 
 // Ruby it `it { is_expected.to be_nil }` at line 162.
 pub fn ruby_missing_formula_spec_l162_d36_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('{', ...args)
+	return missing_formula_spec_bool(ruby_missing_formula_spec_l146_d30_reason(ruby_missing_formula_spec_l159_d34_name(), ruby_missing_formula_spec_l160_d35_command()).type_name == 'NilClass')
 }
 
 // Ruby specify `specify(:aggregate_failures) do` at line 169.
 pub fn ruby_missing_formula_spec_l169_d37_aggregate_failures(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('aggregate_failures', ...args)
+	reason := ruby_missing_formula_spec_l146_d30_reason(ruby_missing_formula_spec_l159_d34_name(), ruby_missing_formula_spec_l160_d35_command(), brew_runtime.bool_value(true)).as_string()
+	return missing_formula_spec_bool(reason.contains('Found a cask named "local-caffeine" instead.') && reason.contains('Try\n  brew uninstall --cask local-caffeine'))
 }
 
 // Ruby let `let(:name) { "local-caffeine" }` at line 177.
 pub fn ruby_missing_formula_spec_l177_d38_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('name', ...args)
+	return brew_runtime.string_value('local-caffeine')
 }
 
 // Ruby let `let(:command) { "info" }` at line 178.
 pub fn ruby_missing_formula_spec_l178_d39_command(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('command', ...args)
+	return brew_runtime.string_value('info')
 }
 
 // Ruby specify `specify(:aggregate_failures) do` at line 180.
 pub fn ruby_missing_formula_spec_l180_d40_aggregate_failures(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('aggregate_failures', ...args)
+	reason := ruby_missing_formula_spec_l146_d30_reason(ruby_missing_formula_spec_l177_d38_name(), ruby_missing_formula_spec_l178_d39_command()).as_string()
+	return missing_formula_spec_bool(reason.contains('Found a cask named "local-caffeine" instead.') && reason.contains('local-caffeine: 1.2.3'))
 }
 
 // Original Ruby source (line-for-line):

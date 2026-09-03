@@ -1,213 +1,679 @@
 module homebrew
 
-import brew_runtime
+import crypto.sha256
+import hash.fnv1a
+import homebrew.download_strategy
+import os
+import sync
 
 // Translated from Homebrew/brew `downloadable.rb`.
-// The original source is retained below until every stub has a typed V body.
+pub enum DownloadablePhase {
+	preparing
+	downloading
+	downloaded
+	verifying
+	verified
+	extracting
+}
+
+pub enum DownloadableFetchFailureKind {
+	none
+	error_during_execution
+	curl_download_strategy
+	other
+}
+
+pub struct DownloadableFetchFailure {
+pub:
+	kind    DownloadableFetchFailureKind
+	message string
+}
+
+pub fn (failure DownloadableFetchFailure) msg() string {
+	return failure.message
+}
+
+pub fn (_ DownloadableFetchFailure) code() int {
+	return 1
+}
+
+pub struct DownloadableDownloadError {
+pub:
+	download_queue_name string
+	cause               DownloadableFetchFailure
+}
+
+pub fn (download_error DownloadableDownloadError) msg() string {
+	return 'Failed to download resource "${download_error.download_queue_name}"\n${download_error.cause.message}\n'
+}
+
+pub fn (_ DownloadableDownloadError) code() int {
+	return 1
+}
+
+pub struct DownloadableDownloaderRequest {
+pub:
+	strategy    download_strategy.DownloadStrategy
+	primary_url string
+	name        string
+	version     ?Version
+	mirrors     []string
+	cache       string
+	specs       map[string]string
+}
+
+// This is the injected AbstractDownloadStrategy boundary. Fetching is an
+// external effect, so the collaborator supplies its outcome while this value
+// records the exact calls Downloadable makes.
+pub struct DownloadableDownloader {
+pub:
+	request DownloadableDownloaderRequest
+pub mut:
+	cached_location_value           string
+	fetched_size_value              i64
+	has_fetched_size                bool
+	total_size_value                i64
+	has_total_size                  bool
+	fetch_failure                   DownloadableFetchFailure
+	clear_cache_failure             string
+	quiet_value                     bool
+	deferred_environment_expansion  bool
+	fetch_calls                     int
+	clear_cache_calls               int
+	last_timeout                    f64
+	has_last_timeout                bool
+	remove_cached_location_on_clear bool
+}
+
+pub fn (downloader &DownloadableDownloader) cached_location() string {
+	return downloader.cached_location_value
+}
+
+pub fn (mut downloader DownloadableDownloader) quiet() {
+	downloader.quiet_value = true
+}
+
+pub fn (mut downloader DownloadableDownloader) allow_deferred_environment_expansion() {
+	downloader.deferred_environment_expansion = true
+}
+
+pub fn (mut downloader DownloadableDownloader) fetch(timeout ?f64) ?DownloadableFetchFailure {
+	downloader.fetch_calls++
+	if value := timeout {
+		downloader.last_timeout = value
+		downloader.has_last_timeout = true
+	} else {
+		downloader.last_timeout = 0
+		downloader.has_last_timeout = false
+	}
+	if downloader.fetch_failure.kind != .none {
+		return downloader.fetch_failure
+	}
+	return none
+}
+
+pub fn (mut downloader DownloadableDownloader) clear_cache() ! {
+	downloader.clear_cache_calls++
+	if downloader.clear_cache_failure != '' {
+		return error(downloader.clear_cache_failure)
+	}
+	path := downloader.cached_location_value
+	if downloader.remove_cached_location_on_clear && (os.exists(path) || os.is_link(path)) {
+		if os.is_dir(path) && !os.is_link(path) {
+			os.rmdir_all(path)!
+		} else {
+			os.rm(path)!
+		}
+	}
+}
+
+pub fn (downloader &DownloadableDownloader) fetched_size() ?i64 {
+	if downloader.has_fetched_size {
+		return downloader.fetched_size_value
+	}
+	return none
+}
+
+pub fn (downloader &DownloadableDownloader) total_size() ?i64 {
+	if downloader.has_total_size {
+		return downloader.total_size_value
+	}
+	return none
+}
+
+pub type DownloadableDownloaderFactory = fn(DownloadableDownloaderRequest) !DownloadableDownloader
+
+@[heap]
+pub struct DownloadableVerificationCache {
+pub mut:
+	verified       map[string]bool
+	verbose        bool
+	debug_messages []string
+	info_messages  []string
+	mutex          sync.Mutex
+}
+
+@[heap]
+pub struct DownloadableContext {
+pub mut:
+	verification_cache DownloadableVerificationCache
+}
+
+pub struct DownloadableVerificationResult {
+pub:
+	skipped bool
+	key     string
+	has_key bool
+}
+
+// DownloadableSize preserves Ruby's nilable Integer without relying on V's
+// unsupported Result-of-Option combination.
+pub struct DownloadableSize {
+pub:
+	value     i64
+	has_value bool
+}
+
+@[heap]
+pub struct Downloadable {
+pub mut:
+	class_name                  string
+	download_queue_type_value   string
+	url_value                   Url
+	has_url                     bool
+	determined_url_value        Url
+	has_determined_url_override bool
+	checksum_value              Checksum
+	has_checksum                bool
+	mirrors                     []string
+	version_value               Version
+	has_version                 bool
+	download_strategy_value     download_strategy.DownloadStrategy
+	has_download_strategy       bool
+	downloader_value            DownloadableDownloader
+	has_downloader              bool
+	download_name_value         string
+	has_download_name           bool
+	phase                       DownloadablePhase
+	total_size_value            i64
+	has_total_size              bool
+	cache_path                  string
+	silence_checksum_missing    bool
+	frozen                      bool
+	checksum_frozen             bool
+	mirrors_frozen              bool
+	version_frozen              bool
+	warnings                    []string
+}
+
+fn downloadable_default_cache() string {
+	if cache := os.getenv_opt('HOMEBREW_CACHE') {
+		if cache != '' {
+			return cache
+		}
+	}
+	$if macos {
+		return os.join_path(os.home_dir(), 'Library/Caches/Homebrew')
+	} $else {
+		base := os.getenv('XDG_CACHE_HOME')
+		return os.join_path(if base != '' { base } else { os.join_path(os.home_dir(), '.cache') }, 'Homebrew')
+	}
+}
+
+pub fn new_downloadable() Downloadable {
+	return Downloadable{
+		class_name: 'Downloadable'
+		phase: .preparing
+		cache_path: downloadable_default_cache()
+	}
+}
+
+pub fn new_downloadable_context() DownloadableContext {
+	return DownloadableContext{
+		verification_cache: DownloadableVerificationCache{
+			verified: map[string]bool{}
+		}
+	}
+}
+
+fn downloadable_url(downloadable &Downloadable) ?Url {
+	if downloadable.has_determined_url_override {
+		return downloadable.determined_url_value
+	}
+	if downloadable.has_url {
+		return downloadable.url_value
+	}
+	return none
+}
+
+fn downloadable_url_text(downloadable &Downloadable) string {
+	if url := downloadable_url(downloadable) {
+		return url.to_s()
+	}
+	return ''
+}
+
+fn downloadable_checksum_is_blank(downloadable &Downloadable) bool {
+	return !downloadable.has_checksum || downloadable.checksum_value.is_empty()
+}
+
+fn downloadable_verify_checksum(filename string, checksum Checksum) ! {
+	actual := sha256.sum256(os.read_bytes(filename)!).hex()
+	if actual != checksum.hexdigest {
+		return error('ChecksumMismatchError: SHA-256 mismatch for ${filename}: expected ${checksum.hexdigest}, got ${actual}')
+	}
+}
+
+fn downloadable_curl_derived(strategy download_strategy.DownloadStrategy) bool {
+	return strategy in [.curl_apache_mirror, .curl, .curl_github_packages, .curl_post, .homebrew_curl,
+		.no_unzip_curl, .pypi]
+}
 
 // Ruby method `initialize` at line 25.
-pub fn ruby_downloadable_l25_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+pub fn ruby_downloadable_l25_d1_initialize() DownloadableVerificationCache {
+	return DownloadableVerificationCache{
+		verified: map[string]bool{}
+	}
 }
 
 // Ruby method `verify(filename, checksum)` at line 34.
-pub fn ruby_downloadable_l34_d2_verify(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('verify', ...args)
+pub fn ruby_downloadable_l34_d2_verify(mut cache DownloadableVerificationCache, filename string,
+	checksum ?Checksum) !DownloadableVerificationResult {
+	key := ruby_downloadable_l53_d3_key_for(filename, checksum)
+	if value := key {
+		cache.mutex.lock()
+		already_verified := cache.verified[value]
+		cache.mutex.unlock()
+		if already_verified {
+			cache.debug_messages << "Skipping checksum verification for '${os.file_name(filename)}' (already verified in this run)"
+			return DownloadableVerificationResult{
+				skipped: true
+				key: value
+				has_key: true
+			}
+		}
+	}
+	if cache.verbose {
+		cache.info_messages << "Verifying checksum for '${os.file_name(filename)}'"
+	}
+	digest := checksum or { return error('ChecksumMissingError') }
+	downloadable_verify_checksum(filename, digest)!
+	if value := key {
+		cache.mutex.lock()
+		cache.verified[value] = true
+		cache.mutex.unlock()
+		return DownloadableVerificationResult{
+			key: value
+			has_key: true
+		}
+	}
+	return DownloadableVerificationResult{}
 }
 
 // Ruby method `key_for(filename, checksum)` at line 53.
-pub fn ruby_downloadable_l53_d3_key_for(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('key_for', ...args)
+pub fn ruby_downloadable_l53_d3_key_for(filename string, checksum ?Checksum) ?string {
+	digest := checksum or { return none }
+	if !os.exists(filename) {
+		return none
+	}
+	size := os.file_size(filename)
+	modified := os.file_last_mod_unix(filename)
+	return '${os.abs_path(filename)}|${digest.hexdigest}|${size}|${f64(modified)}'
 }
 
 // Ruby method `verification_cache` at line 65.
-pub fn ruby_downloadable_l65_d4_verification_cache(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('verification_cache', ...args)
+pub fn ruby_downloadable_l65_d4_verification_cache(mut context DownloadableContext) &DownloadableVerificationCache {
+	return &context.verification_cache
 }
 
 // Ruby attr_reader `attr_reader :url` at line 71.
-pub fn ruby_downloadable_l71_d5_url(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('url', ...args)
+pub fn ruby_downloadable_l71_d5_url(downloadable &Downloadable) ?Url {
+	if downloadable.has_url {
+		return downloadable.url_value
+	}
+	return none
 }
 
 // Ruby attr_reader `attr_reader :checksum` at line 74.
-pub fn ruby_downloadable_l74_d6_checksum(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('checksum', ...args)
+pub fn ruby_downloadable_l74_d6_checksum(downloadable &Downloadable) ?Checksum {
+	if downloadable.has_checksum {
+		return downloadable.checksum_value
+	}
+	return none
 }
 
 // Ruby attr_reader `attr_reader :mirrors` at line 77.
-pub fn ruby_downloadable_l77_d7_mirrors(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('mirrors', ...args)
+pub fn ruby_downloadable_l77_d7_mirrors(downloadable &Downloadable) []string {
+	return downloadable.mirrors.clone()
 }
 
 // Ruby attr_accessor `attr_accessor :phase` at line 80.
-pub fn ruby_downloadable_l80_d8_phase(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('phase', ...args)
+pub fn ruby_downloadable_l80_d8_phase(downloadable &Downloadable) DownloadablePhase {
+	return downloadable.phase
 }
 
 // Ruby attr_accessor `attr_accessor :phase` at line 80.
-pub fn ruby_downloadable_l80_d9_phase(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('phase=', ...args)
+pub fn ruby_downloadable_l80_d9_phase(mut downloadable Downloadable, phase DownloadablePhase) DownloadablePhase {
+	downloadable.phase = phase
+	return phase
 }
 
 // Ruby method `downloading! = (@phase = :downloading)` at line 83.
-pub fn ruby_downloadable_l83_d10_downloading(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('downloading!', ...args)
+pub fn ruby_downloadable_l83_d10_downloading(mut downloadable Downloadable) {
+	downloadable.phase = .downloading
 }
 
 // Ruby method `downloaded! = (@phase = :downloaded)` at line 85.
-pub fn ruby_downloadable_l85_d11_downloaded(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('downloaded!', ...args)
+pub fn ruby_downloadable_l85_d11_downloaded(mut downloadable Downloadable) {
+	downloadable.phase = .downloaded
 }
 
 // Ruby method `verifying! = (@phase = :verifying)` at line 87.
-pub fn ruby_downloadable_l87_d12_verifying(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('verifying!', ...args)
+pub fn ruby_downloadable_l87_d12_verifying(mut downloadable Downloadable) {
+	downloadable.phase = .verifying
 }
 
 // Ruby method `verified! = (@phase = :verified)` at line 89.
-pub fn ruby_downloadable_l89_d13_verified(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('verified!', ...args)
+pub fn ruby_downloadable_l89_d13_verified(mut downloadable Downloadable) {
+	downloadable.phase = .verified
 }
 
 // Ruby method `extracting! = (@phase = :extracting)` at line 91.
-pub fn ruby_downloadable_l91_d14_extracting(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('extracting!', ...args)
+pub fn ruby_downloadable_l91_d14_extracting(mut downloadable Downloadable) {
+	downloadable.phase = .extracting
 }
 
 // Ruby method `initialize` at line 94.
-pub fn ruby_downloadable_l94_d15_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+pub fn ruby_downloadable_l94_d15_initialize() Downloadable {
+	return new_downloadable()
 }
 
 // Ruby method `initialize_dup(other)` at line 106.
-pub fn ruby_downloadable_l106_d16_initialize_dup(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize_dup', ...args)
+pub fn ruby_downloadable_l106_d16_initialize_dup(other Downloadable) Downloadable {
+	mut duplicate := other
+	duplicate.mirrors = other.mirrors.clone()
+	duplicate.frozen = false
+	duplicate.checksum_frozen = false
+	duplicate.mirrors_frozen = false
+	duplicate.version_frozen = false
+	return duplicate
 }
 
 // Ruby method `freeze` at line 114.
-pub fn ruby_downloadable_l114_d17_freeze(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('freeze', ...args)
+pub fn ruby_downloadable_l114_d17_freeze(mut downloadable Downloadable) Downloadable {
+	downloadable.checksum_frozen = true
+	downloadable.mirrors_frozen = true
+	downloadable.version_frozen = true
+	downloadable.frozen = true
+	return downloadable
 }
 
 // Ruby method `download_queue_name = download_name` at line 122.
-pub fn ruby_downloadable_l122_d18_download_queue_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('download_queue_name', ...args)
+pub fn ruby_downloadable_l122_d18_download_queue_name(mut downloadable Downloadable) string {
+	return ruby_downloadable_l275_d37_download_name(mut downloadable)
 }
 
 // Ruby method `download_queue_type; end` at line 125.
-pub fn ruby_downloadable_l125_d19_download_queue_type(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('download_queue_type', ...args)
+pub fn ruby_downloadable_l125_d19_download_queue_type(downloadable &Downloadable) string {
+	return downloadable.download_queue_type_value
 }
 
 // Ruby method `download_queue_message` at line 128.
-pub fn ruby_downloadable_l128_d20_download_queue_message(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('download_queue_message', ...args)
+pub fn ruby_downloadable_l128_d20_download_queue_message(mut downloadable Downloadable) string {
+	return '${ruby_downloadable_l125_d19_download_queue_type(downloadable)} ${ruby_downloadable_l122_d18_download_queue_name(mut downloadable)}'
 }
 
 // Ruby method `downloaded?` at line 133.
-pub fn ruby_downloadable_l133_d21_downloaded(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('downloaded?', ...args)
+pub fn ruby_downloadable_l133_d21_downloaded(mut downloadable Downloadable,
+	factory DownloadableDownloaderFactory) !bool {
+	path := ruby_downloadable_l149_d23_cached_download(mut downloadable, factory)!
+	return os.exists(path)
 }
 
 // Ruby method `downloaded_and_valid?` at line 138.
-pub fn ruby_downloadable_l138_d22_downloaded_and_valid(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('downloaded_and_valid?', ...args)
+pub fn ruby_downloadable_l138_d22_downloaded_and_valid(mut downloadable Downloadable,
+	mut context DownloadableContext, factory DownloadableDownloaderFactory) !bool {
+	path := ruby_downloadable_l149_d23_cached_download(mut downloadable, factory)!
+	if !os.is_file(path) || downloadable_checksum_is_blank(downloadable) {
+		return false
+	}
+	was_verbose := context.verification_cache.verbose
+	context.verification_cache.verbose = false
+	ruby_downloadable_l234_d33_verify_download_integrity(mut downloadable, mut context, path) or {
+		context.verification_cache.verbose = was_verbose
+		if err.msg().starts_with('ChecksumMismatchError:') {
+			return false
+		}
+		return error(err.msg())
+	}
+	context.verification_cache.verbose = was_verbose
+	return true
 }
 
 // Ruby method `cached_download` at line 149.
-pub fn ruby_downloadable_l149_d23_cached_download(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cached_download', ...args)
+pub fn ruby_downloadable_l149_d23_cached_download(mut downloadable Downloadable,
+	factory DownloadableDownloaderFactory) !string {
+	downloader := ruby_downloadable_l184_d29_downloader(mut downloadable, factory)!
+	return downloader.cached_location()
 }
 
 // Ruby method `clear_cache` at line 154.
-pub fn ruby_downloadable_l154_d24_clear_cache(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('clear_cache', ...args)
+pub fn ruby_downloadable_l154_d24_clear_cache(mut downloadable Downloadable,
+	factory DownloadableDownloaderFactory) ! {
+	mut downloader := ruby_downloadable_l184_d29_downloader(mut downloadable, factory)!
+	downloader.clear_cache()!
 }
 
 // Ruby method `fetched_size` at line 160.
-pub fn ruby_downloadable_l160_d25_fetched_size(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fetched_size', ...args)
+pub fn ruby_downloadable_l160_d25_fetched_size(mut downloadable Downloadable,
+	factory DownloadableDownloaderFactory) !DownloadableSize {
+	downloader := ruby_downloadable_l184_d29_downloader(mut downloadable, factory)!
+	if value := downloader.fetched_size() {
+		return DownloadableSize{
+			value: value
+			has_value: true
+		}
+	}
+	return DownloadableSize{}
 }
 
 // Ruby method `total_size` at line 166.
-pub fn ruby_downloadable_l166_d26_total_size(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('total_size', ...args)
+pub fn ruby_downloadable_l166_d26_total_size(mut downloadable Downloadable,
+	factory DownloadableDownloaderFactory) !DownloadableSize {
+	if downloadable.has_total_size {
+		return DownloadableSize{
+			value: downloadable.total_size_value
+			has_value: true
+		}
+	}
+	downloader := ruby_downloadable_l184_d29_downloader(mut downloadable, factory)!
+	value := downloader.total_size() or { return DownloadableSize{} }
+	downloadable.total_size_value = value
+	downloadable.has_total_size = true
+	return DownloadableSize{
+		value: value
+		has_value: true
+	}
 }
 
 // Ruby method `version` at line 171.
-pub fn ruby_downloadable_l171_d27_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('version', ...args)
+pub fn ruby_downloadable_l171_d27_version(downloadable &Downloadable) ?Version {
+	if downloadable.has_version && !downloadable.version_value.is_null() {
+		return downloadable.version_value
+	}
+	if url := downloadable_url(downloadable) {
+		version := url.version()
+		if !version.is_null() {
+			return version
+		}
+	}
+	return none
 }
 
 // Ruby method `download_strategy` at line 179.
-pub fn ruby_downloadable_l179_d28_download_strategy(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('download_strategy', ...args)
+pub fn ruby_downloadable_l179_d28_download_strategy(mut downloadable Downloadable) !download_strategy.DownloadStrategy {
+	if downloadable.has_download_strategy {
+		return downloadable.download_strategy_value
+	}
+	url := downloadable_url(downloadable) or { return error('Downloadable URL is nil') }
+	downloadable.download_strategy_value = url.download_strategy()!
+	downloadable.has_download_strategy = true
+	return downloadable.download_strategy_value
 }
 
 // Ruby method `downloader` at line 184.
-pub fn ruby_downloadable_l184_d29_downloader(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('downloader', ...args)
+pub fn ruby_downloadable_l184_d29_downloader(mut downloadable Downloadable,
+	factory DownloadableDownloaderFactory) !&DownloadableDownloader {
+	if downloadable.has_downloader {
+		return &downloadable.downloader_value
+	}
+	urls := ruby_downloadable_l290_d40_determine_url_mirrors(downloadable)
+	primary_url := if urls.len > 0 { urls[0] } else { '' }
+	if primary_url.trim_space() == '' {
+		return error('attempted to use a `Downloadable` without a URL!')
+	}
+	strategy := ruby_downloadable_l179_d28_download_strategy(mut downloadable)!
+	request := DownloadableDownloaderRequest{
+		strategy: strategy
+		primary_url: primary_url
+		name: ruby_downloadable_l275_d37_download_name(mut downloadable)
+		version: ruby_downloadable_l171_d27_version(downloadable)
+		mirrors: if urls.len > 1 { urls[1..].clone() } else { [] }
+		cache: ruby_downloadable_l295_d41_cache(downloadable)
+		specs: if downloadable.has_url {
+			downloadable.url_value.specs.clone()} else {
+			map[string]string{}}
+	}
+	downloadable.downloader_value = factory(request)!
+	if downloadable_curl_derived(strategy) && download_strategy.expand_deferred_environment_for(strategy) {
+		downloadable.downloader_value.allow_deferred_environment_expansion()
+	}
+	downloadable.has_downloader = true
+	return &downloadable.downloader_value
 }
 
 // Ruby method `fetch(verify_download_integrity: true, timeout: nil, quiet: false)` at line 206.
-pub fn ruby_downloadable_l206_d30_fetch(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fetch', ...args)
+pub fn ruby_downloadable_l206_d30_fetch(mut downloadable Downloadable, mut context DownloadableContext,
+	verify_download_integrity bool, timeout ?f64, quiet bool,
+	factory DownloadableDownloaderFactory) !string {
+	ruby_downloadable_l83_d10_downloading(mut downloadable)
+	os.mkdir_all(ruby_downloadable_l295_d41_cache(downloadable))!
+	mut downloader := ruby_downloadable_l184_d29_downloader(mut downloadable, factory)!
+	if quiet {
+		downloader.quiet()
+	}
+	if failure := downloader.fetch(timeout) {
+		if failure.kind in [.error_during_execution, .curl_download_strategy] {
+			return DownloadableDownloadError{
+				download_queue_name: ruby_downloadable_l122_d18_download_queue_name(mut downloadable)
+				cause: failure
+			}
+		}
+		return failure
+	}
+	ruby_downloadable_l85_d11_downloaded(mut downloadable)
+	download := ruby_downloadable_l149_d23_cached_download(mut downloadable, factory)!
+	if verify_download_integrity {
+		ruby_downloadable_l234_d33_verify_download_integrity(mut downloadable, mut context, download)!
+	}
+	return download
 }
 
 // Ruby method `stage_from_download_queue?(_download, pour:)` at line 226.
-pub fn ruby_downloadable_l226_d31_stage_from_download_queue(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('stage_from_download_queue?', ...args)
+pub fn ruby_downloadable_l226_d31_stage_from_download_queue(_ string, _ bool) bool {
+	return false
 }
 
 // Ruby method `stage_from_download_queue(_download, pour:); end` at line 231.
-pub fn ruby_downloadable_l231_d32_stage_from_download_queue(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('stage_from_download_queue', ...args)
+pub fn ruby_downloadable_l231_d32_stage_from_download_queue(_ string, _ bool) {
+	// The base hook is intentionally empty in downloadable.rb; subclasses stage.
 }
 
 // Ruby method `verify_download_integrity(filename)` at line 234.
-pub fn ruby_downloadable_l234_d33_verify_download_integrity(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('verify_download_integrity', ...args)
+pub fn ruby_downloadable_l234_d33_verify_download_integrity(mut downloadable Downloadable,
+	mut context DownloadableContext, filename string) ! {
+	ruby_downloadable_l87_d12_verifying(mut downloadable)
+	if !os.is_file(filename) {
+		return
+	}
+	checksum := ruby_downloadable_l74_d6_checksum(downloadable)
+	ruby_downloadable_l34_d2_verify(mut context.verification_cache, filename, checksum) or {
+		if !err.msg().starts_with('ChecksumMissingError') {
+			return error(err.msg())
+		}
+		if downloadable.silence_checksum_missing {
+			return
+		}
+		actual := sha256.sum256(os.read_bytes(filename)!).hex()
+		downloadable.warnings << 'Cannot verify integrity of \'${os.file_name(filename)}\'.\nNo checksum was provided.\nFor your reference, the checksum is:\n  sha256 "${actual}"\n'
+		return
+	}
+	ruby_downloadable_l89_d13_verified(mut downloadable)
 }
 
 // Ruby method `hash` at line 253.
-pub fn ruby_downloadable_l253_d34_hash(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('hash', ...args)
+pub fn ruby_downloadable_l253_d34_hash(mut downloadable Downloadable,
+	factory DownloadableDownloaderFactory) !u64 {
+	path := ruby_downloadable_l149_d23_cached_download(mut downloadable, factory)!
+	return fnv1a.sum64_string('${downloadable.class_name}:${path}')
 }
 
 // Ruby method `eql?(other)` at line 258.
-pub fn ruby_downloadable_l258_d35_eql(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('eql?', ...args)
+pub fn ruby_downloadable_l258_d35_eql(mut downloadable Downloadable, mut other Downloadable,
+	factory DownloadableDownloaderFactory) !bool {
+	if downloadable.class_name != other.class_name {
+		return false
+	}
+	left := ruby_downloadable_l149_d23_cached_download(mut downloadable, factory)!
+	right := ruby_downloadable_l149_d23_cached_download(mut other, factory)!
+	return left == right
 }
 
 // Ruby method `to_s` at line 266.
-pub fn ruby_downloadable_l266_d36_to_s(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_s', ...args)
+pub fn ruby_downloadable_l266_d36_to_s(mut downloadable Downloadable,
+	factory DownloadableDownloaderFactory) !string {
+	path := ruby_downloadable_l149_d23_cached_download(mut downloadable, factory)!
+	prefix := os.join_path(ruby_downloadable_l295_d41_cache(downloadable), 'downloads') + os.path_separator
+	short_path := if path.starts_with(prefix) { path[prefix.len..] } else { path }
+	return '#<${downloadable.class_name}: ${short_path}>'
 }
 
 // Ruby method `download_name` at line 275.
-pub fn ruby_downloadable_l275_d37_download_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('download_name', ...args)
+pub fn ruby_downloadable_l275_d37_download_name(mut downloadable Downloadable) string {
+	if !downloadable.has_download_name {
+		raw := downloadable_url_text(downloadable).trim_right('/')
+		downloadable.download_name_value = os.file_name(raw)
+		downloadable.has_download_name = true
+	}
+	return downloadable.download_name_value
 }
 
 // Ruby method `silence_checksum_missing_error?` at line 280.
-pub fn ruby_downloadable_l280_d38_silence_checksum_missing_error(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('silence_checksum_missing_error?', ...args)
+pub fn ruby_downloadable_l280_d38_silence_checksum_missing_error(downloadable &Downloadable) bool {
+	return downloadable.silence_checksum_missing
 }
 
 // Ruby method `determine_url` at line 285.
-pub fn ruby_downloadable_l285_d39_determine_url(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('determine_url', ...args)
+pub fn ruby_downloadable_l285_d39_determine_url(downloadable &Downloadable) ?Url {
+	return downloadable_url(downloadable)
 }
 
 // Ruby method `determine_url_mirrors` at line 290.
-pub fn ruby_downloadable_l290_d40_determine_url_mirrors(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('determine_url_mirrors', ...args)
+pub fn ruby_downloadable_l290_d40_determine_url_mirrors(downloadable &Downloadable) []string {
+	mut urls := [downloadable_url_text(downloadable)]
+	urls << downloadable.mirrors
+	mut unique := []string{}
+	for url in urls {
+		if url !in unique {
+			unique << url
+		}
+	}
+	return unique
 }
 
 // Ruby method `cache` at line 295.
-pub fn ruby_downloadable_l295_d41_cache(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cache', ...args)
+pub fn ruby_downloadable_l295_d41_cache(downloadable &Downloadable) string {
+	return downloadable.cache_path
 }
 
 // Original Ruby source (line-for-line):

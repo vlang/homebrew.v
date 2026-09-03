@@ -1,33 +1,44 @@
 module cask
 
-import brew_runtime
+import homebrew.rubocops.cask as sha256_arch_core
 
 // Translated from Homebrew/brew `test/rubocops/cask/sha256_arch_order_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "accepts keys in the canonical order" do` at line 7.
-pub fn ruby_sha256_arch_order_spec_l7_d1_accepts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('accepts', ...args)
+pub fn ruby_sha256_arch_order_spec_l7_d1_accepts() bool {
+	source := 'cask "foo" do\n  sha256 arm:          "arm",\n         intel:        "intel",\n         arm64_linux:  "arm64_linux",\n         x86_64_linux: "x86_64_linux"\nend'
+	return sha256_arch_core.audit_sha256_arch_order(source).len == 0
 }
 
 // Ruby it `it "accepts a single checksum" do` at line 18.
-pub fn ruby_sha256_arch_order_spec_l18_d2_accepts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('accepts', ...args)
+pub fn ruby_sha256_arch_order_spec_l18_d2_accepts() bool {
+	source := 'cask "foo" do\n  sha256 "abc"\nend'
+	return sha256_arch_core.audit_sha256_arch_order(source).len == 0
 }
 
 // Ruby it `it "registers an offense and corrects Linux keys in the wrong order" do` at line 26.
-pub fn ruby_sha256_arch_order_spec_l26_d3_registers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('registers', ...args)
+pub fn ruby_sha256_arch_order_spec_l26_d3_registers() bool {
+	source := 'cask "foo" do\n  sha256 x86_64_linux: "x86_64_linux",\n         arm64_linux:  "arm64_linux"\nend'
+	expected := 'cask "foo" do\n  sha256 arm64_linux:  "arm64_linux",\n         x86_64_linux: "x86_64_linux"\nend'
+	offenses := sha256_arch_core.audit_sha256_arch_order(source)
+	return offenses.len == 1 && offenses[0].message == sha256_arch_core.sha256_arch_order_message && sha256_arch_core.correct_sha256_arch_order(source) == expected
 }
 
 // Ruby it `it "registers an offense and corrects macOS keys listed after Linux keys" do` at line 43.
-pub fn ruby_sha256_arch_order_spec_l43_d4_registers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('registers', ...args)
+pub fn ruby_sha256_arch_order_spec_l43_d4_registers() bool {
+	source := 'cask "foo" do\n  sha256 x86_64_linux: "x86_64_linux",\n         arm:          "arm"\nend'
+	expected := 'cask "foo" do\n  sha256 arm:          "arm",\n         x86_64_linux: "x86_64_linux"\nend'
+	offenses := sha256_arch_core.audit_sha256_arch_order(source)
+	return offenses.len == 1 && sha256_arch_core.correct_sha256_arch_order(source) == expected
 }
 
 // Ruby it `it "registers offenses and corrects within `on_macos` and `on_linux` blocks" do` at line 60.
-pub fn ruby_sha256_arch_order_spec_l60_d5_registers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('registers', ...args)
+pub fn ruby_sha256_arch_order_spec_l60_d5_registers() bool {
+	source := 'cask "foo" do\n  on_macos do\n    sha256 intel: "intel",\n           arm:   "arm"\n  end\n\n  on_linux do\n    sha256 x86_64_linux: "x86_64_linux",\n           arm64_linux:  "arm64_linux"\n  end\nend'
+	expected := 'cask "foo" do\n  on_macos do\n    sha256 arm:   "arm",\n           intel: "intel"\n  end\n\n  on_linux do\n    sha256 arm64_linux:  "arm64_linux",\n           x86_64_linux: "x86_64_linux"\n  end\nend'
+	offenses := sha256_arch_core.audit_sha256_arch_order(source)
+	return offenses.len == 2 && sha256_arch_core.correct_sha256_arch_order(source) == expected
 }
 
 // Original Ruby source (line-for-line):

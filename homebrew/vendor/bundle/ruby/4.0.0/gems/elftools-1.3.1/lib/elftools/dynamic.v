@@ -4,70 +4,338 @@ import brew_runtime
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/elftools-1.3.1/lib/elftools/dynamic.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub struct DynamicTagHeader {
+pub:
+	d_tag i64
+	d_val i64
+}
+
+pub struct DynamicTag {
+pub:
+	header     DynamicTagHeader
+	stream     []u8
+	str_offset int
+}
+
+pub struct DynamicTable {
+pub:
+	stream     []u8
+	tag_start  int
+	elf_class  int = 64
+	endian     ElfEndian
+	str_offset int
+}
+
+pub fn (tag DynamicTag) has_name() bool {
+	return tag.header.d_tag in [i64(1), 14, 15, 29]
+}
+
+pub fn (tag DynamicTag) name() ?string {
+	if !tag.has_name() {
+		return none
+	}
+	return cstring(tag.stream, tag.str_offset + int(tag.header.d_val))
+}
+
+pub fn (tag DynamicTag) value() brew_runtime.Value {
+	if name := tag.name() {
+		return brew_runtime.string_value(name)
+	}
+	return brew_runtime.int_value(tag.header.d_val)
+}
+
+fn read_dynamic_u64(data []u8, offset int, endian ElfEndian) !u64 {
+	if offset < 0 || offset + 8 > data.len {
+		return error('truncated ELF dynamic tag at offset ${offset}')
+	}
+	mut result := u64(0)
+	match endian {
+		.little {
+			for index in 0 .. 8 {
+				result |= u64(data[offset + index]) << u32(index * 8)
+			}
+		}
+		.big {
+			for index in 0 .. 8 {
+				result = (result << 8) | u64(data[offset + index])
+			}
+		}
+	}
+	return result
+}
+
+pub fn (table DynamicTable) tag_at(index int) ?DynamicTag {
+	if index < 0 {
+		return none
+	}
+	entry_size := if table.elf_class == 32 { 8 } else { 16 }
+	offset := table.tag_start + index * entry_size
+	if offset < 0 || offset + entry_size > table.stream.len {
+		return none
+	}
+	header := if table.elf_class == 32 {
+		DynamicTagHeader{
+			d_tag: i64(i32(read_note_u32(table.stream, offset, table.endian) or { return none }))
+			d_val: i64(read_note_u32(table.stream, offset + 4, table.endian) or { return none })
+		}
+	} else {
+		DynamicTagHeader{
+			d_tag: i64(read_dynamic_u64(table.stream, offset, table.endian) or { return none })
+			d_val: i64(read_dynamic_u64(table.stream, offset + 8, table.endian) or { return none })
+		}
+	}
+	return DynamicTag{
+		header: header
+		stream: table.stream.clone()
+		str_offset: table.str_offset
+	}
+}
+
+pub fn (table DynamicTable) each_tag(on_tag fn(DynamicTag)) ![]DynamicTag {
+	mut tags := []DynamicTag{}
+	mut index := 0
+	for {
+		tag := table.tag_at(index) or { return error('ELF dynamic table has no DT_NULL terminator') }
+		tags << tag
+		on_tag(tag)
+		if tag.header.d_tag == 0 {
+			break
+		}
+		index++
+	}
+	return tags
+}
+
+fn ignore_dynamic_tag(_ DynamicTag) {}
+
+pub fn (table DynamicTable) tags() ![]DynamicTag {
+	return table.each_tag(ignore_dynamic_tag)
+}
+
+pub fn dynamic_tag_constant(value brew_runtime.Value) !i64 {
+	if value.type_name == 'Integer' {
+		return value.as_int()
+	}
+	mut name := value.as_string().trim_left(':').to_upper()
+	if !name.starts_with('DT_') {
+		name = 'DT_${name}'
+	}
+	constants := {
+		'DT_NULL':            i64(0)
+		'DT_NEEDED':          i64(1)
+		'DT_PLTRELSZ':        i64(2)
+		'DT_PLTGOT':          i64(3)
+		'DT_HASH':            i64(4)
+		'DT_STRTAB':          i64(5)
+		'DT_SYMTAB':          i64(6)
+		'DT_RELA':            i64(7)
+		'DT_RELASZ':          i64(8)
+		'DT_RELAENT':         i64(9)
+		'DT_STRSZ':           i64(10)
+		'DT_SYMENT':          i64(11)
+		'DT_INIT':            i64(12)
+		'DT_FINI':            i64(13)
+		'DT_SONAME':          i64(14)
+		'DT_RPATH':           i64(15)
+		'DT_SYMBOLIC':        i64(16)
+		'DT_REL':             i64(17)
+		'DT_RELSZ':           i64(18)
+		'DT_RELENT':          i64(19)
+		'DT_PLTREL':          i64(20)
+		'DT_DEBUG':           i64(21)
+		'DT_TEXTREL':         i64(22)
+		'DT_JMPREL':          i64(23)
+		'DT_BIND_NOW':        i64(24)
+		'DT_INIT_ARRAY':      i64(25)
+		'DT_FINI_ARRAY':      i64(26)
+		'DT_INIT_ARRAYSZ':    i64(27)
+		'DT_FINI_ARRAYSZ':    i64(28)
+		'DT_RUNPATH':         i64(29)
+		'DT_FLAGS':           i64(30)
+		'DT_ENCODING':        i64(32)
+		'DT_PREINIT_ARRAY':   i64(32)
+		'DT_PREINIT_ARRAYSZ': i64(33)
+		'DT_SYMTAB_SHNDX':    i64(34)
+		'DT_RELRSZ':          i64(35)
+		'DT_RELR':            i64(36)
+		'DT_RELRENT':         i64(37)
+		'DT_GNU_HASH':        i64(0x6ffffef5)
+		'DT_VERSYM':          i64(0x6ffffff0)
+		'DT_RELACOUNT':       i64(0x6ffffff9)
+		'DT_RELCOUNT':        i64(0x6ffffffa)
+		'DT_FLAGS_1':         i64(0x6ffffffb)
+		'DT_VERDEF':          i64(0x6ffffffc)
+		'DT_VERDEFNUM':       i64(0x6ffffffd)
+		'DT_VERNEED':         i64(0x6ffffffe)
+		'DT_VERNEEDNUM':      i64(0x6fffffff)
+		'DT_AUXILIARY':       i64(0x7ffffffd)
+		'DT_USED':            i64(0x7ffffffe)
+		'DT_FILTER':          i64(0x7ffffffe)
+	}
+	if name !in constants {
+		return error('No constants in DT named "${name}"')
+	}
+	return constants[name]
+}
+
+pub fn (table DynamicTable) tag_by_type(tag_type i64) ?DynamicTag {
+	for tag in table.tags() or { return none } {
+		if tag.header.d_tag == tag_type {
+			return tag
+		}
+	}
+	return none
+}
+
+pub fn (table DynamicTable) tags_by_type(tag_type i64) ![]DynamicTag {
+	return table.tags()!.filter(it.header.d_tag == tag_type)
+}
+
+pub fn (table DynamicTable) string_table_file_offset(offset_from_vma fn(i64) i64) !i64 {
+	strtab := table.tag_by_type(5) or { return error('ELF dynamic table has no DT_STRTAB tag') }
+	return offset_from_vma(strtab.header.d_val)
+}
+
+fn dynamic_table_from_value(value brew_runtime.Value) DynamicTable {
+	return DynamicTable{
+		stream: (value.attribute('stream') or { '' }).bytes()
+		tag_start: (value.attribute('tag_start') or { '0' }).int()
+		elf_class: (value.attribute('elf_class') or { '64' }).int()
+		endian: elf_endian(value.attribute('endian') or { 'little' })
+		str_offset: (value.attribute('str_offset') or { '0' }).int()
+	}
+}
+
+fn dynamic_tag_value(tag DynamicTag, endian ElfEndian) brew_runtime.Value {
+	return brew_runtime.structured_value('ELFTools::Dynamic::Tag', '', {
+		'd_tag':      tag.header.d_tag.str()
+		'd_val':      tag.header.d_val.str()
+		'stream':     tag.stream.bytestr()
+		'str_offset': tag.str_offset.str()
+		'endian':     endian.str()
+	})
+}
+
+fn dynamic_tag_from_value(value brew_runtime.Value) DynamicTag {
+	return DynamicTag{
+		header: DynamicTagHeader{
+			d_tag: (value.attribute('d_tag') or { '0' }).i64()
+			d_val: (value.attribute('d_val') or { '0' }).i64()
+		}
+		stream: (value.attribute('stream') or { '' }).bytes()
+		str_offset: (value.attribute('str_offset') or { '0' }).int()
+	}
+}
 
 // Ruby method `each_tags(&block)` at line 21.
 pub fn ruby_dynamic_l21_d1_each_tags(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('each_tags', ...args)
+	if args.len == 0 { panic('ELFTools::Dynamic#each_tags requires a receiver') }
+	table := dynamic_table_from_value(args[0])
+	return brew_runtime.array_value((table.tags() or { panic(err) }).map(dynamic_tag_value(it, table.endian)))
 }
 
 // Ruby method `tags` at line 36.
 pub fn ruby_dynamic_l36_d2_tags(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tags', ...args)
+	return ruby_dynamic_l21_d1_each_tags(...args)
 }
 
 // Ruby method `tag_by_type(type)` at line 64.
 pub fn ruby_dynamic_l64_d3_tag_by_type(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tag_by_type', ...args)
+	if args.len < 2 { panic('ELFTools::Dynamic#tag_by_type requires a receiver and type') }
+	table := dynamic_table_from_value(args[0])
+	tag_type := dynamic_tag_constant(args[1]) or { panic(err) }
+	tag := table.tag_by_type(tag_type) or { return brew_runtime.object_value('NilClass', 'nil') }
+	return dynamic_tag_value(tag, table.endian)
 }
 
 // Ruby method `tags_by_type(type)` at line 76.
 pub fn ruby_dynamic_l76_d4_tags_by_type(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tags_by_type', ...args)
+	if args.len < 2 { panic('ELFTools::Dynamic#tags_by_type requires a receiver and type') }
+	table := dynamic_table_from_value(args[0])
+	tag_type := dynamic_tag_constant(args[1]) or { panic(err) }
+	return brew_runtime.array_value((table.tags_by_type(tag_type) or { panic(err) }).map(dynamic_tag_value(it, table.endian)))
 }
 
 // Ruby method `tag_at(n)` at line 93.
 pub fn ruby_dynamic_l93_d5_tag_at(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tag_at', ...args)
+	if args.len < 2 { panic('ELFTools::Dynamic#tag_at requires a receiver and index') }
+	table := dynamic_table_from_value(args[0])
+	tag := table.tag_at(int(args[1].as_int() or { panic(err) })) or {
+		return brew_runtime.object_value('NilClass', 'nil')
+	}
+	return dynamic_tag_value(tag, table.endian)
 }
 
 // Ruby method `endian` at line 108.
 pub fn ruby_dynamic_l108_d6_endian(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('endian', ...args)
+	if args.len == 0 { panic('ELFTools::Dynamic#endian requires a receiver') }
+	return brew_runtime.string_value(args[0].attribute('endian') or { 'little' })
 }
 
 // Ruby method `str_offset` at line 113.
 pub fn ruby_dynamic_l113_d7_str_offset(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('str_offset', ...args)
+	if args.len == 0 { panic('ELFTools::Dynamic#str_offset requires a receiver') }
+	if offset := args[0].attribute('str_offset') {
+		return brew_runtime.int_value(offset.i64())
+	}
+	table := dynamic_table_from_value(args[0])
+	delta := (args[0].attribute('offset_from_vma_delta') or { '0' }).i64()
+	return brew_runtime.int_value(table.string_table_file_offset(fn [delta] (vma i64) i64 {
+		return vma + delta
+	}) or { panic(err) })
 }
 
 // Ruby attr_reader `attr_reader :header` at line 120.
 pub fn ruby_dynamic_l120_d8_header(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('header', ...args)
+	if args.len == 0 { panic('ELFTools::Dynamic::Tag#header requires a receiver') }
+	header := dynamic_tag_from_value(args[0]).header
+	return brew_runtime.structured_value('ELF_Dyn', '', {
+		'd_tag': header.d_tag.str()
+		'd_val': header.d_val.str()
+	})
 }
 
 // Ruby attr_reader `attr_reader :stream` at line 121.
 pub fn ruby_dynamic_l121_d9_stream(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('stream', ...args)
+	if args.len == 0 { panic('ELFTools::Dynamic::Tag#stream requires a receiver') }
+	return brew_runtime.string_value(args[0].attribute('stream') or { panic('dynamic tag has no stream') })
 }
 
 // Ruby method `initialize(header, stream, str_offset)` at line 129.
 pub fn ruby_dynamic_l129_d10_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	if args.len < 3 {
+		panic('ELFTools::Dynamic::Tag#initialize requires header, stream, and string offset')
+	}
+	tag := DynamicTag{
+		header: DynamicTagHeader{
+			d_tag: (args[0].attribute('d_tag') or { panic('header has no d_tag') }).i64()
+			d_val: (args[0].attribute('d_val') or { panic('header has no d_val') }).i64()
+		}
+		stream: args[1].as_string().bytes()
+		str_offset: int(args[2].as_int() or { panic(err) })
+	}
+	return dynamic_tag_value(tag, .little)
 }
 
 // Ruby method `value` at line 154.
 pub fn ruby_dynamic_l154_d11_value(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('value', ...args)
+	if args.len == 0 { panic('ELFTools::Dynamic::Tag#value requires a receiver') }
+	return dynamic_tag_from_value(args[0]).value()
 }
 
 // Ruby method `name?` at line 162.
 pub fn ruby_dynamic_l162_d12_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('name?', ...args)
+	if args.len == 0 { panic('ELFTools::Dynamic::Tag#name? requires a receiver') }
+	return brew_runtime.bool_value(dynamic_tag_from_value(args[0]).has_name())
 }
 
 // Ruby method `name` at line 171.
 pub fn ruby_dynamic_l171_d13_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('name', ...args)
+	if args.len == 0 { panic('ELFTools::Dynamic::Tag#name requires a receiver') }
+	name := dynamic_tag_from_value(args[0]).name() or {
+		return brew_runtime.object_value('NilClass', 'nil')
+	}
+	return brew_runtime.string_value(name)
 }
 
 // Original Ruby source (line-for-line):

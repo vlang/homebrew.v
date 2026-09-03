@@ -1,138 +1,303 @@
 module test
 
-import brew_runtime
+import homebrew
 
 // Translated from Homebrew/brew `test/installed_dependents_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+fn installed_dependents_spec_dependency(name string) homebrew.InstalledDependentDependency {
+	return homebrew.InstalledDependentDependency{
+		full_name: name
+	}
+}
+
+fn installed_dependents_spec_keg(name string, version string, optlinked bool) homebrew.InstalledDependentKeg {
+	return homebrew.InstalledDependentKeg{
+		id: '${name}/${version}'
+		name: name
+		version: version
+		optlinked: optlinked
+		formula_resolved: true
+		formula_name: name
+		formula_tap: 'homebrew/core'
+		tab_tap: 'homebrew/core'
+	}
+}
+
+fn installed_dependents_spec_formula(name string,
+	dependencies []homebrew.InstalledDependentDependency, has_dependencies bool,
+	reliable bool) homebrew.InstalledDependentFormula {
+	return homebrew.InstalledDependentFormula{
+		name: name
+		tap: 'homebrew/core'
+		display_name: name
+		runtime_dependencies: dependencies.clone()
+		has_runtime_dependencies: has_dependencies
+		reliable_tab: reliable
+	}
+}
+
+fn installed_dependents_spec_is_nil(context homebrew.InstalledDependentsContext) bool {
+	_ := homebrew.find_some_installed_dependents(context) or { return true }
+	return false
+}
+
+fn installed_dependents_spec_matches(context homebrew.InstalledDependentsContext,
+	keg_ids []string, dependents []string) bool {
+	result := homebrew.find_some_installed_dependents(context) or { return false }
+	return result.required_kegs.map(it.id) == keg_ids && result.dependents == dependents
+}
 
 // Ruby let! `let!(:keg) { setup_test_keg("foo", "1.0") }` at line 7.
-pub fn ruby_installed_dependents_spec_l7_d1_keg(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('keg', ...args)
+pub fn ruby_installed_dependents_spec_l7_d1_keg() homebrew.InstalledDependentKeg {
+	return installed_dependents_spec_keg('foo', '1.0', true)
 }
 
 // Ruby let! `let!(:keg_only_keg) do` at line 8.
-pub fn ruby_installed_dependents_spec_l8_d2_keg_only_keg(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('keg_only_keg', ...args)
+pub fn ruby_installed_dependents_spec_l8_d2_keg_only_keg() homebrew.InstalledDependentKeg {
+	return installed_dependents_spec_keg('foo-keg-only', '1.0', true)
 }
 
 // Ruby method `stub_formula(name, version = "1.0", &block)` at line 16.
-pub fn ruby_installed_dependents_spec_l16_d3_stub_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('stub_formula', ...args)
+pub fn ruby_installed_dependents_spec_l16_d3_stub_formula(name string, version string) homebrew.InstalledDependentFormula {
+	_ = version
+	return installed_dependents_spec_formula(name, [], true, true)
 }
 
 // Ruby method `setup_test_keg(name, version, &block)` at line 28.
-pub fn ruby_installed_dependents_spec_l28_d4_setup_test_keg(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('setup_test_keg', ...args)
+pub fn ruby_installed_dependents_spec_l28_d4_setup_test_keg(name string, version string) homebrew.InstalledDependentKeg {
+	return installed_dependents_spec_keg(name, version, false)
 }
 
 // Ruby method `setup_test_keg(name, version, &block)` at line 44.
-pub fn ruby_installed_dependents_spec_l44_d5_setup_test_keg(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('setup_test_keg', ...args)
+pub fn ruby_installed_dependents_spec_l44_d5_setup_test_keg(name string, version string) homebrew.InstalledDependentKeg {
+	return installed_dependents_spec_keg(name, version, false)
 }
 
 // Ruby method `alter_tab(keg)` at line 79.
-pub fn ruby_installed_dependents_spec_l79_d6_alter_tab(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('alter_tab', ...args)
+pub fn ruby_installed_dependents_spec_l79_d6_alter_tab(formula homebrew.InstalledDependentFormula,
+	dependencies []homebrew.InstalledDependentDependency, has_dependencies bool,
+	reliable bool) homebrew.InstalledDependentFormula {
+	return homebrew.InstalledDependentFormula{
+		...formula
+		runtime_dependencies: dependencies.clone()
+		has_runtime_dependencies: has_dependencies
+		reliable_tab: reliable
+	}
 }
 
 // Ruby method `tab_dependencies(keg, deps, homebrew_version: "1.1.6")` at line 87.
-pub fn ruby_installed_dependents_spec_l87_d7_tab_dependencies(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tab_dependencies', ...args)
+pub fn ruby_installed_dependents_spec_l87_d7_tab_dependencies(formula homebrew.InstalledDependentFormula,
+	dependencies []homebrew.InstalledDependentDependency, homebrew_version string) homebrew.InstalledDependentFormula {
+	current := homebrew.new_version(homebrew_version) or { return formula }
+	minimum := homebrew.new_version('1.1.6') or { return formula }
+	return ruby_installed_dependents_spec_l79_d6_alter_tab(formula, dependencies, true, current.compare_to(minimum) >= 0)
 }
 
 // Ruby method `unreliable_tab_dependencies(keg, deps)` at line 95.
-pub fn ruby_installed_dependents_spec_l95_d8_unreliable_tab_dependencies(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('unreliable_tab_dependencies', ...args)
+pub fn ruby_installed_dependents_spec_l95_d8_unreliable_tab_dependencies(formula homebrew.InstalledDependentFormula,
+	dependencies []homebrew.InstalledDependentDependency) homebrew.InstalledDependentFormula {
+	return ruby_installed_dependents_spec_l87_d7_tab_dependencies(formula, dependencies, '1.1.5')
 }
 
 // Ruby specify `specify "a dependency with no Tap in Tab" do` at line 101.
-pub fn ruby_installed_dependents_spec_l101_d9_a(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('a', ...args)
+pub fn ruby_installed_dependents_spec_l101_d9_a() bool {
+	foo := ruby_installed_dependents_spec_l7_d1_keg()
+	baz := installed_dependents_spec_keg('baz', '1.0', true)
+	dependent := installed_dependents_spec_formula('bar', [], false, true)
+	return installed_dependents_spec_is_nil(homebrew.InstalledDependentsContext{
+		kegs: [foo, baz]
+		installed_formulae: [dependent]
+	})
 }
 
 // Ruby specify `specify "no dependencies anywhere" do` at line 121.
-pub fn ruby_installed_dependents_spec_l121_d10_no(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('no', ...args)
+pub fn ruby_installed_dependents_spec_l121_d10_no() bool {
+	return installed_dependents_spec_is_nil(homebrew.InstalledDependentsContext{
+		kegs: [ruby_installed_dependents_spec_l7_d1_keg()]
+		installed_formulae: [
+			installed_dependents_spec_formula('bar', [], false, true),
+		]
+	})
 }
 
 // Ruby specify `specify "nil tab does not fall back to formula definitions" do` at line 127.
-pub fn ruby_installed_dependents_spec_l127_d11_nil(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('nil', ...args)
+pub fn ruby_installed_dependents_spec_l127_d11_nil() bool {
+	return installed_dependents_spec_is_nil(homebrew.InstalledDependentsContext{
+		kegs: [ruby_installed_dependents_spec_l7_d1_keg()]
+		installed_formulae: [
+			installed_dependents_spec_formula('bar', [], false, true),
+		]
+	})
 }
 
 // Ruby specify `specify "uninstalling dependent and dependency" do` at line 137.
-pub fn ruby_installed_dependents_spec_l137_d12_uninstalling(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uninstalling', ...args)
+pub fn ruby_installed_dependents_spec_l137_d12_uninstalling() bool {
+	foo := ruby_installed_dependents_spec_l7_d1_keg()
+	bar := installed_dependents_spec_keg('bar', '1.0', true)
+	dependent := installed_dependents_spec_formula('bar', [
+		installed_dependents_spec_dependency('foo'),
+	], true, true)
+	return installed_dependents_spec_is_nil(homebrew.InstalledDependentsContext{
+		kegs: [foo, bar]
+		installed_formulae: [dependent]
+	})
 }
 
 // Ruby specify `specify "renamed dependency with nil tab" do` at line 145.
-pub fn ruby_installed_dependents_spec_l145_d13_renamed(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('renamed', ...args)
+pub fn ruby_installed_dependents_spec_l145_d13_renamed() bool {
+	renamed := homebrew.InstalledDependentKeg{
+		...ruby_installed_dependents_spec_l7_d1_keg()
+		id: 'foo-old/1.0'
+		name: 'foo-old'
+		formula_name: 'foo'
+	}
+	return installed_dependents_spec_is_nil(homebrew.InstalledDependentsContext{
+		kegs: [renamed]
+		installed_formulae: [
+			installed_dependents_spec_formula('bar', [], false, true),
+		]
+	})
 }
 
 // Ruby specify `specify "renamed dependency with tab data" do` at line 161.
-pub fn ruby_installed_dependents_spec_l161_d14_renamed(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('renamed', ...args)
+pub fn ruby_installed_dependents_spec_l161_d14_renamed() bool {
+	renamed := homebrew.InstalledDependentKeg{
+		...ruby_installed_dependents_spec_l7_d1_keg()
+		id: 'foo-old/1.0'
+		name: 'foo-old'
+		formula_name: 'foo'
+	}
+	dependent := installed_dependents_spec_formula('bar', [
+		installed_dependents_spec_dependency('foo'),
+	], true, true)
+	return installed_dependents_spec_matches(homebrew.InstalledDependentsContext{
+		kegs: [renamed]
+		installed_formulae: [dependent]
+	}, ['foo-old/1.0'], ['bar'])
 }
 
 // Ruby specify `specify "empty dependencies in Tab" do` at line 176.
-pub fn ruby_installed_dependents_spec_l176_d15_empty(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('empty', ...args)
+pub fn ruby_installed_dependents_spec_l176_d15_empty() bool {
+	return installed_dependents_spec_is_nil(homebrew.InstalledDependentsContext{
+		kegs: [ruby_installed_dependents_spec_l7_d1_keg()]
+		installed_formulae: [installed_dependents_spec_formula('bar', [], true, true)]
+	})
 }
 
 // Ruby specify `specify "same name but different version in Tab" do` at line 182.
-pub fn ruby_installed_dependents_spec_l182_d16_same(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('same', ...args)
+pub fn ruby_installed_dependents_spec_l182_d16_same() bool {
+	dependent := installed_dependents_spec_formula('bar', [
+		installed_dependents_spec_dependency('foo'),
+	], true, true)
+	return installed_dependents_spec_matches(homebrew.InstalledDependentsContext{
+		kegs: [ruby_installed_dependents_spec_l7_d1_keg()]
+		installed_formulae: [dependent]
+	}, ['foo/1.0'], ['bar'])
 }
 
 // Ruby specify `specify "different name and same version in Tab" do` at line 188.
-pub fn ruby_installed_dependents_spec_l188_d17_different(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('different', ...args)
+pub fn ruby_installed_dependents_spec_l188_d17_different() bool {
+	dependent := installed_dependents_spec_formula('bar', [
+		installed_dependents_spec_dependency('baz'),
+	], true, true)
+	return installed_dependents_spec_is_nil(homebrew.InstalledDependentsContext{
+		kegs: [ruby_installed_dependents_spec_l7_d1_keg()]
+		installed_formulae: [dependent]
+	})
 }
 
 // Ruby specify `specify "same name and version in Tab" do` at line 195.
-pub fn ruby_installed_dependents_spec_l195_d18_same(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('same', ...args)
+pub fn ruby_installed_dependents_spec_l195_d18_same() bool {
+	dependent := installed_dependents_spec_formula('bar', [
+		installed_dependents_spec_dependency('foo'),
+	], true, true)
+	return installed_dependents_spec_matches(homebrew.InstalledDependentsContext{
+		kegs: [ruby_installed_dependents_spec_l7_d1_keg()]
+		installed_formulae: [dependent]
+	}, ['foo/1.0'], ['bar'])
 }
 
 // Ruby specify `specify "old tab version returns nil dependencies and does not block" do` at line 201.
-pub fn ruby_installed_dependents_spec_l201_d19_old(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('old', ...args)
+pub fn ruby_installed_dependents_spec_l201_d19_old() bool {
+	base := installed_dependents_spec_formula('bar', [], true, true)
+	dependent := ruby_installed_dependents_spec_l95_d8_unreliable_tab_dependencies(base, [
+		installed_dependents_spec_dependency('baz'),
+	])
+	return installed_dependents_spec_is_nil(homebrew.InstalledDependentsContext{
+		kegs: [ruby_installed_dependents_spec_l7_d1_keg()]
+		installed_formulae: [dependent]
+	})
 }
 
 // Ruby specify `specify "non-opt-linked" do` at line 211.
-pub fn ruby_installed_dependents_spec_l211_d20_non_opt_linked(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('non-opt-linked', ...args)
+pub fn ruby_installed_dependents_spec_l211_d20_non_opt_linked() bool {
+	foo := installed_dependents_spec_keg('foo', '1.0', false)
+	dependent := installed_dependents_spec_formula('bar', [
+		installed_dependents_spec_dependency('foo'),
+	], true, true)
+	return installed_dependents_spec_is_nil(homebrew.InstalledDependentsContext{
+		kegs: [foo]
+		installed_formulae: [dependent]
+	})
 }
 
 // Ruby specify `specify "keg-only" do` at line 218.
-pub fn ruby_installed_dependents_spec_l218_d21_keg_only(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('keg-only', ...args)
+pub fn ruby_installed_dependents_spec_l218_d21_keg_only() bool {
+	dependent := installed_dependents_spec_formula('bar', [
+		installed_dependents_spec_dependency('foo-keg-only'),
+	], true, true)
+	return installed_dependents_spec_matches(homebrew.InstalledDependentsContext{
+		kegs: [ruby_installed_dependents_spec_l8_d2_keg_only_keg()]
+		installed_formulae: [dependent]
+	}, ['foo-keg-only/1.0'], ['bar'])
 }
 
 // Ruby method `stub_cask_name(name, version, dependency)` at line 224.
-pub fn ruby_installed_dependents_spec_l224_d22_stub_cask_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('stub_cask_name', ...args)
+pub fn ruby_installed_dependents_spec_l224_d22_stub_cask_name(name string, version string,
+	dependency string) homebrew.InstalledDependentCask {
+	_ = version
+	return homebrew.InstalledDependentCask{
+		token: name
+		display_name: name
+		runtime_dependencies: [installed_dependents_spec_dependency(dependency)]
+	}
 }
 
 // Ruby method `setup_test_cask(name, version, dependency)` at line 238.
-pub fn ruby_installed_dependents_spec_l238_d23_setup_test_cask(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('setup_test_cask', ...args)
+pub fn ruby_installed_dependents_spec_l238_d23_setup_test_cask(name string, version string,
+	dependency string) homebrew.InstalledDependentCask {
+	return ruby_installed_dependents_spec_l224_d22_stub_cask_name(name, version, dependency)
 }
 
 // Ruby specify `specify "stale tab without dependency does not block uninstall" do` at line 252.
-pub fn ruby_installed_dependents_spec_l252_d24_stale(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('stale', ...args)
+pub fn ruby_installed_dependents_spec_l252_d24_stale() bool {
+	dependent := installed_dependents_spec_formula('bar', [
+		installed_dependents_spec_dependency('baz'),
+	], true, true)
+	return installed_dependents_spec_is_nil(homebrew.InstalledDependentsContext{
+		kegs: [ruby_installed_dependents_spec_l7_d1_keg()]
+		installed_formulae: [dependent]
+	})
 }
 
 // Ruby specify `specify "tab with dependency blocks uninstall" do` at line 264.
-pub fn ruby_installed_dependents_spec_l264_d25_tab(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tab', ...args)
+pub fn ruby_installed_dependents_spec_l264_d25_tab() bool {
+	dependent := installed_dependents_spec_formula('bar', [
+		installed_dependents_spec_dependency('foo'),
+	], true, true)
+	return installed_dependents_spec_matches(homebrew.InstalledDependentsContext{
+		kegs: [ruby_installed_dependents_spec_l7_d1_keg()]
+		installed_formulae: [dependent]
+	}, ['foo/1.0'], ['bar'])
 }
 
 // Ruby specify `specify "identify dependent casks" do` at line 273.
-pub fn ruby_installed_dependents_spec_l273_d26_identify(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('identify', ...args)
+pub fn ruby_installed_dependents_spec_l273_d26_identify() bool {
+	cask := ruby_installed_dependents_spec_l238_d23_setup_test_cask('qux', '1.0.0', 'foo')
+	return installed_dependents_spec_matches(homebrew.InstalledDependentsContext{
+		kegs: [ruby_installed_dependents_spec_l7_d1_keg()]
+		installed_casks: [cask]
+	}, ['foo/1.0'], ['qux'])
 }
 
 // Original Ruby source (line-for-line):

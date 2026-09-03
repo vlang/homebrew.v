@@ -1,38 +1,100 @@
 module ffi
 
-import brew_runtime
+pub struct XattrStore {
+pub mut:
+	values map[string]map[string]string
+}
+
+pub fn xattr_error(operation string, path string, attribute ?string, errno int) IError {
+	target := attribute or { path }
+	return error('${operation} for ${target}: errno ${errno}')
+}
+
+pub fn list_xattrs(store &XattrStore, path string) ![]string {
+	if path !in store.values {
+		return []
+	}
+	attributes := store.values[path].clone()
+	return attributes.keys()
+}
+
+pub fn get_xattr(store &XattrStore, path string, attribute string) !string {
+	if path !in store.values {
+		return xattr_error('getxattr', path, attribute, 1)
+	}
+	attributes := store.values[path].clone()
+	return attributes[attribute] or { return xattr_error('getxattr', path, attribute, 1) }
+}
+
+pub fn set_xattr(mut store XattrStore, path string, attribute string, value string) ! {
+	mut attributes := if path in store.values {
+		store.values[path].clone()
+	} else {
+		map[string]string{}
+	}
+	attributes[attribute] = value
+	store.values[path] = attributes.clone()
+}
+
+pub fn remove_xattr(mut store XattrStore, path string, attribute string) ! {
+	if path !in store.values {
+		return xattr_error('removexattr', path, attribute, 1)
+	}
+	mut attributes := store.values[path].clone()
+	if attribute !in attributes {
+		return xattr_error('removexattr', path, attribute, 1)
+	}
+	attributes.delete(attribute)
+	store.values[path] = attributes.clone()
+}
+
+pub fn copy_xattrs(mut store XattrStore, source string, destination string) ! {
+	destination_attributes := list_xattrs(&store, destination)!
+	for attribute in destination_attributes {
+		remove_xattr(mut store, destination, attribute)!
+	}
+	source_attributes := list_xattrs(&store, source)!
+	for attribute in source_attributes {
+		set_xattr(mut store, destination, attribute, get_xattr(&store, source, attribute)!)!
+	}
+}
 
 // Translated from Homebrew/brew `os/mac/ffi/xattr.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `self.raise_xattr_error(operation, path, attribute = nil)` at line 14.
-pub fn ruby_xattr_l14_d1_self_raise_xattr_error(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.raise_xattr_error', ...args)
+pub fn ruby_xattr_l14_d1_self_raise_xattr_error(operation string, path string,
+	attribute ?string, errno int) IError {
+	return xattr_error(operation, path, attribute, errno)
 }
 
 // Ruby method `self.list_xattrs(path)` at line 19.
-pub fn ruby_xattr_l19_d2_self_list_xattrs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.list_xattrs', ...args)
+pub fn ruby_xattr_l19_d2_self_list_xattrs(store &XattrStore, path string) ![]string {
+	return list_xattrs(store, path)
 }
 
 // Ruby method `self.get_xattr(path, attribute)` at line 41.
-pub fn ruby_xattr_l41_d3_self_get_xattr(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.get_xattr', ...args)
+pub fn ruby_xattr_l41_d3_self_get_xattr(store &XattrStore, path string,
+	attribute string) !string {
+	return get_xattr(store, path, attribute)
 }
 
 // Ruby method `self.set_xattr(path, attribute, value)` at line 69.
-pub fn ruby_xattr_l69_d4_self_set_xattr(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.set_xattr', ...args)
+pub fn ruby_xattr_l69_d4_self_set_xattr(mut store XattrStore, path string, attribute string,
+	value string) ! {
+	set_xattr(mut store, path, attribute, value)!
 }
 
 // Ruby method `self.remove_xattr(path, attribute)` at line 82.
-pub fn ruby_xattr_l82_d5_self_remove_xattr(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.remove_xattr', ...args)
+pub fn ruby_xattr_l82_d5_self_remove_xattr(mut store XattrStore, path string,
+	attribute string) ! {
+	remove_xattr(mut store, path, attribute)!
 }
 
 // Ruby method `self.copy_xattrs(source, destination)` at line 92.
-pub fn ruby_xattr_l92_d6_self_copy_xattrs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.copy_xattrs', ...args)
+pub fn ruby_xattr_l92_d6_self_copy_xattrs(mut store XattrStore, source string,
+	destination string) ! {
+	copy_xattrs(mut store, source, destination)!
 }
 
 // Original Ruby source (line-for-line):

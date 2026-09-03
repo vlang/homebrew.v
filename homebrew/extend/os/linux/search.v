@@ -7,7 +7,15 @@ import brew_runtime
 
 // Ruby method `ignore_cask?(cask)` at line 9.
 pub fn ruby_search_l9_d1_ignore_cask(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ignore_cask?', ...args)
+	if args.len == 0 {
+		return brew_runtime.bool_value(true)
+	}
+	return brew_runtime.bool_value(ignore_cask(args[0].as_bool() or { false }))
+}
+
+// ignore_cask translates Linux's cask filtering predicate.
+pub fn ignore_cask(supports_linux bool) bool {
+	return !supports_linux
 }
 
 // Original Ruby source (line-for-line):

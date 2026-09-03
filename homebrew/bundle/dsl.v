@@ -4,105 +4,596 @@ import brew_runtime
 
 // Translated from Homebrew/brew `bundle/dsl.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub struct BundleDslEntry {
+pub:
+	entry_type string
+	name       string
+	options    map[string]brew_runtime.Value
+}
+
+pub struct BundleDsl {
+pub:
+	path           string
+	input          string
+	entries        []BundleDslEntry
+	cask_arguments map[string]brew_runtime.Value
+}
+
+const bundle_dsl_extensions = ['mas', 'vscode', 'winget', 'go', 'cargo', 'uv', 'flatpak', 'npm',
+	'krew']
+
+pub fn bundle_dsl_entry(entry_type string, name string, options map[string]brew_runtime.Value) BundleDslEntry {
+	return BundleDslEntry{
+		entry_type: entry_type
+		name: name
+		options: options.clone()
+	}
+}
+
+pub fn parse_bundle_dsl(path string, input string) !BundleDsl {
+	mut entries := []BundleDslEntry{}
+	mut cask_arguments := map[string]brew_runtime.Value{}
+	for source_line in input.split_into_lines() {
+		mut line := strip_dsl_comment(source_line).trim_space()
+		if line == '' || line.starts_with('#') {
+			continue
+		}
+		if line.contains(' unless system ') {
+			line = line.all_before(' unless system ').trim_space()
+		}
+		method_end := line.index_any(' \t')
+		if method_end < 0 {
+			return error('Invalid Brewfile: unknown command `${line}`')
+		}
+		method_name := line[..method_end]
+		raw_arguments := line[method_end..].trim_space()
+		parts := split_dsl_top_level(raw_arguments, `,`)
+		if method_name == 'cask_args' {
+			if parts.len != 1 {
+				return error('Invalid Brewfile: wrong number of arguments for cask_args')
+			}
+			arguments := parse_dsl_options(parts[0]) or {
+				return error('Invalid Brewfile: cask arguments must be a Hash')
+			}
+			for key, value in arguments {
+				cask_arguments[key] = value
+			}
+			continue
+		}
+		if method_name !in ['brew', 'cask', 'tap'] && method_name !in bundle_dsl_extensions {
+			return error('Invalid Brewfile: unknown command `${method_name}`')
+		}
+		if parts.len == 0 {
+			return error('Invalid Brewfile: wrong number of arguments for ${method_name}')
+		}
+		name_value := parse_dsl_value(parts[0]) or {
+			return error('Invalid Brewfile: ${method_name} name must be a String')
+		}
+		if name_value.type_name != 'String' {
+			return error('Invalid Brewfile: ${method_name} name must be a String')
+		}
+		mut options := map[string]brew_runtime.Value{}
+		mut clone_target := brew_runtime.object_value('NilClass', '')
+		mut option_start := 1
+		if method_name == 'tap' && parts.len > 1 && (parts[1].trim_space().starts_with('{') || !dsl_part_looks_like_options(parts[1])) {
+			clone_target = parse_dsl_value(parts[1]) or {
+				return error('Invalid Brewfile: tap clone target must be a String')
+			}
+			if clone_target.type_name !in ['String', 'NilClass'] {
+				return error('Invalid Brewfile: tap clone target must be a String')
+			}
+			option_start = 2
+		}
+		for index := option_start; index < parts.len; index++ {
+			parsed_options := parse_dsl_options(parts[index]) or {
+				return error('Invalid Brewfile: options(${parts[index]}) should be a Hash object')
+			}
+			for key, value in parsed_options {
+				options[key] = value
+			}
+		}
+		match method_name {
+			'brew' {
+				entries << bundle_dsl_entry('brew', sanitize_brew_name(name_value.repr), options)
+			}
+			'cask' {
+				full_name := name_value.repr
+				options['full_name'] = brew_runtime.string_value(full_name)
+				mut merged_args := cask_arguments.clone()
+				if 'args' in options {
+					local_args := options['args'].as_map() or {
+						return error('Invalid Brewfile: cask options[:args] must be a Hash')
+					}
+					for key, value in local_args {
+						merged_args[key] = value
+					}
+				}
+				options['args'] = brew_runtime.map_value(merged_args)
+				entries << bundle_dsl_entry('cask', sanitize_cask_name(full_name), options)
+			}
+			'tap' {
+				options['clone_target'] = clone_target
+				entries << bundle_dsl_entry('tap', sanitize_tap_name(name_value.repr), options)
+			}
+			else {
+				entries << extension_dsl_entry(method_name, name_value.repr, options)!
+			}
+		}
+	}
+	return BundleDsl{
+		path: path
+		input: input
+		entries: entries
+		cask_arguments: cask_arguments
+	}
+}
+
+pub fn sanitize_brew_name(raw_name string) string {
+	name := raw_name.to_lower()
+	parts := name.split('/')
+	if parts.len == 3 && parts[0] == 'homebrew' && parts[1] == 'homebrew' {
+		return parts[2]
+	}
+	if parts.len == 3 {
+		repository := parts[1].trim_string_left('homebrew-')
+		return '${parts[0]}/${repository}/${parts[2]}'
+	}
+	return name
+}
+
+pub fn sanitize_tap_name(raw_name string) string {
+	name := raw_name.to_lower()
+	parts := name.split('/')
+	if parts.len == 2 {
+		return '${parts[0]}/${parts[1].trim_string_left('homebrew-')}'
+	}
+	return name
+}
+
+pub fn sanitize_cask_name(raw_name string) string {
+	parts := raw_name.split('/')
+	return parts[parts.len - 1].to_lower()
+}
+
+pub fn bundle_dsl_responds_to(method_name string) bool {
+	return method_name in bundle_dsl_extensions
+}
+
+fn extension_dsl_entry(method_name string, name string, raw_options map[string]brew_runtime.Value) !BundleDslEntry {
+	mut options := raw_options.clone()
+	allowed := match method_name {
+		'mas' { ['id'] }
+		'winget' { ['id', 'source'] }
+		'uv' { ['with', 'source'] }
+		'cargo' { ['source'] }
+		'flatpak' { ['remote', 'url'] }
+		else { []string{} }
+	}
+	mut unknown := []string{}
+	for key, _ in options {
+		if key !in allowed {
+			unknown << key
+		}
+	}
+	if unknown.len > 0 {
+		return error('Invalid Brewfile: unknown options(${unknown}) for ${method_name}')
+	}
+	if method_name == 'mas' {
+		if 'id' !in options || options['id'].type_name != 'Integer' {
+			return error('Invalid Brewfile: options[:id] should be an Integer object')
+		}
+	}
+	if method_name in ['uv', 'cargo'] && 'source' in options && options['source'].type_name != 'String' {
+		return error('Invalid Brewfile: options[:source] should be a String object')
+	}
+	if method_name == 'uv' && 'with' in options {
+		value := options['with']
+		if value.type_name != 'Array' {
+			return error('Invalid Brewfile: options[:with] should be an Array of String objects')
+		}
+		with_values := value.as_array() or {
+			return error('Invalid Brewfile: options[:with] should be an Array of String objects')
+		}
+		if with_values.any(it.type_name != 'String') {
+			return error('Invalid Brewfile: options[:with] should be an Array of String objects')
+		}
+	}
+	if method_name == 'winget' {
+		if 'id' in options && options['id'].type_name != 'String' {
+			return error('Invalid Brewfile: options[:id] should be a String object')
+		}
+		if 'source' in options && options['source'].type_name != 'String' {
+			return error('Invalid Brewfile: options[:source] should be a String object')
+		}
+		source := if 'source' in options { options['source'].repr } else { 'winget' }
+		if source !in ['winget', 'msstore'] {
+			return error('Invalid Brewfile: options[:source] should be one of [winget, msstore]')
+		}
+		if 'id' !in options {
+			options['id'] = brew_runtime.string_value(name)
+		}
+		options['source'] = brew_runtime.string_value(source)
+	}
+	if method_name == 'flatpak' {
+		for key in ['remote', 'url'] {
+			if key in options && options[key].type_name != 'String' {
+				return error('Invalid Brewfile: options[:${key}] should be a String object')
+			}
+		}
+		remote := if 'remote' in options { options['remote'].repr } else { 'flathub' }
+		if 'url' in options && (remote.starts_with('http://') || remote.starts_with('https://')) {
+			return error('Invalid Brewfile: url: cannot be used when remote: is already a URL')
+		}
+		options['remote'] = brew_runtime.string_value(remote)
+	}
+	return bundle_dsl_entry(method_name, name, options)
+}
+
+fn strip_dsl_comment(line string) string {
+	mut quote := u8(0)
+	for index, character in line.bytes() {
+		if character == `'` || character == `"` {
+			if quote == character {
+				quote = 0
+			} else if quote == 0 {
+				quote = character
+			}
+		} else if character == `#` && quote == 0 {
+			return line[..index]
+		}
+	}
+	return line
+}
+
+fn split_dsl_top_level(text string, separator u8) []string {
+	mut parts := []string{}
+	mut quote := u8(0)
+	mut depth := 0
+	mut start := 0
+	for index, character in text.bytes() {
+		if character == `'` || character == `"` {
+			if quote == character {
+				quote = 0
+			} else if quote == 0 {
+				quote = character
+			}
+			continue
+		}
+		if quote != 0 {
+			continue
+		}
+		if character == `[` || character == `{` || character == `(` {
+			depth++
+		} else if character == `]` || character == `}` || character == `)` {
+			depth--
+		} else if character == separator && depth == 0 {
+			parts << text[start..index].trim_space()
+			start = index + 1
+		}
+	}
+	if text[start..].trim_space() != '' {
+		parts << text[start..].trim_space()
+	}
+	return parts
+}
+
+fn dsl_part_looks_like_options(part string) bool {
+	trimmed := part.trim_space()
+	return trimmed.starts_with('{') || dsl_top_level_colon(trimmed) >= 0
+}
+
+fn dsl_top_level_colon(text string) int {
+	mut quote := u8(0)
+	mut depth := 0
+	for index, character in text.bytes() {
+		if character == `'` || character == `"` {
+			if quote == character {
+				quote = 0
+			} else if quote == 0 {
+				quote = character
+			}
+			continue
+		}
+		if quote != 0 {
+			continue
+		}
+		if character == `[` || character == `{` {
+			depth++
+		} else if character == `]` || character == `}` {
+			depth--
+		} else if character == `:` && depth == 0 {
+			return index
+		}
+	}
+	return -1
+}
+
+fn parse_dsl_options(raw string) !map[string]brew_runtime.Value {
+	mut text := raw.trim_space()
+	if text.starts_with('{') && text.ends_with('}') {
+		text = text[1..text.len - 1].trim_space()
+	}
+	if text == '' {
+		return map[string]brew_runtime.Value{}
+	}
+	mut result := map[string]brew_runtime.Value{}
+	for pair in split_dsl_top_level(text, `,`) {
+		colon := dsl_top_level_colon(pair)
+		if colon < 1 {
+			return error('expected Hash')
+		}
+		key := pair[..colon].trim_space().trim_left(':').trim('"\'')
+		result[key] = parse_dsl_value(pair[colon + 1..])!
+	}
+	return result
+}
+
+fn parse_dsl_value(raw string) !brew_runtime.Value {
+	text := raw.trim_space()
+	if text.len >= 2 && ((text[0] == `'` && text[text.len - 1] == `'`) || (text[0] == `"` && text[text.len - 1] == `"`)) {
+		return brew_runtime.string_value(text[1..text.len - 1])
+	}
+	if text.starts_with(':') && text.len > 1 {
+		return brew_runtime.object_value('Symbol', text[1..])
+	}
+	if text == 'true' || text == 'false' {
+		return brew_runtime.bool_value(text == 'true')
+	}
+	if text == 'nil' {
+		return brew_runtime.object_value('NilClass', '')
+	}
+	if text.starts_with('[') && text.ends_with(']') {
+		mut values := []brew_runtime.Value{}
+		for item in split_dsl_top_level(text[1..text.len - 1], `,`) {
+			values << parse_dsl_value(item)!
+		}
+		return brew_runtime.array_value(values)
+	}
+	if text.starts_with('{') && text.ends_with('}') {
+		return brew_runtime.map_value(parse_dsl_options(text)!)
+	}
+	if text != '' && text.bytes().all(it >= `0` && it <= `9`) {
+		return brew_runtime.int_value(text.i64())
+	}
+	return error('unsupported value `${text}`')
+}
+
+pub fn bundle_dsl_entry_value(entry BundleDslEntry) brew_runtime.Value {
+	return brew_runtime.Value{
+		type_name: 'Homebrew::Bundle::Dsl::Entry'
+		repr: entry.name
+		map_data: entry.options.clone()
+		attributes: {
+			'type': entry.entry_type
+			'name': entry.name
+		}
+	}
+}
+
+pub fn bundle_dsl_value(dsl BundleDsl) brew_runtime.Value {
+	return brew_runtime.Value{
+		type_name: 'Homebrew::Bundle::Dsl'
+		repr: dsl.path
+		array_data: dsl.entries.map(bundle_dsl_entry_value(it))
+		map_data: dsl.cask_arguments.clone()
+		attributes: {
+			'path':  dsl.path
+			'input': dsl.input
+		}
+	}
+}
 
 // Ruby attr_reader `attr_reader :type` at line 16.
 pub fn ruby_dsl_l16_d1_type(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('type', ...args)
+	return if args.len > 0 {
+		brew_runtime.string_value(args[0].attributes['type'] or { '' })
+	} else {
+		brew_runtime.object_value('NilClass', '')
+	}
 }
 
 // Ruby attr_reader `attr_reader :name` at line 19.
 pub fn ruby_dsl_l19_d2_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('name', ...args)
+	return if args.len > 0 {
+		brew_runtime.string_value(args[0].repr)
+	} else {
+		brew_runtime.object_value('NilClass', '')
+	}
 }
 
 // Ruby attr_reader `attr_reader :options` at line 22.
 pub fn ruby_dsl_l22_d3_options(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('options', ...args)
+	return if args.len > 0 {
+		brew_runtime.map_value(args[0].map_data)
+	} else {
+		brew_runtime.map_value({})
+	}
 }
 
 // Ruby method `initialize(type, name, options = {})` at line 25.
 pub fn ruby_dsl_l25_d4_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	if args.len < 2 {
+		return brew_runtime.object_value('ArgumentError', 'type and name are required')
+	}
+	options := if args.len > 2 {
+		args[2].as_map() or { return brew_runtime.object_value('ArgumentError', err.msg()) }
+	} else {
+		map[string]brew_runtime.Value{}
+	}
+	return bundle_dsl_entry_value(bundle_dsl_entry(args[0].repr, args[1].repr, options))
 }
 
 // Ruby method `to_s` at line 32.
 pub fn ruby_dsl_l32_d5_to_s(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_s', ...args)
+	return if args.len > 0 {
+		brew_runtime.string_value(args[0].repr)
+	} else {
+		brew_runtime.string_value('')
+	}
 }
 
 // Ruby attr_reader `attr_reader :entries` at line 38.
 pub fn ruby_dsl_l38_d6_entries(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('entries', ...args)
+	return if args.len > 0 {
+		brew_runtime.array_value(args[0].array_data)
+	} else {
+		brew_runtime.array_value([])
+	}
 }
 
 // Ruby attr_reader `attr_reader :cask_arguments` at line 41.
 pub fn ruby_dsl_l41_d7_cask_arguments(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask_arguments', ...args)
+	return if args.len > 0 {
+		brew_runtime.map_value(args[0].map_data)
+	} else {
+		brew_runtime.map_value({})
+	}
 }
 
 // Ruby attr_reader `attr_reader :input` at line 44.
 pub fn ruby_dsl_l44_d8_input(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('input', ...args)
+	return if args.len > 0 {
+		brew_runtime.string_value(args[0].attributes['input'] or { '' })
+	} else {
+		brew_runtime.string_value('')
+	}
 }
 
 // Ruby method `initialize(path)` at line 47.
 pub fn ruby_dsl_l47_d9_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	if args.len == 0 {
+		return brew_runtime.object_value('ArgumentError', 'path is required')
+	}
+	input := args[0].repr
+	path := args[0].attributes['path'] or { '<StringIO>' }
+	dsl := parse_bundle_dsl(path, input) or { return brew_runtime.object_value('RuntimeError', err.msg()) }
+	return bundle_dsl_value(dsl)
 }
 
 // Ruby method `process` at line 66.
 pub fn ruby_dsl_l66_d10_process(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('process', ...args)
+	return ruby_dsl_l47_d9_initialize(...args)
 }
 
 // Ruby method `cask_args(args)` at line 71.
 pub fn ruby_dsl_l71_d11_cask_args(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask_args', ...args)
+	if args.len == 0 || args[0].type_name != 'Hash' {
+		return brew_runtime.object_value('ArgumentError', 'cask arguments must be a Hash')
+	}
+	return brew_runtime.map_value(args[0].map_data)
 }
 
 // Ruby method `brew(name, options = {})` at line 76.
 pub fn ruby_dsl_l76_d12_brew(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('brew', ...args)
+	if args.len == 0 || args[0].type_name != 'String' {
+		return brew_runtime.object_value('ArgumentError', 'brew name must be a String')
+	}
+	options := if args.len > 1 {
+		args[1].as_map() or { return brew_runtime.object_value('ArgumentError', 'brew options must be a Hash') }
+	} else {
+		map[string]brew_runtime.Value{}
+	}
+	return bundle_dsl_entry_value(bundle_dsl_entry('brew', sanitize_brew_name(args[0].repr), options))
 }
 
 // Ruby method `cask(name, options = {})` at line 84.
 pub fn ruby_dsl_l84_d13_cask(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask', ...args)
+	if args.len == 0 || args[0].type_name != 'String' {
+		return brew_runtime.object_value('ArgumentError', 'cask name must be a String')
+	}
+	mut options := if args.len > 1 {
+		args[1].as_map() or { return brew_runtime.object_value('ArgumentError', 'cask options must be a Hash') }
+	} else {
+		map[string]brew_runtime.Value{}
+	}
+	options['full_name'] = brew_runtime.string_value(args[0].repr)
+	if 'args' !in options {
+		options['args'] = brew_runtime.map_value({})
+	}
+	return bundle_dsl_entry_value(bundle_dsl_entry('cask', sanitize_cask_name(args[0].repr), options))
 }
 
 // Ruby method `tap(name, clone_target = nil, options = {}, **keyword_options)` at line 100.
 pub fn ruby_dsl_l100_d14_tap(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tap', ...args)
+	if args.len == 0 || args[0].type_name != 'String' {
+		return brew_runtime.object_value('ArgumentError', 'tap name must be a String')
+	}
+	mut options := map[string]brew_runtime.Value{}
+	mut clone_target := brew_runtime.object_value('NilClass', '')
+	if args.len > 1 {
+		if args[1].type_name == 'Hash' {
+			options = args[1].map_data.clone()
+		} else if args[1].type_name == 'String' {
+			clone_target = args[1]
+		} else {
+			return brew_runtime.object_value('ArgumentError', 'tap clone target must be a String')
+		}
+	}
+	if args.len > 2 {
+		for key, value in args[2].as_map() or { return brew_runtime.object_value('ArgumentError', err.msg()) } {
+			options[key] = value
+		}
+	}
+	options['clone_target'] = clone_target
+	return bundle_dsl_entry_value(bundle_dsl_entry('tap', sanitize_tap_name(args[0].repr), options))
 }
 
 // Ruby method `validate_type!(value, type, description)` at line 110.
 pub fn ruby_dsl_l110_d15_validate_type(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('validate_type!', ...args)
+	if args.len < 2 {
+		return brew_runtime.object_value('ArgumentError', 'value and type are required')
+	}
+	if args[0].type_name != args[1].repr {
+		description := if args.len > 2 { args[2].repr } else { 'value' }
+		return brew_runtime.object_value('TypeError', '${description} must be a ${args[1].repr}')
+	}
+	return brew_runtime.object_value('NilClass', '')
 }
 
 // Ruby method `self.sanitize_brew_name(name)` at line 120.
 pub fn ruby_dsl_l120_d16_self_sanitize_brew_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.sanitize_brew_name', ...args)
+	return if args.len > 0 {
+		brew_runtime.string_value(sanitize_brew_name(args[0].repr))
+	} else {
+		brew_runtime.string_value('')
+	}
 }
 
 // Ruby method `self.sanitize_tap_name(name)` at line 140.
 pub fn ruby_dsl_l140_d17_self_sanitize_tap_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.sanitize_tap_name', ...args)
+	return if args.len > 0 {
+		brew_runtime.string_value(sanitize_tap_name(args[0].repr))
+	} else {
+		brew_runtime.string_value('')
+	}
 }
 
 // Ruby method `self.sanitize_cask_name(name)` at line 150.
 pub fn ruby_dsl_l150_d18_self_sanitize_cask_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.sanitize_cask_name', ...args)
+	return if args.len > 0 {
+		brew_runtime.string_value(sanitize_cask_name(args[0].repr))
+	} else {
+		brew_runtime.string_value('')
+	}
 }
 
 // Ruby method `method_missing(method_name, *args, **options, &block)` at line 159.
 pub fn ruby_dsl_l159_d19_method_missing(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('method_missing', ...args)
+	if args.len < 2 || !bundle_dsl_responds_to(args[0].repr) {
+		return brew_runtime.object_value('NoMethodError', 'unknown Bundle DSL method')
+	}
+	options := if args.len > 2 {
+		args[2].as_map() or { return brew_runtime.object_value('ArgumentError', err.msg()) }
+	} else {
+		map[string]brew_runtime.Value{}
+	}
+	entry := extension_dsl_entry(args[0].repr, args[1].repr, options) or { return brew_runtime.object_value('RuntimeError', err.msg()) }
+	return bundle_dsl_entry_value(entry)
 }
 
 // Ruby method `respond_to_missing?(method_name, include_private = false)` at line 186.
 pub fn ruby_dsl_l186_d20_respond_to_missing(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('respond_to_missing?', ...args)
+	return brew_runtime.bool_value(args.len > 0 && bundle_dsl_responds_to(args[0].repr))
 }
 
 // Original Ruby source (line-for-line):

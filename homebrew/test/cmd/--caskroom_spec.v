@@ -1,18 +1,25 @@
 module cmd
 
 import brew_runtime
+import homebrew.cmd as cmd_core
 
 // Translated from Homebrew/brew `test/cmd/--caskroom_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "prints Homebrew's Caskroom", :integration_test do` at line 10.
 pub fn ruby_caskroom_spec_l10_d1_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+	caskroom := if args.len > 0 { args[0].as_string() } else { '/opt/homebrew/Caskroom' }
+	return brew_runtime.bool_value(cmd_core.caskroom_output(caskroom, []) == '${caskroom}\n')
 }
 
 // Ruby it `it "prints the Caskroom for Casks" do` at line 17.
 pub fn ruby_caskroom_spec_l17_d2_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+	caskroom := if args.len > 0 { args[0].as_string() } else { '/opt/homebrew/Caskroom' }
+	expected := '${caskroom}/local-transmission\n${caskroom}/local-caffeine\n'
+	return brew_runtime.bool_value(cmd_core.caskroom_output(caskroom, [
+		'local-transmission',
+		'local-caffeine',
+	]) == expected)
 }
 
 // Original Ruby source (line-for-line):

@@ -1,33 +1,213 @@
 module test_bot
 
-import brew_runtime
+import homebrew.utils
+
+pub struct BottlesFetch {
+pub mut:
+	testing_formulae []string
+}
+
+pub struct BottlesFetchFormula {
+pub:
+	name        string
+	disabled    bool
+	bottle_tags []utils.BottlesTag
+}
+
+pub struct BottlesFetchFormulaGroup {
+pub:
+	tag utils.BottlesTag
+pub mut:
+	formulae []string
+}
+
+pub enum BottlesFetchOperationKind {
+	info_header
+	output
+	blank_line
+	test_header
+	cleanup
+	fetch
+}
+
+pub struct BottlesFetchOperation {
+pub:
+	kind    BottlesFetchOperationKind
+	text    string
+	command []string
+}
+
+pub struct BottlesFetchTagPlan {
+pub:
+	tag        utils.BottlesTag
+	formulae   []string
+	header     string
+	cleanup    bool
+	passed     bool = true
+	command    []string
+	operations []BottlesFetchOperation
+}
+
+pub struct BottlesFetchRun {
+pub:
+	groups     []BottlesFetchFormulaGroup
+	operations []BottlesFetchOperation
+}
+
+pub type BottlesFetchFormulaResolver = fn (name string, formulae map[string]BottlesFetchFormula) !BottlesFetchFormula
+
+pub struct BottlesFetchConfig {
+pub:
+	formulae         map[string]BottlesFetchFormula
+	formula_resolver BottlesFetchFormulaResolver = resolve_bottles_fetch_formula
+}
+
+pub fn resolve_bottles_fetch_formula(name string,
+	formulae map[string]BottlesFetchFormula) !BottlesFetchFormula {
+	formula := formulae[name] or { return error('Formula unavailable: ${name}') }
+	return if formula.name == '' {
+		BottlesFetchFormula{
+			...formula
+			name: name
+		}
+	} else {
+		formula
+	}
+}
+
+pub fn new_bottles_fetch(testing_formulae []string) BottlesFetch {
+	return BottlesFetch{
+		testing_formulae: testing_formulae.clone()
+	}
+}
+
+pub fn (fetch &BottlesFetch) get_testing_formulae() []string {
+	return fetch.testing_formulae.clone()
+}
+
+pub fn (mut fetch BottlesFetch) set_testing_formulae(testing_formulae []string) []string {
+	fetch.testing_formulae = testing_formulae.clone()
+	return fetch.testing_formulae.clone()
+}
 
 // Translated from Homebrew/brew `test_bot/bottles_fetch.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby attr_accessor `attr_accessor :testing_formulae` at line 8.
-pub fn ruby_bottles_fetch_l8_d1_testing_formulae(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('testing_formulae', ...args)
+pub fn ruby_bottles_fetch_l8_d1_testing_formulae(fetch &BottlesFetch) []string {
+	return fetch.get_testing_formulae()
 }
 
 // Ruby attr_accessor `attr_accessor :testing_formulae` at line 8.
-pub fn ruby_bottles_fetch_l8_d2_testing_formulae(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('testing_formulae=', ...args)
+pub fn ruby_bottles_fetch_l8_d2_testing_formulae(mut fetch BottlesFetch,
+	testing_formulae []string) []string {
+	return fetch.set_testing_formulae(testing_formulae)
 }
 
 // Ruby method `run!(args:)` at line 11.
-pub fn ruby_bottles_fetch_l11_d3_run(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('run!', ...args)
+pub fn ruby_bottles_fetch_l11_d3_run(fetch BottlesFetch,
+	config BottlesFetchConfig) !BottlesFetchRun {
+	return bottles_fetch_run(fetch, config)
 }
 
 // Ruby method `formulae_by_tag` at line 25.
-pub fn ruby_bottles_fetch_l25_d4_formulae_by_tag(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formulae_by_tag', ...args)
+pub fn ruby_bottles_fetch_l25_d4_formulae_by_tag(fetch BottlesFetch,
+	config BottlesFetchConfig) ![]BottlesFetchFormulaGroup {
+	return bottles_fetch_formulae_by_tag(fetch.testing_formulae, config)
 }
 
 // Ruby method `fetch_bottles!(tag, formulae, args:)` at line 45.
-pub fn ruby_bottles_fetch_l45_d5_fetch_bottles(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fetch_bottles!', ...args)
+pub fn ruby_bottles_fetch_l45_d5_fetch_bottles(tag utils.BottlesTag,
+	formulae []string) BottlesFetchTagPlan {
+	return bottles_fetch_for_tag(tag, formulae)
+}
+
+pub fn bottles_fetch_formulae_by_tag(testing_formulae []string,
+	config BottlesFetchConfig) ![]BottlesFetchFormulaGroup {
+	mut groups := []BottlesFetchFormulaGroup{}
+	for formula_name in testing_formulae {
+		formula := config.formula_resolver(formula_name, config.formulae)!
+		if formula.disabled {
+			continue
+		}
+		if formula.bottle_tags.len == 0 {
+			return error('${formula_name} is missing bottles! Did you mean to use `brew pr-publish`?')
+		}
+		for tag in formula.bottle_tags {
+			mut group_index := -1
+			for index, group in groups {
+				if group.tag.equals(tag) {
+					group_index = index
+					break
+				}
+			}
+			if group_index < 0 {
+				groups << BottlesFetchFormulaGroup{
+					tag: tag
+					formulae: [formula_name]
+				}
+				continue
+			}
+			if formula_name !in groups[group_index].formulae {
+				groups[group_index].formulae << formula_name
+			}
+		}
+	}
+	return groups
+}
+
+pub fn bottles_fetch_for_tag(tag utils.BottlesTag, formulae []string) BottlesFetchTagPlan {
+	header := 'Running BottlesFetch#fetch_bottles!(${tag})'
+	mut command := ['brew', 'fetch', '--retry', '--formulae', '--bottle-tag=${tag}']
+	command << formulae
+	return BottlesFetchTagPlan{
+		tag: tag
+		formulae: formulae.clone()
+		header: header
+		cleanup: true
+		command: command
+		operations: [
+			BottlesFetchOperation{
+				kind: .test_header
+				text: header
+			},
+			BottlesFetchOperation{
+				kind: .cleanup
+			},
+			BottlesFetchOperation{
+				kind: .fetch
+				command: command
+			},
+		]
+	}
+}
+
+pub fn bottles_fetch_run(fetch BottlesFetch, config BottlesFetchConfig) !BottlesFetchRun {
+	mut operations := [BottlesFetchOperation{
+		kind: .info_header
+		text: 'Testing formulae:'
+	}]
+	for formula_name in fetch.testing_formulae {
+		operations << BottlesFetchOperation{
+			kind: .output
+			text: formula_name
+		}
+	}
+	operations << BottlesFetchOperation{
+		kind: .blank_line
+	}
+	groups := bottles_fetch_formulae_by_tag(fetch.testing_formulae, config)!
+	for group in groups {
+		plan := bottles_fetch_for_tag(group.tag, group.formulae)
+		operations << plan.operations
+		operations << BottlesFetchOperation{
+			kind: .blank_line
+		}
+	}
+	return BottlesFetchRun{
+		groups: groups
+		operations: operations
+	}
 }
 
 // Original Ruby source (line-for-line):

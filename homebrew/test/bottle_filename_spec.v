@@ -1,98 +1,110 @@
 module test
 
-import brew_runtime
+import homebrew
 
 // Translated from Homebrew/brew `test/bottle_filename_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:filename) { described_class.new(name, version, tag, rebuild) }` at line 8.
-pub fn ruby_bottle_filename_spec_l8_d1_filename(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('filename', ...args)
+pub fn ruby_bottle_filename_spec_l8_d1_filename() !homebrew.BottleFilename {
+	return homebrew.new_bottle_filename(ruby_bottle_filename_spec_l10_d2_name(), ruby_bottle_filename_spec_l11_d3_version()!, ruby_bottle_filename_spec_l12_d4_tag()!, ruby_bottle_filename_spec_l13_d5_rebuild())
 }
 
 // Ruby let `let(:name) { "user/repo/foo" }` at line 10.
-pub fn ruby_bottle_filename_spec_l10_d2_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('name', ...args)
+pub fn ruby_bottle_filename_spec_l10_d2_name() string {
+	return 'user/repo/foo'
 }
 
 // Ruby let `let(:version) { PkgVersion.new(Version.new("1.0"), 0) }` at line 11.
-pub fn ruby_bottle_filename_spec_l11_d3_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('version', ...args)
+pub fn ruby_bottle_filename_spec_l11_d3_version() !homebrew.PkgVersion {
+	return homebrew.new_pkg_version(homebrew.new_version('1.0')!, 0)
 }
 
 // Ruby let `let(:tag) { Utils::Bottles::Tag.from_symbol(:x86_64_linux) }` at line 12.
-pub fn ruby_bottle_filename_spec_l12_d4_tag(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tag', ...args)
+pub fn ruby_bottle_filename_spec_l12_d4_tag() !homebrew.BottleTag {
+	return homebrew.bottle_tag_from_symbol('x86_64_linux')
 }
 
 // Ruby let `let(:rebuild) { 0 }` at line 13.
-pub fn ruby_bottle_filename_spec_l13_d5_rebuild(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('rebuild', ...args)
+pub fn ruby_bottle_filename_spec_l13_d5_rebuild() int {
+	return 0
 }
 
 // Ruby it `it(:extname) { expect(filename.extname).to eq ".x86_64_linux.bottle.tar.gz" }` at line 16.
-pub fn ruby_bottle_filename_spec_l16_d6_extname(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('extname', ...args)
+pub fn ruby_bottle_filename_spec_l16_d6_extname() !bool {
+	return ruby_bottle_filename_spec_l8_d1_filename()!.extname() == '.x86_64_linux.bottle.tar.gz'
 }
 
 // Ruby it `it(:extname) { expect(filename.extname).to eq ".x86_64_linux.bottle.tar.gz" }` at line 19.
-pub fn ruby_bottle_filename_spec_l19_d7_extname(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('extname', ...args)
+pub fn ruby_bottle_filename_spec_l19_d7_extname() !bool {
+	return ruby_bottle_filename_spec_l8_d1_filename()!.extname() == '.x86_64_linux.bottle.tar.gz'
 }
 
 // Ruby let `let(:rebuild) { 1 }` at line 23.
-pub fn ruby_bottle_filename_spec_l23_d8_rebuild(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('rebuild', ...args)
+pub fn ruby_bottle_filename_spec_l23_d8_rebuild() int {
+	return 1
 }
 
 // Ruby it `it(:extname) { expect(filename.extname).to eq ".x86_64_linux.bottle.1.tar.gz" }` at line 25.
-pub fn ruby_bottle_filename_spec_l25_d9_extname(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('extname', ...args)
+pub fn ruby_bottle_filename_spec_l25_d9_extname() !bool {
+	filename := homebrew.new_bottle_filename(ruby_bottle_filename_spec_l10_d2_name(), ruby_bottle_filename_spec_l11_d3_version()!, ruby_bottle_filename_spec_l12_d4_tag()!, ruby_bottle_filename_spec_l23_d8_rebuild())!
+	return filename.extname() == '.x86_64_linux.bottle.1.tar.gz'
 }
 
 // Ruby it `it(:to_s) { expect(filename.to_s).to eq "foo--1.0.x86_64_linux.bottle.tar.gz" }` at line 30.
-pub fn ruby_bottle_filename_spec_l30_d10_to_s(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_s', ...args)
+pub fn ruby_bottle_filename_spec_l30_d10_to_s() !bool {
+	return ruby_bottle_filename_spec_l8_d1_filename()!.str() == 'foo--1.0.x86_64_linux.bottle.tar.gz'
 }
 
 // Ruby it `it(:to_str) { expect(filename.to_str).to eq "foo--1.0.x86_64_linux.bottle.tar.gz" }` at line 31.
-pub fn ruby_bottle_filename_spec_l31_d11_to_str(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_str', ...args)
+pub fn ruby_bottle_filename_spec_l31_d11_to_str() !bool {
+	return ruby_bottle_filename_spec_l8_d1_filename()!.str() == 'foo--1.0.x86_64_linux.bottle.tar.gz'
 }
 
 // Ruby it `it(:url_encode) { expect(filename.url_encode).to eq "foo-1.0.x86_64_linux.bottle.tar.gz" }` at line 35.
-pub fn ruby_bottle_filename_spec_l35_d12_url_encode(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('url_encode', ...args)
+pub fn ruby_bottle_filename_spec_l35_d12_url_encode() !bool {
+	return ruby_bottle_filename_spec_l8_d1_filename()!.url_encode() == 'foo-1.0.x86_64_linux.bottle.tar.gz'
 }
 
 // Ruby it `it(:github_packages) { expect(filename.github_packages).to eq "foo--1.0.x86_64_linux.bottle.tar.gz" }` at line 39.
-pub fn ruby_bottle_filename_spec_l39_d13_github_packages(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('github_packages', ...args)
+pub fn ruby_bottle_filename_spec_l39_d13_github_packages() !bool {
+	return ruby_bottle_filename_spec_l8_d1_filename()!.github_packages() == 'foo--1.0.x86_64_linux.bottle.tar.gz'
 }
 
 // Ruby it `it(:json) { expect(filename.json).to eq "foo--1.0.x86_64_linux.bottle.json" }` at line 43.
-pub fn ruby_bottle_filename_spec_l43_d14_json(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('json', ...args)
+pub fn ruby_bottle_filename_spec_l43_d14_json() !bool {
+	return ruby_bottle_filename_spec_l8_d1_filename()!.json() == 'foo--1.0.x86_64_linux.bottle.json'
 }
 
 // Ruby it `it(:json) { expect(filename.json).to eq "foo--1.0.x86_64_linux.bottle.json" }` at line 46.
-pub fn ruby_bottle_filename_spec_l46_d15_json(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('json', ...args)
+pub fn ruby_bottle_filename_spec_l46_d15_json() !bool {
+	filename := homebrew.new_bottle_filename(ruby_bottle_filename_spec_l10_d2_name(), ruby_bottle_filename_spec_l11_d3_version()!, ruby_bottle_filename_spec_l12_d4_tag()!, ruby_bottle_filename_spec_l23_d8_rebuild())!
+	return filename.json() == 'foo--1.0.x86_64_linux.bottle.json'
+}
+
+pub struct BottleFilenameSpecFormula {
+pub:
+	name        string
+	pkg_version homebrew.PkgVersion
 }
 
 // Ruby subject `subject(:filename) { described_class.create(f, tag, rebuild) }` at line 51.
-pub fn ruby_bottle_filename_spec_l51_d16_filename(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('filename', ...args)
+pub fn ruby_bottle_filename_spec_l51_d16_filename() !homebrew.BottleFilename {
+	formula := ruby_bottle_filename_spec_l53_d17_f()!
+	return homebrew.new_bottle_filename(formula.name, formula.pkg_version, ruby_bottle_filename_spec_l12_d4_tag()!, ruby_bottle_filename_spec_l13_d5_rebuild())
 }
 
 // Ruby let `let(:f) do` at line 53.
-pub fn ruby_bottle_filename_spec_l53_d17_f(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f', ...args)
+pub fn ruby_bottle_filename_spec_l53_d17_f() !BottleFilenameSpecFormula {
+	return BottleFilenameSpecFormula{
+		name: 'formula_name'
+		pkg_version: homebrew.new_pkg_version(homebrew.new_version('1.0')!, 0)
+	}
 }
 
 // Ruby it `it(:to_s) { expect(filename.to_s).to eq "formula_name--1.0.x86_64_linux.bottle.tar.gz" }` at line 61.
-pub fn ruby_bottle_filename_spec_l61_d18_to_s(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_s', ...args)
+pub fn ruby_bottle_filename_spec_l61_d18_to_s() !bool {
+	return ruby_bottle_filename_spec_l51_d16_filename()!.str() == 'formula_name--1.0.x86_64_linux.bottle.tar.gz'
 }
 
 // Original Ruby source (line-for-line):

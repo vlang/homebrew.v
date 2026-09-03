@@ -4,30 +4,112 @@ import brew_runtime
 
 // Translated from Homebrew/brew `extend/ENV/sensitive.rb`.
 // The original source is retained below until every stub has a typed V body.
+const deferred_environment_prefix = '{{HOMEBREW_DEFERRED_ENV:'
+const deferred_environment_suffix = '}}'
+
+pub struct SensitiveEnvironmentView {
+pub mut:
+	values map[string]string
+}
+
+pub type SensitiveEnvironmentAction = fn(mut SensitiveEnvironmentView) !brew_runtime.Value
+
+pub fn environment_key_sensitive(key string) bool {
+	lower := key.to_lower()
+	return ['cookie', 'key', 'token', 'password', 'passphrase', 'auth'].any(lower.contains(it))
+}
+
+pub fn sensitive_environment(values map[string]string) map[string]string {
+	mut sensitive := map[string]string{}
+	for key, value in values {
+		if environment_key_sensitive(key) {
+			sensitive[key] = value
+		}
+	}
+	return sensitive
+}
+
+pub fn clear_sensitive_environment(mut values map[string]string, except []string,
+	defer_values bool) {
+	for key in values.keys() {
+		if !environment_key_sensitive(key) || key in except {
+			continue
+		}
+		if defer_values {
+			values[key] = '${deferred_environment_prefix}${key}${deferred_environment_suffix}'
+		} else {
+			values.delete(key)
+		}
+	}
+}
+
+pub fn with_cleared_sensitive_environment(mut values map[string]string, except []string,
+	defer_values bool, action SensitiveEnvironmentAction) !brew_runtime.Value {
+	original := values.clone()
+	defer {
+		values.clear()
+		for key, value in original {
+			values[key] = value
+		}
+	}
+	clear_sensitive_environment(mut values, except, defer_values)
+	mut view := SensitiveEnvironmentView{
+		values: values.clone()
+	}
+	return action(mut view)!
+}
+
+pub fn expand_deferred_environment(value string, environment map[string]string,
+	expansion_allowed bool) string {
+	if !expansion_allowed || !value.contains(deferred_environment_prefix) {
+		return value
+	}
+	mut expanded := value
+	mut offset := 0
+	for {
+		relative_start := expanded[offset..].index(deferred_environment_prefix) or { break }
+		start := offset + relative_start
+		name_start := start + deferred_environment_prefix.len
+		relative_end := expanded[name_start..].index(deferred_environment_suffix) or { break }
+		name_end := name_start + relative_end
+		name := expanded[name_start..name_end]
+		if name.len <= 9 || !name.starts_with('HOMEBREW_') || !name[9..].bytes().all((it >= `A` && it <= `Z`) || (it >= `a` && it <= `z`) || (it >= `0` && it <= `9`) || it == `_`) {
+			offset = name_end + deferred_environment_suffix.len
+			continue
+		}
+		replacement := environment[name] or { '' }
+		expanded = expanded[..start] + replacement + expanded[name_end + deferred_environment_suffix.len..]
+		offset = start + replacement.len
+	}
+	return expanded
+}
 
 // Ruby method `sensitive?(key)` at line 21.
-pub fn ruby_sensitive_l21_d1_sensitive(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sensitive?', ...args)
+pub fn ruby_sensitive_l21_d1_sensitive(key string) bool {
+	return environment_key_sensitive(key)
 }
 
 // Ruby method `sensitive_environment` at line 26.
-pub fn ruby_sensitive_l26_d2_sensitive_environment(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sensitive_environment', ...args)
+pub fn ruby_sensitive_l26_d2_sensitive_environment(values map[string]string) map[string]string {
+	return sensitive_environment(values)
 }
 
 // Ruby method `clear_sensitive_environment!(except: [], defer: false, &block)` at line 37.
-pub fn ruby_sensitive_l37_d3_clear_sensitive_environment(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('clear_sensitive_environment!', ...args)
+pub fn ruby_sensitive_l37_d3_clear_sensitive_environment(mut values map[string]string,
+	except []string, defer_secrets bool) {
+	clear_sensitive_environment(mut values, except, defer_secrets)
 }
 
 // Ruby method `clear_sensitive_environment_for_eval!(&block)` at line 62.
-pub fn ruby_sensitive_l62_d4_clear_sensitive_environment_for_eval(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('clear_sensitive_environment_for_eval!', ...args)
+pub fn ruby_sensitive_l62_d4_clear_sensitive_environment_for_eval(mut values map[string]string,
+	action SensitiveEnvironmentAction) !brew_runtime.Value {
+	return with_cleared_sensitive_environment(mut values, ['HOMEBREW_GITHUB_API_TOKEN'], true, action)!
 }
 
 // Ruby method `expand_deferred_environment(value)` at line 70.
-pub fn ruby_sensitive_l70_d5_expand_deferred_environment(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('expand_deferred_environment', ...args)
+pub fn ruby_sensitive_l70_d5_expand_deferred_environment(value string,
+	environment map[string]string, expansion_allowed bool) string {
+	return expand_deferred_environment(value, environment, expansion_allowed)
 }
 
 // Original Ruby source (line-for-line):

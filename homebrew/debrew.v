@@ -4,75 +4,386 @@ import brew_runtime
 
 // Translated from Homebrew/brew `debrew.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub enum DebrewMenuAction {
+	raise_exception
+	ignore
+	backtrace
+	irb
+	shell
+}
+
+pub struct DebrewMenuEntry {
+pub:
+	name   string
+	action DebrewMenuAction
+}
+
+@[heap]
+pub struct DebrewMenu {
+pub mut:
+	prompt  ?string
+	entries []DebrewMenuEntry
+	output  []string
+}
+
+pub fn new_debrew_menu() &DebrewMenu {
+	return &DebrewMenu{}
+}
+
+pub fn (mut menu DebrewMenu) choice(name string, action DebrewMenuAction) {
+	menu.entries << DebrewMenuEntry{
+		name: name
+		action: action
+	}
+}
+
+pub fn (mut menu DebrewMenu) choose(inputs []string) !DebrewMenuEntry {
+	for raw_input in inputs {
+		for index, entry in menu.entries {
+			menu.output << '${index + 1}. ${entry.name}'
+		}
+		if prompt := menu.prompt {
+			menu.output << prompt
+		}
+		input := raw_input.trim_right('\r\n')
+		index := input.int()
+		if index > 0 {
+			if index <= menu.entries.len {
+				return menu.entries[index - 1]
+			}
+			continue
+		}
+		possible := menu.entries.filter(it.name.starts_with(input))
+		if possible.len == 0 {
+			menu.output << 'No such option'
+		} else if possible.len == 1 {
+			return possible[0]
+		} else {
+			menu.output << 'Multiple options match: ${possible.map(it.name).join(' ')}'
+		}
+	}
+	return error('input ended before a menu choice was selected')
+}
+
+pub struct DebrewException {
+pub:
+	id         string
+	class_name string
+	message    string
+	backtrace  []string
+	ignorable  bool
+}
+
+@[heap]
+pub struct DebrewState {
+pub mut:
+	active              bool
+	locked              bool
+	debugged_exceptions map[string]bool
+	output              []string
+	formula_invocations []string
+	boundary_result     brew_runtime.Value
+}
+
+pub fn new_debrew_state() &DebrewState {
+	return &DebrewState{
+		debugged_exceptions: map[string]bool{}
+	}
+}
+
+fn debrew_exception_key(exception DebrewException) string {
+	return if exception.id != '' {
+		exception.id
+	} else {
+		'${exception.class_name}:${exception.message}'
+	}
+}
+
+pub fn (mut state DebrewState) run(action fn(mut DebrewState) !brew_runtime.Value) !brew_runtime.Value {
+	state.active = true
+	defer {
+		state.active = false
+		state.locked = false
+	}
+	return action(mut state)
+}
+
+pub fn (mut state DebrewState) debug(exception DebrewException, inputs []string) !string {
+	key := debrew_exception_key(exception)
+	if !state.active {
+		return error(exception.message)
+	}
+	if key in state.debugged_exceptions {
+		return error(exception.message)
+	}
+	state.debugged_exceptions[key] = true
+	if state.locked {
+		return error(exception.message)
+	}
+	state.locked = true
+	defer {
+		state.locked = false
+	}
+	if exception.backtrace.len > 0 {
+		state.output << exception.backtrace[0]
+	}
+	state.output << '${exception.class_name}: ${exception.message}'
+	mut input_offset := 0
+	for input_offset < inputs.len {
+		mut menu := new_debrew_menu()
+		menu.prompt = 'Choose an action: '
+		menu.choice('raise', .raise_exception)
+		if exception.ignorable {
+			menu.choice('ignore', .ignore)
+		}
+		menu.choice('backtrace', .backtrace)
+		if exception.ignorable {
+			menu.choice('irb', .irb)
+		}
+		menu.choice('shell', .shell)
+		entry := menu.choose(inputs[input_offset..])!
+		state.output << menu.output
+		mut consumed := 1
+		for index, item in menu.output {
+			if item == 'No such option' || item.starts_with('Multiple options match:') {
+				consumed++
+			}
+			_ = index
+		}
+		input_offset += consumed
+		match entry.action {
+			.raise_exception {
+				return error(exception.message)
+			}
+			.ignore {
+				return 'ignore'
+			}
+			.backtrace {
+				state.output << exception.backtrace
+			}
+			.irb {
+				state.output << 'When you exit this IRB session, execution will continue.'
+				return 'ignore'
+			}
+			.shell {
+				state.output << 'When you exit this shell, you will return to the menu.'
+			}
+		}
+	}
+	return error('input ended before a debugger action completed')
+}
+
+fn debrew_boundary_action(mut state DebrewState) !brew_runtime.Value {
+	return state.boundary_result
+}
+
+pub fn (mut state DebrewState) formula_action(name string, result brew_runtime.Value) brew_runtime.Value {
+	state.formula_invocations << name
+	state.boundary_result = result
+	return state.run(debrew_boundary_action) or {
+		brew_runtime.object_value('RuntimeError', err.msg())
+	}
+}
+
+fn debrew_state_value(state &DebrewState) brew_runtime.Value {
+	return brew_runtime.structured_value('Debrew::State', '', {
+		'debrew_state_address': u64(voidptr(state)).str()
+	})
+}
+
+fn debrew_state_from_value(value brew_runtime.Value) &DebrewState {
+	address := value.attributes['debrew_state_address'] or { panic('invalid Debrew state') }
+	return unsafe { &DebrewState(voidptr(address.u64())) }
+}
+
+pub fn debrew_state_boundary(state &DebrewState) brew_runtime.Value {
+	return debrew_state_value(state)
+}
+
+fn debrew_menu_value(menu &DebrewMenu) brew_runtime.Value {
+	return brew_runtime.structured_value('Debrew::Menu', '', {
+		'debrew_menu_address': u64(voidptr(menu)).str()
+	})
+}
+
+fn debrew_menu_from_value(value brew_runtime.Value) &DebrewMenu {
+	address := value.attributes['debrew_menu_address'] or { panic('invalid Debrew menu') }
+	return unsafe { &DebrewMenu(voidptr(address.u64())) }
+}
+
+pub fn debrew_menu_boundary(menu &DebrewMenu) brew_runtime.Value {
+	return debrew_menu_value(menu)
+}
+
+fn debrew_action_from_string(value string) DebrewMenuAction {
+	return match value.trim_string_left(':') {
+		'ignore' { .ignore }
+		'backtrace' { .backtrace }
+		'irb' { .irb }
+		'shell' { .shell }
+		else { .raise_exception }
+	}
+}
+
+fn debrew_exception_from_value(value brew_runtime.Value) DebrewException {
+	return DebrewException{
+		id: value.attributes['id'] or { value.repr }
+		class_name: value.attributes['class_name'] or { value.type_name }
+		message: value.attributes['message'] or { value.repr }
+		backtrace: (value.attributes['backtrace'] or { '' }).split_into_lines()
+		ignorable: value.attributes['ignorable'] == 'true'
+	}
+}
 
 // Ruby method `install` at line 11.
 pub fn ruby_debrew_l11_d1_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	if args.len == 0 {
+		return brew_runtime.object_value('ArgumentError', 'Debrew state is required')
+	}
+	mut state := debrew_state_from_value(args[0])
+	result := if args.len > 1 { args[1] } else { brew_runtime.object_value('NilClass', 'nil') }
+	return state.formula_action('install', result)
 }
 
 // Ruby method `patch` at line 16.
 pub fn ruby_debrew_l16_d2_patch(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('patch', ...args)
+	if args.len == 0 {
+		return brew_runtime.object_value('ArgumentError', 'Debrew state is required')
+	}
+	mut state := debrew_state_from_value(args[0])
+	result := if args.len > 1 { args[1] } else { brew_runtime.object_value('NilClass', 'nil') }
+	return state.formula_action('patch', result)
 }
 
 // Ruby method `test` at line 24.
 pub fn ruby_debrew_l24_d3_test(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('test', ...args)
+	if args.len == 0 {
+		return brew_runtime.object_value('ArgumentError', 'Debrew state is required')
+	}
+	mut state := debrew_state_from_value(args[0])
+	result := if args.len > 1 { args[1] } else { brew_runtime.object_value('NilClass', 'nil') }
+	return state.formula_action('test', result)
 }
 
 // Ruby attr_accessor `attr_accessor :prompt` at line 37.
 pub fn ruby_debrew_l37_d4_prompt(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prompt', ...args)
+	if args.len == 0 {
+		return brew_runtime.object_value('NilClass', 'nil')
+	}
+	menu := debrew_menu_from_value(args[0])
+	return if prompt := menu.prompt {
+		brew_runtime.string_value(prompt)
+	} else {
+		brew_runtime.object_value('NilClass', 'nil')
+	}
 }
 
 // Ruby attr_accessor `attr_accessor :prompt` at line 37.
 pub fn ruby_debrew_l37_d5_prompt(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prompt=', ...args)
+	if args.len < 2 {
+		return brew_runtime.object_value('ArgumentError', 'prompt is required')
+	}
+	mut menu := debrew_menu_from_value(args[0])
+	menu.prompt = if args[1].type_name == 'NilClass' { none } else { args[1].as_string() }
+	return args[1]
 }
 
 // Ruby attr_accessor `attr_accessor :entries` at line 40.
 pub fn ruby_debrew_l40_d6_entries(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('entries', ...args)
+	if args.len == 0 {
+		return brew_runtime.array_value([])
+	}
+	menu := debrew_menu_from_value(args[0])
+	return brew_runtime.array_value(menu.entries.map(brew_runtime.structured_value('Debrew::Menu::Entry', it.name, {
+		'name':   it.name
+		'action': it.action.str()
+	})))
 }
 
 // Ruby attr_accessor `attr_accessor :entries` at line 40.
 pub fn ruby_debrew_l40_d7_entries(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('entries=', ...args)
+	if args.len < 2 {
+		return brew_runtime.object_value('ArgumentError', 'entries are required')
+	}
+	mut menu := debrew_menu_from_value(args[0])
+	menu.entries = (args[1].as_array() or { [] }).map(DebrewMenuEntry{
+		name: it.attributes['name'] or { it.as_string() }
+		action: debrew_action_from_string(it.attributes['action'] or { it.as_string() })
+	})
+	return args[1]
 }
 
 // Ruby method `initialize` at line 43.
 pub fn ruby_debrew_l43_d8_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	_ = args
+	return debrew_menu_value(new_debrew_menu())
 }
 
 // Ruby method `choice(name, &action)` at line 48.
 pub fn ruby_debrew_l48_d9_choice(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('choice', ...args)
+	if args.len < 2 {
+		return brew_runtime.object_value('ArgumentError', 'menu and name are required')
+	}
+	mut menu := debrew_menu_from_value(args[0])
+	action := if args.len > 2 {
+		debrew_action_from_string(args[2].as_string())
+	} else {
+		.raise_exception
+	}
+	menu.choice(args[1].as_string().trim_string_left(':'), action)
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Ruby method `self.choose(&_block)` at line 53.
 pub fn ruby_debrew_l53_d10_self_choose(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.choose', ...args)
+	if args.len == 0 {
+		return brew_runtime.object_value('ArgumentError', 'menu is required')
+	}
+	mut menu := debrew_menu_from_value(args[0])
+	inputs := if args.len > 1 { args[1].as_string_array() or { [] } } else { [] }
+	entry := menu.choose(inputs) or { return brew_runtime.object_value('EOFError', err.msg()) }
+	return brew_runtime.object_value('Symbol', entry.action.str())
 }
 
 // Ruby attr_reader `attr_reader :debugged_exceptions` at line 88.
 pub fn ruby_debrew_l88_d11_debugged_exceptions(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('debugged_exceptions', ...args)
+	if args.len == 0 {
+		return brew_runtime.string_array_value([])
+	}
+	state := debrew_state_from_value(args[0])
+	return brew_runtime.string_array_value(state.debugged_exceptions.keys())
 }
 
 // Ruby method `active? = !@mutex.nil?` at line 91.
 pub fn ruby_debrew_l91_d12_active(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('active?', ...args)
+	return brew_runtime.bool_value(args.len > 0 && debrew_state_from_value(args[0]).active)
 }
 
 // Ruby method `self.debrew(&block)` at line 99.
 pub fn ruby_debrew_l99_d13_self_debrew(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.debrew', ...args)
+	if args.len == 0 {
+		return brew_runtime.object_value('ArgumentError', 'Debrew state is required')
+	}
+	mut state := debrew_state_from_value(args[0])
+	state.boundary_result = if args.len > 1 {
+		args[1]
+	} else {
+		brew_runtime.object_value('NilClass', 'nil')
+	}
+	return state.run(debrew_boundary_action) or { brew_runtime.object_value('RuntimeError', err.msg()) }
 }
 
 // Ruby method `self.debug(exception)` at line 107.
 pub fn ruby_debrew_l107_d14_self_debug(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.debug', ...args)
+	if args.len < 2 {
+		return brew_runtime.object_value('ArgumentError', 'state and exception are required')
+	}
+	mut state := debrew_state_from_value(args[0])
+	inputs := if args.len > 2 { args[2].as_string_array() or { [] } } else { [] }
+	action := state.debug(debrew_exception_from_value(args[1]), inputs) or {
+		return brew_runtime.object_value('RuntimeError', err.msg())
+	}
+	return brew_runtime.object_value('Symbol', action)
 }
 
 // Original Ruby source (line-for-line):

@@ -1,58 +1,83 @@
 module cask
 
-import brew_runtime
+import homebrew.rubocops.cask as array_alphabetization_core
 
 // Translated from Homebrew/brew `test/rubocops/cask/array_alphabetization_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "reports an offense when a single `zap trash` path is specified in an array" do` at line 7.
-pub fn ruby_array_alphabetization_spec_l7_d1_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_array_alphabetization_spec_l7_d1_reports() bool {
+	source := 'cask "foo" do\n  url "https://example.com/foo.zip"\n\n  zap trash: ["~/Library/Application Support/Foo"]\nend'
+	expected := 'cask "foo" do\n  url "https://example.com/foo.zip"\n\n  zap trash: "~/Library/Application Support/Foo"\nend'
+	offenses := array_alphabetization_core.audit_array_alphabetization(source)
+	return offenses.len == 1 && offenses[0].message == array_alphabetization_core.array_alphabetization_single_message && source[offenses[0].begin_pos..offenses[0].end_pos] == '["~/Library/Application Support/Foo"]' && array_alphabetization_core.correct_array_alphabetization(source) == expected
 }
 
 // Ruby it `it "reports an offense when the `zap` stanza paths are not in alphabetical order" do` at line 26.
-pub fn ruby_array_alphabetization_spec_l26_d2_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_array_alphabetization_spec_l26_d2_reports() bool {
+	source := 'cask "foo" do\n  url "https://example.com/foo.zip"\n\n  zap trash: [\n    "/Library/Application Support/Foo",\n    "/Library/Application Support/Baz",\n    "~/Library/Application Support/Foo",\n    "~/.dotfiles/thing",\n    "~/Library/Application Support/Bar",\n  ],\n  rmdir: [\n    "/Applications/foo/nested/blah",\n    "/Applications/foo/",\n  ]\nend'
+	expected := 'cask "foo" do\n  url "https://example.com/foo.zip"\n\n  zap trash: [\n    "/Library/Application Support/Baz",\n    "/Library/Application Support/Foo",\n    "~/.dotfiles/thing",\n    "~/Library/Application Support/Bar",\n    "~/Library/Application Support/Foo",\n  ],\n  rmdir: [\n    "/Applications/foo/",\n    "/Applications/foo/nested/blah",\n  ]\nend'
+	offenses := array_alphabetization_core.audit_array_alphabetization(source)
+	return offenses.len == 2 && offenses.all(it.message == array_alphabetization_core.array_alphabetization_order_message) && array_alphabetization_core.correct_array_alphabetization(source) == expected
 }
 
 // Ruby it `it "sorts by element content regardless of inconsistent indentation" do` at line 66.
-pub fn ruby_array_alphabetization_spec_l66_d3_sorts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sorts', ...args)
+pub fn ruby_array_alphabetization_spec_l66_d3_sorts() bool {
+	source := 'cask "foo" do\n  url "https://example.com/foo.zip"\n\n  zap trash: [\n       "~/Library/Caches/Foo",\n       "~/Library/HTTPStorages/Foo",\n    "~/Library/Application Support/Foo",\n  ]\nend'
+	expected := 'cask "foo" do\n  url "https://example.com/foo.zip"\n\n  zap trash: [\n    "~/Library/Application Support/Foo",\n       "~/Library/Caches/Foo",\n       "~/Library/HTTPStorages/Foo",\n  ]\nend'
+	offenses := array_alphabetization_core.audit_array_alphabetization(source)
+	return offenses.len == 1 && array_alphabetization_core.correct_array_alphabetization(source) == expected
 }
 
 // Ruby it `it "autocorrects alphabetization in zap trash paths with interpolation" do` at line 93.
-pub fn ruby_array_alphabetization_spec_l93_d4_autocorrects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('autocorrects', ...args)
+pub fn ruby_array_alphabetization_spec_l93_d4_autocorrects() bool {
+	source := 'cask "foo" do\n  url "https://example.com/foo.zip"\n\n  zap trash: [\n    "~/Library/Application Support/Foo",\n    "~/Library/Application Support/Bar#{version.major}",\n  ]\nend'
+	expected := 'cask "foo" do\n  url "https://example.com/foo.zip"\n\n  zap trash: [\n    "~/Library/Application Support/Bar#{version.major}",\n    "~/Library/Application Support/Foo",\n  ]\nend'
+	return array_alphabetization_core.audit_array_alphabetization(source).len == 1 && array_alphabetization_core.correct_array_alphabetization(source) == expected
 }
 
 // Ruby it `it "reports an offense when a single cask is specified in an array" do` at line 118.
-pub fn ruby_array_alphabetization_spec_l118_d5_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_array_alphabetization_spec_l118_d5_reports() bool {
+	source := 'cask "foo" do\n  url "https://example.com/foo.zip"\n\n  conflicts_with cask: ["bar"]\nend'
+	expected := 'cask "foo" do\n  url "https://example.com/foo.zip"\n\n  conflicts_with cask: "bar"\nend'
+	offenses := array_alphabetization_core.audit_array_alphabetization(source)
+	return offenses.len == 1 && offenses[0].replacement == '"bar"' && array_alphabetization_core.correct_array_alphabetization(source) == expected
 }
 
 // Ruby it `it "reports an offense when a single cask is specified in a multi-line array" do` at line 137.
-pub fn ruby_array_alphabetization_spec_l137_d6_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_array_alphabetization_spec_l137_d6_reports() bool {
+	source := 'cask "foo" do\n  url "https://example.com/foo.zip"\n\n  conflicts_with cask: [\n    "bar"\n  ]\nend'
+	expected := 'cask "foo" do\n  url "https://example.com/foo.zip"\n\n  conflicts_with cask: "bar"\nend'
+	offenses := array_alphabetization_core.audit_array_alphabetization(source)
+	return offenses.len == 1 && offenses[0].replacement == '"bar"' && array_alphabetization_core.correct_array_alphabetization(source) == expected
 }
 
 // Ruby it `it "autocorrects alphabetization in `conflicts_with` methods" do` at line 158.
-pub fn ruby_array_alphabetization_spec_l158_d7_autocorrects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('autocorrects', ...args)
+pub fn ruby_array_alphabetization_spec_l158_d7_autocorrects() bool {
+	source := 'cask "foo" do\n  url "https://example.com/foo.zip"\n\n  conflicts_with cask: [\n    "something",\n    "other",\n  ]\nend'
+	expected := 'cask "foo" do\n  url "https://example.com/foo.zip"\n\n  conflicts_with cask: [\n    "other",\n    "something",\n  ]\nend'
+	return array_alphabetization_core.audit_array_alphabetization(source).len == 1 && array_alphabetization_core.correct_array_alphabetization(source) == expected
 }
 
 // Ruby it `it "autocorrects alphabetization in `uninstall` methods" do` at line 183.
-pub fn ruby_array_alphabetization_spec_l183_d8_autocorrects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('autocorrects', ...args)
+pub fn ruby_array_alphabetization_spec_l183_d8_autocorrects() bool {
+	source := 'cask "foo" do\n  url "https://example.com/foo.zip"\n\n  uninstall pkgutil: [\n    "something",\n    "other",\n  ],\n  script: [\n    "ordered",\n    "differently",\n  ]\nend'
+	expected := 'cask "foo" do\n  url "https://example.com/foo.zip"\n\n  uninstall pkgutil: [\n    "other",\n    "something",\n  ],\n  script: [\n    "ordered",\n    "differently",\n  ]\nend'
+	offenses := array_alphabetization_core.audit_array_alphabetization(source)
+	return offenses.len == 1 && array_alphabetization_core.correct_array_alphabetization(source) == expected
 }
 
 // Ruby it `it "ignores `uninstall` methods with commands" do` at line 216.
-pub fn ruby_array_alphabetization_spec_l216_d9_ignores(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ignores', ...args)
+pub fn ruby_array_alphabetization_spec_l216_d9_ignores() bool {
+	source := 'cask "foo" do\n  url "https://example.com/foo.zip"\n\n  uninstall script: {\n    args: ["--mode=something", "--another-mode"],\n    executable: "thing",\n  }\nend'
+	return array_alphabetization_core.audit_array_alphabetization(source).len == 0
 }
 
 // Ruby it `it "moves comments when autocorrecting" do` at line 229.
-pub fn ruby_array_alphabetization_spec_l229_d10_moves(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('moves', ...args)
+pub fn ruby_array_alphabetization_spec_l229_d10_moves() bool {
+	source := 'cask "foo" do\n  url "https://example.com/foo.zip"\n\n  zap trash: [\n    # comment related to foo\n    "~/Library/Application Support/Foo",\n    # a really long comment related to Zoo\n    # and the Zoo comment continues\n    "~/Library/Application Support/Zoo",\n    "~/Library/Application Support/Bar",\n    "~/Library/Application Support/Baz", # in-line comment\n  ]\nend'
+	expected := 'cask "foo" do\n  url "https://example.com/foo.zip"\n\n  zap trash: [\n    "~/Library/Application Support/Bar",\n    "~/Library/Application Support/Baz", # in-line comment\n    # comment related to foo\n    "~/Library/Application Support/Foo",\n    # a really long comment related to Zoo\n    # and the Zoo comment continues\n    "~/Library/Application Support/Zoo",\n  ]\nend'
+	return array_alphabetization_core.audit_array_alphabetization(source).len == 1 && array_alphabetization_core.correct_array_alphabetization(source) == expected
 }
 
 // Original Ruby source (line-for-line):

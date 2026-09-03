@@ -1,38 +1,78 @@
 module cask
 
-import brew_runtime
+import homebrew.cask as reinstall_core
 
 // Translated from Homebrew/brew `test/cask/reinstall_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "displays the reinstallation progress" do` at line 8.
-pub fn ruby_reinstall_spec_l8_d1_displays(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('displays', ...args)
+pub fn ruby_reinstall_spec_l8_d1_displays() bool {
+	result := reinstall_core.reinstall_casks([reinstall_core.ReinstallCask{
+		full_name: 'local-caffeine'
+		installed: true
+	}], reinstall_core.ReinstallCaskOptions{})
+	return result.output.contains('Uninstalling Cask local-caffeine') && result.output.contains('Installing Cask local-caffeine') && result.output.contains('local-caffeine was successfully installed!') && result.prefetched == [
+		'local-caffeine',
+	]
 }
 
 // Ruby it `it "displays the reinstallation progress with zapping" do` at line 28.
-pub fn ruby_reinstall_spec_l28_d2_displays(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('displays', ...args)
+pub fn ruby_reinstall_spec_l28_d2_displays() bool {
+	result := reinstall_core.reinstall_casks([reinstall_core.ReinstallCask{
+		full_name: 'local-caffeine'
+		installed: true
+	}], reinstall_core.ReinstallCaskOptions{
+		zap: true
+	})
+	return result.output.contains('Dispatching zap stanza for local-caffeine') && result.installed == [
+		'local-caffeine',
+	]
 }
 
 // Ruby it `it "allows reinstalling a Cask" do` at line 50.
-pub fn ruby_reinstall_spec_l50_d3_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+pub fn ruby_reinstall_spec_l50_d3_allows() bool {
+	result := reinstall_core.reinstall_casks([reinstall_core.ReinstallCask{
+		full_name: 'local-transmission-zip'
+		installed: true
+	}], reinstall_core.ReinstallCaskOptions{})
+	return result.installed == ['local-transmission-zip']
 }
 
 // Ruby it `it "continues reinstalling remaining casks when one raises" do` at line 59.
-pub fn ruby_reinstall_spec_l59_d4_continues(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('continues', ...args)
+pub fn ruby_reinstall_spec_l59_d4_continues() bool {
+	result := reinstall_core.reinstall_casks([
+		reinstall_core.ReinstallCask{
+			full_name: 'local-caffeine'
+			installed: true
+			fail_message: 'reinstall failed'
+		},
+		reinstall_core.ReinstallCask{
+			full_name: 'local-transmission-zip'
+			installed: true
+		},
+	], reinstall_core.ReinstallCaskOptions{})
+	return result.failures['local-caffeine'] == 'reinstall failed' && result.installed == [
+		'local-transmission-zip',
+	]
 }
 
 // Ruby it `it "reinstalls casks after an earlier failure in the same run" do` at line 84.
-pub fn ruby_reinstall_spec_l84_d5_reinstalls(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reinstalls', ...args)
+pub fn ruby_reinstall_spec_l84_d5_reinstalls() bool {
+	result := reinstall_core.reinstall_casks([reinstall_core.ReinstallCask{
+		full_name: 'local-caffeine'
+		installed: true
+	}], reinstall_core.ReinstallCaskOptions{
+		global_failed: true
+	})
+	return result.installed == ['local-caffeine']
 }
 
 // Ruby it `it "allows reinstalling a non installed Cask" do` at line 98.
-pub fn ruby_reinstall_spec_l98_d6_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+pub fn ruby_reinstall_spec_l98_d6_allows() bool {
+	result := reinstall_core.reinstall_casks([reinstall_core.ReinstallCask{
+		full_name: 'local-transmission-zip'
+	}], reinstall_core.ReinstallCaskOptions{})
+	return result.installed == ['local-transmission-zip']
 }
 
 // Original Ruby source (line-for-line):

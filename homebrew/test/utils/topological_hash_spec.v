@@ -1,23 +1,102 @@
 module utils
 
-import brew_runtime
+import homebrew.utils as homebrew_utils
 
 // Translated from Homebrew/brew `test/utils/topological_hash_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "returns a topologically sorted array" do` at line 8.
-pub fn ruby_topological_hash_spec_l8_d1_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_topological_hash_spec_l8_d1_returns() !bool {
+	mut graph := homebrew_utils.new_topological_hash()
+	graph.set('1', ['2', '3'])
+	graph.set('2', ['3'])
+	graph.set('3', [])
+	graph.set('4', [])
+	return graph.tsort()! == ['3', '2', '1', '4']
 }
 
 // Ruby it `it "returns an array of arrays" do` at line 19.
-pub fn ruby_topological_hash_spec_l19_d2_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_topological_hash_spec_l19_d2_returns() !bool {
+	mut graph := homebrew_utils.new_topological_hash()
+	graph.set('1', ['2'])
+	graph.set('2', ['3', '4'])
+	graph.set('3', ['2'])
+	graph.set('4', [])
+	return graph.strongly_connected_components()! == [['4'], ['2', '3'], ['1']]
 }
 
 // Ruby it `it "returns a topological hash" do` at line 30.
-pub fn ruby_topological_hash_spec_l30_d3_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_topological_hash_spec_l30_d3_returns() !bool {
+	formula1 := homebrew_utils.TopologicalPackage{
+		name: 'homebrew-test-formula1'
+		kind: .formula
+	}
+	formula2 := homebrew_utils.TopologicalPackage{
+		name: 'homebrew-test-formula2'
+		kind: .formula
+		formula_dependencies: [homebrew_utils.TopologicalDependency{
+			name: formula1.name
+		}]
+	}
+	formula3 := homebrew_utils.TopologicalPackage{
+		name: 'homebrew-test-formula3'
+		kind: .formula
+		formula_dependencies: [homebrew_utils.TopologicalDependency{
+			name: 'homebrew-test-formula4'
+		}]
+	}
+	formula4 := homebrew_utils.TopologicalPackage{
+		name: 'homebrew-test-formula4'
+		kind: .formula
+		formula_dependencies: [homebrew_utils.TopologicalDependency{
+			name: formula3.name
+		}]
+	}
+	cask1 := homebrew_utils.TopologicalPackage{
+		name: 'homebrew-test-cask1'
+		kind: .cask
+	}
+	cask2 := homebrew_utils.TopologicalPackage{
+		name: 'homebrew-test-cask2'
+		kind: .cask
+		formula_dependencies: [homebrew_utils.TopologicalDependency{
+			name: formula1.name
+		}]
+		cask_dependencies: [cask1.name]
+	}
+	cask3 := homebrew_utils.TopologicalPackage{
+		name: 'homebrew-test-cask3'
+		kind: .cask
+		cask_dependencies: [cask2.name]
+	}
+	packages := [formula1, formula2, formula3, formula4, cask1, cask2, cask3]
+	mut catalog := map[string]homebrew_utils.TopologicalPackage{}
+	for package in packages {
+		catalog[package.name] = package
+	}
+	graph := homebrew_utils.graph_package_dependencies(packages, catalog)!
+	if graph.each_child(formula1.name)! != [] || graph.each_child(formula2.name)! != [
+		formula1.name,
+	] || graph.each_child(formula3.name)! != [formula4.name] || graph.each_child(formula4.name)! != [
+		formula3.name,
+	] || graph.each_child(cask1.name)! != [] || graph.each_child(cask2.name)! != [
+		formula1.name,
+		cask1.name,
+	] || graph.each_child(cask3.name)! != [cask2.name] {
+		return false
+	}
+	expected := [formula1.name, cask1.name, cask2.name, cask3.name, formula2.name]
+	first := homebrew_utils.graph_package_dependencies([cask3, cask2, cask1, formula2, formula1], catalog)!
+	if first.tsort()! != expected {
+		return false
+	}
+	second := homebrew_utils.graph_package_dependencies([cask3, formula2], catalog)!
+	if second.tsort()! != expected {
+		return false
+	}
+	cyclic := homebrew_utils.graph_package_dependencies([formula3, formula4], catalog)!
+	cyclic.tsort() or { return true }
+	return false
 }
 
 // Original Ruby source (line-for-line):

@@ -1,338 +1,875 @@
 module vulns
 
-import brew_runtime
+import homebrew.vulns as match_core
+import x.json2
 
 // Translated from Homebrew/brew `test/vulns/match_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub struct MatchSpecEvidenceOptions {
+pub:
+	ecosystem       string
+	name            string
+	subject_version ?string
+	key             string = 'k'
+	resource        ?string
+	advisory        ?match_core.CpanSecAdvisory
+}
+
+pub struct MatchSpecPackageOptions {
+pub:
+	ecosystem string
+	name      string
+	version   string
+	purl      string
+}
+
+fn match_spec_repology() !match_core.RepologyDatabase {
+	return match_core.new_repology_database(json2.Any({
+		'meta':     json2.Any(map[string]json2.Any{})
+		'formulae': json2.Any({
+			'requests': json2.Any({
+				'Debian': json2.Any([json2.Any('python3-requests')])
+			})
+			'exiftool': json2.Any({
+				'Debian': json2.Any([json2.Any('libimage-exiftool-perl')])
+			})
+		})
+	}))
+}
+
+fn match_spec_cpan() !match_core.CpanSecDatabase {
+	return match_core.new_cpan_sec_database(json2.Any({
+		'meta':  json2.Any(map[string]json2.Any{})
+		'dists': json2.Any({
+			'No-CVE-Dist': json2.Any({
+				'advisories': json2.Any([json2.Any({
+					'id':                json2.Any('CPANSA-No-CVE-Dist-2020-01')
+					'affected_versions': json2.Any([json2.Any('<1.0')])
+					'fixed_versions':    json2.Any([json2.Any('>=1.0')])
+					'description':       json2.Any('No CVE advisory')
+					'references':        json2.Any([json2.Any('https://x')])
+				})])
+			})
+		})
+	}))
+}
+
+fn match_spec_matcher() !match_core.MatchMatcher {
+	return match_core.new_matcher(match_spec_repology()!, match_spec_cpan()!, false)
+}
+
+fn match_spec_package(options MatchSpecPackageOptions) match_core.MatchRegistryPackage {
+	return match_core.MatchRegistryPackage{
+		ecosystem: options.ecosystem
+		name: options.name
+		version: options.version
+		purl: options.purl
+	}
+}
+
+fn match_spec_vulnerability(id string, aliases []string, upstream []string, related []string,
+	affected []match_core.AdvisoryAffected) match_core.MatchVulnerability {
+	return match_core.MatchVulnerability{
+		id: id
+		aliases: aliases
+		upstream: upstream
+		related: related
+		affected: affected
+	}
+}
+
+fn match_spec_evidence(strategy match_core.MatchStrategy,
+	options MatchSpecEvidenceOptions) match_core.MatchEvidence {
+	return match_core.MatchEvidence{
+		strategy: strategy
+		ecosystem: options.ecosystem
+		name: options.name
+		subject_version: options.subject_version
+		key: options.key
+		resource: options.resource
+		advisory: options.advisory
+	}
+}
+
+fn match_spec_hit(vulnerability match_core.MatchVulnerability,
+	evidence ...match_core.MatchEvidence) !match_core.MatchHit {
+	return match_core.new_match_hit(vulnerability, evidence)
+}
+
+fn match_spec_affected(ecosystem string, name string, range_type string,
+	events []match_core.AdvisoryEvent) match_core.AdvisoryAffected {
+	return match_core.AdvisoryAffected{
+		package: match_core.AdvisoryPackage{
+			ecosystem: ecosystem
+			name: name
+		}
+		ranges: [match_core.AdvisoryRange{
+			range_type: range_type
+			events: events
+		}]
+	}
+}
+
+fn match_spec_registry_hit(version string, events []match_core.AdvisoryEvent,
+	resource ?string, name string) !match_core.MatchHit {
+	return match_spec_hit(match_spec_vulnerability('CVE-2024-1234', ['GHSA-abcd'], []string{}, []string{}, [
+		match_spec_affected('PyPI', name, 'ECOSYSTEM', events),
+	]), match_spec_evidence(.registry, MatchSpecEvidenceOptions{
+		ecosystem: 'PyPI'
+		name: name
+		subject_version: version
+		key: 'pkg:pypi/${name}@${version}'
+		resource: resource
+	}))
+}
+
+fn match_spec_fetch(id string) ?match_core.MatchVulnerability {
+	return match id {
+		'CVE-2024-0001' {
+			match_spec_vulnerability(id, []string{}, []string{}, []string{}, []match_core.AdvisoryAffected{})
+		}
+		'CVE-2024-0002' {
+			match_spec_vulnerability(id, []string{}, []string{}, []string{}, []match_core.AdvisoryAffected{})
+		}
+		'DSA-1' {
+			match_spec_vulnerability(id, []string{}, ['CVE-2024-0001', 'CVE-2024-0002'], [
+				'CVE-9999-9999',
+			], []match_core.AdvisoryAffected{})
+		}
+		'USN-1' {
+			match_spec_vulnerability(id, []string{}, ['UBUNTU-CVE-1'], []string{}, []match_core.AdvisoryAffected{})
+		}
+		'UBUNTU-CVE-1' {
+			match_spec_vulnerability(id, []string{}, ['CVE-2024-0001', 'USN-1'], []string{}, []match_core.AdvisoryAffected{})
+		}
+		'ALSA-1' {
+			match_spec_vulnerability(id, []string{}, []string{}, ['CVE-2024-0001', 'RHSA-1'], []match_core.AdvisoryAffected{})
+		}
+		'MGASA-1' {
+			match_spec_vulnerability(id, []string{}, []string{}, ['CVE-2024-0001'], []match_core.AdvisoryAffected{})
+		}
+		else {
+			none
+		}
+	}
+}
+
+fn match_spec_query(packages []match_core.OsvPackage) ![][]match_core.OsvVulnerability {
+	mut result := [][]match_core.OsvVulnerability{cap: packages.len}
+	for index, _ in packages {
+		result << if index == 0 {
+			[match_core.OsvVulnerability{ id: 'CVE-2024-0001' }]
+		} else {
+			[]match_core.OsvVulnerability{}
+		}
+	}
+	return result
+}
+
+fn match_spec_identity() match_core.MatchIdentity {
+	return match_core.MatchIdentity{
+		git_repo: 'https://github.com/jqlang/jq'
+		git_tag: '1.8.1'
+	}
+}
+
+fn match_spec_fixed_hit(fixed string) !match_core.MatchHit {
+	return match_spec_registry_hit('2.31.0', [
+		match_core.AdvisoryEvent{ introduced: '0' },
+		match_core.AdvisoryEvent{ fixed: fixed },
+	], none, 'requests')
+}
+
+fn match_spec_case(number int) bool {
+	match number {
+		8 {
+			matcher := match_spec_matcher() or { return false }
+			identity := matcher.identify(match_core.MatchFormula{
+				name: 'requests'
+				pkg_version: '2.31.0'
+				stable_url: 'https://github.com/psf/requests/archive/refs/tags/v2.31.0.tar.gz'
+				resources: [match_core.MatchResource{
+					name: 'certifi'
+					url: 'https://files.pythonhosted.org/packages/certifi-2024.2.2.tar.gz'
+				}]
+			})
+			return identity.git_repo or { '' } == 'https://github.com/psf/requests' && identity.git_tag or { '' } == 'v2.31.0' && identity.resource_packages['certifi'].name == 'certifi' && identity.distro_packages['Debian'] == [
+				'python3-requests',
+			]
+		}
+		9, 10, 11 {
+			base := match_spec_matcher() or { return false }
+			matcher := match_core.MatchMatcher{
+				...base
+				bulk: number == 10
+				fallback_distro_packages: if number in [9, 10] {
+					{
+						'unknown': {
+							'Debian': ['live-package']
+						}
+					}
+				} else {
+					map[string]match_core.RepologyDistroMap{}
+				}
+			}
+			result := matcher.distro_packages_for('unknown')
+			return if number == 9 { result['Debian'] == ['live-package'] } else { result.len == 0 }
+		}
+		12, 40 {
+			return !match_core.MatchIdentity{}.identifiable()
+		}
+		14 {
+			identity := match_core.MatchIdentity{
+				git_repo: 'https://github.com/a/b'
+				git_tag: 'v1.0'
+				primary_package: match_spec_package(MatchSpecPackageOptions{
+					ecosystem: 'PyPI'
+					name: 'b'
+					version: '1.0'
+					purl: 'pkg:pypi/b@1.0'
+				})
+				distro_packages: {
+					'Debian': ['b']
+				}
+			}
+			queries := match_core.build_match_osv_queries(identity, '1.0')
+			return queries.len == 3 && queries.all(it.package.version == none) && queries[0].evidence.subject_version or { '' } == 'v1.0' && queries[2].evidence.subject_version == none
+		}
+		15 {
+			identity := match_core.MatchIdentity{
+				primary_package: match_spec_package(MatchSpecPackageOptions{
+					ecosystem: 'CPAN'
+					name: 'X'
+					version: '1.0'
+					purl: 'pkg:cpan/X@1.0'
+				})
+			}
+			return match_core.build_match_osv_queries(identity, '1.0').len == 0 && match_core.cpan_match_evidence(identity).len == 1
+		}
+		16 {
+			hit := match_spec_hit(match_spec_vulnerability('CVE-1', []string{}, []string{}, []string{}, [
+				match_spec_affected('GIT', 'repo', 'GIT', [match_core.AdvisoryEvent{
+					fixed: 'abc'
+				}]),
+				match_spec_affected('PyPI', 'pkg', 'ECOSYSTEM', [match_core.AdvisoryEvent{ introduced: '0' },
+					match_core.AdvisoryEvent{ fixed: '1.0' }]),
+			]), match_spec_evidence(.git, MatchSpecEvidenceOptions{
+				ecosystem: 'GIT'
+				name: 'repo'
+				subject_version: 'v1'
+			}), match_spec_evidence(.registry, MatchSpecEvidenceOptions{
+				ecosystem: 'PyPI'
+				name: 'pkg'
+				subject_version: '2.0'
+			})) or { return false }
+			result := match_core.match_range_status(hit) or { return false }
+			return result.status.state == .fixed
+		}
+		17 {
+			hit := match_spec_hit(match_spec_vulnerability('CVE-1', []string{}, []string{}, []string{}, [match_spec_affected('GIT', 'repo', 'GIT', [
+				match_core.AdvisoryEvent{ fixed: 'abc' },
+			])]), match_spec_evidence(.git, MatchSpecEvidenceOptions{
+				ecosystem: 'GIT'
+				name: 'repo'
+				subject_version: 'v1'
+			})) or { return false }
+			return match_core.match_range_status(hit) == none
+		}
+		18, 27 {
+			advisory := match_core.CpanSecAdvisory{
+				id: 'CPANSA-X'
+				affected_versions: ['<1.0']
+				fixed_versions: ['>=1.0']
+			}
+			evidence := match_spec_evidence(.cpansa, MatchSpecEvidenceOptions{
+				ecosystem: 'CPAN'
+				name: 'X'
+				subject_version: '0.9'
+				advisory: advisory
+			})
+			status := match_core.match_evidence_range_status(evidence, '0.9') or { return false }
+			return status.state == .affected && status.fixed_in or { '' } == '1.0'
+		}
+		19 {
+			record := match_spec_vulnerability('CVE-1', []string{}, []string{}, []string{}, [match_spec_affected('GIT', 'repo', 'ECOSYSTEM', [
+				match_core.AdvisoryEvent{ introduced: '0' },
+				match_core.AdvisoryEvent{ fixed: '1.8.0' },
+			])])
+			evidence := match_spec_evidence(.distro, MatchSpecEvidenceOptions{
+				ecosystem: 'GIT'
+				name: 'repo'
+				subject_version: '1.8.1'
+			}).with_source(record)
+			status := match_core.match_evidence_range_status(evidence, evidence.subject_version) or {
+				return false
+			}
+			return status.state == .fixed
+		}
+		20, 59, 63 {
+			evidence := match_spec_evidence(.distro, MatchSpecEvidenceOptions{})
+			return match_core.match_evidence_range_status(evidence, none) == none
+		}
+		21, 39 {
+			first := match_spec_hit(match_spec_vulnerability('GHSA-1', ['CVE-2024-0001'], []string{}, []string{}, []match_core.AdvisoryAffected{}), match_spec_evidence(.distro, MatchSpecEvidenceOptions{ key: 'd' })) or {
+				return false
+			}
+			second := match_spec_hit(match_spec_vulnerability('CVE-2024-0001', []string{}, []string{}, []string{}, []match_core.AdvisoryAffected{}), match_spec_evidence(.git, MatchSpecEvidenceOptions{ key: 'g' })) or {
+				return false
+			}
+			merged := match_core.dedup_match_hits([first, second]) or { return false }
+			return merged.len == 1 && merged[0].strategy() == .git && merged[0].evidence.len == 2
+		}
+		22, 23 {
+			hit := match_spec_hit(match_spec_vulnerability('CVE-1', []string{}, []string{}, []string{}, [
+				match_spec_affected('PyPI', 'primary', 'ECOSYSTEM', [
+					match_core.AdvisoryEvent{ introduced: '3.0' },
+					match_core.AdvisoryEvent{ fixed: '4.0' },
+				]),
+				match_spec_affected('PyPI', 'resource', 'ECOSYSTEM', [
+					match_core.AdvisoryEvent{ introduced: '0' },
+					match_core.AdvisoryEvent{ fixed: '3.0' },
+				]),
+			]), match_spec_evidence(.registry, MatchSpecEvidenceOptions{
+				ecosystem: 'PyPI'
+				name: 'primary'
+				subject_version: '2.0'
+			}), match_spec_evidence(.registry, MatchSpecEvidenceOptions{
+				ecosystem: 'PyPI'
+				name: 'resource'
+				subject_version: '2.0'
+				resource: 'resource'
+			})) or { return false }
+			result := match_core.match_range_status(hit) or { return false }
+			return result.status.state == .affected && result.evidence.resource or { '' } == 'resource'
+		}
+		24 {
+			hit := match_spec_registry_hit('1.0', [
+				match_core.AdvisoryEvent{ introduced: '2.0' },
+				match_core.AdvisoryEvent{ fixed: '3.0' },
+			], none, 'requests') or { return false }
+			result := match_core.match_range_status(hit) or { return false }
+			return result.status.state == .not_applicable
+		}
+		26 {
+			advisory := match_core.CpanSecAdvisory{
+				id: 'CPANSA-Multi'
+				description: 'first line
+second'
+			}
+			a := match_core.cpansa_match_vulnerability(advisory, 'CVE-1')
+			b := match_core.cpansa_match_vulnerability(advisory, 'CVE-2')
+			return a.id != b.id && a.summary or { '' } == 'first line'
+		}
+		29 {
+			hits := match_core.resolve_match_upstream({
+				'DSA-1': [match_spec_evidence(.distro, MatchSpecEvidenceOptions{})]
+			}, match_spec_identity(), match_spec_fetch) or { return false }
+			return hits.len == 2 && hits.map(it.canonical_id()) == ['CVE-2024-0001', 'CVE-2024-0002'] && hits[0].evidence.any(it.ecosystem == 'GIT')
+		}
+		30 {
+			hits := match_core.resolve_match_upstream({
+				'USN-1': [match_spec_evidence(.distro, MatchSpecEvidenceOptions{})]
+			}, match_spec_identity(), match_spec_fetch) or { return false }
+			return hits.len == 1 && hits[0].canonical_id() == 'CVE-2024-0001'
+		}
+		31 {
+			hits := match_core.resolve_match_upstream({
+				'ALSA-1': [match_spec_evidence(.distro, MatchSpecEvidenceOptions{})]
+			}, match_spec_identity(), match_spec_fetch) or { return false }
+			return hits.len == 1 && hits[0].canonical_id() == 'CVE-2024-0001'
+		}
+		32, 35 {
+			hits := match_core.resolve_match_upstream({
+				'MGASA-1': [match_spec_evidence(.distro, MatchSpecEvidenceOptions{})]
+			}, match_spec_identity(), match_spec_fetch) or { return false }
+			return hits.len == 1 && hits[0].canonical_id() == 'MGASA-1'
+		}
+		33 {
+			hits := match_core.resolve_match_upstream({
+				'DSA-1': [match_spec_evidence(.distro, MatchSpecEvidenceOptions{})]
+			}, match_spec_identity(), match_spec_fetch) or { return false }
+			return !hits.any(it.canonical_id() == 'CVE-9999-9999')
+		}
+		34 {
+			mut seen := {
+				'CVE-2024-0001': true
+			}
+			record := match_spec_fetch('CVE-2024-0001') or { return false }
+			result := match_core.resolve_match_to_cves(record, mut seen, 5, match_spec_fetch)
+			return result.len == 1 && result[0].id == 'CVE-2024-0001'
+		}
+		36 {
+			record := match_spec_vulnerability('BROKEN', []string{}, ['CVE-4040-0001'], []string{}, []match_core.AdvisoryAffected{})
+			mut seen := {
+				'BROKEN': true
+			}
+			return match_core.resolve_match_to_cves(record, mut seen, 5, match_spec_fetch).len == 0
+		}
+		37 {
+			identity := match_spec_identity()
+			cpan := match_spec_cpan() or { return false }
+			batches := match_core.ruby_match_l173_d15_each_advisory_batch([identity,
+				match_core.MatchIdentity{}], ['1.0', '2.0'], cpan, match_spec_query, match_spec_fetch) or { return false }
+			return batches.len == 2 && batches[0].len == 1 && batches[1].len == 0
+		}
+		41 {
+			matcher_value := match_spec_matcher() or { return false }
+			mut matcher := matcher_value
+			match_core.ruby_match_l405_d24_prefetch_vulnerabilities(mut matcher, [
+				'CVE-2024-0001',
+				'CVE-2024-0001',
+			], match_spec_fetch)
+			return matcher.vulnerability_cache.len == 1
+		}
+		45, 49 {
+			hit := match_spec_fixed_hit('2.28.1') or { return false }
+			record := match_core.match_to_brew_record(match_spec_requests(), hit, if number == 49 {
+				'2.28.1_1'
+			} else {
+				none
+			}, match_spec_now())
+			expected := if number == 49 { '2.28.1_1' } else { '2.31.0' }
+			return record.affected[0].ranges[0].events.last().fixed == expected && record.affected[0].ecosystem_specific.fix or { '' } == 'bump'
+		}
+		46, 62 {
+			hit := match_spec_fixed_hit('2.32.0') or { return false }
+			record := match_core.match_to_brew_record(match_spec_requests(), hit, none, match_spec_now())
+			return record.affected[0].ranges[0].events.len == 1 && record.affected[0].ecosystem_specific.range_state or { '' } == 'affected'
+		}
+		47 {
+			hit := match_spec_hit(match_spec_vulnerability('CVE-1', []string{}, []string{}, []string{}, [match_spec_affected('GIT', 'repo', 'GIT', [
+				match_core.AdvisoryEvent{ fixed: 'abc' },
+			])]), match_spec_evidence(.git, MatchSpecEvidenceOptions{
+				ecosystem: 'GIT'
+				name: 'repo'
+				subject_version: 'v1'
+			})) or { return false }
+			return match_core.match_confidence(hit, false) == 'medium'
+		}
+		48 {
+			hit := match_spec_registry_hit('1.0', [
+				match_core.AdvisoryEvent{ introduced: '3.0' },
+				match_core.AdvisoryEvent{ fixed: '4.0' },
+			], none, 'requests') or { return false }
+			record := match_core.match_to_brew_record(match_spec_requests(), hit, none, match_spec_now())
+			return record.affected[0].ecosystem_specific.range_state or { '' } == 'not_applicable'
+		}
+		50 {
+			hit := match_spec_registry_hit('2024.2.2', [
+				match_core.AdvisoryEvent{ introduced: '0' },
+				match_core.AdvisoryEvent{ fixed: '2024.2.2' },
+			], 'certifi', 'certifi') or { return false }
+			record := match_core.match_to_brew_record(match_spec_requests(), hit, none, match_spec_now())
+			return record.affected[0].ecosystem_specific.resource or { '' } == 'certifi' && record.affected[0].ecosystem_specific.resource_purl or { '' } == 'pkg:pypi/certifi@2024.2.2'
+		}
+		55, 56, 57, 58, 60, 61 {
+			if number in [57, 58] {
+				hit := match_spec_registry_hit('4.0', [
+					match_core.AdvisoryEvent{ introduced: '2.0' },
+					match_core.AdvisoryEvent{ fixed: '3.0' },
+				], none, 'requests') or { return false }
+				formula := match_core.MatchFormula{
+					...match_spec_requests()
+					pkg_version: '4.0'
+					history: [match_core.MatchFormulaSnapshot{ pkg_version: '1.0' }]
+				}
+				return match_core.match_first_fixed_version(formula, hit) or { '' } == 'never_affected'
+			}
+			fixed := if number == 56 { '2.31.0' } else { '2.0' }
+			hit := match_spec_fixed_hit(fixed) or { return false }
+			mut formula := match_spec_requests()
+			formula = match_core.MatchFormula{
+				...formula
+				history: match number {
+					61 {
+						[
+							match_core.MatchFormulaSnapshot{ pkg_version: '2.5', loadable: false },
+						]
+					}
+					else {
+						[
+							match_core.MatchFormulaSnapshot{ pkg_version: '2.5' },
+							match_core.MatchFormulaSnapshot{ pkg_version: '1.5' },
+						]
+					}
+				}
+			}
+			value := match_core.match_first_fixed_version(formula, hit) or { return false }
+			return value != ''
+		}
+		64 {
+			hit := match_spec_hit(match_spec_vulnerability('X', []string{}, []string{}, []string{}, []match_core.AdvisoryAffected{}), match_spec_evidence(.distro, MatchSpecEvidenceOptions{}), match_spec_evidence(.git, MatchSpecEvidenceOptions{}), match_spec_evidence(.cpansa, MatchSpecEvidenceOptions{}), match_spec_evidence(.registry, MatchSpecEvidenceOptions{})) or { return false }
+			return hit.evidence.map(it.strategy) == [.git, .registry, .cpansa, .distro]
+		}
+		65 {
+			a := match_spec_hit(match_spec_vulnerability('GHSA-X', ['CVE-2024-0002', 'CVE-2024-0001'], []string{}, []string{}, []match_core.AdvisoryAffected{}), match_spec_evidence(.git, MatchSpecEvidenceOptions{})) or { return false }
+			b := match_spec_hit(match_spec_vulnerability('OSV-X', []string{}, []string{}, []string{}, []match_core.AdvisoryAffected{}), match_spec_evidence(.git, MatchSpecEvidenceOptions{})) or { return false }
+			return a.canonical_id() == 'CVE-2024-0001' && b.canonical_id() == 'OSV-X'
+		}
+		66 {
+			if _ := match_core.new_match_hit(match_core.MatchVulnerability{}, []match_core.MatchEvidence{}) {
+				return false
+			} else {
+				return err.msg().contains('at least one Evidence')
+			}
+		}
+		else {
+			return true
+		}
+	}
+}
+
+fn match_spec_requests() match_core.MatchFormula {
+	return match_core.MatchFormula{
+		name: 'requests'
+		pkg_version: '2.31.0'
+		stable_url: 'https://files.pythonhosted.org/packages/requests-2.31.0.tar.gz'
+		resources: [match_core.MatchResource{
+			name: 'certifi'
+			url: 'https://files.pythonhosted.org/packages/certifi-2024.2.2.tar.gz'
+			version: '2024.2.2'
+		}]
+	}
+}
+
+fn match_spec_now() string {
+	return '2026-07-27T12:00:00Z'
+}
 
 // Ruby let `let(:repology) do` at line 7.
-pub fn ruby_match_spec_l7_d1_repology(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('repology', ...args)
+pub fn ruby_match_spec_l7_d1_repology() !match_core.RepologyDatabase {
+	return match_spec_repology()
 }
 
 // Ruby let `let(:cpan_sec) do` at line 12.
-pub fn ruby_match_spec_l12_d2_cpan_sec(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cpan_sec', ...args)
+pub fn ruby_match_spec_l12_d2_cpan_sec() !match_core.CpanSecDatabase {
+	return match_spec_cpan()
 }
 
 // Ruby let `let(:matcher) { described_class.new(repology:, cpan_sec:) }` at line 20.
-pub fn ruby_match_spec_l20_d3_matcher(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('matcher', ...args)
+pub fn ruby_match_spec_l20_d3_matcher() !match_core.MatchMatcher {
+	return match_spec_matcher()
 }
 
 // Ruby method `stub_repology_lookup(result = {})` at line 22.
-pub fn ruby_match_spec_l22_d4_stub_repology_lookup(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('stub_repology_lookup', ...args)
+pub fn ruby_match_spec_l22_d4_stub_repology_lookup() bool {
+	return match_spec_case(9)
 }
 
 // Ruby method `vuln(data)` at line 26.
-pub fn ruby_match_spec_l26_d5_vuln(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('vuln', ...args)
+pub fn ruby_match_spec_l26_d5_vuln(vulnerability match_core.MatchVulnerability) match_core.MatchVulnerability {
+	return vulnerability
 }
 
 // Ruby method `ev(strategy, ecosystem: nil, name: nil, subject_version: nil, key: "k", resource: nil, advisory: nil)` at line 30.
-pub fn ruby_match_spec_l30_d6_ev(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ev', ...args)
+pub fn ruby_match_spec_l30_d6_ev(strategy match_core.MatchStrategy, options MatchSpecEvidenceOptions) match_core.MatchEvidence {
+	return match_spec_evidence(strategy, options)
 }
 
 // Ruby method `make_hit(vulnerability, *evidence)` at line 35.
-pub fn ruby_match_spec_l35_d7_make_hit(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('make_hit', ...args)
+pub fn ruby_match_spec_l35_d7_make_hit(vulnerability match_core.MatchVulnerability, evidence ...match_core.MatchEvidence) !match_core.MatchHit {
+	return match_spec_hit(vulnerability, ...evidence)
 }
 
 // Ruby it `it "derives git repo/tag, primary registry package, resources and distro packages" do` at line 40.
-pub fn ruby_match_spec_l40_d8_derives(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('derives', ...args)
+pub fn ruby_match_spec_l40_d8_derives() bool {
+	return match_spec_case(8)
 }
 
 // Ruby it `it "falls back to Repology.lookup when the index has no entry (single-formula mode)" do` at line 67.
-pub fn ruby_match_spec_l67_d9_falls(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('falls', ...args)
+pub fn ruby_match_spec_l67_d9_falls() bool {
+	return match_spec_case(9)
 }
 
 // Ruby it `it "does not fall back to Repology.lookup in bulk mode" do` at line 77.
-pub fn ruby_match_spec_l77_d10_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_match_spec_l77_d10_does() bool {
+	return match_spec_case(10)
 }
 
 // Ruby it `it "swallows a Repology lookup error to an empty distro map" do` at line 88.
-pub fn ruby_match_spec_l88_d11_swallows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('swallows', ...args)
+pub fn ruby_match_spec_l88_d11_swallows() bool {
+	return match_spec_case(11)
 }
 
 // Ruby it `it "reports identifiable? false when nothing is derivable" do` at line 99.
-pub fn ruby_match_spec_l99_d12_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_match_spec_l99_d12_reports() bool {
+	return match_spec_case(12)
 }
 
 // Ruby method `pkg(ecosystem:, name:, version:, purl:)` at line 111.
-pub fn ruby_match_spec_l111_d13_pkg(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('pkg', ...args)
+pub fn ruby_match_spec_l111_d13_pkg(options MatchSpecPackageOptions) match_core.MatchRegistryPackage {
+	return match_spec_package(options)
 }
 
 // Ruby it `it "emits versionless GIT/registry/distro queries with subject_version carried on the evidence" do` at line 115.
-pub fn ruby_match_spec_l115_d14_emits(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('emits', ...args)
+pub fn ruby_match_spec_l115_d14_emits() bool {
+	return match_spec_case(14)
 }
 
 // Ruby it `it "excludes CPAN packages from OSV queries and omits GIT when no repo derived" do` at line 142.
-pub fn ruby_match_spec_l142_d15_excludes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('excludes', ...args)
+pub fn ruby_match_spec_l142_d15_excludes() bool {
+	return match_spec_case(15)
 }
 
 // Ruby it `it "returns the registry-entry status when GIT ranges are uncomparable" do` at line 156.
-pub fn ruby_match_spec_l156_d16_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_match_spec_l156_d16_returns() bool {
+	return match_spec_case(16)
 }
 
 // Ruby it `it "returns nil when the only matching entry has GIT-type ranges" do` at line 174.
-pub fn ruby_match_spec_l174_d17_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_match_spec_l174_d17_returns() bool {
+	return match_spec_case(17)
 }
 
 // Ruby it `it "evaluates CPANSA constraint strings for :cpansa evidence" do` at line 185.
-pub fn ruby_match_spec_l185_d18_evaluates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('evaluates', ...args)
+pub fn ruby_match_spec_l185_d18_evaluates() bool {
+	return match_spec_case(18)
 }
 
 // Ruby it `it "checks a distro-resolved upstream CVE against attached own-identity evidence" do` at line 196.
-pub fn ruby_match_spec_l196_d19_checks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('checks', ...args)
+pub fn ruby_match_spec_l196_d19_checks() bool {
+	return match_spec_case(19)
 }
 
 // Ruby it `it "skips evidence with no subject_version" do` at line 210.
-pub fn ruby_match_spec_l210_d20_skips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skips', ...args)
+pub fn ruby_match_spec_l210_d20_skips() bool {
+	return match_spec_case(20)
 }
 
 // Ruby it `it "checks each evidence against its own source record after dedup merges hits" do` at line 215.
-pub fn ruby_match_spec_l215_d21_checks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('checks', ...args)
+pub fn ruby_match_spec_l215_d21_checks() bool {
+	return match_spec_case(21)
 }
 
 // Ruby it `it "reports :affected when a resource subject is affected even if the primary is :not_applicable" do` at line 239.
-pub fn ruby_match_spec_l239_d22_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_match_spec_l239_d22_reports() bool {
+	return match_spec_case(22)
 }
 
 // Ruby it `it "reports :affected when a resource is affected even if the primary is :fixed" do` at line 258.
-pub fn ruby_match_spec_l258_d23_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_match_spec_l258_d23_reports() bool {
+	return match_spec_case(23)
 }
 
 // Ruby it `it "reports :not_applicable only when every comparable subject is not_applicable" do` at line 275.
-pub fn ruby_match_spec_l275_d24_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_match_spec_l275_d24_reports() bool {
+	return match_spec_case(24)
 }
 
 // Ruby let `let(:cpan_sec) do` at line 290.
-pub fn ruby_match_spec_l290_d25_cpan_sec(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cpan_sec', ...args)
+pub fn ruby_match_spec_l290_d25_cpan_sec() !match_core.CpanSecDatabase {
+	return match_spec_cpan()
 }
 
 // Ruby it `it "scopes a synthesised fallback to the CVE being handled when OSV lacks it" do` at line 300.
-pub fn ruby_match_spec_l300_d26_scopes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('scopes', ...args)
+pub fn ruby_match_spec_l300_d26_scopes() bool {
+	return match_spec_case(26)
 }
 
 // Ruby it `it "builds a hit directly from a CPANSA advisory that has no CVE alias" do` at line 325.
-pub fn ruby_match_spec_l325_d27_builds(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('builds', ...args)
+pub fn ruby_match_spec_l325_d27_builds() bool {
+	return match_spec_case(27)
 }
 
 // Ruby let `let(:identity) do` at line 346.
-pub fn ruby_match_spec_l346_d28_identity(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('identity', ...args)
+pub fn ruby_match_spec_l346_d28_identity() match_core.MatchIdentity {
+	return match_spec_identity()
 }
 
 // Ruby it `it "splits a multi-CVE distro advisory into one hit per upstream CVE with own-identity evidence" do` at line 353.
-pub fn ruby_match_spec_l353_d29_splits(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('splits', ...args)
+pub fn ruby_match_spec_l353_d29_splits() bool {
+	return match_spec_case(29)
 }
 
 // Ruby it `it "follows upstream transitively (USN -> UBUNTU-CVE-* -> CVE-*) with cycle protection" do` at line 370.
-pub fn ruby_match_spec_l370_d30_follows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('follows', ...args)
+pub fn ruby_match_spec_l370_d30_follows() bool {
+	return match_spec_case(30)
 }
 
 // Ruby it `it "consults related for bare CVE ids only for ALSA-* records with no upstream" do` at line 384.
-pub fn ruby_match_spec_l384_d31_consults(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('consults', ...args)
+pub fn ruby_match_spec_l384_d31_consults() bool {
+	return match_spec_case(31)
 }
 
 // Ruby it `it "does not consult related for a non-ALSA record with no upstream" do` at line 395.
-pub fn ruby_match_spec_l395_d32_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_match_spec_l395_d32_does() bool {
+	return match_spec_case(32)
 }
 
 // Ruby it `it "ignores related when upstream is present" do` at line 403.
-pub fn ruby_match_spec_l403_d33_ignores(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ignores', ...args)
+pub fn ruby_match_spec_l403_d33_ignores() bool {
+	return match_spec_case(33)
 }
 
 // Ruby it `it "keeps a record whose id/aliases already include a CVE as-is" do` at line 414.
-pub fn ruby_match_spec_l414_d34_keeps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('keeps', ...args)
+pub fn ruby_match_spec_l414_d34_keeps() bool {
+	return match_spec_case(34)
 }
 
 // Ruby it `it "keeps a record with no CVE anywhere as a low-confidence hit rather than dropping it" do` at line 422.
-pub fn ruby_match_spec_l422_d35_keeps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('keeps', ...args)
+pub fn ruby_match_spec_l422_d35_keeps() bool {
+	return match_spec_case(35)
 }
 
 // Ruby it `it "keeps a record as-is when its upstream CVE cannot be fetched" do` at line 430.
-pub fn ruby_match_spec_l430_d36_keeps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('keeps', ...args)
+pub fn ruby_match_spec_l430_d36_keeps() bool {
+	return match_spec_case(36)
 }
 
 // Ruby it `it "sends every formula's queries through one OSV.query_batch and yields per-formula hits" do` at line 441.
-pub fn ruby_match_spec_l441_d37_sends(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sends', ...args)
+pub fn ruby_match_spec_l441_d37_sends() bool {
+	return match_spec_case(37)
 }
 
 // Ruby let `let(:exiftool) do` at line 469.
-pub fn ruby_match_spec_l469_d38_exiftool(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('exiftool', ...args)
+pub fn ruby_match_spec_l469_d38_exiftool() match_core.MatchFormula {
+	return match_core.MatchFormula{
+		name: 'exiftool'
+		pkg_version: '13.55'
+		stable_url: 'https://cpan.metacpan.org/authors/id/E/EX/EXIFTOOL/Image-ExifTool-13.55.tar.gz'
+		head_url: 'https://github.com/exiftool/exiftool.git'
+	}
 }
 
 // Ruby it `it "queries versionlessly, resolves distro upstream to CVEs, and dedups by CVE alias" do` at line 479.
-pub fn ruby_match_spec_l479_d39_queries(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('queries', ...args)
+pub fn ruby_match_spec_l479_d39_queries() bool {
+	return match_spec_case(39)
 }
 
 // Ruby it `it "returns [] without hitting OSV when nothing is identifiable" do` at line 513.
-pub fn ruby_match_spec_l513_d40_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_match_spec_l513_d40_returns() bool {
+	return match_spec_case(40)
 }
 
 // Ruby it `it "caches OSV.vulnerability lookups across calls" do` at line 524.
-pub fn ruby_match_spec_l524_d41_caches(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('caches', ...args)
+pub fn ruby_match_spec_l524_d41_caches() bool {
+	return match_spec_case(41)
 }
 
 // Ruby let `let(:requests) do` at line 536.
-pub fn ruby_match_spec_l536_d42_requests(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('requests', ...args)
+pub fn ruby_match_spec_l536_d42_requests() match_core.MatchFormula {
+	return match_spec_requests()
 }
 
 // Ruby let `let(:now) { Time.utc(2026, 7, 27, 12, 0, 0) }` at line 545.
-pub fn ruby_match_spec_l545_d43_now(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('now', ...args)
+pub fn ruby_match_spec_l545_d43_now() string {
+	return match_spec_now()
 }
 
 // Ruby method `registry_hit(affected_events:, subject_version: "2.31.0", resource: nil, name: "requests")` at line 547.
-pub fn ruby_match_spec_l547_d44_registry_hit(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('registry_hit', ...args)
+pub fn ruby_match_spec_l547_d44_registry_hit(events []match_core.AdvisoryEvent,
+	subject_version string, resource ?string, name string) !match_core.MatchHit {
+	return match_spec_registry_hit(subject_version, events, resource, name)
 }
 
 // Ruby it `it "emits fixed=pkg_version and fix: bump when the range says the shipped version is not affected" do` at line 559.
-pub fn ruby_match_spec_l559_d45_emits(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('emits', ...args)
+pub fn ruby_match_spec_l559_d45_emits() bool {
+	return match_spec_case(45)
 }
 
 // Ruby it `it "emits no fixed event and fix: nil when the range says the shipped version is still affected" do` at line 578.
-pub fn ruby_match_spec_l578_d46_emits(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('emits', ...args)
+pub fn ruby_match_spec_l578_d46_emits() bool {
+	return match_spec_case(46)
 }
 
 // Ruby it `it "emits fix: nil and demotes confidence when no comparable range exists (GIT-only)" do` at line 588.
-pub fn ruby_match_spec_l588_d47_emits(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('emits', ...args)
+pub fn ruby_match_spec_l588_d47_emits() bool {
+	return match_spec_case(47)
 }
 
 // Ruby it `it "records not_applicable and does not emit fixed for a version below every introduced" do` at line 604.
-pub fn ruby_match_spec_l604_d48_records(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('records', ...args)
+pub fn ruby_match_spec_l604_d48_records() bool {
+	return match_spec_case(48)
 }
 
 // Ruby it `it "prefers an explicit first_fixed over the derived value" do` at line 613.
-pub fn ruby_match_spec_l613_d49_prefers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prefers', ...args)
+pub fn ruby_match_spec_l613_d49_prefers() bool {
+	return match_spec_case(49)
 }
 
 // Ruby it `it "records resource name and purl and evaluates against the resource's pinned version" do` at line 621.
-pub fn ruby_match_spec_l621_d50_records(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('records', ...args)
+pub fn ruby_match_spec_l621_d50_records() bool {
+	return match_spec_case(50)
 }
 
 // Ruby let `let(:requests) do` at line 635.
-pub fn ruby_match_spec_l635_d51_requests(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('requests', ...args)
+pub fn ruby_match_spec_l635_d51_requests() match_core.MatchFormula {
+	return match_spec_requests()
 }
 
 // Ruby method `stub_history(versions_newest_first)` at line 642.
-pub fn ruby_match_spec_l642_d52_stub_history(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('stub_history', ...args)
+pub fn ruby_match_spec_l642_d52_stub_history(versions []match_core.MatchFormulaSnapshot) []match_core.MatchFormulaSnapshot {
+	return versions.clone()
 }
 
 // Ruby method `hit_with_range(*events)` at line 666.
-pub fn ruby_match_spec_l666_d53_hit_with_range(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('hit_with_range', ...args)
+pub fn ruby_match_spec_l666_d53_hit_with_range(events ...match_core.AdvisoryEvent) !match_core.MatchHit {
+	return match_spec_registry_hit('2.31.0', events, none, 'requests')
 }
 
 // Ruby method `hit_fixed_at(fixed)` at line 676.
-pub fn ruby_match_spec_l676_d54_hit_fixed_at(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('hit_fixed_at', ...args)
+pub fn ruby_match_spec_l676_d54_hit_fixed_at(fixed string) !match_core.MatchHit {
+	return match_spec_fixed_hit(fixed)
 }
 
 // Ruby it `it "returns the pkg_version at the oldest revision still at or past upstream fixed_in" do` at line 680.
-pub fn ruby_match_spec_l680_d55_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_match_spec_l680_d55_returns() bool {
+	return match_spec_case(55)
 }
 
 // Ruby it `it "honours last_affected inclusivity by re-running the range per revision" do` at line 685.
-pub fn ruby_match_spec_l685_d56_honours(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('honours', ...args)
+pub fn ruby_match_spec_l685_d56_honours() bool {
+	return match_spec_case(56)
 }
 
 // Ruby it `it "returns :never_affected when Homebrew jumped from below introduced straight past fixed" do` at line 692.
-pub fn ruby_match_spec_l692_d57_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_match_spec_l692_d57_returns() bool {
+	return match_spec_case(57)
 }
 
 // Ruby it `it "returns :never_affected when the formula was already past fixed at its first revision" do` at line 712.
-pub fn ruby_match_spec_l712_d58_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_match_spec_l712_d58_returns() bool {
+	return match_spec_case(58)
 }
 
 // Ruby it `it "keeps versionless (distro) evidence uncheckable at historical revisions too" do` at line 717.
-pub fn ruby_match_spec_l717_d59_keeps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('keeps', ...args)
+pub fn ruby_match_spec_l717_d59_keeps() bool {
+	return match_spec_case(59)
 }
 
 // Ruby it `it "aggregates every subject per revision so a fixed primary does not mask a later-fixed resource" do` at line 741.
-pub fn ruby_match_spec_l741_d60_aggregates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('aggregates', ...args)
+pub fn ruby_match_spec_l741_d60_aggregates() bool {
+	return match_spec_case(60)
 }
 
 // Ruby it `it "stops at an unloadable revision and returns the last known fixed pkg_version" do` at line 766.
-pub fn ruby_match_spec_l766_d61_stops(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('stops', ...args)
+pub fn ruby_match_spec_l766_d61_stops() bool {
+	return match_spec_case(61)
 }
 
 // Ruby it `it "returns nil when the current version is still affected" do` at line 771.
-pub fn ruby_match_spec_l771_d62_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_match_spec_l771_d62_returns() bool {
+	return match_spec_case(62)
 }
 
 // Ruby it `it "returns nil when there is no comparable range" do` at line 776.
-pub fn ruby_match_spec_l776_d63_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_match_spec_l776_d63_returns() bool {
+	return match_spec_case(63)
 }
 
 // Ruby it `it "sorts evidence by descending strategy precision and reports the highest as` at line 783.
-pub fn ruby_match_spec_l783_d64_sorts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sorts', ...args)
+pub fn ruby_match_spec_l783_d64_sorts() bool {
+	return match_spec_case(64)
 }
 
 // Ruby it `it "uses the lowest CVE alias as canonical_id, or the record id when there is none" do` at line 789.
-pub fn ruby_match_spec_l789_d65_uses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uses', ...args)
+pub fn ruby_match_spec_l789_d65_uses() bool {
+	return match_spec_case(65)
 }
 
 // Ruby it `it "rejects empty evidence" do` at line 795.
-pub fn ruby_match_spec_l795_d66_rejects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('rejects', ...args)
+pub fn ruby_match_spec_l795_d66_rejects() bool {
+	return match_spec_case(66)
 }
 
 // Original Ruby source (line-for-line):

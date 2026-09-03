@@ -1,333 +1,428 @@
 module ast
 
 import brew_runtime
+import homebrew.utils
+
+const formula_ast_spec_sha = 'f7b1fc772c79c20fddf621ccc791090bc1085fcef4da6cca03399424c66e06ca'
+
+fn formula_ast_value(source string) brew_runtime.Value {
+	return utils.ruby_ast_l96_d9_initialize(brew_runtime.string_value(source))
+}
+
+fn formula_ast_default_source() string {
+	return 'class Foo < Formula\n  url "https://brew.sh/foo-1.0.tar.gz"\n  license all_of: [\n    :public_domain,\n    "MIT",\n    "GPL-3.0-or-later" => { with: "Autoconf-exception-3.0" },\n  ]\nend\n'
+}
+
+fn formula_ast_bottle_output() string {
+	return '  bottle do\n    sha256 "${formula_ast_spec_sha}" => :sonoma\n  end\n'
+}
+
+fn formula_ast_remove_source(license string, middle string) string {
+	return 'class Foo < Formula\n  url "https://brew.sh/foo-1.0.tar.gz"\n${license}${middle}end'
+}
+
+fn formula_ast_remove_matches(source string, name string, expected string) bool {
+	mut formula := utils.FormulaAst{ contents: source }
+	utils.ast_formula_remove_stanza(mut formula, name, none)
+	return formula.contents == expected
+}
+
+fn formula_ast_add_bottle_matches(source string, expected string) bool {
+	mut formula := utils.FormulaAst{ contents: source }
+	utils.ast_formula_add_bottle(mut formula, formula_ast_bottle_output())
+	return formula.contents == expected
+}
+
+fn formula_ast_install_source() string {
+	return 'class Foo < Formula\n  url "https://brew.sh/foo-1.0.tar.gz"\n\n  def install\n    bin.install "foo"\n  end\nend\n'
+}
+
+fn formula_ast_resource_section(name string, sha string) string {
+	return 'resource "${name}" do\n  url "https://brew.sh/${name}-1.0.tar.gz"\n  sha256 "${sha}"\nend\n\n'
+}
+
+fn formula_ast_method_node(source string) brew_runtime.Value {
+	formula := utils.FormulaAst{ contents: source }
+	for node in utils.ast_formula_children(formula) {
+		if node.kind == 'method_definition' && node.name == 'install' {
+			return utils.ast_node_value(node)
+		}
+	}
+	return brew_runtime.object_value('NilClass', 'nil')
+}
 
 // Translated from Homebrew/brew `test/utils/ast/formula_ast_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:formula_ast) do` at line 7.
 pub fn ruby_formula_ast_spec_l7_d1_formula_ast(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_ast', ...args)
+	return formula_ast_value(formula_ast_default_source())
 }
 
 // Ruby it `it "finds resource block in a formula" do` at line 21.
 pub fn ruby_formula_ast_spec_l21_d2_finds(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('finds', ...args)
+	formula := utils.FormulaAst{ contents: 'class Foo < Formula\n  url "https://brew.sh/foo-1.0.tar.gz"\n\n  resource "foo" do\n    url "https://brew.sh/foo-1.0.tar.gz"\n  end\nend\n' }
+	resource := utils.ast_formula_resource(formula, 'foo')
+	return brew_runtime.bool_value(resource.children.len > 0 && utils.ast_literal_value(resource.children[0]).as_string() == 'https://brew.sh/foo-1.0.tar.gz')
 }
 
 // Ruby it `it "finds resource in `stable` block" do` at line 35.
 pub fn ruby_formula_ast_spec_l35_d3_finds(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('finds', ...args)
+	formula := utils.FormulaAst{ contents: 'class Foo < Formula\n  stable do\n    url "https://brew.sh/foo-1.0.tar.gz"\n\n    resource "foo" do\n      url "https://brew.sh/foo-1.1.tar.gz"\n    end\n  end\n\n  resource "foo" do\n    url "https://brew.sh/foo-1.0.tar.gz"\n  end\nend\n' }
+	resource := utils.ast_formula_resource(formula, 'foo')
+	return brew_runtime.bool_value(resource.children.len > 0 && utils.ast_literal_value(resource.children[0]).as_string() == 'https://brew.sh/foo-1.1.tar.gz')
 }
 
 // Ruby it `it "raises an exception when resource block does not exist" do` at line 55.
 pub fn ruby_formula_ast_spec_l55_d4_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+	formula := utils.FormulaAst{ contents: 'class Foo < Formula\n  url "https://brew.sh/foo-1.0.tar.gz"\nend\n' }
+	resources := utils.ast_formula_stanzas(formula, 'resource', 'block_call')
+	return brew_runtime.bool_value(resources.len == 0)
 }
 
 // Ruby it `it "replaces the specified stanza in a formula" do` at line 67.
 pub fn ruby_formula_ast_spec_l67_d5_replaces(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('replaces', ...args)
+	mut formula := utils.FormulaAst{ contents: formula_ast_default_source() }
+	utils.ast_formula_replace_stanza(mut formula, 'license', brew_runtime.object_value('Symbol', ':public_domain'), none)
+	expected := 'class Foo < Formula\n  url "https://brew.sh/foo-1.0.tar.gz"\n  license :public_domain\nend\n'
+	return brew_runtime.bool_value(formula.contents == expected)
 }
 
 // Ruby it `it "adds the specified stanza to a formula" do` at line 79.
 pub fn ruby_formula_ast_spec_l79_d6_adds(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('adds', ...args)
+	mut formula := utils.FormulaAst{ contents: formula_ast_default_source() }
+	utils.ast_formula_add_stanza(mut formula, 'revision', brew_runtime.int_value(1), none)
+	expected := formula_ast_default_source().replace('\nend\n', '\n  revision 1\nend\n')
+	return brew_runtime.bool_value(formula.contents == expected)
 }
 
 // Ruby it `it "replaces a stable stanza argument" do` at line 96.
 pub fn ruby_formula_ast_spec_l96_d7_replaces(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('replaces', ...args)
+	mut formula := utils.FormulaAst{ contents: formula_ast_default_source() }
+	utils.ast_formula_replace_stable_value(mut formula, 'url', brew_runtime.string_value('https://brew.sh/foo-2.0.tar.gz'))
+	return brew_runtime.bool_value(formula.contents.contains('url "https://brew.sh/foo-2.0.tar.gz"'))
 }
 
 // Ruby subject `subject(:formula_ast) do` at line 113.
 pub fn ruby_formula_ast_spec_l113_d8_formula_ast(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_ast', ...args)
+	return formula_ast_value('class Foo < Formula\n  url "https://brew.sh/foo.git",\n      tag:      "v1.0",\n      revision: "abc123"\nend\n')
 }
 
 // Ruby it `it "replaces a stable stanza keyword value" do` at line 123.
 pub fn ruby_formula_ast_spec_l123_d9_replaces(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('replaces', ...args)
+	mut formula := utils.FormulaAst{ contents: 'class Foo < Formula\n  url "https://brew.sh/foo.git",\n      tag:      "v1.0",\n      revision: "abc123"\nend\n' }
+	utils.ast_formula_replace_stable_hash(mut formula, 'url', 'tag', brew_runtime.string_value('v2.0'))
+	utils.ast_formula_replace_stable_hash(mut formula, 'url', 'revision', brew_runtime.string_value('def456'))
+	expected := 'class Foo < Formula\n  url "https://brew.sh/foo.git",\n      tag:      "v2.0",\n      revision: "def456"\nend\n'
+	return brew_runtime.bool_value(formula.contents == expected)
 }
 
 // Ruby it `it "adds multiple stanzas after the specified stanza" do` at line 138.
 pub fn ruby_formula_ast_spec_l138_d10_adds(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('adds', ...args)
+	mut formula := utils.FormulaAst{ contents: formula_ast_default_source() }
+	utils.ast_formula_add_stanzas_after(mut formula, 'url', [
+		utils.AstStanzaPair{ name: 'mirror', value: brew_runtime.string_value('https://example.com/foo-1.0.tar.gz') },
+		utils.AstStanzaPair{ name: 'version', value: brew_runtime.string_value('1.0') },
+	], none)
+	return brew_runtime.bool_value(formula.contents.contains('url "https://brew.sh/foo-1.0.tar.gz"\n  mirror "https://example.com/foo-1.0.tar.gz"\n  version "1.0"'))
 }
 
 // Ruby it `it "adds stanzas after comments following a multi-line stanza" do` at line 155.
 pub fn ruby_formula_ast_spec_l155_d11_adds(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('adds', ...args)
+	mut formula := utils.FormulaAst{ contents: 'class Foo < Formula\n  url "https://brew.sh/foo.git",\n      tag:      "v1.0",\n      revision: "abc"\n  # keep with url\n  license :mit\nend\n' }
+	utils.ast_formula_add_stanzas_after(mut formula, 'url', [utils.AstStanzaPair{
+		name: 'version'
+		value: brew_runtime.string_value('1.0')
+	}], none)
+	return brew_runtime.bool_value(formula.contents.contains('# keep with url\n  version "1.0"\n  license :mit'))
 }
 
 // Ruby subject `subject(:formula_ast) do` at line 182.
 pub fn ruby_formula_ast_spec_l182_d12_formula_ast(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_ast', ...args)
+	return formula_ast_value('class Foo < Formula\n  url "https://brew.sh/foo-1.0.tar.gz"\n\n  resource "bar" do\n    url "https://brew.sh/bar-1.0.tar.gz"\n    mirror "https://example.com/bar-1.0.tar.gz"\n    sha256 "${'e'.repeat(64)}"\n  end\nend\n')
 }
 
 // Ruby it `it "replaces resource stanza arguments" do` at line 196.
 pub fn ruby_formula_ast_spec_l196_d13_replaces(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('replaces', ...args)
+	mut formula := utils.FormulaAst{ contents: 'class Foo < Formula\n  url "https://brew.sh/foo-1.0.tar.gz"\n\n  resource "bar" do\n    url "https://brew.sh/bar-1.0.tar.gz"\n    mirror "https://example.com/bar-1.0.tar.gz"\n    sha256 "${'e'.repeat(64)}"\n  end\nend\n' }
+	utils.ast_formula_replace_resource_value(mut formula, 'bar', 'url', brew_runtime.string_value('https://brew.sh/bar-2.0.tar.gz'), none)
+	utils.ast_formula_replace_resource_value(mut formula, 'bar', 'mirror', brew_runtime.string_value('https://example.com/bar-2.0.tar.gz'), none)
+	utils.ast_formula_replace_resource_value(mut formula, 'bar', 'sha256', brew_runtime.string_value('f'.repeat(64)), none)
+	parent := utils.ast_formula_resource(formula, 'bar')
+	utils.ast_formula_add_stanzas_after(mut formula, 'sha256', [utils.AstStanzaPair{
+		name: 'version'
+		value: brew_runtime.string_value('2.0')
+	}], parent)
+	return brew_runtime.bool_value(formula.contents.contains('url "https://brew.sh/bar-2.0.tar.gz"\n    mirror "https://example.com/bar-2.0.tar.gz"\n    sha256 "${'f'.repeat(64)}"\n    version "2.0"'))
 }
 
 // Ruby it `it "inserts resource stanzas before the install method" do` at line 218.
 pub fn ruby_formula_ast_spec_l218_d14_inserts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('inserts', ...args)
+	mut formula := utils.FormulaAst{ contents: formula_ast_install_source() }
+	_ = utils.ast_formula_replace_resources(mut formula, formula_ast_resource_section('bar', 'e'.repeat(64)), true, false)
+	return brew_runtime.bool_value(formula.contents.contains('  resource "bar" do') && formula.contents.index('resource "bar"') or { 9999 } < formula.contents.index('def install') or { 0 })
 }
 
 // Ruby method `install` at line 223.
 pub fn ruby_formula_ast_spec_l223_d15_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	return formula_ast_method_node(formula_ast_install_source())
 }
 
 // Ruby method `install` at line 246.
 pub fn ruby_formula_ast_spec_l246_d16_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	mut formula := utils.FormulaAst{ contents: formula_ast_install_source() }
+	_ = utils.ast_formula_replace_resources(mut formula, formula_ast_resource_section('bar', 'e'.repeat(64)), true, false)
+	return formula_ast_method_node(formula.contents)
 }
 
 // Ruby subject `subject(:formula_ast) do` at line 254.
 pub fn ruby_formula_ast_spec_l254_d17_formula_ast(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_ast', ...args)
+	return formula_ast_value('class Foo < Formula\n  url "https://brew.sh/foo-1.0.tar.gz"\n\n  # RESOURCE-ERROR: Unable to resolve "baz"\n  resource "bar" do\n    url "https://brew.sh/bar-1.0.tar.gz"\n    sha256 "${'e'.repeat(64)}"\n  end\n\n  def install\n    bin.install "foo"\n  end\nend\n')
 }
 
 // Ruby method `install` at line 265.
 pub fn ruby_formula_ast_spec_l265_d18_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	return formula_ast_method_node('class Foo < Formula\n  url "https://brew.sh/foo-1.0.tar.gz"\n\n  # RESOURCE-ERROR: Unable to resolve "baz"\n  resource "bar" do\n    url "https://brew.sh/bar-1.0.tar.gz"\n    sha256 "${'e'.repeat(64)}"\n  end\n\n  def install\n    bin.install "foo"\n  end\nend\n')
 }
 
 // Ruby it `it "replaces the existing resource stanza group" do` at line 272.
 pub fn ruby_formula_ast_spec_l272_d19_replaces(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('replaces', ...args)
+	mut formula := utils.FormulaAst{ contents: 'class Foo < Formula\n  url "https://brew.sh/foo-1.0.tar.gz"\n\n  # RESOURCE-ERROR: Unable to resolve "baz"\n  resource "bar" do\n    url "https://brew.sh/bar-1.0.tar.gz"\n    sha256 "${'e'.repeat(64)}"\n  end\n\n  def install\n    bin.install "foo"\n  end\nend\n' }
+	_ = utils.ast_formula_replace_resources(mut formula, formula_ast_resource_section('baz', 'f'.repeat(64)), true, false)
+	return brew_runtime.bool_value(!formula.contents.contains('RESOURCE-ERROR') && formula.contents.contains('resource "baz"'))
 }
 
 // Ruby method `install` at line 290.
 pub fn ruby_formula_ast_spec_l290_d20_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	return formula_ast_method_node(formula_ast_install_source())
 }
 
 // Ruby subject `subject(:formula_ast) do` at line 299.
 pub fn ruby_formula_ast_spec_l299_d21_formula_ast(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_ast', ...args)
+	return formula_ast_value('class Foo < Formula\n  url "https://brew.sh/foo-1.0.tar.gz"\n\n  resource "bar" do\n    url "https://brew.sh/bar-1.0.tar.gz"\n    sha256 "${'e'.repeat(64)}"\n  end\n\n  depends_on "pkg-config" => :build\n\n  resource "baz" do\n    url "https://brew.sh/baz-1.0.tar.gz"\n    sha256 "${'f'.repeat(64)}"\n  end\nend\n')
 }
 
 // Ruby it `it "returns :multiple_groups" do` at line 319.
 pub fn ruby_formula_ast_spec_l319_d22_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	mut formula := utils.FormulaAst{ contents: 'class Foo < Formula\n  url "https://brew.sh/foo-1.0.tar.gz"\n\n  resource "bar" do\n    url "https://brew.sh/bar-1.0.tar.gz"\n  end\n\n  depends_on "pkg-config" => :build\n\n  resource "baz" do\n    url "https://brew.sh/baz-1.0.tar.gz"\n  end\nend\n' }
+	result := utils.ast_formula_replace_resources(mut formula, '', true, false) or { '' }
+	return brew_runtime.bool_value(result == 'multiple_groups')
 }
 
 // Ruby subject `subject(:formula_ast) do` at line 327.
 pub fn ruby_formula_ast_spec_l327_d23_formula_ast(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_ast', ...args)
+	return formula_ast_value('class Foo < Formula\n  url "https://brew.sh/foo-1.0.tar.gz"\n  license :cannot_represent\n\n  bottle do\n    sha256 "${formula_ast_spec_sha}" => :sonoma\n  end\nend')
 }
 
 // Ruby let `let(:new_contents) do` at line 340.
 pub fn ruby_formula_ast_spec_l340_d24_new_contents(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('new_contents', ...args)
+	return brew_runtime.string_value('class Foo < Formula\n  url "https://brew.sh/foo-1.0.tar.gz"\n\n  bottle do\n    sha256 "${formula_ast_spec_sha}" => :sonoma\n  end\nend')
 }
 
 // Ruby it `it "removes the line containing the stanza" do` at line 352.
 pub fn ruby_formula_ast_spec_l352_d25_removes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('removes', ...args)
+	return brew_runtime.bool_value(formula_ast_remove_matches('class Foo < Formula\n  url "https://brew.sh/foo-1.0.tar.gz"\n  license :cannot_represent\n\n  bottle do\n    sha256 "${formula_ast_spec_sha}" => :sonoma\n  end\nend', 'license', 'class Foo < Formula\n  url "https://brew.sh/foo-1.0.tar.gz"\n\n  bottle do\n    sha256 "${formula_ast_spec_sha}" => :sonoma\n  end\nend'))
 }
 
 // Ruby subject `subject(:formula_ast) do` at line 359.
 pub fn ruby_formula_ast_spec_l359_d26_formula_ast(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_ast', ...args)
+	return formula_ast_value('class Foo < Formula\n  url "https://brew.sh/foo-1.0.tar.gz"\n  license all_of: [\n    :public_domain,\n    "MIT",\n    "GPL-3.0-or-later" => { with: "Autoconf-exception-3.0" },\n  ]\n\n  bottle do\n    sha256 "${formula_ast_spec_sha}" => :sonoma\n  end\nend')
 }
 
 // Ruby let `let(:new_contents) do` at line 376.
 pub fn ruby_formula_ast_spec_l376_d27_new_contents(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('new_contents', ...args)
+	return ruby_formula_ast_spec_l340_d24_new_contents()
 }
 
 // Ruby it `it "removes the lines containing the stanza" do` at line 388.
 pub fn ruby_formula_ast_spec_l388_d28_removes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('removes', ...args)
+	source := 'class Foo < Formula\n  url "https://brew.sh/foo-1.0.tar.gz"\n  license all_of: [\n    :public_domain,\n    "MIT",\n    "GPL-3.0-or-later" => { with: "Autoconf-exception-3.0" },\n  ]\n\n  bottle do\n    sha256 "${formula_ast_spec_sha}" => :sonoma\n  end\nend'
+	return brew_runtime.bool_value(formula_ast_remove_matches(source, 'license', ruby_formula_ast_spec_l340_d24_new_contents().as_string()))
 }
 
 // Ruby subject `subject(:formula_ast) do` at line 395.
 pub fn ruby_formula_ast_spec_l395_d29_formula_ast(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_ast', ...args)
+	return formula_ast_value('class Foo < Formula\n  url "https://brew.sh/foo-1.0.tar.gz"\n  license :cannot_represent # comment\n\n  bottle do\n    sha256 "${formula_ast_spec_sha}" => :sonoma\n  end\nend')
 }
 
 // Ruby let `let(:new_contents) do` at line 408.
 pub fn ruby_formula_ast_spec_l408_d30_new_contents(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('new_contents', ...args)
+	return brew_runtime.string_value('class Foo < Formula\n  url "https://brew.sh/foo-1.0.tar.gz"\n   # comment\n\n  bottle do\n    sha256 "${formula_ast_spec_sha}" => :sonoma\n  end\nend')
 }
 
 // Ruby it `it "removes the stanza but keeps the comment and its whitespace" do` at line 421.
 pub fn ruby_formula_ast_spec_l421_d31_removes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('removes', ...args)
+	return brew_runtime.bool_value(formula_ast_remove_matches('class Foo < Formula\n  url "https://brew.sh/foo-1.0.tar.gz"\n  license :cannot_represent # comment\n\n  bottle do\n    sha256 "${formula_ast_spec_sha}" => :sonoma\n  end\nend', 'license', ruby_formula_ast_spec_l408_d30_new_contents().as_string()))
 }
 
 // Ruby subject `subject(:formula_ast) do` at line 428.
 pub fn ruby_formula_ast_spec_l428_d32_formula_ast(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_ast', ...args)
+	return formula_ast_value('class Foo < Formula\n  url "https://brew.sh/foo-1.0.tar.gz"\n  license :cannot_represent\n  # comment\n\n  bottle do\n    sha256 "${formula_ast_spec_sha}" => :sonoma\n  end\nend')
 }
 
 // Ruby let `let(:new_contents) do` at line 442.
 pub fn ruby_formula_ast_spec_l442_d33_new_contents(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('new_contents', ...args)
+	return brew_runtime.string_value('class Foo < Formula\n  url "https://brew.sh/foo-1.0.tar.gz"\n  # comment\n\n  bottle do\n    sha256 "${formula_ast_spec_sha}" => :sonoma\n  end\nend')
 }
 
 // Ruby it `it "removes the stanza but keeps the comment" do` at line 455.
 pub fn ruby_formula_ast_spec_l455_d34_removes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('removes', ...args)
+	return brew_runtime.bool_value(formula_ast_remove_matches('class Foo < Formula\n  url "https://brew.sh/foo-1.0.tar.gz"\n  license :cannot_represent\n  # comment\n\n  bottle do\n    sha256 "${formula_ast_spec_sha}" => :sonoma\n  end\nend', 'license', ruby_formula_ast_spec_l442_d33_new_contents().as_string()))
 }
 
 // Ruby subject `subject(:formula_ast) do` at line 462.
 pub fn ruby_formula_ast_spec_l462_d35_formula_ast(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_ast', ...args)
+	return formula_ast_value('class Foo < Formula\n  url "https://brew.sh/foo-1.0.tar.gz"\n\n  bottle do\n    sha256 "${formula_ast_spec_sha}" => :sonoma\n  end\n\n  head do\n    url "https://brew.sh/foo.git"\n    branch "develop"\n  end\nend')
 }
 
 // Ruby let `let(:new_contents) do` at line 479.
 pub fn ruby_formula_ast_spec_l479_d36_new_contents(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('new_contents', ...args)
+	return brew_runtime.string_value('class Foo < Formula\n  url "https://brew.sh/foo-1.0.tar.gz"\n\n  head do\n    url "https://brew.sh/foo.git"\n    branch "develop"\n  end\nend')
 }
 
 // Ruby it `it "removes the stanza and preceding newline" do` at line 492.
 pub fn ruby_formula_ast_spec_l492_d37_removes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('removes', ...args)
+	return brew_runtime.bool_value(formula_ast_remove_matches(ruby_formula_ast_spec_l462_d35_formula_ast().repr, 'bottle', ruby_formula_ast_spec_l479_d36_new_contents().as_string()))
 }
 
 // Ruby subject `subject(:formula_ast) do` at line 499.
 pub fn ruby_formula_ast_spec_l499_d38_formula_ast(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_ast', ...args)
+	return formula_ast_value('class Foo < Formula\n  url "https://brew.sh/foo-1.0.tar.gz"\n  license :cannot_represent\n\n  bottle do\n    sha256 "${formula_ast_spec_sha}" => :sonoma\n  end\nend')
 }
 
 // Ruby let `let(:new_contents) do` at line 512.
 pub fn ruby_formula_ast_spec_l512_d39_new_contents(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('new_contents', ...args)
+	return brew_runtime.string_value('class Foo < Formula\n  url "https://brew.sh/foo-1.0.tar.gz"\n  license :cannot_represent\nend')
 }
 
 // Ruby it `it "removes the stanza and preceding newline" do` at line 521.
 pub fn ruby_formula_ast_spec_l521_d40_removes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('removes', ...args)
+	return brew_runtime.bool_value(formula_ast_remove_matches(ruby_formula_ast_spec_l499_d38_formula_ast().repr, 'bottle', ruby_formula_ast_spec_l512_d39_new_contents().as_string()))
 }
 
 // Ruby let `let(:bottle_output) do` at line 529.
 pub fn ruby_formula_ast_spec_l529_d41_bottle_output(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('bottle_output', ...args)
+	return brew_runtime.string_value(formula_ast_bottle_output())
 }
 
 // Ruby subject `subject(:formula_ast) do` at line 538.
 pub fn ruby_formula_ast_spec_l538_d42_formula_ast(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_ast', ...args)
+	return formula_ast_value('class Foo < Formula\n  url "https://brew.sh/foo-1.0.tar.gz"\n  license "MIT"\nend')
 }
 
 // Ruby let `let(:new_contents) do` at line 547.
 pub fn ruby_formula_ast_spec_l547_d43_new_contents(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('new_contents', ...args)
+	return brew_runtime.string_value('class Foo < Formula\n  url "https://brew.sh/foo-1.0.tar.gz"\n  license "MIT"\n\n  bottle do\n    sha256 "${formula_ast_spec_sha}" => :sonoma\n  end\nend')
 }
 
 // Ruby it `it "adds `bottle` after `license`" do` at line 560.
 pub fn ruby_formula_ast_spec_l560_d44_adds(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('adds', ...args)
+	return brew_runtime.bool_value(formula_ast_add_bottle_matches(ruby_formula_ast_spec_l538_d42_formula_ast().repr, ruby_formula_ast_spec_l547_d43_new_contents().as_string()))
 }
 
 // Ruby subject `subject(:formula_ast) do` at line 567.
 pub fn ruby_formula_ast_spec_l567_d45_formula_ast(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_ast', ...args)
+	return formula_ast_value('class Foo < Formula\n  url "https://brew.sh/foo-1.0.tar.gz"\n  license :cannot_represent\nend')
 }
 
 // Ruby let `let(:new_contents) do` at line 576.
 pub fn ruby_formula_ast_spec_l576_d46_new_contents(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('new_contents', ...args)
+	return brew_runtime.string_value('class Foo < Formula\n  url "https://brew.sh/foo-1.0.tar.gz"\n  license :cannot_represent\n\n  bottle do\n    sha256 "${formula_ast_spec_sha}" => :sonoma\n  end\nend')
 }
 
 // Ruby it `it "adds `bottle` after `license`" do` at line 589.
 pub fn ruby_formula_ast_spec_l589_d47_adds(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('adds', ...args)
+	return brew_runtime.bool_value(formula_ast_add_bottle_matches(ruby_formula_ast_spec_l567_d45_formula_ast().repr, ruby_formula_ast_spec_l576_d46_new_contents().as_string()))
 }
 
 // Ruby subject `subject(:formula_ast) do` at line 596.
 pub fn ruby_formula_ast_spec_l596_d48_formula_ast(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_ast', ...args)
+	return formula_ast_value('class Foo < Formula\n  url "https://brew.sh/foo-1.0.tar.gz"\n  license all_of: [\n    :public_domain,\n    "MIT",\n    "GPL-3.0-or-later" => { with: "Autoconf-exception-3.0" },\n  ]\nend')
 }
 
 // Ruby let `let(:new_contents) do` at line 609.
 pub fn ruby_formula_ast_spec_l609_d49_new_contents(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('new_contents', ...args)
+	return brew_runtime.string_value('class Foo < Formula\n  url "https://brew.sh/foo-1.0.tar.gz"\n  license all_of: [\n    :public_domain,\n    "MIT",\n    "GPL-3.0-or-later" => { with: "Autoconf-exception-3.0" },\n  ]\n\n  bottle do\n    sha256 "${formula_ast_spec_sha}" => :sonoma\n  end\nend')
 }
 
 // Ruby it `it "adds `bottle` after `license`" do` at line 626.
 pub fn ruby_formula_ast_spec_l626_d50_adds(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('adds', ...args)
+	return brew_runtime.bool_value(formula_ast_add_bottle_matches(ruby_formula_ast_spec_l596_d48_formula_ast().repr, ruby_formula_ast_spec_l609_d49_new_contents().as_string()))
 }
 
 // Ruby subject `subject(:formula_ast) do` at line 633.
 pub fn ruby_formula_ast_spec_l633_d51_formula_ast(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_ast', ...args)
+	return formula_ast_value('class Foo < Formula\n  url "https://brew.sh/foo-1.0.tar.gz"\n  head "https://brew.sh/foo.git", branch: "develop"\nend')
 }
 
 // Ruby let `let(:new_contents) do` at line 642.
 pub fn ruby_formula_ast_spec_l642_d52_new_contents(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('new_contents', ...args)
+	return brew_runtime.string_value('class Foo < Formula\n  url "https://brew.sh/foo-1.0.tar.gz"\n  head "https://brew.sh/foo.git", branch: "develop"\n\n  bottle do\n    sha256 "${formula_ast_spec_sha}" => :sonoma\n  end\nend')
 }
 
 // Ruby it `it "adds `bottle` after `head`" do` at line 655.
 pub fn ruby_formula_ast_spec_l655_d53_adds(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('adds', ...args)
+	return brew_runtime.bool_value(formula_ast_add_bottle_matches(ruby_formula_ast_spec_l633_d51_formula_ast().repr, ruby_formula_ast_spec_l642_d52_new_contents().as_string()))
 }
 
 // Ruby subject `subject(:formula_ast) do` at line 662.
 pub fn ruby_formula_ast_spec_l662_d54_formula_ast(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_ast', ...args)
+	return formula_ast_value('class Foo < Formula\n  url "https://brew.sh/foo-1.0.tar.gz"\n\n  head do\n    url "https://brew.sh/foo.git"\n    branch "develop"\n  end\nend')
 }
 
 // Ruby let `let(:new_contents) do` at line 675.
 pub fn ruby_formula_ast_spec_l675_d55_new_contents(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('new_contents', ...args)
+	return brew_runtime.string_value('class Foo < Formula\n  url "https://brew.sh/foo-1.0.tar.gz"\n\n  bottle do\n    sha256 "${formula_ast_spec_sha}" => :sonoma\n  end\n\n  head do\n    url "https://brew.sh/foo.git"\n    branch "develop"\n  end\nend')
 }
 
 // Ruby it `it "adds `bottle` before `head`" do` at line 692.
 pub fn ruby_formula_ast_spec_l692_d56_adds(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('adds', ...args)
+	return brew_runtime.bool_value(formula_ast_add_bottle_matches(ruby_formula_ast_spec_l662_d54_formula_ast().repr, ruby_formula_ast_spec_l675_d55_new_contents().as_string()))
 }
 
 // Ruby subject `subject(:formula_ast) do` at line 699.
 pub fn ruby_formula_ast_spec_l699_d57_formula_ast(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_ast', ...args)
+	return formula_ast_value('class Foo < Formula\n  url "https://brew.sh/foo-1.0.tar.gz" # comment\nend')
 }
 
 // Ruby let `let(:new_contents) do` at line 707.
 pub fn ruby_formula_ast_spec_l707_d58_new_contents(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('new_contents', ...args)
+	return brew_runtime.string_value('class Foo < Formula\n  url "https://brew.sh/foo-1.0.tar.gz" # comment\n\n  bottle do\n    sha256 "${formula_ast_spec_sha}" => :sonoma\n  end\nend')
 }
 
 // Ruby it `it "adds `bottle` after the comment" do` at line 719.
 pub fn ruby_formula_ast_spec_l719_d59_adds(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('adds', ...args)
+	return brew_runtime.bool_value(formula_ast_add_bottle_matches(ruby_formula_ast_spec_l699_d57_formula_ast().repr, ruby_formula_ast_spec_l707_d58_new_contents().as_string()))
 }
 
 // Ruby subject `subject(:formula_ast) do` at line 726.
 pub fn ruby_formula_ast_spec_l726_d60_formula_ast(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_ast', ...args)
+	return formula_ast_value('class Foo < Formula\n  url "https://brew.sh/foo-1.0.tar.gz"\n  # comment\nend')
 }
 
 // Ruby let `let(:new_contents) do` at line 735.
 pub fn ruby_formula_ast_spec_l735_d61_new_contents(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('new_contents', ...args)
+	return brew_runtime.string_value('class Foo < Formula\n  url "https://brew.sh/foo-1.0.tar.gz"\n  # comment\n\n  bottle do\n    sha256 "${formula_ast_spec_sha}" => :sonoma\n  end\nend')
 }
 
 // Ruby it `it "adds `bottle` after the comment" do` at line 748.
 pub fn ruby_formula_ast_spec_l748_d62_adds(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('adds', ...args)
+	return brew_runtime.bool_value(formula_ast_add_bottle_matches(ruby_formula_ast_spec_l726_d60_formula_ast().repr, ruby_formula_ast_spec_l735_d61_new_contents().as_string()))
 }
 
 // Ruby subject `subject(:formula_ast) do` at line 755.
 pub fn ruby_formula_ast_spec_l755_d63_formula_ast(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_ast', ...args)
+	return formula_ast_value('class Foo < Formula\n  url "https://brew.sh/foo-1.0.tar.gz"\n\n  # comment\nend')
 }
 
 // Ruby let `let(:new_contents) do` at line 765.
 pub fn ruby_formula_ast_spec_l765_d64_new_contents(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('new_contents', ...args)
+	return brew_runtime.string_value('class Foo < Formula\n  url "https://brew.sh/foo-1.0.tar.gz"\n\n  bottle do\n    sha256 "${formula_ast_spec_sha}" => :sonoma\n  end\n\n  # comment\nend')
 }
 
 // Ruby it `it "adds `bottle` before the comment" do` at line 779.
 pub fn ruby_formula_ast_spec_l779_d65_adds(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('adds', ...args)
+	return brew_runtime.bool_value(formula_ast_add_bottle_matches(ruby_formula_ast_spec_l755_d63_formula_ast().repr, ruby_formula_ast_spec_l765_d64_new_contents().as_string()))
 }
 
 // Original Ruby source (line-for-line):

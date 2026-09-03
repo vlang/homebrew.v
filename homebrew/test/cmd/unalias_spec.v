@@ -1,13 +1,20 @@
 module cmd
 
-import brew_runtime
+import homebrew.aliases
+import homebrew.cmd as brew_cmd
 
 // Translated from Homebrew/brew `test/cmd/unalias_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "unsets an alias", :integration_test do` at line 10.
-pub fn ruby_unalias_spec_l10_d1_unsets(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('unsets', ...args)
+pub fn ruby_unalias_spec_l10_d1_unsets(config aliases.AliasConfig) !bool {
+	aliases.init_aliases(config)!
+	aliases.add_alias(config, 'foo', 'bar')!
+	if aliases.show_aliases(config, []string{})!.len != 1 {
+		return false
+	}
+	brew_cmd.run_unalias(config, ['foo'])!
+	return aliases.show_aliases(config, []string{})!.len == 0
 }
 
 // Original Ruby source (line-for-line):

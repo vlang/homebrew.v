@@ -4,245 +4,781 @@ import brew_runtime
 
 // Translated from Homebrew/brew `extend/ENV/super.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub const superenv_sanitized_variables = [
+	'CDPATH',
+	'CLICOLOR_FORCE',
+	'CPATH',
+	'C_INCLUDE_PATH',
+	'CPLUS_INCLUDE_PATH',
+	'OBJC_INCLUDE_PATH',
+	'CC',
+	'CXX',
+	'OBJC',
+	'OBJCXX',
+	'CPP',
+	'MAKE',
+	'LD',
+	'LDSHARED',
+	'CFLAGS',
+	'CXXFLAGS',
+	'OBJCFLAGS',
+	'OBJCXXFLAGS',
+	'LDFLAGS',
+	'CPPFLAGS',
+	'MACOSX_DEPLOYMENT_TARGET',
+	'SDKROOT',
+	'DEVELOPER_DIR',
+	'CMAKE_PREFIX_PATH',
+	'CMAKE_INCLUDE_PATH',
+	'CMAKE_FRAMEWORK_PATH',
+	'GOBIN',
+	'GOPATH',
+	'GOROOT',
+	'PERL_MB_OPT',
+	'PERL_MM_OPT',
+	'LIBRARY_PATH',
+	'LD_LIBRARY_PATH',
+	'LD_PRELOAD',
+	'LD_RUN_PATH',
+	'RUSTFLAGS',
+]
 
-// Ruby attr_accessor `attr_accessor :keg_only_deps` at line 23.
-pub fn ruby_super_l23_d1_keg_only_deps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('keg_only_deps', ...args)
+pub type SuperenvPathPredicate = fn(string) bool
+
+pub type SuperenvAction = fn(mut SuperenvState) !brew_runtime.Value
+
+pub type SuperenvVoidAction = fn(mut SuperenvState) !
+
+pub struct SuperenvDependency {
+pub:
+	name                  string
+	version               string
+	opt_prefix            string
+	any_version_installed bool = true
+}
+
+pub struct SuperenvConfig {
+pub:
+	shims_path           string
+	superenv_bin         ?string
+	brew_file            string
+	prefix               string
+	cellar               string
+	temp                 string
+	make_jobs            int = 1
+	compiler             string = 'clang'
+	effective_arch       string
+	rustflags_target_cpu string
+	optimization_flags   map[string]string
+	arch_flags           map[string]string
+	gcc_runtime_paths    map[string]string
+}
+
+pub struct SuperenvBuildOptions {
+pub:
+	formula_prefix  ?string
+	cc              ?string
+	build_bottle    bool
+	bottle_arch     ?string
+	testing_formula bool
+	debug_symbols   bool
+}
+
+@[heap]
+pub struct SuperenvState {
+pub:
+	config SuperenvConfig
+mut:
+	environment     map[string]string
+	keg_only_deps   []SuperenvDependency
+	deps            []SuperenvDependency
+	run_time_deps   []SuperenvDependency
+	formula_prefix  ?string
+	homebrew_cc     string
+	compiler        string
+	effective_arch  string
+	build_bottle    bool
+	bottle_arch     ?string
+	testing_formula bool
+}
+
+pub fn new_superenv(config SuperenvConfig, environment map[string]string) &SuperenvState {
+	return &SuperenvState{
+		config: config
+		environment: environment.clone()
+		compiler: config.compiler
+		effective_arch: config.effective_arch
+	}
+}
+
+pub fn (state &SuperenvState) to_map() map[string]string {
+	return state.environment.clone()
+}
+
+pub fn (state &SuperenvState) value(key string) ?string {
+	return state.environment[key]
+}
+
+// These typed mutation/access boundaries expose Ruby's Hash-like environment
+// receiver to OS-specific Superenv extensions without duplicating its state.
+pub fn (mut state SuperenvState) set_value(key string, value string) {
+	state.environment[key] = value
+}
+
+pub fn (mut state SuperenvState) remove_value(key string) {
+	state.environment.delete(key)
+}
+
+pub fn (state &SuperenvState) dependencies() []SuperenvDependency {
+	return state.deps.clone()
+}
+
+pub fn (state &SuperenvState) compiler_name() string {
+	return state.compiler
+}
+
+pub fn superenv_use_compiler(mut state SuperenvState, compiler string) {
+	state.homebrew_cc = compiler
+	state.compiler = compiler
+	state.environment['HOMEBREW_CC'] = compiler
+	if compiler == 'llvm_clang' {
+		state.environment['CC'] = 'clang'
+		state.environment['OBJC'] = 'clang'
+		state.environment['CXX'] = 'clang++'
+		state.environment['OBJCXX'] = 'clang++'
+	} else {
+		state.environment['CC'] = compiler
+		state.environment['OBJC'] = compiler
+		cxx := compiler.replace('gcc', 'g++').replace('clang', 'clang++')
+		state.environment['CXX'] = cxx
+		state.environment['OBJCXX'] = cxx
+	}
+}
+
+pub fn (mut state SuperenvState) append_cccfg(value string) {
+	state.append_to_cccfg(value)
+}
+
+fn join_path(left string, right string) string {
+	if left == '' {
+		return right
+	}
+	if right == '' {
+		return left
+	}
+	return '${left.trim_string_right('/')}/${right.trim_string_left('/')}'
+}
+
+fn parent_path(path string) string {
+	cleaned := path.trim_string_right('/')
+	index := cleaned.last_index('/') or { return '.' }
+	if index == 0 {
+		return '/'
+	}
+	return cleaned[..index]
+}
+
+fn dependency_prefix(dependency SuperenvDependency, prefix string) string {
+	if dependency.opt_prefix != '' {
+		return dependency.opt_prefix
+	}
+	return join_path(join_path(prefix, 'opt'), dependency.name)
+}
+
+fn dependency_path(dependency SuperenvDependency, prefix string, suffix string) string {
+	return join_path(dependency_prefix(dependency, prefix), suffix)
+}
+
+fn existing_path(paths []string, exists SuperenvPathPredicate) ?string {
+	mut seen := map[string]bool{}
+	mut selected := []string{}
+	for path in paths {
+		if path == '' || path in seen || !exists(path) {
+			continue
+		}
+		seen[path] = true
+		selected << path
+	}
+	if selected.len == 0 {
+		return none
+	}
+	return selected.join(':')
+}
+
+fn version_parts(version string) []int {
+	mut parts := []int{}
+	mut current := ''
+	for character in version {
+		if character.is_digit() {
+			current += character.ascii_str()
+		} else if current != '' {
+			parts << current.int()
+			current = ''
+		}
+	}
+	if current != '' {
+		parts << current.int()
+	}
+	return parts
+}
+
+fn compare_versions(left string, right string) int {
+	left_parts := version_parts(left)
+	right_parts := version_parts(right)
+	maximum := if left_parts.len > right_parts.len { left_parts.len } else { right_parts.len }
+	for index in 0 .. maximum {
+		left_part := if index < left_parts.len { left_parts[index] } else { 0 }
+		right_part := if index < right_parts.len { right_parts[index] } else { 0 }
+		if left_part < right_part {
+			return -1
+		}
+		if left_part > right_part {
+			return 1
+		}
+	}
+	return 0
+}
+
+fn is_python_dependency(name string) bool {
+	if name == 'python' || name == 'python3' {
+		return true
+	}
+	for prefix in ['python@', 'python3@'] {
+		if name.starts_with(prefix) && name[prefix.len..].split('.').all(it.bytes().all(it.is_digit())) {
+			return true
+		}
+	}
+	return false
+}
+
+fn is_llvm_dependency(name string) bool {
+	if name == 'llvm' {
+		return true
+	}
+	return name.starts_with('llvm@') && name[5..].bytes().all(it.is_digit())
+}
+
+fn is_gnu_compiler(compiler string) bool {
+	return compiler == 'gcc' || (compiler.starts_with('gcc-') && compiler[4..].bytes().all(it.is_digit()))
+}
+
+fn (mut state SuperenvState) append_to_cccfg(value string) {
+	state.environment['HOMEBREW_CCCFG'] = (state.environment['HOMEBREW_CCCFG'] or { '' }) + value
+}
+
+fn (mut state SuperenvState) reset_environment() {
+	for key in superenv_sanitized_variables {
+		state.environment.delete(key)
+	}
+	state.environment.delete('as_nl')
+}
+
+pub fn (state &SuperenvState) determine_cc() string {
+	if state.homebrew_cc != '' {
+		return state.homebrew_cc
+	}
+	return state.compiler
+}
+
+pub fn (state &SuperenvState) extra_python_paths() []string {
+	mut python_dependencies := state.deps.filter(is_python_dependency(it.name))
+	python_dependencies.sort_with_compare(fn (left &SuperenvDependency, right &SuperenvDependency) int {
+		return compare_versions(right.version, left.version)
+	})
+	return python_dependencies.map(dependency_path(it, state.config.prefix, 'libexec/bin'))
+}
+
+pub fn (state &SuperenvState) path(exists SuperenvPathPredicate) ?string {
+	mut paths := []string{}
+	if superenv_bin := state.config.superenv_bin {
+		paths << superenv_bin
+	}
+	paths << state.deps.map(dependency_path(it, state.config.prefix, 'bin'))
+	paths << state.extra_python_paths()
+	paths << ['/usr/bin', '/bin', '/usr/sbin', '/sbin']
+	if is_gnu_compiler(state.homebrew_cc) {
+		name := state.homebrew_cc.replace('-', '@')
+		matching_dependencies := state.deps.filter(it.name == name || it.name == state.homebrew_cc)
+		if matching_dependencies.len > 0 {
+			paths << dependency_path(matching_dependencies[0], state.config.prefix, 'bin')
+		}
+	}
+	return existing_path(paths, exists)
+}
+
+pub fn (state &SuperenvState) pkg_config_path(exists SuperenvPathPredicate) ?string {
+	mut paths := []string{}
+	for dependency in state.deps {
+		paths << dependency_path(dependency, state.config.prefix, 'lib/pkgconfig')
+	}
+	for dependency in state.deps {
+		paths << dependency_path(dependency, state.config.prefix, 'share/pkgconfig')
+	}
+	return existing_path(paths, exists)
+}
+
+pub fn (state &SuperenvState) pkg_config_libdir(exists SuperenvPathPredicate) ?string {
+	return existing_path([], exists)
+}
+
+pub fn (state &SuperenvState) aclocal_path(exists SuperenvPathPredicate) ?string {
+	mut paths := state.keg_only_deps.map(dependency_path(it, state.config.prefix, 'share/aclocal'))
+	paths << join_path(state.config.prefix, 'share/aclocal')
+	return existing_path(paths, exists)
+}
+
+pub fn (state &SuperenvState) isystem_paths(exists SuperenvPathPredicate) ?string {
+	return existing_path([join_path(state.config.prefix, 'include')], exists)
+}
+
+pub fn (state &SuperenvState) include_paths(exists SuperenvPathPredicate) ?string {
+	return existing_path(state.keg_only_deps.map(dependency_path(it, state.config.prefix, 'include')), exists)
+}
+
+pub fn (state &SuperenvState) library_paths(exists SuperenvPathPredicate) ?string {
+	mut paths := []string{}
+	if is_gnu_compiler(state.compiler) {
+		if runtime_path := state.config.gcc_runtime_paths[state.compiler] {
+			paths << runtime_path
+		}
+	}
+	for dependency in state.keg_only_deps {
+		if !is_llvm_dependency(dependency.name) {
+			paths << dependency_path(dependency, state.config.prefix, 'lib')
+		}
+	}
+	paths << join_path(state.config.prefix, 'lib')
+	return existing_path(paths, exists)
+}
+
+pub fn (state &SuperenvState) cmake_prefix_path(exists SuperenvPathPredicate) ?string {
+	mut paths := []string{}
+	if superenv_bin := state.config.superenv_bin {
+		paths << parent_path(superenv_bin)
+	}
+	paths << state.keg_only_deps.map(dependency_prefix(it, state.config.prefix))
+	paths << state.config.prefix
+	return existing_path(paths, exists)
+}
+
+pub fn (state &SuperenvState) cmake_framework_path(exists SuperenvPathPredicate) ?string {
+	return existing_path(state.deps.map(dependency_path(it, state.config.prefix, 'Frameworks')), exists)
+}
+
+pub fn (state &SuperenvState) optimization_flags() string {
+	return state.config.optimization_flags[state.effective_arch] or {
+		state.config.arch_flags[state.effective_arch] or { '' }
+	}
+}
+
+pub fn (state &SuperenvState) dependencies_string() string {
+	return state.deps.map(it.name).join(',')
+}
+
+fn set_optional(mut environment map[string]string, key string, value ?string) {
+	if unwrapped := value {
+		environment[key] = unwrapped
+	} else {
+		environment.delete(key)
+	}
+}
+
+pub fn (mut state SuperenvState) setup(options SuperenvBuildOptions,
+	exists SuperenvPathPredicate) {
+	state.formula_prefix = options.formula_prefix
+	state.build_bottle = options.build_bottle
+	state.bottle_arch = options.bottle_arch
+	state.testing_formula = options.testing_formula
+	state.compiler = options.cc or { state.config.compiler }
+	state.homebrew_cc = options.cc or { '' }
+	state.effective_arch = options.bottle_arch or { state.config.effective_arch }
+	state.reset_environment()
+	if state.compiler == 'clang' || state.compiler == 'llvm_clang' {
+		state.environment['CC'] = 'clang'
+		state.environment['OBJC'] = 'clang'
+		state.environment['CXX'] = 'clang++'
+		state.environment['OBJCXX'] = 'clang++'
+	} else if is_gnu_compiler(state.compiler) {
+		state.environment['CC'] = 'gcc'
+		state.environment['OBJC'] = 'gcc'
+		state.environment['CXX'] = 'g++'
+		state.environment['OBJCXX'] = 'g++'
+	}
+	if state.homebrew_cc != '' {
+		state.environment['HOMEBREW_CC'] = state.homebrew_cc
+	}
+	state.environment['HOMEBREW_ENV'] = 'super'
+	if 'MAKEFLAGS' !in state.environment {
+		state.environment['MAKEFLAGS'] = '-j${state.config.make_jobs}'
+	}
+	state.environment['RUSTC_WRAPPER'] = join_path(state.config.shims_path, 'shared/rustc_wrapper')
+	state.environment['HOMEBREW_RUSTFLAGS'] = state.config.rustflags_target_cpu
+	set_optional(mut state.environment, 'PATH', state.path(exists))
+	set_optional(mut state.environment, 'PKG_CONFIG_PATH', state.pkg_config_path(exists))
+	state.environment['PKG_CONFIG_LIBDIR'] = state.pkg_config_libdir(exists) or { '' }
+	state.environment['HOMEBREW_CCCFG'] = ''
+	state.environment['HOMEBREW_OPTIMIZATION_LEVEL'] = if is_gnu_compiler(state.compiler) {
+		'O2'
+	} else {
+		'Os'
+	}
+	state.environment['HOMEBREW_BREW_FILE'] = state.config.brew_file
+	state.environment['HOMEBREW_PREFIX'] = state.config.prefix
+	state.environment['HOMEBREW_CELLAR'] = state.config.cellar
+	state.environment['HOMEBREW_OPT'] = join_path(state.config.prefix, 'opt')
+	state.environment['HOMEBREW_TEMP'] = state.config.temp
+	state.environment['HOMEBREW_OPTFLAGS'] = state.optimization_flags()
+	state.environment['HOMEBREW_MAKE_JOBS'] = state.config.make_jobs.str()
+	set_optional(mut state.environment, 'CMAKE_PREFIX_PATH', state.cmake_prefix_path(exists))
+	set_optional(mut state.environment, 'CMAKE_FRAMEWORK_PATH', state.cmake_framework_path(exists))
+	state.environment.delete('CMAKE_INCLUDE_PATH')
+	state.environment.delete('CMAKE_LIBRARY_PATH')
+	set_optional(mut state.environment, 'ACLOCAL_PATH', state.aclocal_path(exists))
+	if state.deps.any(it.name == 'libtool') {
+		state.environment['M4'] = join_path(state.config.prefix, 'opt/m4/bin/m4')
+	}
+	set_optional(mut state.environment, 'HOMEBREW_ISYSTEM_PATHS', state.isystem_paths(exists))
+	set_optional(mut state.environment, 'HOMEBREW_INCLUDE_PATHS', state.include_paths(exists))
+	set_optional(mut state.environment, 'HOMEBREW_LIBRARY_PATHS', state.library_paths(exists))
+	state.environment['HOMEBREW_DEPENDENCIES'] = state.dependencies_string()
+	if formula_prefix := state.formula_prefix {
+		state.environment['HOMEBREW_FORMULA_PREFIX'] = formula_prefix
+	}
+	state.environment['OPENSSL_NO_VENDOR'] = '1'
+	state.environment['GOTOOLCHAIN'] = 'local'
+	state.environment['MATURIN_NO_INSTALL_RUST'] = '1'
+	state.environment['HIDAPI_SYSTEM_HIDAPI'] = '1'
+	state.environment['PYZMQ_NO_BUNDLE'] = '1'
+	state.environment['SODIUM_INSTALL'] = 'system'
+	if options.debug_symbols {
+		state.append_to_cccfg('D')
+	}
 }
 
 // Ruby attr_accessor `attr_accessor :keg_only_deps` at line 23.
-pub fn ruby_super_l23_d2_keg_only_deps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('keg_only_deps=', ...args)
+pub fn ruby_super_l23_d1_keg_only_deps(state &SuperenvState) []SuperenvDependency {
+	return state.keg_only_deps.clone()
+}
+
+// Ruby attr_accessor `attr_accessor :keg_only_deps` at line 23.
+pub fn ruby_super_l23_d2_keg_only_deps(mut state SuperenvState, dependencies []SuperenvDependency) {
+	state.keg_only_deps = dependencies.clone()
 }
 
 // Ruby attr_accessor `attr_accessor :deps` at line 26.
-pub fn ruby_super_l26_d3_deps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('deps', ...args)
+pub fn ruby_super_l26_d3_deps(state &SuperenvState) []SuperenvDependency {
+	return state.deps.clone()
 }
 
 // Ruby attr_accessor `attr_accessor :deps` at line 26.
-pub fn ruby_super_l26_d4_deps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('deps=', ...args)
+pub fn ruby_super_l26_d4_deps(mut state SuperenvState, dependencies []SuperenvDependency) {
+	state.deps = dependencies.clone()
 }
 
 // Ruby attr_accessor `attr_accessor :run_time_deps` at line 29.
-pub fn ruby_super_l29_d5_run_time_deps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('run_time_deps', ...args)
+pub fn ruby_super_l29_d5_run_time_deps(state &SuperenvState) []SuperenvDependency {
+	return state.run_time_deps.clone()
 }
 
 // Ruby attr_accessor `attr_accessor :run_time_deps` at line 29.
-pub fn ruby_super_l29_d6_run_time_deps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('run_time_deps=', ...args)
+pub fn ruby_super_l29_d6_run_time_deps(mut state SuperenvState, dependencies []SuperenvDependency) {
+	state.run_time_deps = dependencies.clone()
 }
 
 // Ruby method `self.extended(base)` at line 32.
-pub fn ruby_super_l32_d7_self_extended(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.extended', ...args)
+pub fn ruby_super_l32_d7_self_extended(mut state SuperenvState) {
+	state.keg_only_deps = []
+	state.deps = []
+	state.run_time_deps = []
 }
 
 // Ruby method `self.shims_path` at line 42.
-pub fn ruby_super_l42_d8_self_shims_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.shims_path', ...args)
+pub fn ruby_super_l42_d8_self_shims_path(config SuperenvConfig) string {
+	return join_path(config.shims_path, 'super')
 }
 
 // Ruby method `self.bin; end` at line 47.
-pub fn ruby_super_l47_d9_self_bin(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.bin', ...args)
+pub fn ruby_super_l47_d9_self_bin(config SuperenvConfig) ?string {
+	return config.superenv_bin
 }
 
 // Ruby method `initialize` at line 50.
-pub fn ruby_super_l50_d10_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+pub fn ruby_super_l50_d10_initialize(config SuperenvConfig, environment map[string]string) &SuperenvState {
+	return new_superenv(config, environment)
 }
 
 // Ruby method `reset` at line 59.
-pub fn ruby_super_l59_d11_reset(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reset', ...args)
+pub fn ruby_super_l59_d11_reset(mut state SuperenvState) {
+	state.reset_environment()
 }
 
 // Ruby method `setup_build_environment(formula: nil, cc: nil, build_bottle: false, bottle_arch: nil, testing_formula: false,` at line 76.
-pub fn ruby_super_l76_d12_setup_build_environment(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('setup_build_environment', ...args)
+pub fn ruby_super_l76_d12_setup_build_environment(mut state SuperenvState,
+	options SuperenvBuildOptions, exists SuperenvPathPredicate) {
+	state.setup(options, exists)
 }
 
 // Ruby method `llvm_clang` at line 146.
-pub fn ruby_super_l146_d13_llvm_clang(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('llvm_clang', ...args)
+pub fn ruby_super_l146_d13_llvm_clang(mut state SuperenvState) {
+	superenv_use_compiler(mut state, 'llvm_clang')
 }
 
 // Ruby method `cc=(val)` at line 155.
-pub fn ruby_super_l155_d14_cc(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cc=', ...args)
+pub fn ruby_super_l155_d14_cc(mut state SuperenvState, value string) {
+	state.homebrew_cc = value
+	state.compiler = value
+	state.environment['CC'] = value
+	state.environment['OBJC'] = value
+	state.environment['HOMEBREW_CC'] = value
 }
 
 // Ruby method `determine_cxx` at line 161.
-pub fn ruby_super_l161_d15_determine_cxx(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('determine_cxx', ...args)
+pub fn ruby_super_l161_d15_determine_cxx(state &SuperenvState) string {
+	return state.determine_cc().replace('gcc', 'g++').replace('clang', 'clang++')
 }
 
 // Ruby method `homebrew_extra_paths` at line 166.
-pub fn ruby_super_l166_d16_homebrew_extra_paths(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('homebrew_extra_paths', ...args)
+pub fn ruby_super_l166_d16_homebrew_extra_paths(state &SuperenvState) []string {
+	return state.extra_python_paths()
 }
 
 // Ruby method `determine_path` at line 175.
-pub fn ruby_super_l175_d17_determine_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('determine_path', ...args)
+pub fn ruby_super_l175_d17_determine_path(state &SuperenvState,
+	exists SuperenvPathPredicate) ?string {
+	return state.path(exists)
 }
 
 // Ruby method `homebrew_extra_pkg_config_paths` at line 194.
-pub fn ruby_super_l194_d18_homebrew_extra_pkg_config_paths(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('homebrew_extra_pkg_config_paths', ...args)
+pub fn ruby_super_l194_d18_homebrew_extra_pkg_config_paths(_ &SuperenvState) []string {
+	return []
 }
 
 // Ruby method `determine_pkg_config_path` at line 199.
-pub fn ruby_super_l199_d19_determine_pkg_config_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('determine_pkg_config_path', ...args)
+pub fn ruby_super_l199_d19_determine_pkg_config_path(state &SuperenvState,
+	exists SuperenvPathPredicate) ?string {
+	return state.pkg_config_path(exists)
 }
 
 // Ruby method `determine_pkg_config_libdir` at line 207.
-pub fn ruby_super_l207_d20_determine_pkg_config_libdir(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('determine_pkg_config_libdir', ...args)
+pub fn ruby_super_l207_d20_determine_pkg_config_libdir(state &SuperenvState,
+	exists SuperenvPathPredicate) ?string {
+	return state.pkg_config_libdir(exists)
 }
 
 // Ruby method `determine_aclocal_path` at line 214.
-pub fn ruby_super_l214_d21_determine_aclocal_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('determine_aclocal_path', ...args)
+pub fn ruby_super_l214_d21_determine_aclocal_path(state &SuperenvState,
+	exists SuperenvPathPredicate) ?string {
+	return state.aclocal_path(exists)
 }
 
 // Ruby method `homebrew_extra_isystem_paths` at line 222.
-pub fn ruby_super_l222_d22_homebrew_extra_isystem_paths(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('homebrew_extra_isystem_paths', ...args)
+pub fn ruby_super_l222_d22_homebrew_extra_isystem_paths(_ &SuperenvState) []string {
+	return []
 }
 
 // Ruby method `determine_isystem_paths` at line 227.
-pub fn ruby_super_l227_d23_determine_isystem_paths(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('determine_isystem_paths', ...args)
+pub fn ruby_super_l227_d23_determine_isystem_paths(state &SuperenvState,
+	exists SuperenvPathPredicate) ?string {
+	return state.isystem_paths(exists)
 }
 
 // Ruby method `determine_include_paths` at line 235.
-pub fn ruby_super_l235_d24_determine_include_paths(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('determine_include_paths', ...args)
+pub fn ruby_super_l235_d24_determine_include_paths(state &SuperenvState,
+	exists SuperenvPathPredicate) ?string {
+	return state.include_paths(exists)
 }
 
 // Ruby method `homebrew_extra_library_paths` at line 240.
-pub fn ruby_super_l240_d25_homebrew_extra_library_paths(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('homebrew_extra_library_paths', ...args)
+pub fn ruby_super_l240_d25_homebrew_extra_library_paths(_ &SuperenvState) []string {
+	return []
 }
 
 // Ruby method `determine_library_paths` at line 245.
-pub fn ruby_super_l245_d26_determine_library_paths(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('determine_library_paths', ...args)
+pub fn ruby_super_l245_d26_determine_library_paths(state &SuperenvState,
+	exists SuperenvPathPredicate) ?string {
+	return state.library_paths(exists)
 }
 
 // Ruby method `determine_dependencies` at line 270.
-pub fn ruby_super_l270_d27_determine_dependencies(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('determine_dependencies', ...args)
+pub fn ruby_super_l270_d27_determine_dependencies(state &SuperenvState) string {
+	return state.dependencies_string()
 }
 
 // Ruby method `determine_cmake_prefix_path` at line 275.
-pub fn ruby_super_l275_d28_determine_cmake_prefix_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('determine_cmake_prefix_path', ...args)
+pub fn ruby_super_l275_d28_determine_cmake_prefix_path(state &SuperenvState,
+	exists SuperenvPathPredicate) ?string {
+	return state.cmake_prefix_path(exists)
 }
 
 // Ruby method `homebrew_extra_cmake_include_paths` at line 284.
-pub fn ruby_super_l284_d29_homebrew_extra_cmake_include_paths(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('homebrew_extra_cmake_include_paths', ...args)
+pub fn ruby_super_l284_d29_homebrew_extra_cmake_include_paths(_ &SuperenvState) []string {
+	return []
 }
 
 // Ruby method `determine_cmake_include_path` at line 289.
-pub fn ruby_super_l289_d30_determine_cmake_include_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('determine_cmake_include_path', ...args)
+pub fn ruby_super_l289_d30_determine_cmake_include_path(_ &SuperenvState,
+	_ SuperenvPathPredicate) ?string {
+	return none
 }
 
 // Ruby method `homebrew_extra_cmake_library_paths` at line 294.
-pub fn ruby_super_l294_d31_homebrew_extra_cmake_library_paths(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('homebrew_extra_cmake_library_paths', ...args)
+pub fn ruby_super_l294_d31_homebrew_extra_cmake_library_paths(_ &SuperenvState) []string {
+	return []
 }
 
 // Ruby method `determine_cmake_library_path` at line 299.
-pub fn ruby_super_l299_d32_determine_cmake_library_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('determine_cmake_library_path', ...args)
+pub fn ruby_super_l299_d32_determine_cmake_library_path(_ &SuperenvState,
+	_ SuperenvPathPredicate) ?string {
+	return none
 }
 
 // Ruby method `homebrew_extra_cmake_frameworks_paths` at line 304.
-pub fn ruby_super_l304_d33_homebrew_extra_cmake_frameworks_paths(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('homebrew_extra_cmake_frameworks_paths', ...args)
+pub fn ruby_super_l304_d33_homebrew_extra_cmake_frameworks_paths(_ &SuperenvState) []string {
+	return []
 }
 
 // Ruby method `determine_cmake_frameworks_path` at line 309.
-pub fn ruby_super_l309_d34_determine_cmake_frameworks_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('determine_cmake_frameworks_path', ...args)
+pub fn ruby_super_l309_d34_determine_cmake_frameworks_path(state &SuperenvState,
+	exists SuperenvPathPredicate) ?string {
+	return state.cmake_framework_path(exists)
 }
 
 // Ruby method `determine_make_jobs` at line 317.
-pub fn ruby_super_l317_d35_determine_make_jobs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('determine_make_jobs', ...args)
+pub fn ruby_super_l317_d35_determine_make_jobs(state &SuperenvState) string {
+	return state.config.make_jobs.str()
 }
 
 // Ruby method `determine_optflags` at line 322.
-pub fn ruby_super_l322_d36_determine_optflags(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('determine_optflags', ...args)
+pub fn ruby_super_l322_d36_determine_optflags(state &SuperenvState) string {
+	return state.optimization_flags()
 }
 
 // Ruby method `determine_cccfg` at line 330.
-pub fn ruby_super_l330_d37_determine_cccfg(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('determine_cccfg', ...args)
+pub fn ruby_super_l330_d37_determine_cccfg(_ &SuperenvState) string {
+	return ''
 }
 
 // Ruby method `deparallelize(&block)` at line 340.
-pub fn ruby_super_l340_d38_deparallelize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('deparallelize', ...args)
+pub fn ruby_super_l340_d38_deparallelize(mut state SuperenvState,
+	block ?SuperenvAction) !string {
+	old_makeflags := state.environment['MAKEFLAGS'] or { '' }
+	old_make_jobs := state.environment['HOMEBREW_MAKE_JOBS'] or { '' }
+	had_makeflags := 'MAKEFLAGS' in state.environment
+	had_make_jobs := 'HOMEBREW_MAKE_JOBS' in state.environment
+	state.environment.delete('MAKEFLAGS')
+	state.environment.delete('HOMEBREW_MAKE_JOBS')
+	state.environment['HOMEBREW_MAKE_JOBS'] = '1'
+	if action := block {
+		defer {
+			if had_makeflags {
+				state.environment['MAKEFLAGS'] = old_makeflags
+			} else {
+				state.environment.delete('MAKEFLAGS')
+			}
+			if had_make_jobs {
+				state.environment['HOMEBREW_MAKE_JOBS'] = old_make_jobs
+			} else {
+				state.environment.delete('HOMEBREW_MAKE_JOBS')
+			}
+		}
+		action(mut state)!
+	}
+	return old_makeflags
 }
 
 // Ruby method `make_jobs` at line 357.
-pub fn ruby_super_l357_d39_make_jobs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('make_jobs', ...args)
+pub fn ruby_super_l357_d39_make_jobs(state &SuperenvState) int {
+	makeflags := state.environment['MAKEFLAGS'] or { '' }
+	for start, character in makeflags {
+		if character != `-` {
+			continue
+		}
+		mut index := start + 1
+		for index < makeflags.len {
+			if makeflags[index] == `j` && index + 1 < makeflags.len && makeflags[index + 1].is_digit() {
+				mut end := index + 1
+				for end < makeflags.len && makeflags[end].is_digit() {
+					end++
+				}
+				jobs := makeflags[index + 1..end].int()
+				return if jobs > 1 { jobs } else { 1 }
+			}
+			if !makeflags[index].is_alnum() && makeflags[index] != `_` {
+				break
+			}
+			index++
+		}
+	}
+	return 1
 }
 
 // Ruby method `permit_arch_flags` at line 363.
-pub fn ruby_super_l363_d40_permit_arch_flags(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('permit_arch_flags', ...args)
+pub fn ruby_super_l363_d40_permit_arch_flags(mut state SuperenvState) {
+	state.append_to_cccfg('K')
 }
 
 // Ruby method `runtime_cpu_detection` at line 368.
-pub fn ruby_super_l368_d41_runtime_cpu_detection(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('runtime_cpu_detection', ...args)
+pub fn ruby_super_l368_d41_runtime_cpu_detection(mut state SuperenvState) {
+	state.append_to_cccfg('d')
 }
 
 // Ruby method `cxx11` at line 373.
-pub fn ruby_super_l373_d42_cxx11(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cxx11', ...args)
+pub fn ruby_super_l373_d42_cxx11(mut state SuperenvState) {
+	state.append_to_cccfg('x')
+	if state.homebrew_cc == 'clang' {
+		state.append_to_cccfg('g')
+	}
 }
 
 // Ruby method `libcxx` at line 379.
-pub fn ruby_super_l379_d43_libcxx(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('libcxx', ...args)
+pub fn ruby_super_l379_d43_libcxx(mut state SuperenvState) {
+	if state.compiler == 'clang' {
+		state.append_to_cccfg('g')
+	}
 }
 
 // Ruby method `set_debug_symbols` at line 384.
-pub fn ruby_super_l384_d44_set_debug_symbols(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('set_debug_symbols', ...args)
+pub fn ruby_super_l384_d44_set_debug_symbols(mut state SuperenvState) {
+	state.append_to_cccfg('D')
 }
 
 // Ruby method `refurbish_args` at line 389.
-pub fn ruby_super_l389_d45_refurbish_args(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('refurbish_args', ...args)
+pub fn ruby_super_l389_d45_refurbish_args(mut state SuperenvState) {
+	state.append_to_cccfg('O')
+}
+
+fn with_optimization_level(mut state SuperenvState, level string,
+	block ?SuperenvVoidAction) ! {
+	if action := block {
+		old_level := state.environment['HOMEBREW_OPTIMIZATION_LEVEL'] or { '' }
+		had_level := 'HOMEBREW_OPTIMIZATION_LEVEL' in state.environment
+		state.environment['HOMEBREW_OPTIMIZATION_LEVEL'] = level
+		defer {
+			if had_level {
+				state.environment['HOMEBREW_OPTIMIZATION_LEVEL'] = old_level
+			} else {
+				state.environment.delete('HOMEBREW_OPTIMIZATION_LEVEL')
+			}
+		}
+		action(mut state)!
+		return
+	}
+	state.environment['HOMEBREW_OPTIMIZATION_LEVEL'] = level
 }
 
 // Ruby method `O0(&block)` at line 396.
-pub fn ruby_super_l396_d46_o0(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('O0', ...args)
+pub fn ruby_super_l396_d46_o0(mut state SuperenvState, block ?SuperenvVoidAction) ! {
+	with_optimization_level(mut state, 'O0', block)!
 }
 
 // Ruby method `O1(&block)` at line 405.
-pub fn ruby_super_l405_d47_o1(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('O1', ...args)
+pub fn ruby_super_l405_d47_o1(mut state SuperenvState, block ?SuperenvVoidAction) ! {
+	with_optimization_level(mut state, 'O1', block)!
 }
 
 // Ruby method `O3(&block)` at line 414.
-pub fn ruby_super_l414_d48_o3(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('O3', ...args)
+pub fn ruby_super_l414_d48_o3(mut state SuperenvState, block ?SuperenvVoidAction) ! {
+	with_optimization_level(mut state, 'O3', block)!
 }
 
 // Original Ruby source (line-for-line):

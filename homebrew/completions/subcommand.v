@@ -1,13 +1,22 @@
 module completions
 
-import brew_runtime
+import homebrew.completions.subcommand
 
 // Translated from Homebrew/brew `completions/subcommand.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `dispatch(args)` at line 16.
-pub fn ruby_subcommand_l16_dispatch(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dispatch', ...args)
+pub fn ruby_subcommand_l16_dispatch(arguments []string, mut state subcommand.CompletionsState) !string {
+	if arguments.len > 1 {
+		return error('completions accepts at most one named argument')
+	}
+	name := if arguments.len == 0 { 'state' } else { arguments[0] }
+	return match name {
+		'link' { subcommand.ruby_link_l20_run(mut state) }
+		'unlink' { subcommand.ruby_unlink_l20_run(mut state) }
+		'state' { subcommand.ruby_state_l20_run(state) }
+		else { error('unknown completions subcommand: ${name}') }
+	}
 }
 
 // Original Ruby source (line-for-line):

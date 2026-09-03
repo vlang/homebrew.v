@@ -1,53 +1,168 @@
 module ast
 
 import brew_runtime
+import homebrew.rubocops.cask.extend as cask_extend
 
 // Translated from Homebrew/brew `rubocops/cask/ast/cask_block.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub struct CaskAstStanzaBlock {
+pub:
+	block_node  cask_extend.CaskAstNode
+	full_source string
+	comments    []CaskAstComment
+	is_cask     bool
+}
+
+fn cask_ast_find_cask_block(node cask_extend.CaskAstNode) ?cask_extend.CaskAstNode {
+	if cask_extend.cask_block(node) {
+		return node
+	}
+	for child in node.children {
+		if found := cask_ast_find_cask_block(child) {
+			return found
+		}
+	}
+	return none
+}
+
+pub fn parse_cask_ast_stanza_block(source string, require_cask bool) ?CaskAstStanzaBlock {
+	root := cask_extend.parse_cask_ast_node(source)
+	block := if require_cask {
+		cask_ast_find_cask_block(root) or { return none }
+	} else if root.kind == 'block' {
+		root
+	} else {
+		return none
+	}
+	return CaskAstStanzaBlock{
+		block_node: block
+		full_source: source
+		comments: parse_cask_ast_comments(source)
+		is_cask: cask_extend.cask_block(block)
+	}
+}
+
+fn cask_ast_direct_stanza_nodes(block cask_extend.CaskAstNode) []cask_extend.CaskAstNode {
+	mut result := []cask_extend.CaskAstNode{}
+	for child in block.children {
+		if cask_extend.stanza(child) {
+			result << child
+		}
+	}
+	return result
+}
+
+fn cask_ast_all_stanza_nodes(node cask_extend.CaskAstNode) []cask_extend.CaskAstNode {
+	mut result := []cask_extend.CaskAstNode{}
+	for child in node.children {
+		if cask_extend.stanza(child) {
+			result << child
+		}
+		result << cask_ast_all_stanza_nodes(child)
+	}
+	return result
+}
+
+pub fn cask_ast_block_stanzas(block CaskAstStanzaBlock, all_descendants bool) []CaskAstStanza {
+	nodes := if all_descendants {
+		cask_ast_all_stanza_nodes(block.block_node)
+	} else {
+		cask_ast_direct_stanza_nodes(block.block_node)
+	}
+	return nodes.map(CaskAstStanza{
+		node: it
+		full_source: block.full_source
+		all_comments: block.comments.clone()
+	})
+}
+
+fn cask_ast_stanzas_value(stanzas []CaskAstStanza) brew_runtime.Value {
+	return brew_runtime.array_value(stanzas.map(cask_ast_stanza_value(it)))
+}
+
+fn cask_ast_block_value(block CaskAstStanzaBlock, type_name string) brew_runtime.Value {
+	return brew_runtime.structured_value(type_name, block.block_node.source, {
+		'kind':        block.block_node.kind
+		'method_name': block.block_node.method_name
+		'begin_pos':   block.block_node.expression.begin_pos.str()
+		'end_pos':     block.block_node.expression.end_pos.str()
+		'comments':    block.comments.map(it.source).join('\n')
+	})
+}
 
 // Ruby attr_reader `attr_reader :block_node` at line 13.
 pub fn ruby_cask_block_l13_d1_block_node(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('block_node', ...args)
+	source := if args.len > 0 { args[0].as_string() } else { '' }
+	block := parse_cask_ast_stanza_block(source, false) or { return cask_ast_nil() }
+	return cask_ast_node_value(block.block_node)
 }
 
 // Ruby attr_reader `attr_reader :comments` at line 16.
 pub fn ruby_cask_block_l16_d2_comments(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('comments', ...args)
+	source := if args.len > 0 { args[0].as_string() } else { '' }
+	return cask_ast_comment_values(parse_cask_ast_comments(source))
 }
 
 // Ruby method `initialize(block_node, comments)` at line 19.
 pub fn ruby_cask_block_l19_d3_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	source := if args.len > 0 { args[0].as_string() } else { '' }
+	block := parse_cask_ast_stanza_block(source, false) or { return cask_ast_nil() }
+	return cask_ast_block_value(block, 'RuboCop::Cask::AST::StanzaBlock')
 }
 
 // Ruby method `stanzas` at line 25.
 pub fn ruby_cask_block_l25_d4_stanzas(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('stanzas', ...args)
+	source := if args.len > 0 { args[0].as_string() } else { '' }
+	block := parse_cask_ast_stanza_block(source, false) or {
+		return brew_runtime.array_value([]brew_runtime.Value{})
+	}
+	return cask_ast_stanzas_value(cask_ast_block_stanzas(block, false))
 }
 
 // Ruby method `cask_node` at line 53.
 pub fn ruby_cask_block_l53_d5_cask_node(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask_node', ...args)
+	source := if args.len > 0 { args[0].as_string() } else { '' }
+	block := parse_cask_ast_stanza_block(source, true) or { return cask_ast_nil() }
+	return cask_ast_node_value(block.block_node)
 }
 
 // Ruby def_delegator `def_delegator :cask_node, :block_body, :cask_body` at line 57.
 pub fn ruby_cask_block_l57_d6_cask_body(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask_body', ...args)
+	source := if args.len > 0 { args[0].as_string() } else { '' }
+	block := parse_cask_ast_stanza_block(source, true) or { return cask_ast_nil() }
+	body := cask_extend.block_body(block.block_node) or { return cask_ast_nil() }
+	return cask_ast_node_value(body)
 }
 
 // Ruby method `header` at line 60.
 pub fn ruby_cask_block_l60_d7_header(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('header', ...args)
+	source := if args.len > 0 { args[0].as_string() } else { '' }
+	header := parse_cask_header(source) or { return cask_ast_nil() }
+	return brew_runtime.structured_value('RuboCop::Cask::AST::CaskHeader', header.cask_token, {
+		'method_source': header.method_source
+		'begin_pos':     header.begin_pos.str()
+		'end_pos':       header.end_pos.str()
+		'cask_token':    header.cask_token
+		'hash_source':   header.hash_source
+	})
 }
 
 // Ruby method `stanzas` at line 66.
 pub fn ruby_cask_block_l66_d8_stanzas(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('stanzas', ...args)
+	source := if args.len > 0 { args[0].as_string() } else { '' }
+	block := parse_cask_ast_stanza_block(source, true) or {
+		return brew_runtime.array_value([]brew_runtime.Value{})
+	}
+	return cask_ast_stanzas_value(cask_ast_block_stanzas(block, true))
 }
 
 // Ruby method `toplevel_stanzas` at line 75.
 pub fn ruby_cask_block_l75_d9_toplevel_stanzas(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('toplevel_stanzas', ...args)
+	source := if args.len > 0 { args[0].as_string() } else { '' }
+	block := parse_cask_ast_stanza_block(source, true) or {
+		return brew_runtime.array_value([]brew_runtime.Value{})
+	}
+	return cask_ast_stanzas_value(cask_ast_block_stanzas(block, false))
 }
 
 // Original Ruby source (line-for-line):

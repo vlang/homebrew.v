@@ -1,33 +1,44 @@
 module os
 
 import brew_runtime
+import homebrew.os as linux_os
 
 // Translated from Homebrew/brew `test/os/linux_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "returns a list of all languages" do` at line 9.
 pub fn ruby_linux_spec_l9_d1_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	languages := linux_os.ruby_linux_l75_d5_self_languages(brew_runtime.string_value(''), brew_runtime.map_value({
+		'LANG': brew_runtime.string_value('en_US.UTF-8')
+	}))
+	return brew_runtime.bool_value((languages.as_string_array() or { []string{} }).len > 0)
 }
 
 // Ruby it `it "returns the first item from` at line 15.
 pub fn ruby_linux_spec_l15_d2_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	languages := linux_os.ruby_linux_l75_d5_self_languages(brew_runtime.string_value(''), brew_runtime.map_value({
+		'LANG': brew_runtime.string_value('en_US.UTF-8')
+	}))
+	first := linux_os.ruby_linux_l94_d6_self_language(languages)
+	values := languages.as_string_array() or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value(values.len > 0 && first.as_string() == values[0])
 }
 
 // Ruby it `it "returns the OS version" do` at line 21.
 pub fn ruby_linux_spec_l21_d3_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	version := linux_os.ruby_linux_l24_d1_self_os_version(brew_runtime.bool_value(true), brew_runtime.string_value('Description:\tUbuntu 24.04.1 LTS\nCodename:\tnoble\n'), brew_runtime.string_value(''))
+	return brew_runtime.bool_value(version.as_string() == 'Ubuntu 24.04.1 LTS (noble)')
 }
 
 // Ruby it `it "returns the WSL state" do` at line 27.
 pub fn ruby_linux_spec_l27_d4_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	return brew_runtime.bool_value(!linux_os.ruby_linux_l45_d2_self_wsl(brew_runtime.bool_value(false)).as_bool() or { false })
 }
 
 // Ruby it `it "returns the WSL version" do` at line 33.
 pub fn ruby_linux_spec_l33_d5_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	version := linux_os.ruby_linux_l59_d4_self_wsl_version(brew_runtime.bool_value(false), brew_runtime.string_value('6.8.0'))
+	return brew_runtime.bool_value(version.type_name == 'Version' && version.as_string() == 'NULL')
 }
 
 // Original Ruby source (line-for-line):

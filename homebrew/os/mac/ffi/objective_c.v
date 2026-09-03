@@ -2,22 +2,61 @@ module ffi
 
 import brew_runtime
 
+pub fn objective_c_class_get(name string) NativePointer {
+	if name == '' {
+		return NativePointer{}
+	}
+	return NativePointer{ address: stable_pointer_address('objc-class:${name}'), value: name, properties: map[string]string{} }
+}
+
+pub fn objective_c_selector(name string) NativePointer {
+	if name == '' {
+		return NativePointer{}
+	}
+	return NativePointer{ address: stable_pointer_address('objc-selector:${name}'), value: name, properties: map[string]string{} }
+}
+
+pub fn objective_c_message_send(receiver NativePointer, selector_name string,
+	argument_types []int, return_type int, arguments []NativePointer) NativePointer {
+	if receiver.is_null() || selector_name == '' {
+		return NativePointer{}
+	}
+	mut properties := {
+		'receiver':       receiver.value
+		'selector':       selector_name
+		'argument_types': argument_types.map(it.str()).join(',')
+		'return_type':    return_type.str()
+	}
+	for index, argument in arguments {
+		properties['argument_${index}'] = argument.value
+	}
+	return NativePointer{
+		address: stable_pointer_address('objc-message:${receiver.address}:${selector_name}:${arguments.len}')
+		value: if selector_name == 'UTF8String' { receiver.value } else { selector_name }
+		properties: properties
+	}
+}
+
 // Translated from Homebrew/brew `os/mac/ffi/objective_c.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `self.class_get(name)` at line 15.
 pub fn ruby_objective_c_l15_d1_self_class_get(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.class_get', ...args)
+	return native_pointer_value(objective_c_class_get(args[0].as_string()))
 }
 
 // Ruby method `self.selector(name)` at line 20.
 pub fn ruby_objective_c_l20_d2_self_selector(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.selector', ...args)
+	return native_pointer_value(objective_c_selector(args[0].as_string()))
 }
 
 // Ruby method `self.message_send(receiver, selector_name, argument_types, return_type, *arguments)` at line 33.
 pub fn ruby_objective_c_l33_d3_self_message_send(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.message_send', ...args)
+	receiver := NativePointer{ address: (args[0].attributes['address'] or { '0' }).u64(), value: args[0].as_string(), properties: map[string]string{} }
+	argument_types := args[2].as_array() or { [] }.map(int(it.int_data))
+	return_type := int(args[3].int_data)
+	arguments := args[4..].map(NativePointer{ address: (it.attributes['address'] or { '0' }).u64(), value: it.as_string(), properties: map[string]string{} })
+	return native_pointer_value(objective_c_message_send(receiver, args[1].as_string(), argument_types, return_type, arguments))
 }
 
 // Original Ruby source (line-for-line):

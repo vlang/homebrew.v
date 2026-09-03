@@ -1,28 +1,56 @@
 module download_strategies
 
 import brew_runtime
+import homebrew.download_strategy
+import os
+import time
 
 // Translated from Homebrew/brew `test/download_strategies/pypi_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:strategy) { described_class.new(url, "foo", "1.2.3") }` at line 7.
 pub fn ruby_pypi_spec_l7_d1_strategy(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('strategy', ...args)
+	url := if args.len > 0 { args[0].as_string() } else { ruby_pypi_spec_l9_d2_url().as_string() }
+	return brew_runtime.structured_value('PyPIDownloadStrategy', url, {
+		'url':     url
+		'name':    'foo'
+		'version': '1.2.3'
+	})
 }
 
 // Ruby let `let(:url) { "https://files.pythonhosted.org/packages/ab/cd/efg/foo-1.2.3.tar.gz" }` at line 9.
 pub fn ruby_pypi_spec_l9_d2_url(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('url', ...args)
+	return brew_runtime.string_value('https://files.pythonhosted.org/packages/ab/cd/efg/foo-1.2.3.tar.gz')
 }
 
 // Ruby let `let(:last_modified) { Time.utc(2026, 5, 6, 13, 43, 5) }` at line 10.
 pub fn ruby_pypi_spec_l10_d3_last_modified(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('last_modified', ...args)
+	return brew_runtime.int_value(1_778_074_985)
 }
 
 // Ruby it `it "uses the PyPI last modified time set on cached file when archive contents are older" do` at line 23.
 pub fn ruby_pypi_spec_l23_d4_uses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uses', ...args)
+	root := os.join_path(os.temp_dir(), 'brew-v-pypi-spec-${os.getpid()}-${time.now().unix_micro()}')
+	cached := os.join_path(root, 'foo-1.2.3.tar.gz')
+	stage := os.join_path(root, 'stage')
+	os.mkdir_all(stage) or { return brew_runtime.bool_value(false) }
+	defer { os.rmdir_all(root) or {} }
+	os.write_file(cached, 'archive') or { return brew_runtime.bool_value(false) }
+	source := os.join_path(stage, 'foo.py')
+	os.write_file(source, 'source') or { return brew_runtime.bool_value(false) }
+	last_modified := ruby_pypi_spec_l10_d3_last_modified().as_int() or {
+		return brew_runtime.bool_value(false)
+	}
+	os.utime(cached, last_modified, last_modified) or { return brew_runtime.bool_value(false) }
+	os.utime(source, 1_580_601_600, 1_580_601_600) or { return brew_runtime.bool_value(false) }
+	mut strategy := download_strategy.new_pypi_download_strategy(ruby_pypi_spec_l9_d2_url().as_string(), 'foo', '1.2.3', download_strategy.DownloadMeta{
+		cache: root
+	})
+	strategy.file.cached_location_value = cached
+	modified := download_strategy.pypi_source_modified_time(mut strategy, stage) or {
+		return brew_runtime.bool_value(false)
+	}
+	return brew_runtime.bool_value(modified == last_modified)
 }
 
 // Original Ruby source (line-for-line):

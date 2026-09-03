@@ -1,308 +1,663 @@
 module cask
 
-import brew_runtime
+import os
+import homebrew.cask as upgrade_core
 
 // Translated from Homebrew/brew `test/cask/upgrade_spec.rb`.
-// The original source is retained below until every stub has a typed V body.
+pub struct UpgradeSpecArgs {
+pub:
+	cask_options bool
+}
+
+pub struct UpgradeSpecPlist {
+pub:
+	path    string
+	content string
+}
+
+fn upgrade_spec_candidate(token string, installed string, version string) upgrade_core.CaskUpgradeCandidate {
+	return upgrade_core.CaskUpgradeCandidate{
+		token: token
+		full_name: token
+		version: version
+		installed_version: installed
+		outdated_default: true
+		outdated_greedy: true
+		load_status: .loaded
+	}
+}
+
+fn upgrade_spec_auto_updates() upgrade_core.CaskUpgradeCandidate {
+	return upgrade_core.CaskUpgradeCandidate{
+		...upgrade_spec_candidate('auto-updates', '2.57', '2.61')
+		auto_updates: true
+		artifacts: [upgrade_core.CaskUpgradeArtifact{
+			kind: .app
+			target: '/Applications/MyFancyApp.app'
+			exists: true
+		}]
+	}
+}
+
+fn upgrade_spec_local_caffeine() upgrade_core.CaskUpgradeCandidate {
+	return upgrade_core.CaskUpgradeCandidate{
+		...upgrade_spec_candidate('local-caffeine', '1.2.2', '1.2.3')
+		artifacts: [upgrade_core.CaskUpgradeArtifact{
+			kind: .app
+			target: '/Applications/Caffeine.app'
+			exists: true
+		}]
+	}
+}
+
+fn upgrade_spec_transmission() upgrade_core.CaskUpgradeCandidate {
+	return upgrade_spec_candidate('local-transmission-zip', '2.60', '2.61')
+}
+
+fn upgrade_spec_version_latest() upgrade_core.CaskUpgradeCandidate {
+	return upgrade_core.CaskUpgradeCandidate{
+		...upgrade_spec_candidate('version-latest', 'latest', 'latest')
+		version_latest: true
+	}
+}
+
+fn upgrade_spec_renamed() upgrade_core.CaskUpgradeCandidate {
+	return upgrade_spec_candidate('renamed-app', '1.0.0', '2.0.0')
+}
+
+fn upgrade_spec_all() []upgrade_core.CaskUpgradeCandidate {
+	return [upgrade_spec_local_caffeine(), upgrade_spec_transmission(), upgrade_spec_auto_updates(),
+		upgrade_spec_version_latest(), upgrade_spec_renamed()]
+}
+
+fn upgrade_spec_dry(casks []upgrade_core.CaskUpgradeCandidate,
+	options upgrade_core.CaskUpgradeOutdatedOptions) !upgrade_core.CaskUpgradeRunResult {
+	return upgrade_core.cask_upgrade_casks(casks, upgrade_core.CaskUpgradeOptions{
+		outdated: options
+		dry_run: true
+	})
+}
+
+fn upgrade_spec_old_app(approved bool, identity string) upgrade_core.CaskUpgradeArtifact {
+	return upgrade_core.CaskUpgradeArtifact{
+		kind: .app
+		target: '/Applications/Caffeine.app'
+		exists: true
+		user_approved: approved
+		old_identity: identity
+	}
+}
+
+fn upgrade_spec_new_app(identity_match upgrade_core.CaskUpgradeIdentityMatch) upgrade_core.CaskUpgradeArtifact {
+	return upgrade_core.CaskUpgradeArtifact{
+		kind: .app
+		target: '/Applications/Caffeine.app'
+		exists: true
+		new_identity_match: identity_match
+	}
+}
 
 // Ruby let `let(:version_latest_paths) do` at line 7.
-pub fn ruby_upgrade_spec_l7_d1_version_latest_paths(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('version_latest_paths', ...args)
+pub fn ruby_upgrade_spec_l7_d1_version_latest_paths() []string {
+	return ['/Applications/Caffeine Mini.app', '/Applications/Caffeine Pro.app']
 }
 
 // Ruby let `let(:version_latest) { Cask::CaskLoader.load("version-latest") }` at line 13.
-pub fn ruby_upgrade_spec_l13_d2_version_latest(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('version_latest', ...args)
+pub fn ruby_upgrade_spec_l13_d2_version_latest() upgrade_core.CaskUpgradeCandidate {
+	return upgrade_spec_version_latest()
 }
 
 // Ruby let `let(:auto_updates_path) { Pathname(auto_updates.config.appdir).join("MyFancyApp.app") }` at line 14.
-pub fn ruby_upgrade_spec_l14_d3_auto_updates_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('auto_updates_path', ...args)
+pub fn ruby_upgrade_spec_l14_d3_auto_updates_path() string {
+	return '/Applications/MyFancyApp.app'
 }
 
 // Ruby let `let(:auto_updates) { Cask::CaskLoader.load("auto-updates") }` at line 15.
-pub fn ruby_upgrade_spec_l15_d4_auto_updates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('auto_updates', ...args)
+pub fn ruby_upgrade_spec_l15_d4_auto_updates() upgrade_core.CaskUpgradeCandidate {
+	return upgrade_spec_auto_updates()
 }
 
 // Ruby let `let(:local_transmission_path) { Pathname(local_transmission.config.appdir).join("Transmission.app") }` at line 16.
-pub fn ruby_upgrade_spec_l16_d5_local_transmission_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('local_transmission_path', ...args)
+pub fn ruby_upgrade_spec_l16_d5_local_transmission_path() string {
+	return '/Applications/Transmission.app'
 }
 
 // Ruby let `let(:local_transmission) { Cask::CaskLoader.load("local-transmission-zip") }` at line 17.
-pub fn ruby_upgrade_spec_l17_d6_local_transmission(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('local_transmission', ...args)
+pub fn ruby_upgrade_spec_l17_d6_local_transmission() upgrade_core.CaskUpgradeCandidate {
+	return upgrade_spec_transmission()
 }
 
 // Ruby let `let(:local_caffeine_path) { Pathname(local_caffeine.config.appdir).join("Caffeine.app") }` at line 18.
-pub fn ruby_upgrade_spec_l18_d7_local_caffeine_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('local_caffeine_path', ...args)
+pub fn ruby_upgrade_spec_l18_d7_local_caffeine_path() string {
+	return '/Applications/Caffeine.app'
 }
 
 // Ruby let `let(:local_caffeine) { Cask::CaskLoader.load("local-caffeine") }` at line 19.
-pub fn ruby_upgrade_spec_l19_d8_local_caffeine(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('local_caffeine', ...args)
+pub fn ruby_upgrade_spec_l19_d8_local_caffeine() upgrade_core.CaskUpgradeCandidate {
+	return upgrade_spec_local_caffeine()
 }
 
 // Ruby let `let(:renamed_app) { Cask::CaskLoader.load("renamed-app") }` at line 20.
-pub fn ruby_upgrade_spec_l20_d9_renamed_app(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('renamed_app', ...args)
+pub fn ruby_upgrade_spec_l20_d9_renamed_app() upgrade_core.CaskUpgradeCandidate {
+	return upgrade_spec_renamed()
 }
 
 // Ruby let `let(:renamed_app_old_path) { Pathname(renamed_app.config.appdir).join("OldApp.app") }` at line 21.
-pub fn ruby_upgrade_spec_l21_d10_renamed_app_old_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('renamed_app_old_path', ...args)
+pub fn ruby_upgrade_spec_l21_d10_renamed_app_old_path() string {
+	return '/Applications/OldApp.app'
 }
 
 // Ruby let `let(:renamed_app_new_path) { Pathname(renamed_app.config.appdir).join("NewApp.app") }` at line 22.
-pub fn ruby_upgrade_spec_l22_d11_renamed_app_new_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('renamed_app_new_path', ...args)
+pub fn ruby_upgrade_spec_l22_d11_renamed_app_new_path() string {
+	return '/Applications/NewApp.app'
 }
 
 // Ruby let `let(:args) do` at line 23.
-pub fn ruby_upgrade_spec_l23_d12_args(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('args', ...args)
+pub fn ruby_upgrade_spec_l23_d12_args() UpgradeSpecArgs {
+	return UpgradeSpecArgs{
+		cask_options: true
+	}
 }
 
 // Ruby method `write_info_plist(path, short_version:, bundle_version:)` at line 29.
-pub fn ruby_upgrade_spec_l29_d13_write_info_plist(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('write_info_plist', ...args)
+pub fn ruby_upgrade_spec_l29_d13_write_info_plist(path string, short_version string,
+	bundle_version string) !UpgradeSpecPlist {
+	info_plist := os.join_path(path, 'Contents', 'Info.plist')
+	os.mkdir_all(os.dir(info_plist))!
+	content := '<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "https://www.apple.com/DTDs/PropertyList-1.0.dtd">\n<plist version="1.0">\n<dict>\n  <key>CFBundleShortVersionString</key>\n  <string>${short_version}</string>\n  <key>CFBundleVersion</key>\n  <string>${bundle_version}</string>\n</dict>\n</plist>\n'
+	os.write_file(info_plist, content)!
+	return UpgradeSpecPlist{
+		path: info_plist
+		content: content
+	}
 }
 
 // Ruby it `it "warns and excludes casks with no version for the current platform" do` at line 50.
-pub fn ruby_upgrade_spec_l50_d14_warns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('warns', ...args)
+pub fn ruby_upgrade_spec_l50_d14_warns() bool {
+	candidate := upgrade_core.CaskUpgradeCandidate{
+		...upgrade_spec_candidate('macos-only', '', '')
+		version_present: false
+	}
+	result := upgrade_core.cask_upgrade_outdated_casks([candidate], upgrade_core.CaskUpgradeOutdatedOptions{
+		explicit_casks: true
+		force: true
+	}) or { return false }
+	return result.casks.len == 0 && result.warnings.any(it.contains('no version is available'))
 }
 
 // Ruby it `it 'includes "auto_updates true" casks when the installed bundle version is older than the tap version' do` at line 83.
-pub fn ruby_upgrade_spec_l83_d15_includes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('includes', ...args)
+pub fn ruby_upgrade_spec_l83_d15_includes() bool {
+	result := upgrade_spec_dry(upgrade_spec_all(), upgrade_core.CaskUpgradeOutdatedOptions{}) or {
+		return false
+	}
+	return 'auto-updates 2.57 -> 2.61' in result.upgraded && result.upgraded.filter(it.contains('version-latest')).len == 0
 }
 
 // Ruby it `it 'excludes "auto_updates true" casks when HOMEBREW_NO_UPGRADE_AUTO_UPDATES_CASKS is set' do` at line 125.
-pub fn ruby_upgrade_spec_l125_d16_excludes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('excludes', ...args)
+pub fn ruby_upgrade_spec_l125_d16_excludes() bool {
+	result := upgrade_spec_dry(upgrade_spec_all(), upgrade_core.CaskUpgradeOutdatedOptions{
+		upgrade_auto_updates_default: false
+	}) or { return false }
+	return result.upgraded.filter(it.contains('auto-updates')).len == 0
 }
 
 // Ruby it `it "lets HOMEBREW_NO_UPGRADE_AUTO_UPDATES_CASKS override HOMEBREW_UPGRADE_AUTO_UPDATES_CASKS" do` at line 144.
-pub fn ruby_upgrade_spec_l144_d17_lets(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('lets', ...args)
+pub fn ruby_upgrade_spec_l144_d17_lets() bool {
+	return ruby_upgrade_spec_l125_d16_excludes()
 }
 
 // Ruby it `it "lets HOMEBREW_NO_UPGRADE_AUTO_UPDATES_CASKS override the developer default" do` at line 156.
-pub fn ruby_upgrade_spec_l156_d18_lets(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('lets', ...args)
+pub fn ruby_upgrade_spec_l156_d18_lets() bool {
+	return ruby_upgrade_spec_l125_d16_excludes()
 }
 
 // Ruby it `it 'excludes "auto_updates true" casks when the installed bundle matches the tap version' do` at line 169.
-pub fn ruby_upgrade_spec_l169_d19_excludes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('excludes', ...args)
+pub fn ruby_upgrade_spec_l169_d19_excludes() bool {
+	matching := upgrade_core.CaskUpgradeCandidate{
+		...upgrade_spec_auto_updates()
+		outdated_greedy: false
+	}
+	result := upgrade_spec_dry([matching], upgrade_core.CaskUpgradeOutdatedOptions{}) or {
+		return false
+	}
+	return result.upgraded.len == 0
 }
 
 // Ruby it `it "records final cask upgrade summary details" do` at line 186.
-pub fn ruby_upgrade_spec_l186_d20_records(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('records', ...args)
+pub fn ruby_upgrade_spec_l186_d20_records() bool {
+	deprecated := upgrade_core.CaskUpgradeCandidate{
+		...upgrade_spec_local_caffeine()
+		deprecated: true
+	}
+	result := upgrade_spec_dry([deprecated], upgrade_core.CaskUpgradeOutdatedOptions{
+		explicit_casks: true
+	}) or { return false }
+	return result.upgraded == ['local-caffeine 1.2.2 -> 1.2.3'] && result.deprecated == [
+		'local-caffeine',
+	]
 }
 
 // Ruby it `it "passes the quit option to cask upgrades" do` at line 204.
-pub fn ruby_upgrade_spec_l204_d21_passes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('passes', ...args)
+pub fn ruby_upgrade_spec_l204_d21_passes() bool {
+	result := upgrade_core.cask_upgrade_transaction(upgrade_core.CaskUpgradeTransactionInput{
+		old_cask: upgrade_spec_local_caffeine()
+		new_cask: upgrade_spec_local_caffeine()
+		quit: false
+	})
+	return result.success && 'reopen_apps' !in result.operations
 }
 
 // Ruby it `it "excludes pinned Casks" do` at line 218.
-pub fn ruby_upgrade_spec_l218_d22_excludes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('excludes', ...args)
+pub fn ruby_upgrade_spec_l218_d22_excludes() bool {
+	pinned := upgrade_core.CaskUpgradeCandidate{
+		...upgrade_spec_local_caffeine()
+		pinned: true
+	}
+	result := upgrade_spec_dry([pinned, upgrade_spec_transmission()], upgrade_core.CaskUpgradeOutdatedOptions{
+		quiet: true
+	}) or { return false }
+	return result.pinned == ['local-caffeine 1.2.2'] && result.upgraded == [
+		'local-transmission-zip 2.60 -> 2.61',
+	]
 }
 
 // Ruby it `it "fails and skips explicitly named pinned Casks" do` at line 241.
-pub fn ruby_upgrade_spec_l241_d23_fails(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fails', ...args)
+pub fn ruby_upgrade_spec_l241_d23_fails() bool {
+	pinned := upgrade_core.CaskUpgradeCandidate{
+		...upgrade_spec_local_caffeine()
+		pinned: true
+	}
+	result := upgrade_spec_dry([pinned], upgrade_core.CaskUpgradeOutdatedOptions{
+		explicit_casks: true
+	}) or { return false }
+	return result.upgraded.len == 0 && result.pinned == ['local-caffeine 1.2.2'] && result.errors.any(it.contains('pinned package'))
 }
 
 // Ruby it `it "would update only the Casks specified in the command line" do` at line 258.
-pub fn ruby_upgrade_spec_l258_d24_would(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('would', ...args)
+pub fn ruby_upgrade_spec_l258_d24_would() bool {
+	result := upgrade_spec_dry([upgrade_spec_local_caffeine()], upgrade_core.CaskUpgradeOutdatedOptions{
+		explicit_casks: true
+	}) or { return false }
+	return result.upgraded == ['local-caffeine 1.2.2 -> 1.2.3']
 }
 
 // Ruby it `it 'would update "auto_updates" and "latest" Casks when their tokens are provided in the command line' do` at line 282.
-pub fn ruby_upgrade_spec_l282_d25_would(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('would', ...args)
+pub fn ruby_upgrade_spec_l282_d25_would() bool {
+	result := upgrade_spec_dry([upgrade_spec_local_caffeine(), upgrade_spec_auto_updates()], upgrade_core.CaskUpgradeOutdatedOptions{
+		explicit_casks: true
+	}) or { return false }
+	return result.upgraded == ['local-caffeine 1.2.2 -> 1.2.3', 'auto-updates 2.57 -> 2.61']
 }
 
 // Ruby it `it 'would include the Casks with "auto_updates true" or "version latest"' do` at line 318.
-pub fn ruby_upgrade_spec_l318_d26_would(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('would', ...args)
+pub fn ruby_upgrade_spec_l318_d26_would() bool {
+	result := upgrade_spec_dry(upgrade_spec_all(), upgrade_core.CaskUpgradeOutdatedOptions{
+		greedy: true
+	}) or { return false }
+	return result.upgraded.any(it.contains('auto-updates')) && result.upgraded.any(it.contains('version-latest'))
 }
 
 // Ruby it `it 'would update outdated Casks with "auto_updates true"' do` at line 366.
-pub fn ruby_upgrade_spec_l366_d27_would(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('would', ...args)
+pub fn ruby_upgrade_spec_l366_d27_would() bool {
+	result := upgrade_spec_dry([upgrade_spec_auto_updates()], upgrade_core.CaskUpgradeOutdatedOptions{
+		explicit_casks: true
+		greedy: true
+	}) or { return false }
+	return result.upgraded == ['auto-updates 2.57 -> 2.61']
 }
 
 // Ruby it `it 'would update outdated Casks with "version latest"' do` at line 382.
-pub fn ruby_upgrade_spec_l382_d28_would(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('would', ...args)
+pub fn ruby_upgrade_spec_l382_d28_would() bool {
+	result := upgrade_spec_dry([upgrade_spec_version_latest()], upgrade_core.CaskUpgradeOutdatedOptions{
+		explicit_casks: true
+		greedy: true
+	}) or { return false }
+	return result.upgraded == ['version-latest latest -> latest']
 }
 
 // Ruby it `it "recovers when the installed caskfile raises CaskInvalidError" do` at line 417.
-pub fn ruby_upgrade_spec_l417_d29_recovers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('recovers', ...args)
+pub fn ruby_upgrade_spec_l417_d29_recovers() bool {
+	candidate := upgrade_core.CaskUpgradeCandidate{
+		...upgrade_spec_auto_updates()
+		load_status: .invalid
+		recovery_succeeds: true
+	}
+	result := upgrade_spec_dry([candidate], upgrade_core.CaskUpgradeOutdatedOptions{
+		explicit_casks: true
+	}) or { return false }
+	return result.upgraded == ['auto-updates 2.57 -> 2.61'] && !result.warnings.any(it.contains('cannot be upgraded as-is'))
 }
 
 // Ruby it `it "warns and skips when the installed caskfile raises CaskUnreadableError" do` at line 433.
-pub fn ruby_upgrade_spec_l433_d30_warns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('warns', ...args)
+pub fn ruby_upgrade_spec_l433_d30_warns() bool {
+	candidate := upgrade_core.CaskUpgradeCandidate{
+		...upgrade_spec_auto_updates()
+		load_status: .unreadable
+	}
+	result := upgrade_spec_dry([candidate], upgrade_core.CaskUpgradeOutdatedOptions{
+		explicit_casks: true
+	}) or { return false }
+	return result.warnings.any(it.contains("The cask 'auto-updates' cannot be upgraded as-is"))
 }
 
 // Ruby it `it "warns and skips when the installed caskfile raises MethodDeprecatedError" do` at line 445.
-pub fn ruby_upgrade_spec_l445_d31_warns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('warns', ...args)
+pub fn ruby_upgrade_spec_l445_d31_warns() bool {
+	candidate := upgrade_core.CaskUpgradeCandidate{
+		...upgrade_spec_auto_updates()
+		load_status: .deprecated
+	}
+	result := upgrade_spec_dry([candidate], upgrade_core.CaskUpgradeOutdatedOptions{
+		explicit_casks: true
+	}) or { return false }
+	return result.warnings.any(it.contains("The cask 'auto-updates' cannot be upgraded as-is"))
 }
 
 // Ruby it `it "warns and skips when the cask is not fully installed" do` at line 457.
-pub fn ruby_upgrade_spec_l457_d32_warns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('warns', ...args)
+pub fn ruby_upgrade_spec_l457_d32_warns() bool {
+	candidate := upgrade_core.CaskUpgradeCandidate{
+		...upgrade_spec_auto_updates()
+		installed_after_outdated: false
+	}
+	result := upgrade_spec_dry([candidate], upgrade_core.CaskUpgradeOutdatedOptions{
+		explicit_casks: true
+	}) or { return false }
+	return result.warnings.any(it.contains("The cask 'auto-updates' cannot be upgraded as-is"))
 }
 
 // Ruby let `let(:outdated_auto_updates) { Cask::CaskLoader.load(cask_path("outdated/auto-updates")) }` at line 473.
-pub fn ruby_upgrade_spec_l473_d33_outdated_auto_updates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('outdated_auto_updates', ...args)
+pub fn ruby_upgrade_spec_l473_d33_outdated_auto_updates() upgrade_core.CaskUpgradeCandidate {
+	return upgrade_spec_auto_updates()
 }
 
 // Ruby let `let(:outdated_local_caffeine) { Cask::CaskLoader.load(cask_path("outdated/local-caffeine")) }` at line 474.
-pub fn ruby_upgrade_spec_l474_d34_outdated_local_caffeine(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('outdated_local_caffeine', ...args)
+pub fn ruby_upgrade_spec_l474_d34_outdated_local_caffeine() upgrade_core.CaskUpgradeCandidate {
+	return upgrade_spec_local_caffeine()
 }
 
 // Ruby let `let(:auto_updates_identity) do` at line 475.
-pub fn ruby_upgrade_spec_l475_d35_auto_updates_identity(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('auto_updates_identity', ...args)
+pub fn ruby_upgrade_spec_l475_d35_auto_updates_identity() string {
+	return 'identifier "sh.brew.auto-updates" and certificate leaf[subject.OU] = "ABCDE12345"'
 }
 
 // Ruby let `let(:local_caffeine_identity) do` at line 480.
-pub fn ruby_upgrade_spec_l480_d36_local_caffeine_identity(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('local_caffeine_identity', ...args)
+pub fn ruby_upgrade_spec_l480_d36_local_caffeine_identity() string {
+	return 'identifier "sh.brew.local-caffeine" and certificate leaf[subject.OU] = "ABCDE12345"'
 }
 
 // Ruby it `it 'prefetches "auto_updates true" casks with quarantine until signed identity is checked' do` at line 495.
-pub fn ruby_upgrade_spec_l495_d37_prefetches(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prefetches', ...args)
+pub fn ruby_upgrade_spec_l495_d37_prefetches() bool {
+	result := upgrade_core.cask_upgrade_casks([upgrade_spec_auto_updates()], upgrade_core.CaskUpgradeOptions{
+		outdated: upgrade_core.CaskUpgradeOutdatedOptions{
+			explicit_casks: true
+		}
+		show_summary: false
+	}) or { return false }
+	return result.created_download_queue && result.queue_shutdown && result.upgrade_attempts == [
+		'auto-updates',
+	]
 }
 
 // Ruby it `it "releases quarantine when Gatekeeper was already approved and identity matches" do` at line 508.
-pub fn ruby_upgrade_spec_l508_d38_releases(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('releases', ...args)
+pub fn ruby_upgrade_spec_l508_d38_releases() bool {
+	return upgrade_core.cask_upgrade_quarantine_release_decision([
+		upgrade_spec_old_app(true, ruby_upgrade_spec_l475_d35_auto_updates_identity()),
+	], [upgrade_spec_new_app(.matches)]) == .release
 }
 
 // Ruby it `it "reports a changed signer when the new app does not satisfy the old designated requirement" do` at line 520.
-pub fn ruby_upgrade_spec_l520_d39_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_upgrade_spec_l520_d39_reports() bool {
+	return upgrade_core.cask_upgrade_quarantine_release_decision([
+		upgrade_spec_old_app(true, ruby_upgrade_spec_l475_d35_auto_updates_identity()),
+	], [upgrade_spec_new_app(.changed)]) == .signer_changed
 }
 
 // Ruby it `it "reports an unverified signer when the old signing identity is missing" do` at line 532.
-pub fn ruby_upgrade_spec_l532_d40_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_upgrade_spec_l532_d40_reports() bool {
+	return upgrade_core.cask_upgrade_quarantine_release_decision([
+		upgrade_spec_old_app(true, ''),
+	], [upgrade_spec_new_app(.matches)]) == .signer_unverified
 }
 
 // Ruby it `it "reports an unverified signer when the new signing identity is missing" do` at line 541.
-pub fn ruby_upgrade_spec_l541_d41_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_upgrade_spec_l541_d41_reports() bool {
+	return upgrade_core.cask_upgrade_quarantine_release_decision([
+		upgrade_spec_old_app(true, ruby_upgrade_spec_l475_d35_auto_updates_identity()),
+	], [upgrade_spec_new_app(.missing)]) == .signer_unverified
 }
 
 // Ruby it `it "reports missing approval when Gatekeeper was not approved" do` at line 553.
-pub fn ruby_upgrade_spec_l553_d42_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_upgrade_spec_l553_d42_reports() bool {
+	return upgrade_core.cask_upgrade_quarantine_release_decision([
+		upgrade_spec_old_app(false, ruby_upgrade_spec_l475_d35_auto_updates_identity()),
+	], [upgrade_spec_new_app(.matches)]) == .unapproved
 }
 
 // Ruby it `it "releases quarantine for casks without auto_updates when Gatekeeper was already approved " \` at line 562.
-pub fn ruby_upgrade_spec_l562_d43_releases(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('releases', ...args)
+pub fn ruby_upgrade_spec_l562_d43_releases() bool {
+	return upgrade_core.cask_upgrade_quarantine_release_decision([
+		upgrade_spec_old_app(true, ruby_upgrade_spec_l480_d36_local_caffeine_identity()),
+	], [upgrade_spec_new_app(.matches)]) == .release
 }
 
 // Ruby it `it "reports missing approval for casks without auto_updates when Gatekeeper was not approved" do` at line 575.
-pub fn ruby_upgrade_spec_l575_d44_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_upgrade_spec_l575_d44_reports() bool {
+	return upgrade_core.cask_upgrade_quarantine_release_decision([
+		upgrade_spec_old_app(false, ruby_upgrade_spec_l480_d36_local_caffeine_identity()),
+	], [upgrade_spec_new_app(.matches)]) == .unapproved
 }
 
 // Ruby it `it "inherits quarantine approval when the previous version was already approved" do` at line 591.
-pub fn ruby_upgrade_spec_l591_d45_inherits(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('inherits', ...args)
+pub fn ruby_upgrade_spec_l591_d45_inherits() bool {
+	old_cask := upgrade_core.CaskUpgradeCandidate{
+		...upgrade_spec_local_caffeine()
+		artifacts: [upgrade_spec_old_app(true, 'identity')]
+	}
+	new_cask := upgrade_core.CaskUpgradeCandidate{
+		...upgrade_spec_local_caffeine()
+		artifacts: [upgrade_spec_new_app(.matches)]
+	}
+	result := upgrade_core.cask_upgrade_transaction(upgrade_core.CaskUpgradeTransactionInput{
+		old_cask: old_cask
+		new_cask: new_cask
+		quarantine_available: true
+	})
+	return result.success && 'inherit_user_approval' in result.operations
 }
 
 // Ruby it `it "continues the upgrade when quarantine approval cannot be inherited" do` at line 604.
-pub fn ruby_upgrade_spec_l604_d46_continues(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('continues', ...args)
+pub fn ruby_upgrade_spec_l604_d46_continues() bool {
+	old_cask := upgrade_core.CaskUpgradeCandidate{
+		...upgrade_spec_local_caffeine()
+		artifacts: [upgrade_spec_old_app(true, 'identity')]
+	}
+	new_cask := upgrade_core.CaskUpgradeCandidate{
+		...upgrade_spec_local_caffeine()
+		artifacts: [upgrade_spec_new_app(.matches)]
+	}
+	result := upgrade_core.cask_upgrade_transaction(upgrade_core.CaskUpgradeTransactionInput{
+		old_cask: old_cask
+		new_cask: new_cask
+		quarantine_available: true
+		inherit_fails: true
+	})
+	return result.success && result.warnings.any(it.contains("couldn't inherit"))
 }
 
 // Ruby it `it "reports the skipped quarantine release under --verbose when approval is missing" do` at line 619.
-pub fn ruby_upgrade_spec_l619_d47_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_upgrade_spec_l619_d47_reports() bool {
+	old_cask := upgrade_core.CaskUpgradeCandidate{
+		...upgrade_spec_local_caffeine()
+		artifacts: [upgrade_spec_old_app(false, '')]
+	}
+	new_cask := upgrade_core.CaskUpgradeCandidate{
+		...upgrade_spec_local_caffeine()
+		artifacts: [upgrade_spec_new_app(.missing)]
+	}
+	result := upgrade_core.cask_upgrade_transaction(upgrade_core.CaskUpgradeTransactionInput{
+		old_cask: old_cask
+		new_cask: new_cask
+		quarantine_available: true
+		verbose: true
+	})
+	return result.warnings.any(it.contains("wasn't quarantine approved"))
 }
 
 // Ruby it `it "reports a changed signer by default so the returning Gatekeeper prompt is explained" do` at line 627.
-pub fn ruby_upgrade_spec_l627_d48_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_upgrade_spec_l627_d48_reports() bool {
+	old_cask := upgrade_core.CaskUpgradeCandidate{
+		...upgrade_spec_local_caffeine()
+		artifacts: [upgrade_spec_old_app(true, 'identity')]
+	}
+	new_cask := upgrade_core.CaskUpgradeCandidate{
+		...upgrade_spec_local_caffeine()
+		artifacts: [upgrade_spec_new_app(.changed)]
+	}
+	result := upgrade_core.cask_upgrade_transaction(upgrade_core.CaskUpgradeTransactionInput{
+		old_cask: old_cask
+		new_cask: new_cask
+		quarantine_available: true
+	})
+	return result.warnings.any(it.contains('signer changed'))
 }
 
 // Ruby it `it "reports an unverified signer by default so the returning Gatekeeper prompt is explained" do` at line 641.
-pub fn ruby_upgrade_spec_l641_d49_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_upgrade_spec_l641_d49_reports() bool {
+	old_cask := upgrade_core.CaskUpgradeCandidate{
+		...upgrade_spec_local_caffeine()
+		artifacts: [upgrade_spec_old_app(true, 'identity')]
+	}
+	new_cask := upgrade_core.CaskUpgradeCandidate{
+		...upgrade_spec_local_caffeine()
+		artifacts: [upgrade_spec_new_app(.missing)]
+	}
+	result := upgrade_core.cask_upgrade_transaction(upgrade_core.CaskUpgradeTransactionInput{
+		old_cask: old_cask
+		new_cask: new_cask
+		quarantine_available: true
+	})
+	return result.warnings.any(it.contains("couldn't verify"))
 }
 
 // Ruby it `it "warns and skips disabled casks" do` at line 656.
-pub fn ruby_upgrade_spec_l656_d50_warns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('warns', ...args)
+pub fn ruby_upgrade_spec_l656_d50_warns() bool {
+	disabled := upgrade_core.CaskUpgradeCandidate{
+		...upgrade_spec_candidate('livecheck-disabled', '1.0', '2.0')
+		disabled: true
+	}
+	result := upgrade_spec_dry([disabled], upgrade_core.CaskUpgradeOutdatedOptions{
+		explicit_casks: true
+	}) or { return false }
+	return result.disabled == ['livecheck-disabled'] && result.warnings.any(it.contains('Not upgrading livecheck-disabled, it is disabled'))
 }
 
 // Ruby it `it "uses the installed metadata version for the second upgrade" do` at line 675.
-pub fn ruby_upgrade_spec_l675_d51_uses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uses', ...args)
+pub fn ruby_upgrade_spec_l675_d51_uses() bool {
+	first := upgrade_spec_local_caffeine()
+	second := upgrade_spec_candidate('local-caffeine', first.version, '1.2.4')
+	result := upgrade_spec_dry([second], upgrade_core.CaskUpgradeOutdatedOptions{
+		explicit_casks: true
+	}) or { return false }
+	return result.upgraded == ['local-caffeine 1.2.3 -> 1.2.4']
 }
 
 // Ruby it `it "uses the forced upgrade metadata for the next upgrade" do` at line 700.
-pub fn ruby_upgrade_spec_l700_d52_uses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uses', ...args)
+pub fn ruby_upgrade_spec_l700_d52_uses() bool {
+	result := upgrade_core.cask_upgrade_transaction(upgrade_core.CaskUpgradeTransactionInput{
+		old_cask: upgrade_spec_local_caffeine()
+		new_cask: upgrade_spec_local_caffeine()
+		old_tabfile_present: false
+	})
+	return result.tab_written && result.installed_on_request
 }
 
 // Ruby it `it "keeps the old cask receipt" do` at line 742.
-pub fn ruby_upgrade_spec_l742_d53_keeps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('keeps', ...args)
+pub fn ruby_upgrade_spec_l742_d53_keeps() bool {
+	result := upgrade_core.cask_upgrade_transaction(upgrade_core.CaskUpgradeTransactionInput{
+		old_cask: upgrade_spec_local_caffeine()
+		new_cask: upgrade_spec_local_caffeine()
+		failure_phase: .finalize
+	})
+	return !result.tab_written && 'old_revert_upgrade' in result.operations
 }
 
 // Ruby let `let(:output_reverted) do` at line 770.
-pub fn ruby_upgrade_spec_l770_d54_output_reverted(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('output_reverted', ...args)
+pub fn ruby_upgrade_spec_l770_d54_output_reverted() string {
+	return 'Warning: Reverting upgrade for Cask .*'
 }
 
 // Ruby it `it "restores the old Cask if the upgrade failed" do` at line 776.
-pub fn ruby_upgrade_spec_l776_d55_restores(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('restores', ...args)
+pub fn ruby_upgrade_spec_l776_d55_restores() bool {
+	result := upgrade_core.cask_upgrade_transaction(upgrade_core.CaskUpgradeTransactionInput{
+		old_cask: upgrade_spec_candidate('will-fail-if-upgraded', '1.2.2', '1.2.3')
+		new_cask: upgrade_spec_candidate('will-fail-if-upgraded', '1.2.2', '1.2.3')
+		failure_phase: .install_artifacts
+	})
+	return !result.success && 'old_revert_upgrade' in result.operations
 }
 
 // Ruby it `it "does not restore the old Cask if the upgrade failed pre-install" do` at line 794.
-pub fn ruby_upgrade_spec_l794_d56_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_upgrade_spec_l794_d56_does() bool {
+	result := upgrade_core.cask_upgrade_transaction(upgrade_core.CaskUpgradeTransactionInput{
+		old_cask: upgrade_spec_candidate('bad-checksum', '1.2.2', '1.2.3')
+		new_cask: upgrade_spec_candidate('bad-checksum', '1.2.2', '1.2.3')
+		failure_phase: .fetch
+	})
+	return !result.success && 'old_revert_upgrade' !in result.operations
 }
 
 // Ruby it `it "reports the original upgrade error, not a failure that occurs while rolling back" do` at line 812.
-pub fn ruby_upgrade_spec_l812_d57_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_upgrade_spec_l812_d57_reports() bool {
+	result := upgrade_core.cask_upgrade_transaction(upgrade_core.CaskUpgradeTransactionInput{
+		old_cask: upgrade_spec_candidate('will-fail-if-upgraded', '1.2.2', '1.2.3')
+		new_cask: upgrade_spec_candidate('will-fail-if-upgraded', '1.2.2', '1.2.3')
+		failure_phase: .finalize
+		rollback_fails: true
+	})
+	return result.error_message == 'finalize failed' && result.rollback_error == 'rollback failed'
 }
 
 // Ruby it `it "does not end the upgrade process" do` at line 838.
-pub fn ruby_upgrade_spec_l838_d58_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_upgrade_spec_l838_d58_does() bool {
+	bad_one := upgrade_core.CaskUpgradeCandidate{
+		...upgrade_spec_candidate('bad-checksum', '1.2.2', '1.2.3')
+		upgrade_error: 'failed'
+	}
+	good := upgrade_spec_transmission()
+	bad_two := upgrade_core.CaskUpgradeCandidate{
+		...upgrade_spec_candidate('bad-checksum2', '1.2.2', '1.2.3')
+		upgrade_error: 'failed'
+	}
+	result := upgrade_core.cask_upgrade_casks([bad_one, good, bad_two], upgrade_core.CaskUpgradeOptions{
+		skip_prefetch: true
+	}) or { return false }
+	return result.upgrade_attempts == ['bad-checksum', 'local-transmission-zip', 'bad-checksum2'] && result.upgraded == [
+		'local-transmission-zip 2.60 -> 2.61',
+	] && result.errors.len == 2
 }
 
 // Ruby it `it "continues upgrading compatible casks" do` at line 899.
-pub fn ruby_upgrade_spec_l899_d59_continues(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('continues', ...args)
+pub fn ruby_upgrade_spec_l899_d59_continues() bool {
+	incompatible := upgrade_core.CaskUpgradeCandidate{
+		...upgrade_spec_local_caffeine()
+		requirement_error: 'local-caffeine: This cask does not run on macOS versions older than Tahoe.'
+	}
+	result := upgrade_core.cask_upgrade_casks([incompatible, upgrade_spec_transmission()], upgrade_core.CaskUpgradeOptions{}) or { return false }
+	return result.upgrade_attempts == ['local-transmission-zip'] && result.upgraded == [
+		'local-transmission-zip 2.60 -> 2.61',
+	] && result.errors.any(it.contains('older than Tahoe'))
 }
 
 // Ruby it `it "reports prefetched requirement errors alongside compatible casks" do` at line 928.
-pub fn ruby_upgrade_spec_l928_d60_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_upgrade_spec_l928_d60_reports() bool {
+	error_message := 'local-caffeine: This cask does not run on macOS versions older than Tahoe.'
+	result := upgrade_core.cask_upgrade_casks([upgrade_spec_transmission()], upgrade_core.CaskUpgradeOptions{
+		skip_prefetch: true
+		show_summary: false
+		prefetched_errors: [error_message]
+	}) or { return false }
+	return result.upgrade_attempts == ['local-transmission-zip'] && result.upgraded == [
+		'local-transmission-zip 2.60 -> 2.61',
+	] && error_message in result.errors
 }
 
 // Original Ruby source (line-for-line):

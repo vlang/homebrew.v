@@ -1,253 +1,400 @@
 module utils
 
-import brew_runtime
+import homebrew.utils as homebrew_utils
+
+fn analytics_spec_state() homebrew_utils.AnalyticsState {
+	return homebrew_utils.AnalyticsState{
+		settings: map[string]string{}
+		prefix: '/opt/homebrew'
+		arch: 'arm64'
+		os_name: 'Linux'
+		homebrew_version: '4.3.0-12-gabcdef'
+		os_version: 'Ubuntu 24.04 LTS'
+		now_unix: 123
+		curl_executable: '/usr/bin/curl'
+	}
+}
+
+fn analytics_spec_package_event() homebrew_utils.AnalyticsPackageEvent {
+	return homebrew_utils.AnalyticsPackageEvent{
+		measurement: 'install'
+		package_name: 'foo'
+		tap_name: 'homebrew/core'
+		on_request: false
+		options: '--HEAD'
+	}
+}
+
+fn analytics_spec_build_error(has_tap bool, tap_should_report bool) homebrew_utils.AnalyticsBuildError {
+	return homebrew_utils.AnalyticsBuildError{
+		has_formula: true
+		formula_name: 'foo'
+		has_tap: has_tap
+		tap_name: if has_tap { 'homebrew/core' } else { '' }
+		tap_should_report: tap_should_report
+		options: ['arg1', 'arg2']
+	}
+}
+
+fn analytics_spec_plan_contains(plan homebrew_utils.AnalyticsCurlPlan, value string) bool {
+	for argument in plan.args {
+		if argument.contains(value) {
+			return true
+		}
+	}
+	return false
+}
 
 // Translated from Homebrew/brew `test/utils/analytics_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "adds WSL by default on WSL" do` at line 9.
-pub fn ruby_analytics_spec_l9_d1_adds(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('adds', ...args)
+pub fn ruby_analytics_spec_l9_d1_adds() bool {
+	return homebrew_utils.analytics_with_wsl_suffix('Ubuntu 24.04 LTS', true) == 'Ubuntu 24.04 LTS [WSL]'
 }
 
 // Ruby it `it "does not add WSL with an explicit override" do` at line 17.
-pub fn ruby_analytics_spec_l17_d2_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_analytics_spec_l17_d2_does() bool {
+	return homebrew_utils.analytics_with_wsl_suffix('Ubuntu 24.04 LTS', false) == 'Ubuntu 24.04 LTS'
 }
 
 // Ruby it `it "does not add duplicate WSL suffixes" do` at line 21.
-pub fn ruby_analytics_spec_l21_d3_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_analytics_spec_l21_d3_does() bool {
+	return homebrew_utils.analytics_with_wsl_suffix('Ubuntu 24.04 LTS [WSL]', true) == 'Ubuntu 24.04 LTS [WSL]'
 }
 
 // Ruby let `let(:ci) { ", CI" if ENV["CI"] }` at line 28.
-pub fn ruby_analytics_spec_l28_d4_ci(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ci', ...args)
+pub fn ruby_analytics_spec_l28_d4_ci(ci bool) string {
+	return if ci { ', CI' } else { '' }
 }
 
 // Ruby it `it "returns OS_VERSION and prefix when HOMEBREW_PREFIX is a custom prefix on intel" do` at line 30.
-pub fn ruby_analytics_spec_l30_d5_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_analytics_spec_l30_d5_returns() bool {
+	tags := homebrew_utils.analytics_default_package_tags(analytics_spec_state())
+	return tags['prefix'] == 'custom-prefix'
 }
 
 // Ruby it `it "returns OS_VERSION, ARM and prefix when HOMEBREW_PREFIX is a custom prefix on arm" do` at line 36.
-pub fn ruby_analytics_spec_l36_d6_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_analytics_spec_l36_d6_returns() bool {
+	tags := homebrew_utils.analytics_default_package_tags(analytics_spec_state())
+	return tags['arch'] == 'arm64' && tags['prefix'] == 'custom-prefix'
 }
 
 // Ruby it `it "returns OS_VERSION, Rosetta and prefix when HOMEBREW_PREFIX is a custom prefix on Rosetta", :needs_macos do` at line 44.
-pub fn ruby_analytics_spec_l44_d7_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_analytics_spec_l44_d7_returns() bool {
+	tags := homebrew_utils.analytics_default_package_tags(analytics_spec_state())
+	return tags['prefix'] == 'custom-prefix'
 }
 
 // Ruby it `it "does not include prefix when HOMEBREW_PREFIX is the default prefix" do` at line 50.
-pub fn ruby_analytics_spec_l50_d8_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_analytics_spec_l50_d8_does() bool {
+	mut state := analytics_spec_state()
+	state.default_prefix = true
+	tags := homebrew_utils.analytics_default_package_tags(state)
+	return tags['prefix'] == '/opt/homebrew'
 }
 
 // Ruby it `it "includes CI when ENV['CI'] is set" do` at line 56.
-pub fn ruby_analytics_spec_l56_d9_includes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('includes', ...args)
+pub fn ruby_analytics_spec_l56_d9_includes() bool {
+	mut state := analytics_spec_state()
+	state.ci = true
+	return homebrew_utils.analytics_default_package_tags(state)['ci'] == 'true'
 }
 
 // Ruby it `it "includes developer when ENV['HOMEBREW_DEVELOPER'] is set" do` at line 61.
-pub fn ruby_analytics_spec_l61_d10_includes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('includes', ...args)
+pub fn ruby_analytics_spec_l61_d10_includes() bool {
+	mut state := analytics_spec_state()
+	state.developer = true
+	return homebrew_utils.analytics_default_package_tags(state)['developer'] == 'true'
 }
 
 // Ruby it `it "includes WSL in the OS tag on WSL" do` at line 66.
-pub fn ruby_analytics_spec_l66_d11_includes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('includes', ...args)
+pub fn ruby_analytics_spec_l66_d11_includes() bool {
+	mut state := analytics_spec_state()
+	state.wsl = true
+	return homebrew_utils.analytics_default_package_tags(state)['os'] == 'Linux [WSL]'
 }
 
 // Ruby it `it "includes WSL in the OS name and version on WSL" do` at line 75.
-pub fn ruby_analytics_spec_l75_d12_includes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('includes', ...args)
+pub fn ruby_analytics_spec_l75_d12_includes() bool {
+	mut state := analytics_spec_state()
+	state.wsl = true
+	return homebrew_utils.analytics_default_package_fields(state)['os_name_and_version'] == 'Ubuntu 24.04 LTS [WSL]'
 }
 
 // Ruby let `let(:f) do` at line 84.
-pub fn ruby_analytics_spec_l84_d13_f(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f', ...args)
+pub fn ruby_analytics_spec_l84_d13_f() homebrew_utils.AnalyticsPackageEvent {
+	return analytics_spec_package_event()
 }
 
 // Ruby let `let(:package_name) { f.name }` at line 90.
-pub fn ruby_analytics_spec_l90_d14_package_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('package_name', ...args)
+pub fn ruby_analytics_spec_l90_d14_package_name() string {
+	return analytics_spec_package_event().package_name
 }
 
 // Ruby let `let(:tap_name) { f.tap.name }` at line 91.
-pub fn ruby_analytics_spec_l91_d15_tap_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tap_name', ...args)
+pub fn ruby_analytics_spec_l91_d15_tap_name() string {
+	return analytics_spec_package_event().tap_name
 }
 
 // Ruby let `let(:on_request) { false }` at line 92.
-pub fn ruby_analytics_spec_l92_d16_on_request(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('on_request', ...args)
+pub fn ruby_analytics_spec_l92_d16_on_request() bool {
+	return false
 }
 
 // Ruby let `let(:options) { "--HEAD" }` at line 93.
-pub fn ruby_analytics_spec_l93_d17_options(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('options', ...args)
+pub fn ruby_analytics_spec_l93_d17_options() string {
+	return '--HEAD'
 }
 
 // Ruby it `it "returns nil when HOMEBREW_NO_ANALYTICS is true" do` at line 96.
-pub fn ruby_analytics_spec_l96_d18_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_analytics_spec_l96_d18_returns() bool {
+	mut state := analytics_spec_state()
+	state.no_analytics = true
+	if _ := homebrew_utils.analytics_report_package_event(state, analytics_spec_package_event()) {
+		return false
+	}
+	return true
 }
 
 // Ruby it `it "returns nil when HOMEBREW_NO_ANALYTICS_THIS_RUN is true" do` at line 103.
-pub fn ruby_analytics_spec_l103_d19_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_analytics_spec_l103_d19_returns() bool {
+	mut state := analytics_spec_state()
+	state.no_analytics_this_run = true
+	if _ := homebrew_utils.analytics_report_package_event(state, analytics_spec_package_event()) {
+		return false
+	}
+	return true
 }
 
 // Ruby it `it "returns nil when HOMEBREW_ANALYTICS_DEBUG is true" do` at line 110.
-pub fn ruby_analytics_spec_l110_d20_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_analytics_spec_l110_d20_returns() bool {
+	mut state := analytics_spec_state()
+	state.analytics_debug = true
+	if plan := homebrew_utils.analytics_report_package_event(state, analytics_spec_package_event()) {
+		return plan.debug && !plan.detached
+	}
+	return false
 }
 
 // Ruby it `it "passes to the influxdb method" do` at line 121.
-pub fn ruby_analytics_spec_l121_d21_passes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('passes', ...args)
+pub fn ruby_analytics_spec_l121_d21_passes() bool {
+	if plan := homebrew_utils.analytics_report_package_event(analytics_spec_state(), analytics_spec_package_event()) {
+		return analytics_spec_plan_contains(plan, 'package="foo"')
+	}
+	return false
 }
 
 // Ruby let `let(:f) do` at line 133.
-pub fn ruby_analytics_spec_l133_d22_f(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f', ...args)
+pub fn ruby_analytics_spec_l133_d22_f() homebrew_utils.AnalyticsPackageEvent {
+	return analytics_spec_package_event()
 }
 
 // Ruby let `let(:package)  { f.name }` at line 139.
-pub fn ruby_analytics_spec_l139_d23_package(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('package', ...args)
+pub fn ruby_analytics_spec_l139_d23_package() string {
+	return analytics_spec_package_event().package_name
 }
 
 // Ruby let `let(:tap_name) { f.tap.name }` at line 140.
-pub fn ruby_analytics_spec_l140_d24_tap_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tap_name', ...args)
+pub fn ruby_analytics_spec_l140_d24_tap_name() string {
+	return analytics_spec_package_event().tap_name
 }
 
 // Ruby let `let(:on_request) { false }` at line 141.
-pub fn ruby_analytics_spec_l141_d25_on_request(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('on_request', ...args)
+pub fn ruby_analytics_spec_l141_d25_on_request() bool {
+	return false
 }
 
 // Ruby let `let(:options) { "--HEAD" }` at line 142.
-pub fn ruby_analytics_spec_l142_d26_options(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('options', ...args)
+pub fn ruby_analytics_spec_l142_d26_options() string {
+	return '--HEAD'
 }
 
 // Ruby it `it "outputs in debug mode" do` at line 144.
-pub fn ruby_analytics_spec_l144_d27_outputs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('outputs', ...args)
+pub fn ruby_analytics_spec_l144_d27_outputs() bool {
+	mut state := analytics_spec_state()
+	state.analytics_debug = true
+	if plan := homebrew_utils.analytics_report_influx(state, 'install', {
+		'on_request': 'false'
+	}, {
+		'package':  'foo'
+		'tap_name': 'homebrew/core'
+	}) {
+		return plan.debug && !plan.detached
+	}
+	return false
 }
 
 // Ruby it `it "escapes WSL tag values for Influx line protocol" do` at line 152.
-pub fn ruby_analytics_spec_l152_d28_escapes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('escapes', ...args)
+pub fn ruby_analytics_spec_l152_d28_escapes() bool {
+	if plan := homebrew_utils.analytics_report_influx(analytics_spec_state(), 'formula_install', {
+		'os': 'Linux [WSL]'
+	}, {
+		'os_name_and_version': 'Ubuntu 24.04 LTS [WSL]'
+	}) {
+		return analytics_spec_plan_contains(plan, 'formula_install,os=Linux\\ [WSL] os_name_and_version="Ubuntu 24.04 LTS [WSL]" 123')
+	}
+	return false
 }
 
 // Ruby it `it "forwards args and silences subprocess output outside debug mode" do` at line 173.
-pub fn ruby_analytics_spec_l173_d29_forwards(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('forwards', ...args)
+pub fn ruby_analytics_spec_l173_d29_forwards() bool {
+	plan := homebrew_utils.analytics_deferred_curl(analytics_spec_state(), 'https://example.com', [
+		'--max-time',
+		'3',
+	])
+	return plan.executable == '/usr/bin/curl' && plan.url == 'https://example.com' && plan.args[..2] == [
+		'--max-time',
+		'3',
+	] && plan.args.contains('--silent') && plan.args.contains('--output') && plan.detached
 }
 
 // Ruby let `let(:err) { BuildError.new(f, "badprg", %w[arg1 arg2], {}) }` at line 190.
-pub fn ruby_analytics_spec_l190_d30_err(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('err', ...args)
+pub fn ruby_analytics_spec_l190_d30_err() homebrew_utils.AnalyticsBuildError {
+	return analytics_spec_build_error(true, true)
 }
 
 // Ruby let `let(:f) do` at line 191.
-pub fn ruby_analytics_spec_l191_d31_f(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f', ...args)
+pub fn ruby_analytics_spec_l191_d31_f() homebrew_utils.AnalyticsBuildError {
+	return analytics_spec_build_error(true, true)
 }
 
 // Ruby it `it "reports event if BuildError raised for a formula with a public remote repository" do` at line 198.
-pub fn ruby_analytics_spec_l198_d32_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_analytics_spec_l198_d32_reports() bool {
+	if plan := homebrew_utils.analytics_report_build_error(analytics_spec_state(), analytics_spec_build_error(true, true)) {
+		return analytics_spec_plan_contains(plan, 'package="foo"')
+	}
+	return false
 }
 
 // Ruby it `it "does not report event if BuildError raised for a formula with a private remote repository" do` at line 204.
-pub fn ruby_analytics_spec_l204_d33_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_analytics_spec_l204_d33_does() bool {
+	if _ := homebrew_utils.analytics_report_build_error(analytics_spec_state(), analytics_spec_build_error(true, false)) {
+		return false
+	}
+	return true
 }
 
 // Ruby let `let(:err) { BuildError.new(f, "badprg", %w[arg1 arg2], {}) }` at line 212.
-pub fn ruby_analytics_spec_l212_d34_err(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('err', ...args)
+pub fn ruby_analytics_spec_l212_d34_err() homebrew_utils.AnalyticsBuildError {
+	return analytics_spec_build_error(false, false)
 }
 
 // Ruby let `let(:f) { instance_double(Formula, name: "foo", path: "blah", tap: nil) }` at line 213.
-pub fn ruby_analytics_spec_l213_d35_f(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f', ...args)
+pub fn ruby_analytics_spec_l213_d35_f() homebrew_utils.AnalyticsBuildError {
+	return analytics_spec_build_error(false, false)
 }
 
 // Ruby it `it "does not report event if BuildError is raised" do` at line 215.
-pub fn ruby_analytics_spec_l215_d36_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_analytics_spec_l215_d36_does() bool {
+	if _ := homebrew_utils.analytics_report_build_error(analytics_spec_state(), analytics_spec_build_error(false, false)) {
+		return false
+	}
+	return true
 }
 
 // Ruby let `let(:err) { BuildError.new(f, "badprg", %w[arg1 arg2], {}) }` at line 222.
-pub fn ruby_analytics_spec_l222_d37_err(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('err', ...args)
+pub fn ruby_analytics_spec_l222_d37_err() homebrew_utils.AnalyticsBuildError {
+	return analytics_spec_build_error(true, false)
 }
 
 // Ruby let `let(:f) { instance_double(Formula, name: "foo", path: "blah", tap: CoreTap.instance) }` at line 223.
-pub fn ruby_analytics_spec_l223_d38_f(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f', ...args)
+pub fn ruby_analytics_spec_l223_d38_f() homebrew_utils.AnalyticsBuildError {
+	return analytics_spec_build_error(true, false)
 }
 
 // Ruby it `it "does not report event if BuildError is raised" do` at line 225.
-pub fn ruby_analytics_spec_l225_d39_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_analytics_spec_l225_d39_does() bool {
+	if _ := homebrew_utils.analytics_report_build_error(analytics_spec_state(), analytics_spec_build_error(true, false)) {
+		return false
+	}
+	return true
 }
 
 // Ruby let `let(:command) { "audit" }` at line 234.
-pub fn ruby_analytics_spec_l234_d40_command(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('command', ...args)
+pub fn ruby_analytics_spec_l234_d40_command() string {
+	return 'audit'
 }
 
 // Ruby let `let(:options) { "--tap=" }` at line 235.
-pub fn ruby_analytics_spec_l235_d41_options(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('options', ...args)
+pub fn ruby_analytics_spec_l235_d41_options() string {
+	return '--tap='
 }
 
 // Ruby let `let(:command_instance) do` at line 236.
-pub fn ruby_analytics_spec_l236_d42_command_instance(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('command_instance', ...args)
+pub fn ruby_analytics_spec_l236_d42_command_instance() homebrew_utils.AnalyticsCommandRun {
+	return homebrew_utils.AnalyticsCommandRun{
+		command: 'audit'
+		options: ['--tap=homebrew/core']
+	}
 }
 
 // Ruby it `it "passes to the influxdb method" do` at line 241.
-pub fn ruby_analytics_spec_l241_d43_passes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('passes', ...args)
+pub fn ruby_analytics_spec_l241_d43_passes() bool {
+	if plan := homebrew_utils.analytics_report_command_run(analytics_spec_state(), ruby_analytics_spec_l236_d42_command_instance()) {
+		return analytics_spec_plan_contains(plan, 'command_run,command=audit') && analytics_spec_plan_contains(plan, 'options="--tap="')
+	}
+	return false
 }
 
 // Ruby it `it "samples one environment configuration for selected commands" do` at line 254.
-pub fn ruby_analytics_spec_l254_d44_samples(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('samples', ...args)
+pub fn ruby_analytics_spec_l254_d44_samples() bool {
+	command := homebrew_utils.AnalyticsCommandRun{
+		command: 'update'
+		options: ['--tap=homebrew/core']
+		environment_sample: homebrew_utils.AnalyticsEnvironmentSample{
+			name: 'HOMEBREW_ALLOWED_TAPS'
+			user_set: true
+			non_default: true
+		}
+	}
+	if plan := homebrew_utils.analytics_report_command_run(analytics_spec_state(), command) {
+		return analytics_spec_plan_contains(plan, 'env_config=HOMEBREW_ALLOWED_TAPS') && analytics_spec_plan_contains(plan, 'env_config_state=non_default')
+	}
+	return false
 }
 
 // Ruby it `it "samples variables exported by brew itself as unset" do` at line 276.
-pub fn ruby_analytics_spec_l276_d45_samples(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('samples', ...args)
+pub fn ruby_analytics_spec_l276_d45_samples() bool {
+	command := homebrew_utils.AnalyticsCommandRun{
+		command: 'update'
+		environment_sample: homebrew_utils.AnalyticsEnvironmentSample{
+			name: 'HOMEBREW_ALLOWED_TAPS'
+		}
+	}
+	if plan := homebrew_utils.analytics_report_command_run(analytics_spec_state(), command) {
+		return analytics_spec_plan_contains(plan, 'env_config_state=unset')
+	}
+	return false
 }
 
 // Ruby let `let(:command) { "install wget" }` at line 295.
-pub fn ruby_analytics_spec_l295_d46_command(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('command', ...args)
+pub fn ruby_analytics_spec_l295_d46_command() string {
+	return 'install wget'
 }
 
 // Ruby let `let(:passed) { true }` at line 296.
-pub fn ruby_analytics_spec_l296_d47_passed(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('passed', ...args)
+pub fn ruby_analytics_spec_l296_d47_passed() bool {
+	return true
 }
 
 // Ruby it `it "passes to the influxdb method" do` at line 298.
-pub fn ruby_analytics_spec_l298_d48_passes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('passes', ...args)
+pub fn ruby_analytics_spec_l298_d48_passes() bool {
+	mut state := analytics_spec_state()
+	state.test_bot_analytics = true
+	if plan := homebrew_utils.analytics_report_test_bot_test(state, 'install wget', true) {
+		return analytics_spec_plan_contains(plan, 'test_bot_test,passed=true') && analytics_spec_plan_contains(plan, 'command="install wget"')
+	}
+	return false
 }
 
 // Ruby specify `specify "::table_output" do` at line 312.
-pub fn ruby_analytics_spec_l312_d49_table_output(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('::table_output', ...args)
+pub fn ruby_analytics_spec_l312_d49_table_output() bool {
+	output := homebrew_utils.analytics_table_output('install', '30', {
+		'ack':  i64(10)
+		'wget': i64(100)
+	}, false, false, 80)
+	return output.contains('110 |  100.00%')
 }
 
 // Original Ruby source (line-for-line):

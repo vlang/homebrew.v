@@ -1,83 +1,118 @@
 module rubocops
 
 import brew_runtime
+import homebrew.rubocops as desc_core
 
 // Translated from Homebrew/brew `test/rubocops/desc_spec.rb`.
-// The original source is retained below until every stub has a typed V body.
+// The original source is retained below for line-level provenance.
 
 // Ruby subject `subject(:cop) { described_class.new }` at line 7.
 pub fn ruby_desc_spec_l7_d1_cop(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cop', ...args)
+	return brew_runtime.object_value('RuboCop::Cop::FormulaAudit::Desc', 'FormulaAudit/Desc')
 }
 
 // Ruby it `it "reports an offense when there is no `desc`" do` at line 10.
-pub fn ruby_desc_spec_l10_d2_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_desc_spec_l10_d2_reports() bool {
+	source := "class Foo < Formula\n  url 'https://brew.sh/foo-1.0.tgz'\nend"
+	problems := desc_core.audit_formula_desc(source, 'foo')
+	return problems.map(it.kind) == ['missing'] && source[problems[0].begin_pos..problems[0].end_pos] == 'class Foo < Formula'
 }
 
 // Ruby it `it "reports an offense when `desc` is an empty string" do` at line 19.
-pub fn ruby_desc_spec_l19_d3_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_desc_spec_l19_d3_reports() bool {
+	source := "class Foo < Formula\n  url 'https://brew.sh/foo-1.0.tgz'\n  desc ''\nend"
+	problems := desc_core.audit_formula_desc(source, 'foo')
+	return problems.map(it.kind) == ['empty'] && source[problems[0].begin_pos..problems[0].end_pos] == "desc ''"
 }
 
 // Ruby it `it "reports an offense when `desc` is too long" do` at line 29.
-pub fn ruby_desc_spec_l29_d4_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_desc_spec_l29_d4_reports() bool {
+	description := 'Bar' + 'bar'.repeat(29)
+	source := "class Foo < Formula\n  desc '${description}'\nend"
+	problems := desc_core.audit_formula_desc(source, 'foo')
+	return problems.map(it.kind) == ['too_long'] && problems[0].description.runes().len == 90 && problems[0].message.ends_with('The current length is 90.')
 }
 
 // Ruby it `it "reports an offense when `desc` is a multiline string" do` at line 39.
-pub fn ruby_desc_spec_l39_d5_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_desc_spec_l39_d5_reports() bool {
+	first := 'Bar' + 'bar'.repeat(9)
+	second := 'foo'.repeat(21)
+	source := "class Foo < Formula\n  desc '${first}'\\\n    '${second}'\nend"
+	problems := desc_core.audit_formula_desc(source, 'foo')
+	return problems.map(it.kind) == ['too_long'] && problems[0].description.runes().len == 93 && problems[0].message.ends_with('The current length is 93.')
 }
 
 // Ruby it `it "reports an offense when the description starts with a leading space" do` at line 52.
-pub fn ruby_desc_spec_l52_d6_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_desc_spec_l52_d6_reports() bool {
+	source := "class Foo < Formula\n  desc ' Description with a leading space'\nend"
+	problems := desc_core.audit_formula_desc(source, 'foo')
+	return problems.map(it.kind) == ['leading_space'] && source[problems[0].begin_pos..problems[0].end_pos] == ' '
 }
 
 // Ruby it `it "reports an offense when the description ends with a trailing space" do` at line 62.
-pub fn ruby_desc_spec_l62_d7_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_desc_spec_l62_d7_reports() bool {
+	source := "class Foo < Formula\n  desc 'Description with a trailing space '\nend"
+	problems := desc_core.audit_formula_desc(source, 'foo')
+	return problems.map(it.kind) == ['trailing_space'] && source[problems[0].begin_pos..problems[0].end_pos] == ' '
 }
 
 // Ruby it `it "reports an offense when \"command-line\" is incorrectly spelled in the description" do` at line 72.
-pub fn ruby_desc_spec_l72_d8_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_desc_spec_l72_d8_reports() bool {
+	source := "class Foo < Formula\n  desc 'command line'\nend"
+	problems := desc_core.audit_formula_desc(source, 'foo')
+	return problems.map(it.kind) == ['command_line', 'lowercase'] && problems[0].message == 'Description should use "command-line" instead of "command line".' && source[problems[0].begin_pos..problems[0].end_pos] == 'command line'
 }
 
 // Ruby it `it "reports an offense when an article is used in the description" do` at line 83.
-pub fn ruby_desc_spec_l83_d9_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_desc_spec_l83_d9_reports() bool {
+	a_source := "class Foo < Formula\n  desc 'An aardvark'\nend"
+	the_source := "class Foo < Formula\n  desc 'The aardvark'\nend"
+	a_problems := desc_core.audit_formula_desc(a_source, 'foo')
+	the_problems := desc_core.audit_formula_desc(the_source, 'foo')
+	return a_problems.map(it.kind) == ['article'] && a_source[a_problems[0].begin_pos..a_problems[0].end_pos] == 'An' && the_problems.map(it.kind) == [
+		'article',
+	] && the_source[the_problems[0].begin_pos..the_problems[0].end_pos] == 'The'
 }
 
 // Ruby it `it "reports an offense when the description starts with a lowercase letter" do` at line 101.
-pub fn ruby_desc_spec_l101_d10_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_desc_spec_l101_d10_reports() bool {
+	source := "class Foo < Formula\n  desc 'bar'\nend"
+	problems := desc_core.audit_formula_desc(source, 'foo')
+	return problems.map(it.kind) == ['lowercase'] && source[problems[0].begin_pos..problems[0].end_pos] == 'b'
 }
 
 // Ruby it `it "reports an offense when the description starts with the formula name" do` at line 111.
-pub fn ruby_desc_spec_l111_d11_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_desc_spec_l111_d11_reports() bool {
+	source := "class Foo < Formula\n  desc 'Foo is a foobar'\nend"
+	problems := desc_core.audit_formula_desc(source, 'foo')
+	return problems.map(it.kind) == ['name'] && source[problems[0].begin_pos..problems[0].end_pos] == 'Foo'
 }
 
 // Ruby it `it "report and corrects an offense when the description ends with a full stop" do` at line 121.
-pub fn ruby_desc_spec_l121_d12_report(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('report', ...args)
+pub fn ruby_desc_spec_l121_d12_report() bool {
+	source := "class Foo < Formula\n  desc 'Description with a full stop at the end.'\nend"
+	problems := desc_core.audit_formula_desc(source, 'foo')
+	return problems.map(it.kind) == ['full_stop'] && source[problems[0].begin_pos..problems[0].end_pos] == '.' && desc_core.correct_formula_desc(source, 'foo') == "class Foo < Formula\n  desc 'Description with a full stop at the end'\nend"
 }
 
 // Ruby it `it "reports and corrects an offense when the description contains Unicode So characters" do` at line 138.
-pub fn ruby_desc_spec_l138_d13_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_desc_spec_l138_d13_reports() bool {
+	source := "class Foo < Formula\n  desc 'Description with a 🍺 symbol'\nend"
+	problems := desc_core.audit_formula_desc(source, 'foo')
+	return problems.map(it.kind) == ['symbol'] && source[problems[0].begin_pos..problems[0].end_pos] == '🍺' && desc_core.correct_formula_desc(source, 'foo') == "class Foo < Formula\n  desc 'Description with a symbol'\nend"
 }
 
 // Ruby it `it "does not report an offense when the description ends with 'etc.'" do` at line 155.
-pub fn ruby_desc_spec_l155_d14_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_desc_spec_l155_d14_does() bool {
+	source := "class Foo < Formula\n  desc 'Description of a thing and some more things and some more etc.'\nend"
+	return desc_core.audit_formula_desc(source, 'foo').len == 0
 }
 
 // Ruby it `it "reports and corrects all rules for description text" do` at line 164.
-pub fn ruby_desc_spec_l164_d15_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_desc_spec_l164_d15_reports() bool {
+	source := "class Foo < Formula\n  desc ' an bar: commandline foo '\nend"
+	problems := desc_core.audit_formula_desc(source, 'foo')
+	return problems.map(it.kind) == ['leading_space', 'trailing_space', 'command_line'] && desc_core.correct_formula_desc(source, 'foo') == "class Foo < Formula\n  desc 'Bar: command-line'\nend"
 }
 
 // Original Ruby source (line-for-line):

@@ -1,13 +1,28 @@
 module api
 
-import brew_runtime
-
 // Translated from Homebrew/brew `extend/os/mac/api/internal.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub struct MacBottleTag {
+pub:
+	system string
+	arch   string
+}
+
+pub fn mac_api_fallback_tag(prerelease bool, newest_supported string, arch string,
+	effective_tag MacBottleTag) MacBottleTag {
+	if prerelease {
+		return MacBottleTag{
+			system: newest_supported
+			arch: arch
+		}
+	}
+	return effective_tag
+}
 
 // Ruby method `fallback_tag` at line 16.
-pub fn ruby_internal_l16_d1_fallback_tag(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fallback_tag', ...args)
+pub fn ruby_internal_l16_d1_fallback_tag(prerelease bool, newest_supported string, arch string,
+	effective_tag MacBottleTag) MacBottleTag {
+	return mac_api_fallback_tag(prerelease, newest_supported, arch, effective_tag)
 }
 
 // Original Ruby source (line-for-line):

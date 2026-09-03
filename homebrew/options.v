@@ -1,58 +1,76 @@
 module homebrew
 
-import brew_runtime
+import homebrew.options as option_types
 
 // Translated from Homebrew/brew `options.rb`.
-// The original source is retained below until every stub has a typed V body.
+// The original source is retained below.
+
+// V cannot make the child options module depend on its parent without creating
+// a cycle. These aliases expose the canonical translated types from homebrew.
+pub type FormulaOption = option_types.FormulaOption
+pub type Options = option_types.Options
+pub type DeprecatedOption = option_types.DeprecatedOption
+
+pub fn new_option(name string, description ...string) FormulaOption {
+	return option_types.new_option(name, ...description)
+}
+
+pub fn new_options(flags ...string) Options {
+	return option_types.create(flags)
+}
+
+pub fn new_deprecated_option(old string, current string) DeprecatedOption {
+	return option_types.new_deprecated_option(old, current)
+}
 
 // Ruby attr_reader `attr_reader :name` at line 7.
-pub fn ruby_options_l7_d1_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('name', ...args)
+pub fn ruby_options_l7_d1_name(option FormulaOption) string {
+	return option.name
 }
 
 // Ruby attr_reader `attr_reader :description, :flag` at line 10.
-pub fn ruby_options_l10_d2_description(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('description', ...args)
+pub fn ruby_options_l10_d2_description(option FormulaOption) string {
+	return option.description
 }
 
 // Ruby attr_reader `attr_reader :description, :flag` at line 10.
-pub fn ruby_options_l10_d3_flag(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('flag', ...args)
+pub fn ruby_options_l10_d3_flag(option FormulaOption) string {
+	return option.flag
 }
 
 // Ruby method `initialize(name, description = "")` at line 13.
-pub fn ruby_options_l13_d4_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+pub fn ruby_options_l13_d4_initialize(name string, description ...string) FormulaOption {
+	return new_option(name, ...description)
 }
 
 // Ruby method `to_s = flag` at line 20.
-pub fn ruby_options_l20_d5_to_s(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_s', ...args)
+pub fn ruby_options_l20_d5_to_s(option FormulaOption) string {
+	return option.str()
 }
 
 // Ruby method `<=>(other)` at line 23.
-pub fn ruby_options_l23_d6_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('<=>', ...args)
+pub fn ruby_options_l23_d6_anonymous(option FormulaOption, other FormulaOption) int {
+	return option.compare(other)
 }
 
 // Ruby method `==(other)` at line 31.
-pub fn ruby_options_l31_d7_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('==', ...args)
+pub fn ruby_options_l31_d7_anonymous(option FormulaOption, other FormulaOption) bool {
+	return option.equal(other)
 }
 
 // Ruby alias `alias eql? ==` at line 39.
-pub fn ruby_options_l39_d8_eql(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('eql?', ...args)
+pub fn ruby_options_l39_d8_eql(option FormulaOption, other FormulaOption) bool {
+	return option.equal(other)
 }
 
 // Ruby method `hash` at line 42.
-pub fn ruby_options_l42_d9_hash(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('hash', ...args)
+pub fn ruby_options_l42_d9_hash(option FormulaOption) u64 {
+	return option.hash_code()
 }
 
 // Ruby method `inspect` at line 47.
-pub fn ruby_options_l47_d10_inspect(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('inspect', ...args)
+pub fn ruby_options_l47_d10_inspect(option FormulaOption) string {
+	return option.inspect()
 }
 
 // Original Ruby source (line-for-line):

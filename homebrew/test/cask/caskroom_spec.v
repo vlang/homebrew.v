@@ -1,163 +1,542 @@
 module cask
 
 import brew_runtime
+import homebrew.cask as cask_core
+import os
+import time
 
 // Translated from Homebrew/brew `test/cask/caskroom_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+fn caskroom_spec_bool(value bool) brew_runtime.Value {
+	return brew_runtime.bool_value(value)
+}
+
+fn caskroom_spec_temp(label string) string {
+	return os.join_path(os.temp_dir(), 'brew-v-caskroom-${label}-${os.getpid()}-${time.now().unix_nano()}')
+}
+
+fn caskroom_spec_metadata(root string, token string, version string, extension string,
+	contents string) !string {
+	path := os.join_path(root, token, '.metadata', version, '20250101000000.000', 'Casks', '${token}.${extension}')
+	os.mkdir_all(os.dir(path))!
+	os.write_file(path, contents)!
+	return path
+}
+
+fn caskroom_spec_artifact(kind string, value string) cask_core.CaskLoaderArtifact {
+	return cask_core.CaskLoaderArtifact{ kind: kind, values: [value] }
+}
+
+fn caskroom_spec_empty_json(contents string) bool {
+	return contents.replace(' ', '').replace('\n', '').replace('\r', '').replace('\t', '') == '{}'
+}
+
+fn caskroom_spec_migration_context(token string, caskfile string,
+	artifacts []cask_core.CaskLoaderArtifact, receipt_artifacts []cask_core.CaskLoaderArtifact,
+	force_failure bool) cask_core.CaskroomMigrationContext {
+	mut receipts := map[string]cask_core.CaskLoaderReceipt{}
+	if receipt_artifacts.len > 0 {
+		receipts[token] = cask_core.CaskLoaderReceipt{
+			version: '1.0'
+			uninstall_artifacts: receipt_artifacts
+			has_uninstall_artifacts: true
+		}
+	}
+	return cask_core.CaskroomMigrationContext{
+		load_context: cask_core.CaskLoaderLoadContext{
+			lookup: cask_core.CaskLoaderLookupContext{
+				installed_caskfiles: {
+					token: caskfile
+				}
+				installed_receipts: receipts
+				load_casks: {
+					caskfile: cask_core.CaskLoaderCask{
+						token: token
+						version: '1.0'
+						artifacts: artifacts
+					}
+				}
+			}
+		}
+		force_source_load_failure: force_failure
+	}
+}
+
+fn caskroom_spec_migrate(label string, extension string, contents string,
+	artifacts []cask_core.CaskLoaderArtifact, receipt []cask_core.CaskLoaderArtifact,
+	force_failure bool) bool {
+	root := caskroom_spec_temp(label)
+	os.mkdir_all(root) or { return false }
+	defer { os.rmdir_all(root) or {} }
+	caskfile := caskroom_spec_metadata(root, label, '1.0', extension, contents) or { return false }
+	context := caskroom_spec_migration_context(label, caskfile, artifacts, receipt, force_failure)
+	result := cask_core.caskroom_migrate_caskfile_to_json(caskfile, context) or { return false }
+	return result.migrated || result.skipped
+}
+
+fn caskroom_spec_api_recovery(token string, source_line string) brew_runtime.Value {
+	root := caskroom_spec_temp(token)
+	os.mkdir_all(root) or { return caskroom_spec_bool(false) }
+	defer { os.rmdir_all(root) or {} }
+	caskfile := caskroom_spec_metadata(root, token, '1.0', 'rb', 'cask "${token}" do\n  ${source_line}\nend\n') or { return caskroom_spec_bool(false) }
+	context := cask_core.CaskroomMigrationContext{
+		force_source_load_failure: true
+		load_context: cask_core.CaskLoaderLoadContext{
+			lookup: cask_core.CaskLoaderLookupContext{
+				installed_caskfiles: {
+					token: caskfile
+				}
+				api_membership: {
+					token: cask_core.CaskLoaderAvailability.present
+				}
+				api_artifacts: {
+					token: [caskroom_spec_artifact('app', 'Current.app')]
+				}
+			}
+		}
+	}
+	result := cask_core.caskroom_migrate_caskfile_to_json(caskfile, context) or {
+		return caskroom_spec_bool(false)
+	}
+	contents := os.read_file(result.json_path) or { return caskroom_spec_bool(false) }
+	return caskroom_spec_bool(result.migrated && contents.contains('Current.app'))
+}
+
+fn caskroom_spec_json_api_recovery(token string, original string) brew_runtime.Value {
+	root := caskroom_spec_temp(token)
+	os.mkdir_all(root) or { return caskroom_spec_bool(false) }
+	defer { os.rmdir_all(root) or {} }
+	caskfile := caskroom_spec_metadata(root, token, '1.0', 'json', original) or {
+		return caskroom_spec_bool(false)
+	}
+	context := cask_core.CaskroomMigrationContext{
+		force_source_load_failure: true
+		load_context: cask_core.CaskLoaderLoadContext{
+			lookup: cask_core.CaskLoaderLookupContext{
+				api_membership: {
+					token: cask_core.CaskLoaderAvailability.present
+				}
+				api_artifacts: {
+					token: [caskroom_spec_artifact('app', 'Current.app')]
+				}
+			}
+		}
+	}
+	result := cask_core.caskroom_migrate_caskfile_to_json(caskfile, context) or {
+		return caskroom_spec_bool(false)
+	}
+	contents := os.read_file(result.json_path) or { return caskroom_spec_bool(false) }
+	return caskroom_spec_bool(result.migrated && contents.contains('Current.app'))
+}
 
 // Ruby it `it "changes the group when sudo is unnecessary and the group is wrong" do` at line 10.
 pub fn ruby_caskroom_spec_l10_d1_changes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('changes', ...args)
+	result := cask_core.caskroom_ensure_plan('/tmp/Caskroom', true, false, false, false, false) or { return caskroom_spec_bool(false) }
+	return caskroom_spec_bool(result.created && !result.sudo && result.changed_group)
 }
 
 // Ruby it `it "skips changing the group when it is already correct" do` at line 21.
 pub fn ruby_caskroom_spec_l21_d2_skips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skips', ...args)
+	result := cask_core.caskroom_ensure_plan('/tmp/Caskroom', true, true, false, false, false) or { return caskroom_spec_bool(false) }
+	return caskroom_spec_bool(result.created && !result.changed_group)
 }
 
 // Ruby it `it "changes the group with sudo when the parent is not writable and the group is wrong" do` at line 32.
 pub fn ruby_caskroom_spec_l32_d3_changes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('changes', ...args)
+	result := cask_core.caskroom_ensure_plan('/tmp/sub/Caskroom', false, false, false, false, false) or { return caskroom_spec_bool(false) }
+	return caskroom_spec_bool(result.sudo && result.changed_group)
 }
 
 // Ruby it `it "skips changing the group when it is already correct and the parent is not writable" do` at line 47.
 pub fn ruby_caskroom_spec_l47_d4_skips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skips', ...args)
+	result := cask_core.caskroom_ensure_plan('/tmp/sub/Caskroom', false, true, false, false, false) or { return caskroom_spec_bool(false) }
+	return caskroom_spec_bool(result.sudo && !result.changed_group)
 }
 
 // Ruby it `it "skips sudo on Linux when the parent is user-writable", :needs_linux do` at line 62.
 pub fn ruby_caskroom_spec_l62_d5_skips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skips', ...args)
+	result := cask_core.caskroom_ensure_plan('/tmp/Caskroom', true, true, false, false, false) or { return caskroom_spec_bool(false) }
+	return caskroom_spec_bool(!result.sudo)
 }
 
 // Ruby it `it "checks the admin group on macOS", :needs_macos do` at line 78.
 pub fn ruby_caskroom_spec_l78_d6_checks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('checks', ...args)
+	$if macos {
+		return caskroom_spec_bool(cask_core.caskroom_expected_group() == 'admin')
+	}
+	return caskroom_spec_bool(true)
 }
 
 // Ruby it `it "checks the current user's primary group on Linux", :needs_linux do` at line 86.
 pub fn ruby_caskroom_spec_l86_d7_checks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('checks', ...args)
+	$if linux {
+		return caskroom_spec_bool(cask_core.caskroom_expected_group() != '')
+	}
+	return caskroom_spec_bool(true)
 }
 
 // Ruby it `it "returns false when the expected group is unavailable" do` at line 96.
 pub fn ruby_caskroom_spec_l96_d8_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	return caskroom_spec_bool(!cask_core.caskroom_group_correct('/tmp/Caskroom', 'brew-v-definitely-missing-group'))
 }
 
 // Ruby it `it "checks cask metadata without loading a Cask object" do` at line 105.
 pub fn ruby_caskroom_spec_l105_d9_checks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('checks', ...args)
+	root := caskroom_spec_temp('installed')
+	os.mkdir_all(root) or { return caskroom_spec_bool(false) }
+	defer { os.rmdir_all(root) or {} }
+	before := cask_core.caskroom_cask_installed(root, 'foo')
+	caskroom_spec_metadata(root, 'foo', '1.0', 'rb', 'cask "foo"\n') or {
+		return caskroom_spec_bool(false)
+	}
+	version := cask_core.caskroom_installed_version(root, 'foo', []string{}) or { '' }
+	return caskroom_spec_bool(!before && cask_core.caskroom_cask_installed(root, 'foo') && cask_core.caskroom_cask_installed(root, 'homebrew/cask/foo') && version == '1.0')
 }
 
 // Ruby it `it "checks old-token metadata" do` at line 120.
 pub fn ruby_caskroom_spec_l120_d10_checks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('checks', ...args)
+	root := caskroom_spec_temp('old-token')
+	os.mkdir_all(root) or { return caskroom_spec_bool(false) }
+	defer { os.rmdir_all(root) or {} }
+	caskfile := caskroom_spec_metadata(root, 'old-foo', '1.0', 'rb', 'cask "old-foo"\n') or {
+		return caskroom_spec_bool(false)
+	}
+	found := cask_core.caskroom_installed_caskfile(root, 'foo', ['old-foo']) or { '' }
+	return caskroom_spec_bool(found == caskfile)
 }
 
 // Ruby method `setup_cask_metadata(dir, token, tap: nil, version: "1.0")` at line 135.
 pub fn ruby_caskroom_spec_l135_d11_setup_cask_metadata(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('setup_cask_metadata', ...args)
+	if args.len < 2 {
+		return brew_runtime.object_value('ArgumentError', 'dir and token are required')
+	}
+	version := if args.len > 2 { args[2].as_string() } else { '1.0' }
+	path := caskroom_spec_metadata(args[0].as_string(), args[1].as_string(), version, 'rb', 'cask "${args[1].as_string()}" do\n  version "${version}"\nend\n') or {
+		return brew_runtime.object_value('Error', err.msg())
+	}
+	return brew_runtime.string_value(path)
 }
 
 // Ruby it `it "includes casks installed from untrusted taps without loading cask files" do` at line 153.
 pub fn ruby_caskroom_spec_l153_d12_includes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('includes', ...args)
+	root := caskroom_spec_temp('untrusted')
+	os.mkdir_all(root) or { return caskroom_spec_bool(false) }
+	defer { os.rmdir_all(root) or {} }
+	caskroom_spec_metadata(root, 'untrusted-cask', '1.0', 'rb', 'cask "untrusted-cask"') or {
+		return caskroom_spec_bool(false)
+	}
+	casks := cask_core.caskroom_casks(root, cask_core.CaskLoaderLoadContext{
+		lookup: cask_core.CaskLoaderLookupContext{
+			load_casks: {
+				'untrusted-cask': cask_core.CaskLoaderCask{
+					token: 'untrusted-cask'
+					version: '1.0'
+				}
+			}
+		}
+	})
+	return caskroom_spec_bool(casks.len == 1 && casks[0].token == 'untrusted-cask' && casks[0].version == '1.0')
 }
 
 // Ruby it `it "does not list a cask twice when it is also installed under an old token", :trust_store do` at line 180.
 pub fn ruby_caskroom_spec_l180_d13_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	root := caskroom_spec_temp('rename-dedup')
+	os.mkdir_all(root) or { return caskroom_spec_bool(false) }
+	defer { os.rmdir_all(root) or {} }
+	for token in ['old-cask', 'new-cask'] {
+		caskroom_spec_metadata(root, token, '1.0', 'rb', 'cask "${token}"') or {
+			return caskroom_spec_bool(false)
+		}
+	}
+	cask := cask_core.CaskLoaderCask{ token: 'new-cask', version: '2.0' }
+	casks := cask_core.caskroom_casks(root, cask_core.CaskLoaderLoadContext{
+		lookup: cask_core.CaskLoaderLookupContext{
+			load_casks: {
+				'old-cask': cask
+				'new-cask': cask
+			}
+		}
+	})
+	return caskroom_spec_bool(casks.len == 1 && casks[0].token == 'new-cask')
 }
 
 // Ruby it `it "does not error for ambiguous installed casks when an ambiguous tap is untrusted" do` at line 205.
 pub fn ruby_caskroom_spec_l205_d14_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	root := caskroom_spec_temp('ambiguous')
+	os.mkdir_all(root) or { return caskroom_spec_bool(false) }
+	defer { os.rmdir_all(root) or {} }
+	caskroom_spec_metadata(root, 'ambiguous-untrusted-cask', '1.0', 'rb', '{}') or {
+		return caskroom_spec_bool(false)
+	}
+	casks := cask_core.caskroom_casks(root, cask_core.CaskLoaderLoadContext{
+		lookup: cask_core.CaskLoaderLookupContext{
+			load_casks: {
+				'ambiguous-untrusted-cask': cask_core.CaskLoaderCask{
+					token: 'ambiguous-untrusted-cask'
+					version: '1.0'
+				}
+			}
+		}
+	})
+	return caskroom_spec_bool(casks.len == 1 && casks[0].version == '1.0')
 }
 
 // Ruby let `let(:caskroom) { mktmpdir/"Caskroom" }` at line 235.
 pub fn ruby_caskroom_spec_l235_d15_caskroom(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('caskroom', ...args)
+	_ = args
+	root := caskroom_spec_temp('migration')
+	os.mkdir_all(root) or { return brew_runtime.object_value('Error', err.msg()) }
+	return brew_runtime.string_value(root)
 }
 
 // Ruby method `write_installed_caskfile(token, contents, extension: "rb")` at line 240.
 pub fn ruby_caskroom_spec_l240_d16_write_installed_caskfile(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('write_installed_caskfile', ...args)
+	if args.len < 3 {
+		return brew_runtime.object_value('ArgumentError', 'caskroom, token and contents are required')
+	}
+	extension := if args.len > 3 { args[3].as_string() } else { 'rb' }
+	path := caskroom_spec_metadata(args[0].as_string(), args[1].as_string(), '1.0', extension, args[2].as_string()) or { return brew_runtime.object_value('Error', err.msg()) }
+	return brew_runtime.string_value(path)
 }
 
 // Ruby method `write_receipt(token, artifacts)` at line 248.
 pub fn ruby_caskroom_spec_l248_d17_write_receipt(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('write_receipt', ...args)
+	if args.len < 3 {
+		return brew_runtime.object_value('ArgumentError', 'caskroom, token and artifacts are required')
+	}
+	path := os.join_path(args[0].as_string(), args[1].as_string(), '.metadata', 'INSTALL_RECEIPT.json')
+	os.mkdir_all(os.dir(path)) or { return brew_runtime.object_value('Error', err.msg()) }
+	mut artifact_rows := []string{}
+	for artifact in args[2].string_array_data {
+		artifact_rows << '{"app":["${artifact}"]}'
+	}
+	contents := '{"source":{"version":"1.0"},"uninstall_artifacts":[${artifact_rows.join(',')}]}'
+	os.write_file(path, contents) or { return brew_runtime.object_value('Error', err.msg()) }
+	return brew_runtime.string_value(path)
 }
 
 // Ruby it `it "uses receipt metadata when a Ruby caskfile is unreadable" do` at line 255.
 pub fn ruby_caskroom_spec_l255_d18_uses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uses', ...args)
+	_ = args
+	root := caskroom_spec_temp('unreadable')
+	os.mkdir_all(root) or { return caskroom_spec_bool(false) }
+	defer { os.rmdir_all(root) or {} }
+	caskfile := caskroom_spec_metadata(root, 'unreadable', '1.0', 'rb', 'this is not Ruby') or {
+		return caskroom_spec_bool(false)
+	}
+	artifact := caskroom_spec_artifact('app', 'Unreadable.app')
+	context := caskroom_spec_migration_context('unreadable', caskfile, []cask_core.CaskLoaderArtifact{}, [
+		artifact,
+	], true)
+	result := cask_core.caskroom_migrate_caskfile_to_json(caskfile, context) or {
+		return caskroom_spec_bool(false)
+	}
+	contents := os.read_file(result.json_path) or { return caskroom_spec_bool(false) }
+	return caskroom_spec_bool(result.migrated && !os.exists(caskfile) && caskroom_spec_empty_json(contents))
 }
 
 // Ruby it `it "treats reordered receipt artifacts as equivalent" do` at line 277.
 pub fn ruby_caskroom_spec_l277_d19_treats(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('treats', ...args)
+	_ = args
+	mut artifacts := []cask_core.CaskLoaderArtifact{}
+	for index in 0 .. 8 {
+		artifacts << caskroom_spec_artifact('font', 'Font${index}.ttf')
+	}
+	mut receipt := artifacts.clone()
+	receipt.reverse_in_place()
+	if !cask_core.caskroom_artifacts_equivalent(artifacts, receipt) {
+		return caskroom_spec_bool(false)
+	}
+	root := caskroom_spec_temp('reordered-artifacts')
+	os.mkdir_all(root) or { return caskroom_spec_bool(false) }
+	defer { os.rmdir_all(root) or {} }
+	caskfile := caskroom_spec_metadata(root, 'reordered-artifacts', '1.0', 'rb', 'cask "reordered-artifacts"') or { return caskroom_spec_bool(false) }
+	context := caskroom_spec_migration_context('reordered-artifacts', caskfile, artifacts, receipt, false)
+	result := cask_core.caskroom_migrate_caskfile_to_json(caskfile, context) or {
+		return caskroom_spec_bool(false)
+	}
+	contents := os.read_file(result.json_path) or { return caskroom_spec_bool(false) }
+	return caskroom_spec_bool(!os.exists(caskfile) && caskroom_spec_empty_json(contents))
 }
 
 // Ruby it `it "restores original metadata when migrated artifact multiplicity differs" do` at line 301.
 pub fn ruby_caskroom_spec_l301_d20_restores(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('restores', ...args)
+	_ = args
+	root := caskroom_spec_temp('changed-artifacts')
+	os.mkdir_all(root) or { return caskroom_spec_bool(false) }
+	defer { os.rmdir_all(root) or {} }
+	original := 'cask "changed-artifacts" do\n  font "Duplicate.ttf"\n  font "Duplicate.ttf"\nend\n'
+	caskfile := caskroom_spec_metadata(root, 'changed-artifacts', '1.0', 'rb', original) or {
+		return caskroom_spec_bool(false)
+	}
+	duplicate := caskroom_spec_artifact('font', 'Duplicate.ttf')
+	base := caskroom_spec_migration_context('changed-artifacts', caskfile, [duplicate, duplicate], []cask_core.CaskLoaderArtifact{}, false)
+	context := cask_core.CaskroomMigrationContext{
+		...base
+		verification_artifacts: [duplicate]
+		has_verification_artifacts: true
+	}
+	mut message := ''
+	cask_core.caskroom_migrate_caskfile_to_json(caskfile, context) or { message = err.msg() }
+	json_path := os.join_path(os.dir(caskfile), 'changed-artifacts.json')
+	remaining := os.read_file(caskfile) or { '' }
+	return caskroom_spec_bool(message == 'migrated Cask metadata differs from the original after preserving version and artifacts' && remaining == original && !os.exists(json_path))
 }
 
 // Ruby it `it "uses API metadata when a Ruby caskfile contains a removed method" do` at line 335.
 pub fn ruby_caskroom_spec_l335_d21_uses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uses', ...args)
+	_ = args
+	return caskroom_spec_api_recovery('removed-method', 'appcast "https://example.com/appcast.xml"')
 }
 
 // Ruby it `it "uses API metadata when a Ruby caskfile contains a deprecated method" do` at line 356.
 pub fn ruby_caskroom_spec_l356_d22_uses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uses', ...args)
+	_ = args
+	return caskroom_spec_api_recovery('deprecated-method', 'app "Old.app"')
 }
 
 // Ruby it `it "uses tap metadata instead of the API for a receipt-less third-party cask", :trust_store do` at line 379.
 pub fn ruby_caskroom_spec_l379_d23_uses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uses', ...args)
+	_ = args
+	root := caskroom_spec_temp('third-party')
+	os.mkdir_all(root) or { return caskroom_spec_bool(false) }
+	defer { os.rmdir_all(root) or {} }
+	caskfile := caskroom_spec_metadata(root, 'third-party', '1.0', 'json', '{}') or {
+		return caskroom_spec_bool(false)
+	}
+	tap := cask_core.CaskLoaderTap{ name: 'thirdparty/foo' }
+	context := cask_core.CaskroomMigrationContext{
+		force_source_load_failure: true
+		load_context: cask_core.CaskLoaderLoadContext{
+			lookup: cask_core.CaskLoaderLookupContext{
+				installed_caskfiles: {
+					'third-party': caskfile
+				}
+				installed_receipts: {
+					'third-party': cask_core.CaskLoaderReceipt{
+						version: '1.0'
+						tap: tap
+						has_tap: true
+					}
+				}
+				tap_artifacts: {
+					'thirdparty/foo/third-party': [
+						caskroom_spec_artifact('app', 'Third Party.app'),
+					]
+				}
+				api_membership: {
+					'third-party': cask_core.CaskLoaderAvailability.absent
+				}
+			}
+		}
+	}
+	result := cask_core.caskroom_migrate_caskfile_to_json(caskfile, context) or {
+		return caskroom_spec_bool(false)
+	}
+	contents := os.read_file(result.json_path) or { return caskroom_spec_bool(false) }
+	return caskroom_spec_bool(contents.contains('Third Party.app') && !contents.contains('Current.app'))
 }
 
 // Ruby it `it "preserves artifacts when the install receipt is empty" do` at line 405.
 pub fn ruby_caskroom_spec_l405_d24_preserves(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('preserves', ...args)
+	_ = args
+	return caskroom_spec_bool(caskroom_spec_migrate('empty-receipt', 'rb', 'cask "empty-receipt"', [
+		caskroom_spec_artifact('app', 'Empty Receipt.app'),
+	], []cask_core.CaskLoaderArtifact{}, false))
 }
 
 // Ruby it `it "replaces malformed installed JSON using API metadata" do` at line 422.
 pub fn ruby_caskroom_spec_l422_d25_replaces(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('replaces', ...args)
+	_ = args
+	return caskroom_spec_json_api_recovery('malformed-json', '{')
 }
 
 // Ruby it `it "replaces invalid artifact data in installed JSON using API metadata" do` at line 437.
 pub fn ruby_caskroom_spec_l437_d26_replaces(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('replaces', ...args)
+	_ = args
+	return caskroom_spec_json_api_recovery('invalid-artifacts', '{"artifacts":["invalid"]}')
 }
 
 // Ruby it `it "keeps intentional empty artifacts in installed JSON" do` at line 452.
 pub fn ruby_caskroom_spec_l452_d27_keeps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('keeps', ...args)
+	_ = args
+	root := caskroom_spec_temp('stage-only')
+	os.mkdir_all(root) or { return caskroom_spec_bool(false) }
+	defer { os.rmdir_all(root) or {} }
+	caskfile := caskroom_spec_metadata(root, 'stage-only', '1.0', 'json', '{"artifacts":[]}') or {
+		return caskroom_spec_bool(false)
+	}
+	context := cask_core.CaskroomMigrationContext{ force_source_load_failure: true }
+	result := cask_core.caskroom_migrate_caskfile_to_json(caskfile, context) or {
+		return caskroom_spec_bool(false)
+	}
+	contents := os.read_file(result.json_path) or { return caskroom_spec_bool(false) }
+	compact := contents.replace(' ', '').replace('\n', '').replace('\r', '').replace('\t', '')
+	return caskroom_spec_bool(compact == '{"artifacts":[]}')
 }
 
 // Ruby it `it "does not mark unavailable artifacts as intentionally empty" do` at line 461.
 pub fn ruby_caskroom_spec_l461_d28_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	_ = args
+	root := caskroom_spec_temp('removed-cask')
+	os.mkdir_all(root) or { return caskroom_spec_bool(false) }
+	defer { os.rmdir_all(root) or {} }
+	caskfile := caskroom_spec_metadata(root, 'removed-cask', '1.0', 'json', '{}') or {
+		return caskroom_spec_bool(false)
+	}
+	context := cask_core.CaskroomMigrationContext{
+		force_source_load_failure: true
+		load_context: cask_core.CaskLoaderLoadContext{
+			lookup: cask_core.CaskLoaderLookupContext{
+				api_membership: {
+					'removed-cask': cask_core.CaskLoaderAvailability.absent
+				}
+				api_artifact_failures: ['removed-cask']
+			}
+		}
+	}
+	result := cask_core.caskroom_migrate_caskfile_to_json(caskfile, context) or {
+		return caskroom_spec_bool(false)
+	}
+	contents := os.read_file(caskfile) or { return caskroom_spec_bool(false) }
+	return caskroom_spec_bool(result.skipped && result.reason == 'artifacts unavailable' && contents == '{}')
 }
 
 // Ruby it `it "returns tokens for directories without valid caskfiles" do` at line 476.
 pub fn ruby_caskroom_spec_l476_d29_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	root := caskroom_spec_temp('corrupt')
+	os.mkdir_all(os.join_path(root, 'corrupt-cask', '1.0')) or {
+		return caskroom_spec_bool(false)
+	}
+	defer { os.rmdir_all(root) or {} }
+	caskroom_spec_metadata(root, 'installed-cask', '1.0', 'rb', '') or {
+		return caskroom_spec_bool(false)
+	}
+	return caskroom_spec_bool(cask_core.caskroom_corrupt_cask_dirs(root) == [
+		'corrupt-cask',
+	])
 }
 
 // Ruby it `it "returns empty array when all directories have valid caskfiles" do` at line 488.
 pub fn ruby_caskroom_spec_l488_d30_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	root := caskroom_spec_temp('valid')
+	os.mkdir_all(root) or { return caskroom_spec_bool(false) }
+	defer { os.rmdir_all(root) or {} }
+	caskroom_spec_metadata(root, 'installed-cask', '1.0', 'rb', '') or {
+		return caskroom_spec_bool(false)
+	}
+	return caskroom_spec_bool(cask_core.caskroom_corrupt_cask_dirs(root).len == 0)
 }
 
 // Ruby it `it "returns empty array when caskroom is empty" do` at line 499.
 pub fn ruby_caskroom_spec_l499_d31_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	root := caskroom_spec_temp('empty')
+	os.mkdir_all(root) or { return caskroom_spec_bool(false) }
+	defer { os.rmdir_all(root) or {} }
+	return caskroom_spec_bool(cask_core.caskroom_corrupt_cask_dirs(root).len == 0)
 }
 
 // Original Ruby source (line-for-line):

@@ -7,7 +7,11 @@ import brew_runtime
 
 // Ruby method `applicable?` at line 6.
 pub fn ruby_keg_only_reason_l6_d1_applicable(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('applicable?', ...args)
+	return brew_runtime.bool_value(keg_only_reason_is_applicable())
+}
+
+pub fn keg_only_reason_is_applicable() bool {
+	return true
 }
 
 // Original Ruby source (line-for-line):

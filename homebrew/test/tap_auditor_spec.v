@@ -1,168 +1,303 @@
 module test
 
-import brew_runtime
+import homebrew
+import os
+import time
+import x.json2
 
 // Translated from Homebrew/brew `test/tap_auditor_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+fn tap_auditor_spec_temp(label string) string {
+	return os.join_path(os.temp_dir(), 'brew-v-tap-auditor-${label}-${os.getpid()}-${time.now().unix_nano()}')
+}
+
+fn tap_auditor_spec_tap_at(path string, formulae []string, casks []string,
+	formula_renames map[string]string, cask_renames map[string]string) homebrew.TapAuditorTap {
+	return homebrew.TapAuditorTap{
+		name: 'homebrew/foo'
+		path: path
+		official: true
+		formula_names: formulae.map('homebrew/foo/${it}')
+		cask_tokens: casks.map('homebrew/foo/${it}')
+		formula_renames: formula_renames.clone()
+		cask_renames: cask_renames.clone()
+	}
+}
+
+fn tap_auditor_spec_problem(problems []homebrew.TapAuditProblem, needle string) ?homebrew.TapAuditProblem {
+	for problem in problems {
+		if problem.message.contains(needle) {
+			return problem
+		}
+	}
+	return none
+}
+
+fn tap_auditor_spec_run_cask_renames(label string, renames map[string]string,
+	casks []string) ![]homebrew.TapAuditProblem {
+	root := tap_auditor_spec_temp(label)
+	os.mkdir_all(root)!
+	defer {
+		os.rmdir_all(root) or {}
+	}
+	for cask in casks {
+		ruby_tap_auditor_spec_l11_d4_write_cask(cask, os.join_path(root, 'Casks', '${cask}.rb'))!
+	}
+	os.write_file(os.join_path(root, 'cask_renames.json'), json2.encode(renames))!
+	mut auditor := homebrew.new_tap_auditor(tap_auditor_spec_tap_at(root, []string{}, casks, map[string]string{}, renames), false)
+	auditor.audit()
+	return auditor.problems.clone()
+}
+
+fn tap_auditor_spec_run_formula_renames(label string, renames map[string]string,
+	formulae []string) ![]homebrew.TapAuditProblem {
+	root := tap_auditor_spec_temp(label)
+	os.mkdir_all(root)!
+	defer {
+		os.rmdir_all(root) or {}
+	}
+	for formula in formulae {
+		ruby_tap_auditor_spec_l23_d5_write_formula(formula, os.join_path(root, 'Formula', '${formula}.rb'))!
+	}
+	os.write_file(os.join_path(root, 'formula_renames.json'), json2.encode(renames))!
+	mut auditor := homebrew.new_tap_auditor(tap_auditor_spec_tap_at(root, formulae, []string{}, renames, map[string]string{}), false)
+	auditor.audit()
+	return auditor.problems.clone()
+}
 
 // Ruby let `let(:tap) { Tap.fetch("homebrew", "foo") }` at line 7.
-pub fn ruby_tap_auditor_spec_l7_d1_tap(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tap', ...args)
+pub fn ruby_tap_auditor_spec_l7_d1_tap() homebrew.TapAuditorTap {
+	return tap_auditor_spec_tap_at(tap_auditor_spec_temp('tap'), []string{}, []string{}, map[string]string{}, map[string]string{})
 }
 
 // Ruby let `let(:tap_path) { tap.path }` at line 8.
-pub fn ruby_tap_auditor_spec_l8_d2_tap_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tap_path', ...args)
+pub fn ruby_tap_auditor_spec_l8_d2_tap_path(tap homebrew.TapAuditorTap) string {
+	return tap.path
 }
 
 // Ruby let `let(:auditor) { described_class.new(tap, strict: false) }` at line 9.
-pub fn ruby_tap_auditor_spec_l9_d3_auditor(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('auditor', ...args)
+pub fn ruby_tap_auditor_spec_l9_d3_auditor(tap homebrew.TapAuditorTap) homebrew.TapAuditor {
+	return homebrew.new_tap_auditor(tap, false)
 }
 
 // Ruby method `write_cask(token, path = tap_path/"Casks"/"#{token}.rb")` at line 11.
-pub fn ruby_tap_auditor_spec_l11_d4_write_cask(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('write_cask', ...args)
+pub fn ruby_tap_auditor_spec_l11_d4_write_cask(token string, path string) !string {
+	os.mkdir_all(os.dir(path))!
+	os.write_file(path, 'cask "${token}" do\n  version "1.0"\n  url "https://brew.sh/${token}-1.0.dmg"\n  name "${token.capitalize()} Cask"\n  homepage "https://brew.sh"\nend\n')!
+	return path
 }
 
 // Ruby method `write_formula(name, path = tap_path/"Formula"/"#{name}.rb")` at line 23.
-pub fn ruby_tap_auditor_spec_l23_d5_write_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('write_formula', ...args)
+pub fn ruby_tap_auditor_spec_l23_d5_write_formula(name string, path string) !string {
+	os.mkdir_all(os.dir(path))!
+	os.write_file(path, 'class ${name.capitalize()} < Formula\n  url "https://brew.sh/${name}-1.0.tar.gz"\n  version "1.0"\nend\n')!
+	return path
 }
 
 // Ruby subject `subject(:problems) do` at line 39.
-pub fn ruby_tap_auditor_spec_l39_d6_problems(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('problems', ...args)
+pub fn ruby_tap_auditor_spec_l39_d6_problems(mut auditor homebrew.TapAuditor) []homebrew.TapAuditProblem {
+	auditor.audit()
+	return auditor.problems.clone()
 }
 
 // Ruby let `let(:cask_renames_path) { tap_path/"cask_renames.json" }` at line 45.
-pub fn ruby_tap_auditor_spec_l45_d7_cask_renames_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask_renames_path', ...args)
+pub fn ruby_tap_auditor_spec_l45_d7_cask_renames_path(tap_path string) string {
+	return os.join_path(tap_path, 'cask_renames.json')
 }
 
 // Ruby let `let(:renames_data) { {} }` at line 46.
-pub fn ruby_tap_auditor_spec_l46_d8_renames_data(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('renames_data', ...args)
+pub fn ruby_tap_auditor_spec_l46_d8_renames_data() map[string]string {
+	return map[string]string{}
 }
 
 // Ruby let `let(:renames_data) { { "oldcask.rb" => "newcask" } }` at line 53.
-pub fn ruby_tap_auditor_spec_l53_d9_renames_data(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('renames_data', ...args)
+pub fn ruby_tap_auditor_spec_l53_d9_renames_data() map[string]string {
+	return {
+		'oldcask.rb': 'newcask'
+	}
 }
 
 // Ruby it `it "detects the invalid format" do` at line 59.
-pub fn ruby_tap_auditor_spec_l59_d10_detects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('detects', ...args)
+pub fn ruby_tap_auditor_spec_l59_d10_detects() bool {
+	problems := tap_auditor_spec_run_cask_renames('old-extension', ruby_tap_auditor_spec_l53_d9_renames_data(), [
+		'newcask',
+	]) or { return false }
+	return problems.len == 1 && problems[0].message == 'cask_renames.json contains entries with \'.rb\' file extensions.\nRename entries should use formula/cask names only, without \'.rb\' extensions.\nInvalid entries: "oldcask.rb": "newcask"\n'
 }
 
 // Ruby let `let(:renames_data) { { "oldcask" => "newcask.rb" } }` at line 72.
-pub fn ruby_tap_auditor_spec_l72_d11_renames_data(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('renames_data', ...args)
+pub fn ruby_tap_auditor_spec_l72_d11_renames_data() map[string]string {
+	return {
+		'oldcask': 'newcask.rb'
+	}
 }
 
 // Ruby it `it "detects the invalid format" do` at line 78.
-pub fn ruby_tap_auditor_spec_l78_d12_detects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('detects', ...args)
+pub fn ruby_tap_auditor_spec_l78_d12_detects() bool {
+	problems := tap_auditor_spec_run_cask_renames('new-extension', ruby_tap_auditor_spec_l72_d11_renames_data(), [
+		'newcask',
+	]) or { return false }
+	format := tap_auditor_spec_problem(problems, "entries with '.rb' file extensions") or {
+		return false
+	}
+	target := tap_auditor_spec_problem(problems, 'Invalid targets') or { return false }
+	return problems.len == 2 && format.message == 'cask_renames.json contains entries with \'.rb\' file extensions.\nRename entries should use formula/cask names only, without \'.rb\' extensions.\nInvalid entries: "oldcask": "newcask.rb"\n' && target.message == 'cask_renames.json contains renames to casks that do not exist in the homebrew/foo tap.\nInvalid targets: newcask.rb\n'
 }
 
 // Ruby let `let(:renames_data) { { "oldcask" => "nonexistent" } }` at line 105.
-pub fn ruby_tap_auditor_spec_l105_d13_renames_data(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('renames_data', ...args)
+pub fn ruby_tap_auditor_spec_l105_d13_renames_data() map[string]string {
+	return {
+		'oldcask': 'nonexistent'
+	}
 }
 
 // Ruby it `it "detects the missing target" do` at line 107.
-pub fn ruby_tap_auditor_spec_l107_d14_detects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('detects', ...args)
+pub fn ruby_tap_auditor_spec_l107_d14_detects() bool {
+	problems := tap_auditor_spec_run_cask_renames('missing-target', ruby_tap_auditor_spec_l105_d13_renames_data(), []string{}) or { return false }
+	return problems.len == 1 && problems[0].message == 'cask_renames.json contains renames to casks that do not exist in the homebrew/foo tap.\nInvalid targets: nonexistent\n'
 }
 
 // Ruby let `let(:renames_data) do` at line 119.
-pub fn ruby_tap_auditor_spec_l119_d15_renames_data(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('renames_data', ...args)
+pub fn ruby_tap_auditor_spec_l119_d15_renames_data() map[string]string {
+	return {
+		'oldcask': 'newcask'
+		'newcask': 'finalcask'
+	}
 }
 
 // Ruby it `it "detects the chained renames" do` at line 130.
-pub fn ruby_tap_auditor_spec_l130_d16_detects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('detects', ...args)
+pub fn ruby_tap_auditor_spec_l130_d16_detects() bool {
+	problems := tap_auditor_spec_run_cask_renames('chained', ruby_tap_auditor_spec_l119_d15_renames_data(), [
+		'finalcask',
+	]) or { return false }
+	return problems.len == 1 && problems[0].message == 'cask_renames.json contains chained renames that should be collapsed.\nChained renames don\'t work automatically; each old name should point directly to the final target:\n  "oldcask": "finalcask" (instead of chained rename)\n'
 }
 
 // Ruby let `let(:renames_data) do` at line 143.
-pub fn ruby_tap_auditor_spec_l143_d17_renames_data(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('renames_data', ...args)
+pub fn ruby_tap_auditor_spec_l143_d17_renames_data() map[string]string {
+	return {
+		'oldcask':          'newcask'
+		'newcask':          'intermediatecask'
+		'intermediatecask': 'finalcask'
+	}
 }
 
 // Ruby it `it "suggests final target" do` at line 156.
-pub fn ruby_tap_auditor_spec_l156_d18_suggests(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('suggests', ...args)
+pub fn ruby_tap_auditor_spec_l156_d18_suggests() bool {
+	problems := tap_auditor_spec_run_cask_renames('multi-level', ruby_tap_auditor_spec_l143_d17_renames_data(), [
+		'intermediatecask',
+		'finalcask',
+	]) or {
+		return false
+	}
+	chained := tap_auditor_spec_problem(problems, 'chained renames') or { return false }
+	conflict := tap_auditor_spec_problem(problems, 'conflict') or { return false }
+	return problems.len == 2 && chained.message == 'cask_renames.json contains chained renames that should be collapsed.\nChained renames don\'t work automatically; each old name should point directly to the final target:\n  "oldcask": "finalcask" (instead of chained rename)\n  "newcask": "finalcask" (instead of chained rename)\n' && conflict.message == 'cask_renames.json contains old names that conflict with existing casks in the homebrew/foo tap.\nRenames only work after the old casks are deleted. Conflicting names: intermediatecask\n'
 }
 
 // Ruby let `let(:renames_data) do` at line 180.
-pub fn ruby_tap_auditor_spec_l180_d19_renames_data(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('renames_data', ...args)
+pub fn ruby_tap_auditor_spec_l180_d19_renames_data() map[string]string {
+	return {
+		'veryoldcask':      'intermediatecask'
+		'intermediatecask': 'finalcask'
+	}
 }
 
 // Ruby it `it "reports chained rename error, not invalid target error" do` at line 191.
-pub fn ruby_tap_auditor_spec_l191_d20_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_tap_auditor_spec_l191_d20_reports() bool {
+	problems := tap_auditor_spec_run_cask_renames('missing-intermediate', ruby_tap_auditor_spec_l180_d19_renames_data(), [
+		'finalcask',
+	]) or { return false }
+	return problems.len == 1 && problems[0].message == 'cask_renames.json contains chained renames that should be collapsed.\nChained renames don\'t work automatically; each old name should point directly to the final target:\n  "veryoldcask": "finalcask" (instead of chained rename)\n'
 }
 
 // Ruby let `let(:renames_data) { { "newcask" => "anothercask" } }` at line 204.
-pub fn ruby_tap_auditor_spec_l204_d21_renames_data(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('renames_data', ...args)
+pub fn ruby_tap_auditor_spec_l204_d21_renames_data() map[string]string {
+	return {
+		'newcask': 'anothercask'
+	}
 }
 
 // Ruby it `it "detects the conflict" do` at line 211.
-pub fn ruby_tap_auditor_spec_l211_d22_detects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('detects', ...args)
+pub fn ruby_tap_auditor_spec_l211_d22_detects() bool {
+	problems := tap_auditor_spec_run_cask_renames('conflict', ruby_tap_auditor_spec_l204_d21_renames_data(), [
+		'newcask',
+		'anothercask',
+	]) or {
+		return false
+	}
+	return problems.len == 1 && problems[0].message == 'cask_renames.json contains old names that conflict with existing casks in the homebrew/foo tap.\nRenames only work after the old casks are deleted. Conflicting names: newcask\n'
 }
 
 // Ruby let `let(:renames_data) { { "oldcask" => "newcask" } }` at line 223.
-pub fn ruby_tap_auditor_spec_l223_d23_renames_data(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('renames_data', ...args)
+pub fn ruby_tap_auditor_spec_l223_d23_renames_data() map[string]string {
+	return {
+		'oldcask': 'newcask'
+	}
 }
 
 // Ruby it `it "passes validation" do` at line 229.
-pub fn ruby_tap_auditor_spec_l229_d24_passes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('passes', ...args)
+pub fn ruby_tap_auditor_spec_l229_d24_passes() bool {
+	problems := tap_auditor_spec_run_cask_renames('valid', ruby_tap_auditor_spec_l223_d23_renames_data(), [
+		'newcask',
+	]) or { return false }
+	return problems.filter(it.message.contains('cask_renames')).len == 0
 }
 
 // Ruby let `let(:formula_renames_path) { tap_path/"formula_renames.json" }` at line 237.
-pub fn ruby_tap_auditor_spec_l237_d25_formula_renames_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_renames_path', ...args)
+pub fn ruby_tap_auditor_spec_l237_d25_formula_renames_path(tap_path string) string {
+	return os.join_path(tap_path, 'formula_renames.json')
 }
 
 // Ruby let `let(:renames_data) { {} }` at line 238.
-pub fn ruby_tap_auditor_spec_l238_d26_renames_data(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('renames_data', ...args)
+pub fn ruby_tap_auditor_spec_l238_d26_renames_data() map[string]string {
+	return map[string]string{}
 }
 
 // Ruby let `let(:renames_data) { { "oldformula.rb" => "newformula" } }` at line 245.
-pub fn ruby_tap_auditor_spec_l245_d27_renames_data(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('renames_data', ...args)
+pub fn ruby_tap_auditor_spec_l245_d27_renames_data() map[string]string {
+	return {
+		'oldformula.rb': 'newformula'
+	}
 }
 
 // Ruby it `it "detects the invalid format" do` at line 251.
-pub fn ruby_tap_auditor_spec_l251_d28_detects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('detects', ...args)
+pub fn ruby_tap_auditor_spec_l251_d28_detects() bool {
+	problems := tap_auditor_spec_run_formula_renames('formula-extension', ruby_tap_auditor_spec_l245_d27_renames_data(), [
+		'newformula',
+	]) or { return false }
+	return problems.len == 1 && problems[0].message == 'formula_renames.json contains entries with \'.rb\' file extensions.\nRename entries should use formula/cask names only, without \'.rb\' extensions.\nInvalid entries: "oldformula.rb": "newformula"\n'
 }
 
 // Ruby let `let(:renames_data) do` at line 264.
-pub fn ruby_tap_auditor_spec_l264_d29_renames_data(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('renames_data', ...args)
+pub fn ruby_tap_auditor_spec_l264_d29_renames_data() map[string]string {
+	return {
+		'oldformula': 'newformula'
+		'newformula': 'finalformula'
+	}
 }
 
 // Ruby it `it "detects the chained renames" do` at line 275.
-pub fn ruby_tap_auditor_spec_l275_d30_detects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('detects', ...args)
+pub fn ruby_tap_auditor_spec_l275_d30_detects() bool {
+	problems := tap_auditor_spec_run_formula_renames('formula-chain', ruby_tap_auditor_spec_l264_d29_renames_data(), [
+		'finalformula',
+	]) or { return false }
+	return problems.len == 1 && problems[0].message == 'formula_renames.json contains chained renames that should be collapsed.\nChained renames don\'t work automatically; each old name should point directly to the final target:\n  "oldformula": "finalformula" (instead of chained rename)\n'
 }
 
 // Ruby let `let(:renames_data) { { "oldformula" => "newformula" } }` at line 288.
-pub fn ruby_tap_auditor_spec_l288_d31_renames_data(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('renames_data', ...args)
+pub fn ruby_tap_auditor_spec_l288_d31_renames_data() map[string]string {
+	return {
+		'oldformula': 'newformula'
+	}
 }
 
 // Ruby it `it "passes validation" do` at line 294.
-pub fn ruby_tap_auditor_spec_l294_d32_passes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('passes', ...args)
+pub fn ruby_tap_auditor_spec_l294_d32_passes() bool {
+	problems := tap_auditor_spec_run_formula_renames('formula-valid', ruby_tap_auditor_spec_l288_d31_renames_data(), [
+		'newformula',
+	]) or { return false }
+	return problems.filter(it.message.contains('formula_renames')).len == 0
 }
 
 // Original Ruby source (line-for-line):

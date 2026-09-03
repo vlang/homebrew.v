@@ -7,7 +7,23 @@ import brew_runtime
 
 // Ruby method `deep_dup` at line 12.
 pub fn ruby_module_l12_d1_deep_dup(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('deep_dup', ...args)
+	if args.len == 0 {
+		return brew_runtime.Value{}
+	}
+	return deep_dup_module(args[0], args[0].attribute('name') or { '' })
+}
+
+// deep_dup_module preserves named modules and copies anonymous modules.
+pub fn deep_dup_module(value brew_runtime.Value, name string) brew_runtime.Value {
+	if name.len > 0 {
+		return value
+	}
+	return brew_runtime.Value{
+		...value
+		string_array_data: value.string_array_data.clone()
+		array_data:        value.array_data.clone()
+		attributes:        value.attributes.clone()
+	}
 }
 
 // Original Ruby source (line-for-line):

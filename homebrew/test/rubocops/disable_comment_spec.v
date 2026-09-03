@@ -1,58 +1,68 @@
 module rubocops
 
 import brew_runtime
+import homebrew.rubocops as disable_comment_core
 
 // Translated from Homebrew/brew `test/rubocops/disable_comment_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "registers an offense and corrects" do` at line 8.
 pub fn ruby_disable_comment_spec_l8_d1_registers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('registers', ...args)
+	source := if args.len > 0 { args[0].as_string() } else { '' }
+	correction := if args.len > 1 { args[1].as_string() } else { '' }
+	message := if args.len > 2 { args[2].as_string() } else { '' }
+	offenses := disable_comment_core.audit_disable_comments(source)
+	return brew_runtime.bool_value(offenses.len == 1 && offenses[0].message == message && correction == source)
 }
 
 // Ruby it `it "registers an offense" do` at line 20.
 pub fn ruby_disable_comment_spec_l20_d2_registers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('registers', ...args)
+	source := 'def something; end\n# rubocop:disable Naming/AccessorMethodName\ndef get_decrypted_io; end\n'
+	offenses := disable_comment_core.audit_disable_comments(source)
+	return brew_runtime.bool_value(offenses.len == 1 && offenses[0].comment.text == '# rubocop:disable Naming/AccessorMethodName' && offenses[0].message == disable_comment_core.disable_comment_message)
 }
 
 // Ruby method `something; end` at line 22.
 pub fn ruby_disable_comment_spec_l22_d3_something(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('something', ...args)
+	return brew_runtime.string_value('def something; end')
 }
 
 // Ruby method `get_decrypted_io; end` at line 25.
 pub fn ruby_disable_comment_spec_l25_d4_get_decrypted_io(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('get_decrypted_io', ...args)
+	return brew_runtime.string_value('def get_decrypted_io; end')
 }
 
 // Ruby it `it "registers an offense if the comment is empty" do` at line 29.
 pub fn ruby_disable_comment_spec_l29_d5_registers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('registers', ...args)
+	source := 'def something; end\n#\n# rubocop:disable Naming/AccessorMethodName\ndef get_decrypted_io; end\n'
+	offenses := disable_comment_core.audit_disable_comments(source)
+	return brew_runtime.bool_value(offenses.len == 1 && offenses[0].comment.line == 3 && offenses[0].message == disable_comment_core.disable_comment_message)
 }
 
 // Ruby method `something; end` at line 31.
 pub fn ruby_disable_comment_spec_l31_d6_something(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('something', ...args)
+	return ruby_disable_comment_spec_l22_d3_something(...args)
 }
 
 // Ruby method `get_decrypted_io; end` at line 35.
 pub fn ruby_disable_comment_spec_l35_d7_get_decrypted_io(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('get_decrypted_io', ...args)
+	return ruby_disable_comment_spec_l25_d4_get_decrypted_io(...args)
 }
 
 // Ruby it `it "doesn't register an offense" do` at line 39.
 pub fn ruby_disable_comment_spec_l39_d8_doesn(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('doesn', ...args)
+	source := 'def something; end\n# This is a upstream name that we cannot change.\n# rubocop:disable Naming/AccessorMethodName\ndef get_decrypted_io; end\n'
+	return brew_runtime.bool_value(disable_comment_core.audit_disable_comments(source).len == 0)
 }
 
 // Ruby method `something; end` at line 41.
 pub fn ruby_disable_comment_spec_l41_d9_something(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('something', ...args)
+	return ruby_disable_comment_spec_l22_d3_something(...args)
 }
 
 // Ruby method `get_decrypted_io; end` at line 44.
 pub fn ruby_disable_comment_spec_l44_d10_get_decrypted_io(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('get_decrypted_io', ...args)
+	return ruby_disable_comment_spec_l25_d4_get_decrypted_io(...args)
 }
 
 // Original Ruby source (line-for-line):

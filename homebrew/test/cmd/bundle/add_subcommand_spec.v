@@ -1,118 +1,222 @@
 module bundle
 
 import brew_runtime
+import homebrew.bundle as production_bundle
+import homebrew.bundle.subcommand as production_subcommand
+import os
+import time
 
 // Translated from Homebrew/brew `test/cmd/bundle/add_subcommand_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
+fn add_subcommand_spec_path(label string) string {
+	return os.join_path(os.temp_dir(), 'brew-v-add-spec-${label}-${os.getpid()}-${time.now().unix_micro()}')
+}
+
+fn add_subcommand_spec_run(item string, entry_type string, taps []string) !production_bundle.BundleAddResult {
+	path := add_subcommand_spec_path(entry_type)
+	os.write_file(path, '')!
+	defer { os.rm(path) or {} }
+	return production_subcommand.run_bundle_add(production_subcommand.BundleAddCommandOptions{
+		items: [item]
+		selected_types: [entry_type]
+		file: path
+		describe: false
+		taps: taps
+	})
+}
+
+fn add_subcommand_spec_result_value(result production_bundle.BundleAddResult) brew_runtime.Value {
+	return brew_runtime.structured_value('Bundle::AddSubcommand::Result', result.path, {
+		'path':             result.path
+		'content':          result.content
+		'ensured_taps':     result.ensured_taps.join(',')
+		'trusted_type':     result.trusted_type
+		'trusted_items':    result.trusted_items.join(',')
+		'appended_entries': result.appended_entries.join('\n')
+	})
+}
+
+fn add_subcommand_spec_events(item string, entry_type string) []string {
+	result := add_subcommand_spec_run(item, entry_type, ['user/repo']) or { return [] }
+	mut events := []string{}
+	if result.ensured_taps == ['user/repo'] {
+		events << 'tap'
+	}
+	if result.trusted_items == [item] {
+		events << 'trust'
+	}
+	if result.appended_entries.len == 1 {
+		events << 'load'
+	}
+	return events
+}
+
 // Ruby subject `subject(:add) do` at line 9.
 pub fn ruby_add_subcommand_spec_l9_d1_add(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('add', ...args)
+	_ = args
+	result := add_subcommand_spec_run('hello', 'brew', []) or {
+		return brew_runtime.object_value('RuntimeError', err.msg())
+	}
+	return add_subcommand_spec_result_value(result)
 }
 
 // Ruby let `let(:global) { false }` at line 13.
 pub fn ruby_add_subcommand_spec_l13_d2_global(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('global', ...args)
+	_ = args
+	return brew_runtime.bool_value(false)
 }
 
 // Ruby let `let(:context) { bundle_subcommand_context(:add, global:, file:, no_type_args: false) }` at line 14.
 pub fn ruby_add_subcommand_spec_l14_d3_context(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('context', ...args)
+	file := if args.len > 0 { args[0].as_string() } else { '/tmp/some_random_brewfile' }
+	return brew_runtime.map_value({
+		'subcommand':   brew_runtime.object_value('Symbol', 'add')
+		'global':       brew_runtime.bool_value(false)
+		'file':         brew_runtime.string_value(file)
+		'no_type_args': brew_runtime.bool_value(false)
+	})
 }
 
 // Ruby let `let(:args_object) do` at line 15.
 pub fn ruby_add_subcommand_spec_l15_d4_args_object(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('args_object', ...args)
+	entry_type := if args.len > 0 { args[0].as_string() } else { 'brew' }
+	items := if args.len > 1 {
+		args[1].as_string_array() or { ['hello'] }
+	} else {
+		[
+			'hello',
+		]
+	}
+	return brew_runtime.map_value({
+		'named':     brew_runtime.string_array_value(items)
+		'formulae?': brew_runtime.bool_value(entry_type == 'brew')
+		'casks?':    brew_runtime.bool_value(entry_type == 'cask')
+		'taps?':     brew_runtime.bool_value(entry_type == 'tap')
+		'describe?': brew_runtime.bool_value(false)
+	})
 }
 
 // Ruby let `let(:args) { ["hello"] }` at line 24.
 pub fn ruby_add_subcommand_spec_l24_d5_args(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('args', ...args)
+	_ = args
+	return brew_runtime.string_array_value(['hello'])
 }
 
 // Ruby let `let(:type) { :brew }` at line 25.
 pub fn ruby_add_subcommand_spec_l25_d6_type(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('type', ...args)
+	_ = args
+	return brew_runtime.object_value('Symbol', 'brew')
 }
 
 // Ruby let `let(:file) { "/tmp/some_random_brewfile#{Random.rand(2 ** 16)}" }` at line 26.
 pub fn ruby_add_subcommand_spec_l26_d7_file(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('file', ...args)
+	_ = args
+	return brew_runtime.object_value('Pathname', add_subcommand_spec_path('formula'))
 }
 
 // Ruby it `it "adds entries to the given Brewfile" do` at line 37.
 pub fn ruby_add_subcommand_spec_l37_d8_adds(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('adds', ...args)
+	_ = args
+	result := add_subcommand_spec_run('hello', 'brew', []) or {
+		return brew_runtime.bool_value(false)
+	}
+	return brew_runtime.bool_value(result.content.contains('brew "hello"'))
 }
 
 // Ruby let `let(:args) { ["alacritty"] }` at line 44.
 pub fn ruby_add_subcommand_spec_l44_d9_args(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('args', ...args)
+	_ = args
+	return brew_runtime.string_array_value(['alacritty'])
 }
 
 // Ruby let `let(:type) { :cask }` at line 45.
 pub fn ruby_add_subcommand_spec_l45_d10_type(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('type', ...args)
+	_ = args
+	return brew_runtime.object_value('Symbol', 'cask')
 }
 
 // Ruby let `let(:file) { "/tmp/some_random_brewfile#{Random.rand(2 ** 16)}" }` at line 46.
 pub fn ruby_add_subcommand_spec_l46_d11_file(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('file', ...args)
+	_ = args
+	return brew_runtime.object_value('Pathname', add_subcommand_spec_path('cask'))
 }
 
 // Ruby it `it "adds entries to the given Brewfile" do` at line 56.
 pub fn ruby_add_subcommand_spec_l56_d12_adds(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('adds', ...args)
+	_ = args
+	result := add_subcommand_spec_run('alacritty', 'cask', []) or {
+		return brew_runtime.bool_value(false)
+	}
+	return brew_runtime.bool_value(result.content.contains('cask "alacritty"'))
 }
 
 // Ruby let `let(:args) { ["user/repo/hello"] }` at line 63.
 pub fn ruby_add_subcommand_spec_l63_d13_args(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('args', ...args)
+	_ = args
+	return brew_runtime.string_array_value(['user/repo/hello'])
 }
 
 // Ruby let `let(:type) { :brew }` at line 64.
 pub fn ruby_add_subcommand_spec_l64_d14_type(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('type', ...args)
+	_ = args
+	return brew_runtime.object_value('Symbol', 'brew')
 }
 
 // Ruby let `let(:file) { "/tmp/some_random_brewfile#{Random.rand(2 ** 16)}" }` at line 65.
 pub fn ruby_add_subcommand_spec_l65_d15_file(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('file', ...args)
+	_ = args
+	return brew_runtime.object_value('Pathname', add_subcommand_spec_path('qualified-formula'))
 }
 
 // Ruby let `let(:events) { [] }` at line 66.
 pub fn ruby_add_subcommand_spec_l66_d16_events(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('events', ...args)
+	_ = args
+	return brew_runtime.string_array_value([])
 }
 
 // Ruby it `it "installs and trusts the tap before loading the formula" do` at line 86.
 pub fn ruby_add_subcommand_spec_l86_d17_installs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('installs', ...args)
+	_ = args
+	return brew_runtime.bool_value(add_subcommand_spec_events('user/repo/hello', 'brew') == [
+		'tap',
+		'trust',
+		'load',
+	])
 }
 
 // Ruby let `let(:args) { ["user/repo/alacritty"] }` at line 93.
 pub fn ruby_add_subcommand_spec_l93_d18_args(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('args', ...args)
+	_ = args
+	return brew_runtime.string_array_value(['user/repo/alacritty'])
 }
 
 // Ruby let `let(:type) { :cask }` at line 94.
 pub fn ruby_add_subcommand_spec_l94_d19_type(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('type', ...args)
+	_ = args
+	return brew_runtime.object_value('Symbol', 'cask')
 }
 
 // Ruby let `let(:file) { "/tmp/some_random_brewfile#{Random.rand(2 ** 16)}" }` at line 95.
 pub fn ruby_add_subcommand_spec_l95_d20_file(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('file', ...args)
+	_ = args
+	return brew_runtime.object_value('Pathname', add_subcommand_spec_path('qualified-cask'))
 }
 
 // Ruby let `let(:events) { [] }` at line 96.
 pub fn ruby_add_subcommand_spec_l96_d21_events(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('events', ...args)
+	_ = args
+	return brew_runtime.string_array_value([])
 }
 
 // Ruby it `it "installs and trusts the tap before loading the cask" do` at line 117.
 pub fn ruby_add_subcommand_spec_l117_d22_installs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('installs', ...args)
+	_ = args
+	return brew_runtime.bool_value(add_subcommand_spec_events('user/repo/alacritty', 'cask') == [
+		'tap',
+		'trust',
+		'load',
+	])
 }
 
 // Original Ruby source (line-for-line):

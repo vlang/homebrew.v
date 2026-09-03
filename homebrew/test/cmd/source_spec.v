@@ -1,133 +1,246 @@
 module cmd
 
 import brew_runtime
+import homebrew.cmd as production_cmd
+import os
+import time
 
 // Translated from Homebrew/brew `test/cmd/source_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
+const source_spec_pypi_numpy_url = 'https://files.pythonhosted.org/packages/24/62/ae72ff66c0f1fd959925b4c11f8c2dea61f47f6acaea75a08512cdfe3fed/numpy-2.4.1.tar.gz'
+const source_spec_pypi_foobar_url = 'https://files.pythonhosted.org/packages/00/00/000000000000000000000000000000000000000000000000000000000000/foobar-0.0.1.tar.gz'
+const source_spec_npm_vite_url = 'https://registry.npmjs.org/vite/-/vite-1.2.3.tgz'
+const source_spec_npm_scoped_vite_url = 'https://registry.npmjs.org/@org/vite/-/vite-1.2.3.tgz'
+
+fn source_spec_http_get(url string) !production_cmd.SourceHttpResult {
+	return match url {
+		'https://pypi.org/pypi/numpy/json' {
+			production_cmd.SourceHttpResult{
+				body: '{"info":{"project_urls":{"Repository":"https://github.com/numpy/numpy"}}}'
+				success: true
+			}
+		}
+		'https://pypi.org/pypi/foobar/json' {
+			production_cmd.SourceHttpResult{
+				body: '{"info":{"project_urls":{}}}'
+				success: true
+			}
+		}
+		'https://registry.npmjs.org/vite/latest', 'https://registry.npmjs.org/%40org%2Fvite/latest' {
+			production_cmd.SourceHttpResult{
+				body: '{"repository":{"url":"git+https://github.com/vitejs/vite.git"}}'
+				success: true
+			}
+		}
+		else { production_cmd.SourceHttpResult{} }
+	}
+}
+
+fn source_spec_bool(value bool) brew_runtime.Value {
+	return brew_runtime.bool_value(value)
+}
+
+fn source_spec_run_browser(root string, url string) bool {
+	browser := os.join_path(root, 'browser')
+	os.mkdir_all(root) or { return false }
+	os.write_file(browser, '#!/bin/sh\nprintf \'%s\\n\' "\$1"\n') or { return false }
+	os.chmod(browser, 0o755) or { return false }
+	result := os.execute('${os.quoted_path(browser)} ${os.quoted_path(url)}')
+	return result.exit_code == 0 && result.output == '${url}\n'
+}
+
 // Ruby it `it "opens the Homebrew repo when no formula is specified", :integration_test do` at line 10.
 pub fn ruby_source_spec_l10_d1_opens(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('opens', ...args)
+	root := if args.len > 0 && args[0].as_string() != '' {
+		args[0].as_string()
+	} else {
+		os.join_path(os.temp_dir(), 'brew-v-source-browser-${os.getpid()}-${time.now().unix_micro()}')
+	}
+	cleanup := args.len == 0
+	defer {
+		if cleanup {
+			os.rmdir_all(root) or {}
+		}
+	}
+	plan := production_cmd.plan_source_command([], source_spec_http_get)
+	return source_spec_bool(plan.messages.len == 0 && plan.warnings.len == 0
+		&& plan.repo_urls == [production_cmd.source_homebrew_repository]
+		&& source_spec_run_browser(root, plan.repo_urls[0]))
 }
 
 // Ruby it `it "extracts repository URL from GitHub URL" do` at line 18.
 pub fn ruby_source_spec_l18_d2_extracts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('extracts', ...args)
+	_ = args
+	return source_spec_bool(production_cmd.source_github_repo_url('https://github.com/Homebrew/brew.git') or {
+		''
+	} == 'https://github.com/Homebrew/brew')
 }
 
 // Ruby it `it "handles GitHub archive URLs" do` at line 23.
 pub fn ruby_source_spec_l23_d3_handles(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('handles', ...args)
+	_ = args
+	return source_spec_bool(production_cmd.source_github_repo_url('https://github.com/Homebrew/testball/archive/refs/tags/v0.1.tar.gz') or {
+		''
+	} == 'https://github.com/Homebrew/testball')
 }
 
 // Ruby it `it "returns nil for non-GitHub URLs" do` at line 28.
 pub fn ruby_source_spec_l28_d4_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	return source_spec_bool(production_cmd.source_github_repo_url('https://example.com/repo.git') == none)
 }
 
 // Ruby it `it "extracts repository URL from GitLab URL with nested groups" do` at line 35.
 pub fn ruby_source_spec_l35_d5_extracts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('extracts', ...args)
+	_ = args
+	return source_spec_bool(production_cmd.source_gitlab_repo_url('https://gitlab.com/group/subgroup/project/-/archive/v1.0/project-v1.0.tar.gz') or {
+		''
+	} == 'https://gitlab.com/group/subgroup/project')
 }
 
 // Ruby it `it "handles GitLab .git URLs" do` at line 40.
 pub fn ruby_source_spec_l40_d6_handles(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('handles', ...args)
+	_ = args
+	return source_spec_bool(production_cmd.source_gitlab_repo_url('https://gitlab.com/user/repo.git') or {
+		''
+	} == 'https://gitlab.com/user/repo')
 }
 
 // Ruby it `it "returns nil for non-GitLab URLs" do` at line 45.
 pub fn ruby_source_spec_l45_d7_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	return source_spec_bool(production_cmd.source_gitlab_repo_url('https://example.com/repo.git') == none)
 }
 
 // Ruby it `it "extracts repository URL from Bitbucket URL" do` at line 52.
 pub fn ruby_source_spec_l52_d8_extracts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('extracts', ...args)
+	_ = args
+	return source_spec_bool(production_cmd.source_bitbucket_repo_url('https://bitbucket.org/user/repo/get/v1.0.tar.gz') or {
+		''
+	} == 'https://bitbucket.org/user/repo')
 }
 
 // Ruby it `it "handles Bitbucket .git URLs" do` at line 57.
 pub fn ruby_source_spec_l57_d9_handles(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('handles', ...args)
+	_ = args
+	return source_spec_bool(production_cmd.source_bitbucket_repo_url('https://bitbucket.org/user/repo.git') or {
+		''
+	} == 'https://bitbucket.org/user/repo')
 }
 
 // Ruby it `it "returns nil for non-Bitbucket URLs" do` at line 62.
 pub fn ruby_source_spec_l62_d10_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	return source_spec_bool(production_cmd.source_bitbucket_repo_url('https://example.com/repo.git') == none)
 }
 
 // Ruby it `it "extracts repository URL from Codeberg URL" do` at line 69.
 pub fn ruby_source_spec_l69_d11_extracts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('extracts', ...args)
+	_ = args
+	return source_spec_bool(production_cmd.source_codeberg_repo_url('https://codeberg.org/user/repo/archive/v1.0.tar.gz') or {
+		''
+	} == 'https://codeberg.org/user/repo')
 }
 
 // Ruby it `it "handles Codeberg .git URLs" do` at line 74.
 pub fn ruby_source_spec_l74_d12_handles(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('handles', ...args)
+	_ = args
+	return source_spec_bool(production_cmd.source_codeberg_repo_url('https://codeberg.org/user/repo.git') or {
+		''
+	} == 'https://codeberg.org/user/repo')
 }
 
 // Ruby it `it "returns nil for non-Codeberg URLs" do` at line 79.
 pub fn ruby_source_spec_l79_d13_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	return source_spec_bool(production_cmd.source_codeberg_repo_url('https://example.com/repo.git') == none)
 }
 
 // Ruby it `it "extracts repository URL from SourceHut URL" do` at line 86.
 pub fn ruby_source_spec_l86_d14_extracts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('extracts', ...args)
+	_ = args
+	return source_spec_bool(production_cmd.source_sourcehut_repo_url('https://git.sr.ht/~user/repo/archive/v1.0.tar.gz') or {
+		''
+	} == 'https://sr.ht/~user/repo')
 }
 
 // Ruby it `it "handles sr.ht URLs without git subdomain" do` at line 91.
 pub fn ruby_source_spec_l91_d15_handles(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('handles', ...args)
+	_ = args
+	return source_spec_bool(production_cmd.source_sourcehut_repo_url('https://sr.ht/~user/repo') or {
+		''
+	} == 'https://sr.ht/~user/repo')
 }
 
 // Ruby it `it "returns nil for non-SourceHut URLs" do` at line 96.
 pub fn ruby_source_spec_l96_d16_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	return source_spec_bool(production_cmd.source_sourcehut_repo_url('https://example.com/repo.git') == none)
 }
 
 // Ruby it `it "finds repository for PyPI URL" do` at line 103.
 pub fn ruby_source_spec_l103_d17_finds(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('finds', ...args)
+	_ = args
+	return source_spec_bool(production_cmd.source_pypi_repo_url(source_spec_pypi_numpy_url, source_spec_http_get) or { '' } == 'https://github.com/numpy/numpy')
 }
 
 // Ruby it `it "returns nil for PyPI package without project information" do` at line 127.
 pub fn ruby_source_spec_l127_d18_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	return source_spec_bool(production_cmd.source_pypi_repo_url(source_spec_pypi_foobar_url, source_spec_http_get) == none)
 }
 
 // Ruby it `it "returns nil for non-PyPI URLs" do` at line 149.
 pub fn ruby_source_spec_l149_d19_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	return source_spec_bool(production_cmd.source_pypi_repo_url('https://example.com/repo.git', source_spec_http_get) == none)
 }
 
 // Ruby it `it "finds repository for npm URL" do` at line 156.
 pub fn ruby_source_spec_l156_d20_finds(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('finds', ...args)
+	_ = args
+	for url in [source_spec_npm_vite_url, source_spec_npm_scoped_vite_url] {
+		if production_cmd.source_npm_repo_url(url, source_spec_http_get) or { '' } != 'https://github.com/vitejs/vite.git' {
+			return source_spec_bool(false)
+		}
+	}
+	return source_spec_bool(true)
 }
 
 // Ruby it `it "returns nil for npm package without repository information" do` at line 178.
 pub fn ruby_source_spec_l178_d21_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	return source_spec_bool(production_cmd.source_npm_repo_url(source_spec_npm_vite_url, fn (_ string) !production_cmd.SourceHttpResult {
+		return production_cmd.SourceHttpResult{
+			body: '{}'
+			success: true
+		}
+	}) == none)
 }
 
 // Ruby it `it "returns nil for non-npm URLs" do` at line 192.
 pub fn ruby_source_spec_l192_d22_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	return source_spec_bool(production_cmd.source_npm_repo_url('https://example.com/repo.git', source_spec_http_get) == none)
 }
 
 // Ruby it `it "returns GitHub repo URL for GitHub URLs" do` at line 199.
 pub fn ruby_source_spec_l199_d23_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	return source_spec_bool(production_cmd.source_url_to_repo('https://github.com/Homebrew/brew', source_spec_http_get) or { '' } == 'https://github.com/Homebrew/brew')
 }
 
 // Ruby it `it "returns GitLab repo URL for GitLab URLs" do` at line 204.
 pub fn ruby_source_spec_l204_d24_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	return source_spec_bool(production_cmd.source_url_to_repo('https://gitlab.com/user/repo.git', source_spec_http_get) or { '' } == 'https://gitlab.com/user/repo')
 }
 
 // Ruby it `it "returns nil for unsupported URLs" do` at line 209.
 pub fn ruby_source_spec_l209_d25_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	return source_spec_bool(production_cmd.source_url_to_repo('https://example.com/repo.tar.gz', source_spec_http_get) == none)
 }
 
 // Original Ruby source (line-for-line):

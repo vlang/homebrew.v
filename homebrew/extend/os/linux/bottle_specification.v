@@ -7,7 +7,14 @@ import brew_runtime
 
 // Ruby method `skip_relocation?(tag: Utils::Bottles.tag, tab: nil)` at line 8.
 pub fn ruby_bottle_specification_l8_d1_skip_relocation(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skip_relocation?', ...args)
+	return brew_runtime.bool_value(args.len >= 3 && skip_relocation(args[0].as_bool() or { false }, args[1].as_bool() or {
+		false
+	}, args[2].as_bool() or { false }))
+}
+
+pub fn skip_relocation(tab_present bool, parsed_version_at_least_5_1_15 bool,
+	base_skip_relocation bool) bool {
+	return tab_present && parsed_version_at_least_5_1_15 && base_skip_relocation
 }
 
 // Original Ruby source (line-for-line):

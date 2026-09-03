@@ -1,43 +1,109 @@
 module artifact
 
 import brew_runtime
+import homebrew.cask.artifact as core
 
 // Translated from Homebrew/brew `test/cask/artifact/abstract_uninstall_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+fn abstract_uninstall_spec_globber(pattern string) ![]string {
+	return ['${pattern.trim_string_right('*')}locked', '${pattern.trim_string_right('*')}free']
+}
+
+fn abstract_uninstall_spec_denied_globber(pattern string) ![]string {
+	_ = pattern
+	return error('operation not permitted')
+}
+
+pub fn abstract_uninstall_spec_case(index int) bool {
+	match index {
+		3 {
+			result := core.resolve_uninstall_paths('delete', ['relative/path'], core.AbstractUninstallOptions{
+				home: '/tmp'
+			}) or { return false }
+			return result.resolved.len == 0 && result.warnings.len == 1
+		}
+		4 {
+			for path in ['/tmp/../private', '/tmp/./file', '/tmp//../file'] {
+				result := core.resolve_uninstall_paths('delete', [path], core.AbstractUninstallOptions{
+					home: '/tmp'
+				}) or { return false }
+				if result.resolved.len != 0 || !result.warnings[0].contains('relative segments') {
+					return false
+				}
+			}
+			return true
+		}
+		5 {
+			result := core.resolve_uninstall_paths('delete', ['~/../private'], core.AbstractUninstallOptions{
+				home: '/tmp/home'
+			}) or { return false }
+			return result.resolved.len == 0 && result.warnings[0].contains('relative segments')
+		}
+		6 {
+			result := core.resolve_uninstall_paths_with_globber('delete', [
+				'/tmp/example-*',
+			], core.AbstractUninstallOptions{
+				undeletable: ['/tmp/example-locked']
+			}, abstract_uninstall_spec_globber) or { return false }
+			return result.resolved.len == 1 && result.resolved[0].paths == [
+				'/tmp/example-free',
+			] && result.warnings.len == 1
+		}
+		7 {
+			core.resolve_uninstall_paths_with_globber('delete', ['/tmp/protected'], core.AbstractUninstallOptions{}, abstract_uninstall_spec_denied_globber) or {
+				return err.msg().contains('Full Disk Access')
+			}
+			return false
+		}
+		else {
+			return false
+		}
+	}
+}
 
 // Ruby subject `subject(:artifact) { cask.artifacts.find { |candidate| candidate.is_a?(artifact_class) } }` at line 10.
 pub fn ruby_abstract_uninstall_spec_l10_d1_artifact(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('artifact', ...args)
+	_ = args
+	artifact := core.new_abstract_uninstall_artifact('with-uninstall-delete', 'uninstall', {
+		'delete': brew_runtime.string_array_value(['/tmp/absolute'])
+	}) or { return brew_runtime.object_value('CaskInvalidError', err.msg()) }
+	return core.abstract_uninstall_to_value(artifact)
 }
 
 // Ruby let `let(:cask) { Cask::CaskLoader.load(cask_path("with-#{artifact_dsl_key}-delete")) }` at line 12.
 pub fn ruby_abstract_uninstall_spec_l12_d2_cask(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask', ...args)
+	_ = args
+	return brew_runtime.string_value('with-uninstall-delete')
 }
 
 // Ruby it `it "skips relative paths" do` at line 22.
 pub fn ruby_abstract_uninstall_spec_l22_d3_skips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skips', ...args)
+	_ = args
+	return brew_runtime.bool_value(abstract_uninstall_spec_case(3))
 }
 
 // Ruby it `it "skips absolute paths containing relative segments" do` at line 28.
 pub fn ruby_abstract_uninstall_spec_l28_d4_skips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skips', ...args)
+	_ = args
+	return brew_runtime.bool_value(abstract_uninstall_spec_case(4))
 }
 
 // Ruby it `it "skips tilde paths containing relative segments" do` at line 48.
 pub fn ruby_abstract_uninstall_spec_l48_d5_skips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skips', ...args)
+	_ = args
+	return brew_runtime.bool_value(abstract_uninstall_spec_case(5))
 }
 
 // Ruby it `it "skips undeletable glob matches after expansion" do` at line 58.
 pub fn ruby_abstract_uninstall_spec_l58_d6_skips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skips', ...args)
+	_ = args
+	return brew_runtime.bool_value(abstract_uninstall_spec_case(6))
 }
 
 // Ruby it `it "surfaces Full Disk Access guidance when globbing raises EPERM" do` at line 78.
 pub fn ruby_abstract_uninstall_spec_l78_d7_surfaces(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('surfaces', ...args)
+	_ = args
+	return brew_runtime.bool_value(abstract_uninstall_spec_case(7))
 }
 
 // Original Ruby source (line-for-line):

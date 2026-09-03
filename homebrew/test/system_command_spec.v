@@ -1,288 +1,498 @@
 module test
 
-import brew_runtime
+import homebrew
+import os
+import time
 
 // Translated from Homebrew/brew `test/system_command_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:command) do` at line 8.
-pub fn ruby_system_command_spec_l8_d1_command(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('command', ...args)
+pub fn ruby_system_command_spec_l8_d1_command() !homebrew.SystemCommand {
+	return homebrew.new_system_command('env', homebrew.SystemCommandOptions{
+		args: ruby_system_command_spec_l19_d2_env_args()
+		environment: ruby_system_command_spec_l20_d3_env()
+		must_succeed: true
+		print_stderr: .discard
+	})
 }
 
 // Ruby let `let(:env_args) { ["bash", "-c", 'printf "%s" "${A?}" "${B?}" "${C?}"'] }` at line 19.
-pub fn ruby_system_command_spec_l19_d2_env_args(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('env_args', ...args)
+pub fn ruby_system_command_spec_l19_d2_env_args() []string {
+	return ['bash', '-c', 'printf "%s" "\${A?}" "\${B?}" "\${C?}"']
 }
 
 // Ruby let `let(:env) { { "A" => "1", "B" => "2", "C" => "3" } }` at line 20.
-pub fn ruby_system_command_spec_l20_d3_env(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('env', ...args)
+pub fn ruby_system_command_spec_l20_d3_env() map[string]?string {
+	return homebrew.system_command_environment({
+		'A': '1'
+		'B': '2'
+		'C': '3'
+	})
 }
 
 // Ruby let `let(:sudo) { false }` at line 21.
-pub fn ruby_system_command_spec_l21_d4_sudo(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sudo', ...args)
+pub fn ruby_system_command_spec_l21_d4_sudo() bool {
+	return false
 }
 
 // Ruby let `let(:sudo_as_root) { false }` at line 22.
-pub fn ruby_system_command_spec_l22_d5_sudo_as_root(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sudo_as_root', ...args)
+pub fn ruby_system_command_spec_l22_d5_sudo_as_root() bool {
+	return false
 }
 
 // Ruby it `it("run!.stdout") { expect(command.run!.stdout).to eq("123") }` at line 25.
-pub fn ruby_system_command_spec_l25_d6_run_stdout(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('run!.stdout', ...args)
+pub fn ruby_system_command_spec_l25_d6_run_stdout() !string {
+	return ruby_system_command_spec_l8_d1_command()!.run()!.stdout_text()
 }
 
 // Ruby it `it "includes the given variables explicitly" do` at line 28.
-pub fn ruby_system_command_spec_l28_d7_includes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('includes', ...args)
+pub fn ruby_system_command_spec_l28_d7_includes() !bool {
+	line := ruby_system_command_spec_l8_d1_command()!.command_line()!
+	mut expected := ['/usr/bin/env', 'A=1', 'B=2', 'C=3', 'env']
+	expected << ruby_system_command_spec_l19_d2_env_args()
+	return line == expected
 }
 
 // Ruby let `let(:env) { { "A" => "1", "B" => "2", "C" => nil } }` at line 44.
-pub fn ruby_system_command_spec_l44_d8_env(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('env', ...args)
+pub fn ruby_system_command_spec_l44_d8_env() map[string]?string {
+	mut environment := homebrew.system_command_environment({
+		'A': '1'
+		'B': '2'
+	})
+	environment['C'] = none
+	return environment
 }
 
 // Ruby it `it "unsets them" do` at line 46.
-pub fn ruby_system_command_spec_l46_d9_unsets(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('unsets', ...args)
+pub fn ruby_system_command_spec_l46_d9_unsets() !bool {
+	command := homebrew.new_system_command('env', homebrew.SystemCommandOptions{
+		args: ruby_system_command_spec_l19_d2_env_args()
+		environment: ruby_system_command_spec_l44_d8_env()
+		must_succeed: true
+		print_stderr: .discard
+	})!
+	if _ := command.run() {
+		return false
+	} else {
+		return err.msg().contains('C: parameter') || err.msg().contains('C: not set')
+	}
 }
 
 // Ruby let `let(:sudo) { true }` at line 54.
-pub fn ruby_system_command_spec_l54_d10_sudo(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sudo', ...args)
+pub fn ruby_system_command_spec_l54_d10_sudo() bool {
+	return true
 }
 
 // Ruby let `let(:sudo_as_root) { false }` at line 55.
-pub fn ruby_system_command_spec_l55_d11_sudo_as_root(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sudo_as_root', ...args)
+pub fn ruby_system_command_spec_l55_d11_sudo_as_root() bool {
+	return false
 }
 
 // Ruby it `it "includes the given variables explicitly" do` at line 58.
-pub fn ruby_system_command_spec_l58_d12_includes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('includes', ...args)
+pub fn ruby_system_command_spec_l58_d12_includes() !bool {
+	command := homebrew.new_system_command('env', homebrew.SystemCommandOptions{
+		args: ruby_system_command_spec_l19_d2_env_args()
+		environment: ruby_system_command_spec_l20_d3_env()
+		sudo: true
+		print_stderr: .discard
+	})!
+	mut expected := ['/usr/bin/sudo', '-E', 'A=1', 'B=2', 'C=3', '--', 'env']
+	expected << ruby_system_command_spec_l19_d2_env_args()
+	return command.command_line()! == expected
 }
 
 // Ruby let `let(:sudo) { true }` at line 75.
-pub fn ruby_system_command_spec_l75_d13_sudo(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sudo', ...args)
+pub fn ruby_system_command_spec_l75_d13_sudo() bool {
+	return true
 }
 
 // Ruby let `let(:sudo_as_root) { true }` at line 76.
-pub fn ruby_system_command_spec_l76_d14_sudo_as_root(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sudo_as_root', ...args)
+pub fn ruby_system_command_spec_l76_d14_sudo_as_root() bool {
+	return true
 }
 
 // Ruby it `it "includes the given variables explicitly" do` at line 79.
-pub fn ruby_system_command_spec_l79_d15_includes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('includes', ...args)
+pub fn ruby_system_command_spec_l79_d15_includes() !bool {
+	command := homebrew.new_system_command('env', homebrew.SystemCommandOptions{
+		args: ruby_system_command_spec_l19_d2_env_args()
+		environment: ruby_system_command_spec_l20_d3_env()
+		sudo: true
+		sudo_as_root: true
+		print_stderr: .discard
+	})!
+	mut expected := ['/usr/bin/sudo', '-u', 'root', '-E', 'A=1', 'B=2', 'C=3', '--', 'env']
+	expected << ruby_system_command_spec_l19_d2_env_args()
+	return command.command_line()! == expected
 }
 
 // Ruby subject `subject(:result) { described_class.run("true") }` at line 98.
-pub fn ruby_system_command_spec_l98_d16_result(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('result', ...args)
+pub fn ruby_system_command_spec_l98_d16_result() !homebrew.SystemCommandResult {
+	return homebrew.run_system_command('/usr/bin/true', system_command_spec_quiet_options())
 }
 
 // Ruby it `it { is_expected.to be_a_success }` at line 100.
-pub fn ruby_system_command_spec_l100_d17_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('{', ...args)
+pub fn ruby_system_command_spec_l100_d17_anonymous() !bool {
+	return ruby_system_command_spec_l98_d16_result()!.success()
 }
 
 // Ruby it `it(:exit_status) { expect(result.exit_status).to eq(0) }` at line 101.
-pub fn ruby_system_command_spec_l101_d18_exit_status(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('exit_status', ...args)
+pub fn ruby_system_command_spec_l101_d18_exit_status() !int {
+	result := ruby_system_command_spec_l98_d16_result()!
+	return result.exit_status or { -1 }
 }
 
 // Ruby let `let(:command) { "false" }` at line 106.
-pub fn ruby_system_command_spec_l106_d19_command(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('command', ...args)
+pub fn ruby_system_command_spec_l106_d19_command() string {
+	return '/usr/bin/false'
 }
 
 // Ruby it `it "throws an error" do` at line 109.
-pub fn ruby_system_command_spec_l109_d20_throws(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('throws', ...args)
+pub fn ruby_system_command_spec_l109_d20_throws() bool {
+	if _ := homebrew.run_system_command_or_error(ruby_system_command_spec_l106_d19_command(), system_command_spec_quiet_options()) {
+		return false
+	} else {
+		return err.msg().contains('Failure while executing')
+	}
 }
 
 // Ruby subject `subject(:result) { described_class.run(command) }` at line 118.
-pub fn ruby_system_command_spec_l118_d21_result(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('result', ...args)
+pub fn ruby_system_command_spec_l118_d21_result() !homebrew.SystemCommandResult {
+	return homebrew.run_system_command(ruby_system_command_spec_l106_d19_command(), system_command_spec_quiet_options())
 }
 
 // Ruby it `it { is_expected.not_to be_a_success }` at line 120.
-pub fn ruby_system_command_spec_l120_d22_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('{', ...args)
+pub fn ruby_system_command_spec_l120_d22_anonymous() !bool {
+	return !ruby_system_command_spec_l118_d21_result()!.success()
 }
 
 // Ruby it `it(:exit_status) { expect(result.exit_status).to eq(1) }` at line 121.
-pub fn ruby_system_command_spec_l121_d23_exit_status(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('exit_status', ...args)
+pub fn ruby_system_command_spec_l121_d23_exit_status() !int {
+	result := ruby_system_command_spec_l118_d21_result()!
+	return result.exit_status or { -1 }
 }
 
 // Ruby let `let(:command) { "/bin/ls" }` at line 127.
-pub fn ruby_system_command_spec_l127_d24_command(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('command', ...args)
+pub fn ruby_system_command_spec_l127_d24_command() string {
+	return '/bin/ls'
 }
 
 // Ruby let `let(:path)    { Pathname(Dir.mktmpdir) }` at line 128.
-pub fn ruby_system_command_spec_l128_d25_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('path', ...args)
+pub fn ruby_system_command_spec_l128_d25_path() !string {
+	path := system_command_spec_temp_path('pathname')
+	os.mkdir(path)!
+	os.write_file(os.join_path(path, 'somefile'), '')!
+	return path
 }
 
 // Ruby subject `subject(:result) { described_class.run(command, args: [path]) }` at line 135.
-pub fn ruby_system_command_spec_l135_d26_result(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('result', ...args)
+pub fn ruby_system_command_spec_l135_d26_result(path string) !homebrew.SystemCommandResult {
+	defer {
+		os.rmdir_all(path) or {}
+	}
+	return homebrew.run_system_command(ruby_system_command_spec_l127_d24_command(), homebrew.SystemCommandOptions{
+		args: [path]
+		absolute_path_args: [0]
+		print_stderr: .discard
+	})
 }
 
 // Ruby it `it { is_expected.to be_a_success }` at line 137.
-pub fn ruby_system_command_spec_l137_d27_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('{', ...args)
+pub fn ruby_system_command_spec_l137_d27_anonymous(result homebrew.SystemCommandResult) bool {
+	return result.success()
 }
 
 // Ruby it `it(:stdout) { expect(result.stdout).to eq("somefile\n") }` at line 138.
-pub fn ruby_system_command_spec_l138_d28_stdout(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('stdout', ...args)
+pub fn ruby_system_command_spec_l138_d28_stdout(result homebrew.SystemCommandResult) string {
+	return result.stdout_text()
 }
 
 // Ruby let `let(:command) { "/bin/bash" }` at line 143.
-pub fn ruby_system_command_spec_l143_d29_command(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('command', ...args)
+pub fn ruby_system_command_spec_l143_d29_command() string {
+	return '/bin/bash'
 }
 
 // Ruby let `let(:options) do` at line 144.
-pub fn ruby_system_command_spec_l144_d30_options(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('options', ...args)
+pub fn ruby_system_command_spec_l144_d30_options() homebrew.SystemCommandOptions {
+	return system_command_spec_output_options(.discard, .discard, false, false)
 }
 
 // Ruby subject `subject(:result) { described_class.run(command, **options) }` at line 153.
-pub fn ruby_system_command_spec_l153_d31_result(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('result', ...args)
+pub fn ruby_system_command_spec_l153_d31_result(options homebrew.SystemCommandOptions) !homebrew.SystemCommandResult {
+	return homebrew.run_system_command(ruby_system_command_spec_l143_d29_command(), options)
 }
 
 // Ruby it `it { is_expected.to be_a_success }` at line 155.
-pub fn ruby_system_command_spec_l155_d32_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('{', ...args)
+pub fn ruby_system_command_spec_l155_d32_anonymous(result homebrew.SystemCommandResult) bool {
+	return result.success()
 }
 
 // Ruby it `it(:stdout) { expect(result.stdout).to eq([1, 3, 5, nil].join("\n")) }` at line 156.
-pub fn ruby_system_command_spec_l156_d33_stdout(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('stdout', ...args)
+pub fn ruby_system_command_spec_l156_d33_stdout(result homebrew.SystemCommandResult) string {
+	return result.stdout_text()
 }
 
 // Ruby it `it(:stderr) { expect(result.stderr).to eq([2, 4, 6, nil].join("\n")) }` at line 157.
-pub fn ruby_system_command_spec_l157_d34_stderr(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('stderr', ...args)
+pub fn ruby_system_command_spec_l157_d34_stderr(result homebrew.SystemCommandResult) string {
+	return result.stderr_text()
 }
 
 // Ruby it `it "echoes only STDERR" do` at line 162.
-pub fn ruby_system_command_spec_l162_d35_echoes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('echoes', ...args)
+pub fn ruby_system_command_spec_l162_d35_echoes() !bool {
+	result := homebrew.run_system_command('/bin/bash', system_command_spec_output_options(.discard, .always, false, false))!
+	return result.success() && result.stderr_text() == '2\n4\n6\n'
 }
 
 // Ruby it `it "echoes both STDOUT and STDERR" do` at line 177.
-pub fn ruby_system_command_spec_l177_d36_echoes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('echoes', ...args)
+pub fn ruby_system_command_spec_l177_d36_echoes() !bool {
+	result := homebrew.run_system_command('/bin/bash', system_command_spec_output_options(.always, .always, false, false))!
+	return result.success() && result.stdout_text() == '1\n3\n5\n' && result.stderr_text() == '2\n4\n6\n'
 }
 
 // Ruby it `it "echoes only STDERR output" do` at line 191.
-pub fn ruby_system_command_spec_l191_d37_echoes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('echoes', ...args)
+pub fn ruby_system_command_spec_l191_d37_echoes() !bool {
+	result := homebrew.run_system_command('/bin/bash', system_command_spec_output_options(.debug, .always, false, false))!
+	return result.success() && result.stdout_text() == '1\n3\n5\n' && result.stderr_text() == '2\n4\n6\n'
 }
 
 // Ruby let `let(:options) do` at line 200.
-pub fn ruby_system_command_spec_l200_d38_options(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('options', ...args)
+pub fn ruby_system_command_spec_l200_d38_options() homebrew.SystemCommandOptions {
+	return system_command_spec_output_options(.debug, .debug, true, true)
 }
 
 // Ruby it `it "echoes the command and all output to STDERR" do` at line 207.
-pub fn ruby_system_command_spec_l207_d39_echoes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('echoes', ...args)
+pub fn ruby_system_command_spec_l207_d39_echoes() !bool {
+	options := ruby_system_command_spec_l200_d38_options()
+	command := homebrew.new_system_command('/bin/bash', options)!
+	result := command.run()!
+	return command.verbose_enabled() && command.debug_enabled() && result.success()
 }
 
 // Ruby it `it "echoes nothing" do` at line 224.
-pub fn ruby_system_command_spec_l224_d40_echoes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('echoes', ...args)
+pub fn ruby_system_command_spec_l224_d40_echoes() !bool {
+	result := homebrew.run_system_command('/bin/bash', system_command_spec_output_options(.discard, .discard, false, false))!
+	return result.success() && result.merged_output_text() == '1\n3\n5\n2\n4\n6\n'
 }
 
 // Ruby it `it "echoes only STDOUT" do` at line 238.
-pub fn ruby_system_command_spec_l238_d41_echoes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('echoes', ...args)
+pub fn ruby_system_command_spec_l238_d41_echoes() !bool {
+	result := homebrew.run_system_command('/bin/bash', system_command_spec_output_options(.always, .discard, false, false))!
+	return result.success() && result.stdout_text() == '1\n3\n5\n'
 }
 
 // Ruby let `let(:command) { "/bin/bash" }` at line 250.
-pub fn ruby_system_command_spec_l250_d42_command(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('command', ...args)
+pub fn ruby_system_command_spec_l250_d42_command() string {
+	return '/bin/bash'
 }
 
 // Ruby let `let(:options) do` at line 251.
-pub fn ruby_system_command_spec_l251_d43_options(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('options', ...args)
+pub fn ruby_system_command_spec_l251_d43_options() homebrew.SystemCommandOptions {
+	return homebrew.SystemCommandOptions{
+		args: ['-c', 'for ((i = 1; i <= 100000; i += 2)); do echo "\$i"; echo "\$((i + 1))" >&2; done']
+		print_stdout: .discard
+		print_stderr: .discard
+	}
 }
 
 // Ruby it `it "returns without deadlocking", timeout: 30 do` at line 258.
-pub fn ruby_system_command_spec_l258_d44_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_system_command_spec_l258_d44_returns() !bool {
+	result := homebrew.run_system_command(ruby_system_command_spec_l250_d42_command(), ruby_system_command_spec_l251_d43_options())!
+	return result.success() && result.stdout_text().starts_with('1\n3\n') && result.stdout_text().ends_with('99999\n') && result.stderr_text().starts_with('2\n4\n') && result.stderr_text().ends_with('100000\n')
 }
 
 // Ruby it `it "raises an ArgumentError" do` at line 264.
-pub fn ruby_system_command_spec_l264_d45_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+pub fn ruby_system_command_spec_l264_d45_raises() bool {
+	if _ := homebrew.new_system_command('/usr/bin/true', homebrew.SystemCommandOptions{
+		environment: homebrew.system_command_environment({
+			'1ABC': 'true'
+		})
+	}) {
+		return false
+	} else {
+		return err.msg().contains('variable name') || err.msg().contains('Variable name')
+	}
 }
 
 // Ruby it `it "looks for executables in a custom PATH" do` at line 270.
-pub fn ruby_system_command_spec_l270_d46_looks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('looks', ...args)
+pub fn ruby_system_command_spec_l270_d46_looks() !bool {
+	directory := system_command_spec_temp_path('custom-path')
+	os.mkdir(directory)!
+	defer {
+		os.rmdir_all(directory) or {}
+	}
+	tool := os.join_path(directory, 'tool')
+	os.write_file(tool, '#!/bin/sh\necho "Hello, world!"\n')!
+	os.chmod(tool, 0o755)!
+	result := homebrew.run_system_command('tool', homebrew.SystemCommandOptions{
+		environment: homebrew.system_command_environment({
+			'PATH': directory
+		})
+		print_stderr: .discard
+	})!
+	return result.success() && result.stdout_text().contains('Hello, world!')
 }
 
 // Ruby it `it "does not raise a `SystemCallError` when the executable does not exist" do` at line 284.
-pub fn ruby_system_command_spec_l284_d47_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_system_command_spec_l284_d47_does() !bool {
+	result := homebrew.run_system_command('non_existent_executable', homebrew.SystemCommandOptions{
+		print_stderr: .discard
+	})!
+	return !result.success() && result.exit_status or { -1 } == 127
 }
 
 // Ruby it `it "uses `Process.spawn` rather than `fork` when no privilege change is required" do` at line 290.
-pub fn ruby_system_command_spec_l290_d48_uses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uses', ...args)
+pub fn ruby_system_command_spec_l290_d48_uses() !bool {
+	command := homebrew.new_system_command('/usr/bin/true', homebrew.SystemCommandOptions{
+		must_succeed: true
+		print_stderr: .discard
+	})!
+	return command.run()!.success()
 }
 
 // Ruby it `it 'does not format `stderr` when it starts with \r' do` at line 297.
-pub fn ruby_system_command_spec_l297_d49_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_system_command_spec_l297_d49_does() !bool {
+	expected := '\r###################                                                       27.6%'
+	result := homebrew.run_system_command('/bin/bash', homebrew.SystemCommandOptions{
+		args: ['-c',
+			'printf "\\r%s" "###################                                                       27.6%" 1>&2']
+		print_stderr: .discard
+	})!
+	return result.success() && result.stderr_text() == expected
 }
 
 // Ruby let `let(:executable) { mktmpdir/"App Uninstaller" }` at line 311.
-pub fn ruby_system_command_spec_l311_d50_executable(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('executable', ...args)
+pub fn ruby_system_command_spec_l311_d50_executable() !string {
+	directory := system_command_spec_temp_path('spaces')
+	os.mkdir(directory)!
+	executable := os.join_path(directory, 'App Uninstaller')
+	os.write_file(executable, '#!/bin/sh\nexit 0\n')!
+	os.chmod(executable, 0o755)!
+	return executable
 }
 
 // Ruby it `it "does not interpret the executable as a shell line" do` at line 322.
-pub fn ruby_system_command_spec_l322_d51_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_system_command_spec_l322_d51_does(executable string) !bool {
+	defer {
+		os.rmdir_all(os.dir(executable)) or {}
+	}
+	result := homebrew.run_system_command(executable, homebrew.SystemCommandOptions{
+		print_stderr: .discard
+	})!
+	return result.success()
 }
 
 // Ruby it `it "does not leak the secrets" do` at line 328.
-pub fn ruby_system_command_spec_l328_d52_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_system_command_spec_l328_d52_does() bool {
+	if _ := system_command_spec_failing_secret_command(['hunter2']) {
+		return false
+	} else {
+		return err.msg().contains('username:******') && !err.msg().contains('hunter2')
+	}
 }
 
 // Ruby it `it "does not leak the secrets set by environment" do` at line 339.
-pub fn ruby_system_command_spec_l339_d53_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_system_command_spec_l339_d53_does() bool {
+	previous := os.getenv_opt('PASSWORD')
+	os.setenv('PASSWORD', 'hunter2', true)
+	defer {
+		if value := previous {
+			os.setenv('PASSWORD', value, true)
+		} else {
+			os.unsetenv('PASSWORD')
+		}
+	}
+	if _ := system_command_spec_failing_secret_command([]string{}) {
+		return false
+	} else {
+		return err.msg().contains('username:******') && !err.msg().contains('hunter2')
+	}
 }
 
 // Ruby it `it "does not leak the secrets" do` at line 352.
-pub fn ruby_system_command_spec_l352_d54_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_system_command_spec_l352_d54_does() !bool {
+	command := homebrew.new_system_command('/usr/bin/printf', homebrew.SystemCommandOptions{
+		args: ['username:hunter2']
+		print_stdout: .discard
+		print_stderr: .discard
+		verbose: true
+		secrets: ['hunter2']
+	})!
+	result := command.run()!
+	return result.success() && system_command_spec_redact(result.stdout_text(), command.secrets) == 'username:******'
 }
 
 // Ruby it `it "does not leak the secrets set by environment" do` at line 363.
-pub fn ruby_system_command_spec_l363_d55_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_system_command_spec_l363_d55_does() !bool {
+	previous := os.getenv_opt('PASSWORD')
+	os.setenv('PASSWORD', 'hunter2', true)
+	defer {
+		if value := previous {
+			os.setenv('PASSWORD', value, true)
+		} else {
+			os.unsetenv('PASSWORD')
+		}
+	}
+	command := homebrew.new_system_command('/usr/bin/printf', homebrew.SystemCommandOptions{
+		args: ['username:hunter2']
+		print_stdout: .discard
+		print_stderr: .discard
+		verbose: true
+	})!
+	result := command.run()!
+	return result.success() && 'hunter2' in command.secrets && system_command_spec_redact(result.stdout_text(), command.secrets) == 'username:******'
 }
 
 // Ruby it `it "is not interrupted" do` at line 376.
-pub fn ruby_system_command_spec_l376_d56_is(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('is', ...args)
+pub fn ruby_system_command_spec_l376_d56_is() !bool {
+	started := time.now()
+	result := homebrew.run_system_command('/bin/sleep', homebrew.SystemCommandOptions{
+		args: ['0.05']
+		must_succeed: true
+		print_stderr: .discard
+	})!
+	return result.success() && time.since(started) >= 40 * time.millisecond
+}
+
+fn system_command_spec_quiet_options() homebrew.SystemCommandOptions {
+	return homebrew.SystemCommandOptions{
+		print_stderr: .discard
+	}
+}
+
+fn system_command_spec_output_options(print_stdout homebrew.SystemCommandPrintMode,
+	print_stderr homebrew.SystemCommandPrintMode, verbose bool,
+	debug bool) homebrew.SystemCommandOptions {
+	return homebrew.SystemCommandOptions{
+		args: ['-c', 'for i in 1 3 5; do echo "\$i"; echo "\$((i + 1))" >&2; done']
+		print_stdout: print_stdout
+		print_stderr: print_stderr
+		verbose: verbose
+		debug: debug
+	}
+}
+
+fn system_command_spec_temp_path(label string) string {
+	return os.join_path(os.temp_dir(), 'brew-v-system-command-spec-${label}-${os.getpid()}-${time.now().unix_nano()}')
+}
+
+fn system_command_spec_failing_secret_command(secrets []string) !homebrew.SystemCommandResult {
+	return homebrew.run_system_command_or_error('/bin/sh', homebrew.SystemCommandOptions{
+		args: ['-c', 'exit 22', 'username:hunter2']
+		print_stderr: .discard
+		verbose: true
+		debug: true
+		secrets: secrets
+	})
+}
+
+fn system_command_spec_redact(text string, secrets []string) string {
+	mut redacted := text
+	for secret in secrets {
+		if secret != '' {
+			redacted = redacted.replace(secret, '******')
+		}
+	}
+	return redacted
 }
 
 // Original Ruby source (line-for-line):

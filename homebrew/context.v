@@ -4,65 +4,273 @@ import brew_runtime
 
 // Translated from Homebrew/brew `context.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub struct ExecutionContext {
+pub:
+	debug                          ?bool
+	quiet                          ?bool
+	verbose                        ?bool
+	deferred_environment_expansion ?bool
+}
+
+pub fn (context ExecutionContext) debug_enabled() bool {
+	return context.debug or { false }
+}
+
+pub fn (context ExecutionContext) quiet_enabled() bool {
+	return context.quiet or { false }
+}
+
+pub fn (context ExecutionContext) verbose_enabled() bool {
+	return context.verbose or { false }
+}
+
+pub fn (context ExecutionContext) deferred_environment_expansion_enabled() bool {
+	return context.deferred_environment_expansion or { false }
+}
+
+@[heap]
+pub struct ContextState {
+pub mut:
+	current         ExecutionContext
+	has_current     bool
+	thread_contexts []ExecutionContext
+}
+
+pub fn new_context_state() &ContextState {
+	return &ContextState{}
+}
+
+pub fn (mut state ContextState) set_current(context ExecutionContext) {
+	state.current = context
+	state.has_current = true
+}
+
+pub fn (mut state ContextState) current_context() ExecutionContext {
+	if state.thread_contexts.len > 0 {
+		return state.thread_contexts.last()
+	}
+	if !state.has_current {
+		state.current = ExecutionContext{}
+		state.has_current = true
+	}
+	return state.current
+}
+
+pub fn (mut state ContextState) debug_enabled() bool {
+	return state.current_context().debug_enabled()
+}
+
+pub fn (mut state ContextState) quiet_enabled() bool {
+	return state.current_context().quiet_enabled()
+}
+
+pub fn (mut state ContextState) verbose_enabled() bool {
+	return state.current_context().verbose_enabled()
+}
+
+pub fn (mut state ContextState) deferred_environment_expansion_enabled() bool {
+	return state.current_context().deferred_environment_expansion_enabled()
+}
+
+pub fn (mut state ContextState) with_context(context ExecutionContext,
+	action fn(mut ContextState) !brew_runtime.Value) !brew_runtime.Value {
+	state.thread_contexts << context
+	defer {
+		state.thread_contexts.delete_last()
+	}
+	return action(mut state)
+}
+
+fn execution_context_value(context ExecutionContext) brew_runtime.Value {
+	return brew_runtime.structured_value('Context::ContextStruct', '', {
+		'debug':                          context.debug_enabled().str()
+		'quiet':                          context.quiet_enabled().str()
+		'verbose':                        context.verbose_enabled().str()
+		'deferred_environment_expansion': context.deferred_environment_expansion_enabled().str()
+		'debug_nil':                      (context.debug == none).str()
+		'quiet_nil':                      (context.quiet == none).str()
+		'verbose_nil':                    (context.verbose == none).str()
+		'deferred_nil':                   (context.deferred_environment_expansion == none).str()
+	})
+}
+
+fn execution_context_bool(value brew_runtime.Value, nil_attribute string, attribute string) ?bool {
+	if value.attributes[nil_attribute] == 'true' {
+		return none
+	}
+	return value.attributes[attribute] == 'true'
+}
+
+fn execution_context_from_value(value brew_runtime.Value) ExecutionContext {
+	if value.type_name == 'Hash' {
+		return ExecutionContext{
+			debug: context_map_bool(value, 'debug')
+			quiet: context_map_bool(value, 'quiet')
+			verbose: context_map_bool(value, 'verbose')
+			deferred_environment_expansion: context_map_bool(value, 'deferred_environment_expansion')
+		}
+	}
+	return ExecutionContext{
+		debug: execution_context_bool(value, 'debug_nil', 'debug')
+		quiet: execution_context_bool(value, 'quiet_nil', 'quiet')
+		verbose: execution_context_bool(value, 'verbose_nil', 'verbose')
+		deferred_environment_expansion: execution_context_bool(value, 'deferred_nil', 'deferred_environment_expansion')
+	}
+}
+
+fn context_map_bool(value brew_runtime.Value, key string) ?bool {
+	item := value.map_data[key] or { return none }
+	if item.type_name == 'NilClass' {
+		return none
+	}
+	return item.bool_data
+}
+
+fn context_state_value(state &ContextState) brew_runtime.Value {
+	return brew_runtime.structured_value('Context::Runtime', '', {
+		'context_state_address': u64(voidptr(state)).str()
+	})
+}
+
+fn context_state_from_value(value brew_runtime.Value) &ContextState {
+	return unsafe { &ContextState(voidptr(value.attributes['context_state_address'].u64())) }
+}
+
+pub fn context_state_boundary(state &ContextState) brew_runtime.Value {
+	return context_state_value(state)
+}
+
+fn context_state_and_offset(args []brew_runtime.Value) (&ContextState, int) {
+	if args.len > 0 && 'context_state_address' in args[0].attributes {
+		return context_state_from_value(args[0]), 1
+	}
+	return new_context_state(), 0
+}
+
+fn context_from_positional(args []brew_runtime.Value, offset int) ExecutionContext {
+	mut values := []?bool{}
+	for index in 0 .. 4 {
+		position := offset + index
+		values << if position >= args.len || args[position].type_name == 'NilClass' {
+			none
+		} else {
+			args[position].bool_data
+		}
+	}
+	return ExecutionContext{
+		debug: values[0]
+		quiet: values[1]
+		verbose: values[2]
+		deferred_environment_expansion: values[3]
+	}
+}
+
+fn context_override(value ?bool, fallback ?bool) ?bool {
+	if override := value {
+		return override
+	}
+	return fallback
+}
 
 // Ruby method `initialize(debug: nil, quiet: nil, verbose: nil, deferred_environment_expansion: nil)` at line 20.
 pub fn ruby_context_l20_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	context := if args.len > 0 && args[0].type_name == 'Hash' {
+		execution_context_from_value(args[0])
+	} else {
+		context_from_positional(args, 0)
+	}
+	return execution_context_value(context)
 }
 
 // Ruby method `debug?` at line 28.
 pub fn ruby_context_l28_d2_debug(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('debug?', ...args)
+	return brew_runtime.bool_value(args.len > 0 && execution_context_from_value(args[0]).debug_enabled())
 }
 
 // Ruby method `quiet?` at line 33.
 pub fn ruby_context_l33_d3_quiet(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('quiet?', ...args)
+	return brew_runtime.bool_value(args.len > 0 && execution_context_from_value(args[0]).quiet_enabled())
 }
 
 // Ruby method `verbose?` at line 38.
 pub fn ruby_context_l38_d4_verbose(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('verbose?', ...args)
+	return brew_runtime.bool_value(args.len > 0 && execution_context_from_value(args[0]).verbose_enabled())
 }
 
 // Ruby method `deferred_environment_expansion?` at line 43.
 pub fn ruby_context_l43_d5_deferred_environment_expansion(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('deferred_environment_expansion?', ...args)
+	return brew_runtime.bool_value(args.len > 0 && execution_context_from_value(args[0]).deferred_environment_expansion_enabled())
 }
 
 // Ruby method `self.current=(context)` at line 51.
 pub fn ruby_context_l51_d6_self_current(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.current=', ...args)
+	mut state, offset := context_state_and_offset(args)
+	if args.len <= offset {
+		return brew_runtime.object_value('ArgumentError', 'context is required')
+	}
+	context := execution_context_from_value(args[offset])
+	state.set_current(context)
+	return execution_context_value(context)
 }
 
 // Ruby method `self.current` at line 58.
 pub fn ruby_context_l58_d7_self_current(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.current', ...args)
+	mut state, _ := context_state_and_offset(args)
+	return execution_context_value(state.current_context())
 }
 
 // Ruby method `debug?` at line 71.
 pub fn ruby_context_l71_d8_debug(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('debug?', ...args)
+	mut state, _ := context_state_and_offset(args)
+	return brew_runtime.bool_value(state.debug_enabled())
 }
 
 // Ruby method `quiet?` at line 76.
 pub fn ruby_context_l76_d9_quiet(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('quiet?', ...args)
+	mut state, _ := context_state_and_offset(args)
+	return brew_runtime.bool_value(state.quiet_enabled())
 }
 
 // Ruby method `verbose?` at line 81.
 pub fn ruby_context_l81_d10_verbose(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('verbose?', ...args)
+	mut state, _ := context_state_and_offset(args)
+	return brew_runtime.bool_value(state.verbose_enabled())
 }
 
 // Ruby method `deferred_environment_expansion?` at line 86.
 pub fn ruby_context_l86_d11_deferred_environment_expansion(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('deferred_environment_expansion?', ...args)
+	mut state, _ := context_state_and_offset(args)
+	return brew_runtime.bool_value(state.deferred_environment_expansion_enabled())
 }
 
 // Ruby method `with_context(debug: debug?, quiet: quiet?, verbose: verbose?,` at line 99.
 pub fn ruby_context_l99_d12_with_context(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('with_context', ...args)
+	mut state, offset := context_state_and_offset(args)
+	old := state.current_context()
+	overrides := if args.len > offset && args[offset].type_name == 'Hash' {
+		execution_context_from_value(args[offset])
+	} else {
+		context_from_positional(args, offset)
+	}
+	context := ExecutionContext{
+		debug: context_override(overrides.debug, old.debug)
+		quiet: context_override(overrides.quiet, old.quiet)
+		verbose: context_override(overrides.verbose, old.verbose)
+		deferred_environment_expansion: context_override(overrides.deferred_environment_expansion, old.deferred_environment_expansion)
+	}
+	state.thread_contexts << context
+	result_position := if args.len > offset && args[offset].type_name == 'Hash' {
+		offset + 1
+	} else {
+		offset + 4
+	}
+	result := if args.len > result_position {
+		args[result_position]
+	} else {
+		execution_context_value(state.current_context())
+	}
+	state.thread_contexts.delete_last()
+	return result
 }
 
 // Original Ruby source (line-for-line):

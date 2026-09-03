@@ -1,68 +1,207 @@
 module dev_cmd
 
 import brew_runtime
+import homebrew
+import os
 
 // Translated from Homebrew/brew `test/dev-cmd/determine-test-runners_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
+pub struct DetermineRunnerTestState {
+pub mut:
+	instances int
+}
+
+pub struct DetermineRunnerTestHelper {
+pub:
+	number int
+}
+
+pub fn determine_test_runners_spec_get_runners(file string, ephemeral_suffix string) ![]string {
+	contents := os.read_file(file)!
+	lines := contents.split_into_lines()
+	if lines.len == 0 || !lines[0].starts_with('runners=') {
+		return error('missing runners output')
+	}
+	runner_hash := brew_runtime.parse_json_value(lines[0].all_after('runners='))!.as_array()!
+	mut runners := []string{cap: runner_hash.len}
+	for item in runner_hash {
+		runner := item.as_map()!['runner'] or { return error('runner output has no runner') }
+		name := runner.as_string()
+		runners << if name.ends_with(ephemeral_suffix) {
+			name[..name.len - ephemeral_suffix.len]
+		} else {
+			name
+		}
+	}
+	runners.sort()
+	return runners
+}
+
+pub fn determine_test_runners_spec_arm_linux_runner() string {
+	return 'ubuntu-24.04-arm'
+}
+
+pub fn determine_test_runners_spec_linux_runner() string {
+	return 'ubuntu-latest'
+}
+
+pub fn determine_test_runners_spec_github_output(test_tmpdir string,
+	mut state DetermineRunnerTestState) string {
+	helper := determine_runner_test_helper_initialize(mut state)
+	return os.join_path(test_tmpdir, 'github_output${helper.number}')
+}
+
+pub fn determine_test_runners_spec_ephemeral_suffix() string {
+	return '-12345'
+}
+
+pub fn determine_test_runners_spec_runner_env(linux_runner string,
+	ephemeral_suffix string) map[string]string {
+	return {
+		'HOMEBREW_LINUX_RUNNER':       linux_runner
+		'HOMEBREW_MACOS_LONG_TIMEOUT': 'false'
+		'GITHUB_RUN_ID':               ephemeral_suffix.split('-')[1]
+	}
+}
+
+pub fn determine_test_runners_spec_all_runners(linux_runner string,
+	arm_linux_runner string) ![]string {
+	oldest := homebrew.macos_version_from_symbol('sonoma')!
+	newest := homebrew.macos_version_from_symbol('tahoe')!
+	newest_intel := homebrew.macos_version_from_symbol('sonoma')!
+	mut runners := []string{}
+	for _, value in homebrew.macos_symbol_versions() {
+		macos_version := homebrew.new_macos_version(value)!
+		if macos_version.compare(oldest) < 0 || macos_version.compare(newest) > 0 {
+			continue
+		}
+		runners << '${value}-arm64'
+		if macos_version.compare(newest_intel) <= 0 {
+			runners << '${value}-x86_64'
+		}
+	}
+	runners << linux_runner
+	runners << arm_linux_runner
+	return runners
+}
+
+pub fn determine_test_runners_spec_assigns(test_tmpdir string) !bool {
+	mut state := DetermineRunnerTestState{}
+	github_output := determine_test_runners_spec_github_output(test_tmpdir, mut state)
+	defer {
+		os.rm(github_output) or {}
+	}
+	ephemeral_suffix := determine_test_runners_spec_ephemeral_suffix()
+	linux_runner := determine_test_runners_spec_linux_runner()
+	arm_linux_runner := determine_test_runners_spec_arm_linux_runner()
+	runner_env := determine_test_runners_spec_runner_env(linux_runner, ephemeral_suffix)
+	result := run_determine_test_runners(DetermineTestRunnersOptions{
+		named: ['testball']
+		github_output: github_output
+		github_run_id: runner_env['GITHUB_RUN_ID']
+		linux_arm_runner: arm_linux_runner
+		macos_long_timeout: runner_env['HOMEBREW_MACOS_LONG_TIMEOUT'] == 'true'
+		formulae: {
+			'testball': homebrew.TestRunnerFormulaDefinition{
+				name: 'testball'
+			}
+		}
+	})!
+	if !result.github_output_wrote || !os.exists(github_output)
+		|| os.read_file(github_output)!.len == 0 {
+		return false
+	}
+	mut actual := determine_test_runners_spec_get_runners(github_output, ephemeral_suffix)!
+	mut expected := determine_test_runners_spec_all_runners(linux_runner, arm_linux_runner)!
+	actual.sort()
+	expected.sort()
+	return actual == expected
+}
+
+pub fn determine_runner_test_helper_instances(state DetermineRunnerTestState) int {
+	return state.instances
+}
+
+pub fn determine_runner_test_helper_set_instances(mut state DetermineRunnerTestState,
+	instances int) {
+	state.instances = instances
+}
+
+pub fn determine_runner_test_helper_number(helper DetermineRunnerTestHelper) int {
+	return helper.number
+}
+
+pub fn determine_runner_test_helper_initialize(mut state DetermineRunnerTestState) DetermineRunnerTestHelper {
+	state.instances += 1
+	return DetermineRunnerTestHelper{
+		number: state.instances
+	}
+}
+
 // Ruby method `get_runners(file)` at line 8.
-pub fn ruby_determine_test_runners_spec_l8_d1_get_runners(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('get_runners', ...args)
+pub fn ruby_determine_test_runners_spec_l8_d1_get_runners(file string,
+	ephemeral_suffix string) ![]string {
+	return determine_test_runners_spec_get_runners(file, ephemeral_suffix)
 }
 
 // Ruby let `let(:arm_linux_runner) { OS::LINUX_CI_ARM_RUNNER }` at line 20.
-pub fn ruby_determine_test_runners_spec_l20_d2_arm_linux_runner(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('arm_linux_runner', ...args)
+pub fn ruby_determine_test_runners_spec_l20_d2_arm_linux_runner() string {
+	return determine_test_runners_spec_arm_linux_runner()
 }
 
 // Ruby let `let(:linux_runner) { "ubuntu-latest" }` at line 21.
-pub fn ruby_determine_test_runners_spec_l21_d3_linux_runner(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('linux_runner', ...args)
+pub fn ruby_determine_test_runners_spec_l21_d3_linux_runner() string {
+	return determine_test_runners_spec_linux_runner()
 }
 
 // Ruby let `let(:github_output) { "#{TEST_TMPDIR}/github_output#{DetermineRunnerTestHelper.new.number}" }` at line 23.
-pub fn ruby_determine_test_runners_spec_l23_d4_github_output(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('github_output', ...args)
+pub fn ruby_determine_test_runners_spec_l23_d4_github_output(test_tmpdir string,
+	mut state DetermineRunnerTestState) string {
+	return determine_test_runners_spec_github_output(test_tmpdir, mut state)
 }
 
 // Ruby let `let(:ephemeral_suffix) { "-12345" }` at line 24.
-pub fn ruby_determine_test_runners_spec_l24_d5_ephemeral_suffix(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ephemeral_suffix', ...args)
+pub fn ruby_determine_test_runners_spec_l24_d5_ephemeral_suffix() string {
+	return determine_test_runners_spec_ephemeral_suffix()
 }
 
 // Ruby let `let(:runner_env) do` at line 25.
-pub fn ruby_determine_test_runners_spec_l25_d6_runner_env(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('runner_env', ...args)
+pub fn ruby_determine_test_runners_spec_l25_d6_runner_env(linux_runner string,
+	ephemeral_suffix string) map[string]string {
+	return determine_test_runners_spec_runner_env(linux_runner, ephemeral_suffix)
 }
 
 // Ruby let `let(:all_runners) do` at line 32.
-pub fn ruby_determine_test_runners_spec_l32_d7_all_runners(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('all_runners', ...args)
+pub fn ruby_determine_test_runners_spec_l32_d7_all_runners(linux_runner string,
+	arm_linux_runner string) ![]string {
+	return determine_test_runners_spec_all_runners(linux_runner, arm_linux_runner)
 }
 
 // Ruby it `it "assigns all runners for formulae without any requirements", :integration_test do` at line 53.
-pub fn ruby_determine_test_runners_spec_l53_d8_assigns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('assigns', ...args)
+pub fn ruby_determine_test_runners_spec_l53_d8_assigns(test_tmpdir string) !bool {
+	return determine_test_runners_spec_assigns(test_tmpdir)
 }
 
 // Ruby attr_accessor `attr_accessor :instances` at line 69.
-pub fn ruby_determine_test_runners_spec_l69_d9_instances(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('instances', ...args)
+pub fn ruby_determine_test_runners_spec_l69_d9_instances(state DetermineRunnerTestState) int {
+	return determine_runner_test_helper_instances(state)
 }
 
 // Ruby attr_accessor `attr_accessor :instances` at line 69.
-pub fn ruby_determine_test_runners_spec_l69_d10_instances(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('instances=', ...args)
+pub fn ruby_determine_test_runners_spec_l69_d10_instances(mut state DetermineRunnerTestState,
+	instances int) {
+	determine_runner_test_helper_set_instances(mut state, instances)
 }
 
 // Ruby attr_reader `attr_reader :number` at line 72.
-pub fn ruby_determine_test_runners_spec_l72_d11_number(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('number', ...args)
+pub fn ruby_determine_test_runners_spec_l72_d11_number(helper DetermineRunnerTestHelper) int {
+	return determine_runner_test_helper_number(helper)
 }
 
 // Ruby method `initialize` at line 74.
-pub fn ruby_determine_test_runners_spec_l74_d12_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+pub fn ruby_determine_test_runners_spec_l74_d12_initialize(mut state DetermineRunnerTestState) DetermineRunnerTestHelper {
+	return determine_runner_test_helper_initialize(mut state)
 }
 
 // Original Ruby source (line-for-line):

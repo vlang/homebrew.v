@@ -1,18 +1,49 @@
 module utils
 
-import brew_runtime
+import homebrew.utils as homebrew_utils
+import json2
+import os
 
 // Translated from Homebrew/brew `test/utils/phase_timings_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby let `let(:output_path) { HOMEBREW_TEMP/"phase-timings.json" }` at line 7.
-pub fn ruby_phase_timings_spec_l7_d1_output_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('output_path', ...args)
+pub fn ruby_phase_timings_spec_l7_d1_output_path() string {
+	return os.join_path(os.temp_dir(), 'phase-timings.json')
 }
 
 // Ruby it `it "writes machine-readable phase events" do` at line 11.
-pub fn ruby_phase_timings_spec_l11_d2_writes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('writes', ...args)
+pub fn ruby_phase_timings_spec_l11_d2_writes() !bool {
+	output_path := ruby_phase_timings_spec_l7_d1_output_path()
+	defer {
+		os.rm(output_path) or {}
+	}
+	mut timings := homebrew_utils.new_phase_timings()
+	timings.start(output_path, homebrew_utils.phase_timings_monotonic_time(), [
+		'install',
+		'foo',
+	])
+	result := timings.measure('checksum', 'foo', fn () !string {
+		return 'result'
+	})!
+	if result != 'result' {
+		return false
+	}
+	timings.write()!
+	output := json2.decode[homebrew_utils.PhaseTimingsOutput](os.read_file(output_path)!)!
+	if output.schema_version != 1 || output.time_unit != 'microseconds' || output.command != [
+		'install',
+		'foo',
+	] {
+		return false
+	}
+	for event in output.events {
+		detail := event.detail or { continue }
+		if event.phase == 'checksum' && detail == 'foo' && event.start >= 0 && event.duration >= 0 && event.thread_id > 0 {
+			return true
+		}
+	}
+	return false
 }
 
 // Original Ruby source (line-for-line):

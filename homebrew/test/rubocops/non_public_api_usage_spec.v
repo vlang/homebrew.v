@@ -1,73 +1,86 @@
 module rubocops
 
 import brew_runtime
+import homebrew.rubocops as non_public_api_core
 
 // Translated from Homebrew/brew `test/rubocops/non_public_api_usage_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+const non_public_api_spec_internal_methods = ['tap', 'stable', 'recursive_dependencies']
+const non_public_api_spec_private_methods = ['skip_cxxstdlib_check']
+
+fn non_public_api_spec_formula(statement string) string {
+	return 'class Foo < Formula\n  def install\n    ${statement}\n  end\nend\n'
+}
+
+fn non_public_api_spec_audit(statement string, formula_tap string) []non_public_api_core.NonPublicApiUsageOffense {
+	return non_public_api_core.audit_non_public_api_usage_with_methods(non_public_api_spec_formula(statement), formula_tap, non_public_api_spec_internal_methods, non_public_api_spec_private_methods)
+}
 
 // Ruby subject `subject(:cop) { described_class.new }` at line 7.
 pub fn ruby_non_public_api_usage_spec_l7_d1_cop(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cop', ...args)
+	return brew_runtime.object_value('RuboCop::Cop::FormulaAudit::NonPublicApiUsage', 'FormulaAudit/NonPublicApiUsage')
 }
 
 // Ruby it `it "reports an offense for using `tap` (an @api internal method)" do` at line 20.
-pub fn ruby_non_public_api_usage_spec_l20_d2_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_non_public_api_usage_spec_l20_d2_reports() bool {
+	offenses := non_public_api_spec_audit('puts tap', 'homebrew-core')
+	return offenses.len == 1 && offenses[0].method == 'tap' && offenses[0].message == non_public_api_core.non_public_api_internal_message.replace_once('%s', 'tap')
 }
 
 // Ruby method `install` at line 23.
-pub fn ruby_non_public_api_usage_spec_l23_d3_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+pub fn ruby_non_public_api_usage_spec_l23_d3_install() string {
+	return 'puts tap'
 }
 
 // Ruby it `it "reports an offense for using `stable` (an @api internal method)" do` at line 31.
-pub fn ruby_non_public_api_usage_spec_l31_d4_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_non_public_api_usage_spec_l31_d4_reports() bool {
+	offenses := non_public_api_spec_audit('puts stable', 'homebrew-core')
+	return offenses.len == 1 && offenses[0].method == 'stable' && offenses[0].message == non_public_api_core.non_public_api_internal_message.replace_once('%s', 'stable')
 }
 
 // Ruby method `install` at line 34.
-pub fn ruby_non_public_api_usage_spec_l34_d5_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+pub fn ruby_non_public_api_usage_spec_l34_d5_install() string {
+	return 'puts stable'
 }
 
 // Ruby it `it "does not report an offense for using `bin` (an @api public method)" do` at line 42.
-pub fn ruby_non_public_api_usage_spec_l42_d6_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_non_public_api_usage_spec_l42_d6_does() bool {
+	return non_public_api_spec_audit('bin.install "foo"', 'homebrew-core').len == 0
 }
 
 // Ruby method `install` at line 45.
-pub fn ruby_non_public_api_usage_spec_l45_d7_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+pub fn ruby_non_public_api_usage_spec_l45_d7_install() string {
+	return 'bin.install "foo"'
 }
 
 // Ruby it `it "does not report an offense for using `prefix` (an @api public method)" do` at line 52.
-pub fn ruby_non_public_api_usage_spec_l52_d8_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_non_public_api_usage_spec_l52_d8_does() bool {
+	return non_public_api_spec_audit('prefix.install "README"', 'homebrew-core').len == 0
 }
 
 // Ruby method `install` at line 55.
-pub fn ruby_non_public_api_usage_spec_l55_d9_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+pub fn ruby_non_public_api_usage_spec_l55_d9_install() string {
+	return 'prefix.install "README"'
 }
 
 // Ruby it `it "does not flag method calls on non-Formula receivers" do` at line 62.
-pub fn ruby_non_public_api_usage_spec_l62_d10_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_non_public_api_usage_spec_l62_d10_does() bool {
+	return non_public_api_spec_audit('something.tap { |x| x }', 'homebrew-core').len == 0
 }
 
 // Ruby method `install` at line 65.
-pub fn ruby_non_public_api_usage_spec_l65_d11_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+pub fn ruby_non_public_api_usage_spec_l65_d11_install() string {
+	return 'something.tap { |x| x }'
 }
 
 // Ruby it `it "does not report an offense for using internal methods" do` at line 74.
-pub fn ruby_non_public_api_usage_spec_l74_d12_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_non_public_api_usage_spec_l74_d12_does() bool {
+	return non_public_api_spec_audit('puts tap', 'homebrew-mytap').len == 0
 }
 
 // Ruby method `install` at line 77.
-pub fn ruby_non_public_api_usage_spec_l77_d13_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+pub fn ruby_non_public_api_usage_spec_l77_d13_install() string {
+	return 'puts tap'
 }
 
 // Original Ruby source (line-for-line):

@@ -1,53 +1,112 @@
 module mac
 
 import brew_runtime
+import homebrew.extend.os.mac as keg_mac
+import os
+
+fn mac_keg_spec_path(name string) string {
+	return os.join_path(os.temp_dir(), 'brew-v-mac-keg-${os.getpid()}-${name}')
+}
+
+fn mac_keg_spec_make_macho(path string) ! {
+	os.mkdir_all(os.dir(path))!
+	os.write_file_array(path, [u8(0xfe), 0xed, 0xfa, 0xce, 0, 0, 0, 0])!
+}
+
+fn mac_keg_spec_hardlinks(include_symlink bool) bool {
+	root := mac_keg_spec_path(if include_symlink { 'symlink' } else { 'hardlink' })
+	os.rmdir_all(root) or {}
+	defer { os.rmdir_all(root) or {} }
+	file := os.join_path(root, 'lib', 'i386.dylib')
+	mac_keg_spec_make_macho(file) or { return false }
+	os.link(file, os.join_path(root, 'lib', 'i386_hardlink.dylib')) or { return false }
+	if include_symlink {
+		os.symlink(file, os.join_path(root, 'lib', 'i386_symlink.dylib')) or { return false }
+	}
+	return keg_mac.mac_keg_mach_o_files(root).len == 1
+}
+
+fn mac_keg_spec_signer(file string) ! {
+	if file == '' {
+		return error('missing file')
+	}
+}
+
+fn mac_keg_spec_invalid_signature_runner(command string,
+	arguments []string) keg_mac.MacKegCommandResult {
+	if command != 'codesign' {
+		return keg_mac.MacKegCommandResult{}
+	}
+	if arguments.len > 0 && arguments[0] == '--verify' {
+		return keg_mac.MacKegCommandResult{ stderr: '${arguments.last()}: invalid signature' }
+	}
+	return keg_mac.MacKegCommandResult{ success: true }
+}
+
+fn mac_keg_spec_unsigned_runner(command string,
+	arguments []string) keg_mac.MacKegCommandResult {
+	return keg_mac.MacKegCommandResult{
+		stderr: if arguments.len > 0 {
+			'${arguments.last()}: code object is not signed at all'} else {
+			command}
+	}
+}
 
 // Translated from Homebrew/brew `test/os/mac/keg_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:keg) { described_class.new(keg_path) }` at line 8.
 pub fn ruby_keg_spec_l8_d1_keg(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('keg', ...args)
+	path := if args.len > 0 { args[0].as_string() } else { mac_keg_spec_path('a/1.0') }
+	return brew_runtime.structured_value('Keg', path, {
+		'path': path
+	})
 }
 
 // Ruby let `let(:keg_path) { HOMEBREW_CELLAR/"a/1.0" }` at line 13.
 pub fn ruby_keg_spec_l13_d2_keg_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('keg_path', ...args)
+	return brew_runtime.string_value(mac_keg_spec_path('Cellar/a/1.0'))
 }
 
 // Ruby it `it "skips hardlinks" do` at line 19.
 pub fn ruby_keg_spec_l19_d3_skips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skips', ...args)
+	return brew_runtime.bool_value(mac_keg_spec_hardlinks(false))
 }
 
 // Ruby it `it "isn't confused by symlinks" do` at line 27.
 pub fn ruby_keg_spec_l27_d4_isn(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('isn', ...args)
+	return brew_runtime.bool_value(mac_keg_spec_hardlinks(true))
 }
 
 // Ruby let `let(:keg_path) { HOMEBREW_CELLAR/"a/1.0" }` at line 38.
 pub fn ruby_keg_spec_l38_d5_keg_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('keg_path', ...args)
+	return brew_runtime.string_value(mac_keg_spec_path('Cellar/a/1.0'))
 }
 
 // Ruby let `let(:file) { "#{keg_path}/bin/test" }` at line 39.
 pub fn ruby_keg_spec_l39_d6_file(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('file', ...args)
+	return brew_runtime.string_value(os.join_path(mac_keg_spec_path('Cellar/a/1.0'), 'bin', 'test'))
 }
 
 // Ruby it `it "signs patched binaries using ruby-macho on Apple Silicon" do` at line 46.
 pub fn ruby_keg_spec_l46_d7_signs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('signs', ...args)
+	file := mac_keg_spec_path('Cellar/a/1.0/bin/test')
+	result := keg_mac.mac_keg_codesign_patched_binary(file, 11, true, mac_keg_spec_unsigned_runner, mac_keg_spec_signer)
+	return brew_runtime.bool_value(result.signed && result.used_macho && result.attempted)
 }
 
 // Ruby it `it "re-signs binaries whose signature has been broken using codesign on Intel" do` at line 55.
 pub fn ruby_keg_spec_l55_d8_re_signs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('re-signs', ...args)
+	file := mac_keg_spec_path('Cellar/a/1.0/bin/test')
+	result := keg_mac.mac_keg_codesign_patched_binary(file, 11, false, mac_keg_spec_invalid_signature_runner, mac_keg_spec_signer)
+	return brew_runtime.bool_value(result.signed && !result.used_macho && result.attempted)
 }
 
 // Ruby it `it "does not sign unsigned binaries on Intel" do` at line 69.
 pub fn ruby_keg_spec_l69_d9_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	file := mac_keg_spec_path('Cellar/a/1.0/bin/test')
+	result := keg_mac.mac_keg_codesign_patched_binary(file, 11, false, mac_keg_spec_unsigned_runner, mac_keg_spec_signer)
+	return brew_runtime.bool_value(!result.signed && !result.attempted && !result.used_macho)
 }
 
 // Original Ruby source (line-for-line):

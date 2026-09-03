@@ -1,13 +1,25 @@
 module env
 
-import brew_runtime
-
 // Translated from Homebrew/brew `extend/os/linux/extend/ENV/shared.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub fn linux_effective_arch(build_bottle bool, bottle_arch string, oldest_cpu string,
+	is_intel bool, is_arm bool) string {
+	if build_bottle && bottle_arch != '' {
+		return bottle_arch
+	}
+	if build_bottle {
+		return oldest_cpu
+	}
+	if is_intel || is_arm {
+		return 'native'
+	}
+	return 'dunno'
+}
 
 // Ruby method `effective_arch` at line 12.
-pub fn ruby_shared_l12_d1_effective_arch(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('effective_arch', ...args)
+pub fn ruby_shared_l12_d1_effective_arch(build_bottle bool, bottle_arch string,
+	oldest_cpu string, is_intel bool, is_arm bool) string {
+	return linux_effective_arch(build_bottle, bottle_arch, oldest_cpu, is_intel, is_arm)
 }
 
 // Original Ruby source (line-for-line):

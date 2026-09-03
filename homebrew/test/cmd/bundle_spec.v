@@ -1,93 +1,162 @@
 module cmd
 
-import brew_runtime
+import homebrew.cmd as bundle_cmd
 
 // Translated from Homebrew/brew `test/cmd/bundle_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+fn bundle_spec_parse(argv []string, environment map[string]string) ?bundle_cmd.BundleCommandArgs {
+	return bundle_cmd.parse_bundle_command_args(argv, environment) or { none }
+}
+
+fn bundle_spec_external_command(argv []string, environment map[string]string,
+	command string) bool {
+	result := bundle_cmd.run_bundle_command(argv, bundle_cmd.BundleCommandConfig{
+		environment: environment
+	}) or { return false }
+	invocation := result.external_invocation
+	return invocation.command == command && invocation.options.check && invocation.options.no_secrets && !invocation.options.services && !invocation.options.global && invocation.options.file == ''
+}
 
 // Ruby it `it "handles default install subcommand options", :aggregate_failures do` at line 12.
-pub fn ruby_bundle_spec_l12_d1_handles(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('handles', ...args)
+pub fn ruby_bundle_spec_l12_d1_handles() bool {
+	default_args := bundle_spec_parse([], {}) or { return false }
+	option_args := bundle_spec_parse(['--force-cleanup', '--zap'], {}) or { return false }
+	return default_args.subcommand == 'install' && option_args.subcommand == 'install' && option_args.force_cleanup && option_args.zap
 }
 
 // Ruby it `it "maps bundle cleanup environment variables to install options", :aggregate_failures do` at line 19.
-pub fn ruby_bundle_spec_l19_d2_maps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('maps', ...args)
+pub fn ruby_bundle_spec_l19_d2_maps() bool {
+	cleanup_args := bundle_spec_parse(['--global'], {
+		'HOMEBREW_BUNDLE_INSTALL_CLEANUP': '1'
+	}) or { return false }
+	force_args := bundle_spec_parse(['--global'], {
+		'HOMEBREW_BUNDLE_FORCE_INSTALL_CLEANUP': '1'
+	}) or { return false }
+	return cleanup_args.cleanup && !cleanup_args.force_cleanup && !force_args.cleanup && force_args.force_cleanup
 }
 
 // Ruby it `it "rejects install-only options for exec" do` at line 33.
-pub fn ruby_bundle_spec_l33_d3_rejects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('rejects', ...args)
+pub fn ruby_bundle_spec_l33_d3_rejects() bool {
+	bundle_cmd.parse_bundle_command_args(['exec', '--jobs=1', 'true'], {}) or {
+		return err.msg().contains('`exec` subcommand does not accept the `--jobs` flag')
+	}
+	return false
 }
 
 // Ruby it `it "treats upgrade as install --upgrade", :aggregate_failures do` at line 38.
-pub fn ruby_bundle_spec_l38_d4_treats(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('treats', ...args)
+pub fn ruby_bundle_spec_l38_d4_treats() bool {
+	config := bundle_cmd.BundleCommandConfig{
+		environment: {
+			'HOMEBREW_BUNDLE_NO_UPGRADE': '1'
+		}
+	}
+	args := bundle_cmd.parse_bundle_command_args(['upgrade', '-fq'], config.environment) or {
+		return false
+	}
+	context := bundle_cmd.bundle_command_context(args, config, false)
+	return args.subcommand == 'install' && args.upgrade && args.force && args.quiet && context.subcommand == 'install' && !context.no_upgrade
 }
 
 // Ruby it `it "tracks ask mode in the subcommand context" do` at line 52.
-pub fn ruby_bundle_spec_l52_d5_tracks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tracks', ...args)
+pub fn ruby_bundle_spec_l52_d5_tracks() bool {
+	args := bundle_spec_parse(['cleanup'], {}) or { return false }
+	return bundle_cmd.bundle_command_context(args, bundle_cmd.BundleCommandConfig{}, true).ask
 }
 
 // Ruby it `it "lets HOMEBREW_BUNDLE_NO_JOBS disable env-driven parallel jobs" do` at line 59.
-pub fn ruby_bundle_spec_l59_d6_lets(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('lets', ...args)
+pub fn ruby_bundle_spec_l59_d6_lets() bool {
+	config := bundle_cmd.BundleCommandConfig{
+		environment: {
+			'HOMEBREW_BUNDLE_JOBS':    'auto'
+			'HOMEBREW_BUNDLE_NO_JOBS': '1'
+		}
+		processor_count: 8
+	}
+	args := bundle_cmd.parse_bundle_command_args([], config.environment) or { return false }
+	return bundle_cmd.bundle_command_context(args, config, false).jobs == 1
 }
 
 // Ruby it `it "disables ask mode for subcommands" do` at line 68.
-pub fn ruby_bundle_spec_l68_d7_disables(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('disables', ...args)
+pub fn ruby_bundle_spec_l68_d7_disables() bool {
+	result := bundle_cmd.run_bundle_command(['cleanup'], bundle_cmd.BundleCommandConfig{}) or {
+		return false
+	}
+	return result.context.ask && result.ask_environment_off && 'HOMEBREW_ASK' !in result.environment_after && result.environment_after['HOMEBREW_NO_ASK'] == '1'
 }
 
 // Ruby it `it "accepts global flags on subcommands that do not re-declare them", :aggregate_failures do` at line 82.
-pub fn ruby_bundle_spec_l82_d8_accepts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('accepts', ...args)
+pub fn ruby_bundle_spec_l82_d8_accepts() bool {
+	cleanup_long := bundle_spec_parse(['cleanup', '--verbose'], {}) or { return false }
+	cleanup_short := bundle_spec_parse(['cleanup', '-v'], {}) or { return false }
+	dump_args := bundle_spec_parse(['dump', '--verbose'], {}) or { return false }
+	list := bundle_spec_parse(['list', '--verbose'], {}) or { return false }
+	return cleanup_long.verbose && cleanup_short.verbose && dump_args.subcommand == 'dump' && dump_args.verbose && list.subcommand == 'list' && list.verbose
 }
 
 // Ruby it `it "uses subcommand-specific option descriptions", :aggregate_failures do` at line 89.
-pub fn ruby_bundle_spec_l89_d9_uses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uses', ...args)
+pub fn ruby_bundle_spec_l89_d9_uses() bool {
+	install := bundle_cmd.bundle_subcommand_options('install')
+	list := bundle_cmd.bundle_subcommand_options('list')
+	dump_options := bundle_cmd.bundle_subcommand_options('dump')
+	cleanup := bundle_cmd.bundle_subcommand_options('cleanup')
+	add := bundle_cmd.bundle_subcommand_options('add')
+	remove := bundle_cmd.bundle_subcommand_options('remove')
+	upgrade := bundle_cmd.bundle_subcommand_options('upgrade')
+	return '--ask' !in install && install['--force-cleanup'].contains('`\$HOMEBREW_BUNDLE_FORCE_INSTALL_CLEANUP`') && list['--vscode'] == 'List VSCode (and forks/variants) extensions.' && dump_options['--vscode'] == 'Dump VSCode (and forks/variants) extensions.' && dump_options['--no-mas'].contains('`dump` without Mac App Store dependencies.') && cleanup['--vscode'] == 'Clean up VSCode (and forks/variants) extensions.' && cleanup['--no-mas'].contains('`cleanup` without Mac App Store dependencies.') && cleanup['--all'] == 'Clean up all supported dependencies.' && cleanup['--force'] == "Actually perform cleanup operations and reset Homebrew's global trust store to the `Brewfile` values." && dump_options['--no-describe'].contains('Description comments are the default') && add['--no-describe'].contains('Description comments are the default') && add['--vscode'] == 'Add entries for VSCode (and forks/variants) extensions.' && remove['--vscode'] == 'Remove entries for VSCode (and forks/variants) extensions.' && upgrade['--force'] == 'Run with `--force`/`--overwrite`.'
 }
 
 // Ruby it `it "uses subcommand-specific descriptions in help output", :aggregate_failures do` at line 114.
-pub fn ruby_bundle_spec_l114_d10_uses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uses', ...args)
+pub fn ruby_bundle_spec_l114_d10_uses() bool {
+	help_text := bundle_cmd.bundle_help_text('list')
+	return help_text.contains('List VSCode (and forks/variants) extensions.') && !help_text.contains('Clean up VSCode (and forks/variants) extensions.')
 }
 
 // Ruby it `it "lets explicit dump type flags override environment disables", :aggregate_failures do` at line 121.
-pub fn ruby_bundle_spec_l121_d11_lets(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('lets', ...args)
+pub fn ruby_bundle_spec_l121_d11_lets() bool {
+	args := bundle_spec_parse(['dump', '--formula', '--mas'], {
+		'HOMEBREW_BUNDLE_DUMP_NO_BREW': '1'
+		'HOMEBREW_BUNDLE_DUMP_NO_MAS':  '1'
+	}) or { return false }
+	return args.selected_types['brew'] && args.selected_types['mas'] && !args.dump_disabled['brew'] && !args.dump_disabled['mas']
 }
 
 // Ruby it `it "lets explicit cleanup type flags override environment disables", :aggregate_failures do` at line 132.
-pub fn ruby_bundle_spec_l132_d12_lets(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('lets', ...args)
+pub fn ruby_bundle_spec_l132_d12_lets() bool {
+	args := bundle_spec_parse(['cleanup', '--formula', '--mas'], {
+		'HOMEBREW_BUNDLE_CLEANUP_NO_BREW': '1'
+		'HOMEBREW_BUNDLE_CLEANUP_NO_MAS':  '1'
+	}) or { return false }
+	return args.selected_types['brew'] && args.selected_types['mas'] && !args.cleanup_disabled['brew'] && !args.cleanup_disabled['mas']
 }
 
 // Ruby it `it "passes HOMEBREW_BUNDLE_CHECK through to exec" do` at line 143.
-pub fn ruby_bundle_spec_l143_d13_passes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('passes', ...args)
+pub fn ruby_bundle_spec_l143_d13_passes() bool {
+	return bundle_spec_external_command(['exec', '/usr/bin/true'], {
+		'HOMEBREW_BUNDLE_CHECK': '1'
+	}, '/usr/bin/true')
 }
 
 // Ruby it `it "passes --check through to exec" do` at line 161.
-pub fn ruby_bundle_spec_l161_d14_passes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('passes', ...args)
+pub fn ruby_bundle_spec_l161_d14_passes() bool {
+	return bundle_spec_external_command(['exec', '--check', '/usr/bin/true'], {}, '/usr/bin/true')
 }
 
 // Ruby it `it "passes --check through to sh" do` at line 178.
-pub fn ruby_bundle_spec_l178_d15_passes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('passes', ...args)
+pub fn ruby_bundle_spec_l178_d15_passes() bool {
+	return bundle_spec_external_command(['sh', '--check'], {}, 'sh')
 }
 
 // Ruby it `it "passes --check through to env" do` at line 195.
-pub fn ruby_bundle_spec_l195_d16_passes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('passes', ...args)
+pub fn ruby_bundle_spec_l195_d16_passes() bool {
+	return bundle_spec_external_command(['env', '--check'], {}, 'env')
 }
 
 // Ruby it `it "checks if a Brewfile's dependencies are satisfied", :integration_test do` at line 212.
-pub fn ruby_bundle_spec_l212_d17_checks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('checks', ...args)
+pub fn ruby_bundle_spec_l212_d17_checks() bool {
+	result := bundle_cmd.run_bundle_command(['check'], bundle_cmd.BundleCommandConfig{}) or {
+		return false
+	}
+	return result.check_result.exit_code == 0 && result.check_result.stdout == "The Brewfile's dependencies are satisfied.\n" && result.check_result.stderr == ''
 }
 
 // Original Ruby source (line-for-line):

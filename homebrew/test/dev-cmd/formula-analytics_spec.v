@@ -5,29 +5,126 @@ import brew_runtime
 // Translated from Homebrew/brew `test/dev-cmd/formula-analytics_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
+fn formula_analytics_spec_options(runner FormulaAnalyticsBridgeRunner) FormulaAnalyticsOptions {
+	return FormulaAnalyticsOptions{
+		library_path: '/brew/Library'
+		home_directory: '/home/brew'
+		python_version: '3.13'
+		environment: {
+			'HOMEBREW_INFLUXDB_TOKEN': 'token'
+		}
+		now_unix: 1_751_328_000
+		bridge_runner: runner
+	}
+}
+
+fn formula_analytics_spec_ranked_bridge(request FormulaAnalyticsBridgeRequest) !FormulaAnalyticsBridgeResponse {
+	if !request.query.contains('FROM "command_run"') {
+		return error('unexpected analytics bucket')
+	}
+	return FormulaAnalyticsBridgeResponse{
+		stdout: [
+			'{"env_config":"HOMEBREW_BAT","env_config_state":"non_default","count":2}',
+			'{"env_config":"HOMEBREW_BAT","env_config_state":"default","count":3}',
+			'{"env_config":"HOMEBREW_BAT","env_config_state":"unset","count":5}',
+			'{"env_config":"HOMEBREW_NO_AUTO_UPDATE","env_config_state":"non_default","count":1}',
+			'{"env_config":"HOMEBREW_NO_AUTO_UPDATE","env_config_state":"unset","count":1}',
+			'{"env_config":"HOMEBREW_MAKE_JOBS","env_config_state":"default","count":4}',
+			'{"env_config":"HOMEBREW_TOTALLY_MADE_UP","env_config_state":"non_default","count":100}',
+			'{"env_config":"HOMEBREW_BAT","env_config_state":"borked","count":50}',
+		].join('\n') + '\n'
+	}
+}
+
+fn formula_analytics_spec_echo_bridge(request FormulaAnalyticsBridgeRequest) !FormulaAnalyticsBridgeResponse {
+	return FormulaAnalyticsBridgeResponse{
+		stdout: request.request_json + '\n'
+	}
+}
+
+fn formula_analytics_spec_unauthenticated_bridge(_request FormulaAnalyticsBridgeRequest) !FormulaAnalyticsBridgeResponse {
+	return FormulaAnalyticsBridgeResponse{
+		exit_code: 1
+		stderr: 'pyarrow.flight.FlightUnauthenticatedError: message: unauthenticated\n'
+	}
+}
+
+fn formula_analytics_spec_failing_bridge(_request FormulaAnalyticsBridgeRequest) !FormulaAnalyticsBridgeResponse {
+	return FormulaAnalyticsBridgeResponse{
+		exit_code: 1
+		stderr: 'Traceback: boom\n'
+	}
+}
+
 // Ruby it `it "preserves WSL in formatted Linux versions" do` at line 13.
 pub fn ruby_formula_analytics_spec_l13_d1_preserves(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('preserves', ...args)
+	formatted := format_os_version_dimension('Ubuntu 24.04.3 LTS${formula_analytics_wsl_suffix}') or {
+		return brew_runtime.bool_value(false)
+	}
+	return brew_runtime.bool_value(formatted == 'Ubuntu 24.04 LTS${formula_analytics_wsl_suffix}')
 }
 
 // Ruby it `it "ranks sampled environment configurations by non-default use" do` at line 21.
 pub fn ruby_formula_analytics_spec_l21_d2_ranks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ranks', ...args)
+	base := formula_analytics_spec_options(formula_analytics_spec_ranked_bridge)
+	options := FormulaAnalyticsOptions{
+		...base
+		homebrew_env_config: true
+	}
+	reports, _ := run_formula_analytics_query(options) or {
+		return brew_runtime.bool_value(false)
+	}
+	if reports.len != 1 {
+		return brew_runtime.bool_value(false)
+	}
+	report := reports[0]
+	valid := report.category == 'homebrew_env_config' && report.total_items == 3
+		&& report.total_count == 16 && report.items.len == 3
+		&& report.query.contains('FROM "command_run"')
+		&& report.query.contains('env_config_state IS NOT NULL')
+		&& report.query.contains('GROUP BY "env_config","env_config_state"')
+		&& report.items[0].dimension == 'HOMEBREW_NO_AUTO_UPDATE'
+		&& report.items[0].formatted_count == '2' && report.items[0].percent == '50'
+		&& report.items[1].dimension == 'HOMEBREW_BAT'
+		&& report.items[1].formatted_count == '10' && report.items[1].percent == '20'
+		&& report.items[2].dimension == 'HOMEBREW_MAKE_JOBS'
+		&& report.items[2].formatted_count == '4' && report.items[2].percent == '0'
+		&& report.items[2].default_value == 'The number of available CPU cores.'
+	return brew_runtime.bool_value(valid)
 }
 
 // Ruby it `it "streams the JSON request to the bridge script and parses JSON lines" do` at line 74.
 pub fn ruby_formula_analytics_spec_l74_d3_streams(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('streams', ...args)
+	options := formula_analytics_spec_options(formula_analytics_spec_echo_bridge)
+	records := each_formula_analytics_influx_record('SELECT 1', options) or {
+		return brew_runtime.bool_value(false)
+	}
+	if records.len != 1 {
+		return brew_runtime.bool_value(false)
+	}
+	record := records[0]
+	return brew_runtime.bool_value(formula_analytics_field(record, 'host') == formula_analytics_influx_host
+		&& formula_analytics_field(record, 'org') == formula_analytics_influx_org
+		&& formula_analytics_field(record, 'database') == formula_analytics_influx_bucket
+		&& formula_analytics_field(record, 'query') == 'SELECT 1')
 }
 
 // Ruby it `it "reports unauthenticated bridge errors as a token problem" do` at line 92.
 pub fn ruby_formula_analytics_spec_l92_d4_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	options := formula_analytics_spec_options(formula_analytics_spec_unauthenticated_bridge)
+	each_formula_analytics_influx_record('SELECT 1', options) or {
+		return brew_runtime.bool_value(err.msg().contains('Could not authenticate with InfluxDB'))
+	}
+	return brew_runtime.bool_value(false)
 }
 
 // Ruby it `it "reports other bridge failures with their standard error output" do` at line 109.
 pub fn ruby_formula_analytics_spec_l109_d5_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	options := formula_analytics_spec_options(formula_analytics_spec_failing_bridge)
+	each_formula_analytics_influx_record('SELECT 1', options) or {
+		return brew_runtime.bool_value(err.msg().contains('InfluxDB query failed:\nTraceback: boom'))
+	}
+	return brew_runtime.bool_value(false)
 }
 
 // Original Ruby source (line-for-line):

@@ -1,13 +1,15 @@
 module cmd
 
-import brew_runtime
+import homebrew.cmd as brew_cmd
 
 // Translated from Homebrew/brew `test/cmd/casks_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "prints all installed Casks", :integration_test do` at line 5.
-pub fn ruby_casks_spec_l5_d1_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+pub fn ruby_casks_spec_l5_d1_prints() bool {
+	return brew_cmd.cask_lines([
+		brew_cmd.CaskListing{ full_name: 'homebrew/cask/firefox', token: 'firefox' },
+	]).len == 2
 }
 
 // Original Ruby source (line-for-line):

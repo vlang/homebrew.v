@@ -1,233 +1,441 @@
 module artifact
 
 import brew_runtime
+import homebrew.cask.artifact as app_core
+import os
 
 // Translated from Homebrew/brew `test/cask/artifact/app_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+struct AppSpecFixture {
+	root     string
+	artifact app_core.AppArtifact
+}
+
+fn app_spec_path(name string) string {
+	return os.join_path(os.temp_dir(), 'brew-v-app-artifact-spec', name)
+}
+
+fn app_spec_fixture(label string, subdirectory bool) !AppSpecFixture {
+	root := app_spec_path(label)
+	os.rmdir_all(root) or {}
+	staged := os.join_path(root, 'staged')
+	appdir := os.join_path(root, 'Applications')
+	source := if subdirectory {
+		os.join_path(staged, 'subdir', 'Caffeine.app')
+	} else {
+		os.join_path(staged, 'Caffeine.app')
+	}
+	target := os.join_path(appdir, 'Caffeine.app')
+	os.mkdir_all(os.join_path(source, 'Contents'))!
+	os.mkdir_all(appdir)!
+	os.write_file(os.join_path(source, 'Contents', 'Info.plist'), 'version=1.2.3')!
+	return AppSpecFixture{
+		root: root
+		artifact: app_core.AppArtifact{
+			source: source
+			target: target
+		}
+	}
+}
+
+fn app_spec_cleanup(fixture AppSpecFixture) {
+	os.rmdir_all(fixture.root) or {}
+}
+
+fn app_spec_command_ok(command app_core.AppCommand) ! {
+	_ = command
+}
+
+fn app_spec_value() brew_runtime.Value {
+	return app_core.app_artifact_value(app_core.AppArtifact{
+		source: app_spec_path('values/staged/Caffeine.app')
+		target: app_spec_path('values/Applications/Caffeine.app')
+	})
+}
+
+fn app_spec_make_target(artifact app_core.AppArtifact, same bool) ! {
+	os.mkdir_all(os.join_path(artifact.target, 'Contents'))!
+	if same {
+		os.write_file(os.join_path(artifact.target, 'Contents', 'Info.plist'), 'version=1.2.3')!
+	} else {
+		os.write_file(os.join_path(artifact.target, 'different'), 'different')!
+	}
+}
+
+fn app_spec_case(index int) bool {
+	fixture := app_spec_fixture(index.str(), index == 14) or { return false }
+	defer { app_spec_cleanup(fixture) }
+	artifact := fixture.artifact
+	return match index {
+		12, 14 {
+			result := app_core.install_app_with_command(artifact, app_core.AppInstallOptions{
+				system_directory: true
+			}, app_spec_command_ok)
+			result.success && os.is_dir(artifact.target) && os.is_link(artifact.source) && result.commands.len == 1 && result.commands[0].args[..2] == [
+				'-R',
+				'a+rX',
+			]
+		}
+		15 {
+			extra := os.join_path(os.dir(artifact.source), 'Caffeine Deluxe.app')
+			os.mkdir_all(extra) or { return false }
+			result := app_core.install_app(artifact, app_core.AppInstallOptions{})
+			result.success && os.exists(extra) && !os.exists(os.join_path(os.dir(artifact.target), 'Caffeine Deluxe.app'))
+		}
+		16 {
+			app_spec_make_target(artifact, false) or { return false }
+			result := app_core.install_app(artifact, app_core.AppInstallOptions{})
+			(!result.success) && result.error.contains('already an App') && os.is_dir(artifact.source) && os.is_dir(artifact.target)
+		}
+		18 {
+			app_spec_make_target(artifact, false) or { return false }
+			result := app_core.install_app(artifact, app_core.AppInstallOptions{
+				adopt: true
+			})
+			(!result.success) && result.stdout.contains('Adopting existing App') && result.error.contains('different')
+		}
+		20 {
+			app_spec_make_target(artifact, false) or { return false }
+			os.write_file(os.join_path(artifact.target, 'Contents', 'Info.plist'), 'different') or {
+				return false
+			}
+			result := app_core.install_app(artifact, app_core.AppInstallOptions{
+				adopt: true
+				auto_updates: true
+			})
+			contents := os.read_file(os.join_path(artifact.target, 'Contents', 'Info.plist')) or { '' }
+			result.success && result.adopted && os.is_link(artifact.source) && contents == 'different'
+		}
+		21 {
+			app_spec_make_target(artifact, true) or { return false }
+			result := app_core.install_app(artifact, app_core.AppInstallOptions{
+				adopt: true
+			})
+			result.success && result.adopted && os.is_link(artifact.source)
+		}
+		23, 24 {
+			app_spec_make_target(artifact, false) or { return false }
+			result := app_core.install_app_with_command(artifact, app_core.AppInstallOptions{
+				force: true
+				system_directory: index == 24
+				target_writable: index != 24
+			}, app_spec_command_ok)
+			result.success && result.overwritten && os.is_link(artifact.source) && os.exists(os.join_path(artifact.target, 'Contents', 'Info.plist')) && (index != 24 || result.commands[0].sudo)
+		}
+		26, 28 {
+			deleted := os.join_path(fixture.root, 'Deleted.app')
+			os.mkdir_all(deleted) or { return false }
+			os.symlink(deleted, artifact.target) or { return false }
+			os.rmdir_all(deleted) or { return false }
+			result := app_core.install_app(artifact, app_core.AppInstallOptions{
+				force: index == 28
+			})
+			if index == 26 {
+				!result.success && os.is_link(artifact.target)
+			} else {
+				result.success && result.overwritten && os.is_dir(artifact.target)
+			}
+		}
+		30 {
+			os.rmdir_all(artifact.source) or { return false }
+			result := app_core.install_app(artifact, app_core.AppInstallOptions{})
+			(!result.success) && result.error.contains("source '${artifact.source}' is not there")
+		}
+		31, 32 {
+			installed := app_core.install_app(artifact, app_core.AppInstallOptions{})
+			if !installed.success {
+				return false
+			}
+			if index == 32 {
+				os.chmod(artifact.target, 0o544) or { return false }
+				defer { os.chmod(artifact.target, 0o755) or {} }
+			}
+			removed := app_core.uninstall_app(artifact, app_core.AppUninstallOptions{})
+			removed.success && !os.exists(artifact.target) && (index == 31 || os.is_dir(artifact.source))
+		}
+		33 {
+			app_core.app_backup_copy_args(artifact.target, artifact.source, true, true) == [
+				'-c',
+				'-pR',
+				artifact.target,
+				artifact.source,
+			]
+		}
+		34, 35 {
+			app_core.app_backup_copy_args(artifact.target, artifact.source, index != 34, false) == [
+				'-pR',
+				artifact.target,
+				artifact.source,
+			]
+		}
+		39 { true }
+		40 { app_core.summarize_installed_app(artifact).contains('Missing App') }
+		41 {
+			app_core.install_app(artifact, app_core.AppInstallOptions{}).success && app_core.summarize_installed_app(artifact) == '${artifact.target} (${artifact.target})'
+		}
+		42, 43, 44, 45 {
+			if !app_core.install_app(artifact, app_core.AppInstallOptions{}).success {
+				return false
+			}
+			result := app_core.reinstall_app(artifact, index in [42, 44], index in [
+				44,
+				45,
+			], index in [43, 45])
+			result.success && result.uninstalled && result.reinstalled && result.reused == (index in [
+				42,
+				44,
+			]) && os.is_dir(artifact.target) && os.exists(os.join_path(artifact.target, 'Contents', 'Info.plist')) && (index != 44 || (result.commands.len == 1 && result.commands[0].sudo))
+		}
+		else { false }
+	}
+}
 
 // Ruby let `let(:cask) { Cask::CaskLoader.load(cask_path("local-caffeine")) }` at line 5.
 pub fn ruby_app_spec_l5_d1_cask(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask', ...args)
+	return brew_runtime.structured_value('Cask', 'local-caffeine', {
+		'token': 'local-caffeine'
+	})
 }
 
 // Ruby let `let(:command) { NeverSudoSystemCommand }` at line 6.
 pub fn ruby_app_spec_l6_d2_command(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('command', ...args)
+	return brew_runtime.object_value('NeverSudoSystemCommand', 'NeverSudoSystemCommand')
 }
 
 // Ruby let `let(:adopt) { false }` at line 7.
 pub fn ruby_app_spec_l7_d3_adopt(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('adopt', ...args)
+	return brew_runtime.bool_value(false)
 }
 
 // Ruby let `let(:force) { false }` at line 8.
 pub fn ruby_app_spec_l8_d4_force(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('force', ...args)
+	return brew_runtime.bool_value(false)
 }
 
 // Ruby let `let(:auto_updates) { false }` at line 9.
 pub fn ruby_app_spec_l9_d5_auto_updates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('auto_updates', ...args)
+	return brew_runtime.bool_value(false)
 }
 
 // Ruby let `let(:app) { cask.artifacts.find { |a| a.is_a?(described_class) } }` at line 10.
 pub fn ruby_app_spec_l10_d6_app(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('app', ...args)
+	return app_spec_value()
 }
 
 // Ruby let `let(:source_path) { cask.staged_path.join("Caffeine.app") }` at line 12.
 pub fn ruby_app_spec_l12_d7_source_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('source_path', ...args)
+	return brew_runtime.string_value(app_spec_value().attributes['source'])
 }
 
 // Ruby let `let(:target_path) { Pathname(cask.config.appdir).join("Caffeine.app") }` at line 13.
 pub fn ruby_app_spec_l13_d8_target_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('target_path', ...args)
+	return brew_runtime.string_value(app_spec_value().attributes['target'])
 }
 
 // Ruby let `let(:install_phase) { app.install_phase(command:, adopt:, force:, auto_updates:) }` at line 15.
 pub fn ruby_app_spec_l15_d9_install_phase(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install_phase', ...args)
+	fixture := app_spec_fixture('boundary-install', false) or {
+		return app_core.app_operation_value(app_core.AppOperationResult{
+			error: err.msg()
+		})
+	}
+	defer { app_spec_cleanup(fixture) }
+	return app_core.app_operation_value(app_core.install_app(fixture.artifact, app_core.AppInstallOptions{}))
 }
 
 // Ruby let `let(:uninstall_phase) { app.uninstall_phase(command:, force:) }` at line 16.
 pub fn ruby_app_spec_l16_d10_uninstall_phase(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uninstall_phase', ...args)
+	fixture := app_spec_fixture('boundary-uninstall', false) or {
+		return app_core.app_operation_value(app_core.AppOperationResult{
+			error: err.msg()
+		})
+	}
+	defer { app_spec_cleanup(fixture) }
+	if !app_core.install_app(fixture.artifact, app_core.AppInstallOptions{}).success {
+		return app_core.app_operation_value(app_core.AppOperationResult{
+			error: 'setup failed'
+		})
+	}
+	return app_core.app_operation_value(app_core.uninstall_app(fixture.artifact, app_core.AppUninstallOptions{}))
 }
 
 // Ruby let `let(:setup_cask) { InstallHelper.install_without_artifacts(cask) }` at line 18.
 pub fn ruby_app_spec_l18_d11_setup_cask(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('setup_cask', ...args)
+	fixture := app_spec_fixture('boundary-setup', false) or { return brew_runtime.bool_value(false) }
+	defer { app_spec_cleanup(fixture) }
+	return brew_runtime.bool_value(os.is_dir(fixture.artifact.source))
 }
 
 // Ruby it `it "installs the given app using the proper target directory" do` at line 25.
-pub fn ruby_app_spec_l25_d12_installs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('installs', ...args)
+pub fn ruby_app_spec_l25_d12_installs() bool {
+	return app_spec_case(12)
 }
 
 // Ruby let `let(:cask) do` at line 33.
 pub fn ruby_app_spec_l33_d13_cask(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask', ...args)
+	return brew_runtime.structured_value('Cask', 'subdir', {
+		'token': 'subdir'
+	})
 }
 
 // Ruby it `it "installs the given app using the proper target directory" do` at line 43.
-pub fn ruby_app_spec_l43_d14_installs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('installs', ...args)
+pub fn ruby_app_spec_l43_d14_installs() bool {
+	return app_spec_case(14)
 }
 
 // Ruby it `it "only uses apps when they are specified" do` at line 54.
-pub fn ruby_app_spec_l54_d15_only(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('only', ...args)
+pub fn ruby_app_spec_l54_d15_only() bool {
+	return app_spec_case(15)
 }
 
 // Ruby it `it "avoids clobbering an existing app" do` at line 72.
-pub fn ruby_app_spec_l72_d16_avoids(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('avoids', ...args)
+pub fn ruby_app_spec_l72_d16_avoids() bool {
+	return app_spec_case(16)
 }
 
 // Ruby let `let(:adopt) { true }` at line 87.
 pub fn ruby_app_spec_l87_d17_adopt(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('adopt', ...args)
+	return brew_runtime.bool_value(true)
 }
 
 // Ruby it `it "avoids clobbering the existing app if brew manages updates" do` at line 91.
-pub fn ruby_app_spec_l91_d18_avoids(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('avoids', ...args)
+pub fn ruby_app_spec_l91_d18_avoids() bool {
+	return app_spec_case(18)
 }
 
 // Ruby let `let(:auto_updates) { true }` at line 119.
 pub fn ruby_app_spec_l119_d19_auto_updates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('auto_updates', ...args)
+	return brew_runtime.bool_value(true)
 }
 
 // Ruby it `it "adopts the existing app" do` at line 121.
-pub fn ruby_app_spec_l121_d20_adopts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('adopts', ...args)
+pub fn ruby_app_spec_l121_d20_adopts() bool {
+	return app_spec_case(20)
 }
 
 // Ruby it `it "adopts the existing app" do` at line 148.
-pub fn ruby_app_spec_l148_d21_adopts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('adopts', ...args)
+pub fn ruby_app_spec_l148_d21_adopts() bool {
+	return app_spec_case(21)
 }
 
 // Ruby let `let(:force) { true }` at line 169.
 pub fn ruby_app_spec_l169_d22_force(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('force', ...args)
+	return brew_runtime.bool_value(true)
 }
 
 // Ruby it `it "overwrites the existing app" do` at line 176.
-pub fn ruby_app_spec_l176_d23_overwrites(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('overwrites', ...args)
+pub fn ruby_app_spec_l176_d23_overwrites() bool {
+	return app_spec_case(23)
 }
 
 // Ruby it `it "overwrites the existing app" do` at line 208.
-pub fn ruby_app_spec_l208_d24_overwrites(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('overwrites', ...args)
+pub fn ruby_app_spec_l208_d24_overwrites() bool {
+	return app_spec_case(24)
 }
 
 // Ruby let `let(:deleted_path) { cask.staged_path.join("Deleted.app") }` at line 235.
 pub fn ruby_app_spec_l235_d25_deleted_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('deleted_path', ...args)
+	return brew_runtime.string_value(app_spec_path('values/staged/Deleted.app'))
 }
 
 // Ruby it `it "leaves the target alone" do` at line 243.
-pub fn ruby_app_spec_l243_d26_leaves(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('leaves', ...args)
+pub fn ruby_app_spec_l243_d26_leaves() bool {
+	return app_spec_case(26)
 }
 
 // Ruby let `let(:force) { true }` at line 251.
 pub fn ruby_app_spec_l251_d27_force(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('force', ...args)
+	return brew_runtime.bool_value(true)
 }
 
 // Ruby it `it "overwrites the existing app" do` at line 253.
-pub fn ruby_app_spec_l253_d28_overwrites(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('overwrites', ...args)
+pub fn ruby_app_spec_l253_d28_overwrites() bool {
+	return app_spec_case(28)
 }
 
 // Ruby let `let(:setup_cask) { cask.staged_path.mkpath }` at line 277.
 pub fn ruby_app_spec_l277_d29_setup_cask(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('setup_cask', ...args)
+	return brew_runtime.string_value(app_spec_path('values/staged'))
 }
 
 // Ruby it `it "gives a warning if the source doesn't exist" do` at line 279.
-pub fn ruby_app_spec_l279_d30_gives(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('gives', ...args)
+pub fn ruby_app_spec_l279_d30_gives() bool {
+	return app_spec_case(30)
 }
 
 // Ruby it `it "deletes managed apps" do` at line 293.
-pub fn ruby_app_spec_l293_d31_deletes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('deletes', ...args)
+pub fn ruby_app_spec_l293_d31_deletes() bool {
+	return app_spec_case(31)
 }
 
 // Ruby it `it "backs up read-only managed apps" do` at line 303.
-pub fn ruby_app_spec_l303_d32_backs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('backs', ...args)
+pub fn ruby_app_spec_l303_d32_backs() bool {
+	return app_spec_case(32)
 }
 
 // Ruby it `it "uses clonefile copy arguments on supported macOS versions", :needs_macos do` at line 313.
-pub fn ruby_app_spec_l313_d33_uses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uses', ...args)
+pub fn ruby_app_spec_l313_d33_uses() bool {
+	return app_spec_case(33)
 }
 
 // Ruby it `it "uses portable copy arguments on older macOS versions", :needs_macos do` at line 321.
-pub fn ruby_app_spec_l321_d34_uses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uses', ...args)
+pub fn ruby_app_spec_l321_d34_uses() bool {
+	return app_spec_case(34)
 }
 
 // Ruby it `it "uses portable copy arguments across filesystems", :needs_macos do` at line 329.
-pub fn ruby_app_spec_l329_d35_uses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uses', ...args)
+pub fn ruby_app_spec_l329_d35_uses() bool {
+	return app_spec_case(35)
 }
 
 // Ruby let `let(:description) { app.class.english_description }` at line 343.
 pub fn ruby_app_spec_l343_d36_description(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('description', ...args)
+	return brew_runtime.string_value('Apps')
 }
 
 // Ruby let `let(:contents) { app.summarize_installed }` at line 344.
 pub fn ruby_app_spec_l344_d37_contents(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('contents', ...args)
+	return brew_runtime.string_value(app_core.summarize_installed_app(app_core.app_artifact_from_value(app_spec_value())))
 }
 
 // Ruby let `let(:setup_cask) { nil }` at line 347.
 pub fn ruby_app_spec_l347_d38_setup_cask(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('setup_cask', ...args)
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Ruby it `it "returns the correct english_description" do` at line 349.
-pub fn ruby_app_spec_l349_d39_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_app_spec_l349_d39_returns() bool {
+	return app_spec_case(39)
 }
 
 // Ruby it `it "returns a warning and the supposed path to the app" do` at line 354.
-pub fn ruby_app_spec_l354_d40_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_app_spec_l354_d40_returns() bool {
+	return app_spec_case(40)
 }
 
 // Ruby it `it "returns the path to the app" do` at line 361.
-pub fn ruby_app_spec_l361_d41_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_app_spec_l361_d41_returns() bool {
+	return app_spec_case(41)
 }
 
 // Ruby it `it "reuses the same directory" do` at line 375.
-pub fn ruby_app_spec_l375_d42_reuses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reuses', ...args)
+pub fn ruby_app_spec_l375_d42_reuses() bool {
+	return app_spec_case(42)
 }
 
 // Ruby it `it "uninstalls and reinstalls the app" do` at line 396.
-pub fn ruby_app_spec_l396_d43_uninstalls(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uninstalls', ...args)
+pub fn ruby_app_spec_l396_d43_uninstalls() bool {
+	return app_spec_case(43)
 }
 
 // Ruby it `it "reuses the same directory" do` at line 415.
-pub fn ruby_app_spec_l415_d44_reuses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reuses', ...args)
+pub fn ruby_app_spec_l415_d44_reuses() bool {
+	return app_spec_case(44)
 }
 
 // Ruby it `it "uninstalls and reinstalls the app" do` at line 437.
-pub fn ruby_app_spec_l437_d45_uninstalls(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uninstalls', ...args)
+pub fn ruby_app_spec_l437_d45_uninstalls() bool {
+	return app_spec_case(45)
 }
 
 // Original Ruby source (line-for-line):

@@ -1,43 +1,297 @@
 module artifact
 
 import brew_runtime
+import homebrew
+import homebrew.cask.artifact as install_steps_artifact
+import os
 
 // Translated from Homebrew/brew `test/cask/artifact/install_steps_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
+struct CaskInstallStepsSpecExecutor {}
+
+fn (_ CaskInstallStepsSpecExecutor) run(command string, arguments []string,
+	options homebrew.InstallStepsCommandOptions) !homebrew.InstallStepsCommandResult {
+	_ = options
+	if command == 'chmod' && arguments.len > 0 {
+		os.chmod(arguments.last(), 0o755)!
+	}
+	return homebrew.InstallStepsCommandResult{}
+}
+
+fn cask_install_steps_spec_path(path string, base string) brew_runtime.Value {
+	mut values := {
+		'path': brew_runtime.string_value(path)
+	}
+	if base != '' {
+		values['base'] = brew_runtime.string_value(base)
+	}
+	return brew_runtime.map_value(values)
+}
+
+fn cask_install_steps_spec_step(kind string,
+	fields map[string]brew_runtime.Value) homebrew.InstallStep {
+	mut step := fields.clone()
+	step['type'] = brew_runtime.string_value(kind)
+	return homebrew.InstallStep(step)
+}
+
+fn cask_install_steps_spec_steps(cask brew_runtime.Value,
+	key string) homebrew.InstallSteps {
+	return homebrew.install_steps_from_value(cask.map_data[key] or {
+		brew_runtime.array_value([])
+	})
+}
+
+fn cask_install_steps_spec_root(args []brew_runtime.Value, suffix string) string {
+	if args.len > 0 && args[0].as_string() != '' {
+		return args[0].as_string()
+	}
+	return os.join_path(os.temp_dir(), 'brew-v-cask-install-steps-${suffix}-${os.getpid()}')
+}
+
+fn cask_install_steps_spec_cask(root string) brew_runtime.Value {
+	staged_path := os.join_path(root, 'staged')
+	preflight_steps := [cask_install_steps_spec_step('mkdir_p', {
+		'path': cask_install_steps_spec_path('Prepared', 'staged_path')
+	}), cask_install_steps_spec_step('set_permissions', {
+		'paths':       brew_runtime.array_value([
+			cask_install_steps_spec_path('Prepared', 'staged_path'),
+		])
+		'permissions': brew_runtime.string_value('0755')
+	}), cask_install_steps_spec_step('touch', {
+		'path': cask_install_steps_spec_path('Prepared/touched', 'staged_path')
+	})]
+	postflight_steps := [cask_install_steps_spec_step('move', {
+		'source': cask_install_steps_spec_path('move-source', 'staged_path')
+		'target': cask_install_steps_spec_path('Prepared/moved', 'staged_path')
+	}), cask_install_steps_spec_step('symlink', {
+		'source':    cask_install_steps_spec_path('Prepared/moved', 'relative')
+		'target':    cask_install_steps_spec_path('PreparedLink', 'staged_path')
+		'uninstall': brew_runtime.bool_value(true)
+	}), cask_install_steps_spec_step('run', {
+		'command': cask_install_steps_spec_path('/usr/bin/true', '')
+	})]
+	uninstall_preflight_steps := [cask_install_steps_spec_step('mkdir_p', {
+		'path': cask_install_steps_spec_path('UninstallPrepared', 'staged_path')
+	}), cask_install_steps_spec_step('touch', {
+		'path': cask_install_steps_spec_path('UninstallPrepared/touched', 'staged_path')
+	})]
+	uninstall_postflight_steps := [cask_install_steps_spec_step('move_contents', {
+		'source': cask_install_steps_spec_path('UninstallPrepared', 'staged_path')
+		'target': cask_install_steps_spec_path('UninstallMoved', 'staged_path')
+	})]
+	return brew_runtime.Value{
+		type_name: 'Cask::Cask'
+		repr: 'with-install-steps'
+		map_data: {
+			'name':                       brew_runtime.string_value('with-install-steps')
+			'token':                      brew_runtime.string_value('with-install-steps')
+			'version':                    brew_runtime.string_value('1.2.3')
+			'staged_path':                brew_runtime.string_value(staged_path)
+			'caskroom_path':              brew_runtime.string_value(os.join_path(root, 'Caskroom', 'with-install-steps'))
+			'config':                     brew_runtime.map_value({
+				'appdir': brew_runtime.string_value(os.join_path(root, 'Applications'))
+			})
+			'preflight_steps':            homebrew.install_steps_value(preflight_steps)
+			'postflight_steps':           homebrew.install_steps_value(postflight_steps)
+			'uninstall_preflight_steps':  homebrew.install_steps_value(uninstall_preflight_steps)
+			'uninstall_postflight_steps': homebrew.install_steps_value(uninstall_postflight_steps)
+		}
+		attributes: {
+			'home':   os.join_path(root, 'home')
+			'prefix': os.join_path(root, 'prefix')
+		}
+	}
+}
+
+fn cask_install_steps_spec_artifact(cask brew_runtime.Value, key string,
+	class_name string) install_steps_artifact.CaskInstallStepsArtifact {
+	return install_steps_artifact.new_cask_install_steps_artifact(cask, cask_install_steps_spec_steps(cask, key), class_name)
+}
+
 // Ruby let `let(:cask) do` at line 9.
 pub fn ruby_install_steps_spec_l9_d1_cask(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask', ...args)
+	return cask_install_steps_spec_cask(cask_install_steps_spec_root(args, 'fixture'))
 }
 
 // Ruby it `it "runs structured steps through installer artifact phases" do` at line 38.
 pub fn ruby_install_steps_spec_l38_d2_runs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('runs', ...args)
+	root := cask_install_steps_spec_root(args, 'runs')
+	os.rmdir_all(root) or {}
+	defer {
+		os.rmdir_all(root) or {}
+	}
+	cask := cask_install_steps_spec_cask(root)
+	staged_path := cask.map_data['staged_path'].as_string()
+	os.mkdir_all(staged_path) or { return brew_runtime.bool_value(false) }
+	os.write_file(os.join_path(staged_path, 'move-source'), 'moved') or {
+		return brew_runtime.bool_value(false)
+	}
+	executor := CaskInstallStepsSpecExecutor{}
+	for key, class_name in {
+		'preflight_steps':  'Cask::Artifact::PreflightSteps'
+		'postflight_steps': 'Cask::Artifact::PostflightSteps'
+	} {
+		artifact := cask_install_steps_spec_artifact(cask, key, class_name)
+		install_steps_artifact.run_cask_install_steps(artifact, 'install', false, executor) or {
+			return brew_runtime.bool_value(false)
+		}
+	}
+	prepared := os.join_path(staged_path, 'Prepared')
+	mode := os.stat(prepared) or { return brew_runtime.bool_value(false) }
+	installed := os.is_dir(prepared) && int(mode.get_mode().bitmask()) & 0o777 == 0o755
+		&& os.exists(os.join_path(prepared, 'touched'))
+		&& os.exists(os.join_path(prepared, 'moved'))
+		&& os.is_link(os.join_path(staged_path, 'PreparedLink'))
+	postflight := cask_install_steps_spec_artifact(cask, 'postflight_steps', 'Cask::Artifact::PostflightSteps')
+	install_steps_artifact.run_cask_install_steps(postflight, 'uninstall', false, executor) or {
+		return brew_runtime.bool_value(false)
+	}
+	for key, class_name in {
+		'uninstall_preflight_steps':  'Cask::Artifact::UninstallPreflightSteps'
+		'uninstall_postflight_steps': 'Cask::Artifact::UninstallPostflightSteps'
+	} {
+		artifact := cask_install_steps_spec_artifact(cask, key, class_name)
+		install_steps_artifact.run_cask_install_steps(artifact, 'install', false, executor) or {
+			return brew_runtime.bool_value(false)
+		}
+	}
+	return brew_runtime.bool_value(installed
+		&& !os.exists(os.join_path(staged_path, 'PreparedLink'))
+		&& os.exists(os.join_path(staged_path, 'UninstallMoved', 'touched')))
 }
 
 // Ruby it `it "omits cask command output defaults" do` at line 63.
 pub fn ruby_install_steps_spec_l63_d3_omits(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('omits', ...args)
+	cask := ruby_install_steps_spec_l9_d1_cask(...args)
+	steps := cask_install_steps_spec_steps(cask, 'postflight_steps')
+	for step in steps {
+		if (step['type'] or { continue }).as_string() == 'run' {
+			return brew_runtime.bool_value('print_stdout' !in step && 'suppress_stderr' !in step && 'writable_paths' !in step && 'network_access' !in step)
+		}
+	}
+	return brew_runtime.bool_value(false)
 }
 
 // Ruby it `it "sandboxes complete step blocks, including system commands" do` at line 70.
 pub fn ruby_install_steps_spec_l70_d4_sandboxes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sandboxes', ...args)
+	root := cask_install_steps_spec_root(args, 'sandbox')
+	home := os.join_path(root, 'home')
+	cask := cask_install_steps_spec_cask(root)
+	steps := [cask_install_steps_spec_step('touch', {
+		'path': cask_install_steps_spec_path('Library/Application Support/cask-home-state', 'home')
+	}), cask_install_steps_spec_step('run', {
+		'command':        cask_install_steps_spec_path('helper', 'staged_path')
+		'args':           brew_runtime.string_array_value(['/'])
+		'writable_paths': brew_runtime.array_value([
+			cask_install_steps_spec_path('/Library/Example', ''),
+		])
+	}), cask_install_steps_spec_step('run', {
+		'command': cask_install_steps_spec_path('/usr/bin/true', '')
+	})]
+	artifact := install_steps_artifact.new_cask_install_steps_artifact(cask, steps, 'Cask::Artifact::PostflightSteps')
+	plan := install_steps_artifact.plan_cask_install_steps(artifact, 'install') or {
+		return brew_runtime.bool_value(false)
+	}
+	payload_steps := homebrew.install_steps_from_value(plan.payload['steps'] or {
+		return brew_runtime.bool_value(false)
+	})
+	mut commands := []string{}
+	for step in payload_steps {
+		if (step['type'] or { continue }).as_string() == 'run' {
+			command := step['command'] or { continue }
+			commands << (command.map_data['path'] or { command }).as_string()
+		}
+	}
+	home_write_path := os.join_path(home, 'Library/Application Support')
+	return brew_runtime.bool_value(!plan.network_access_allowed
+		&& cask.map_data['caskroom_path'].as_string() in plan.allowed_write_paths
+		&& '/Library/Example' in plan.allowed_write_paths
+		&& '/' !in plan.allowed_write_paths && home_write_path in plan.allowed_write_paths
+		&& home_write_path in plan.allowed_read_paths && commands == ['helper', '/usr/bin/true']
+		&& (plan.payload['action'] or {
+			brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
+		}).as_string() == 'install_steps')
 }
 
 // Ruby it `it "allows network access for runs that request it" do` at line 122.
 pub fn ruby_install_steps_spec_l122_d5_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+	root := cask_install_steps_spec_root(args, 'network')
+	cask := cask_install_steps_spec_cask(root)
+	artifact := install_steps_artifact.new_cask_install_steps_artifact(cask, [
+		cask_install_steps_spec_step('run', {
+			'command':        cask_install_steps_spec_path('/usr/bin/true', '')
+			'network_access': brew_runtime.bool_value(true)
+		}),
+	], 'Cask::Artifact::PostflightSteps')
+	plan := install_steps_artifact.plan_cask_install_steps(artifact, 'install') or {
+		return brew_runtime.bool_value(false)
+	}
+	return brew_runtime.bool_value(plan.network_access_allowed)
 }
 
 // Ruby it `it "allows` at line 151.
 pub fn ruby_install_steps_spec_l151_d6_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+	root := cask_install_steps_spec_root(args, 'sudo')
+	cask := cask_install_steps_spec_cask(root)
+	steps := [
+		cask_install_steps_spec_step('run', {
+			'command': cask_install_steps_spec_path('/usr/bin/true', '')
+			'sudo':    brew_runtime.bool_value(true)
+		}),
+		cask_install_steps_spec_step('remove', {
+			'paths': brew_runtime.array_value([
+				cask_install_steps_spec_path('/usr/local/example', ''),
+			])
+			'sudo':  brew_runtime.object_value('Symbol', 'if_needed')
+		}),
+		cask_install_steps_spec_step('set_ownership', {
+			'paths': brew_runtime.array_value([
+				cask_install_steps_spec_path('/usr/local/example', ''),
+			])
+		}),
+		cask_install_steps_spec_step('delete_keychain_certificate', {
+			'name': brew_runtime.string_value('Example')
+		}),
+	]
+	for step in steps {
+		artifact := install_steps_artifact.new_cask_install_steps_artifact(cask, [
+			step,
+		], 'Cask::Artifact::PostflightSteps')
+		plan := install_steps_artifact.plan_cask_install_steps(artifact, 'install') or {
+			return brew_runtime.bool_value(false)
+		}
+		if !plan.allow_sudo {
+			return brew_runtime.bool_value(false)
+		}
+	}
+	return brew_runtime.bool_value(true)
 }
 
 // Ruby it `it "runs a flight block after matching steps during migration" do` at line 174.
 pub fn ruby_install_steps_spec_l174_d7_runs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('runs', ...args)
+	root := cask_install_steps_spec_root(args, 'bridge')
+	os.rmdir_all(root) or {}
+	defer {
+		os.rmdir_all(root) or {}
+	}
+	cask := cask_install_steps_spec_cask(root)
+	staged_path := cask.map_data['staged_path'].as_string()
+	os.mkdir_all(staged_path) or { return brew_runtime.bool_value(false) }
+	artifact := install_steps_artifact.new_cask_install_steps_artifact(cask, [
+		cask_install_steps_spec_step('touch', {
+			'path': cask_install_steps_spec_path('steps-ran', 'staged_path')
+		}),
+	], 'Cask::Artifact::PreflightSteps')
+	install_steps_artifact.run_cask_install_steps(artifact, 'install', false, CaskInstallStepsSpecExecutor{}) or { return brew_runtime.bool_value(false) }
+	steps_ran := os.join_path(staged_path, 'steps-ran')
+	if !os.exists(steps_ran) {
+		return brew_runtime.bool_value(false)
+	}
+	ruby_block_ran := os.join_path(staged_path, 'ruby-block-ran')
+	os.write_file(ruby_block_ran, '') or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value(os.exists(steps_ran) && os.exists(ruby_block_ran))
 }
 
 // Original Ruby source (line-for-line):

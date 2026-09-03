@@ -5,14 +5,70 @@ import brew_runtime
 // Translated from Homebrew/brew `cachable.rb`.
 // The original source is retained below until every stub has a typed V body.
 
+pub struct CachableCache[K, V] {
+pub mut:
+	entries map[K]V
+}
+
+// Cachable is the typed V equivalent of the generic Ruby mixin. The cache is
+// allocated once so repeated calls return the same mutable cache object.
+pub struct Cachable[K, V] {
+mut:
+	stored_cache &CachableCache[K, V] = unsafe { nil }
+}
+
+pub fn new_cachable[K, V]() Cachable[K, V] {
+	return Cachable[K, V]{
+		stored_cache: &CachableCache[K, V]{
+			entries: map[K]V{}
+		}
+	}
+}
+
+pub fn (cachable Cachable[K, V]) cache() &CachableCache[K, V] {
+	return cachable.stored_cache
+}
+
+pub fn (mut cachable Cachable[K, V]) clear_cache() {
+	mut cache := cachable.cache()
+	cache.entries.clear()
+}
+
+fn cachable_boundary_value(cachable Cachable[string, string]) brew_runtime.Value {
+	cache := cachable.cache()
+	return brew_runtime.structured_value('Cachable', cache.entries.str(), cache.entries)
+}
+
+fn cachable_from_boundary(value brew_runtime.Value) Cachable[string, string] {
+	if value.type_name != 'Cachable' {
+		return new_cachable[string, string]()
+	}
+	mut cachable := new_cachable[string, string]()
+	mut cache := cachable.cache()
+	cache.entries = value.attributes.clone()
+	return cachable
+}
+
 // Ruby method `cache` at line 10.
 pub fn ruby_cachable_l10_d1_cache(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cache', ...args)
+	mut cachable := if args.len > 0 {
+		cachable_from_boundary(args[0])
+	} else {
+		new_cachable[string, string]()
+	}
+	cache := cachable.cache()
+	return brew_runtime.structured_value('Hash', cache.entries.str(), cache.entries)
 }
 
 // Ruby method `clear_cache` at line 15.
 pub fn ruby_cachable_l15_d2_clear_cache(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('clear_cache', ...args)
+	mut cachable := if args.len > 0 {
+		cachable_from_boundary(args[0])
+	} else {
+		new_cachable[string, string]()
+	}
+	cachable.clear_cache()
+	return cachable_boundary_value(cachable)
 }
 
 // Original Ruby source (line-for-line):

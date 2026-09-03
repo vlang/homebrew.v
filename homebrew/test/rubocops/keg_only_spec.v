@@ -1,38 +1,46 @@
 module rubocops
 
 import brew_runtime
+import homebrew.rubocops as keg_only_core
 
 // Translated from Homebrew/brew `test/rubocops/keg_only_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:cop) { described_class.new }` at line 7.
 pub fn ruby_keg_only_spec_l7_d1_cop(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cop', ...args)
+	return brew_runtime.object_value('RuboCop::Cop::FormulaAudit::KegOnly', 'FormulaAudit/KegOnly')
 }
 
 // Ruby it `it "reports and corrects an offense when the `keg_only` reason is capitalized" do` at line 9.
-pub fn ruby_keg_only_spec_l9_d2_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_keg_only_spec_l9_d2_reports() bool {
+	source := 'class Foo < Formula\n\n  url "https://brew.sh/foo-1.0.tgz"\n  homepage "https://brew.sh"\n\n  keg_only "Because why not"\nend\n'
+	problems := keg_only_core.audit_formula_keg_only(source, 'foo')
+	return problems.len == 1 && problems[0].message == "'Because' from the `keg_only` reason should be 'because'." && source[problems[0].begin_pos..problems[0].end_pos] == '"Because why not"' && keg_only_core.correct_formula_keg_only(source, 'foo') == source.replace_once('"Because why not"', '"because why not"')
 }
 
 // Ruby it `it "reports and corrects an offense when the `keg_only` reason ends with a period" do` at line 32.
-pub fn ruby_keg_only_spec_l32_d3_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_keg_only_spec_l32_d3_reports() bool {
+	source := 'class Foo < Formula\n  url "https://brew.sh/foo-1.0.tgz"\n  homepage "https://brew.sh"\n\n  keg_only "ending with a period."\nend\n'
+	problems := keg_only_core.audit_formula_keg_only(source, 'foo')
+	return problems.len == 1 && problems[0].message == '`keg_only` reason should not end with a period.' && source[problems[0].begin_pos..problems[0].end_pos] == '"ending with a period."' && keg_only_core.correct_formula_keg_only(source, 'foo') == source.replace_once('"ending with a period."', '"ending with a period"')
 }
 
 // Ruby it `it "reports no offenses when a `keg_only` reason is a block" do` at line 53.
-pub fn ruby_keg_only_spec_l53_d4_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_keg_only_spec_l53_d4_reports() bool {
+	source := 'class Foo < Formula\n  url "https://brew.sh/foo-1.0.tgz"\n  homepage "https://brew.sh"\n\n  keg_only <<~EOF\n    this line starts with a lowercase word.\n\n    This line does not but that shouldn\'t be a\n    problem\n  EOF\nend\n'
+	return keg_only_core.audit_formula_keg_only(source, 'foo').len == 0
 }
 
 // Ruby it `it "reports no offenses if a capitalized `keg-only` reason is an exempt proper noun" do` at line 69.
-pub fn ruby_keg_only_spec_l69_d5_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_keg_only_spec_l69_d5_reports() bool {
+	source := 'class Foo < Formula\n  url "https://brew.sh/foo-1.0.tgz"\n  homepage "https://brew.sh"\n\n  keg_only "Apple ships foo in the CLT package"\nend\n'
+	return keg_only_core.audit_formula_keg_only(source, 'foo').len == 0
 }
 
 // Ruby it `it "reports no offenses if a capitalized `keg_only` reason is the formula's name" do` at line 80.
-pub fn ruby_keg_only_spec_l80_d6_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_keg_only_spec_l80_d6_reports() bool {
+	source := 'class Foo < Formula\n  url "https://brew.sh/foo-1.0.tgz"\n\n  keg_only "Foo is the formula name hence downcasing is not required"\nend\n'
+	return keg_only_core.audit_formula_keg_only(source, 'foo').len == 0
 }
 
 // Original Ruby source (line-for-line):

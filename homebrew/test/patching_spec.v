@@ -1,176 +1,646 @@
 module test
 
 import brew_runtime
+import crypto.sha256
+import homebrew
+import os
+import time
 
 // Translated from Homebrew/brew `test/patching_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+struct PatchingResource {
+	patches []homebrew.PatchModel
+}
+
+struct PatchingFormula {
+	name      string
+	path      string
+	tap_path  string
+	patches   []homebrew.PatchModel
+	resources []PatchingResource
+}
+
+fn patching_bool(value bool) brew_runtime.Value {
+	return brew_runtime.bool_value(value)
+}
+
+fn patching_temp(label string) string {
+	return os.join_path(os.temp_dir(), 'brew-v-patching-${label}-${os.getpid()}-${time.now().unix_nano()}')
+}
+
+fn patching_fixture_root() string {
+	return os.abs_path('../3rd/brew/Library/Homebrew/test/support/fixtures')
+}
+
+fn patching_patch_fixture(name string) string {
+	return os.join_path(patching_fixture_root(), 'patches', '${name}.diff')
+}
+
+fn patching_tarball_fixture(name string) string {
+	return os.join_path(patching_fixture_root(), 'tarballs', name)
+}
+
+fn patching_fixture_checksum(path string) string {
+	contents := os.read_bytes(path) or { return '' }
+	return sha256.sum256(contents).hex()
+}
+
+fn patching_default_formula() PatchingFormula {
+	return PatchingFormula{
+		name: 'formula_name'
+		path: os.join_path(patching_fixture_root(), 'testball.rb')
+	}
+}
+
+fn patching_formula_value(formula PatchingFormula) brew_runtime.Value {
+	mut resources := []brew_runtime.Value{}
+	for resource in formula.resources {
+		resources << brew_runtime.array_value(resource.patches.map(homebrew.patch_model_value(it)))
+	}
+	return brew_runtime.Value{
+		type_name: 'Formula'
+		repr: formula.name
+		attributes: {
+			'name':     formula.name
+			'path':     formula.path
+			'tap_path': formula.tap_path
+		}
+		map_data: {
+			'patches':   brew_runtime.array_value(formula.patches.map(homebrew.patch_model_value(it)))
+			'resources': brew_runtime.array_value(resources)
+		}
+	}
+}
+
+fn patching_formula_from_value(value brew_runtime.Value) !PatchingFormula {
+	mut patches := []homebrew.PatchModel{}
+	if patch_values := value.map_data['patches'] {
+		for patch_value in patch_values.array_data {
+			patches << homebrew.patch_model_from_value(patch_value)!
+		}
+	}
+	mut resources := []PatchingResource{}
+	if resource_values := value.map_data['resources'] {
+		for resource_value in resource_values.array_data {
+			mut resource_patches := []homebrew.PatchModel{}
+			for patch_value in resource_value.array_data {
+				resource_patches << homebrew.patch_model_from_value(patch_value)!
+			}
+			resources << PatchingResource{ patches: resource_patches }
+		}
+	}
+	return PatchingFormula{
+		name: value.attributes['name'] or { value.repr }
+		path: value.attributes['path'] or { os.join_path(patching_fixture_root(), 'testball.rb') }
+		tap_path: value.attributes['tap_path'] or { '' }
+		patches: patches
+		resources: resources
+	}
+}
+
+fn patching_external_patch(strip string, path string, patch_files []string,
+	directory string) !homebrew.PatchModel {
+	return homebrew.create_patch(homebrew.PatchFactoryRequest{
+		strip: strip
+		resource: homebrew.PatchResourceModel{
+			url: 'file://${path}'
+			checksum: patching_fixture_checksum(path)
+			patch_files: patch_files
+			directory: directory
+		}
+	})
+}
+
+fn patching_local_patch(strip string, file string, directory string) !homebrew.PatchModel {
+	return homebrew.create_patch(homebrew.PatchFactoryRequest{
+		strip: strip
+		resource: homebrew.PatchResourceModel{
+			file: file
+			has_file: true
+			directory: directory
+		}
+	})
+}
+
+fn patching_string_patch(strip string, contents string) !homebrew.PatchModel {
+	return homebrew.create_patch(homebrew.PatchFactoryRequest{
+		strip: strip
+		source_kind: .string
+		source: contents
+	})
+}
+
+fn patching_stage_source(label string) !(string, string) {
+	root := patching_temp(label)
+	os.mkdir_all(root)!
+	result := brew_runtime.run_command('tar', ['-xf', patching_tarball_fixture('testball-0.1.tbz'),
+		'-C', root])
+	if result.exit_code != 0 {
+		os.rmdir_all(root) or {}
+		return error(result.output.trim_space())
+	}
+	return root, os.join_path(root, 'test-0.1')
+}
+
+fn patching_apply_patch(model homebrew.PatchModel, formula PatchingFormula, base string,
+	homebrew_prefix string) ! {
+	match model.kind {
+		.string { model.apply(base, homebrew_prefix)! }
+		.local {
+			local := homebrew.local_patch_from_model(model, homebrew.LocalPatchOwner{
+				formula_path: formula.path
+				tap_path: formula.tap_path
+				software_spec_name: formula.name
+			})!
+			local.embedded.apply(local.filename(), local.contents()!, base, homebrew_prefix)!
+		}
+		.external {
+			external := homebrew.external_patch_from_model(model)!
+			external.apply(base, homebrew_prefix)!
+		}
+		.data {
+			return error('DATAPatch requires a formula source file')
+		}
+	}
+}
+
+fn patching_apply_formula(formula PatchingFormula, label string, resource bool,
+	homebrew_prefix string) !(string, string) {
+	root, base := patching_stage_source(label)!
+	patches := if resource && formula.resources.len > 0 {
+		formula.resources[0].patches
+	} else {
+		formula.patches
+	}
+	for patch in patches {
+		patching_apply_patch(patch, formula, base, homebrew_prefix) or {
+			os.rmdir_all(root) or {}
+			return err
+		}
+	}
+	return root, os.read_file(os.join_path(base, 'libexec', 'NOOP'))!
+}
+
+fn patching_matches(formula PatchingFormula, expected string, resource bool,
+	homebrew_prefix string) bool {
+	root, contents := patching_apply_formula(formula, 'match', resource, homebrew_prefix) or {
+		return false
+	}
+	defer { os.rmdir_all(root) or {} }
+	return !contents.contains('NOOP') && contents.contains(expected)
+}
+
+fn patching_error(formula PatchingFormula, expected string) bool {
+	root, base := patching_stage_source('error') or { return false }
+	defer { os.rmdir_all(root) or {} }
+	for patch in formula.patches {
+		patching_apply_patch(patch, formula, base, '/opt/homebrew') or {
+			return err.msg().contains(expected)
+		}
+	}
+	return false
+}
 
 // Ruby let `let(:formula_subclass) do` at line 7.
 pub fn ruby_patching_spec_l7_d1_formula_subclass(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_subclass', ...args)
+	_ = args
+	tarball := patching_tarball_fixture('testball-0.1.tbz')
+	return brew_runtime.structured_value('Class<Formula>', 'PatchingFormula', {
+		'url':    'file://${tarball}'
+		'sha256': patching_fixture_checksum(tarball)
+	})
 }
 
 // Ruby method `self.resource(*, **, &block)` at line 11.
 pub fn ruby_patching_spec_l11_d2_self_resource(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.resource', ...args)
+	mut patches := []homebrew.PatchModel{}
+	for value in args {
+		if value.type_name in ['ExternalPatch', 'LocalPatch', 'StringPatch', 'DATAPatch'] {
+			patches << homebrew.patch_model_from_value(value) or {
+				return brew_runtime.object_value('ArgumentError', err.msg())
+			}
+		}
+	}
+	return brew_runtime.array_value(patches.map(homebrew.patch_model_value(it)))
 }
 
 // Ruby define_singleton_method `define_singleton_method :patch do |*patch_args, **patch_kwargs, &patch_block|` at line 15.
 pub fn ruby_patching_spec_l15_d3_patch(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('patch', ...args)
+	if args.len == 0 {
+		return brew_runtime.object_value('ArgumentError', 'patch configuration is required')
+	}
+	return args[0]
 }
 
 // Ruby method `self.patch(*, **, &block)` at line 27.
 pub fn ruby_patching_spec_l27_d4_self_patch(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.patch', ...args)
+	if args.len == 0 {
+		return brew_runtime.object_value('ArgumentError', 'patch is required')
+	}
+	if args.len == 1 {
+		return args[0]
+	}
+	mut formula := patching_formula_from_value(args[0]) or {
+		return brew_runtime.object_value('ArgumentError', err.msg())
+	}
+	patch := homebrew.patch_model_from_value(args[1]) or {
+		return brew_runtime.object_value('ArgumentError', err.msg())
+	}
+	mut patches := formula.patches.clone()
+	patches << patch
+	formula = PatchingFormula{ ...formula, patches: patches }
+	return patching_formula_value(formula)
 }
 
 // Ruby method `formula(name = "formula_name", path: Formulary.core_path(name), spec: :stable, alias_path: nil, tap: nil,` at line 40.
 pub fn ruby_patching_spec_l40_d5_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula', ...args)
+	return patching_formula_value(PatchingFormula{
+		name: if args.len > 0 { args[0].as_string() } else { 'formula_name' }
+		path: if args.len > 1 {
+			args[1].as_string()} else {
+			os.join_path(patching_fixture_root(), 'testball.rb')}
+		tap_path: if args.len > 2 { args[2].as_string() } else { '' }
+	})
 }
 
 // Ruby matcher `matcher :be_patched do` at line 46.
 pub fn ruby_patching_spec_l46_d6_be_patched(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('be_patched', ...args)
+	if args.len == 0 {
+		return patching_bool(false)
+	}
+	formula := patching_formula_from_value(args[0]) or { return patching_bool(false) }
+	return patching_bool(patching_matches(formula, 'ABCD', false, '/opt/homebrew'))
 }
 
 // Ruby matcher `matcher :be_patched_with_homebrew_prefix do` at line 57.
 pub fn ruby_patching_spec_l57_d7_be_patched_with_homebrew_prefix(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('be_patched_with_homebrew_prefix', ...args)
+	if args.len == 0 {
+		return patching_bool(false)
+	}
+	formula := patching_formula_from_value(args[0]) or { return patching_bool(false) }
+	return patching_bool(patching_matches(formula, '/opt/homebrew', false, '/opt/homebrew'))
 }
 
 // Ruby matcher `matcher :have_its_resource_patched do` at line 69.
 pub fn ruby_patching_spec_l69_d8_have_its_resource_patched(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('have_its_resource_patched', ...args)
+	if args.len == 0 {
+		return patching_bool(false)
+	}
+	formula := patching_formula_from_value(args[0]) or { return patching_bool(false) }
+	return patching_bool(patching_matches(formula, 'ABCD', true, '/opt/homebrew'))
 }
 
 // Ruby matcher `matcher :be_sequentially_patched do` at line 80.
 pub fn ruby_patching_spec_l80_d9_be_sequentially_patched(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('be_sequentially_patched', ...args)
+	if args.len == 0 {
+		return patching_bool(false)
+	}
+	formula := patching_formula_from_value(args[0]) or { return patching_bool(false) }
+	return patching_bool(patching_matches(formula, '1234', false, '/opt/homebrew'))
 }
 
 // Ruby matcher `matcher :miss_apply do` at line 92.
 pub fn ruby_patching_spec_l92_d10_miss_apply(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('miss_apply', ...args)
+	if args.len == 0 {
+		return patching_bool(false)
+	}
+	formula := patching_formula_from_value(args[0]) or { return patching_bool(false) }
+	return patching_bool(patching_error(formula, 'There should be exactly one patch file'))
 }
 
 // Ruby specify `specify "single_patch_dsl" do` at line 102.
 pub fn ruby_patching_spec_l102_d11_single_patch_dsl(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('single_patch_dsl', ...args)
+	_ = args
+	patch := patching_external_patch('p1', patching_patch_fixture('noop-a'), [], '') or {
+		return patching_bool(false)
+	}
+	return patching_bool(patching_matches(PatchingFormula{
+		...patching_default_formula()
+		patches: [
+			patch,
+		]
+	}, 'ABCD', false, '/opt/homebrew'))
 }
 
 // Ruby specify `specify "local_patch_dsl_resolves_path_loaded_formulae_from_formula_directory" do` at line 114.
 pub fn ruby_patching_spec_l114_d12_local_patch_dsl_resolves_path_loaded_formulae_from_formula_directory(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('local_patch_dsl_resolves_path_loaded_formulae_from_formula_directory',
-		...args)
+	_ = args
+	patch := patching_local_patch('p1', 'patches/noop-a.diff', '') or {
+		return patching_bool(false)
+	}
+	return patching_bool(patching_matches(PatchingFormula{
+		...patching_default_formula()
+		patches: [
+			patch,
+		]
+	}, 'ABCD', false, '/opt/homebrew'))
 }
 
 // Ruby specify `specify "local_patch_dsl_with_directory" do` at line 125.
 pub fn ruby_patching_spec_l125_d13_local_patch_dsl_with_directory(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('local_patch_dsl_with_directory', ...args)
+	_ = args
+	patch := patching_local_patch('p1', 'patches/noop-b.diff', 'libexec') or {
+		return patching_bool(false)
+	}
+	return patching_bool(patching_matches(PatchingFormula{
+		...patching_default_formula()
+		patches: [
+			patch,
+		]
+	}, 'ABCD', false, '/opt/homebrew'))
 }
 
 // Ruby specify `specify "local_patch_dsl_with_strip" do` at line 137.
 pub fn ruby_patching_spec_l137_d14_local_patch_dsl_with_strip(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('local_patch_dsl_with_strip', ...args)
+	_ = args
+	patch := patching_local_patch('p0', 'patches/noop-b.diff', '') or {
+		return patching_bool(false)
+	}
+	return patching_bool(patching_matches(PatchingFormula{
+		...patching_default_formula()
+		patches: [
+			patch,
+		]
+	}, 'ABCD', false, '/opt/homebrew'))
 }
 
 // Ruby specify `specify "local_patch_dsl_with_homebrew_prefix" do` at line 148.
 pub fn ruby_patching_spec_l148_d15_local_patch_dsl_with_homebrew_prefix(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('local_patch_dsl_with_homebrew_prefix', ...args)
+	_ = args
+	patch := patching_local_patch('p1', 'patches/noop-d.diff', '') or {
+		return patching_bool(false)
+	}
+	return patching_bool(patching_matches(PatchingFormula{
+		...patching_default_formula()
+		patches: [
+			patch,
+		]
+	}, '/opt/homebrew', false, '/opt/homebrew'))
 }
 
 // Ruby specify `specify "local_patch_dsl_resolves_tapped_formulae_from_tap_root" do` at line 159.
 pub fn ruby_patching_spec_l159_d16_local_patch_dsl_resolves_tapped_formulae_from_tap_root(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('local_patch_dsl_resolves_tapped_formulae_from_tap_root',
-		...args)
+	_ = args
+	tap := patching_temp('tap')
+	os.mkdir_all(os.join_path(tap, 'Formula')) or { return patching_bool(false) }
+	os.mkdir_all(os.join_path(tap, 'patches')) or { return patching_bool(false) }
+	defer { os.rmdir_all(tap) or {} }
+	os.cp(patching_patch_fixture('noop-a'), os.join_path(tap, 'patches', 'noop-a.diff')) or {
+		return patching_bool(false)
+	}
+	formula_path := os.join_path(tap, 'Formula', 'testball.rb')
+	os.write_file(formula_path, '') or { return patching_bool(false) }
+	patch := patching_local_patch('p1', 'patches/noop-a.diff', '') or {
+		return patching_bool(false)
+	}
+	formula := PatchingFormula{
+		...patching_default_formula()
+		path: formula_path
+		tap_path: tap
+		patches: [patch]
+	}
+	return patching_bool(patching_matches(formula, 'ABCD', false, '/opt/homebrew'))
 }
 
 // Ruby specify `specify "local_patch_dsl_missing_file_fail" do` at line 177.
 pub fn ruby_patching_spec_l177_d17_local_patch_dsl_missing_file_fail(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('local_patch_dsl_missing_file_fail', ...args)
+	_ = args
+	model := patching_local_patch('p1', 'patches/missing.diff', '') or {
+		return patching_bool(false)
+	}
+	patch := homebrew.local_patch_from_model(model, homebrew.LocalPatchOwner{
+		formula_path: patching_default_formula().path
+	}) or { return patching_bool(false) }
+	patch.contents() or {
+		return patching_bool(err.msg() == 'Patch file does not exist: patches/missing.diff')
+	}
+	return patching_bool(false)
 }
 
 // Ruby specify `specify "local_patch_dsl_directory_fail" do` at line 189.
 pub fn ruby_patching_spec_l189_d18_local_patch_dsl_directory_fail(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('local_patch_dsl_directory_fail', ...args)
+	_ = args
+	model := patching_local_patch('p1', 'patches', '') or { return patching_bool(false) }
+	patch := homebrew.local_patch_from_model(model, homebrew.LocalPatchOwner{
+		formula_path: patching_default_formula().path
+	}) or { return patching_bool(false) }
+	patch.contents() or { return patching_bool(err.msg() == 'Patch file must be a file: patches') }
+	return patching_bool(false)
 }
 
 // Ruby specify `specify "local_patch_dsl_rejects_symlink_escape" do` at line 201.
 pub fn ruby_patching_spec_l201_d19_local_patch_dsl_rejects_symlink_escape(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('local_patch_dsl_rejects_symlink_escape', ...args)
+	_ = args
+	root := patching_temp('symlink')
+	repository := os.join_path(root, 'repository')
+	os.mkdir_all(repository) or { return patching_bool(false) }
+	defer { os.rmdir_all(root) or {} }
+	os.cp(patching_patch_fixture('noop-a'), os.join_path(root, 'outside.diff')) or {
+		return patching_bool(false)
+	}
+	os.symlink(os.join_path(root, 'outside.diff'), os.join_path(repository, 'escape.diff')) or {
+		return patching_bool(false)
+	}
+	model := patching_local_patch('p1', 'escape.diff', '') or { return patching_bool(false) }
+	patch := homebrew.local_patch_from_model(model, homebrew.LocalPatchOwner{
+		formula_path: os.join_path(repository, 'testball.rb')
+	}) or { return patching_bool(false) }
+	patch.contents() or {
+		return patching_bool(err.msg() == 'Patch file must be within the formula repository.')
+	}
+	return patching_bool(false)
 }
 
 // Ruby specify `specify "single_patch_dsl_for_resource" do` at line 220.
 pub fn ruby_patching_spec_l220_d20_single_patch_dsl_for_resource(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('single_patch_dsl_for_resource', ...args)
+	_ = args
+	patch := patching_external_patch('p1', patching_patch_fixture('noop-a'), [], '') or {
+		return patching_bool(false)
+	}
+	formula := PatchingFormula{
+		...patching_default_formula()
+		resources: [PatchingResource{ patches: [patch] }]
+	}
+	return patching_bool(patching_matches(formula, 'ABCD', true, '/opt/homebrew'))
 }
 
 // Ruby specify `specify "single_patch_dsl_with_apply" do` at line 237.
 pub fn ruby_patching_spec_l237_d21_single_patch_dsl_with_apply(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('single_patch_dsl_with_apply', ...args)
+	_ = args
+	patch := patching_external_patch('p1', patching_tarball_fixture('testball-0.1-patches.tgz'), [
+		'noop-a.diff',
+	], '') or { return patching_bool(false) }
+	return patching_bool(patching_matches(PatchingFormula{
+		...patching_default_formula()
+		patches: [
+			patch,
+		]
+	}, 'ABCD', false, '/opt/homebrew'))
 }
 
 // Ruby specify `specify "single_patch_dsl_with_sequential_apply" do` at line 250.
 pub fn ruby_patching_spec_l250_d22_single_patch_dsl_with_sequential_apply(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('single_patch_dsl_with_sequential_apply', ...args)
+	_ = args
+	patch := patching_external_patch('p1', patching_tarball_fixture('testball-0.1-patches.tgz'), [
+		'noop-a.diff',
+		'noop-c.diff',
+	], '') or { return patching_bool(false) }
+	return patching_bool(patching_matches(PatchingFormula{
+		...patching_default_formula()
+		patches: [
+			patch,
+		]
+	}, '1234', false, '/opt/homebrew'))
 }
 
 // Ruby specify `specify "single_patch_dsl_with_strip" do` at line 263.
 pub fn ruby_patching_spec_l263_d23_single_patch_dsl_with_strip(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('single_patch_dsl_with_strip', ...args)
+	_ = args
+	patch := patching_external_patch('p1', patching_patch_fixture('noop-a'), [], '') or {
+		return patching_bool(false)
+	}
+	return patching_bool(patching_matches(PatchingFormula{
+		...patching_default_formula()
+		patches: [
+			patch,
+		]
+	}, 'ABCD', false, '/opt/homebrew'))
 }
 
 // Ruby specify `specify "single_patch_dsl_with_strip_with_apply" do` at line 275.
 pub fn ruby_patching_spec_l275_d24_single_patch_dsl_with_strip_with_apply(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('single_patch_dsl_with_strip_with_apply', ...args)
+	_ = args
+	path := patching_tarball_fixture('testball-0.1-patches.tgz')
+	patch := patching_external_patch('p1', path, ['noop-a.diff'], '') or {
+		return patching_bool(false)
+	}
+	external := homebrew.external_patch_from_model(patch) or { return patching_bool(false) }
+	fetched := external.fetch() or { return patching_bool(false) }
+	return patching_bool(external.strip == 'p1' && external.patch_files() == [
+		'noop-a.diff',
+	] && fetched == path)
 }
 
 // Ruby specify `specify "single_patch_dsl_with_incorrect_strip" do` at line 292.
 pub fn ruby_patching_spec_l292_d25_single_patch_dsl_with_incorrect_strip(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('single_patch_dsl_with_incorrect_strip', ...args)
+	_ = args
+	patch := patching_external_patch('p0', patching_patch_fixture('noop-a'), [], '') or {
+		return patching_bool(false)
+	}
+	return patching_bool(patching_error(PatchingFormula{
+		...patching_default_formula()
+		patches: [
+			patch,
+		]
+	}, 'patch failed'))
 }
 
 // Ruby specify `specify "single_patch_dsl_with_incorrect_strip_with_apply" do` at line 306.
 pub fn ruby_patching_spec_l306_d26_single_patch_dsl_with_incorrect_strip_with_apply(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('single_patch_dsl_with_incorrect_strip_with_apply',
-		...args)
+	_ = args
+	patch := patching_external_patch('p0', patching_tarball_fixture('testball-0.1-patches.tgz'), [
+		'noop-a.diff',
+	], '') or { return patching_bool(false) }
+	return patching_bool(patching_error(PatchingFormula{
+		...patching_default_formula()
+		patches: [
+			patch,
+		]
+	}, 'patch failed'))
 }
 
 // Ruby specify `specify "patch_p0_dsl" do` at line 321.
 pub fn ruby_patching_spec_l321_d27_patch_p0_dsl(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('patch_p0_dsl', ...args)
+	_ = args
+	patch := patching_external_patch('p0', patching_patch_fixture('noop-b'), [], '') or {
+		return patching_bool(false)
+	}
+	return patching_bool(patching_matches(PatchingFormula{
+		...patching_default_formula()
+		patches: [
+			patch,
+		]
+	}, 'ABCD', false, '/opt/homebrew'))
 }
 
 // Ruby specify `specify "patch_p0_dsl_with_apply" do` at line 333.
 pub fn ruby_patching_spec_l333_d28_patch_p0_dsl_with_apply(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('patch_p0_dsl_with_apply', ...args)
+	_ = args
+	patch := patching_external_patch('p0', patching_tarball_fixture('testball-0.1-patches.tgz'), [
+		'noop-b.diff',
+	], '') or { return patching_bool(false) }
+	return patching_bool(patching_matches(PatchingFormula{
+		...patching_default_formula()
+		patches: [
+			patch,
+		]
+	}, 'ABCD', false, '/opt/homebrew'))
 }
 
 // Ruby specify `specify "patch_string" do` at line 346.
 pub fn ruby_patching_spec_l346_d29_patch_string(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('patch_string', ...args)
+	_ = args
+	contents := os.read_file(patching_patch_fixture('noop-a')) or { return patching_bool(false) }
+	patch := patching_string_patch('p1', contents) or { return patching_bool(false) }
+	return patching_bool(patching_matches(PatchingFormula{
+		...patching_default_formula()
+		patches: [
+			patch,
+		]
+	}, 'ABCD', false, '/opt/homebrew'))
 }
 
 // Ruby specify `specify "patch_string_with_strip" do` at line 355.
 pub fn ruby_patching_spec_l355_d30_patch_string_with_strip(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('patch_string_with_strip', ...args)
+	_ = args
+	contents := os.read_file(patching_patch_fixture('noop-b')) or { return patching_bool(false) }
+	patch := patching_string_patch('p0', contents) or { return patching_bool(false) }
+	return patching_bool(patching_matches(PatchingFormula{
+		...patching_default_formula()
+		patches: [
+			patch,
+		]
+	}, 'ABCD', false, '/opt/homebrew'))
 }
 
 // Ruby specify `specify "single_patch_dsl_missing_apply_fail" do` at line 364.
 pub fn ruby_patching_spec_l364_d31_single_patch_dsl_missing_apply_fail(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('single_patch_dsl_missing_apply_fail', ...args)
+	_ = args
+	patch := patching_external_patch('p1', patching_tarball_fixture('testball-0.1-patches.tgz'), [], '') or { return patching_bool(false) }
+	return patching_bool(patching_error(PatchingFormula{
+		...patching_default_formula()
+		patches: [
+			patch,
+		]
+	}, 'There should be exactly one patch file'))
 }
 
 // Ruby specify `specify "single_patch_dsl_with_apply_enoent_fail" do` at line 376.
 pub fn ruby_patching_spec_l376_d32_single_patch_dsl_with_apply_enoent_fail(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('single_patch_dsl_with_apply_enoent_fail', ...args)
+	_ = args
+	patch := patching_external_patch('p1', patching_tarball_fixture('testball-0.1-patches.tgz'), [
+		'patches/noop-a.diff',
+	], '') or { return patching_bool(false) }
+	return patching_bool(patching_error(PatchingFormula{
+		...patching_default_formula()
+		patches: [
+			patch,
+		]
+	}, 'No such file or directory'))
 }
 
 // Ruby specify `specify "patch_dsl_with_homebrew_prefix" do` at line 391.
 pub fn ruby_patching_spec_l391_d33_patch_dsl_with_homebrew_prefix(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('patch_dsl_with_homebrew_prefix', ...args)
+	_ = args
+	patch := patching_external_patch('p1', patching_patch_fixture('noop-d'), [], '') or {
+		return patching_bool(false)
+	}
+	return patching_bool(patching_matches(PatchingFormula{
+		...patching_default_formula()
+		patches: [
+			patch,
+		]
+	}, '/opt/homebrew', false, '/opt/homebrew'))
 }
 
 // Original Ruby source (line-for-line):

@@ -1,13 +1,23 @@
 module cmd
 
 import brew_runtime
+import homebrew.cmd as cmd_core
+import homebrew.options as option_types
 
 // Translated from Homebrew/brew `test/cmd/options_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "prints a given Formula's options", :integration_test do` at line 10.
 pub fn ruby_options_spec_l10_d1_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+	formula := cmd_core.OptionsFormula{
+		full_name: 'testball'
+		install_options: [
+			option_types.new_option('with-foo', 'Build with foo'),
+			option_types.new_option('without-bar', 'Build without bar support'),
+		]
+	}
+	expected := '--with-foo\n\tBuild with foo\n--without-bar\n\tBuild without bar support\n\n'
+	return brew_runtime.bool_value(cmd_core.render_formula_options([formula], false) == expected)
 }
 
 // Original Ruby source (line-for-line):

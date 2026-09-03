@@ -2,12 +2,25 @@ module cask
 
 import brew_runtime
 
+pub fn mac_cask_dsl_os_version(full_version string) ?string {
+	if full_version == '' {
+		return none
+	}
+	return full_version
+}
+
 // Translated from Homebrew/brew `extend/os/mac/cask/dsl.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `os_version` at line 15.
 pub fn ruby_dsl_l15_d1_os_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('os_version', ...args)
+	full_version := if args.len > 0 { args[0].as_string() } else { '' }
+	version := mac_cask_dsl_os_version(full_version) or {
+		return brew_runtime.object_value('NilClass', 'nil')
+	}
+	return brew_runtime.structured_value('MacOSVersion', version, {
+		'version': version
+	})
 }
 
 // Original Ruby source (line-for-line):

@@ -1,33 +1,96 @@
 module bundle
 
-import brew_runtime
+import homebrew.bundle as brew_bundle
 
 // Translated from Homebrew/brew `test/bundle/dumper_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:dumper) { described_class }` at line 10.
-pub fn ruby_dumper_spec_l10_d1_dumper(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dumper', ...args)
+pub fn ruby_dumper_spec_l10_d1_dumper() string {
+	return 'Homebrew::Bundle::Dumper'
 }
 
 // Ruby it `it "generates output" do` at line 50.
-pub fn ruby_dumper_spec_l50_d2_generates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('generates', ...args)
+pub fn ruby_dumper_spec_l50_d2_generates() bool {
+	input := brew_bundle.BundleDumpInput{
+		casks: [
+			brew_bundle.BundleDumpCask{ full_name: 'google-chrome' },
+			brew_bundle.BundleDumpCask{ full_name: 'java' },
+			brew_bundle.BundleDumpCask{ full_name: 'homebrew/cask-versions/iterm2-beta' },
+		]
+	}
+	selection := brew_bundle.BundleDumpSelection{
+		formulae: true
+		taps: true
+		casks: true
+		extension_types: {
+			'mas':     true
+			'vscode':  true
+			'cargo':   true
+			'flatpak': false
+			'go':      true
+			'uv':      true
+		}
+	}
+	return brew_bundle.build_brewfile(input, selection) == 'cask "google-chrome"\ncask "java"\ncask "homebrew/cask-versions/iterm2-beta"\n'
 }
 
 // Ruby it `it "dumps tap trust entries not represented by dumped formulae" do` at line 57.
-pub fn ruby_dumper_spec_l57_d3_dumps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dumps', ...args)
+pub fn ruby_dumper_spec_l57_d3_dumps() bool {
+	input := brew_bundle.BundleDumpInput{
+		taps: [brew_bundle.BundleDumpTap{ name: 'thirdparty/tap' }]
+		formulae: [
+			brew_bundle.BundleDumpFormula{
+				full_name: 'thirdparty/tap/requested'
+				installed_on_request: true
+			},
+			brew_bundle.BundleDumpFormula{
+				full_name: 'thirdparty/tap/dependency'
+				installed_on_request: false
+			},
+		]
+		trusted_formulae: ['thirdparty/tap/dependency', 'thirdparty/tap/requested']
+	}
+	selection := brew_bundle.BundleDumpSelection{
+		formulae: true
+		taps: true
+	}
+	return brew_bundle.build_brewfile(input, selection) == 'tap "thirdparty/tap", trusted: { formulae: ["dependency"] }\nbrew "thirdparty/tap/requested", trusted: true\n'
 }
 
 // Ruby it `it "determines the brewfile correctly" do` at line 94.
-pub fn ruby_dumper_spec_l94_d4_determines(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('determines', ...args)
+pub fn ruby_dumper_spec_l94_d4_determines() bool {
+	working_directory := '/tmp/brew-v-dumper-working-directory'
+	path := brew_bundle.brewfile_path(brew_bundle.BundleBrewfilePathConfig{
+		working_directory: working_directory
+		home_directory: '/home/tester'
+	}) or { return false }
+	return path == '${working_directory}/Brewfile'
 }
 
 // Ruby it `it "preserves the legacy extension dump order" do` at line 98.
-pub fn ruby_dumper_spec_l98_d5_preserves(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('preserves', ...args)
+pub fn ruby_dumper_spec_l98_d5_preserves() bool {
+	input := brew_bundle.BundleDumpInput{
+		extensions: [
+			brew_bundle.BundleDumpSection{ type_name: 'winget', output: 'winget "PowerToys", id: "XP89DCGQ3K6VLD", source: "msstore"' },
+			brew_bundle.BundleDumpSection{ type_name: 'go', output: 'go "github.com/charmbracelet/crush"' },
+			brew_bundle.BundleDumpSection{ type_name: 'cargo', output: 'cargo "ripgrep"' },
+			brew_bundle.BundleDumpSection{ type_name: 'uv', output: 'uv "mkdocs"' },
+			brew_bundle.BundleDumpSection{ type_name: 'flatpak', output: 'flatpak "org.gnome.Calculator"' },
+		]
+	}
+	selection := brew_bundle.BundleDumpSelection{
+		extension_types: {
+			'mas':     false
+			'winget':  true
+			'vscode':  false
+			'cargo':   true
+			'flatpak': true
+			'go':      true
+			'uv':      true
+		}
+	}
+	return brew_bundle.build_brewfile(input, selection) == 'go "github.com/charmbracelet/crush"\ncargo "ripgrep"\nuv "mkdocs"\nflatpak "org.gnome.Calculator"\nwinget "PowerToys", id: "XP89DCGQ3K6VLD", source: "msstore"\n'
 }
 
 // Original Ruby source (line-for-line):

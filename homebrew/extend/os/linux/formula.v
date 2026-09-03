@@ -1,43 +1,114 @@
 module linux
 
-import brew_runtime
-
 // Translated from Homebrew/brew `extend/os/linux/formula.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub struct LinuxFormulaGlobalDependencyFacts {
+pub:
+	name                     string
+	aliases                  []string
+	versioned_formulae_names []string
+	needs_build_formulae     bool
+	needs_libc_formula       bool
+	gcc_dependency           ?string
+	glibc_dependency         ?string
+}
+
+pub struct LinuxFormulaState {
+pub mut:
+	global_deps_initialized bool
+	global_deps             []string
+	related_formula_names   []string
+}
+
+pub fn linux_formula_shared_library(name string, version ?string) string {
+	value := version or { '' }
+	suffix := if value == '*' || (name == '*' && value == '') {
+		'{,.*}'
+	} else if value != '' {
+		'.${value}'
+	} else {
+		''
+	}
+	return '${name}.so${suffix}'
+}
+
+pub fn linux_formula_add_global_deps(mut state LinuxFormulaState,
+	facts LinuxFormulaGlobalDependencyFacts) []string {
+	if !state.global_deps_initialized {
+		mut related_formula_names := [facts.name]
+		if facts.needs_build_formulae || facts.needs_libc_formula {
+			for candidate in facts.aliases {
+				if candidate !in related_formula_names {
+					related_formula_names << candidate
+				}
+			}
+			for candidate in facts.versioned_formulae_names {
+				if candidate !in related_formula_names {
+					related_formula_names << candidate
+				}
+			}
+		}
+		state.related_formula_names = related_formula_names.clone()
+		// The dependency collector has already evaluated the related names when it
+		// supplies these optional results. Preserve the source's GCC-then-glibc order.
+		if dependency := facts.gcc_dependency {
+			state.global_deps << dependency
+		}
+		if dependency := facts.glibc_dependency {
+			state.global_deps << dependency
+		}
+		state.global_deps_initialized = true
+	}
+	return state.global_deps.clone()
+}
+
+pub fn linux_formula_std_cabal_v2_args(base_args []string, arm bool) []string {
+	mut arguments := base_args.clone()
+	if arm {
+		arguments << '--ghc-option=-pie'
+	}
+	return arguments
+}
+
+pub fn linux_formula_std_swift_args(base_args []string) []string {
+	mut arguments := ['--static-swift-stdlib', '-Xswiftc', '-use-ld=ld']
+	arguments << base_args
+	return arguments
+}
 
 // Ruby method `shared_library(name, version = nil)` at line 12.
-pub fn ruby_formula_l12_d1_shared_library(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('shared_library', ...args)
+pub fn ruby_formula_l12_d1_shared_library(name string, version ?string) string {
+	return linux_formula_shared_library(name, version)
 }
 
 // Ruby method `loader_path` at line 22.
-pub fn ruby_formula_l22_d2_loader_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('loader_path', ...args)
+pub fn ruby_formula_l22_d2_loader_path() string {
+	return '\$ORIGIN'
 }
 
 // Ruby method `deuniversalize_machos(*targets); end` at line 27.
-pub fn ruby_formula_l27_d3_deuniversalize_machos(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('deuniversalize_machos', ...args)
+pub fn ruby_formula_l27_d3_deuniversalize_machos(_ []string) {
 }
 
 // Ruby method `add_global_deps_to_spec(spec)` at line 30.
-pub fn ruby_formula_l30_d4_add_global_deps_to_spec(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('add_global_deps_to_spec', ...args)
+pub fn ruby_formula_l30_d4_add_global_deps_to_spec(mut state LinuxFormulaState,
+	facts LinuxFormulaGlobalDependencyFacts) []string {
+	return linux_formula_add_global_deps(mut state, facts)
 }
 
 // Ruby method `valid_platform?` at line 48.
-pub fn ruby_formula_l48_d5_valid_platform(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('valid_platform?', ...args)
+pub fn ruby_formula_l48_d5_valid_platform(supports_linux bool) bool {
+	return supports_linux
 }
 
 // Ruby method `std_cabal_v2_args(installdir: bin)` at line 53.
-pub fn ruby_formula_l53_d6_std_cabal_v2_args(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('std_cabal_v2_args', ...args)
+pub fn ruby_formula_l53_d6_std_cabal_v2_args(base_args []string, arm bool) []string {
+	return linux_formula_std_cabal_v2_args(base_args, arm)
 }
 
 // Ruby method `std_swift_args` at line 60.
-pub fn ruby_formula_l60_d7_std_swift_args(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('std_swift_args', ...args)
+pub fn ruby_formula_l60_d7_std_swift_args(base_args []string) []string {
+	return linux_formula_std_swift_args(base_args)
 }
 
 // Original Ruby source (line-for-line):

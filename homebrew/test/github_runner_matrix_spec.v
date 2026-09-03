@@ -1,198 +1,338 @@
 module test
 
-import brew_runtime
+import homebrew
 
 // Translated from Homebrew/brew `test/github_runner_matrix_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+fn runner_matrix_spec_formula(name string, dependency string, platform string, arch string,
+	macos_version string, disabled bool, deprecated bool) homebrew.TestRunnerFormula {
+	mut requirements := []homebrew.TestRunnerRequirement{}
+	if arch != '' {
+		requirements << homebrew.TestRunnerRequirement{
+			kind: .arch
+			arch: arch
+		}
+	}
+	if macos_version != '' {
+		requirements << homebrew.TestRunnerRequirement{
+			kind: .macos
+			version: macos_version
+			version_specified: true
+		}
+	}
+	dependencies := if dependency == '' { []string{} } else { [dependency] }
+	return homebrew.new_test_runner_formula(homebrew.TestRunnerFormulaDefinition{
+		name: name
+		supports_macos: platform != 'linux'
+		supports_linux: platform != 'macos' && macos_version == ''
+		requirements: requirements
+		dependencies: dependencies
+		disabled: disabled
+		deprecated: deprecated
+	}, true)
+}
+
+fn runner_matrix_spec_testball() homebrew.TestRunnerFormula {
+	return runner_matrix_spec_formula('testball', '', '', '', '', false, false)
+}
+
+fn runner_matrix_spec_depender(platform string, arch string, macos_version string,
+	disabled bool, deprecated bool) homebrew.TestRunnerFormula {
+	mut suffix := if platform != '' { '-${platform}' } else { '' }
+	if arch != '' {
+		suffix = if arch == 'x86_64' { '-intel' } else { '-arm' }
+	}
+	if macos_version != '' {
+		suffix = '-newest'
+	}
+	return runner_matrix_spec_formula('testball-depender${suffix}', 'testball', platform, arch, macos_version, disabled, deprecated)
+}
+
+fn runner_matrix_spec_options(dependent bool, candidates []homebrew.TestRunnerFormula,
+	shards int, oldest string, long_timeout bool) homebrew.GitHubRunnerMatrixOptions {
+	return homebrew.GitHubRunnerMatrixOptions{
+		dependent_matrix: dependent
+		dependent_shards: shards
+		github_run_id: '12345'
+		linux_arm_runner: 'ubuntu-24.04-arm'
+		dependent_formulae: candidates.map(it.formula)
+		oldest_macos_runner: oldest
+		macos_long_timeout: long_timeout
+	}
+}
+
+fn runner_matrix_spec_matrix(testing []homebrew.TestRunnerFormula, deleted []string,
+	dependent bool, candidates []homebrew.TestRunnerFormula) homebrew.GitHubRunnerMatrix {
+	return homebrew.new_github_runner_matrix(testing, deleted, runner_matrix_spec_options(dependent, candidates, 1, 'sonoma', false)) or { panic(err) }
+}
+
+fn runner_matrix_spec_names(matrix homebrew.GitHubRunnerMatrix, predicate string) []string {
+	mut names := []string{}
+	for runner in matrix.runners {
+		selected := match predicate {
+			'macos' { runner.macos() }
+			'linux' { runner.linux() }
+			'x86_64' { runner.x86_64() }
+			'arm64' { runner.arm64() }
+			else { runner.active }
+		}
+		if selected {
+			names << match runner.spec {
+				homebrew.LinuxRunnerSpec { runner.spec.name }
+				homebrew.MacOSRunnerSpec { runner.spec.name }
+			}
+		}
+	}
+	return names
+}
 
 // Ruby let `let(:newest_supported_macos) do` at line 8.
-pub fn ruby_github_runner_matrix_spec_l8_d1_newest_supported_macos(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('newest_supported_macos', ...args)
+pub fn ruby_github_runner_matrix_spec_l8_d1_newest_supported_macos() string {
+	return 'tahoe:26'
 }
 
 // Ruby let `let(:testball) { setup_test_runner_formula("testball") }` at line 11.
-pub fn ruby_github_runner_matrix_spec_l11_d2_testball(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('testball', ...args)
+pub fn ruby_github_runner_matrix_spec_l11_d2_testball() homebrew.TestRunnerFormula {
+	return runner_matrix_spec_testball()
 }
 
 // Ruby let `let(:testball_depender) { setup_test_runner_formula("testball-depender", ["testball"]) }` at line 12.
-pub fn ruby_github_runner_matrix_spec_l12_d3_testball_depender(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('testball_depender', ...args)
+pub fn ruby_github_runner_matrix_spec_l12_d3_testball_depender() homebrew.TestRunnerFormula {
+	return runner_matrix_spec_depender('', '', '', false, false)
 }
 
 // Ruby let `let(:testball_depender_linux) { setup_test_runner_formula("testball-depender-linux", ["testball", :linux]) }` at line 13.
-pub fn ruby_github_runner_matrix_spec_l13_d4_testball_depender_linux(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('testball_depender_linux', ...args)
+pub fn ruby_github_runner_matrix_spec_l13_d4_testball_depender_linux() homebrew.TestRunnerFormula {
+	return runner_matrix_spec_depender('linux', '', '', false, false)
 }
 
 // Ruby let `let(:testball_depender_macos) { setup_test_runner_formula("testball-depender-macos", ["testball", :macos]) }` at line 14.
-pub fn ruby_github_runner_matrix_spec_l14_d5_testball_depender_macos(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('testball_depender_macos', ...args)
+pub fn ruby_github_runner_matrix_spec_l14_d5_testball_depender_macos() homebrew.TestRunnerFormula {
+	return runner_matrix_spec_depender('macos', '', '', false, false)
 }
 
 // Ruby let `let(:testball_depender_intel) do` at line 15.
-pub fn ruby_github_runner_matrix_spec_l15_d6_testball_depender_intel(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('testball_depender_intel', ...args)
+pub fn ruby_github_runner_matrix_spec_l15_d6_testball_depender_intel() homebrew.TestRunnerFormula {
+	return runner_matrix_spec_depender('', 'x86_64', '', false, false)
 }
 
 // Ruby let `let(:testball_depender_arm) { setup_test_runner_formula("testball-depender-arm", ["testball", { arch: :arm64 }]) }` at line 18.
-pub fn ruby_github_runner_matrix_spec_l18_d7_testball_depender_arm(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('testball_depender_arm', ...args)
+pub fn ruby_github_runner_matrix_spec_l18_d7_testball_depender_arm() homebrew.TestRunnerFormula {
+	return runner_matrix_spec_depender('', 'arm64', '', false, false)
 }
 
 // Ruby let `let(:testball_depender_newest) do` at line 19.
-pub fn ruby_github_runner_matrix_spec_l19_d8_testball_depender_newest(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('testball_depender_newest', ...args)
+pub fn ruby_github_runner_matrix_spec_l19_d8_testball_depender_newest() homebrew.TestRunnerFormula {
+	return runner_matrix_spec_depender('', '', '26', false, false)
 }
 
 // Ruby it `it "is not newer than HOMEBREW_MACOS_OLDEST_SUPPORTED" do` at line 38.
-pub fn ruby_github_runner_matrix_spec_l38_d9_is(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('is', ...args)
+pub fn ruby_github_runner_matrix_spec_l38_d9_is() bool {
+	oldest := homebrew.macos_version_from_symbol('sonoma') or { return false }
+	supported := homebrew.new_macos_version('14') or { return false }
+	return oldest.compare(supported) <= 0
 }
 
 // Ruby it `it "returns an object that responds to `#to_json`" do` at line 45.
-pub fn ruby_github_runner_matrix_spec_l45_d10_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_github_runner_matrix_spec_l45_d10_returns() bool {
+	matrix := runner_matrix_spec_matrix([], ['deleted'], false, [])
+	return homebrew.github_runner_matrix_active_specs(matrix).len > 0
 }
 
 // Ruby it `it "uses unprivileged Linux containers" do` at line 53.
-pub fn ruby_github_runner_matrix_spec_l53_d11_uses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uses', ...args)
+pub fn ruby_github_runner_matrix_spec_l53_d11_uses() bool {
+	matrix := runner_matrix_spec_matrix([], ['deleted'], false, [])
+	containers := homebrew.github_runner_matrix_active_specs(matrix).filter('container' in it).map(it['container'])
+	return containers.len == 2 && containers.all(it.attributes['image'] == 'ghcr.io/homebrew/brew:main' && it.attributes['options'] == '--init --user linuxbrew')
 }
 
 // Ruby it `it "is idempotent" do` at line 68.
-pub fn ruby_github_runner_matrix_spec_l68_d12_is(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('is', ...args)
+pub fn ruby_github_runner_matrix_spec_l68_d12_is() bool {
+	mut matrix := runner_matrix_spec_matrix([], [], false, [])
+	before := runner_matrix_spec_names(matrix, 'all')
+	homebrew.github_runner_matrix_generate_runners(mut matrix) or { return false }
+	return runner_matrix_spec_names(matrix, 'all') == before
 }
 
 // Ruby it `it "activates no test runners" do` at line 78.
-pub fn ruby_github_runner_matrix_spec_l78_d13_activates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('activates', ...args)
+pub fn ruby_github_runner_matrix_spec_l78_d13_activates() bool {
+	return !runner_matrix_spec_matrix([], [], false, []).runners.any(it.active)
 }
 
 // Ruby it `it "activates no dependent runners" do` at line 83.
-pub fn ruby_github_runner_matrix_spec_l83_d14_activates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('activates', ...args)
+pub fn ruby_github_runner_matrix_spec_l83_d14_activates() bool {
+	return !runner_matrix_spec_matrix([], [], true, []).runners.any(it.active)
 }
 
 // Ruby it `it "activates all runners" do` at line 90.
-pub fn ruby_github_runner_matrix_spec_l90_d15_activates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('activates', ...args)
+pub fn ruby_github_runner_matrix_spec_l90_d15_activates() bool {
+	options := homebrew.GitHubRunnerMatrixOptions{ all_supported: true, github_run_id: '12345' }
+	matrix := homebrew.new_github_runner_matrix([], [], options) or { return false }
+	return matrix.runners.all(it.active)
 }
 
 // Ruby it `it "activates all runners" do` at line 99.
-pub fn ruby_github_runner_matrix_spec_l99_d16_activates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('activates', ...args)
+pub fn ruby_github_runner_matrix_spec_l99_d16_activates() bool {
+	matrix := runner_matrix_spec_matrix([runner_matrix_spec_testball()], [], false, [])
+	return matrix.runners.all(it.active)
 }
 
 // Ruby it `it "activates only the Linux runners" do` at line 108.
-pub fn ruby_github_runner_matrix_spec_l108_d17_activates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('activates', ...args)
+pub fn ruby_github_runner_matrix_spec_l108_d17_activates() bool {
+	matrix := runner_matrix_spec_matrix([
+		runner_matrix_spec_depender('linux', '', '', false, false),
+	], [], false, [])
+	return runner_matrix_spec_names(matrix, 'active') == ['Linux arm64', 'Linux x86_64']
 }
 
 // Ruby it `it "activates only the macOS runners" do` at line 120.
-pub fn ruby_github_runner_matrix_spec_l120_d18_activates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('activates', ...args)
+pub fn ruby_github_runner_matrix_spec_l120_d18_activates() bool {
+	matrix := runner_matrix_spec_matrix([
+		runner_matrix_spec_depender('macos', '', '', false, false),
+	], [], false, [])
+	return runner_matrix_spec_names(matrix, 'active') == runner_matrix_spec_names(matrix, 'macos')
 }
 
 // Ruby it `it "activates only the Intel runners" do` at line 132.
-pub fn ruby_github_runner_matrix_spec_l132_d19_activates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('activates', ...args)
+pub fn ruby_github_runner_matrix_spec_l132_d19_activates() bool {
+	matrix := runner_matrix_spec_matrix([
+		runner_matrix_spec_depender('', 'x86_64', '', false, false),
+	], [], false, [])
+	return runner_matrix_spec_names(matrix, 'active') == runner_matrix_spec_names(matrix, 'x86_64')
 }
 
 // Ruby it `it "activates only the ARM runners" do` at line 144.
-pub fn ruby_github_runner_matrix_spec_l144_d20_activates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('activates', ...args)
+pub fn ruby_github_runner_matrix_spec_l144_d20_activates() bool {
+	matrix := runner_matrix_spec_matrix([
+		runner_matrix_spec_depender('', 'arm64', '', false, false),
+	], [], false, [])
+	return runner_matrix_spec_names(matrix, 'active') == runner_matrix_spec_names(matrix, 'arm64')
 }
 
 // Ruby it `it "activates only the suitable macOS runners" do` at line 156.
-pub fn ruby_github_runner_matrix_spec_l156_d21_activates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('activates', ...args)
+pub fn ruby_github_runner_matrix_spec_l156_d21_activates() bool {
+	matrix := runner_matrix_spec_matrix([
+		runner_matrix_spec_depender('', '', '26', false, false),
+	], [], false, [])
+	return runner_matrix_spec_names(matrix, 'active') == ['macOS 26-arm64']
 }
 
 // Ruby it `it "activates no runners" do` at line 171.
-pub fn ruby_github_runner_matrix_spec_l171_d22_activates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('activates', ...args)
+pub fn ruby_github_runner_matrix_spec_l171_d22_activates() bool {
+	testball := runner_matrix_spec_testball()
+	return !runner_matrix_spec_matrix([testball], [], true, [testball]).runners.any(it.active)
 }
 
 // Ruby it `it "activates all runners" do` at line 183.
-pub fn ruby_github_runner_matrix_spec_l183_d23_activates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('activates', ...args)
+pub fn ruby_github_runner_matrix_spec_l183_d23_activates() bool {
+	testball := runner_matrix_spec_testball()
+	depender := runner_matrix_spec_depender('', '', '', false, false)
+	return runner_matrix_spec_matrix([testball], [], true, [testball, depender]).runners.all(it.active)
 }
 
 // Ruby it `it "splits active runners into shards" do` at line 192.
-pub fn ruby_github_runner_matrix_spec_l192_d24_splits(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('splits', ...args)
+pub fn ruby_github_runner_matrix_spec_l192_d24_splits() bool {
+	testball := runner_matrix_spec_testball()
+	depender := runner_matrix_spec_depender('', '', '', false, false)
+	options := runner_matrix_spec_options(true, [testball, depender], 2, 'tahoe', true)
+	matrix := homebrew.new_github_runner_matrix([testball], [], options) or { return false }
+	specs := homebrew.github_runner_matrix_active_specs(matrix)
+	return specs.map(it['formulae_dependents_shard'].as_string()) == ['1/2', '2/2', '1/2', '2/2',
+		'1/2', '2/2'] && specs.map(it['runner'].as_string()) == ['ubuntu-24.04-arm',
+		'ubuntu-24.04-arm', 'ubuntu-latest', 'ubuntu-latest', '26-arm64-12345-deps1-long',
+		'26-arm64-12345-deps2-long']
 }
 
 // Ruby it `it "activates only Linux runners" do` at line 224.
-pub fn ruby_github_runner_matrix_spec_l224_d25_activates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('activates', ...args)
+pub fn ruby_github_runner_matrix_spec_l224_d25_activates() bool {
+	return runner_matrix_spec_dependent_names(runner_matrix_spec_depender('linux', '', '', false, false), 'linux')
 }
 
 // Ruby it `it "activates only macOS runners" do` at line 235.
-pub fn ruby_github_runner_matrix_spec_l235_d26_activates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('activates', ...args)
+pub fn ruby_github_runner_matrix_spec_l235_d26_activates() bool {
+	return runner_matrix_spec_dependent_names(runner_matrix_spec_depender('macos', '', '', false, false), 'macos')
 }
 
 // Ruby it `it "activates only Intel runners" do` at line 246.
-pub fn ruby_github_runner_matrix_spec_l246_d27_activates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('activates', ...args)
+pub fn ruby_github_runner_matrix_spec_l246_d27_activates() bool {
+	return runner_matrix_spec_dependent_names(runner_matrix_spec_depender('', 'x86_64', '', false, false), 'x86_64')
 }
 
 // Ruby it `it "activates only ARM runners" do` at line 257.
-pub fn ruby_github_runner_matrix_spec_l257_d28_activates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('activates', ...args)
+pub fn ruby_github_runner_matrix_spec_l257_d28_activates() bool {
+	return runner_matrix_spec_dependent_names(runner_matrix_spec_depender('', 'arm64', '', false, false), 'arm64')
 }
 
 // Ruby it `it "activates no runners" do` at line 268.
-pub fn ruby_github_runner_matrix_spec_l268_d29_activates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('activates', ...args)
+pub fn ruby_github_runner_matrix_spec_l268_d29_activates() bool {
+	testball := runner_matrix_spec_testball()
+	dependent := runner_matrix_spec_depender('', '', '', true, false)
+	return !runner_matrix_spec_matrix([testball], [], true, [testball, dependent]).runners.any(it.active)
 }
 
 // Ruby it `it "activates no runners" do` at line 281.
-pub fn ruby_github_runner_matrix_spec_l281_d30_activates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('activates', ...args)
+pub fn ruby_github_runner_matrix_spec_l281_d30_activates() bool {
+	testball := runner_matrix_spec_testball()
+	dependent := runner_matrix_spec_depender('', '', '', false, true)
+	return !runner_matrix_spec_matrix([testball], [], true, [testball, dependent]).runners.any(it.active)
 }
 
 // Ruby it `it "activates all runners" do` at line 298.
-pub fn ruby_github_runner_matrix_spec_l298_d31_activates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('activates', ...args)
+pub fn ruby_github_runner_matrix_spec_l298_d31_activates() bool {
+	return runner_matrix_spec_matrix([], ['deleted'], false, []).runners.all(it.active)
 }
 
 // Ruby it `it "activates no runners" do` at line 308.
-pub fn ruby_github_runner_matrix_spec_l308_d32_activates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('activates', ...args)
+pub fn ruby_github_runner_matrix_spec_l308_d32_activates() bool {
+	return !runner_matrix_spec_matrix([], ['deleted'], true, []).runners.any(it.active)
 }
 
 // Ruby it `it "activates no runners" do` at line 317.
-pub fn ruby_github_runner_matrix_spec_l317_d33_activates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('activates', ...args)
+pub fn ruby_github_runner_matrix_spec_l317_d33_activates() bool {
+	testball := runner_matrix_spec_testball()
+	return !runner_matrix_spec_matrix([testball], ['deleted'], true, [testball]).runners.any(it.active)
 }
 
 // Ruby it `it "activates the applicable runners" do` at line 331.
-pub fn ruby_github_runner_matrix_spec_l331_d34_activates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('activates', ...args)
+pub fn ruby_github_runner_matrix_spec_l331_d34_activates() bool {
+	testball := runner_matrix_spec_testball()
+	dependent := runner_matrix_spec_depender('', '', '', false, false)
+	return runner_matrix_spec_matrix([testball], ['deleted'], true, [testball, dependent]).runners.all(it.active)
 }
 
 // Ruby it `it "activates the applicable runners" do` at line 344.
-pub fn ruby_github_runner_matrix_spec_l344_d35_activates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('activates', ...args)
+pub fn ruby_github_runner_matrix_spec_l344_d35_activates() bool {
+	testball := runner_matrix_spec_testball()
+	dependent := runner_matrix_spec_depender('linux', '', '', false, false)
+	matrix := runner_matrix_spec_matrix([testball], ['deleted'], true, [testball, dependent])
+	return runner_matrix_spec_names(matrix, 'active') == ['Linux arm64', 'Linux x86_64']
 }
 
 // Ruby it `it "activates the applicable runners" do` at line 357.
-pub fn ruby_github_runner_matrix_spec_l357_d36_activates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('activates', ...args)
+pub fn ruby_github_runner_matrix_spec_l357_d36_activates() bool {
+	testball := runner_matrix_spec_testball()
+	dependent := runner_matrix_spec_depender('macos', '', '', false, false)
+	matrix := runner_matrix_spec_matrix([testball], ['deleted'], true, [testball, dependent])
+	return runner_matrix_spec_names(matrix, 'active') == runner_matrix_spec_names(matrix, 'macos')
 }
 
 // Ruby method `get_runner_names(runner_matrix, predicate = :active)` at line 369.
-pub fn ruby_github_runner_matrix_spec_l369_d37_get_runner_names(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('get_runner_names', ...args)
+pub fn ruby_github_runner_matrix_spec_l369_d37_get_runner_names(matrix homebrew.GitHubRunnerMatrix,
+	predicate string) []string {
+	return runner_matrix_spec_names(matrix, predicate)
 }
 
 // Ruby method `setup_test_runner_formula(name, dependencies = [], **kwargs)` at line 375.
-pub fn ruby_github_runner_matrix_spec_l375_d38_setup_test_runner_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('setup_test_runner_formula', ...args)
+pub fn ruby_github_runner_matrix_spec_l375_d38_setup_test_runner_formula(name string,
+	dependency string, platform string, arch string, macos_version string) homebrew.TestRunnerFormula {
+	return runner_matrix_spec_formula(name, dependency, platform, arch, macos_version, false, false)
+}
+
+fn runner_matrix_spec_dependent_names(dependent homebrew.TestRunnerFormula,
+	predicate string) bool {
+	testball := runner_matrix_spec_testball()
+	matrix := runner_matrix_spec_matrix([testball], [], true, [testball, dependent])
+	return runner_matrix_spec_names(matrix, 'active') == runner_matrix_spec_names(matrix, predicate)
 }
 
 // Original Ruby source (line-for-line):

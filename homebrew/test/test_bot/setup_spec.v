@@ -1,18 +1,21 @@
 module test_bot
 
 import brew_runtime
+import homebrew.test_bot as setup_core
 
 // Translated from Homebrew/brew `test/test_bot/setup_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:setup) { described_class.new }` at line 7.
 pub fn ruby_setup_spec_l7_d1_setup(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('setup', ...args)
+	return brew_runtime.object_value('Homebrew::TestBot::Setup', 'Setup')
 }
 
 // Ruby it `it "is successful" do` at line 10.
 pub fn ruby_setup_spec_l10_d2_is(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('is', ...args)
+	run := setup_core.setup_run(false)
+	return brew_runtime.bool_value(run.steps.len == 3 && run.steps.all(it.passed)
+		&& run.steps.last().passed)
 }
 
 // Original Ruby source (line-for-line):

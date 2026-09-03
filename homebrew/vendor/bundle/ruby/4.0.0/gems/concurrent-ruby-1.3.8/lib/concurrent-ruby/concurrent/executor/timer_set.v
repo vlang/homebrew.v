@@ -1,58 +1,345 @@
 module executor
 
 import brew_runtime
+import os
+import sync
+import time
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/executor/timer_set.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub type TimerSetDispatch = fn(voidptr) bool
+
+pub struct TimerSetTask {
+pub:
+	context       voidptr
+	initial_delay f64
+	schedule_time f64
+	dispatch      TimerSetDispatch @[required]
+}
+
+@[heap]
+pub struct TimerSet {
+	mutex &sync.Mutex
+	wake  chan bool
+mut:
+	tasks      []TimerSetTask
+	running    bool
+	stopped    bool
+	processing bool
+	ruby_pid   int
+}
+
+pub fn new_timer_set() &TimerSet {
+	return &TimerSet{
+		mutex: sync.new_mutex()
+		wake: chan bool{ cap: 1 }
+		running: true
+		ruby_pid: os.getpid()
+	}
+}
+
+pub fn monotonic_seconds() f64 {
+	return f64(time.sys_mono_now()) / f64(time.second)
+}
+
+fn signal_timer_set(timer &TimerSet) {
+	select {
+		timer.wake <- true {
+		}
+		else {
+		}
+	}
+}
+
+pub fn (mut timer TimerSet) is_running() bool {
+	timer.mutex.lock()
+	running := timer.running
+	timer.mutex.unlock()
+	return running
+}
+
+pub fn (mut timer TimerSet) is_shutdown() bool {
+	timer.mutex.lock()
+	stopped := timer.stopped
+	timer.mutex.unlock()
+	return stopped
+}
+
+pub fn (mut timer TimerSet) queue_length() int {
+	timer.mutex.lock()
+	length := timer.tasks.len
+	timer.mutex.unlock()
+	return length
+}
+
+fn timer_set_insert(mut tasks []TimerSetTask, task TimerSetTask) {
+	mut index := 0
+	for index < tasks.len && tasks[index].schedule_time <= task.schedule_time {
+		index++
+	}
+	tasks.insert(index, task)
+}
+
+fn run_timer_set(timer_address u64) {
+	mut active_timer := unsafe { &TimerSet(voidptr(timer_address)) }
+	active_timer.process_tasks()
+}
+
+pub fn (mut timer TimerSet) post_task(task TimerSetTask) bool {
+	timer.mutex.lock()
+	if !timer.running {
+		timer.mutex.unlock()
+		return false
+	}
+	timer.ns_reset_if_forked_locked()
+	if task.initial_delay <= 0.01 {
+		timer.mutex.unlock()
+		return task.dispatch(task.context)
+	}
+	timer_set_insert(mut timer.tasks, task)
+	start_worker := !timer.processing
+	if start_worker {
+		timer.processing = true
+	}
+	timer.mutex.unlock()
+	signal_timer_set(timer)
+	if start_worker {
+		spawn run_timer_set(u64(voidptr(timer)))
+	}
+	return true
+}
+
+pub fn (mut timer TimerSet) remove_task(task TimerSetTask) bool {
+	timer.mutex.lock()
+	mut removed := false
+	for index, queued in timer.tasks {
+		if queued.context == task.context {
+			timer.tasks.delete(index)
+			removed = true
+			break
+		}
+	}
+	timer.mutex.unlock()
+	if removed {
+		signal_timer_set(timer)
+	}
+	return removed
+}
+
+pub fn (mut timer TimerSet) shutdown() bool {
+	timer.mutex.lock()
+	if timer.running {
+		timer.ns_reset_if_forked_locked()
+		timer.running = false
+		timer.tasks.clear()
+		if !timer.processing {
+			timer.stopped = true
+		}
+	}
+	timer.mutex.unlock()
+	signal_timer_set(timer)
+	return true
+}
+
+pub fn (mut timer TimerSet) kill() bool {
+	return timer.shutdown()
+}
+
+pub fn (mut timer TimerSet) wait_for_termination(timeout time.Duration) bool {
+	started := time.sys_mono_now()
+	for {
+		if timer.is_shutdown() {
+			return true
+		}
+		if timeout >= 0 && time.sys_mono_now() - started >= u64(timeout) {
+			return false
+		}
+		time.sleep(time.millisecond)
+	}
+	return false
+}
+
+fn (mut timer TimerSet) ns_reset_if_forked_locked() {
+	pid := os.getpid()
+	if pid != timer.ruby_pid {
+		timer.tasks.clear()
+		timer.ruby_pid = pid
+	}
+}
+
+pub fn (mut timer TimerSet) reset_if_forked() bool {
+	timer.mutex.lock()
+	previous := timer.ruby_pid
+	timer.ns_reset_if_forked_locked()
+	changed := previous != timer.ruby_pid
+	timer.mutex.unlock()
+	return changed
+}
+
+pub fn (mut timer TimerSet) process_tasks() {
+	for {
+		timer.mutex.lock()
+		if !timer.running || timer.tasks.len == 0 {
+			timer.processing = false
+			if !timer.running {
+				timer.stopped = true
+			}
+			timer.mutex.unlock()
+			return
+		}
+		now := monotonic_seconds()
+		difference := timer.tasks[0].schedule_time - now
+		if difference <= 0 {
+			task := timer.tasks[0]
+			timer.tasks.delete(0)
+			timer.mutex.unlock()
+			task.dispatch(task.context)
+			continue
+		}
+		timer.mutex.unlock()
+		maximum_wait := 60 * time.second
+		requested_wait := time.Duration(difference * f64(time.second))
+		wait := if requested_wait < maximum_wait { requested_wait } else { maximum_wait }
+		select {
+			_ := <-timer.wake {
+			}
+			wait {
+			}
+		}
+	}
+}
+
+@[heap]
+struct BoundaryTimerSetTask {
+	result brew_runtime.Value
+mut:
+	fired bool
+}
+
+fn dispatch_boundary_timer_set_task(context voidptr) bool {
+	mut task := unsafe { &BoundaryTimerSetTask(context) }
+	task.fired = true
+	return true
+}
+
+fn timer_set_boundary_value(timer &TimerSet) brew_runtime.Value {
+	return brew_runtime.structured_value('Concurrent::TimerSet', '#<Concurrent::TimerSet>', {
+		'timer_set_address': u64(voidptr(timer)).str()
+	})
+}
+
+pub fn timer_set_from_value(value brew_runtime.Value) &TimerSet {
+	address := (value.attribute('timer_set_address') or {
+		panic('${value.type_name} has no translated TimerSet state')
+	}).u64()
+	return unsafe { &TimerSet(voidptr(address)) }
+}
+
+fn timer_set_task_from_value(value brew_runtime.Value) TimerSetTask {
+	address := (value.attribute('timer_set_task_address') or {
+		panic('${value.type_name} has no translated TimerSet task state')
+	}).u64()
+	task := unsafe { &TimerSetTask(voidptr(address)) }
+	return *task
+}
+
+fn boundary_timer_task_value(task &TimerSetTask) brew_runtime.Value {
+	return brew_runtime.structured_value('Concurrent::ScheduledTask', '#<Concurrent::ScheduledTask>', {
+		'timer_set_task_address': u64(voidptr(task)).str()
+	})
+}
 
 // Ruby method `initialize(opts = {})` at line 30.
 pub fn ruby_timer_set_l30_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	return timer_set_boundary_value(new_timer_set())
 }
 
 // Ruby method `post(delay, *args, &task)` at line 48.
 pub fn ruby_timer_set_l48_d2_post(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('post', ...args)
+	if args.len < 3 {
+		panic('ArgumentError: no block given')
+	}
+	mut timer := timer_set_from_value(args[0])
+	if !timer.is_running() {
+		return brew_runtime.bool_value(false)
+	}
+	delay := args[1].as_float() or { panic(err) }
+	if delay < 0 {
+		panic('ArgumentError: seconds must be greater than zero')
+	}
+	payload := &BoundaryTimerSetTask{
+		result: args[args.len - 1]
+	}
+	task := &TimerSetTask{
+		context: voidptr(payload)
+		initial_delay: delay
+		schedule_time: monotonic_seconds() + delay
+		dispatch: dispatch_boundary_timer_set_task
+	}
+	if !timer.post_task(*task) {
+		return brew_runtime.bool_value(false)
+	}
+	return boundary_timer_task_value(task)
 }
 
 // Ruby method `kill` at line 62.
 pub fn ruby_timer_set_l62_d3_kill(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('kill', ...args)
+	mut timer := timer_set_from_value(args[0])
+	return brew_runtime.bool_value(timer.kill())
 }
 
 // Ruby method `ns_initialize(opts)` at line 75.
 pub fn ruby_timer_set_l75_d4_ns_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ns_initialize', ...args)
+	if args.len > 0 {
+		_ := args[0].attribute('timer_set_address') or {
+			return timer_set_boundary_value(new_timer_set())
+		}
+		return args[0]
+	}
+	return timer_set_boundary_value(new_timer_set())
 }
 
 // Ruby method `post_task(task)` at line 90.
 pub fn ruby_timer_set_l90_d5_post_task(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('post_task', ...args)
+	if args.len < 2 {
+		panic('TimerSet#post_task requires a task')
+	}
+	mut timer := timer_set_from_value(args[0])
+	return brew_runtime.bool_value(timer.post_task(timer_set_task_from_value(args[1])))
 }
 
 // Ruby method `ns_post_task(task)` at line 95.
 pub fn ruby_timer_set_l95_d6_ns_post_task(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ns_post_task', ...args)
+	return ruby_timer_set_l90_d5_post_task(...args)
 }
 
 // Ruby method `remove_task(task)` at line 116.
 pub fn ruby_timer_set_l116_d7_remove_task(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('remove_task', ...args)
+	if args.len < 2 {
+		panic('TimerSet#remove_task requires a task')
+	}
+	mut timer := timer_set_from_value(args[0])
+	return brew_runtime.bool_value(timer.remove_task(timer_set_task_from_value(args[1])))
 }
 
 // Ruby method `ns_shutdown_execution` at line 123.
 pub fn ruby_timer_set_l123_d8_ns_shutdown_execution(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ns_shutdown_execution', ...args)
+	mut timer := timer_set_from_value(args[0])
+	return brew_runtime.bool_value(timer.shutdown())
 }
 
 // Ruby method `ns_reset_if_forked` at line 132.
 pub fn ruby_timer_set_l132_d9_ns_reset_if_forked(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ns_reset_if_forked', ...args)
+	mut timer := timer_set_from_value(args[0])
+	timer.reset_if_forked()
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Ruby method `process_tasks` at line 146.
 pub fn ruby_timer_set_l146_d10_process_tasks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('process_tasks', ...args)
+	mut timer := timer_set_from_value(args[0])
+	timer.process_tasks()
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Original Ruby source (line-for-line):

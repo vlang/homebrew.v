@@ -1,108 +1,429 @@
 module homebrew
 
 import brew_runtime
+import os
 
 // Translated from Homebrew/brew `git_repository.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub struct GitRepository {
+pub:
+	pathname       string
+	git_executable string = 'git'
+}
+
+pub struct GitRepositoryText {
+pub:
+	present bool
+	value   string
+}
+
+pub struct GitRepositoryHeadInfo {
+pub:
+	head_present           bool
+	head                   string
+	last_committed_present bool
+	last_committed         string
+	branch_present         bool
+	branch                 string
+}
+
+pub struct GitPopenOptions {
+pub:
+	safe             bool
+	err_to_stdout    bool
+	no_global_config bool
+}
+
+pub type GitRepositoryRunner = fn(GitRepository, []string, GitPopenOptions) !brew_runtime.CapturedCommandResult
+
+fn git_repository_some(value string) GitRepositoryText {
+	return GitRepositoryText{
+		present: true
+		value: value
+	}
+}
+
+fn default_git_repository_runner(repository GitRepository, arguments []string,
+	options GitPopenOptions) !brew_runtime.CapturedCommandResult {
+	mut environment := map[string]string{}
+	if options.no_global_config {
+		environment['GIT_CONFIG_GLOBAL'] = os.path_devnull
+	}
+	mut argv := [repository.git_executable]
+	argv << arguments
+	return brew_runtime.run_captured_command(argv, brew_runtime.CapturedCommandOptions{
+		environment: environment
+		chdir: repository.pathname
+	})
+}
+
+pub fn new_git_repository(pathname string) GitRepository {
+	return GitRepository{
+		pathname: pathname
+	}
+}
+
+pub fn (repository GitRepository) is_git_repository() bool {
+	return os.exists(os.join_path(repository.pathname, '.git'))
+}
+
+fn git_repository_executable_available(executable string) bool {
+	if executable.contains(os.path_separator) {
+		return os.is_executable(executable)
+	}
+	_ := os.find_abs_path_of_executable(executable) or { return false }
+	return true
+}
+
+pub fn popen_git_with_runner(repository GitRepository, arguments []string,
+	options GitPopenOptions, runner GitRepositoryRunner) !GitRepositoryText {
+	if !repository.is_git_repository() {
+		if options.safe {
+			return error('Not a Git repository: ${repository.pathname}')
+		}
+		return GitRepositoryText{}
+	}
+	result := runner(repository, arguments, options) or {
+		if options.safe {
+			return err
+		}
+		return GitRepositoryText{}
+	}
+	if result.exit_code != 0 && options.safe {
+		return error('Git command failed with status ${result.exit_code}: git ${arguments.join(' ')}')
+	}
+	output := if options.err_to_stdout {
+		result.stdout + result.stderr
+	} else {
+		result.stdout
+	}
+	trimmed := output.trim_right('\r\n')
+	if trimmed == '' {
+		return GitRepositoryText{}
+	}
+	return git_repository_some(trimmed)
+}
+
+pub fn (repository GitRepository) popen_git(arguments []string,
+	options GitPopenOptions) !GitRepositoryText {
+	if !git_repository_executable_available(repository.git_executable) {
+		if options.safe {
+			return error('Git is unavailable')
+		}
+		return GitRepositoryText{}
+	}
+	return popen_git_with_runner(repository, arguments, options, default_git_repository_runner)
+}
+
+fn git_config_include_directive(line string) bool {
+	stripped := line.trim_left(' \t').to_lower()
+	for prefix in ['[include', '[includeif'] {
+		if !stripped.starts_with(prefix) || stripped.len <= prefix.len {
+			continue
+		}
+		next := stripped[prefix.len]
+		if next == ` ` || next == `\t` || next == `"` || next == `]` {
+			return true
+		}
+	}
+	return false
+}
+
+pub fn (repository GitRepository) origin_url_from_config() GitRepositoryText {
+	config_file := os.join_path(repository.pathname, '.git', 'config')
+	if !os.is_file(config_file) {
+		return GitRepositoryText{}
+	}
+	content := os.read_file(config_file) or { return GitRepositoryText{} }
+	for line in content.split_into_lines() {
+		if git_config_include_directive(line) {
+			return GitRepositoryText{}
+		}
+	}
+	mut in_origin := false
+	mut urls := []string{}
+	for line in content.split_into_lines() {
+		stripped := line.trim_space()
+		if stripped.starts_with('[') {
+			in_origin = stripped == '[remote "origin"]'
+			continue
+		}
+		if !in_origin || stripped == '' || stripped.starts_with('#') || stripped.starts_with(';') {
+			continue
+		}
+		separator := stripped.index('=') or { continue }
+		key := stripped[..separator].trim_space()
+		if key.to_lower() != 'url' {
+			continue
+		}
+		urls << stripped[separator + 1..].trim_space()
+	}
+	if urls.len != 1 {
+		return GitRepositoryText{}
+	}
+	url := urls[0]
+	if url == '' || url.contains_any('"#;\\') {
+		return GitRepositoryText{}
+	}
+	return git_repository_some(url)
+}
+
+pub fn origin_url_with_runner(repository GitRepository, runner GitRepositoryRunner) !GitRepositoryText {
+	from_config := repository.origin_url_from_config()
+	if from_config.present {
+		return from_config
+	}
+	return popen_git_with_runner(repository, ['config', '--local', '--get', 'remote.origin.url'], GitPopenOptions{ no_global_config: true }, runner)
+}
+
+pub fn (repository GitRepository) origin_url() !GitRepositoryText {
+	from_config := repository.origin_url_from_config()
+	if from_config.present {
+		return from_config
+	}
+	return repository.popen_git(['config', '--local', '--get', 'remote.origin.url'], GitPopenOptions{ no_global_config: true })
+}
+
+pub fn (repository GitRepository) head_ref(safe bool) !GitRepositoryText {
+	return repository.popen_git(['rev-parse', '--verify', '--quiet', 'HEAD'], GitPopenOptions{
+		safe: safe
+	})
+}
+
+pub fn (repository GitRepository) short_head_ref(length ?int, safe bool) !GitRepositoryText {
+	short_arg := if value := length { '--short=${value}' } else { '--short' }
+	return repository.popen_git(['rev-parse', short_arg, '--verify', '--quiet', 'HEAD'], GitPopenOptions{ safe: safe })
+}
+
+pub fn (repository GitRepository) last_committed() !GitRepositoryText {
+	return repository.popen_git(['show', '-s', '--format=%cr', 'HEAD'], GitPopenOptions{})
+}
+
+pub fn (repository GitRepository) head_info() !GitRepositoryHeadInfo {
+	output := repository.popen_git(['show', '-s', '--format=%H%n%cr%n%D', 'HEAD'], GitPopenOptions{})!
+	if !output.present {
+		return GitRepositoryHeadInfo{}
+	}
+	lines := output.value.split_into_lines()
+	head := if lines.len > 0 { lines[0] } else { '' }
+	last_committed := if lines.len > 1 { lines[1] } else { '' }
+	refs := if lines.len > 2 { lines[2] } else { '' }
+	mut branch := 'HEAD'
+	if refs.starts_with('HEAD -> ') {
+		branch = refs['HEAD -> '.len..].all_before(',')
+	}
+	return GitRepositoryHeadInfo{
+		head_present: head != ''
+		head: head
+		last_committed_present: last_committed != ''
+		last_committed: last_committed
+		branch_present: true
+		branch: branch
+	}
+}
+
+pub fn git_branch_name_from_ref(ref string) !GitRepositoryText {
+	if ref.trim_space() == '' {
+		return GitRepositoryText{}
+	}
+	if ref == 'HEAD' {
+		return git_repository_some('HEAD')
+	}
+	prefix := 'refs/heads/'
+	if ref.starts_with(prefix) {
+		return git_repository_some(ref[prefix.len..])
+	}
+	return error('Unexpected HEAD ref format: ${ref}')
+}
+
+pub fn branch_name_with_runner(repository GitRepository, safe bool,
+	runner GitRepositoryRunner) !GitRepositoryText {
+	ref := popen_git_with_runner(repository, ['rev-parse', '--symbolic-full-name', 'HEAD'], GitPopenOptions{ safe: safe }, runner)!
+	if !ref.present {
+		return GitRepositoryText{}
+	}
+	return git_branch_name_from_ref(ref.value)
+}
+
+pub fn (repository GitRepository) branch_name(safe bool) !GitRepositoryText {
+	ref := repository.popen_git(['rev-parse', '--symbolic-full-name', 'HEAD'], GitPopenOptions{
+		safe: safe
+	})!
+	if !ref.present {
+		return GitRepositoryText{}
+	}
+	return git_branch_name_from_ref(ref.value)
+}
+
+pub fn (repository GitRepository) rename_branch(old string, new string) ! {
+	repository.popen_git(['branch', '-m', old, new], GitPopenOptions{ safe: true })!
+}
+
+pub fn (repository GitRepository) set_upstream_branch(local string, origin string) ! {
+	repository.popen_git(['branch', '-u', 'origin/${origin}', local], GitPopenOptions{ safe: true })!
+}
+
+pub fn git_origin_branch_name_from_ref(ref string) !GitRepositoryText {
+	if ref.trim_space() == '' {
+		return GitRepositoryText{}
+	}
+	prefix := 'refs/remotes/origin/'
+	if ref.starts_with(prefix) {
+		return git_repository_some(ref[prefix.len..])
+	}
+	return error('Unexpected origin/HEAD ref format: ${ref}')
+}
+
+pub fn origin_branch_name_with_runner(repository GitRepository,
+	runner GitRepositoryRunner) !GitRepositoryText {
+	ref := popen_git_with_runner(repository, ['symbolic-ref', '-q', 'refs/remotes/origin/HEAD'], GitPopenOptions{}, runner)!
+	if !ref.present {
+		return GitRepositoryText{}
+	}
+	return git_origin_branch_name_from_ref(ref.value)
+}
+
+pub fn (repository GitRepository) origin_branch_name() !GitRepositoryText {
+	ref := repository.popen_git(['symbolic-ref', '-q', 'refs/remotes/origin/HEAD'], GitPopenOptions{})!
+	if !ref.present {
+		return GitRepositoryText{}
+	}
+	return git_origin_branch_name_from_ref(ref.value)
+}
+
+pub fn (repository GitRepository) default_origin_branch() !bool {
+	origin := repository.origin_branch_name()!
+	branch := repository.branch_name(false)!
+	return origin.present == branch.present && origin.value == branch.value
+}
+
+pub fn (repository GitRepository) last_commit_date() !GitRepositoryText {
+	return repository.popen_git(['show', '-s', '--format=%cd', '--date=short', 'HEAD'], GitPopenOptions{})
+}
+
+pub fn (repository GitRepository) origin_has_branch(branch string) !bool {
+	return (repository.popen_git(['ls-remote', '--heads', 'origin', branch], GitPopenOptions{})!).present
+}
+
+pub fn (repository GitRepository) set_head_origin_auto() ! {
+	repository.popen_git(['remote', 'set-head', 'origin', '--auto'], GitPopenOptions{ safe: true })!
+}
+
+pub fn (repository GitRepository) commit_message(commit string, safe bool) !GitRepositoryText {
+	message := repository.popen_git(['log', '-1', '--pretty=%B', commit, '--'], GitPopenOptions{
+		safe: safe
+		err_to_stdout: true
+	})!
+	if !message.present {
+		return message
+	}
+	return git_repository_some(message.value.trim_space())
+}
 
 // Ruby attr_reader `attr_reader :pathname` at line 11.
-pub fn ruby_git_repository_l11_d1_pathname(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('pathname', ...args)
+pub fn ruby_git_repository_l11_d1_pathname(repository GitRepository) string {
+	return repository.pathname
 }
 
 // Ruby method `initialize(pathname)` at line 14.
-pub fn ruby_git_repository_l14_d2_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+pub fn ruby_git_repository_l14_d2_initialize(pathname string) GitRepository {
+	return new_git_repository(pathname)
 }
 
 // Ruby method `git_repository?` at line 19.
-pub fn ruby_git_repository_l19_d3_git_repository(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('git_repository?', ...args)
+pub fn ruby_git_repository_l19_d3_git_repository(repository GitRepository) bool {
+	return repository.is_git_repository()
 }
 
 // Ruby method `origin_url` at line 25.
-pub fn ruby_git_repository_l25_d4_origin_url(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('origin_url', ...args)
+pub fn ruby_git_repository_l25_d4_origin_url(repository GitRepository) !GitRepositoryText {
+	return repository.origin_url()
 }
 
 // Ruby method `head_ref(safe: false)` at line 31.
-pub fn ruby_git_repository_l31_d5_head_ref(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('head_ref', ...args)
+pub fn ruby_git_repository_l31_d5_head_ref(repository GitRepository, safe bool) !GitRepositoryText {
+	return repository.head_ref(safe)
 }
 
 // Ruby method `short_head_ref(length: nil, safe: false)` at line 37.
-pub fn ruby_git_repository_l37_d6_short_head_ref(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('short_head_ref', ...args)
+pub fn ruby_git_repository_l37_d6_short_head_ref(repository GitRepository, length ?int,
+	safe bool) !GitRepositoryText {
+	return repository.short_head_ref(length, safe)
 }
 
 // Ruby method `last_committed` at line 44.
-pub fn ruby_git_repository_l44_d7_last_committed(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('last_committed', ...args)
+pub fn ruby_git_repository_l44_d7_last_committed(repository GitRepository) !GitRepositoryText {
+	return repository.last_committed()
 }
 
 // Ruby method `head_info` at line 52.
-pub fn ruby_git_repository_l52_d8_head_info(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('head_info', ...args)
+pub fn ruby_git_repository_l52_d8_head_info(repository GitRepository) !GitRepositoryHeadInfo {
+	return repository.head_info()
 }
 
 // Ruby method `branch_name(safe: false)` at line 63.
-pub fn ruby_git_repository_l63_d9_branch_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('branch_name', ...args)
+pub fn ruby_git_repository_l63_d9_branch_name(repository GitRepository, safe bool) !GitRepositoryText {
+	return repository.branch_name(safe)
 }
 
 // Ruby method `rename_branch(old:, new:)` at line 76.
-pub fn ruby_git_repository_l76_d10_rename_branch(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('rename_branch', ...args)
+pub fn ruby_git_repository_l76_d10_rename_branch(repository GitRepository, old string,
+	new string) ! {
+	repository.rename_branch(old, new)!
 }
 
 // Ruby method `set_upstream_branch(local:, origin:)` at line 82.
-pub fn ruby_git_repository_l82_d11_set_upstream_branch(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('set_upstream_branch', ...args)
+pub fn ruby_git_repository_l82_d11_set_upstream_branch(repository GitRepository, local string,
+	origin string) ! {
+	repository.set_upstream_branch(local, origin)!
 }
 
 // Ruby method `origin_branch_name` at line 88.
-pub fn ruby_git_repository_l88_d12_origin_branch_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('origin_branch_name', ...args)
+pub fn ruby_git_repository_l88_d12_origin_branch_name(repository GitRepository) !GitRepositoryText {
+	return repository.origin_branch_name()
 }
 
 // Ruby method `default_origin_branch?` at line 100.
-pub fn ruby_git_repository_l100_d13_default_origin_branch(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('default_origin_branch?', ...args)
+pub fn ruby_git_repository_l100_d13_default_origin_branch(repository GitRepository) !bool {
+	return repository.default_origin_branch()
 }
 
 // Ruby method `last_commit_date` at line 106.
-pub fn ruby_git_repository_l106_d14_last_commit_date(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('last_commit_date', ...args)
+pub fn ruby_git_repository_l106_d14_last_commit_date(repository GitRepository) !GitRepositoryText {
+	return repository.last_commit_date()
 }
 
 // Ruby method `origin_has_branch?(branch)` at line 112.
-pub fn ruby_git_repository_l112_d15_origin_has_branch(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('origin_has_branch?', ...args)
+pub fn ruby_git_repository_l112_d15_origin_has_branch(repository GitRepository,
+	branch string) !bool {
+	return repository.origin_has_branch(branch)
 }
 
 // Ruby method `set_head_origin_auto` at line 117.
-pub fn ruby_git_repository_l117_d16_set_head_origin_auto(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('set_head_origin_auto', ...args)
+pub fn ruby_git_repository_l117_d16_set_head_origin_auto(repository GitRepository) ! {
+	repository.set_head_origin_auto()!
 }
 
 // Ruby method `commit_message(commit = "HEAD", safe: false)` at line 123.
-pub fn ruby_git_repository_l123_d17_commit_message(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('commit_message', ...args)
+pub fn ruby_git_repository_l123_d17_commit_message(repository GitRepository, commit string,
+	safe bool) !GitRepositoryText {
+	return repository.commit_message(commit, safe)
 }
 
 // Ruby method `to_s = pathname.to_s` at line 128.
-pub fn ruby_git_repository_l128_d18_to_s(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_s', ...args)
+pub fn ruby_git_repository_l128_d18_to_s(repository GitRepository) string {
+	return repository.pathname
 }
 
 // Ruby method `origin_url_from_config` at line 139.
-pub fn ruby_git_repository_l139_d19_origin_url_from_config(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('origin_url_from_config', ...args)
+pub fn ruby_git_repository_l139_d19_origin_url_from_config(repository GitRepository) GitRepositoryText {
+	return repository.origin_url_from_config()
 }
 
 // Ruby method `popen_git(*args, safe: false, err: nil, no_global_config: false)` at line 174.
-pub fn ruby_git_repository_l174_d20_popen_git(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('popen_git', ...args)
+pub fn ruby_git_repository_l174_d20_popen_git(repository GitRepository, arguments []string,
+	options GitPopenOptions) !GitRepositoryText {
+	return repository.popen_git(arguments, options)
 }
 
 // Original Ruby source (line-for-line):

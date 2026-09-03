@@ -4,25 +4,130 @@ import brew_runtime
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/bindata-2.5.1/lib/bindata/uint8_array.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub struct Uint8ArrayParams {
+pub:
+	initial_length ?int
+	read_until     string
+}
+
+pub fn sanitize_uint8_array_params(initial_length ?int, read_until string) !Uint8ArrayParams {
+	canonical_read_until := read_until.trim_left(':')
+	if canonical_read_until.len > 0 && canonical_read_until != 'eof' {
+		return error('Parameter :read_until must have a value of :eof')
+	}
+	if initial_length != none && canonical_read_until.len > 0 {
+		return error('Parameters :initial_length and :read_until are mutually exclusive')
+	}
+	if length := initial_length {
+		if length < 0 {
+			return error('Parameter :initial_length must not be negative')
+		}
+		return Uint8ArrayParams{
+			initial_length: length
+		}
+	}
+	if canonical_read_until.len > 0 {
+		return Uint8ArrayParams{
+			read_until: canonical_read_until
+		}
+	}
+	return Uint8ArrayParams{
+		initial_length: 0
+	}
+}
+
+pub fn uint8_array_to_binary_string(value []u8) string {
+	return value.bytestr()
+}
+
+pub fn read_uint8_array(data []u8, params Uint8ArrayParams) ![]u8 {
+	if length := params.initial_length {
+		if length > data.len {
+			return error('End of file reached while reading ${length} byte(s)')
+		}
+		return data[..length].clone()
+	}
+	return data.clone()
+}
+
+fn uint8_values(value brew_runtime.Value) []u8 {
+	if value.type_name == 'String' {
+		return value.as_string().bytes()
+	}
+	values := value.as_array() or { panic(err) }
+	mut result := []u8{cap: values.len}
+	for item in values {
+		integer := item.as_int() or { panic(err) }
+		if integer < 0 || integer > 255 {
+			panic('Uint8Array values must be between 0 and 255')
+		}
+		result << u8(integer)
+	}
+	return result
+}
+
+fn uint8_params(value brew_runtime.Value) Uint8ArrayParams {
+	if value.type_name != 'Hash' {
+		return sanitize_uint8_array_params(none, '') or { panic(err) }
+	}
+	params := value.as_map() or { panic(err) }
+	initial_length := if 'initial_length' in params {
+		?int(int(params['initial_length'].as_int() or { panic(err) }))
+	} else {
+		none
+	}
+	read_until := if 'read_until' in params { params['read_until'].as_string() } else { '' }
+	return sanitize_uint8_array_params(initial_length, read_until) or { panic(err) }
+}
 
 // Ruby method `value_to_binary_string(val)` at line 32.
 pub fn ruby_uint8_array_l32_d1_value_to_binary_string(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('value_to_binary_string', ...args)
+	if args.len == 0 {
+		panic('Uint8Array#value_to_binary_string requires a value')
+	}
+	return brew_runtime.string_value(uint8_array_to_binary_string(uint8_values(args[0])))
 }
 
 // Ruby method `read_and_return_value(io)` at line 36.
 pub fn ruby_uint8_array_l36_d2_read_and_return_value(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('read_and_return_value', ...args)
+	if args.len == 0 {
+		panic('Uint8Array#read_and_return_value requires IO data')
+	}
+	params := if args.len >= 2 {
+		uint8_params(args[0])
+	} else {
+		Uint8ArrayParams{
+			read_until: 'eof'
+		}
+	}
+	data := if args.len >= 2 { args[1] } else { args[0] }
+	bytes := read_uint8_array(uint8_values(data), params) or { panic(err) }
+	return brew_runtime.array_value(bytes.map(brew_runtime.int_value(i64(it))))
 }
 
 // Ruby method `sensible_default` at line 46.
 pub fn ruby_uint8_array_l46_d3_sensible_default(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sensible_default', ...args)
+	return brew_runtime.array_value([]brew_runtime.Value{})
 }
 
 // Ruby method `sanitize_parameters!(obj_class, params) # :nodoc:` at line 52.
 pub fn ruby_uint8_array_l52_d4_sanitize_parameters(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sanitize_parameters!', ...args)
+	params_value := if args.len >= 2 {
+		args[1]
+	} else if args.len == 1 {
+		args[0]
+	} else {
+		brew_runtime.map_value(map[string]brew_runtime.Value{})
+	}
+	params := uint8_params(params_value)
+	mut sanitized := map[string]brew_runtime.Value{}
+	if length := params.initial_length {
+		sanitized['initial_length'] = brew_runtime.int_value(length)
+	}
+	if params.read_until.len > 0 {
+		sanitized['read_until'] = brew_runtime.string_value(params.read_until)
+	}
+	return brew_runtime.map_value(sanitized)
 }
 
 // Original Ruby source (line-for-line):

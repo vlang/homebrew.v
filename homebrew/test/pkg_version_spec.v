@@ -1,103 +1,109 @@
 module test
 
-import brew_runtime
+import homebrew
 
 // Translated from Homebrew/brew `test/pkg_version_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "parses versions from a string" do` at line 8.
-pub fn ruby_pkg_version_spec_l8_d1_parses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('parses', ...args)
+pub fn ruby_pkg_version_spec_l8_d1_parses() !bool {
+	return homebrew.parse_pkg_version('1.0_1')!.equals(homebrew.new_pkg_version(homebrew.new_version('1.0')!, 1)) && homebrew.parse_pkg_version('1.0')!.equals(homebrew.new_pkg_version(homebrew.new_version('1.0')!, 0)) && homebrew.parse_pkg_version('1.0_0')!.equals(homebrew.new_pkg_version(homebrew.new_version('1.0')!, 0)) && homebrew.parse_pkg_version('2.1.4_0')!.equals(homebrew.new_pkg_version(homebrew.new_version('2.1.4')!, 0)) && homebrew.parse_pkg_version('1.0.1e_1')!.equals(homebrew.new_pkg_version(homebrew.new_version('1.0.1e')!, 1))
 }
 
 // Ruby specify `specify "#==" do` at line 18.
-pub fn ruby_pkg_version_spec_l18_d2_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#==', ...args)
+pub fn ruby_pkg_version_spec_l18_d2_anonymous() !bool {
+	version := homebrew.parse_pkg_version('1.0_1')!
+	return homebrew.parse_pkg_version('1.0_0')!.equals(homebrew.parse_pkg_version('1.0')!) && version.equals(homebrew.parse_pkg_version('1.0_1')!) && !version.equals(homebrew.parse_pkg_version('1.0_2')!)
 }
 
 // Ruby it `it "returns true if the left version is bigger than the right" do` at line 26.
-pub fn ruby_pkg_version_spec_l26_d3_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_pkg_version_spec_l26_d3_returns() !bool {
+	return homebrew.parse_pkg_version('1.1')!.compare_to(homebrew.parse_pkg_version('1.0_1')!) > 0
 }
 
 // Ruby it `it "returns true if the left version is HEAD" do` at line 30.
-pub fn ruby_pkg_version_spec_l30_d4_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_pkg_version_spec_l30_d4_returns() !bool {
+	return homebrew.parse_pkg_version('HEAD')!.compare_to(homebrew.parse_pkg_version('1.0')!) > 0
 }
 
 // Ruby it `it "returns true if the left version is smaller than the right" do` at line 36.
-pub fn ruby_pkg_version_spec_l36_d5_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_pkg_version_spec_l36_d5_returns() !bool {
+	return homebrew.parse_pkg_version('1.0_1')!.compare_to(homebrew.parse_pkg_version('2.0_1')!) < 0
 }
 
 // Ruby it `it "returns true if the right version is HEAD" do` at line 40.
-pub fn ruby_pkg_version_spec_l40_d6_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_pkg_version_spec_l40_d6_returns() !bool {
+	return homebrew.parse_pkg_version('1.0')!.compare_to(homebrew.parse_pkg_version('HEAD')!) < 0
 }
 
 // Ruby it `it "returns nil if the comparison fails" do` at line 46.
-pub fn ruby_pkg_version_spec_l46_d7_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_pkg_version_spec_l46_d7_returns() ?int {
+	// Ruby dispatches this expression to Object#<=> because Object is the left operand.
+	return none
 }
 
 // Ruby it `it "returns a string of the form 'version_revision'" do` at line 52.
-pub fn ruby_pkg_version_spec_l52_d8_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_pkg_version_spec_l52_d8_returns() !bool {
+	return homebrew.new_pkg_version(homebrew.new_version('1.0')!, 0).to_s() == '1.0' && homebrew.new_pkg_version(homebrew.new_version('1.0')!, 1).to_s() == '1.0_1' && homebrew.new_pkg_version(homebrew.new_version('HEAD')!, 1).to_s() == 'HEAD_1' && homebrew.new_pkg_version(homebrew.new_version('HEAD-ffffff')!, 1).to_s() == 'HEAD-ffffff_1'
 }
 
 // Ruby let `let(:version_one_revision_one) { described_class.new(Version.new("1.0"), 1) }` at line 63.
-pub fn ruby_pkg_version_spec_l63_d9_version_one_revision_one(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('version_one_revision_one', ...args)
+pub fn ruby_pkg_version_spec_l63_d9_version_one_revision_one() !homebrew.PkgVersion {
+	return homebrew.new_pkg_version(homebrew.new_version('1.0')!, 1)
 }
 
 // Ruby let `let(:version_one_dot_one_revision_one) { described_class.new(Version.new("1.1"), 1) }` at line 64.
-pub fn ruby_pkg_version_spec_l64_d10_version_one_dot_one_revision_one(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('version_one_dot_one_revision_one', ...args)
+pub fn ruby_pkg_version_spec_l64_d10_version_one_dot_one_revision_one() !homebrew.PkgVersion {
+	return homebrew.new_pkg_version(homebrew.new_version('1.1')!, 1)
 }
 
 // Ruby let `let(:version_one_revision_zero) { described_class.new(Version.new("1.0"), 0) }` at line 65.
-pub fn ruby_pkg_version_spec_l65_d11_version_one_revision_zero(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('version_one_revision_zero', ...args)
+pub fn ruby_pkg_version_spec_l65_d11_version_one_revision_zero() !homebrew.PkgVersion {
+	return homebrew.new_pkg_version(homebrew.new_version('1.0')!, 0)
 }
 
 // Ruby it `it "returns a hash based on the version and revision" do` at line 67.
-pub fn ruby_pkg_version_spec_l67_d12_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_pkg_version_spec_l67_d12_returns() !bool {
+	one_revision_one := ruby_pkg_version_spec_l63_d9_version_one_revision_one()!
+	return one_revision_one.hash() == homebrew.new_pkg_version(homebrew.new_version('1.0')!, 1).hash() && one_revision_one.hash() != ruby_pkg_version_spec_l64_d10_version_one_dot_one_revision_one()!.hash() && one_revision_one.hash() != ruby_pkg_version_spec_l65_d11_version_one_revision_zero()!.hash()
 }
 
 // Ruby it `it "returns package version" do` at line 75.
-pub fn ruby_pkg_version_spec_l75_d13_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_pkg_version_spec_l75_d13_returns() !bool {
+	return homebrew.parse_pkg_version('1.2.3_4')!.version.equals(homebrew.new_version('1.2.3')!)
 }
 
 // Ruby it `it "returns package revision" do` at line 81.
-pub fn ruby_pkg_version_spec_l81_d14_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_pkg_version_spec_l81_d14_returns() !bool {
+	return homebrew.parse_pkg_version('1.2.3_4')!.revision == 4
 }
 
 // Ruby it `it "returns major version token" do` at line 87.
-pub fn ruby_pkg_version_spec_l87_d15_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_pkg_version_spec_l87_d15_returns() !bool {
+	token := homebrew.parse_pkg_version('1.2.3_4')!.major() or { return false }
+	return token.to_s() == '1'
 }
 
 // Ruby it `it "returns minor version token" do` at line 93.
-pub fn ruby_pkg_version_spec_l93_d16_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_pkg_version_spec_l93_d16_returns() !bool {
+	token := homebrew.parse_pkg_version('1.2.3_4')!.minor() or { return false }
+	return token.to_s() == '2'
 }
 
 // Ruby it `it "returns patch version token" do` at line 99.
-pub fn ruby_pkg_version_spec_l99_d17_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_pkg_version_spec_l99_d17_returns() !bool {
+	token := homebrew.parse_pkg_version('1.2.3_4')!.patch() or { return false }
+	return token.to_s() == '3'
 }
 
 // Ruby it `it "returns major.minor version" do` at line 105.
-pub fn ruby_pkg_version_spec_l105_d18_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_pkg_version_spec_l105_d18_returns() !bool {
+	return homebrew.parse_pkg_version('1.2.3_4')!.major_minor().equals(homebrew.new_version('1.2')!)
 }
 
 // Ruby it `it "returns major.minor.patch version" do` at line 111.
-pub fn ruby_pkg_version_spec_l111_d19_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_pkg_version_spec_l111_d19_returns() !bool {
+	return homebrew.parse_pkg_version('1.2.3_4')!.major_minor_patch().equals(homebrew.new_version('1.2.3')!)
 }
 
 // Original Ruby source (line-for-line):

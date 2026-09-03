@@ -4,10 +4,100 @@ import brew_runtime
 
 // Translated from Homebrew/brew `cmd/migrate.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub enum MigratePackageKind {
+	formula
+	cask
+}
+
+pub struct MigratePackage {
+pub:
+	kind      MigratePackageKind
+	old_name  string
+	new_name  string
+	installed bool
+}
+
+pub struct MigrateOptions {
+pub:
+	force   bool
+	dry_run bool
+}
+
+pub struct MigrateResult {
+pub:
+	migrated []string
+	output   []string
+	dry_run  bool
+}
+
+pub fn run_migrate_command(packages []MigratePackage, options MigrateOptions) MigrateResult {
+	mut migrated := []string{}
+	mut output := []string{}
+	for package in packages {
+		if !package.installed || package.old_name == '' || package.new_name == '' || package.old_name == package.new_name {
+			continue
+		}
+		kind := if package.kind == .formula { 'formula' } else { 'cask' }
+		prefix := if options.dry_run { 'Would migrate' } else { 'Migrating' }
+		output << '${prefix} ${kind} ${package.old_name} to ${package.new_name}'
+		if !options.dry_run {
+			migrated << package.new_name
+		}
+	}
+	return MigrateResult{
+		migrated: migrated
+		output: output
+		dry_run: options.dry_run
+	}
+}
+
+pub fn migrate_package_to_value(package MigratePackage) brew_runtime.Value {
+	return brew_runtime.structured_value('MigratePackage', package.old_name, {
+		'kind':      package.kind.str()
+		'old_name':  package.old_name
+		'new_name':  package.new_name
+		'installed': package.installed.str()
+	})
+}
+
+fn migrate_package_from_value(value brew_runtime.Value) MigratePackage {
+	return MigratePackage{
+		kind: if (value.attributes['kind'] or { 'formula' }) == 'cask' {
+			MigratePackageKind.cask} else {
+			MigratePackageKind.formula}
+		old_name: value.attributes['old_name'] or { value.as_string() }
+		new_name: value.attributes['new_name'] or { value.as_string() }
+		installed: (value.attributes['installed'] or { 'true' }) == 'true'
+	}
+}
+
+pub fn migrate_result_to_value(result MigrateResult) brew_runtime.Value {
+	return brew_runtime.map_value({
+		'migrated': brew_runtime.string_array_value(result.migrated)
+		'output':   brew_runtime.string_array_value(result.output)
+		'dry_run':  brew_runtime.bool_value(result.dry_run)
+	})
+}
 
 // Ruby method `run` at line 32.
 pub fn ruby_migrate_l32_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('run', ...args)
+	if args.len == 0 {
+		return brew_runtime.object_value('ArgumentError', 'at least one installed formula or cask is required')
+	}
+	values := args[0].as_map() or { return brew_runtime.object_value('ArgumentError', err.msg()) }
+	package_values := if value := values['packages'] {
+		value.as_array() or { []brew_runtime.Value{} }
+	} else {
+		[]brew_runtime.Value{}
+	}
+	if package_values.len == 0 {
+		return brew_runtime.object_value('ArgumentError', 'at least one installed formula or cask is required')
+	}
+	options := MigrateOptions{
+		force: if value := values['force'] { value.as_bool() or { false } } else { false }
+		dry_run: if value := values['dry_run'] { value.as_bool() or { false } } else { false }
+	}
+	return migrate_result_to_value(run_migrate_command(package_values.map(migrate_package_from_value(it)), options))
 }
 
 // Original Ruby source (line-for-line):

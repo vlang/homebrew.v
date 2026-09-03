@@ -7,7 +7,8 @@ import brew_runtime
 
 // Ruby method `add_altname_metadata(file, altname, command:)` at line 14.
 pub fn ruby_relocated_l14_d1_add_altname_metadata(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('add_altname_metadata', ...args)
+	_ = args
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Original Ruby source (line-for-line):

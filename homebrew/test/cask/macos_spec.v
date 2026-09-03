@@ -1,13 +1,32 @@
 module cask
 
 import brew_runtime
+import homebrew.cask as hb_cask
+import os
 
 // Translated from Homebrew/brew `test/cask/macos_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby specify `specify do` at line 5.
 pub fn ruby_macos_spec_l5_d1_do(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('do', ...args)
+	home := os.home_dir()
+	undeletable := [
+		'/',
+		'/.',
+		'/usr/local/Library/Taps/../../../..',
+		'/Applications',
+		'/Applications/',
+		'/Applications/.',
+		'/Applications/Mail.app/..',
+		home,
+		'${home}/',
+		'${home}/Documents/..',
+		'${home}/Library',
+		'${home}/Library/',
+		'${home}/Library/.',
+		'${home}/Library/Preferences/..',
+	]
+	return brew_runtime.bool_value(undeletable.all(hb_cask.macos_undeletable(it)) && !hb_cask.macos_undeletable('/Applications/.app') && !hb_cask.macos_undeletable('/Applications/SnakeOil Professional.app'))
 }
 
 // Original Ruby source (line-for-line):

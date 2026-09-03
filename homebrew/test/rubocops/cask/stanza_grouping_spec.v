@@ -1,103 +1,147 @@
 module cask
 
-import brew_runtime
+import homebrew.rubocops.cask as stanza_grouping_core
 
 // Translated from Homebrew/brew `test/rubocops/cask/stanza_grouping_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+fn stanza_grouping_caveats_example(caveats string) bool {
+	source := "cask 'foo' do\n  version :latest\n  sha256 :no_check\n  url 'https://foo.brew.sh/foo.zip'\n  name 'Foo'\n  app 'Foo.app'\n  ${caveats}\nend"
+	expected := "cask 'foo' do\n  version :latest\n  sha256 :no_check\n\n  url 'https://foo.brew.sh/foo.zip'\n  name 'Foo'\n\n  app 'Foo.app'\n\n  ${caveats}\nend"
+	offenses := stanza_grouping_core.audit_stanza_grouping(source)
+	return offenses.len == 3 && offenses.all(it.message == stanza_grouping_core.stanza_grouping_missing_line_message) && stanza_grouping_core.correct_stanza_grouping(source) == expected
+}
 
 // Ruby it `it "accepts a sole stanza" do` at line 7.
-pub fn ruby_stanza_grouping_spec_l7_d1_accepts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('accepts', ...args)
+pub fn ruby_stanza_grouping_spec_l7_d1_accepts() bool {
+	source := "cask 'foo' do\n  version :latest\nend"
+	return stanza_grouping_core.audit_stanza_grouping(source).len == 0
 }
 
 // Ruby it `it "accepts correctly grouped stanzas" do` at line 15.
-pub fn ruby_stanza_grouping_spec_l15_d2_accepts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('accepts', ...args)
+pub fn ruby_stanza_grouping_spec_l15_d2_accepts() bool {
+	source := "cask 'foo' do\n  version :latest\n  sha256 :no_check\nend"
+	return stanza_grouping_core.audit_stanza_grouping(source).len == 0
 }
 
 // Ruby it `it "groups completion generation with artifacts" do` at line 24.
-pub fn ruby_stanza_grouping_spec_l24_d3_groups(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('groups', ...args)
+pub fn ruby_stanza_grouping_spec_l24_d3_groups() bool {
+	source := "cask 'foo' do\n  binary 'foo'\n  generate_completions_from_executable 'foo', 'completions'\n\n  zap trash: '~/.foo'\nend"
+	return stanza_grouping_core.audit_stanza_grouping(source).len == 0
 }
 
 // Ruby it `it "requires a group boundary after completion generation" do` at line 35.
-pub fn ruby_stanza_grouping_spec_l35_d4_requires(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('requires', ...args)
+pub fn ruby_stanza_grouping_spec_l35_d4_requires() bool {
+	source := "cask 'foo' do\n  binary 'foo'\n  generate_completions_from_executable 'foo', 'completions'\n  zap trash: '~/.foo'\nend"
+	expected := "cask 'foo' do\n  binary 'foo'\n  generate_completions_from_executable 'foo', 'completions'\n\n  zap trash: '~/.foo'\nend"
+	offenses := stanza_grouping_core.audit_stanza_grouping(source)
+	return offenses.len == 1 && offenses[0].message == stanza_grouping_core.stanza_grouping_missing_line_message && source[offenses[0].begin_pos..offenses[0].end_pos] == "  zap trash: '~/.foo'" && stanza_grouping_core.correct_stanza_grouping(source) == expected
 }
 
 // Ruby it `it "accepts correctly grouped stanzas and variable assignments" do` at line 55.
-pub fn ruby_stanza_grouping_spec_l55_d5_accepts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('accepts', ...args)
+pub fn ruby_stanza_grouping_spec_l55_d5_accepts() bool {
+	source := 'cask \'foo\' do\n  arch arm: "arm64", intel: "x86_64"\n  folder = on_arch_conditional arm: "darwin-arm64", intel: "darwin"\n  os macos: ">= :big_sur"\n\n  version :latest\n  sha256 :no_check\nend'
+	return stanza_grouping_core.audit_stanza_grouping(source).len == 0
 }
 
 // Ruby it `it "reports an offense when a stanza is grouped incorrectly" do` at line 68.
-pub fn ruby_stanza_grouping_spec_l68_d6_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_stanza_grouping_spec_l68_d6_reports() bool {
+	source := "cask 'foo' do\n  version :latest\n\n  sha256 :no_check\nend"
+	expected := "cask 'foo' do\n  version :latest\n  sha256 :no_check\nend"
+	offenses := stanza_grouping_core.audit_stanza_grouping(source)
+	return offenses.len == 1 && offenses[0].kind == 'remove' && offenses[0].message == stanza_grouping_core.stanza_grouping_extra_line_message && source[offenses[0].begin_pos..offenses[0].end_pos] == '\n' && stanza_grouping_core.correct_stanza_grouping(source) == expected
 }
 
 // Ruby it `it "reports an offense for an incorrectly grouped `arch` stanza" do` at line 86.
-pub fn ruby_stanza_grouping_spec_l86_d7_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_stanza_grouping_spec_l86_d7_reports() bool {
+	source := 'cask \'foo\' do\n  arch arm: "arm64", intel: "x86_64"\n  version :latest\n  sha256 :no_check\nend'
+	expected := 'cask \'foo\' do\n  arch arm: "arm64", intel: "x86_64"\n\n  version :latest\n  sha256 :no_check\nend'
+	offenses := stanza_grouping_core.audit_stanza_grouping(source)
+	return offenses.len == 1 && source[offenses[0].begin_pos..offenses[0].end_pos] == '  version :latest' && stanza_grouping_core.correct_stanza_grouping(source) == expected
 }
 
 // Ruby it `it "reports an offense for an incorrectly grouped variable assignment" do` at line 106.
-pub fn ruby_stanza_grouping_spec_l106_d8_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_stanza_grouping_spec_l106_d8_reports() bool {
+	source := 'cask \'foo\' do\n  arch arm: "arm64", intel: "x86_64"\n  folder = on_arch_conditional arm: "darwin-arm64", intel: "darwin"\n  version :latest\n  sha256 :no_check\nend'
+	expected := 'cask \'foo\' do\n  arch arm: "arm64", intel: "x86_64"\n  folder = on_arch_conditional arm: "darwin-arm64", intel: "darwin"\n\n  version :latest\n  sha256 :no_check\nend'
+	offenses := stanza_grouping_core.audit_stanza_grouping(source)
+	return offenses.len == 1 && source[offenses[0].begin_pos..offenses[0].end_pos] == '  version :latest' && stanza_grouping_core.correct_stanza_grouping(source) == expected
 }
 
 // Ruby it `it "reports an offense for multiple incorrectly grouped stanzas" do` at line 128.
-pub fn ruby_stanza_grouping_spec_l128_d9_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_stanza_grouping_spec_l128_d9_reports() bool {
+	source := "cask 'foo' do\n  version :latest\n  sha256 :no_check\n  url 'https://foo.brew.sh/foo.zip'\n\n  name 'Foo'\n\n  homepage 'https://foo.brew.sh'\n\n  app 'Foo.app'\n  uninstall :quit => 'com.example.foo',\n            :kext => 'com.example.foo.kextextension'\nend"
+	expected := "cask 'foo' do\n  version :latest\n  sha256 :no_check\n\n  url 'https://foo.brew.sh/foo.zip'\n  name 'Foo'\n  homepage 'https://foo.brew.sh'\n\n  app 'Foo.app'\n\n  uninstall :quit => 'com.example.foo',\n            :kext => 'com.example.foo.kextextension'\nend"
+	offenses := stanza_grouping_core.audit_stanza_grouping(source)
+	return offenses.len == 4 && offenses.map(it.kind) == ['insert', 'remove', 'remove', 'insert'] && stanza_grouping_core.correct_stanza_grouping(source) == expected
 }
 
 // Ruby it `it "reports an offense for multiple incorrectly grouped stanzas and variable assignments" do` at line 166.
-pub fn ruby_stanza_grouping_spec_l166_d10_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_stanza_grouping_spec_l166_d10_reports() bool {
+	source := 'cask \'foo\' do\n  arch arm: "arm64", intel: "x86_64"\n  folder = on_arch_conditional arm: "darwin-arm64", intel: "darwin"\n\n  platform = on_arch_conditional arm: "darwin-arm64", intel: "darwin"\n  version :latest\n  sha256 :no_check\n\n  url \'https://foo.brew.sh/foo.zip\'\n\n  name \'Foo\'\n\n  homepage \'https://foo.brew.sh\'\n\n  app \'Foo.app\'\n  uninstall :quit => \'com.example.foo\',\n            :kext => \'com.example.foo.kextextension\'\nend'
+	expected := 'cask \'foo\' do\n  arch arm: "arm64", intel: "x86_64"\n  folder = on_arch_conditional arm: "darwin-arm64", intel: "darwin"\n  platform = on_arch_conditional arm: "darwin-arm64", intel: "darwin"\n\n  version :latest\n  sha256 :no_check\n\n  url \'https://foo.brew.sh/foo.zip\'\n  name \'Foo\'\n  homepage \'https://foo.brew.sh\'\n\n  app \'Foo.app\'\n\n  uninstall :quit => \'com.example.foo\',\n            :kext => \'com.example.foo.kextextension\'\nend'
+	offenses := stanza_grouping_core.audit_stanza_grouping(source)
+	return offenses.len == 5 && offenses.map(it.kind) == ['remove', 'insert', 'remove', 'remove',
+		'insert'] && stanza_grouping_core.correct_stanza_grouping(source) == expected
 }
 
 // Ruby it `it "reports an offense for an incorrectly grouped `caveats` stanza" do` at line 215.
-pub fn ruby_stanza_grouping_spec_l215_d11_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_stanza_grouping_spec_l215_d11_reports() bool {
+	return stanza_grouping_caveats_example(ruby_stanza_grouping_spec_l252_d12_caveats()) && stanza_grouping_caveats_example(ruby_stanza_grouping_spec_l263_d13_caveats()) && stanza_grouping_caveats_example(ruby_stanza_grouping_spec_l278_d14_caveats())
 }
 
 // Ruby let `let(:caveats) do` at line 252.
-pub fn ruby_stanza_grouping_spec_l252_d12_caveats(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('caveats', ...args)
+pub fn ruby_stanza_grouping_spec_l252_d12_caveats() string {
+	return "caveats 'This is a one-line caveat.'"
 }
 
 // Ruby let `let(:caveats) do` at line 263.
-pub fn ruby_stanza_grouping_spec_l263_d13_caveats(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('caveats', ...args)
+pub fn ruby_stanza_grouping_spec_l263_d13_caveats() string {
+	return "caveats <<~EOS\n    This is a multiline caveat.\n\n    Let's hope it doesn't cause any problems!\n  EOS"
 }
 
 // Ruby let `let(:caveats) do` at line 278.
-pub fn ruby_stanza_grouping_spec_l278_d14_caveats(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('caveats', ...args)
+pub fn ruby_stanza_grouping_spec_l278_d14_caveats() string {
+	return 'caveats do\n    puts \'This is a multiline caveat.\'\n\n    puts "Let\'s hope it doesn\'t cause any problems!"\n  end'
 }
 
 // Ruby it `it "reports an offense for an incorrectly grouped `postflight` stanza" do` at line 292.
-pub fn ruby_stanza_grouping_spec_l292_d15_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_stanza_grouping_spec_l292_d15_reports() bool {
+	source := "cask 'foo' do\n  version :latest\n  sha256 :no_check\n  url 'https://foo.brew.sh/foo.zip'\n  name 'Foo'\n  app 'Foo.app'\n  postflight do\n    puts 'We have liftoff!'\n  end\nend"
+	expected := "cask 'foo' do\n  version :latest\n  sha256 :no_check\n\n  url 'https://foo.brew.sh/foo.zip'\n  name 'Foo'\n\n  app 'Foo.app'\n\n  postflight do\n    puts 'We have liftoff!'\n  end\nend"
+	offenses := stanza_grouping_core.audit_stanza_grouping(source)
+	return offenses.len == 3 && stanza_grouping_core.correct_stanza_grouping(source) == expected
 }
 
 // Ruby it `it "reports an offense for incorrectly grouped comments" do` at line 326.
-pub fn ruby_stanza_grouping_spec_l326_d16_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_stanza_grouping_spec_l326_d16_reports() bool {
+	source := "cask 'foo' do\n  version :latest\n  sha256 :no_check\n  # comment with an empty line between\n\n  # comment directly above\n  postflight do\n    puts 'We have liftoff!'\n  end\n  url 'https://foo.brew.sh/foo.zip'\n  name 'Foo'\n  app 'Foo.app'\nend"
+	expected := "cask 'foo' do\n  version :latest\n  sha256 :no_check\n\n  # comment with an empty line between\n\n  # comment directly above\n  postflight do\n    puts 'We have liftoff!'\n  end\n\n  url 'https://foo.brew.sh/foo.zip'\n  name 'Foo'\n\n  app 'Foo.app'\nend"
+	offenses := stanza_grouping_core.audit_stanza_grouping(source)
+	return offenses.len == 3 && source[offenses[0].begin_pos..offenses[0].end_pos] == '  # comment with an empty line between' && stanza_grouping_core.correct_stanza_grouping(source) == expected
 }
 
 // Ruby it `it "reports an offense for incorrectly grouped comments and variable assignments" do` at line 366.
-pub fn ruby_stanza_grouping_spec_l366_d17_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_stanza_grouping_spec_l366_d17_reports() bool {
+	source := 'cask \'foo\' do\n  arch arm: "arm64", intel: "x86_64"\n  folder = on_arch_conditional arm: "darwin-arm64", intel: "darwin"\n  # comment with an empty line between\n  version :latest\n  sha256 :no_check\n\n  # comment directly above\n  postflight do\n    puts \'We have liftoff!\'\n  end\n  url \'https://foo.brew.sh/foo.zip\'\n  name \'Foo\'\n  app \'Foo.app\'\nend'
+	expected := 'cask \'foo\' do\n  arch arm: "arm64", intel: "x86_64"\n  folder = on_arch_conditional arm: "darwin-arm64", intel: "darwin"\n\n  # comment with an empty line between\n  version :latest\n  sha256 :no_check\n\n  # comment directly above\n  postflight do\n    puts \'We have liftoff!\'\n  end\n\n  url \'https://foo.brew.sh/foo.zip\'\n  name \'Foo\'\n\n  app \'Foo.app\'\nend'
+	offenses := stanza_grouping_core.audit_stanza_grouping(source)
+	return offenses.len == 3 && source[offenses[0].begin_pos..offenses[0].end_pos] == '  # comment with an empty line between' && stanza_grouping_core.correct_stanza_grouping(source) == expected
 }
 
 // Ruby it `it "reports an offense for incorrectly grouped stanzas in `on_*` blocks" do` at line 410.
-pub fn ruby_stanza_grouping_spec_l410_d18_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_stanza_grouping_spec_l410_d18_reports() bool {
+	source := 'cask \'foo\' do\n  on_arm do\n    version "1.0.2"\n\n    sha256 :no_check\n  end\n  on_intel do\n    version "0.9.8"\n    sha256 :no_check\n    url "https://foo.brew.sh/foo-intel.zip"\n  end\nend'
+	expected := 'cask \'foo\' do\n  on_arm do\n    version "1.0.2"\n    sha256 :no_check\n  end\n  on_intel do\n    version "0.9.8"\n    sha256 :no_check\n\n    url "https://foo.brew.sh/foo-intel.zip"\n  end\nend'
+	offenses := stanza_grouping_core.audit_stanza_grouping(source)
+	return offenses.len == 2 && offenses.map(it.kind) == ['remove', 'insert'] && stanza_grouping_core.correct_stanza_grouping(source) == expected
 }
 
 // Ruby it `it "reports an offense for incorrectly grouped stanzas with comments in `on_*` blocks" do` at line 444.
-pub fn ruby_stanza_grouping_spec_l444_d19_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_stanza_grouping_spec_l444_d19_reports() bool {
+	source := 'cask \'foo\' do\n  on_arm do\n    version "1.0.2"\n\n    sha256 :no_check # comment on same line\n  end\n  on_intel do\n    version "0.9.8"\n    sha256 :no_check\n  end\nend'
+	expected := 'cask \'foo\' do\n  on_arm do\n    version "1.0.2"\n    sha256 :no_check # comment on same line\n  end\n  on_intel do\n    version "0.9.8"\n    sha256 :no_check\n  end\nend'
+	offenses := stanza_grouping_core.audit_stanza_grouping(source)
+	return offenses.len == 1 && offenses[0].kind == 'remove' && stanza_grouping_core.correct_stanza_grouping(source) == expected
 }
 
 // Original Ruby source (line-for-line):

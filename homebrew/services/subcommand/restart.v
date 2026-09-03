@@ -7,7 +7,13 @@ import brew_runtime
 
 // Ruby method `run` at line 24.
 pub fn ruby_restart_l24_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('run', ...args)
+	request := service_subcommand_request_from_args(args) or {
+		return brew_runtime.object_value('ArgumentError', err.msg())
+	}
+	result := service_restart(request) or {
+		return brew_runtime.object_value('UsageError', err.msg())
+	}
+	return service_subcommand_result_to_value(result)
 }
 
 // Original Ruby source (line-for-line):

@@ -1,298 +1,1013 @@
 module homebrew
 
 import brew_runtime
+import crypto.sha256
+import homebrew.download_strategy
+import homebrew.unpack_strategy
+import json2
 
 // Translated from Homebrew/brew `resource.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub enum ResourcePhase {
+	preparing
+	downloading
+	downloaded
+	verifying
+	verified
+	extracting
+}
 
+pub enum ResourceKind {
+	resource
+	local
+	formula
+	bottle_manifest
+	patch
+}
+
+pub struct ResourcePatch {
+pub mut:
+	strip      string
+	source     string
+	owner_name string
+}
+
+pub struct ResourcePartial {
+pub:
+	resource_name string
+	files         []string
+}
+
+pub struct LivecheckSpec {
+pub:
+	url   string
+	regex string
+}
+
+// Resource is the typed V representation of Downloadable plus Resource's DSL
+// state. Formula/Cask ownership is represented by its stable name until those
+// object graphs are translated.
+@[heap]
+pub struct Resource {
+pub mut:
+	name                     string
+	has_name                 bool
+	source_modified_time     i64
+	has_source_modified_time bool
+	patches                  []ResourcePatch
+	owner_name               string
+	has_owner                bool
+	checksum                 Checksum
+	has_checksum             bool
+	url_value                Url
+	has_url                  bool
+	version_value            Version
+	has_version              bool
+	strategy_value           download_strategy.DownloadStrategy
+	has_strategy             bool
+	mirrors                  []string
+	downloader_value         download_strategy.CurlDownloadStrategy
+	has_downloader           bool
+	phase                    ResourcePhase
+	livecheck_value          LivecheckSpec
+	livecheck_defined_value  bool
+	insecure                 bool
+	kind                     ResourceKind
+}
+
+pub fn new_resource(name string) Resource {
+	return Resource{
+		name: name
+		has_name: name != ''
+		phase: .preparing
+		kind: .resource
+	}
+}
+
+pub fn (resource Resource) duplicate() Resource {
+	mut copy := resource
+	copy.patches = resource.patches.clone()
+	copy.mirrors = resource.mirrors.clone()
+	copy.url_value.specs.clone()
+	return copy
+}
+
+pub fn (resource Resource) frozen_copy() Resource {
+	return resource.duplicate()
+}
+
+pub fn (mut resource Resource) set_owner(owner_name ?string) {
+	if owner := owner_name {
+		resource.owner_name = owner
+		resource.has_owner = true
+		for mut patch in resource.patches {
+			patch.owner_name = owner
+		}
+	} else {
+		resource.owner_name = ''
+		resource.has_owner = false
+	}
+}
+
+pub fn (resource &Resource) download_queue_type() string {
+	return match resource.kind {
+		.formula { 'Formula' }
+		.bottle_manifest { 'Bottle Manifest' }
+		.patch { 'Patch' }
+		else { 'Resource' }
+	}
+}
+
+pub fn (resource &Resource) download_queue_name() !string {
+	if resource.kind == .formula {
+		if !resource.has_owner {
+			return error('Formula resource has no owner')
+		}
+		version := resource.version_value.to_s()
+		return '${resource.owner_name} (${version})'
+	}
+	return resource.download_name()
+}
+
+pub fn (resource &Resource) download_queue_message() !string {
+	return '${resource.download_queue_type()} ${resource.download_queue_name()!}'
+}
+
+pub fn (mut resource Resource) set_checksum(checksum ?Checksum) {
+	if value := checksum {
+		resource.checksum = value
+		resource.has_checksum = true
+	} else {
+		resource.checksum = Checksum{}
+		resource.has_checksum = false
+	}
+}
+
+pub fn (mut resource Resource) sha256(value string) Checksum {
+	resource.checksum = new_checksum(value)
+	resource.has_checksum = true
+	return resource.checksum
+}
+
+pub fn (mut resource Resource) set_url(value string, source_specs map[string]string) !string {
+	mut url_specs := source_specs.clone()
+	url_specs.delete('insecure')
+	if resource.insecure {
+		url_specs['insecure'] = 'true'
+	}
+	resource.url_value = new_url(value, url_specs)
+	resource.has_url = true
+	resource.strategy_value = resource.url_value.download_strategy()!
+	resource.has_strategy = true
+	resource.has_downloader = false
+	return value
+}
+
+pub fn (resource &Resource) url() ?string {
+	if resource.has_url {
+		return resource.url_value.to_s()
+	}
+	return none
+}
+
+pub fn (mut resource Resource) set_version(value string) !Version {
+	resource.version_value = if value.trim_space() == '' {
+		null_version()
+	} else {
+		new_version(value)!
+	}
+	resource.has_version = true
+	resource.has_downloader = false
+	return resource.version_value
+}
+
+pub fn (resource &Resource) version() ?Version {
+	if resource.has_version && !resource.version_value.is_null() {
+		return resource.version_value
+	}
+	if resource.has_url {
+		detected := resource.url_value.version()
+		if !detected.is_null() {
+			return detected
+		}
+	}
+	return none
+}
+
+pub fn (mut resource Resource) mirror(value string) []string {
+	resource.mirrors << value
+	resource.has_downloader = false
+	return resource.mirrors.clone()
+}
+
+pub fn (mut resource Resource) add_patch(strip string, source string) []ResourcePatch {
+	resource.patches << ResourcePatch{
+		strip: strip
+		source: source
+		owner_name: resource.owner_name
+	}
+	return resource.patches.clone()
+}
+
+pub fn (resource &Resource) using() ?string {
+	if resource.has_url {
+		return resource.url_value.using()
+	}
+	return none
+}
+
+pub fn (resource &Resource) specs() map[string]string {
+	if resource.has_url {
+		return resource.url_value.specs.clone()
+	}
+	return map[string]string{}
+}
+
+pub fn (mut resource Resource) set_download_strategy(strategy ?download_strategy.DownloadStrategy) {
+	if value := strategy {
+		resource.strategy_value = value
+		resource.has_strategy = true
+	} else {
+		resource.has_strategy = false
+	}
+	resource.has_downloader = false
+}
+
+pub fn (resource &Resource) download_strategy() !download_strategy.DownloadStrategy {
+	if resource.has_strategy {
+		return resource.strategy_value
+	}
+	if resource.has_url {
+		return resource.url_value.download_strategy()
+	}
+	return error('attempted to use a Resource without a URL')
+}
+
+pub fn (resource &Resource) download_name() !string {
+	if resource.has_name {
+		escaped_name := resource.name.replace('/', '-')
+		return if resource.has_owner {
+			'${resource.owner_name}--${escaped_name}'
+		} else {
+			escaped_name
+		}
+	}
+	if resource.has_owner {
+		return resource.owner_name
+	}
+	return error('Resource name and owner name are both nil')
+}
+
+pub fn (resource &Resource) determine_url_mirrors() ![]string {
+	primary_url := resource.url() or { return error('attempted to use a Resource without a URL') }
+	mut extra_urls := []string{}
+	if primary_url.starts_with('https://github.com/Homebrew/glibc-bootstrap/releases/download') {
+		artifact_domain := brew_runtime.environment_value('HOMEBREW_ARTIFACT_DOMAIN').trim_right('/')
+		if artifact_domain != '' {
+			artifact_url := primary_url.replace_once('https://github.com', artifact_domain)
+			if environment_enabled('HOMEBREW_ARTIFACT_DOMAIN_NO_FALLBACK') {
+				return [artifact_url]
+			}
+			extra_urls << artifact_url
+		}
+		bottle_domain := brew_runtime.environment_value('HOMEBREW_BOTTLE_DOMAIN').trim_right('/')
+		if bottle_domain != '' {
+			parts := primary_url.split('/')
+			if parts.len >= 2 {
+				extra_urls << '${bottle_domain}/glibc-bootstrap/${parts[parts.len - 2]}/${parts.last()}'
+			}
+		}
+	}
+	pip_index := brew_runtime.environment_value('HOMEBREW_PIP_INDEX_URL').trim_right('/')
+	if pip_index != '' {
+		pip_base := pip_index.trim_string_right('/simple')
+		for base_url in ['https://files.pythonhosted.org', 'https://pypi.org'] {
+			if primary_url.starts_with('${base_url}/packages') {
+				extra_urls << primary_url.replace_once(base_url, pip_base)
+			}
+		}
+	}
+	mut urls := extra_urls.clone()
+	urls << primary_url
+	urls << resource.mirrors
+	return unique_strings(urls)
+}
+
+fn unique_strings(values []string) []string {
+	mut output := []string{}
+	for value in values {
+		if value !in output {
+			output << value
+		}
+	}
+	return output
+}
+
+fn environment_enabled(name string) bool {
+	return brew_runtime.environment_value(name).to_lower() in ['1', 'true', 'yes', 'on']
+}
+
+fn strategy_is_curl_derived(strategy download_strategy.DownloadStrategy) bool {
+	return strategy in [.curl, .curl_apache_mirror, .curl_github_packages, .curl_post, .homebrew_curl,
+		.no_unzip_curl, .pypi]
+}
+
+pub fn (mut resource Resource) downloader() !&download_strategy.CurlDownloadStrategy {
+	if resource.has_downloader {
+		return &resource.downloader_value
+	}
+	strategy := resource.download_strategy()!
+	if !strategy_is_curl_derived(strategy) {
+		return error('${strategy.class_name()} is not translated into a concrete V downloader yet')
+	}
+	urls := resource.determine_url_mirrors()!
+	if urls.len == 0 || urls[0] == '' {
+		return error('attempted to use a Resource without a URL')
+	}
+	version := resource.version() or { null_version() }
+	mut metadata := download_strategy.DownloadMeta{
+		mirrors: urls[1..].clone()
+	}
+	specs := resource.specs()
+	metadata.cache = specs['cache'] or { '' }
+	metadata.header = specs['header'] or { '' }
+	metadata.referer = specs['referer'] or { '' }
+	metadata.user = specs['user'] or { '' }
+	metadata.user_agent = specs['user_agent'] or { '' }
+	resource.downloader_value = download_strategy.new_curl_download_strategy(urls[0], resource.download_name()!, version.to_s(), metadata)
+	if download_strategy.expand_deferred_environment_for(strategy) {
+		resource.downloader_value.allow_deferred_environment_expansion()
+	}
+	resource.has_downloader = true
+	return &resource.downloader_value
+}
+
+pub fn (mut resource Resource) cached_download() !string {
+	mut downloader := resource.downloader()!
+	return downloader.cached_location()
+}
+
+pub fn (mut resource Resource) downloaded() bool {
+	path := resource.cached_download() or { return false }
+	return brew_runtime.path_exists(path)
+}
+
+pub fn (mut resource Resource) downloaded_and_valid() bool {
+	path := resource.cached_download() or { return false }
+	if !brew_runtime.is_file(path) || !resource.has_checksum || resource.checksum.is_empty() {
+		return false
+	}
+	resource.verify_download_integrity(path) or { return false }
+	return true
+}
+
+pub fn (mut resource Resource) verify_download_integrity(filename string) ! {
+	resource.phase = .verifying
+	if !brew_runtime.is_file(filename) {
+		return
+	}
+	if !resource.has_checksum || resource.checksum.is_empty() {
+		return
+	}
+	actual := sha256.sum256(brew_runtime.read_bytes(filename)!).hex()
+	if actual != resource.checksum.hexdigest {
+		return error('SHA-256 mismatch for ${filename}: expected ${resource.checksum.hexdigest}, got ${actual}')
+	}
+	resource.phase = .verified
+}
+
+pub fn (mut resource Resource) fetch(verify_download_integrity bool, timeout ?f64, quiet bool, skip_patches bool) !string {
+	if !skip_patches {
+		resource.fetch_patches(false)!
+	}
+	resource.phase = .downloading
+	mut downloader := resource.downloader()!
+	if quiet {
+		downloader.file.base.quiet()
+	}
+	downloader.fetch(timeout)!
+	resource.phase = .downloaded
+	download := downloader.cached_location()
+	if verify_download_integrity {
+		resource.verify_download_integrity(download)!
+	}
+	return download
+}
+
+pub fn (mut resource Resource) clear_cache() ! {
+	mut downloader := resource.downloader()!
+	downloader.clear_cache()!
+}
+
+pub fn (mut resource Resource) fetched_size() ?i64 {
+	mut downloader := resource.downloader() or { return none }
+	return downloader.file.fetched_size()
+}
+
+pub fn (mut resource Resource) total_size() ?i64 {
+	downloader := resource.downloader() or { return none }
+	return downloader.total_size()
+}
+
+pub fn (mut resource Resource) stage(target string, debug_symbols bool) !string {
+	_ = debug_symbols
+	if target == '' {
+		return error('Target directory or block is required')
+	}
+	resource.prepare_patches()!
+	resource.fetch_patches(true)!
+	if !resource.downloaded() {
+		resource.fetch(true, none, false, true)!
+	}
+	return resource.unpack(target, debug_symbols)
+}
+
+pub fn (mut resource Resource) prepare_patches() ! {
+	// DATAPatch owner-path mutation remains at the Formula/SoftwareSpec boundary.
+}
+
+pub fn (mut resource Resource) fetch_patches(skip_downloaded bool) ! {
+	_ = skip_downloaded
+	if resource.patches.len > 0 {
+		return error('external patch fetching requires the untranslated Formula/Patch object boundary')
+	}
+}
+
+pub fn (mut resource Resource) apply_patches() ! {
+	if resource.patches.len > 0 {
+		return error('patch application requires the untranslated Formula/Patch object boundary')
+	}
+}
+
+pub fn (mut resource Resource) unpack(target string, debug_symbols bool) !string {
+	_ = debug_symbols
+	mut downloader := resource.downloader()!
+	cached := downloader.cached_location()
+	basename := downloader.file.basename()
+	strategy := unpack_strategy.detect(cached, unpack_strategy.DetectOptions{
+		prioritize_extension: true
+	})
+	strategy.extract_nestedly(unpack_strategy.ExtractOptions{
+		destination: target
+		basename: basename
+		prioritize_extension: true
+	})!
+	working_directory := downloader.file.base.stage_working_directory(target)!
+	resource.source_modified_time = downloader.file.base.source_modified_time(working_directory)!
+	resource.has_source_modified_time = true
+	resource.apply_patches()!
+	return working_directory
+}
+
+pub fn (resource &Resource) files(paths []string) ResourcePartial {
+	return ResourcePartial{
+		resource_name: resource.name
+		files: paths.clone()
+	}
+}
+
+pub fn (mut resource Resource) set_livecheck(spec LivecheckSpec) LivecheckSpec {
+	resource.livecheck_value = spec
+	resource.livecheck_defined_value = true
+	return spec
+}
+
+pub fn (resource &Resource) stage_resource(prefix string, debug_symbols bool) string {
+	_ = debug_symbols
+	return '${prefix}.stage'
+}
+
+pub fn new_local_resource(path string) !Resource {
+	name := path.replace('\\', '/').all_after_last('/')
+	mut resource := new_resource(name)
+	resource.kind = .local
+	resource.set_url(if path.starts_with('file://') { path } else { 'file://${path}' }, map[string]string{})!
+	return resource
+}
+
+pub fn new_formula_resource(name string) Resource {
+	mut resource := new_resource(name)
+	resource.kind = .formula
+	return resource
+}
+
+pub struct BottleDescriptor {
+pub:
+	name     string
+	version  string
+	checksum string
+	rebuild  int
+	tag      string
+}
+
+pub struct BottleManifestResource {
+pub mut:
+	resource                   Resource
+	bottle                     BottleDescriptor
+	manifest_annotations_value map[string]string
+	has_manifest_annotations   bool
+}
+
+pub fn new_bottle_manifest_resource(bottle BottleDescriptor) BottleManifestResource {
+	mut resource := new_resource('${bottle.name}_bottle_manifest')
+	resource.kind = .bottle_manifest
+	return BottleManifestResource{
+		resource: resource
+		bottle: bottle
+	}
+}
+
+pub fn (mut manifest BottleManifestResource) set_manifest_annotations(annotations map[string]string) {
+	manifest.manifest_annotations_value = annotations.clone()
+	manifest.has_manifest_annotations = true
+}
+
+pub fn (mut manifest BottleManifestResource) clear_cache() ! {
+	manifest.resource.clear_cache()!
+	manifest.manifest_annotations_value.clear()
+	manifest.has_manifest_annotations = false
+}
+
+pub fn (mut manifest BottleManifestResource) manifest_annotations() !map[string]string {
+	if manifest.has_manifest_annotations {
+		return manifest.manifest_annotations_value.clone()
+	}
+	path := manifest.resource.cached_download()!
+	decoded := json2.decode[json2.Any](brew_runtime.read_file(path)!) or {
+		return error('The downloaded GitHub Packages manifest is not valid JSON: ${path}')
+	}
+	root := decoded.as_map()
+	manifests_value := root['manifests'] or { return error("Missing 'manifests' section.") }
+	// GitHub Packages uses `version.tag.rebuild` for tagged bottle refs (and
+	// `version-rebuild` for untagged manifest names), matching
+	// GitHubPackages.version_rebuild in the Ruby source.
+	expected_ref := bottle_version_rebuild(manifest.bottle.version, manifest.bottle.rebuild, manifest.bottle.tag)
+	for entry in manifests_value.as_array() {
+		entry_map := entry.as_map()
+		annotations_value := entry_map['annotations'] or { continue }
+		annotations := annotations_value.as_map_of_strings()
+		if annotations['sh.brew.bottle.digest'] or { '' } == manifest.bottle.checksum && annotations['org.opencontainers.image.ref.name'] or {
+			''} == expected_ref {
+			manifest.set_manifest_annotations(annotations)
+			return annotations
+		}
+	}
+	return error("Couldn't find manifest matching bottle checksum.")
+}
+
+pub fn (mut manifest BottleManifestResource) verify_download_integrity(filename string) ! {
+	_ = filename
+	manifest.tab()!
+}
+
+pub fn (mut manifest BottleManifestResource) downloaded_and_valid() bool {
+	if !manifest.resource.downloaded() {
+		return false
+	}
+	manifest.verify_download_integrity('') or {
+		manifest.clear_cache() or {}
+		return false
+	}
+	return true
+}
+
+pub fn (mut manifest BottleManifestResource) tab() !map[string]json2.Any {
+	annotations := manifest.manifest_annotations()!
+	tab_text := annotations['sh.brew.tab'] or { return error("Couldn't find tab from manifest.") }
+	parsed := json2.decode[json2.Any](tab_text) or { return error("Couldn't parse tab JSON.") }
+	return parsed.as_map()
+}
+
+fn annotation_i64(annotations map[string]string, key string) ?i64 {
+	value := annotations[key] or { return none }
+	if value == '' || !value.bytes().all(it.is_digit()) {
+		return none
+	}
+	return value.i64()
+}
+
+pub fn (mut manifest BottleManifestResource) bottle_size() ?i64 {
+	annotations := manifest.manifest_annotations() or { return none }
+	return annotation_i64(annotations, 'sh.brew.bottle.size')
+}
+
+pub fn (mut manifest BottleManifestResource) installed_size() ?i64 {
+	annotations := manifest.manifest_annotations() or { return none }
+	return annotation_i64(annotations, 'sh.brew.bottle.installed_size')
+}
+
+pub fn (mut manifest BottleManifestResource) path_exec_files() ?[]string {
+	annotations := manifest.manifest_annotations() or { return none }
+	value := annotations['sh.brew.path_exec_files'] or { return none }
+	return value.split(',')
+}
+
+pub fn (mut manifest BottleManifestResource) sbom_supplement(current_tag string) ?map[string]json2.Any {
+	annotations := manifest.manifest_annotations() or { return none }
+	value := annotations['sh.brew.sbom.supplement'] or { return none }
+	parsed := json2.decode[json2.Any](value) or { return none }
+	supplement := parsed.as_map()
+	if tags_value := supplement['tags'] {
+		tags := tags_value.as_map()
+		if tag_value := tags[current_tag] {
+			return tag_value.as_map()
+		}
+		return none
+	}
+	return supplement
+}
+
+pub struct PatchResource {
+pub mut:
+	resource      Resource
+	patch_files   []string
+	directory     string
+	has_directory bool
+	file          string
+	has_file      bool
+	resolves_ids  []string
+	patch_type    PatchType
+	has_type      bool
+}
+
+pub fn new_patch_resource() PatchResource {
+	mut resource := new_resource('patch')
+	resource.kind = .patch
+	return PatchResource{
+		resource: resource
+	}
+}
+
+pub fn (mut patch PatchResource) apply(paths []string) {
+	for path in paths {
+		if path !in patch.patch_files {
+			patch.patch_files << path
+		}
+	}
+}
+
+pub fn (mut patch PatchResource) resolves(cves []string) []string {
+	for cve in cves {
+		if cve !in patch.resolves_ids {
+			patch.resolves_ids << cve
+		}
+	}
+	return patch.resolves_ids.clone()
+}
+
+pub fn (mut patch PatchResource) set_type(value ?PatchType) ?PatchType {
+	if patch_type := value {
+		patch.patch_type = patch_type
+		patch.has_type = true
+		return patch_type
+	}
+	if patch.has_type {
+		return patch.patch_type
+	}
+	return none
+}
+
+pub fn (mut patch PatchResource) set_directory(value ?string) ?string {
+	if directory := value {
+		patch.directory = directory
+		patch.has_directory = true
+		return directory
+	}
+	if patch.has_directory {
+		return patch.directory
+	}
+	return none
+}
+
+pub fn (mut patch PatchResource) set_file(value ?string) !string {
+	if path := value {
+		if path.starts_with('/') || path.split('/').any(it == '..') {
+			return error('Patch file must be a relative path within the repository.')
+		}
+		patch.file = path
+		patch.has_file = true
+		return path
+	}
+	if patch.has_file {
+		return patch.file
+	}
+	return ''
+}
+
+pub fn (mut patch PatchResource) download_queue_name() !string {
+	if raw_url := patch.resource.url() {
+		component := raw_url.split('/').last()
+		if component != '' {
+			return component
+		}
+	}
+	return patch.resource.download_queue_name()
+}
+
+// Source entrypoint translations.
 // Ruby attr_reader `attr_reader :source_modified_time` at line 23.
-pub fn ruby_resource_l23_d1_source_modified_time(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('source_modified_time', ...args)
+pub fn ruby_resource_l23_d1_source_modified_time(resource &Resource) ?i64 {
+	return if resource.has_source_modified_time { resource.source_modified_time } else { none }
 }
 
 // Ruby attr_reader `attr_reader :patches` at line 26.
-pub fn ruby_resource_l26_d2_patches(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('patches', ...args)
+pub fn ruby_resource_l26_d2_patches(resource &Resource) []ResourcePatch {
+	return resource.patches.clone()
 }
 
 // Ruby attr_reader `attr_reader :owner` at line 29.
-pub fn ruby_resource_l29_d3_owner(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('owner', ...args)
+pub fn ruby_resource_l29_d3_owner(resource &Resource) ?string {
+	return if resource.has_owner { resource.owner_name } else { none }
 }
 
 // Ruby attr_writer `attr_writer :checksum` at line 32.
-pub fn ruby_resource_l32_d4_checksum(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('checksum=', ...args)
+pub fn ruby_resource_l32_d4_checksum(mut resource Resource, checksum ?Checksum) {
+	resource.set_checksum(checksum)
 }
 
 // Ruby method `download_strategy` at line 35.
-pub fn ruby_resource_l35_d5_download_strategy(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('download_strategy', ...args)
+pub fn ruby_resource_l35_d5_download_strategy(resource &Resource) !download_strategy.DownloadStrategy {
+	return resource.download_strategy()
 }
 
 // Ruby attr_writer `attr_writer :download_strategy` at line 40.
-pub fn ruby_resource_l40_d6_download_strategy(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('download_strategy=', ...args)
+pub fn ruby_resource_l40_d6_download_strategy(mut resource Resource, strategy ?download_strategy.DownloadStrategy) {
+	resource.set_download_strategy(strategy)
 }
 
 // Ruby attr_accessor `attr_accessor :name` at line 45.
-pub fn ruby_resource_l45_d7_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('name', ...args)
+pub fn ruby_resource_l45_d7_name(resource &Resource) ?string {
+	return if resource.has_name { resource.name } else { none }
 }
 
 // Ruby attr_accessor `attr_accessor :name` at line 45.
-pub fn ruby_resource_l45_d8_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('name=', ...args)
+pub fn ruby_resource_l45_d8_name(mut resource Resource, name ?string) {
+	if value := name {
+		resource.name = value
+		resource.has_name = true
+	} else {
+		resource.name = ''
+		resource.has_name = false
+	}
 }
 
 // Ruby method `initialize(name = nil, &block)` at line 48.
-pub fn ruby_resource_l48_d9_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+pub fn ruby_resource_l48_d9_initialize(name string) Resource {
+	return new_resource(name)
 }
 
 // Ruby method `initialize_dup(other)` at line 63.
-pub fn ruby_resource_l63_d10_initialize_dup(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize_dup', ...args)
+pub fn ruby_resource_l63_d10_initialize_dup(resource Resource) Resource {
+	return resource.duplicate()
 }
 
 // Ruby method `freeze` at line 71.
-pub fn ruby_resource_l71_d11_freeze(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('freeze', ...args)
+pub fn ruby_resource_l71_d11_freeze(resource Resource) Resource {
+	return resource.frozen_copy()
 }
 
 // Ruby method `owner=(owner)` at line 79.
-pub fn ruby_resource_l79_d12_owner(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('owner=', ...args)
+pub fn ruby_resource_l79_d12_owner(mut resource Resource, owner ?string) {
+	resource.set_owner(owner)
 }
 
 // Ruby method `download_queue_type = "Resource"` at line 85.
-pub fn ruby_resource_l85_d13_download_queue_type(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('download_queue_type', ...args)
+pub fn ruby_resource_l85_d13_download_queue_type(resource &Resource) string {
+	return resource.download_queue_type()
 }
 
 // Ruby method `stage(target = nil, debug_symbols: false, &block)` at line 100.
-pub fn ruby_resource_l100_d14_stage(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('stage', ...args)
+pub fn ruby_resource_l100_d14_stage(mut resource Resource, target string, debug_symbols bool) !string {
+	return resource.stage(target, debug_symbols)
 }
 
 // Ruby method `prepare_patches` at line 111.
-pub fn ruby_resource_l111_d15_prepare_patches(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prepare_patches', ...args)
+pub fn ruby_resource_l111_d15_prepare_patches(mut resource Resource) ! {
+	resource.prepare_patches()!
 }
 
 // Ruby method `fetch_patches(skip_downloaded: false)` at line 116.
-pub fn ruby_resource_l116_d16_fetch_patches(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fetch_patches', ...args)
+pub fn ruby_resource_l116_d16_fetch_patches(mut resource Resource, skip_downloaded bool) ! {
+	resource.fetch_patches(skip_downloaded)!
 }
 
 // Ruby method `apply_patches` at line 123.
-pub fn ruby_resource_l123_d17_apply_patches(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('apply_patches', ...args)
+pub fn ruby_resource_l123_d17_apply_patches(mut resource Resource) ! {
+	resource.apply_patches()!
 }
 
 // Ruby method `unpack(target = nil, debug_symbols: false, &block)` at line 141.
-pub fn ruby_resource_l141_d18_unpack(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('unpack', ...args)
+pub fn ruby_resource_l141_d18_unpack(mut resource Resource, target string, debug_symbols bool) !string {
+	return resource.unpack(target, debug_symbols)
 }
 
 // Ruby method `files(*files)` at line 161.
-pub fn ruby_resource_l161_d19_files(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('files', ...args)
+pub fn ruby_resource_l161_d19_files(resource &Resource, paths []string) ResourcePartial {
+	return resource.files(paths)
 }
 
 // Ruby method `fetch(verify_download_integrity: true, timeout: nil, quiet: false, skip_patches: false)` at line 174.
-pub fn ruby_resource_l174_d20_fetch(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fetch', ...args)
+pub fn ruby_resource_l174_d20_fetch(mut resource Resource, verify bool, timeout ?f64, quiet bool, skip_patches bool) !string {
+	return resource.fetch(verify, timeout, quiet, skip_patches)
 }
 
 // Ruby method `livecheck(&block)` at line 195.
-pub fn ruby_resource_l195_d21_livecheck(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('livecheck', ...args)
+pub fn ruby_resource_l195_d21_livecheck(mut resource Resource, spec ?LivecheckSpec) LivecheckSpec {
+	if value := spec {
+		return resource.set_livecheck(value)
+	}
+	return resource.livecheck_value
 }
 
 // Ruby method `livecheck_defined?` at line 207.
-pub fn ruby_resource_l207_d22_livecheck_defined(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('livecheck_defined?', ...args)
+pub fn ruby_resource_l207_d22_livecheck_defined(resource &Resource) bool {
+	return resource.livecheck_defined_value
 }
 
 // Ruby method `sha256(val)` at line 212.
-pub fn ruby_resource_l212_d23_sha256(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sha256', ...args)
+pub fn ruby_resource_l212_d23_sha256(mut resource Resource, value string) Checksum {
+	return resource.sha256(value)
 }
 
 // Ruby method `url(val = nil, **specs)` at line 217.
-pub fn ruby_resource_l217_d24_url(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('url', ...args)
+pub fn ruby_resource_l217_d24_url(mut resource Resource, value ?string, specs map[string]string) !string {
+	if url_value := value {
+		return resource.set_url(url_value, specs)!
+	}
+	return resource.url() or { '' }
 }
 
 // Ruby method `version(val = nil)` at line 233.
-pub fn ruby_resource_l233_d25_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('version', ...args)
+pub fn ruby_resource_l233_d25_version(mut resource Resource, value ?string) !Version {
+	if version_value := value {
+		return resource.set_version(version_value)!
+	}
+	return resource.version() or { null_version() }
 }
 
 // Ruby method `mirror(val)` at line 245.
-pub fn ruby_resource_l245_d26_mirror(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('mirror', ...args)
+pub fn ruby_resource_l245_d26_mirror(mut resource Resource, value string) []string {
+	return resource.mirror(value)
 }
 
 // Ruby method `patch(strip = :p1, src = nil, &block)` at line 256.
-pub fn ruby_resource_l256_d27_patch(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('patch', ...args)
+pub fn ruby_resource_l256_d27_patch(mut resource Resource, strip string, source string) []ResourcePatch {
+	return resource.add_patch(strip, source)
 }
 
 // Ruby method `using` at line 262.
-pub fn ruby_resource_l262_d28_using(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('using', ...args)
+pub fn ruby_resource_l262_d28_using(resource &Resource) ?string {
+	return resource.using()
 }
 
 // Ruby method `specs` at line 267.
-pub fn ruby_resource_l267_d29_specs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('specs', ...args)
+pub fn ruby_resource_l267_d29_specs(resource &Resource) map[string]string {
+	return resource.specs()
 }
 
 // Ruby method `stage_resource(prefix, debug_symbols: false, &block)` at line 281.
-pub fn ruby_resource_l281_d30_stage_resource(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('stage_resource', ...args)
+pub fn ruby_resource_l281_d30_stage_resource(resource &Resource, prefix string, debug_symbols bool) string {
+	return resource.stage_resource(prefix, debug_symbols)
 }
 
 // Ruby method `download_name` at line 288.
-pub fn ruby_resource_l288_d31_download_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('download_name', ...args)
+pub fn ruby_resource_l288_d31_download_name(resource &Resource) !string {
+	return resource.download_name()
 }
 
 // Ruby method `determine_url_mirrors` at line 305.
-pub fn ruby_resource_l305_d32_determine_url_mirrors(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('determine_url_mirrors', ...args)
+pub fn ruby_resource_l305_d32_determine_url_mirrors(resource &Resource) ![]string {
+	return resource.determine_url_mirrors()
 }
 
 // Ruby method `initialize(path)` at line 339.
-pub fn ruby_resource_l339_d33_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+pub fn ruby_resource_l339_d33_initialize(path string) !Resource {
+	return new_local_resource(path)
 }
 
 // Ruby method `download_queue_type = "Formula"` at line 348.
-pub fn ruby_resource_l348_d34_download_queue_type(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('download_queue_type', ...args)
+pub fn ruby_resource_l348_d34_download_queue_type(resource &Resource) string {
+	return resource.download_queue_type()
 }
 
 // Ruby method `download_queue_name = "#{T.must(owner).name} (#{version})"` at line 351.
-pub fn ruby_resource_l351_d35_download_queue_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('download_queue_name', ...args)
+pub fn ruby_resource_l351_d35_download_queue_name(resource &Resource) !string {
+	return resource.download_queue_name()
 }
 
 // Ruby attr_reader `attr_reader :bottle` at line 359.
-pub fn ruby_resource_l359_d36_bottle(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('bottle', ...args)
+pub fn ruby_resource_l359_d36_bottle(manifest &BottleManifestResource) BottleDescriptor {
+	return manifest.bottle
 }
 
 // Ruby attr_writer `attr_writer :manifest_annotations` at line 362.
-pub fn ruby_resource_l362_d37_manifest_annotations(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('manifest_annotations=', ...args)
+pub fn ruby_resource_l362_d37_manifest_annotations(mut manifest BottleManifestResource, annotations map[string]string) {
+	manifest.set_manifest_annotations(annotations)
 }
 
 // Ruby method `initialize(bottle)` at line 365.
-pub fn ruby_resource_l365_d38_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+pub fn ruby_resource_l365_d38_initialize(bottle BottleDescriptor) BottleManifestResource {
+	return new_bottle_manifest_resource(bottle)
 }
 
 // Ruby method `clear_cache` at line 372.
-pub fn ruby_resource_l372_d39_clear_cache(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('clear_cache', ...args)
+pub fn ruby_resource_l372_d39_clear_cache(mut manifest BottleManifestResource) ! {
+	manifest.clear_cache()!
 }
 
 // Ruby method `verify_download_integrity(_filename)` at line 378.
-pub fn ruby_resource_l378_d40_verify_download_integrity(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('verify_download_integrity', ...args)
+pub fn ruby_resource_l378_d40_verify_download_integrity(mut manifest BottleManifestResource, filename string) ! {
+	manifest.verify_download_integrity(filename)!
 }
 
 // Ruby method `downloaded_and_valid?` at line 384.
-pub fn ruby_resource_l384_d41_downloaded_and_valid(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('downloaded_and_valid?', ...args)
+pub fn ruby_resource_l384_d41_downloaded_and_valid(mut manifest BottleManifestResource) bool {
+	return manifest.downloaded_and_valid()
 }
 
 // Ruby method `tab` at line 395.
-pub fn ruby_resource_l395_d42_tab(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tab', ...args)
+pub fn ruby_resource_l395_d42_tab(mut manifest BottleManifestResource) !map[string]json2.Any {
+	return manifest.tab()
 }
 
 // Ruby method `bottle_size` at line 407.
-pub fn ruby_resource_l407_d43_bottle_size(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('bottle_size', ...args)
+pub fn ruby_resource_l407_d43_bottle_size(mut manifest BottleManifestResource) ?i64 {
+	return manifest.bottle_size()
 }
 
 // Ruby method `installed_size` at line 412.
-pub fn ruby_resource_l412_d44_installed_size(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('installed_size', ...args)
+pub fn ruby_resource_l412_d44_installed_size(mut manifest BottleManifestResource) ?i64 {
+	return manifest.installed_size()
 }
 
 // Ruby method `path_exec_files` at line 417.
-pub fn ruby_resource_l417_d45_path_exec_files(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('path_exec_files', ...args)
+pub fn ruby_resource_l417_d45_path_exec_files(mut manifest BottleManifestResource) ?[]string {
+	return manifest.path_exec_files()
 }
 
 // Ruby method `sbom_supplement` at line 422.
-pub fn ruby_resource_l422_d46_sbom_supplement(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sbom_supplement', ...args)
+pub fn ruby_resource_l422_d46_sbom_supplement(mut manifest BottleManifestResource, current_tag string) ?map[string]json2.Any {
+	return manifest.sbom_supplement(current_tag)
 }
 
 // Ruby method `download_queue_type = "Bottle Manifest"` at line 442.
-pub fn ruby_resource_l442_d47_download_queue_type(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('download_queue_type', ...args)
+pub fn ruby_resource_l442_d47_download_queue_type(manifest &BottleManifestResource) string {
+	return manifest.resource.download_queue_type()
 }
 
 // Ruby method `download_queue_name = "#{bottle.name} (#{bottle.resource.version})"` at line 445.
-pub fn ruby_resource_l445_d48_download_queue_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('download_queue_name', ...args)
+pub fn ruby_resource_l445_d48_download_queue_name(manifest &BottleManifestResource) string {
+	return '${manifest.bottle.name} (${manifest.bottle.version})'
 }
 
 // Ruby method `manifest_annotations` at line 450.
-pub fn ruby_resource_l450_d49_manifest_annotations(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('manifest_annotations', ...args)
+pub fn ruby_resource_l450_d49_manifest_annotations(mut manifest BottleManifestResource) !map[string]string {
+	return manifest.manifest_annotations()
 }
 
 // Ruby attr_reader `attr_reader :patch_files` at line 489.
-pub fn ruby_resource_l489_d50_patch_files(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('patch_files', ...args)
+pub fn ruby_resource_l489_d50_patch_files(patch &PatchResource) []string {
+	return patch.patch_files.clone()
 }
 
 // Ruby method `initialize(&block)` at line 492.
-pub fn ruby_resource_l492_d51_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+pub fn ruby_resource_l492_d51_initialize() PatchResource {
+	return new_patch_resource()
 }
 
 // Ruby method `apply(*paths)` at line 502.
-pub fn ruby_resource_l502_d52_apply(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('apply', ...args)
+pub fn ruby_resource_l502_d52_apply(mut patch PatchResource, paths []string) {
+	patch.apply(paths)
 }
 
 // Ruby method `resolves(*cves)` at line 508.
-pub fn ruby_resource_l508_d53_resolves(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('resolves', ...args)
+pub fn ruby_resource_l508_d53_resolves(mut patch PatchResource, cves []string) []string {
+	return patch.resolves(cves)
 }
 
 // Ruby method `type(val = nil)` at line 516.
-pub fn ruby_resource_l516_d54_type(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('type', ...args)
+pub fn ruby_resource_l516_d54_type(mut patch PatchResource, value ?PatchType) ?PatchType {
+	return patch.set_type(value)
 }
 
 // Ruby method `directory(val = nil)` at line 526.
-pub fn ruby_resource_l526_d55_directory(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('directory', ...args)
+pub fn ruby_resource_l526_d55_directory(mut patch PatchResource, value ?string) ?string {
+	return patch.set_directory(value)
 }
 
 // Ruby method `file(val = nil)` at line 533.
-pub fn ruby_resource_l533_d56_file(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('file', ...args)
+pub fn ruby_resource_l533_d56_file(mut patch PatchResource, value ?string) !string {
+	return patch.set_file(value)
 }
 
 // Ruby method `download_queue_type = "Patch"` at line 545.
-pub fn ruby_resource_l545_d57_download_queue_type(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('download_queue_type', ...args)
+pub fn ruby_resource_l545_d57_download_queue_type(patch &PatchResource) string {
+	return patch.resource.download_queue_type()
 }
 
 // Ruby method `download_queue_name` at line 548.
-pub fn ruby_resource_l548_d58_download_queue_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('download_queue_name', ...args)
+pub fn ruby_resource_l548_d58_download_queue_name(mut patch PatchResource) !string {
+	return patch.download_queue_name()
 }
 
 // Original Ruby source (line-for-line):

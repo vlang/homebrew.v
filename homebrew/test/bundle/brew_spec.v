@@ -1,378 +1,794 @@
 module bundle
 
 import brew_runtime
+import homebrew.bundle as brew_bundle
 
 // Translated from Homebrew/brew `test/bundle/brew_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+fn brew_spec_bool(value bool) brew_runtime.Value {
+	return brew_runtime.bool_value(value)
+}
+
+fn brew_spec_foo() brew_bundle.BundleBrewFormula {
+	return brew_bundle.BundleBrewFormula{
+		name: 'foo'
+		desc: 'foobar'
+		oldnames: ['oldfoo']
+		full_name: 'qux/quuz/foo'
+		any_version_installed: true
+		aliases: ['foobar']
+		installed_on_request: true
+		linked: false
+		keg_only: true
+	}
+}
+
+fn brew_spec_bar() brew_bundle.BundleBrewFormula {
+	bottle := brew_runtime.map_value({
+		'cellar': brew_runtime.string_value(':any')
+		'files':  brew_runtime.map_value({
+			'big_sur': brew_runtime.map_value({
+				'sha256': brew_runtime.string_value('abcdef')
+				'url':    brew_runtime.string_value('https://brew.sh//foo-1.0.big_sur.bottle.tar.gz')
+			})
+		})
+	})
+	return brew_bundle.BundleBrewFormula{
+		name: 'bar'
+		desc: 'barfoo'
+		full_name: 'bar'
+		any_version_installed: true
+		version: '1.0'
+		installed_on_request: false
+		pinned: true
+		outdated: true
+		poured_from_bottle: true
+		bottle: bottle
+		bottled: true
+		official_tap: true
+		linked: true
+	}
+}
+
+fn brew_spec_baz() brew_bundle.BundleBrewFormula {
+	return brew_bundle.BundleBrewFormula{
+		name: 'baz'
+		full_name: 'bazzles/bizzles/baz'
+		any_version_installed: true
+		installed_on_request: true
+		dependencies: ['bar']
+		build_dependencies: ['bar']
+		link_set: true
+		link: false
+	}
+}
+
+fn brew_spec_state() brew_bundle.BundleBrewState {
+	return brew_bundle.BundleBrewState{
+		formulae: [brew_spec_foo(), brew_spec_bar(), brew_spec_baz()]
+		installed_formulae: ['foo', 'bar', 'baz']
+		trusted_formulae: ['bazzles/bizzles/baz']
+	}
+}
+
+fn brew_spec_installer(options brew_bundle.BundleBrewOptions) brew_bundle.BundleBrewInstaller {
+	mut installer := brew_bundle.bundle_brew_installer('mysql', options)
+	installer.installed = true
+	installer.linked = true
+	installer.formula_version = '1.0'
+	return installer
+}
+
+fn brew_spec_effects(command string, result bool) brew_bundle.BundleBrewEffects {
+	return brew_bundle.BundleBrewEffects{
+		command_results: {
+			command: result
+		}
+	}
+}
+
+fn brew_spec_string_map_equals(value brew_runtime.Value, expected map[string]string) bool {
+	if value.type_name != 'Hash' || value.map_data.len != expected.len {
+		return false
+	}
+	for key, item in expected {
+		if key !in value.map_data || value.map_data[key].as_string() != item {
+			return false
+		}
+	}
+	return true
+}
 
 // Ruby subject `subject(:dumper) { described_class }` at line 15.
 pub fn ruby_brew_spec_l15_d1_dumper(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dumper', ...args)
+	_ = args
+	return brew_runtime.object_value('Homebrew::Bundle::Brew', 'Homebrew::Bundle::Brew')
 }
 
 // Ruby let `let(:foo) do` at line 17.
 pub fn ruby_brew_spec_l17_d2_foo(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('foo', ...args)
+	_ = args
+	return brew_bundle.bundle_brew_formula_value(brew_spec_foo())
 }
 
 // Ruby let `let(:foo_hash) do` at line 36.
 pub fn ruby_brew_spec_l36_d3_foo_hash(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('foo_hash', ...args)
+	_ = args
+	return brew_bundle.bundle_brew_formula_value(brew_spec_foo())
 }
 
 // Ruby let `let(:bar) do` at line 59.
 pub fn ruby_brew_spec_l59_d4_bar(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('bar', ...args)
+	_ = args
+	return brew_bundle.bundle_brew_formula_value(brew_spec_bar())
 }
 
 // Ruby let `let(:bar_hash) do` at line 89.
 pub fn ruby_brew_spec_l89_d5_bar_hash(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('bar_hash', ...args)
+	_ = args
+	return brew_bundle.bundle_brew_formula_value(brew_spec_bar())
 }
 
 // Ruby let `let(:baz) do` at line 120.
 pub fn ruby_brew_spec_l120_d6_baz(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('baz', ...args)
+	_ = args
+	return brew_bundle.bundle_brew_formula_value(brew_spec_baz())
 }
 
 // Ruby let `let(:baz_hash) do` at line 139.
 pub fn ruby_brew_spec_l139_d7_baz_hash(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('baz_hash', ...args)
+	_ = args
+	return brew_bundle.bundle_brew_formula_value(brew_spec_baz())
 }
 
 // Ruby method `formula_double_depending_on(name, dependency)` at line 163.
 pub fn ruby_brew_spec_l163_d8_formula_double_depending_on(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_double_depending_on', ...args)
+	name := if args.len > 0 { args[0].as_string() } else { '' }
+	dependency := if args.len > 1 { args[1].as_string() } else { '' }
+	return brew_bundle.bundle_brew_formula_value(brew_bundle.BundleBrewFormula{
+		name: name
+		desc: name
+		full_name: name
+		any_version_installed: true
+		dependencies: [
+			dependency,
+		]
+		installed_on_request: true
+		keg_only: true
+	})
 }
 
 // Ruby it `it "returns an empty array when no formulae are installed" do` at line 188.
 pub fn ruby_brew_spec_l188_d9_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	formulae, _ := brew_bundle.bundle_brew_sorted_formulae(brew_bundle.BundleBrewState{})
+	return brew_spec_bool(formulae.len == 0)
 }
 
 // Ruby it `it "returns an empty hash when no formulae are installed" do` at line 194.
 pub fn ruby_brew_spec_l194_d10_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	return brew_spec_bool(brew_bundle.bundle_brew_state_value(brew_bundle.BundleBrewState{}).array_data.len == 0)
 }
 
 // Ruby it `it "returns an empty hash for an unavailable formula" do` at line 198.
 pub fn ruby_brew_spec_l198_d11_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	state := brew_bundle.BundleBrewState{ unavailable: ['bar'] }
+	return brew_spec_bool(brew_bundle.bundle_brew_find_formula(state, 'bar') == none)
 }
 
 // Ruby it `it "warns and continues on cyclic dependencies instead of exiting" do` at line 203.
 pub fn ruby_brew_spec_l203_d12_warns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('warns', ...args)
+	_ = args
+	state := brew_bundle.BundleBrewState{
+		formulae: [
+			brew_bundle.BundleBrewFormula{
+				name: 'foo'
+				desc: 'foo'
+				full_name: 'foo'
+				any_version_installed: true
+				dependencies: [
+					'bar',
+				]
+			},
+			brew_bundle.BundleBrewFormula{
+				name: 'bar'
+				desc: 'bar'
+				full_name: 'bar'
+				any_version_installed: true
+				dependencies: [
+					'foo',
+				]
+			},
+		]
+	}
+	formulae, cycles := brew_bundle.bundle_brew_sorted_formulae(state)
+	return brew_spec_bool(formulae.len == 2 && cycles.len == 1 && cycles[0] == ['bar', 'foo'])
 }
 
 // Ruby it `it "returns a hash for a formula" do` at line 212.
 pub fn ruby_brew_spec_l212_d13_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	formula := brew_bundle.bundle_brew_find_formula(brew_bundle.BundleBrewState{
+		formulae: [
+			brew_spec_foo(),
+		]
+	}, 'qux/quuz/foo') or { return brew_spec_bool(false) }
+	return brew_spec_bool(formula == brew_spec_foo())
 }
 
 // Ruby it `it "returns an array for all formulae" do` at line 217.
 pub fn ruby_brew_spec_l217_d14_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	state := brew_spec_state()
+	return brew_spec_bool(state.formulae.len == 3 && brew_bundle.bundle_brew_find_formula(state, 'bar') or { return brew_spec_bool(false) } == brew_spec_bar())
 }
 
 // Ruby it `it "returns a hash for a formula" do` at line 236.
 pub fn ruby_brew_spec_l236_d15_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	formula := brew_bundle.bundle_brew_find_formula(brew_bundle.BundleBrewState{
+		formulae: [
+			brew_spec_foo(),
+		]
+	}, 'foo') or { return brew_spec_bool(false) }
+	return brew_spec_bool(formula == brew_spec_foo())
 }
 
 // Ruby it `it "returns a dump string with installed formulae" do` at line 243.
 pub fn ruby_brew_spec_l243_d16_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	state := brew_bundle.BundleBrewState{
+		formulae: [brew_spec_foo(),
+			brew_bundle.BundleBrewFormula{ ...brew_spec_bar(), installed_on_request: true },
+			brew_spec_baz()]
+		trusted_formulae: [
+			'bazzles/bizzles/baz',
+		]
+	}
+	expected := '# barfoo\nbrew "bar"\nbrew "bazzles/bizzles/baz", link: false, trusted: true\n# foobar\nbrew "qux/quuz/foo"'
+	return brew_spec_bool(brew_bundle.bundle_brew_dump(state, true, false) == expected)
 }
 
 // Ruby it `it "returns an empty string when no formulae are installed" do` at line 268.
 pub fn ruby_brew_spec_l268_d17_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	return brew_spec_bool(brew_bundle.bundle_brew_formula_aliases(brew_bundle.BundleBrewState{}).len == 0)
 }
 
 // Ruby it `it "returns a hash with installed formulae aliases" do` at line 272.
 pub fn ruby_brew_spec_l272_d18_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	aliases := brew_bundle.bundle_brew_formula_aliases(brew_spec_state())
+	return brew_spec_bool(aliases == {
+		'qux/quuz/foobar': 'qux/quuz/foo'
+		'foobar':          'qux/quuz/foo'
+	})
 }
 
 // Ruby it `it "returns an empty string when no formulae are installed" do` at line 282.
 pub fn ruby_brew_spec_l282_d19_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	return brew_spec_bool(brew_bundle.bundle_brew_formula_oldnames(brew_bundle.BundleBrewState{}).len == 0)
 }
 
 // Ruby it `it "returns a hash with installed formulae old names" do` at line 286.
 pub fn ruby_brew_spec_l286_d20_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	oldnames := brew_bundle.bundle_brew_formula_oldnames(brew_spec_state())
+	return brew_spec_bool(oldnames == {
+		'qux/quuz/oldfoo': 'qux/quuz/foo'
+		'oldfoo':          'qux/quuz/foo'
+	})
 }
 
 // Ruby let `let(:formula_name) { "mysql" }` at line 297.
 pub fn ruby_brew_spec_l297_d21_formula_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_name', ...args)
+	_ = args
+	return brew_runtime.string_value('mysql')
 }
 
 // Ruby let `let(:options) { { args: ["with-option"] } }` at line 298.
 pub fn ruby_brew_spec_l298_d22_options(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('options', ...args)
+	_ = args
+	return brew_bundle.bundle_brew_options_value(brew_bundle.BundleBrewOptions{
+		args: [
+			'with-option',
+		]
+	})
 }
 
 // Ruby let `let(:installer) { described_class.new(formula_name, options) }` at line 299.
 pub fn ruby_brew_spec_l299_d23_installer(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('installer', ...args)
+	_ = args
+	return brew_bundle.bundle_brew_installer_value(brew_bundle.bundle_brew_installer('mysql', brew_bundle.BundleBrewOptions{
+		args: [
+			'with-option',
+		]
+	}))
 }
 
 // Ruby it `it "start service" do` at line 333.
 pub fn ruby_brew_spec_l333_d24_start(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('start', ...args)
+	_ = args
+	mut installer := brew_spec_installer(brew_bundle.BundleBrewOptions{ start_service: 'true' })
+	installer.service_started = true
+	return brew_spec_bool(brew_bundle.bundle_brew_service_change(installer, brew_bundle.BundleBrewEffects{}, false).events.len == 0)
 }
 
 // Ruby it `it "start service" do` at line 341.
 pub fn ruby_brew_spec_l341_d25_start(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('start', ...args)
+	_ = args
+	mut installer := brew_spec_installer(brew_bundle.BundleBrewOptions{ start_service: 'true' })
+	installer.service_started = true
+	return brew_spec_bool(brew_bundle.bundle_brew_install_instance(mut installer, brew_bundle.BundleBrewState{}, brew_bundle.BundleBrewEffects{}, false, false, false, false).events.len == 0)
 }
 
 // Ruby it `it "start service" do` at line 354.
 pub fn ruby_brew_spec_l354_d26_start(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('start', ...args)
+	_ = args
+	installer := brew_spec_installer(brew_bundle.BundleBrewOptions{ start_service: 'true' })
+	result := brew_bundle.bundle_brew_service_change(installer, brew_bundle.BundleBrewEffects{}, false)
+	return brew_spec_bool(result.success && result.events == ['service:start:mysql:'])
 }
 
 // Ruby it `it "start service" do` at line 363.
 pub fn ruby_brew_spec_l363_d27_start(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('start', ...args)
+	_ = args
+	mut installer := brew_spec_installer(brew_bundle.BundleBrewOptions{ start_service: 'true' })
+	result := brew_bundle.bundle_brew_install_instance(mut installer, brew_bundle.BundleBrewState{}, brew_bundle.BundleBrewEffects{}, false, false, false, false)
+	return brew_spec_bool(result.success && 'service:start:mysql:' in result.events)
 }
 
 // Ruby it `it "restart service" do` at line 380.
 pub fn ruby_brew_spec_l380_d28_restart(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('restart', ...args)
+	_ = args
+	mut installer := brew_spec_installer(brew_bundle.BundleBrewOptions{ restart_service: 'always' })
+	installer.changed = true
+	return brew_spec_bool(brew_bundle.bundle_brew_service_change(installer, brew_bundle.BundleBrewEffects{}, false).events == [
+		'service:restart:mysql:',
+	])
 }
 
 // Ruby it `it "restart service" do` at line 389.
 pub fn ruby_brew_spec_l389_d29_restart(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('restart', ...args)
+	_ = args
+	mut installer := brew_spec_installer(brew_bundle.BundleBrewOptions{ restart_service: 'always' })
+	result := brew_bundle.bundle_brew_install_instance(mut installer, brew_bundle.BundleBrewState{}, brew_bundle.BundleBrewEffects{}, false, false, false, false)
+	return brew_spec_bool('service:restart:mysql:' in result.events)
 }
 
 // Ruby it `it "links formula" do` at line 402.
 pub fn ruby_brew_spec_l402_d30_links(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('links', ...args)
+	_ = args
+	mut installer := brew_spec_installer(brew_bundle.BundleBrewOptions{ link_mode: 'true' })
+	installer.linked = false
+	return brew_spec_bool(brew_bundle.bundle_brew_link_change(installer, brew_bundle.BundleBrewEffects{}, false).commands == [
+		['link', 'mysql'],
+	])
 }
 
 // Ruby it `it "force-links keg-only formula" do` at line 410.
 pub fn ruby_brew_spec_l410_d31_force_links(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('force-links', ...args)
+	_ = args
+	mut installer := brew_spec_installer(brew_bundle.BundleBrewOptions{ link_mode: 'true' })
+	installer.linked = false
+	installer.keg_only = true
+	return brew_spec_bool(brew_bundle.bundle_brew_link_change(installer, brew_bundle.BundleBrewEffects{}, false).commands == [
+		['link', '--force', 'mysql'],
+	])
 }
 
 // Ruby it `it "overwrite links formula" do` at line 425.
 pub fn ruby_brew_spec_l425_d32_overwrite(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('overwrite', ...args)
+	_ = args
+	mut installer := brew_spec_installer(brew_bundle.BundleBrewOptions{ link_mode: 'overwrite' })
+	installer.linked = false
+	return brew_spec_bool(brew_bundle.bundle_brew_link_change(installer, brew_bundle.BundleBrewEffects{}, false).commands == [
+		['link', '--overwrite', 'mysql'],
+	])
 }
 
 // Ruby it `it "unlinks formula" do` at line 439.
 pub fn ruby_brew_spec_l439_d33_unlinks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('unlinks', ...args)
+	_ = args
+	installer := brew_spec_installer(brew_bundle.BundleBrewOptions{ link_mode: 'false' })
+	return brew_spec_bool(brew_bundle.bundle_brew_link_change(installer, brew_bundle.BundleBrewEffects{}, false).commands == [
+		['unlink', 'mysql'],
+	])
 }
 
 // Ruby it `it "links formula" do` at line 455.
 pub fn ruby_brew_spec_l455_d34_links(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('links', ...args)
+	_ = args
+	mut installer := brew_spec_installer(brew_bundle.BundleBrewOptions{})
+	installer.linked = false
+	return brew_spec_bool(brew_bundle.bundle_brew_link_change(installer, brew_bundle.BundleBrewEffects{}, false).commands == [
+		['link', 'mysql'],
+	])
 }
 
 // Ruby it `it "unlinks formula" do` at line 470.
 pub fn ruby_brew_spec_l470_d35_unlinks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('unlinks', ...args)
+	_ = args
+	mut installer := brew_spec_installer(brew_bundle.BundleBrewOptions{})
+	installer.keg_only = true
+	return brew_spec_bool(brew_bundle.bundle_brew_link_change(installer, brew_bundle.BundleBrewEffects{}, false).commands == [
+		['unlink', 'mysql'],
+	])
 }
 
 // Ruby it `it "unlinks conflicts and stops their services" do` at line 491.
 pub fn ruby_brew_spec_l491_d36_unlinks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('unlinks', ...args)
+	_ = args
+	mut installer := brew_spec_installer(brew_bundle.BundleBrewOptions{
+		restart_service: 'always'
+		conflicts_with: [
+			'mysql56',
+		]
+	})
+	installer.formula_conflicts = ['mysql55']
+	state := brew_bundle.BundleBrewState{ installed_formulae: ['mysql55', 'mysql56'] }
+	result := brew_bundle.bundle_brew_resolve_conflicts(installer, state, brew_bundle.BundleBrewEffects{}, false)
+	return brew_spec_bool(result.success && result.commands == [['unlink', 'mysql56'],
+		['unlink', 'mysql55']] && result.events.len == 2)
 }
 
 // Ruby it `it "prints a message" do` at line 506.
 pub fn ruby_brew_spec_l506_d37_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+	_ = args
+	mut installer := brew_spec_installer(brew_bundle.BundleBrewOptions{
+		restart_service: 'always'
+		conflicts_with: [
+			'mysql56',
+		]
+	})
+	installer.formula_conflicts = ['mysql55']
+	result := brew_bundle.bundle_brew_resolve_conflicts(installer, brew_bundle.BundleBrewState{
+		installed_formulae: [
+			'mysql55',
+			'mysql56',
+		]
+	}, brew_bundle.BundleBrewEffects{}, true)
+	return brew_spec_bool(result.output.len == 4 && result.output[0].contains('conflicts with mysql'))
 }
 
 // Ruby it `it "runs the postinstall command" do` at line 537.
 pub fn ruby_brew_spec_l537_d38_runs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('runs', ...args)
+	_ = args
+	mut installer := brew_spec_installer(brew_bundle.BundleBrewOptions{ postinstall: 'custom command' })
+	installer.changed = true
+	result := brew_bundle.bundle_brew_postinstall_change(installer, brew_bundle.BundleBrewEffects{}, false)
+	return brew_spec_bool(result.success && result.events == [
+		'postinstall:custom command',
+	])
 }
 
 // Ruby it `it "reports a failure" do` at line 543.
 pub fn ruby_brew_spec_l543_d39_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	_ = args
+	mut installer := brew_spec_installer(brew_bundle.BundleBrewOptions{ postinstall: 'custom command' })
+	installer.changed = true
+	return brew_spec_bool(!brew_bundle.bundle_brew_postinstall_change(installer, brew_bundle.BundleBrewEffects{ postinstall_ok: false }, false).success)
 }
 
 // Ruby it `it "does not run the postinstall command" do` at line 555.
 pub fn ruby_brew_spec_l555_d40_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	_ = args
+	installer := brew_spec_installer(brew_bundle.BundleBrewOptions{ postinstall: 'custom command' })
+	return brew_spec_bool(brew_bundle.bundle_brew_postinstall_change(installer, brew_bundle.BundleBrewEffects{}, false).events.len == 0)
 }
 
 // Ruby let `let(:version_file) { "version.txt" }` at line 572.
 pub fn ruby_brew_spec_l572_d41_version_file(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('version_file', ...args)
+	_ = args
+	return brew_runtime.string_value('version.txt')
 }
 
 // Ruby let `let(:version) { "1.0" }` at line 573.
 pub fn ruby_brew_spec_l573_d42_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('version', ...args)
+	_ = args
+	return brew_runtime.string_value('1.0')
 }
 
 // Ruby it `it "writes the version to the file" do` at line 581.
 pub fn ruby_brew_spec_l581_d43_writes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('writes', ...args)
+	_ = args
+	mut installer := brew_spec_installer(brew_bundle.BundleBrewOptions{ version_file: 'version.txt' })
+	installer.env_version = '1.0'
+	result := brew_bundle.bundle_brew_install_instance(mut installer, brew_bundle.BundleBrewState{}, brew_bundle.BundleBrewEffects{}, false, false, false, false)
+	return brew_spec_bool(result.writes['version.txt'] or { '' } == '1.0\n')
 }
 
 // Ruby it `it "writes the version to the file" do` at line 589.
 pub fn ruby_brew_spec_l589_d44_writes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('writes', ...args)
+	_ = args
+	mut installer := brew_spec_installer(brew_bundle.BundleBrewOptions{ version_file: 'version.txt' })
+	installer.changed = true
+	result := brew_bundle.bundle_brew_install_instance(mut installer, brew_bundle.BundleBrewState{}, brew_bundle.BundleBrewEffects{}, false, false, false, false)
+	return brew_spec_bool(result.writes['version.txt'] or { '' } == '1.0\n')
 }
 
 // Ruby it `it "did not call restart service" do` at line 604.
 pub fn ruby_brew_spec_l604_d45_did(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('did', ...args)
+	_ = args
+	mut installer := brew_bundle.bundle_brew_installer('mysql', brew_bundle.BundleBrewOptions{ restart_service: 'true' })
+	preinstall := brew_bundle.bundle_brew_preinstall_instance(mut installer, brew_bundle.BundleBrewState{}, false)
+	return brew_spec_bool(preinstall && !installer.installed && !installer.changed)
 }
 
 // Ruby let `let(:tapped_name) { "foo/bar/baz" }` at line 611.
 pub fn ruby_brew_spec_l611_d46_tapped_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tapped_name', ...args)
+	_ = args
+	return brew_runtime.string_value('foo/bar/baz')
 }
 
 // Ruby it `it "trusts the formula before installing the tap that loads it" do` at line 618.
 pub fn ruby_brew_spec_l618_d47_trusts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('trusts', ...args)
+	_ = args
+	mut installer := brew_bundle.bundle_brew_installer('foo/bar/baz', brew_bundle.BundleBrewOptions{ trusted: true })
+	result := brew_bundle.bundle_brew_install_change(mut installer, brew_bundle.BundleBrewState{}, brew_bundle.BundleBrewEffects{}, false, false)
+	return brew_spec_bool(result.events.len >= 2 && result.events[0] == 'trust:foo/bar/baz' && result.events[1] == 'tap:ensure:foo/bar')
 }
 
 // Ruby it `it "does not trust an unqualified formula name" do` at line 628.
 pub fn ruby_brew_spec_l628_d48_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	_ = args
+	mut installer := brew_bundle.bundle_brew_installer('baz', brew_bundle.BundleBrewOptions{ trusted: true })
+	result := brew_bundle.bundle_brew_install_change(mut installer, brew_bundle.BundleBrewState{}, brew_bundle.BundleBrewEffects{}, false, false)
+	return brew_spec_bool(!result.events.any(it.starts_with('trust:')))
 }
 
 // Ruby it `it "calls Homebrew" do` at line 636.
 pub fn ruby_brew_spec_l636_d49_calls(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('calls', ...args)
+	_ = args
+	state := brew_bundle.BundleBrewState{
+		formulae: [brew_bundle.BundleBrewFormula{ name: 'a', outdated: true },
+			brew_bundle.BundleBrewFormula{ name: 'b', outdated: true },
+			brew_bundle.BundleBrewFormula{ name: 'c' }]
+	}
+	return brew_spec_bool(brew_bundle.bundle_brew_outdated_formulae(state) == ['a', 'b'])
 }
 
 // Ruby it `it "calls Homebrew" do` at line 650.
 pub fn ruby_brew_spec_l650_d50_calls(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('calls', ...args)
+	_ = args
+	state := brew_bundle.BundleBrewState{
+		formulae: [brew_bundle.BundleBrewFormula{ name: 'a', pinned: true },
+			brew_bundle.BundleBrewFormula{ name: 'b', pinned: true },
+			brew_bundle.BundleBrewFormula{ name: 'c' }]
+	}
+	return brew_spec_bool(brew_bundle.bundle_brew_pinned_formulae(state) == ['a', 'b'])
 }
 
 // Ruby it `it "returns result" do` at line 698.
 pub fn ruby_brew_spec_l698_d51_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	state := brew_bundle.BundleBrewState{
+		formulae: [
+			brew_bundle.BundleBrewFormula{
+				name: 'foo'
+				full_name: 'homebrew/tap/foo'
+				aliases: [
+					'foobar',
+				]
+			},
+			brew_bundle.BundleBrewFormula{ name: 'bar', full_name: 'bar', outdated: true },
+		]
+		installed_formulae: ['foo', 'bar']
+	}
+	return brew_spec_bool(brew_bundle.bundle_brew_installed_and_up_to_date(state, 'foo', false) && brew_bundle.bundle_brew_installed_and_up_to_date(state, 'foobar', false) && !brew_bundle.bundle_brew_installed_and_up_to_date(state, 'bar', false) && !brew_bundle.bundle_brew_installed_and_up_to_date(state, 'baz', false))
 }
 
 // Ruby it `it "warns and marks the formula actionable without loading it" do` at line 714.
 pub fn ruby_brew_spec_l714_d52_warns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('warns', ...args)
+	_ = args
+	state := brew_bundle.BundleBrewState{ installed_formulae: ['php@7.2'], require_tap_trust: true }
+	check := brew_bundle.bundle_brew_formula_upgradable_check(state, 'shivammathur/php/php@7.2')
+	return brew_spec_bool(check.upgradable && !check.loaded && check.warning.contains('not trusted') && !brew_bundle.bundle_brew_installed_and_up_to_date(state, 'shivammathur/php/php@7.2', false))
 }
 
 // Ruby it `it "does not warn when upgrades are disabled" do` at line 721.
 pub fn ruby_brew_spec_l721_d53_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	_ = args
+	state := brew_bundle.BundleBrewState{ installed_formulae: ['php@7.2'], require_tap_trust: true }
+	return brew_spec_bool(brew_bundle.bundle_brew_installed_and_up_to_date(state, 'shivammathur/php/php@7.2', true))
 }
 
 // Ruby it `it "detects missing formulae without loading the formula" do` at line 731.
 pub fn ruby_brew_spec_l731_d54_detects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('detects', ...args)
+	_ = args
+	state := brew_bundle.BundleBrewState{ require_tap_trust: true }
+	check := brew_bundle.bundle_brew_formula_upgradable_check(state, 'shivammathur/php/php@7.2')
+	return brew_spec_bool(!check.upgradable && check.warning == '' && !check.loaded)
 }
 
 // Ruby it `it "install formula" do` at line 749.
 pub fn ruby_brew_spec_l749_d55_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	_ = args
+	mut installer := brew_bundle.bundle_brew_installer('mysql', brew_bundle.BundleBrewOptions{
+		args: [
+			'with-option',
+		]
+	})
+	result := brew_bundle.bundle_brew_install_formula(mut installer, brew_spec_effects('install --formula mysql --with-option', true), false, false)
+	return brew_spec_bool(result.success && result.commands == [
+		['install', '--formula', 'mysql', '--with-option'],
+	])
 }
 
 // Ruby it `it "reports a failure" do` at line 757.
 pub fn ruby_brew_spec_l757_d56_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	_ = args
+	mut installer := brew_bundle.bundle_brew_installer('mysql', brew_bundle.BundleBrewOptions{
+		args: [
+			'with-option',
+		]
+	})
+	return brew_spec_bool(!brew_bundle.bundle_brew_install_formula(mut installer, brew_spec_effects('install --formula mysql --with-option', false), false, false).success)
 }
 
 // Ruby it `it "upgrade formula" do` at line 779.
 pub fn ruby_brew_spec_l779_d57_upgrade(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('upgrade', ...args)
+	_ = args
+	mut installer := brew_spec_installer(brew_bundle.BundleBrewOptions{})
+	return brew_spec_bool(brew_bundle.bundle_brew_upgrade_formula(mut installer, brew_spec_effects('upgrade --formula mysql', true), false, false).success)
 }
 
 // Ruby it `it "reports a failure" do` at line 787.
 pub fn ruby_brew_spec_l787_d58_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	_ = args
+	mut installer := brew_spec_installer(brew_bundle.BundleBrewOptions{})
+	return brew_spec_bool(!brew_bundle.bundle_brew_upgrade_formula(mut installer, brew_spec_effects('upgrade --formula mysql', false), false, false).success)
 }
 
 // Ruby it `it "does not upgrade formula" do` at line 800.
 pub fn ruby_brew_spec_l800_d59_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	_ = args
+	mut installer := brew_spec_installer(brew_bundle.BundleBrewOptions{})
+	state := brew_bundle.BundleBrewState{
+		formulae: [
+			brew_bundle.BundleBrewFormula{ name: 'mysql', full_name: 'mysql', outdated: true, pinned: true },
+		]
+		installed_formulae: ['mysql']
+	}
+	return brew_spec_bool(!brew_bundle.bundle_brew_preinstall_instance(mut installer, state, false))
 }
 
 // Ruby it `it "does not upgrade formula" do` at line 812.
 pub fn ruby_brew_spec_l812_d60_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	_ = args
+	mut installer := brew_spec_installer(brew_bundle.BundleBrewOptions{})
+	state := brew_bundle.BundleBrewState{
+		formulae: [
+			brew_bundle.BundleBrewFormula{ name: 'mysql', full_name: 'mysql' },
+		]
+		installed_formulae: ['mysql']
+	}
+	return brew_spec_bool(!brew_bundle.bundle_brew_preinstall_instance(mut installer, state, false))
 }
 
 // Ruby it `it "is false by default" do` at line 822.
 pub fn ruby_brew_spec_l822_d61_is(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('is', ...args)
+	_ = args
+	return brew_spec_bool(!brew_bundle.bundle_brew_installer('mysql', brew_bundle.BundleBrewOptions{}).changed)
 }
 
 // Ruby it `it "is false by default" do` at line 828.
 pub fn ruby_brew_spec_l828_d62_is(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('is', ...args)
+	_ = args
+	return brew_spec_bool(!brew_bundle.bundle_brew_start_service(brew_bundle.bundle_brew_installer('mysql', brew_bundle.BundleBrewOptions{})))
 }
 
 // Ruby it `it "is true" do` at line 833.
 pub fn ruby_brew_spec_l833_d63_is(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('is', ...args)
+	_ = args
+	return brew_spec_bool(brew_bundle.bundle_brew_start_service(brew_bundle.bundle_brew_installer('mysql', brew_bundle.BundleBrewOptions{ start_service: 'true' })))
 }
 
 // Ruby specify `specify do` at line 845.
 pub fn ruby_brew_spec_l845_d64_do(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('do', ...args)
+	_ = args
+	mut values := []bool{}
+	for options in [brew_bundle.BundleBrewOptions{},
+		brew_bundle.BundleBrewOptions{ start_service: 'true' },
+		brew_bundle.BundleBrewOptions{ restart_service: 'true' },
+		brew_bundle.BundleBrewOptions{ restart_service: 'changed' },
+		brew_bundle.BundleBrewOptions{ restart_service: 'always' }] {
+		mut installer := brew_bundle.bundle_brew_installer('mysql', options)
+		installer.service_started = true
+		values << brew_bundle.bundle_brew_start_service_needed(installer)
+	}
+	return brew_spec_bool(values == [false, false, false, false, false])
 }
 
 // Ruby specify `specify do` at line 861.
 pub fn ruby_brew_spec_l861_d65_do(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('do', ...args)
+	_ = args
+	mut values := []bool{}
+	for options in [brew_bundle.BundleBrewOptions{},
+		brew_bundle.BundleBrewOptions{ start_service: 'true' },
+		brew_bundle.BundleBrewOptions{ restart_service: 'true' },
+		brew_bundle.BundleBrewOptions{ restart_service: 'changed' },
+		brew_bundle.BundleBrewOptions{ restart_service: 'always' }] {
+		values << brew_bundle.bundle_brew_start_service_needed(brew_bundle.bundle_brew_installer('mysql', options))
+	}
+	return brew_spec_bool(values == [false, true, true, true, true])
 }
 
 // Ruby it `it "is false by default" do` at line 873.
 pub fn ruby_brew_spec_l873_d66_is(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('is', ...args)
+	_ = args
+	return brew_spec_bool(!brew_bundle.bundle_brew_restart_service(brew_bundle.bundle_brew_installer('mysql', brew_bundle.BundleBrewOptions{})))
 }
 
 // Ruby it `it "is true" do` at line 878.
 pub fn ruby_brew_spec_l878_d67_is(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('is', ...args)
+	_ = args
+	return brew_spec_bool(brew_bundle.bundle_brew_restart_service(brew_bundle.bundle_brew_installer('mysql', brew_bundle.BundleBrewOptions{ restart_service: 'true' })))
 }
 
 // Ruby it `it "is true" do` at line 884.
 pub fn ruby_brew_spec_l884_d68_is(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('is', ...args)
+	_ = args
+	return brew_spec_bool(brew_bundle.bundle_brew_restart_service(brew_bundle.bundle_brew_installer('mysql', brew_bundle.BundleBrewOptions{ restart_service: 'always' })))
 }
 
 // Ruby it `it "is true" do` at line 890.
 pub fn ruby_brew_spec_l890_d69_is(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('is', ...args)
+	_ = args
+	return brew_spec_bool(brew_bundle.bundle_brew_restart_service(brew_bundle.bundle_brew_installer('mysql', brew_bundle.BundleBrewOptions{ restart_service: 'changed' })))
 }
 
 // Ruby it `it "is false by default" do` at line 897.
 pub fn ruby_brew_spec_l897_d70_is(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('is', ...args)
+	_ = args
+	return brew_spec_bool(!brew_bundle.bundle_brew_restart_service_needed(brew_bundle.bundle_brew_installer('mysql', brew_bundle.BundleBrewOptions{})))
 }
 
 // Ruby specify `specify do` at line 906.
 pub fn ruby_brew_spec_l906_d71_do(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('do', ...args)
+	_ = args
+	mut values := []bool{}
+	for mode in ['true', 'always', 'changed'] {
+		values << brew_bundle.bundle_brew_restart_service_needed(brew_bundle.bundle_brew_installer('mysql', brew_bundle.BundleBrewOptions{ restart_service: mode }))
+	}
+	return brew_spec_bool(values == [false, true, false])
 }
 
 // Ruby specify `specify do` at line 920.
 pub fn ruby_brew_spec_l920_d72_do(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('do', ...args)
+	_ = args
+	mut values := []bool{}
+	for mode in ['true', 'always', 'changed'] {
+		mut installer := brew_bundle.bundle_brew_installer('mysql', brew_bundle.BundleBrewOptions{ restart_service: mode })
+		installer.changed = true
+		values << brew_bundle.bundle_brew_restart_service_needed(installer)
+	}
+	return brew_spec_bool(values == [true, true, true])
 }
 
 // Ruby it `it "treats an edge to a missing node as a leaf" do` at line 932.
 pub fn ruby_brew_spec_l932_d73_treats(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('treats', ...args)
+	_ = args
+	topo := brew_bundle.bundle_brew_toposort({
+		'a': ['b']
+		'b': ['libice']
+	})
+	return brew_spec_bool(topo.ordered == ['libice', 'b', 'a'])
 }
 
 // Ruby it `it "flattens a cyclic graph via strongly connected components without raising" do` at line 940.
 pub fn ruby_brew_spec_l940_d74_flattens(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('flattens', ...args)
+	_ = args
+	topo := brew_bundle.bundle_brew_toposort({
+		'a': ['b']
+		'b': ['a']
+	})
+	mut ordered := topo.ordered.clone()
+	ordered.sort()
+	return brew_spec_bool(ordered == ['a', 'b'] && topo.cycles == [['a', 'b']])
 }
 
 // Original Ruby source (line-for-line):

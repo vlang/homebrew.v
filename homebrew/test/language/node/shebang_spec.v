@@ -1,43 +1,139 @@
 module node
 
 import brew_runtime
+import homebrew.utils
+import os
+import time
 
 // Translated from Homebrew/brew `test/language/node/shebang_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub struct NodeShebangDependency {
+pub:
+	name     string
+	required bool = true
+}
+
+pub struct NodeShebangFixtures {
+pub:
+	node18             NodeShebangDependency
+	versioned_node     []NodeShebangDependency
+	no_dependencies    []NodeShebangDependency
+	multiple_node_deps []NodeShebangDependency
+}
+
+pub fn node_shebang_fixtures() NodeShebangFixtures {
+	return NodeShebangFixtures{
+		node18: NodeShebangDependency{ name: 'node@18' }
+		versioned_node: [NodeShebangDependency{ name: 'node@18' }]
+		multiple_node_deps: [NodeShebangDependency{ name: 'node' },
+			NodeShebangDependency{ name: 'node@18' }]
+	}
+}
+
+pub fn node_shebang_rewrite_info(node_path string) !utils.RewriteInfo {
+	return utils.new_shebang_rewrite_info(r'^#! ?(?:/usr/bin/(?:env )?)?node( |$)', '#! /usr/bin/env node '.len, '${node_path}\\1')
+}
+
+pub fn detected_node_shebang(dependencies []NodeShebangDependency,
+	prefix string) !utils.RewriteInfo {
+	node_dependencies := dependencies.filter(it.required && (it.name == 'node' || it.name.starts_with('node@')))
+	if node_dependencies.len == 0 {
+		return error('Cannot detect Node shebang: formula does not depend on Node.')
+	}
+	if node_dependencies.len > 1 {
+		return error('Cannot detect Node shebang: formula has multiple Node dependencies.')
+	}
+	name := node_dependencies[0].name
+	return node_shebang_rewrite_info('${prefix.trim_right('/')}/opt/${name}/bin/node')
+}
+
+fn node_shebang_contents(broken bool) string {
+	interpreter := if broken { '#!node' } else { '#!/usr/bin/env node' }
+	return '${interpreter}\na\nb\nc\n'
+}
+
+fn node_shebang_temp_path(label string) string {
+	return os.join_path(os.temp_dir(), 'brew-v-node-shebang-${label}-${os.getpid()}-${time.now().unix_micro()}')
+}
+
+fn node_spec_file(args []brew_runtime.Value, broken bool) brew_runtime.Value {
+	path := if args.len > 0 { args[0].as_string() } else { node_shebang_temp_path('file') }
+	os.write_file(path, node_shebang_contents(broken)) or {
+		return brew_runtime.object_value('IOError', err.msg())
+	}
+	return brew_runtime.structured_value('Tempfile', path, {
+		'path': path
+	})
+}
+
+fn node_spec_prefix(args []brew_runtime.Value) string {
+	return if args.len > 0 { args[0].as_string().trim_right('/') } else { '/opt/homebrew' }
+}
+
+fn node_spec_rewrites(prefix string, broken bool) bool {
+	root := node_shebang_temp_path('case')
+	os.mkdir_all(root) or { return false }
+	defer {
+		os.rmdir_all(root) or {}
+	}
+	path := os.join_path(root, 'script')
+	os.write_file(path, node_shebang_contents(broken)) or { return false }
+	info := detected_node_shebang(node_shebang_fixtures().versioned_node, prefix) or {
+		return false
+	}
+	if utils.rewrite_shebang(info, [path]) or { return false } != 1 {
+		return false
+	}
+	expected := '#!${prefix}/opt/node@18/bin/node\na\nb\nc\n'
+	return os.read_file(path) or { return false } == expected
+}
 
 // Ruby let `let(:file) { Tempfile.new("node-shebang") }` at line 8.
 pub fn ruby_shebang_spec_l8_d1_file(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('file', ...args)
+	return node_spec_file(args, false)
 }
 
 // Ruby let `let(:broken_file) { Tempfile.new("node-shebang") }` at line 9.
 pub fn ruby_shebang_spec_l9_d2_broken_file(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('broken_file', ...args)
+	return node_spec_file(args, true)
 }
 
 // Ruby let `let(:f) do` at line 10.
 pub fn ruby_shebang_spec_l10_d3_f(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f', ...args)
+	return brew_runtime.structured_value('NodeShebangFixtures', 'node@18', {
+		'node18':             'node@18'
+		'versioned_node_dep': 'node@18'
+		'no_deps':            ''
+		'multiple_deps':      'node,node@18'
+	})
 }
 
 // Ruby it `it "can be used to replace Node shebangs" do` at line 61.
 pub fn ruby_shebang_spec_l61_d4_can(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('can', ...args)
+	return brew_runtime.bool_value(node_spec_rewrites(node_spec_prefix(args), false))
 }
 
 // Ruby it `it "can fix broken shebang like `#!node`" do` at line 73.
 pub fn ruby_shebang_spec_l73_d5_can(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('can', ...args)
+	return brew_runtime.bool_value(node_spec_rewrites(node_spec_prefix(args), true))
 }
 
 // Ruby it `it "errors if formula doesn't depend on node" do` at line 86.
 pub fn ruby_shebang_spec_l86_d6_errors(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('errors', ...args)
+	if _ := detected_node_shebang(node_shebang_fixtures().no_dependencies, node_spec_prefix(args)) {
+		return brew_runtime.bool_value(false)
+	} else {
+		return brew_runtime.bool_value(err.msg() == 'Cannot detect Node shebang: formula does not depend on Node.')
+	}
 }
 
 // Ruby it `it "errors if formula depends on more than one node" do` at line 91.
 pub fn ruby_shebang_spec_l91_d7_errors(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('errors', ...args)
+	if _ := detected_node_shebang(node_shebang_fixtures().multiple_node_deps, node_spec_prefix(args)) {
+		return brew_runtime.bool_value(false)
+	} else {
+		return brew_runtime.bool_value(err.msg() == 'Cannot detect Node shebang: formula has multiple Node dependencies.')
+	}
 }
 
 // Original Ruby source (line-for-line):

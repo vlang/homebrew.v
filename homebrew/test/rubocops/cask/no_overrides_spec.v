@@ -1,88 +1,107 @@
 module cask
 
-import brew_runtime
+import homebrew.rubocops.cask as no_overrides_core
 
 // Translated from Homebrew/brew `test/rubocops/cask/no_overrides_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "accepts when there are no `on_*` blocks" do` at line 7.
-pub fn ruby_no_overrides_spec_l7_d1_accepts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('accepts', ...args)
+pub fn ruby_no_overrides_spec_l7_d1_accepts() bool {
+	source := 'cask "foo" do\n  version "1.2.3"\n  url "https://brew.sh/foo.pkg"\n\n  name "Foo"\nend'
+	return no_overrides_core.audit_no_overrides(source).len == 0
 }
 
 // Ruby it `it "accepts when there are no top-level standalone stanzas" do` at line 18.
-pub fn ruby_no_overrides_spec_l18_d2_accepts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('accepts', ...args)
+pub fn ruby_no_overrides_spec_l18_d2_accepts() bool {
+	source := 'cask "foo" do\n  on_sequoia :or_later do\n    version :latest\n  end\nend'
+	return no_overrides_core.audit_no_overrides(source).len == 0
 }
 
 // Ruby it `it "accepts `depends_on macos:` in `on_macos` blocks" do` at line 28.
-pub fn ruby_no_overrides_spec_l28_d3_accepts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('accepts', ...args)
+pub fn ruby_no_overrides_spec_l28_d3_accepts() bool {
+	source := 'cask "foo" do\n  on_macos do\n    depends_on macos: :catalina\n  end\nend'
+	return no_overrides_core.audit_no_overrides(source).len == 0
 }
 
 // Ruby it `it "accepts non-overridable stanzas in `on_*` blocks" do` at line 38.
-pub fn ruby_no_overrides_spec_l38_d4_accepts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('accepts', ...args)
+pub fn ruby_no_overrides_spec_l38_d4_accepts() bool {
+	source := 'cask "foo" do\n  version "1.2.3"\n\n  on_arm do\n    binary "foo-#{version}-arm64"\n  end\n\n  app "foo-#{version}.app"\n  binary "foo-#{version}"\nend'
+	return no_overrides_core.audit_no_overrides(source).len == 0
 }
 
 // Ruby it `it "accepts `arch` and `version` interpolations in strings in `on_*` blocks" do` at line 54.
-pub fn ruby_no_overrides_spec_l54_d5_accepts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('accepts', ...args)
+pub fn ruby_no_overrides_spec_l54_d5_accepts() bool {
+	source := 'cask "foo" do\n  arch arm: "arm64", intel: "x86"\n  version "1.2.3"\n\n  on_sequoia :or_later do\n    sha256 "aaa"\n    url "https://brew.sh/foo-#{version}-#{arch}.pkg"\n  end\nend'
+	return no_overrides_core.audit_no_overrides(source).len == 0
 }
 
 // Ruby it `it "accepts `version` interpolations with method calls in strings in `on_*` blocks" do` at line 69.
-pub fn ruby_no_overrides_spec_l69_d6_accepts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('accepts', ...args)
+pub fn ruby_no_overrides_spec_l69_d6_accepts() bool {
+	source := 'cask "foo" do\n  version "0.99,123.3"\n\n  on_sequoia :or_later do\n    url "https://brew.sh/foo-#{version.csv.first}-#{version.csv.second}.pkg"\n  end\nend'
+	return no_overrides_core.audit_no_overrides(source).len == 0
 }
 
 // Ruby it `it "accepts `arch` interpolations in regexes in `on_*` blocks" do` at line 81.
-pub fn ruby_no_overrides_spec_l81_d7_accepts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('accepts', ...args)
+pub fn ruby_no_overrides_spec_l81_d7_accepts() bool {
+	source := 'cask "foo" do\n  arch arm: "arm64", intel: "x86"\n  version "0.99,123.3"\n\n  on_sequoia :or_later do\n    url "https://brew.sh/foo-#{arch}-#{version.csv.first}-#{version.csv.last}.pkg"\n\n    livecheck do\n      url "https://brew.sh/foo/releases.html"\n      regex(/href=.*?foo[._-]v?(\\d+(?:.\\d+)+)-#{arch}.pkg/i)\n    end\n  end\nend'
+	return no_overrides_core.audit_no_overrides(source).len == 0
 }
 
 // Ruby it `it "ignores contents of single-line `livecheck` blocks in `on_*` blocks" do` at line 100.
-pub fn ruby_no_overrides_spec_l100_d8_ignores(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ignores', ...args)
+pub fn ruby_no_overrides_spec_l100_d8_ignores() bool {
+	source := 'cask "foo" do\n  on_intel do\n    livecheck do\n      url "https://brew.sh/foo"\n    end\n    version "1.2.3"\n  end\n  on_arm do\n    version "2.3.4"\n  end\n\n  url "https://brew.sh/foo.pkg"\n  sha256 "bbb"\nend'
+	return no_overrides_core.audit_no_overrides(source).len == 0
 }
 
 // Ruby it `it "ignores contents of multi-line `livecheck` blocks in `on_*` blocks" do` at line 119.
-pub fn ruby_no_overrides_spec_l119_d9_ignores(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ignores', ...args)
+pub fn ruby_no_overrides_spec_l119_d9_ignores() bool {
+	source := 'cask "foo" do\n  on_intel do\n    livecheck do\n      url "https://brew.sh/foo"\n      strategy :sparkle\n    end\n    version "1.2.3"\n  end\n  on_arm do\n    version "2.3.4"\n  end\n\n  url "https://brew.sh/foo.pkg"\n  sha256 "bbb"\nend'
+	return no_overrides_core.audit_no_overrides(source).len == 0
 }
 
 // Ruby it `it "accepts `on_*` blocks that don't override upper-level stanzas" do` at line 139.
-pub fn ruby_no_overrides_spec_l139_d10_accepts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('accepts', ...args)
+pub fn ruby_no_overrides_spec_l139_d10_accepts() bool {
+	source := 'cask "foo" do\n  version "1.2.3"\n\n  on_big_sur :or_older do\n    sha256 "bbb"\n    url "https://brew.sh/legacy/foo-2.3.4.dmg"\n  end\n  on_monterey :or_newer do\n    sha256 "aaa"\n    url "https://brew.sh/foo-2.3.4.dmg"\n  end\nend'
+	return no_overrides_core.audit_no_overrides(source).len == 0
 }
 
 // Ruby it `it "accepts `conflicts_with` in both top-level and `on_*` blocks" do` at line 156.
-pub fn ruby_no_overrides_spec_l156_d11_accepts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('accepts', ...args)
+pub fn ruby_no_overrides_spec_l156_d11_accepts() bool {
+	source := 'cask "foo" do\n  version "1.2.3"\n  conflicts_with cask: "foo-beta"\n\n  on_sequoia :or_older do\n    conflicts_with cask: "foo-legacy"\n  end\nend'
+	return no_overrides_core.audit_no_overrides(source).len == 0
 }
 
 // Ruby it `it "reports an offense when `on_*` blocks override a single upper-level stanza" do` at line 169.
-pub fn ruby_no_overrides_spec_l169_d12_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_no_overrides_spec_l169_d12_reports() bool {
+	source := 'cask "foo" do\n  version "2.3.4"\n\n  on_sequoia :or_older do\n    version "1.2.3"\n  end\n\n  url "https://brew.sh/foo-2.3.4.dmg"\nend'
+	offenses := no_overrides_core.audit_no_overrides(source)
+	return offenses.len == 1 && offenses[0].stanza == 'version' && source[offenses[0].begin_pos..offenses[0].end_pos] == 'version "2.3.4"' && offenses[0].message == no_overrides_core.no_overrides_message_template.replace('%s', 'version')
 }
 
 // Ruby it `it "reports an offense when `on_*` blocks override multiple upper-level stanzas" do` at line 184.
-pub fn ruby_no_overrides_spec_l184_d13_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_no_overrides_spec_l184_d13_reports() bool {
+	source := 'cask "foo" do\n  version "1.2.3"\n  sha256 "aaa"\n  url "https://brew.sh/foo-2.3.4.dmg"\n\n  on_big_sur :or_older do\n    sha256 "bbb"\n    url "https://brew.sh/legacy/foo-2.3.4.dmg"\n  end\nend'
+	offenses := no_overrides_core.audit_no_overrides(source)
+	return offenses.len == 2 && offenses.map(it.stanza) == ['sha256', 'url'] && source[offenses[0].begin_pos..offenses[0].end_pos] == 'sha256 "aaa"' && source[offenses[1].begin_pos..offenses[1].end_pos] == 'url "https://brew.sh/foo-2.3.4.dmg"'
 }
 
 // Ruby it `it "accepts when there is a top-level `depends_on macos:` stanza" do` at line 201.
-pub fn ruby_no_overrides_spec_l201_d14_accepts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('accepts', ...args)
+pub fn ruby_no_overrides_spec_l201_d14_accepts() bool {
+	source := 'cask "foo" do\n  version "1.2.3"\n  url "https://brew.sh/foo.pkg"\n\n  depends_on macos: ">= :sequoia"\n\n  name "Foo"\nend'
+	return no_overrides_core.audit_no_overrides(source).len == 0
 }
 
 // Ruby it `it "reports an offense when `on_*` blocks contain the samne `depends_on macos:` stanza" do` at line 214.
-pub fn ruby_no_overrides_spec_l214_d15_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_no_overrides_spec_l214_d15_reports() bool {
+	source := 'cask "foo" do\n  version "1.2.3"\n\n  on_sequoia :or_newer do\n    sha256 "aaa"\n    url "https://brew.sh/foo-mac.dmg"\n    depends_on macos: ">= :sequoia"\n  end\n\n  on_arm do\n    sha256 "bbb"\n    url "https://brew.sh/foo-arm.dmg"\n    depends_on macos: ">= :sequoia"\n  end\n\n  name "Foo"\nend'
+	offenses := no_overrides_core.audit_no_overrides(source)
+	return offenses.len == 2 && offenses.all(it.stanza == 'depends_on' && it.message == no_overrides_core.no_overrides_macos_message) && source[offenses[0].begin_pos..offenses[0].end_pos] == 'depends_on macos: ">= :sequoia"' && source[offenses[1].begin_pos..offenses[1].end_pos] == 'depends_on macos: ">= :sequoia"'
 }
 
 // Ruby it `it "accepts when multiple `on_*` blocks contain different `depends_on macos:` stanzas" do` at line 240.
-pub fn ruby_no_overrides_spec_l240_d16_accepts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('accepts', ...args)
+pub fn ruby_no_overrides_spec_l240_d16_accepts() bool {
+	source := 'cask "foo" do\n  version "1.2.3"\n\n  on_arm do\n    depends_on macos: ">= :monterey"\n  end\n  on_intel do\n    depends_on macos: ">= :ventura"\n  end\n\n  sha256 "aaa"\n  url "https://brew.sh/foo-mac.dmg"\n  name "Foo"\nend'
+	return no_overrides_core.audit_no_overrides(source).len == 0
 }
 
 // Original Ruby source (line-for-line):

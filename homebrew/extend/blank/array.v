@@ -7,12 +7,14 @@ import brew_runtime
 
 // Ruby method `blank? = empty?` at line 12.
 pub fn ruby_array_l12_d1_blank(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('blank?', ...args)
+	if args.len == 0 { panic('Array#blank? requires a receiver') }
+	return brew_runtime.bool_value(value_is_blank(args[0]))
 }
 
 // Ruby method `present? = !empty? # :nodoc:` at line 15.
 pub fn ruby_array_l15_d2_present(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('present?', ...args)
+	if args.len == 0 { panic('Array#present? requires a receiver') }
+	return brew_runtime.bool_value(value_is_present(args[0]))
 }
 
 // Original Ruby source (line-for-line):

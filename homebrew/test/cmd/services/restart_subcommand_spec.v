@@ -1,28 +1,54 @@
 module services
 
 import brew_runtime
+import homebrew.services.subcommand as service_subcommand
 
 // Translated from Homebrew/brew `test/cmd/services/restart_subcommand_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "fails with empty list" do` at line 8.
 pub fn ruby_restart_subcommand_spec_l8_d1_fails(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fails', ...args)
+	service_subcommand.service_restart(service_subcommand.ServiceSubcommandRequest{}) or {
+		return brew_runtime.bool_value(err.msg() == 'Invalid usage: Formula(e) missing, please provide a formula name or use `--all`.')
+	}
+	return brew_runtime.bool_value(false)
 }
 
 // Ruby it `it "starts if services are not loaded" do` at line 16.
 pub fn ruby_restart_subcommand_spec_l16_d2_starts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('starts', ...args)
+	result := service_subcommand.service_restart(service_subcommand.ServiceSubcommandRequest{
+		targets: [restart_spec_target(false, false)]
+	}) or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value(result.started == ['name'] && result.stopped.len == 0
+		&& result.ran.len == 0)
 }
 
 // Ruby it `it "starts if services are loaded with file" do` at line 27.
 pub fn ruby_restart_subcommand_spec_l27_d3_starts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('starts', ...args)
+	result := service_subcommand.service_restart(service_subcommand.ServiceSubcommandRequest{
+		targets: [restart_spec_target(true, true)]
+	}) or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value(result.started == ['name'] && result.stopped == [
+		'name',
+	]
+		&& result.ran.len == 0)
 }
 
 // Ruby it `it "runs if services are loaded without file" do` at line 39.
 pub fn ruby_restart_subcommand_spec_l39_d4_runs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('runs', ...args)
+	result := service_subcommand.service_restart(service_subcommand.ServiceSubcommandRequest{
+		targets: [restart_spec_target(true, false)]
+	}) or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value(result.ran == ['name'] && result.stopped == ['name']
+		&& result.started.len == 0)
+}
+
+fn restart_spec_target(loaded bool, service_file_present bool) service_subcommand.ServiceSubcommandTarget {
+	return service_subcommand.ServiceSubcommandTarget{
+		name: 'name'
+		loaded: loaded
+		service_file_present: service_file_present
+	}
 }
 
 // Original Ruby source (line-for-line):

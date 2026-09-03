@@ -4,165 +4,451 @@ import brew_runtime
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/bindata-2.5.1/lib/bindata/base_primitive.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub type BasePrimitiveBinaryFn = fn(brew_runtime.Value) !string
+
+pub type BasePrimitiveReadFn = fn(mut IORead) !brew_runtime.Value
+
+pub type BasePrimitiveDefaultFn = fn() brew_runtime.Value
+
+pub type BasePrimitiveAssertFn = fn(brew_runtime.Value) brew_runtime.Value
+
+@[heap]
+pub struct BasePrimitiveObject {
+pub:
+	type_name string
+mut:
+	base            &BaseObject
+	value           brew_runtime.Value
+	has_value       bool
+	value_to_binary BasePrimitiveBinaryFn = unsafe { nil }
+	read_value      BasePrimitiveReadFn = unsafe { nil }
+	default_value   BasePrimitiveDefaultFn = unsafe { nil }
+	assert_callback BasePrimitiveAssertFn = unsafe { nil }
+	has_binary      bool
+	has_reader      bool
+	has_default     bool
+	has_assert      bool
+}
+
+fn base_primitive_nil_value() brew_runtime.Value {
+	return brew_runtime.object_value('NilClass', 'nil')
+}
+
+pub fn new_bindata_base_primitive(type_name string, parameters map[string]brew_runtime.Value) &BasePrimitiveObject {
+	return &BasePrimitiveObject{
+		type_name: type_name
+		base: new_base_object(type_name, normalized_base_parameters(parameters))
+		value: base_primitive_nil_value()
+	}
+}
+
+pub fn (mut object BasePrimitiveObject) set_codec(binary BasePrimitiveBinaryFn, reader BasePrimitiveReadFn, default_value BasePrimitiveDefaultFn) {
+	object.value_to_binary = binary
+	object.read_value = reader
+	object.default_value = default_value
+	object.has_binary = true
+	object.has_reader = true
+	object.has_default = true
+}
+
+pub fn (mut object BasePrimitiveObject) set_assert_callback(callback BasePrimitiveAssertFn) {
+	object.assert_callback = callback
+	object.has_assert = true
+}
+
+fn base_primitive_boundary(object &BasePrimitiveObject) brew_runtime.Value {
+	base_value := base_object_value(object.base)
+	mut attributes := base_value.attributes.clone()
+	attributes['base_primitive_address'] = u64(voidptr(object)).str()
+	return brew_runtime.Value{
+		...base_value
+		type_name: object.type_name
+		repr: base_primitive_effective_value(object).repr
+		attributes: attributes
+	}
+}
+
+pub fn base_primitive_boundary_value(object &BasePrimitiveObject) brew_runtime.Value {
+	return base_primitive_boundary(object)
+}
+
+fn base_primitive_from_value(value brew_runtime.Value) &BasePrimitiveObject {
+	if address := value.attributes['base_primitive_address'] {
+		return unsafe { &BasePrimitiveObject(voidptr(address.u64())) }
+	}
+	mut base := base_object_from_value(value)
+	has_value := value.type_name != 'NilClass' && value.repr != 'nil'
+	return &BasePrimitiveObject{
+		type_name: value.type_name
+		base: base
+		value: if has_value { value } else { base_primitive_nil_value() }
+		has_value: has_value
+	}
+}
+
+fn base_primitive_parameter(object &BasePrimitiveObject, name string) ?brew_runtime.Value {
+	value := object.base.parameters[name] or { return none }
+	return value
+}
+
+fn base_primitive_effective_value(object &BasePrimitiveObject) brew_runtime.Value {
+	if object.base.reading && object.has_value {
+		return object.value
+	}
+	if value := base_primitive_parameter(object, 'value') {
+		return value
+	}
+	if value := base_primitive_parameter(object, 'asserted_value') {
+		return value
+	}
+	if object.has_value {
+		return object.value
+	}
+	if value := base_primitive_parameter(object, 'initial_value') {
+		return value
+	}
+	if object.has_default {
+		return object.default_value()
+	}
+	return base_primitive_nil_value()
+}
+
+fn base_primitive_assign(mut object BasePrimitiveObject, value brew_runtime.Value) ! {
+	if value.type_name == 'NilClass' {
+		return error("can't set a nil value for ${object.type_name}")
+	}
+	if 'value' in object.base.parameters {
+		return
+	}
+	if 'asserted_value' in object.base.parameters {
+		base_primitive_assert_value(object, value)!
+	}
+	object.value = value
+	object.has_value = true
+	object.base.snapshot_value = value
+	object.base.assigned_value = value
+	object.base.has_assignment = true
+	object.base.clear = false
+	if 'assert' in object.base.parameters {
+		base_primitive_assert(object)!
+	}
+}
+
+fn base_primitive_assert_value(object &BasePrimitiveObject, current brew_runtime.Value) ! {
+	expected := if object.has_assert {
+		object.assert_callback(current)
+	} else {
+		object.base.parameters['asserted_value'] or { return }
+	}
+	if !values_equal(current, expected) {
+		return error("value is '${current.repr}' but expected '${expected.repr}' for ${object.type_name}")
+	}
+}
+
+fn base_primitive_assert(object &BasePrimitiveObject) ! {
+	current := base_primitive_effective_value(object)
+	expected := if object.has_assert {
+		object.assert_callback(current)
+	} else {
+		object.base.parameters['assert'] or { return }
+	}
+	if expected.type_name == 'NilClass' || (expected.type_name == 'Bool' && !expected.bool_data) {
+		return error("value '${current.repr}' not as expected for ${object.type_name}")
+	}
+	if !(expected.type_name == 'Bool' && expected.bool_data) && !values_equal(current, expected) {
+		return error("value is '${current.repr}' but expected '${expected.repr}' for ${object.type_name}")
+	}
+}
+
+fn base_primitive_binary(object &BasePrimitiveObject, value brew_runtime.Value) !string {
+	if !object.has_binary {
+		return error('NotImplementedError: value_to_binary_string')
+	}
+	return object.value_to_binary(value)!
+}
+
+fn base_primitive_read(mut object BasePrimitiveObject, mut reader IORead) !brew_runtime.Value {
+	if !object.has_reader {
+		return error('NotImplementedError: read_and_return_value')
+	}
+	object.base.reading = true
+	defer {
+		object.base.reading = false
+	}
+	value := object.read_value(mut reader)!
+	object.value = value
+	object.has_value = true
+	object.base.snapshot_value = value
+	object.base.clear = false
+	if 'assert' in object.base.parameters {
+		base_primitive_assert(object)!
+	}
+	if 'asserted_value' in object.base.parameters {
+		base_primitive_assert_value(object, value)!
+	}
+	return value
+}
+
+fn base_primitive_value_hash(value brew_runtime.Value) i64 {
+	mut hash := u64(1469598103934665603)
+	for byte in '${value.type_name}\0${value.repr}'.bytes() {
+		hash = (hash ^ byte) * 1099511628211
+	}
+	return i64(hash)
+}
+
+fn base_primitive_dispatch(value brew_runtime.Value, method string, method_args []brew_runtime.Value) brew_runtime.Value {
+	name := method.trim_left(':')
+	return match name {
+		'length', 'size' { brew_runtime.int_value(value.as_string().len) }
+		'empty?' { brew_runtime.bool_value(value.as_string().len == 0) }
+		'negative?' { brew_runtime.bool_value(value.int_data < 0) }
+		'abs' {
+			brew_runtime.int_value(if value.int_data < 0 { -value.int_data } else { value.int_data })
+		}
+		'to_s' { brew_runtime.string_value(value.as_string()) }
+		'clamp' {
+			if method_args.len < 2 { panic('clamp requires a minimum and maximum') }
+			brew_runtime.int_value(if value.int_data < method_args[0].int_data {
+				method_args[0].int_data
+			} else if value.int_data > method_args[1].int_data {
+				method_args[1].int_data
+			} else {
+				value.int_data
+			})
+		}
+		else { panic('undefined method `${name}` for ${value.type_name}') }
+	}
+}
 
 // Ruby method `initialize_shared_instance` at line 56.
 pub fn ruby_base_primitive_l56_d1_initialize_shared_instance(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize_shared_instance', ...args)
+	if args.len == 0 {
+		panic('BasePrimitive#initialize_shared_instance requires a receiver')
+	}
+	return args[0]
 }
 
 // Ruby method `initialize_instance` at line 64.
 pub fn ruby_base_primitive_l64_d2_initialize_instance(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize_instance', ...args)
+	if args.len == 0 {
+		panic('BasePrimitive#initialize_instance requires a receiver')
+	}
+	mut object := base_primitive_from_value(args[0])
+	object.value = base_primitive_nil_value()
+	object.has_value = false
+	object.base.clear = true
+	return base_primitive_nil_value()
 }
 
 // Ruby method `clear? # :nodoc:` at line 68.
 pub fn ruby_base_primitive_l68_d3_clear(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('clear?', ...args)
+	return brew_runtime.bool_value(!base_primitive_from_value(args[0]).has_value)
 }
 
 // Ruby method `assign(val)` at line 72.
 pub fn ruby_base_primitive_l72_d4_assign(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('assign', ...args)
+	if args.len < 2 { panic('BasePrimitive#assign requires a receiver and value') }
+	mut object := base_primitive_from_value(args[0])
+	base_primitive_assign(mut object, args[1]) or { panic(err) }
+	return args[1]
 }
 
 // Ruby method `snapshot` at line 79.
 pub fn ruby_base_primitive_l79_d5_snapshot(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('snapshot', ...args)
+	return base_primitive_effective_value(base_primitive_from_value(args[0]))
 }
 
 // Ruby method `value` at line 83.
 pub fn ruby_base_primitive_l83_d6_value(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('value', ...args)
+	return ruby_base_primitive_l79_d5_snapshot(...args)
 }
 
 // Ruby method `value=(val)` at line 87.
 pub fn ruby_base_primitive_l87_d7_value(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('value=', ...args)
+	return ruby_base_primitive_l72_d4_assign(...args)
 }
 
 // Ruby method `respond_to_missing?(symbol, include_all = false) # :nodoc:` at line 91.
 pub fn ruby_base_primitive_l91_d8_respond_to_missing(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('respond_to_missing?', ...args)
+	if args.len < 2 { panic('BasePrimitive#respond_to_missing? requires a symbol') }
+	name := args[1].as_string().trim_left(':')
+	return brew_runtime.bool_value(name in ['length', 'size', 'empty?', 'negative?', 'abs', 'to_s',
+		'clamp'])
 }
 
 // Ruby method `method_missing(symbol, *args, &block) # :nodoc:` at line 96.
 pub fn ruby_base_primitive_l96_d9_method_missing(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('method_missing', ...args)
+	if args.len < 2 { panic('BasePrimitive#method_missing requires a symbol') }
+	return base_primitive_dispatch(base_primitive_effective_value(base_primitive_from_value(args[0])), args[1].as_string(), args[2..])
 }
 
 // Ruby method `#{symbol}(*args, &block)         # def clamp(*args, &block)` at line 100.
 pub fn ruby_base_primitive_l100_d10_symbol(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#{symbol}', ...args)
+	return ruby_base_primitive_l96_d9_method_missing(...args)
 }
 
 // Ruby method `<=>(other)` at line 110.
 pub fn ruby_base_primitive_l110_d11_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('<=>', ...args)
+	if args.len < 2 { panic('BasePrimitive#<=> requires other') }
+	left := base_primitive_effective_value(base_primitive_from_value(args[0]))
+	right := args[1]
+	if left.type_name in ['Integer', 'Float'] && right.type_name in ['Integer', 'Float'] {
+		l := left.as_float() or { panic(err) }
+		r := right.as_float() or { panic(err) }
+		return brew_runtime.int_value(if l < r {
+			-1
+		} else if l > r { 1 } else { 0 })
+	}
+	return brew_runtime.int_value(if left.repr < right.repr {
+		-1
+	} else if left.repr > right.repr { 1 } else { 0 })
 }
 
 // Ruby method `eql?(other)` at line 114.
 pub fn ruby_base_primitive_l114_d12_eql(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('eql?', ...args)
+	if args.len < 2 { panic('BasePrimitive#eql? requires other') }
+	return brew_runtime.bool_value(values_equal(args[1], base_primitive_effective_value(base_primitive_from_value(args[0]))))
 }
 
 // Ruby method `hash` at line 119.
 pub fn ruby_base_primitive_l119_d13_hash(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('hash', ...args)
+	return brew_runtime.int_value(base_primitive_value_hash(base_primitive_effective_value(base_primitive_from_value(args[0]))))
 }
 
 // Ruby method `do_read(io) # :nodoc:` at line 123.
 pub fn ruby_base_primitive_l123_d14_do_read(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('do_read', ...args)
+	if args.len < 2 { panic('BasePrimitive#do_read requires IO') }
+	mut object := base_primitive_from_value(args[0])
+	mut reader := io_read_from_value(args[1])
+	return base_primitive_read(mut object, mut reader) or { panic(err) }
 }
 
 // Ruby method `do_write(io) # :nodoc:` at line 127.
 pub fn ruby_base_primitive_l127_d15_do_write(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('do_write', ...args)
+	if args.len < 2 { panic('BasePrimitive#do_write requires IO') }
+	object := base_primitive_from_value(args[0])
+	mut writer := io_write_from_value(args[1])
+	writer.writebytes(base_primitive_binary(object, base_primitive_effective_value(object)) or { panic(err) }.bytes()) or { panic(err) }
+	return base_primitive_nil_value()
 }
 
 // Ruby method `do_num_bytes # :nodoc:` at line 131.
 pub fn ruby_base_primitive_l131_d16_do_num_bytes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('do_num_bytes', ...args)
+	object := base_primitive_from_value(args[0])
+	return brew_runtime.int_value(base_primitive_binary(object, base_primitive_effective_value(object)) or { panic(err) }.len)
 }
 
 // Ruby method `_value` at line 141.
 pub fn ruby_base_primitive_l141_d17_value(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('_value', ...args)
+	return base_primitive_effective_value(base_primitive_from_value(args[0]))
 }
 
 // Ruby method `assign(val)` at line 147.
 pub fn ruby_base_primitive_l147_d18_assign(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('assign', ...args)
+	if args.len < 2 { panic('ValuePlugin#assign requires value') }
+	return args[1]
 }
 
 // Ruby method `_value` at line 151.
 pub fn ruby_base_primitive_l151_d19_value(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('_value', ...args)
+	object := base_primitive_from_value(args[0])
+	if object.base.reading && object.has_value {
+		return object.value
+	}
+	return object.base.parameters['value'] or { base_primitive_nil_value() }
 }
 
 // Ruby method `_value` at line 158.
 pub fn ruby_base_primitive_l158_d20_value(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('_value', ...args)
+	object := base_primitive_from_value(args[0])
+	if object.has_value {
+		return object.value
+	}
+	return object.base.parameters['initial_value'] or { base_primitive_nil_value() }
 }
 
 // Ruby method `assign(val)` at line 165.
 pub fn ruby_base_primitive_l165_d21_assign(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('assign', ...args)
+	return ruby_base_primitive_l72_d4_assign(...args)
 }
 
 // Ruby method `do_read(io) # :nodoc:` at line 170.
 pub fn ruby_base_primitive_l170_d22_do_read(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('do_read', ...args)
+	return ruby_base_primitive_l123_d14_do_read(...args)
 }
 
 // Ruby method `assert!` at line 175.
 pub fn ruby_base_primitive_l175_d23_assert(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('assert!', ...args)
+	object := base_primitive_from_value(args[0])
+	base_primitive_assert(object) or { panic(err) }
+	return base_primitive_nil_value()
 }
 
 // Ruby method `assign(val)` at line 194.
 pub fn ruby_base_primitive_l194_d24_assign(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('assign', ...args)
+	if args.len < 2 { panic('AssertedValuePlugin#assign requires value') }
+	object := base_primitive_from_value(args[0])
+	base_primitive_assert_value(object, args[1]) or { panic(err) }
+	return ruby_base_primitive_l72_d4_assign(...args)
 }
 
 // Ruby method `_value` at line 199.
 pub fn ruby_base_primitive_l199_d25_value(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('_value', ...args)
+	object := base_primitive_from_value(args[0])
+	if object.base.reading && object.has_value {
+		return object.value
+	}
+	return object.base.parameters['asserted_value'] or { base_primitive_nil_value() }
 }
 
 // Ruby method `asserted_binary_s` at line 208.
 pub fn ruby_base_primitive_l208_d26_asserted_binary_s(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('asserted_binary_s', ...args)
+	object := base_primitive_from_value(args[0])
+	value := object.base.parameters['asserted_value'] or { panic('missing asserted_value') }
+	return brew_runtime.string_value(base_primitive_binary(object, value) or { panic(err) })
 }
 
 // Ruby method `do_read(io) # :nodoc:` at line 212.
 pub fn ruby_base_primitive_l212_d27_do_read(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('do_read', ...args)
+	return ruby_base_primitive_l123_d14_do_read(...args)
 }
 
 // Ruby method `assert!` at line 217.
 pub fn ruby_base_primitive_l217_d28_assert(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('assert!', ...args)
+	object := base_primitive_from_value(args[0])
+	base_primitive_assert_value(object, base_primitive_effective_value(object)) or { panic(err) }
+	return base_primitive_nil_value()
 }
 
 // Ruby method `assert_value(current_value)` at line 221.
 pub fn ruby_base_primitive_l221_d29_assert_value(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('assert_value', ...args)
+	if args.len < 2 { panic('assert_value requires current_value') }
+	object := base_primitive_from_value(args[0])
+	base_primitive_assert_value(object, args[1]) or { panic(err) }
+	return base_primitive_nil_value()
 }
 
 // Ruby method `value_to_binary_string(val)` at line 235.
 pub fn ruby_base_primitive_l235_d30_value_to_binary_string(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('value_to_binary_string', ...args)
+	if args.len < 2 { panic('value_to_binary_string requires value') }
+	return brew_runtime.string_value(base_primitive_binary(base_primitive_from_value(args[0]), args[1]) or { panic(err) })
 }
 
 // Ruby method `read_and_return_value(io)` at line 240.
 pub fn ruby_base_primitive_l240_d31_read_and_return_value(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('read_and_return_value', ...args)
+	if args.len < 2 { panic('read_and_return_value requires IO') }
+	mut object := base_primitive_from_value(args[0])
+	mut reader := io_read_from_value(args[1])
+	if !object.has_reader { panic('NotImplementedError: read_and_return_value') }
+	return object.read_value(mut reader) or { panic(err) }
 }
 
 // Ruby method `sensible_default` at line 245.
 pub fn ruby_base_primitive_l245_d32_sensible_default(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sensible_default', ...args)
+	object := base_primitive_from_value(args[0])
+	if !object.has_default { panic('NotImplementedError: sensible_default') }
+	return object.default_value()
 }
 
 // Original Ruby source (line-for-line):

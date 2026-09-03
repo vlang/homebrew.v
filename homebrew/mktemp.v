@@ -1,53 +1,278 @@
 module homebrew
 
 import brew_runtime
+import os
+import time
 
 // Translated from Homebrew/brew `mktemp.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub struct MktempConfig {
+pub:
+	retain             bool
+	retain_in_cache    bool
+	cache_dir          string
+	temp_dir           string
+	original_brew_file string
+}
+
+@[heap]
+pub struct Mktemp {
+pub:
+	prefix             string
+	cache_dir          string
+	temp_dir           string
+	original_brew_file string
+pub mut:
+	retain          bool
+	retain_in_cache bool
+	quiet           bool
+	tmpdir          string
+	messages        []string
+	warnings        []string
+	boundary_result brew_runtime.Value
+}
+
+pub fn new_mktemp(prefix string, config MktempConfig) &Mktemp {
+	cache_dir := if config.cache_dir != '' {
+		config.cache_dir
+	} else {
+		os.getenv('HOMEBREW_CACHE')
+	}
+	temp_dir := if config.temp_dir != '' {
+		config.temp_dir
+	} else if os.getenv('HOMEBREW_TEMP') != '' {
+		os.getenv('HOMEBREW_TEMP')
+	} else {
+		os.temp_dir()
+	}
+	return &Mktemp{
+		prefix: prefix
+		cache_dir: cache_dir
+		temp_dir: temp_dir
+		original_brew_file: config.original_brew_file
+		retain: config.retain || config.retain_in_cache
+		retain_in_cache: config.retain_in_cache
+	}
+}
+
+pub fn (mut stage Mktemp) retain_files() {
+	stage.retain = true
+}
+
+pub fn (stage Mktemp) should_retain() bool {
+	return stage.retain
+}
+
+pub fn (stage Mktemp) should_retain_in_cache() bool {
+	return stage.retain_in_cache
+}
+
+pub fn (mut stage Mktemp) suppress_messages() {
+	stage.quiet = true
+}
+
+pub fn (stage Mktemp) str() string {
+	return '[Mktemp: ${stage.tmpdir} retain=${stage.retain} quiet=${stage.quiet}]'
+}
+
+fn mktemp_unique_directory(parent string, prefix string) !string {
+	os.mkdir_all(parent)!
+	stamp := time.now().unix_micro()
+	for attempt in 0 .. 100 {
+		path := os.join_path(parent, '${prefix}-${os.getpid()}-${stamp}-${attempt}')
+		os.mkdir(path) or {
+			if os.exists(path) {
+				continue
+			}
+			return err
+		}
+		return path
+	}
+	return error('unable to create a unique temporary directory for ${prefix}')
+}
+
+fn (mut stage Mktemp) prepare() ! {
+	// Ruby String#tr maps the single source character `@` to the first replacement
+	// character, so `tr "@", "AT"` turns `@` into `A`.
+	prefix_name := stage.prefix.replace('@', 'A')
+	stage.tmpdir = if stage.should_retain_in_cache() {
+		path := os.join_path(stage.cache_dir, 'Sources', prefix_name)
+		mktemp_chmod_rm_rf(path)
+		os.mkdir_all(path)!
+		path
+	} else {
+		mktemp_unique_directory(stage.temp_dir, prefix_name)!
+	}
+
+	mut group_id := os.getgid()
+	if stage.original_brew_file != '' {
+		if stat := os.stat(stage.original_brew_file) {
+			if int(stat.gid) == os.getgid() {
+				group_id = int(stat.gid)
+			}
+		}
+	}
+	os.chown(stage.tmpdir, -1, group_id) or {
+		stage.warnings << 'Failed setting group "${group_id}" on ${stage.tmpdir}'
+	}
+}
+
+fn (mut stage Mktemp) finish() {
+	if !stage.should_retain() {
+		mktemp_chmod_rm_rf(stage.tmpdir)
+	}
+	if stage.should_retain() && stage.tmpdir != '' && !stage.quiet {
+		message := if stage.should_retain_in_cache() {
+			'Source files for debugging available at:'
+		} else {
+			'Temporary files retained at:'
+		}
+		stage.messages << '${message}\n${stage.tmpdir}'
+	}
+}
+
+pub fn (mut stage Mktemp) run(chdir bool,
+	action fn(mut Mktemp) !brew_runtime.Value) !brew_runtime.Value {
+	stage.prepare()!
+	original_directory := os.getwd()
+	mut changed_directory := false
+	defer {
+		if changed_directory {
+			os.chdir(original_directory) or {}
+		}
+		stage.finish()
+	}
+	if chdir {
+		os.chdir(stage.tmpdir)!
+		changed_directory = true
+	}
+	return action(mut stage)
+}
+
+pub fn mktemp_chmod_rm_rf(path string) {
+	if path == '' || (!os.exists(path) && !os.is_link(path)) {
+		return
+	}
+	if os.is_dir(path) && !os.is_link(path) {
+		if stat := os.stat(path) {
+			if int(stat.uid) == os.getuid() {
+				os.chmod(path, int(stat.mode) | 0o600) or {}
+			}
+		}
+		for child in os.ls(path) or { return } {
+			mktemp_chmod_rm_rf(os.join_path(path, child))
+		}
+		os.rmdir(path) or {}
+	} else {
+		os.rm(path) or {}
+	}
+}
+
+fn mktemp_value(stage &Mktemp) brew_runtime.Value {
+	return brew_runtime.structured_value('Mktemp', stage.str(), {
+		'mktemp_address': u64(voidptr(stage)).str()
+		'prefix':         stage.prefix
+		'tmpdir':         stage.tmpdir
+	})
+}
+
+fn mktemp_from_args(args []brew_runtime.Value, method string) &Mktemp {
+	if args.len == 0 || args[0].type_name != 'Mktemp' {
+		panic('Mktemp#${method} requires a translated Mktemp receiver')
+	}
+	address := args[0].attributes['mktemp_address'] or {
+		panic('Mktemp receiver has no translated state')
+	}
+	return unsafe { &Mktemp(voidptr(address.u64())) }
+}
+
+pub fn mktemp_boundary(stage &Mktemp) brew_runtime.Value {
+	return mktemp_value(stage)
+}
+
+fn mktemp_boundary_action(mut stage Mktemp) !brew_runtime.Value {
+	return stage.boundary_result
+}
 
 // Ruby attr_reader `attr_reader :tmpdir` at line 14.
 pub fn ruby_mktemp_l14_d1_tmpdir(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tmpdir', ...args)
+	stage := mktemp_from_args(args, 'tmpdir')
+	return if stage.tmpdir == '' {
+		brew_runtime.object_value('NilClass', 'nil')
+	} else {
+		brew_runtime.object_value('Pathname', stage.tmpdir)
+	}
 }
 
 // Ruby method `initialize(prefix, retain: false, retain_in_cache: false)` at line 17.
 pub fn ruby_mktemp_l17_d2_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	if args.len == 0 {
+		return brew_runtime.object_value('ArgumentError', 'prefix is required')
+	}
+	return mktemp_value(new_mktemp(args[0].as_string(), MktempConfig{
+		retain: args.len > 1 && args[1].bool_data
+		retain_in_cache: args.len > 2 && args[2].bool_data
+		cache_dir: if args.len > 3 { args[3].as_string() } else { '' }
+		temp_dir: if args.len > 4 { args[4].as_string() } else { '' }
+		original_brew_file: if args.len > 5 { args[5].as_string() } else { '' }
+	}))
 }
 
 // Ruby method `retain!` at line 27.
 pub fn ruby_mktemp_l27_d3_retain(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('retain!', ...args)
+	mut stage := mktemp_from_args(args, 'retain!')
+	stage.retain_files()
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Ruby method `retain?` at line 33.
 pub fn ruby_mktemp_l33_d4_retain(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('retain?', ...args)
+	return brew_runtime.bool_value(mktemp_from_args(args, 'retain?').should_retain())
 }
 
 // Ruby method `retain_in_cache?` at line 39.
 pub fn ruby_mktemp_l39_d5_retain_in_cache(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('retain_in_cache?', ...args)
+	return brew_runtime.bool_value(mktemp_from_args(args, 'retain_in_cache?').should_retain_in_cache())
 }
 
 // Ruby method `quiet!` at line 45.
 pub fn ruby_mktemp_l45_d6_quiet(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('quiet!', ...args)
+	mut stage := mktemp_from_args(args, 'quiet!')
+	stage.suppress_messages()
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Ruby method `to_s` at line 50.
 pub fn ruby_mktemp_l50_d7_to_s(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_s', ...args)
+	return brew_runtime.string_value(mktemp_from_args(args, 'to_s').str())
 }
 
 // Ruby method `run(chdir: true, &_block)` at line 60.
 pub fn ruby_mktemp_l60_d8_run(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('run', ...args)
+	mut stage := mktemp_from_args(args, 'run')
+	chdir := if args.len > 1 { args[1].bool_data } else { true }
+	stage.boundary_result = if args.len > 2 {
+		args[2]
+	} else {
+		brew_runtime.object_value('NilClass', 'nil')
+	}
+	return stage.run(chdir, mktemp_boundary_action) or {
+		brew_runtime.object_value('SystemCallError', err.msg())
+	}
 }
 
 // Ruby method `chmod_rm_rf(path)` at line 114.
 pub fn ruby_mktemp_l114_d9_chmod_rm_rf(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('chmod_rm_rf', ...args)
+	if args.len == 0 {
+		return brew_runtime.object_value('NilClass', 'nil')
+	}
+	path := if args.len > 1 && args[0].type_name == 'Mktemp' {
+		args[1].as_string()
+	} else {
+		args[args.len - 1].as_string()
+	}
+	mktemp_chmod_rm_rf(path)
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Original Ruby source (line-for-line):

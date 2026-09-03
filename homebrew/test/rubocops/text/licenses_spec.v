@@ -1,48 +1,67 @@
 module text
 
 import brew_runtime
+import homebrew.rubocops as line_cops
 
 // Translated from Homebrew/brew `test/rubocops/text/licenses_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+fn licenses_spec_formula(declaration string) string {
+	indented := declaration.split('\n').map('  ${it}').join('\n')
+	return 'class Foo < Formula\n  desc "foo"\n  url \'https://brew.sh/foo-1.0.tgz\'\n${indented}\nend'
+}
+
+fn licenses_spec_accepts(declaration string) bool {
+	source := licenses_spec_formula(declaration)
+	analysis := line_cops.audit_lines_licenses(line_cops.LinesContext{
+		source: source
+	})
+	return analysis.offenses.len == 0 && analysis.corrected == source
+}
 
 // Ruby subject `subject(:cop) { described_class.new }` at line 7.
 pub fn ruby_licenses_spec_l7_d1_cop(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cop', ...args)
+	return brew_runtime.object_value('RuboCop::Cop::FormulaAudit::Licenses', 'Licenses')
 }
 
 // Ruby it `it "reports no offenses for license strings" do` at line 10.
 pub fn ruby_licenses_spec_l10_d2_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	return brew_runtime.bool_value(licenses_spec_accepts('license "MIT"'))
 }
 
 // Ruby it `it "reports no offenses for license symbols" do` at line 20.
 pub fn ruby_licenses_spec_l20_d3_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	return brew_runtime.bool_value(licenses_spec_accepts('license :public_domain'))
 }
 
 // Ruby it `it "reports no offenses for license hashes" do` at line 30.
 pub fn ruby_licenses_spec_l30_d4_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	return brew_runtime.bool_value(licenses_spec_accepts('license any_of: ["MIT", "0BSD"]'))
 }
 
 // Ruby it `it "reports no offenses for license exceptions" do` at line 40.
 pub fn ruby_licenses_spec_l40_d5_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	return brew_runtime.bool_value(licenses_spec_accepts('license "MIT" => { with: "LLVM-exception" }'))
 }
 
 // Ruby it `it "reports no offenses for multiline nested license hashes" do` at line 50.
 pub fn ruby_licenses_spec_l50_d6_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	declaration := 'license any_of: [\n  "MIT",\n  all_of: ["0BSD", "Zlib"],\n]'
+	return brew_runtime.bool_value(licenses_spec_accepts(declaration))
 }
 
 // Ruby it `it "reports no offenses for multiline nested license hashes with exceptions" do` at line 63.
 pub fn ruby_licenses_spec_l63_d7_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	declaration := 'license any_of: [\n  "MIT",\n  all_of: ["0BSD", "Zlib"],\n  "GPL-2.0-only" => { with: "LLVM-exception" },\n]'
+	return brew_runtime.bool_value(licenses_spec_accepts(declaration))
 }
 
 // Ruby it `it "reports an offense for nested license hashes on a single line" do` at line 77.
 pub fn ruby_licenses_spec_l77_d8_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	source := licenses_spec_formula('license any_of: ["MIT", all_of: ["0BSD", "Zlib"]]')
+	analysis := line_cops.audit_lines_licenses(line_cops.LinesContext{
+		source: source
+	})
+	return brew_runtime.bool_value(analysis.offenses.len == 1 && analysis.offenses[0].message == 'Split nested license declarations onto multiple lines' && source[analysis.offenses[0].begin_pos..analysis.offenses[0].end_pos] == 'license any_of: ["MIT", all_of: ["0BSD", "Zlib"]]' && analysis.corrected == source)
 }
 
 // Original Ruby source (line-for-line):

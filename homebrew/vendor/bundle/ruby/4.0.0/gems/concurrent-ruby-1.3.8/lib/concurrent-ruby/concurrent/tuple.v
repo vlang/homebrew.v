@@ -1,53 +1,170 @@
 module concurrent
 
 import brew_runtime
+import math
+import sync
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/tuple.rb`.
 // The original source is retained below until every stub has a typed V body.
+@[heap]
+pub struct Tuple {
+pub:
+	size int
+mut:
+	lock   sync.RwMutex
+	values []brew_runtime.Value
+}
+
+fn tuple_nil_value() brew_runtime.Value {
+	return brew_runtime.object_value('NilClass', 'nil')
+}
+
+fn tuple_values_equal(left brew_runtime.Value, right brew_runtime.Value) bool {
+	if right.type_name == 'Integer' || right.type_name == 'Float' {
+		if left.type_name != 'Integer' && left.type_name != 'Float' {
+			return false
+		}
+		left_numeric := left.as_float() or { return false }
+		right_numeric := right.as_float() or { return false }
+		if math.is_nan(right_numeric) {
+			return math.is_nan(left_numeric)
+		}
+		return left_numeric == right_numeric
+	}
+	return left.type_name == right.type_name && left.repr == right.repr
+}
+
+pub fn new_tuple(size int) !&Tuple {
+	if size < 0 {
+		return error('negative array size')
+	}
+	return &Tuple{
+		size: size
+		values: []brew_runtime.Value{len: size, init: tuple_nil_value()}
+	}
+}
+
+pub fn (mut tuple Tuple) get(index int) ?brew_runtime.Value {
+	if index < 0 || index >= tuple.size {
+		return none
+	}
+	tuple.lock.rlock()
+	defer {
+		tuple.lock.runlock()
+	}
+	return tuple.values[index]
+}
+
+pub fn (mut tuple Tuple) set(index int, value brew_runtime.Value) ?brew_runtime.Value {
+	if index < 0 || index >= tuple.size {
+		return none
+	}
+	tuple.lock.lock()
+	tuple.values[index] = value
+	tuple.lock.unlock()
+	return value
+}
+
+pub fn (mut tuple Tuple) compare_and_set(index int, old_value brew_runtime.Value, new_value brew_runtime.Value) bool {
+	if index < 0 || index >= tuple.size {
+		return false
+	}
+	tuple.lock.lock()
+	if tuple_values_equal(tuple.values[index], old_value) {
+		tuple.values[index] = new_value
+		tuple.lock.unlock()
+		return true
+	}
+	tuple.lock.unlock()
+	return false
+}
+
+pub fn (mut tuple Tuple) values() []brew_runtime.Value {
+	tuple.lock.rlock()
+	defer {
+		tuple.lock.runlock()
+	}
+	return tuple.values.clone()
+}
+
+fn tuple_boundary_new(size int) brew_runtime.Value {
+	tuple := new_tuple(size) or { panic(err) }
+	return brew_runtime.structured_value('Concurrent::Tuple', '#<Concurrent::Tuple>', {
+		'tuple_address': u64(voidptr(tuple)).str()
+		'size':          size.str()
+	})
+}
+
+fn tuple_boundary_receiver(args []brew_runtime.Value) &Tuple {
+	if args.len == 0 {
+		panic('Tuple method requires a receiver')
+	}
+	address := (args[0].attribute('tuple_address') or {
+		panic('${args[0].type_name} has no translated Tuple state')
+	}).u64()
+	return unsafe { &Tuple(voidptr(address)) }
+}
 
 // Ruby attr_reader `attr_reader :size` at line 24.
 pub fn ruby_tuple_l24_d1_size(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('size', ...args)
+	tuple := tuple_boundary_receiver(args)
+	return brew_runtime.int_value(tuple.size)
 }
 
 // Ruby method `initialize(size)` at line 29.
 pub fn ruby_tuple_l29_d2_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	if args.len == 0 {
+		panic('Tuple#initialize requires size')
+	}
+	return tuple_boundary_new(int(args[0].as_int() or { panic(err) }))
 }
 
 // Ruby method `get(i)` at line 43.
 pub fn ruby_tuple_l43_d3_get(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('get', ...args)
+	if args.len < 2 {
+		panic('Tuple#get requires index')
+	}
+	mut tuple := tuple_boundary_receiver(args)
+	return tuple.get(int(args[1].as_int() or { panic(err) })) or { tuple_nil_value() }
 }
 
 // Ruby alias_method `alias_method :volatile_get, :get` at line 47.
 pub fn ruby_tuple_l47_d4_volatile_get(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('volatile_get', ...args)
+	return ruby_tuple_l43_d3_get(...args)
 }
 
 // Ruby method `set(i, value)` at line 55.
 pub fn ruby_tuple_l55_d5_set(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('set', ...args)
+	if args.len < 3 {
+		panic('Tuple#set requires index and value')
+	}
+	mut tuple := tuple_boundary_receiver(args)
+	return tuple.set(int(args[1].as_int() or { panic(err) }), args[2]) or { tuple_nil_value() }
 }
 
 // Ruby alias_method `alias_method :volatile_set, :set` at line 59.
 pub fn ruby_tuple_l59_d6_volatile_set(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('volatile_set', ...args)
+	return ruby_tuple_l55_d5_set(...args)
 }
 
 // Ruby method `compare_and_set(i, old_value, new_value)` at line 69.
 pub fn ruby_tuple_l69_d7_compare_and_set(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('compare_and_set', ...args)
+	if args.len < 4 {
+		panic('Tuple#compare_and_set requires index, old value and new value')
+	}
+	mut tuple := tuple_boundary_receiver(args)
+	return brew_runtime.bool_value(tuple.compare_and_set(int(args[1].as_int() or { panic(err) }), args[2], args[3]))
 }
 
 // Ruby alias_method `alias_method :cas, :compare_and_set` at line 73.
 pub fn ruby_tuple_l73_d8_cas(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cas', ...args)
+	return ruby_tuple_l69_d7_compare_and_set(...args)
 }
 
 // Ruby method `each` at line 78.
 pub fn ruby_tuple_l78_d9_each(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('each', ...args)
+	mut tuple := tuple_boundary_receiver(args)
+	return brew_runtime.array_value(tuple.values())
 }
 
 // Original Ruby source (line-for-line):

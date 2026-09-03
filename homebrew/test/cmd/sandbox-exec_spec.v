@@ -1,13 +1,18 @@
 module cmd
 
-import brew_runtime
+import homebrew.cmd as sandbox_core
 
 // Translated from Homebrew/brew `test/cmd/sandbox-exec_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "runs the command in the requested sandbox" do` at line 10.
-pub fn ruby_sandbox_exec_spec_l10_d1_runs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('runs', ...args)
+pub fn ruby_sandbox_exec_spec_l10_d1_runs() bool {
+	plan := sandbox_core.sandbox_exec_plan(sandbox_core.SandboxExecRequest{
+		writable_path: '.'
+		command: ['make', 'test']
+		deny_network: true
+	}) or { return false }
+	return plan.command == ['make', 'test'] && plan.writable_path == '.' && plan.deny_network
 }
 
 // Original Ruby source (line-for-line):

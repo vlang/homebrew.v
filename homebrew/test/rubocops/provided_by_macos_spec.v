@@ -1,28 +1,34 @@
 module rubocops
 
 import brew_runtime
+import homebrew.rubocops as provided_by_macos_core
 
 // Translated from Homebrew/brew `test/rubocops/provided_by_macos_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:cop) { described_class.new }` at line 7.
 pub fn ruby_provided_by_macos_spec_l7_d1_cop(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cop', ...args)
+	return brew_runtime.object_value('RuboCop::Cop::FormulaAudit::ProvidedByMacos', 'FormulaAudit/ProvidedByMacos')
 }
 
 // Ruby it `it "fails for formulae not in PROVIDED_BY_MACOS_FORMULAE list" do` at line 9.
-pub fn ruby_provided_by_macos_spec_l9_d2_fails(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fails', ...args)
+pub fn ruby_provided_by_macos_spec_l9_d2_fails() bool {
+	source := 'class Baz < Formula\n  keg_only :provided_by_macos\nend'
+	return provided_by_macos_core.audit_provided_by_macos(source, 'baz').map(it.kind) == [
+		'missing_from_provided_list',
+	]
 }
 
 // Ruby it `it "succeeds for formulae in PROVIDED_BY_MACOS_FORMULAE list" do` at line 21.
-pub fn ruby_provided_by_macos_spec_l21_d3_succeeds(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('succeeds', ...args)
+pub fn ruby_provided_by_macos_spec_l21_d3_succeeds() bool {
+	source := 'class Apr < Formula\n  keg_only :provided_by_macos\nend'
+	return provided_by_macos_core.audit_provided_by_macos(source, 'apr').len == 0
 }
 
 // Ruby it `it "succeeds for formulae that are keg_only for a different reason" do` at line 32.
-pub fn ruby_provided_by_macos_spec_l32_d4_succeeds(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('succeeds', ...args)
+pub fn ruby_provided_by_macos_spec_l32_d4_succeeds() bool {
+	source := 'class Foo < Formula\n  keg_only :versioned_formula\nend'
+	return provided_by_macos_core.audit_provided_by_macos(source, 'foo').len == 0
 }
 
 // Original Ruby source (line-for-line):

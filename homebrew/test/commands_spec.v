@@ -1,113 +1,219 @@
 module test
 
-import brew_runtime
+import homebrew
+import os
+
+pub struct CommandsSpecFixture {
+pub:
+	root          string
+	cmd_path      string
+	dev_cmd_path  string
+	command_files []string
+}
+
+pub fn new_commands_spec_fixture(root string) !CommandsSpecFixture {
+	cmd_path := os.join_path(root, 'cmd')
+	dev_cmd_path := os.join_path(root, 'dev-cmd')
+	os.mkdir_all(cmd_path)!
+	os.mkdir_all(dev_cmd_path)!
+	command_files := [
+		os.join_path(cmd_path, 'rbcmd.v'),
+		os.join_path(cmd_path, 'shcmd.sh'),
+		os.join_path(dev_cmd_path, 'rbdevcmd.v'),
+		os.join_path(dev_cmd_path, 'shdevcmd.sh'),
+	]
+	for path in command_files {
+		os.write_file(path, '# command fixture\n')!
+	}
+	return CommandsSpecFixture{
+		root: root
+		cmd_path: cmd_path
+		dev_cmd_path: dev_cmd_path
+		command_files: command_files
+	}
+}
+
+fn commands_spec_permit(_ string, _ string) ! {}
 
 // Translated from Homebrew/brew `test/commands_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby let `let(:tmpdir) { mktmpdir }` at line 8.
-pub fn ruby_commands_spec_l8_d1_tmpdir(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tmpdir', ...args)
+pub fn ruby_commands_spec_l8_d1_tmpdir(root string) string {
+	return root
 }
 
 // Ruby let `let(:cmd_path) { tmpdir/"cmd" }` at line 9.
-pub fn ruby_commands_spec_l9_d2_cmd_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cmd_path', ...args)
+pub fn ruby_commands_spec_l9_d2_cmd_path(root string) string {
+	return os.join_path(root, 'cmd')
 }
 
 // Ruby let `let(:dev_cmd_path) { tmpdir/"dev-cmd" }` at line 10.
-pub fn ruby_commands_spec_l10_d3_dev_cmd_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dev_cmd_path', ...args)
+pub fn ruby_commands_spec_l10_d3_dev_cmd_path(root string) string {
+	return os.join_path(root, 'dev-cmd')
 }
 
 // Ruby let `let(:cmds) do` at line 11.
-pub fn ruby_commands_spec_l11_d4_cmds(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cmds', ...args)
+pub fn ruby_commands_spec_l11_d4_cmds(root string) []string {
+	return [
+		os.join_path(root, 'cmd', 'rbcmd.v'),
+		os.join_path(root, 'cmd', 'shcmd.sh'),
+		os.join_path(root, 'dev-cmd', 'rbdevcmd.v'),
+		os.join_path(root, 'dev-cmd', 'shdevcmd.sh'),
+	]
 }
 
 // Ruby specify `specify "::internal_commands" do` at line 44.
-pub fn ruby_commands_spec_l44_d5_internal_commands(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('::internal_commands', ...args)
+pub fn ruby_commands_spec_l44_d5_internal_commands(fixture CommandsSpecFixture) !bool {
+	commands := homebrew.find_internal_commands_in(fixture.cmd_path, [
+		fixture.cmd_path,
+		fixture.dev_cmd_path,
+	])!
+	return 'rbcmd' in commands && 'shcmd' in commands && 'rbdevcmd' !in commands
 }
 
 // Ruby specify `specify "::internal_commands omits commands hidden from the manpage" do` at line 51.
-pub fn ruby_commands_spec_l51_d6_internal_commands(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('::internal_commands', ...args)
+pub fn ruby_commands_spec_l51_d6_internal_commands(fixture CommandsSpecFixture) !bool {
+	path := os.join_path(fixture.cmd_path, 'rbcmd.v')
+	original := os.read_file(path)!
+	defer {
+		os.write_file(path, original) or {}
+	}
+	os.write_file(path, 'hide_from_man_page!\n')!
+	commands := homebrew.find_internal_commands_in(fixture.cmd_path, [
+		fixture.cmd_path,
+		fixture.dev_cmd_path,
+	])!
+	return 'rbcmd' !in commands
 }
 
 // Ruby specify `specify "::internal_developer_commands" do` at line 60.
-pub fn ruby_commands_spec_l60_d7_internal_developer_commands(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('::internal_developer_commands', ...args)
+pub fn ruby_commands_spec_l60_d7_internal_developer_commands(fixture CommandsSpecFixture) !bool {
+	commands := homebrew.find_internal_commands_in(fixture.dev_cmd_path, [
+		fixture.cmd_path,
+		fixture.dev_cmd_path,
+	])!
+	return 'rbdevcmd' in commands && 'shdevcmd' in commands && 'rbcmd' !in commands
 }
 
 // Ruby specify `specify "::external_commands" do` at line 67.
-pub fn ruby_commands_spec_l67_d8_external_commands(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('::external_commands', ...args)
+pub fn ruby_commands_spec_l67_d8_external_commands(directory string) !bool {
+	for file in ['t0.rb', 'brew-t1', 'brew-t2.rb', 'brew-t3.py'] {
+		path := os.join_path(directory, file)
+		os.write_file(path, '')!
+		os.chmod(path, 0o755)!
+	}
+	non_executable := os.join_path(directory, 'brew-t4')
+	os.write_file(non_executable, '')!
+	os.chmod(non_executable, 0o644)!
+	commands := homebrew.external_commands_in([directory])
+	return 't0' in commands && 't1' in commands && 't2' in commands && 't3' in commands && 't4' !in commands
 }
 
 // Ruby let `let(:internal_commands) { %w[doctor up upgrade] }` at line 90.
-pub fn ruby_commands_spec_l90_d9_internal_commands(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('internal_commands', ...args)
+pub fn ruby_commands_spec_l90_d9_internal_commands() []string {
+	return ['doctor', 'up', 'upgrade']
 }
 
 // Ruby let `let(:all_commands) { %w[doctor external-command up upgrade] }` at line 91.
-pub fn ruby_commands_spec_l91_d10_all_commands(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('all_commands', ...args)
+pub fn ruby_commands_spec_l91_d10_all_commands() []string {
+	return ['doctor', 'external-command', 'up', 'upgrade']
 }
 
 // Ruby it `it "suggests a command for a typo" do` at line 98.
-pub fn ruby_commands_spec_l98_d11_suggests(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('suggests', ...args)
+pub fn ruby_commands_spec_l98_d11_suggests() bool {
+	return homebrew.suggestion_message_from_commands('upgrde', ruby_commands_spec_l90_d9_internal_commands(), ruby_commands_spec_l91_d10_all_commands()) == '\nDid you mean upgrade?'
 }
 
 // Ruby it `it "suggests a command alias for a typo" do` at line 102.
-pub fn ruby_commands_spec_l102_d12_suggests(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('suggests', ...args)
+pub fn ruby_commands_spec_l102_d12_suggests() bool {
+	return homebrew.suggestion_message_from_commands('upp', ruby_commands_spec_l90_d9_internal_commands(), ruby_commands_spec_l91_d10_all_commands()) == '\nDid you mean up?'
 }
 
 // Ruby it `it "falls back to external command suggestions" do` at line 106.
-pub fn ruby_commands_spec_l106_d13_falls(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('falls', ...args)
+pub fn ruby_commands_spec_l106_d13_falls() bool {
+	return homebrew.suggestion_message_from_commands('external-comand', ruby_commands_spec_l90_d9_internal_commands(), ruby_commands_spec_l91_d10_all_commands()) == '\nDid you mean external-command?'
 }
 
 // Ruby it `it "does not suggest a command without a close match" do` at line 110.
-pub fn ruby_commands_spec_l110_d14_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_commands_spec_l110_d14_does() bool {
+	return homebrew.suggestion_message_from_commands('zzzzzz', ruby_commands_spec_l90_d9_internal_commands(), ruby_commands_spec_l91_d10_all_commands()) == ''
 }
 
 // Ruby it `it "omits internal command aliases" do` at line 116.
-pub fn ruby_commands_spec_l116_d15_omits(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('omits', ...args)
+pub fn ruby_commands_spec_l116_d15_omits(fixture CommandsSpecFixture, repository string) !bool {
+	commands := homebrew.rebuild_internal_commands_completion_list_at(repository, fixture.cmd_path, fixture.dev_cmd_path)!
+	return commands.all(it !in homebrew.internal_commands_aliases())
 }
 
 // Ruby it `it "omits commands hidden from the manpage" do` at line 128.
-pub fn ruby_commands_spec_l128_d16_omits(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('omits', ...args)
+pub fn ruby_commands_spec_l128_d16_omits(fixture CommandsSpecFixture, repository string) !bool {
+	path := os.join_path(fixture.cmd_path, 'rbcmd.v')
+	original := os.read_file(path)!
+	defer {
+		os.write_file(path, original) or {}
+	}
+	os.write_file(path, 'hide_from_man_page: true\n')!
+	commands := homebrew.rebuild_internal_commands_completion_list_at(repository, fixture.cmd_path, fixture.dev_cmd_path)!
+	return 'rbcmd' !in commands
 }
 
 // Ruby it `it "omits internal command aliases from the cached command list" do` at line 146.
-pub fn ruby_commands_spec_l146_d17_omits(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('omits', ...args)
+pub fn ruby_commands_spec_l146_d17_omits(fixture CommandsSpecFixture, cache string) !bool {
+	internal := homebrew.find_internal_commands_in(fixture.cmd_path, [
+		fixture.cmd_path,
+		fixture.dev_cmd_path,
+	])!
+	developer := homebrew.find_internal_commands_in(fixture.dev_cmd_path, [
+		fixture.cmd_path,
+		fixture.dev_cmd_path,
+	])!
+	commands := homebrew.rebuild_commands_completion_list_at(cache, internal, developer, [
+		'external',
+	])!
+	return commands.all(it !in homebrew.internal_commands_aliases())
 }
 
 // Ruby it `it "omits commands hidden from the manpage from the cached command list" do` at line 158.
-pub fn ruby_commands_spec_l158_d18_omits(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('omits', ...args)
+pub fn ruby_commands_spec_l158_d18_omits(fixture CommandsSpecFixture, cache string) !bool {
+	path := os.join_path(fixture.cmd_path, 'rbcmd.v')
+	original := os.read_file(path)!
+	defer {
+		os.write_file(path, original) or {}
+	}
+	os.write_file(path, 'hide_from_man_page!\n')!
+	internal := homebrew.find_internal_commands_in(fixture.cmd_path, [
+		fixture.cmd_path,
+		fixture.dev_cmd_path,
+	])!
+	developer := homebrew.find_internal_commands_in(fixture.dev_cmd_path, [
+		fixture.cmd_path,
+		fixture.dev_cmd_path,
+	])!
+	commands := homebrew.rebuild_commands_completion_list_at(cache, internal, developer, [
+		'external',
+	])!
+	return 'rbcmd' !in commands
 }
 
 // Ruby it `it "does not load external command files" do` at line 174.
-pub fn ruby_commands_spec_l174_d19_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_commands_spec_l174_d19_does(cache string) !bool {
+	commands := homebrew.rebuild_commands_completion_list_at(cache, ['doctor'], [
+		'update-test',
+	], ['external'])!
+	return commands == ['doctor', 'external', 'update-test']
 }
 
 // Ruby specify `specify "returns the path for an internal command" do` at line 187.
-pub fn ruby_commands_spec_l187_d20_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_commands_spec_l187_d20_returns(fixture CommandsSpecFixture) !bool {
+	path := homebrew.resolve_command_path('rbcmd', fixture.cmd_path, fixture.dev_cmd_path, [], '', '', commands_spec_permit)!
+	return path == os.join_path(fixture.cmd_path, 'rbcmd.v')
 }
 
 // Ruby specify `specify "returns the path for an internal developer-command" do` at line 193.
-pub fn ruby_commands_spec_l193_d21_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_commands_spec_l193_d21_returns(fixture CommandsSpecFixture) !bool {
+	path := homebrew.resolve_command_path('rbdevcmd', fixture.cmd_path, fixture.dev_cmd_path, [], '', '', commands_spec_permit)!
+	return path == os.join_path(fixture.dev_cmd_path, 'rbdevcmd.v')
 }
 
 // Original Ruby source (line-for-line):

@@ -1,23 +1,98 @@
 module description_cache_store
 
 import brew_runtime
+import homebrew
 
 // Translated from Homebrew/brew `description_cache_store/cask_description_cache_store.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub struct CaskDescription {
+pub:
+	full_name   string
+	names       []string
+	description ?string
+}
+
+pub type CaskDescriptionLoader = fn(string) !CaskDescription
+
+fn cask_description_value(cask CaskDescription) brew_runtime.Value {
+	description := if value := cask.description {
+		brew_runtime.string_value(value)
+	} else {
+		brew_runtime.Value{ type_name: 'NilClass' }
+	}
+	return brew_runtime.array_value([
+		brew_runtime.string_value(cask.names.join(', ')),
+		description,
+	])
+}
+
+pub fn populate_cask_descriptions_if_empty(mut store homebrew.DescriptionCacheStore,
+	eval_all bool, casks []CaskDescription) {
+	if !eval_all || !store.database.empty() {
+		return
+	}
+	for cask in casks {
+		store.update(cask.full_name, cask_description_value(cask))
+	}
+}
+
+pub fn update_from_cask_tokens(mut store homebrew.DescriptionCacheStore, tokens []string,
+	trust_configured bool, all_casks []CaskDescription, loader CaskDescriptionLoader) {
+	if !trust_configured {
+		store.database.clear()
+		return
+	}
+	if store.database.empty() {
+		populate_cask_descriptions_if_empty(mut store, trust_configured, all_casks)
+		return
+	}
+	for token in tokens {
+		cask := loader(token) or {
+			store.delete(token)
+			continue
+		}
+		store.update(cask.full_name, cask_description_value(cask))
+	}
+}
+
+pub fn update_cask_descriptions_from_report(mut store homebrew.DescriptionCacheStore,
+	report homebrew.DescriptionReport, trust_configured bool, all_casks []CaskDescription,
+	loader CaskDescriptionLoader) {
+	if !trust_configured {
+		store.database.clear()
+		return
+	}
+	if store.database.empty() {
+		populate_cask_descriptions_if_empty(mut store, trust_configured, all_casks)
+		return
+	}
+	if report.empty {
+		return
+	}
+	mut alterations := report.cask_added.clone()
+	alterations << report.cask_modified
+	update_from_cask_tokens(mut store, alterations, trust_configured, all_casks, loader)
+	store.delete_from_formula_names(report.cask_deleted)
+}
 
 // Ruby method `populate_if_empty!(eval_all: Homebrew::EnvConfig.tap_trust_configured?)` at line 18.
-pub fn ruby_cask_description_cache_store_l18_d1_populate_if_empty(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('populate_if_empty!', ...args)
+pub fn ruby_cask_description_cache_store_l18_d1_populate_if_empty(mut store homebrew.DescriptionCacheStore,
+	eval_all bool, casks []CaskDescription) {
+	populate_cask_descriptions_if_empty(mut store, eval_all, casks)
 }
 
 // Ruby method `update_from_report!(report)` at line 31.
-pub fn ruby_cask_description_cache_store_l31_d2_update_from_report(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('update_from_report!', ...args)
+pub fn ruby_cask_description_cache_store_l31_d2_update_from_report(mut store homebrew.DescriptionCacheStore,
+	report homebrew.DescriptionReport, trust_configured bool, all_casks []CaskDescription,
+	loader CaskDescriptionLoader) {
+	update_cask_descriptions_from_report(mut store, report, trust_configured, all_casks, loader)
 }
 
 // Ruby method `update_from_cask_tokens!(cask_tokens)` at line 55.
-pub fn ruby_cask_description_cache_store_l55_d3_update_from_cask_tokens(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('update_from_cask_tokens!', ...args)
+pub fn ruby_cask_description_cache_store_l55_d3_update_from_cask_tokens(mut store homebrew.DescriptionCacheStore,
+	tokens []string, trust_configured bool, all_casks []CaskDescription,
+	loader CaskDescriptionLoader) {
+	update_from_cask_tokens(mut store, tokens, trust_configured, all_casks, loader)
 }
 
 // Original Ruby source (line-for-line):

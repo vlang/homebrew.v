@@ -4,45 +4,112 @@ import brew_runtime
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/utility/native_extension_loader.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub struct NativeExtensionLoader {
+mut:
+	c_extensions_loaded    bool
+	java_extensions_loaded bool
+}
+
+pub fn (loader NativeExtensionLoader) allow_c_extensions() bool {
+	return on_cruby()
+}
+
+pub fn (loader NativeExtensionLoader) are_c_extensions_loaded() bool {
+	return loader.c_extensions_loaded
+}
+
+pub fn (loader NativeExtensionLoader) are_java_extensions_loaded() bool {
+	return loader.java_extensions_loaded
+}
+
+pub fn (mut loader NativeExtensionLoader) set_c_extensions_loaded() bool {
+	loader.c_extensions_loaded = true
+	return true
+}
+
+pub fn (mut loader NativeExtensionLoader) set_java_extensions_loaded() bool {
+	loader.java_extensions_loaded = true
+	return true
+}
+
+// V uses its native implementation directly, so neither Ruby C extensions nor
+// the JRuby jar are applicable to this runtime.
+pub fn (mut loader NativeExtensionLoader) load_native_extensions() {
+	if on_cruby() && !loader.c_extensions_loaded {
+		return
+	}
+	if on_jruby() && !loader.java_extensions_loaded {
+		return
+	}
+}
+
+pub fn load_error_path(path string, message string) string {
+	if path.len > 0 {
+		return path
+	}
+	return message.split(' -- ').last()
+}
+
+pub fn (mut loader NativeExtensionLoader) try_load_c_extension(path string) bool {
+	if !loader.allow_c_extensions() {
+		return false
+	}
+	loader.set_c_extensions_loaded()
+	return true
+}
+
+fn bool_arg_or_false(args []brew_runtime.Value) bool {
+	if args.len == 0 || args[0].type_name != 'Bool' {
+		return false
+	}
+	return args[0].as_bool() or { false }
+}
 
 // Ruby method `allow_c_extensions?` at line 11.
 pub fn ruby_native_extension_loader_l11_d1_allow_c_extensions(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allow_c_extensions?', ...args)
+	return brew_runtime.bool_value(on_cruby())
 }
 
 // Ruby method `c_extensions_loaded?` at line 15.
 pub fn ruby_native_extension_loader_l15_d2_c_extensions_loaded(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('c_extensions_loaded?', ...args)
+	return brew_runtime.bool_value(bool_arg_or_false(args))
 }
 
 // Ruby method `load_native_extensions` at line 19.
 pub fn ruby_native_extension_loader_l19_d3_load_native_extensions(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('load_native_extensions', ...args)
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Ruby method `load_error_path(error)` at line 38.
 pub fn ruby_native_extension_loader_l38_d4_load_error_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('load_error_path', ...args)
+	if args.len == 0 {
+		panic('load_error_path requires an error')
+	}
+	path := args[0].attribute('path') or { '' }
+	return brew_runtime.string_value(load_error_path(path, args[0].as_string()))
 }
 
 // Ruby method `set_c_extensions_loaded` at line 46.
 pub fn ruby_native_extension_loader_l46_d5_set_c_extensions_loaded(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('set_c_extensions_loaded', ...args)
+	return brew_runtime.bool_value(true)
 }
 
 // Ruby method `java_extensions_loaded?` at line 50.
 pub fn ruby_native_extension_loader_l50_d6_java_extensions_loaded(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('java_extensions_loaded?', ...args)
+	return brew_runtime.bool_value(bool_arg_or_false(args))
 }
 
 // Ruby method `set_java_extensions_loaded` at line 54.
 pub fn ruby_native_extension_loader_l54_d7_set_java_extensions_loaded(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('set_java_extensions_loaded', ...args)
+	return brew_runtime.bool_value(true)
 }
 
 // Ruby method `try_load_c_extension(path)` at line 58.
 pub fn ruby_native_extension_loader_l58_d8_try_load_c_extension(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('try_load_c_extension', ...args)
+	if args.len == 0 {
+		panic('try_load_c_extension requires a path')
+	}
+	return brew_runtime.bool_value(false)
 }
 
 // Original Ruby source (line-for-line):

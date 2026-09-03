@@ -1,23 +1,33 @@
 module cmd
 
-import brew_runtime
+import homebrew.analytics
+import homebrew.utils
 
 // Translated from Homebrew/brew `test/cmd/analytics_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "uses state as the default subcommand" do` at line 10.
-pub fn ruby_analytics_spec_l10_d1_uses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uses', ...args)
+pub fn ruby_analytics_spec_l10_d1_uses() bool {
+	mut state := utils.AnalyticsState{}
+	output := analytics.ruby_subcommand_l16_dispatch([], mut state) or { return false }
+	return output.starts_with('InfluxDB analytics are enabled.')
 }
 
 // Ruby it `it "rejects extra arguments for state" do` at line 14.
-pub fn ruby_analytics_spec_l14_d2_rejects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('rejects', ...args)
+pub fn ruby_analytics_spec_l14_d2_rejects() bool {
+	mut state := utils.AnalyticsState{}
+	analytics.ruby_subcommand_l16_dispatch(['state', 'foo'], mut state) or {
+		return err.msg().contains('at most one named argument')
+	}
+	return false
 }
 
 // Ruby it `it "when HOMEBREW_NO_ANALYTICS is unset is disabled after running `brew analytics off`", :integration_test do` at line 19.
-pub fn ruby_analytics_spec_l19_d3_when(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('when', ...args)
+pub fn ruby_analytics_spec_l19_d3_when() bool {
+	mut state := utils.AnalyticsState{}
+	analytics.ruby_subcommand_l16_dispatch(['off'], mut state) or { return false }
+	output := analytics.ruby_subcommand_l16_dispatch([], mut state) or { return false }
+	return state.disabled() && output.to_lower().contains('analytics are disabled')
 }
 
 // Original Ruby source (line-for-line):

@@ -1,18 +1,24 @@
 module text
 
 import brew_runtime
+import homebrew.rubocops as mpi_core
 
 // Translated from Homebrew/brew `test/rubocops/text/mpi_check_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:cop) { described_class.new }` at line 7.
 pub fn ruby_mpi_check_spec_l7_d1_cop(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cop', ...args)
+	return brew_runtime.object_value('RuboCop::Cop::FormulaAudit::MpiCheck', 'FormulaAudit/MpiCheck')
 }
 
 // Ruby it `it "reports and corrects an offense when using depends_on \"mpich\" in homebrew/core" do` at line 10.
-pub fn ruby_mpi_check_spec_l10_d2_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_mpi_check_spec_l10_d2_reports() bool {
+	source := 'class Foo < Formula\n  depends_on "mpich"\nend'
+	analysis := mpi_core.audit_lines_mpi(mpi_core.LinesContext{
+		source: source
+		tap: 'homebrew-core'
+	})
+	return analysis.offenses.len == 1 && analysis.corrected == 'class Foo < Formula\n  depends_on "open-mpi"\nend'
 }
 
 // Original Ruby source (line-for-line):

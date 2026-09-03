@@ -1,13 +1,53 @@
 module test
 
 import brew_runtime
+import homebrew
 
 // Translated from Homebrew/brew `test/formula_creator_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "parses` at line 56.
 pub fn ruby_formula_creator_spec_l56_d1_parses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('parses', ...args)
+	tests := [
+		homebrew.FormulaCreatorOptions{
+			url: 'http://digit-labs.org/files/tools/synscan/releases/synscan-5.02.tar.gz'
+		},
+		homebrew.FormulaCreatorOptions{
+			url: 'http://www.codesrc.com/gitweb/index.cgi?p=libzipper.git;a=summary'
+		},
+		homebrew.FormulaCreatorOptions{
+			url: 'https://github.com/Homebrew/brew.git'
+			fetch: true
+		},
+		homebrew.FormulaCreatorOptions{
+			url: 'https://github.com/Homebrew/brew/archive/4.5.7.tar.gz'
+			fetch: true
+		},
+		homebrew.FormulaCreatorOptions{
+			url: 'https://github.com/stella-emu/stella/releases/download/6.7/stella-6.7-src.tar.xz'
+			fetch: true
+		},
+		homebrew.FormulaCreatorOptions{
+			url: 'https://github.com/buildpacks/pack'
+			fetch: true
+			latest_release: 'v0.37.0'
+		},
+		homebrew.FormulaCreatorOptions{
+			url: 'https://github.com/RooVetGit/Roo-Code'
+			name: 'roo'
+		},
+	]
+	expected_names := ['synscan', 'libzipper', 'brew', 'brew', 'stella', 'pack', 'roo']
+	expected_versions := ['5.02', '', '', '4.5.7', '6.7', 'v0.37.0', '']
+	for index, options in tests {
+		creator := homebrew.new_formula_creator(options)
+		if creator.name != expected_names[index] || creator.version != expected_versions[index] {
+			return brew_runtime.bool_value(false)
+		}
+	}
+	latest := homebrew.new_formula_creator(tests[5])
+	return brew_runtime.bool_value(tests.len == 7 && homebrew.new_formula_creator(tests[2]).head
+		&& latest.url == 'https://github.com/buildpacks/pack/archive/refs/tags/v0.37.0.tar.gz')
 }
 
 // Original Ruby source (line-for-line):

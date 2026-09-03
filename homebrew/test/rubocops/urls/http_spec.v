@@ -1,68 +1,92 @@
 module urls
 
 import brew_runtime
+import homebrew.rubocops as urls_core
 
 // Translated from Homebrew/brew `test/rubocops/urls/http_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+fn http_spec_audit(source string, tap string) urls_core.FormulaUrlsAnalysis {
+	return urls_core.audit_formula_http_urls(urls_core.FormulaUrlsContext{
+		source: source
+		formula_tap: tap
+	})
+}
+
+fn http_spec_formula(body string) string {
+	return 'class Foo < Formula\n  desc "foo"\n${body}\nend'
+}
 
 // Ruby subject `subject(:cop) { described_class.new }` at line 7.
 pub fn ruby_http_spec_l7_d1_cop(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cop', ...args)
+	return brew_runtime.object_value('RuboCop::Cop::FormulaAudit::HttpUrls', 'FormulaAudit/HttpUrls')
 }
 
 // Ruby it `it "reports an offense for http:// URLs in homebrew-core" do` at line 10.
 pub fn ruby_http_spec_l10_d2_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	source := http_spec_formula('  url "http://example.com/foo-1.0.tar.gz"')
+	offenses := http_spec_audit(source, 'homebrew-core').offenses
+	return brew_runtime.bool_value(offenses.len == 1 && source[offenses[0].begin_pos..offenses[0].end_pos] == '"http://example.com/foo-1.0.tar.gz"' && offenses[0].message == 'Formulae in homebrew/core should not use http:// URLs')
 }
 
 // Ruby it `it "autocorrects http:// to https:// in homebrew-core" do` at line 20.
 pub fn ruby_http_spec_l20_d3_autocorrects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('autocorrects', ...args)
+	source := http_spec_formula('  url "http://example.com/foo-1.0.tar.gz"')
+	return brew_runtime.bool_value(http_spec_audit(source, 'homebrew-core').corrected == source.replace('http://', 'https://'))
 }
 
 // Ruby it `it "reports no offense for http:// URLs outside homebrew-core" do` at line 37.
 pub fn ruby_http_spec_l37_d4_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	source := http_spec_formula('  url "http://example.com/foo-1.0.tar.gz"')
+	return brew_runtime.bool_value(http_spec_audit(source, 'homebrew-mytap').offenses.len == 0)
 }
 
 // Ruby it `it "reports no offense for http:// mirror URLs (mirrors may use HTTP for bootstrapping)" do` at line 46.
 pub fn ruby_http_spec_l46_d5_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	source := http_spec_formula('  url "https://example.com/foo-1.0.tar.gz"\n  mirror "http://mirror.example.com/foo-1.0.tar.gz"')
+	return brew_runtime.bool_value(http_spec_audit(source, 'homebrew-core').offenses.len == 0)
 }
 
 // Ruby it `it "reports no offense for deprecated formulae" do` at line 56.
 pub fn ruby_http_spec_l56_d6_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	source := http_spec_formula('  url "http://example.com/foo-1.0.tar.gz"\n  deprecate! date: "2024-01-01", because: :unmaintained')
+	return brew_runtime.bool_value(http_spec_audit(source, 'homebrew-core').offenses.len == 0)
 }
 
 // Ruby it `it "reports no offense for disabled formulae" do` at line 66.
 pub fn ruby_http_spec_l66_d7_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	source := http_spec_formula('  url "http://example.com/foo-1.0.tar.gz"\n  disable! date: "2024-01-01", because: :unmaintained')
+	return brew_runtime.bool_value(http_spec_audit(source, 'homebrew-core').offenses.len == 0)
 }
 
 // Ruby it `it "reports no offense for http:// livecheck URLs" do` at line 76.
 pub fn ruby_http_spec_l76_d8_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	source := http_spec_formula('  url "https://example.com/foo-1.0.tar.gz"\n\n  livecheck do\n    url "http://example.com/releases"\n    regex(/foo[._-]v?(\\d+(?:.\\d+)+).t/i)\n  end\n\n  resource "foo" do\n    url "https://example.com/foo-resource-1.0.tar.gz"\n    livecheck do\n      url "http://example.com/resource-releases"\n      regex(/foo-resource[._-]v?(\\d+(?:.\\d+)+).t/i)\n    end\n  end')
+	return brew_runtime.bool_value(http_spec_audit(source, 'homebrew-core').offenses.len == 0)
 }
 
 // Ruby it `it "reports no offense for a livecheck URL symbol" do` at line 99.
 pub fn ruby_http_spec_l99_d9_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	source := http_spec_formula('  url "https://example.com/foo-1.0.tar.gz"\n  livecheck do\n    url :stable\n  end')
+	return brew_runtime.bool_value(http_spec_audit(source, 'homebrew-core').offenses.len == 0)
 }
 
 // Ruby it `it "reports no offense when livecheck has no URL" do` at line 112.
 pub fn ruby_http_spec_l112_d10_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	source := http_spec_formula('  url "https://example.com/foo-1.0.tar.gz"\n  livecheck do\n    skip "No version information available"\n  end')
+	return brew_runtime.bool_value(http_spec_audit(source, 'homebrew-core').offenses.len == 0)
 }
 
 // Ruby it `it "reports no offense when livecheck has a `url` call with no argument" do` at line 126.
 pub fn ruby_http_spec_l126_d11_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	source := http_spec_formula('  url "https://example.com/foo-1.0.tar.gz"\n  livecheck do\n    url\n  end')
+	return brew_runtime.bool_value(http_spec_audit(source, 'homebrew-core').offenses.len == 0)
 }
 
 // Ruby it `it "reports offense for non-livecheck http:// URLs even when livecheck has http://" do` at line 140.
 pub fn ruby_http_spec_l140_d12_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	source := http_spec_formula('  url "http://example.com/foo-1.0.tar.gz"\n  livecheck do\n    url "http://example.com/releases"\n    regex(/foo[._-]v?(\\d+(?:.\\d+)+).t/i)\n  end')
+	offenses := http_spec_audit(source, 'homebrew-core').offenses
+	return brew_runtime.bool_value(offenses.len == 1 && offenses[0].url == 'http://example.com/foo-1.0.tar.gz')
 }
 
 // Original Ruby source (line-for-line):

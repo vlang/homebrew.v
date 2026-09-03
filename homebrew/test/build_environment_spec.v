@@ -1,48 +1,55 @@
 module test
 
-import brew_runtime
+import homebrew
 
 // Translated from Homebrew/brew `test/build_environment_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby let `let(:env) { described_class.new }` at line 7.
-pub fn ruby_build_environment_spec_l7_d1_env(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('env', ...args)
+pub fn ruby_build_environment_spec_l7_d1_env() homebrew.BuildEnvironment {
+	return homebrew.new_build_environment()
 }
 
 // Ruby it `it "returns itself" do` at line 10.
-pub fn ruby_build_environment_spec_l10_d2_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_build_environment_spec_l10_d2_returns() bool {
+	mut environment := ruby_build_environment_spec_l7_d1_env()
+	returned := environment.add('foo')
+	return returned.settings == environment.settings && environment.settings == ['foo']
 }
 
 // Ruby it `it "returns itself" do` at line 16.
-pub fn ruby_build_environment_spec_l16_d3_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_build_environment_spec_l16_d3_returns() bool {
+	mut environment := ruby_build_environment_spec_l7_d1_env()
+	returned := environment.merge([])
+	return returned.settings == environment.settings && environment.settings.len == 0
 }
 
 // Ruby it `it "returns true if the environment contains :std" do` at line 22.
-pub fn ruby_build_environment_spec_l22_d4_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_build_environment_spec_l22_d4_returns() bool {
+	mut environment := ruby_build_environment_spec_l7_d1_env()
+	environment.add('std')
+	return environment.std()
 }
 
 // Ruby it `it "returns false if the environment does not contain :std" do` at line 27.
-pub fn ruby_build_environment_spec_l27_d5_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_build_environment_spec_l27_d5_returns() bool {
+	return !ruby_build_environment_spec_l7_d1_env().std()
 }
 
 // Ruby let `let(:build_environment_dsl) do` at line 33.
-pub fn ruby_build_environment_spec_l33_d6_build_environment_dsl(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('build_environment_dsl', ...args)
+pub fn ruby_build_environment_spec_l33_d6_build_environment_dsl() homebrew.BuildEnvironmentOwner {
+	return homebrew.new_build_environment_owner('BuildEnvironmentSpecClass')
 }
 
 // Ruby subject `subject(:build_env) do` at line 41.
-pub fn ruby_build_environment_spec_l41_d7_build_env(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('build_env', ...args)
+pub fn ruby_build_environment_spec_l41_d7_build_env() homebrew.BuildEnvironment {
+	mut owner := ruby_build_environment_spec_l33_d6_build_environment_dsl()
+	return owner.env('std')
 }
 
 // Ruby it `it(:env) { expect(build_env.env).to be_std }` at line 48.
-pub fn ruby_build_environment_spec_l48_d8_env(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('env', ...args)
+pub fn ruby_build_environment_spec_l48_d8_env() bool {
+	return ruby_build_environment_spec_l41_d7_build_env().std()
 }
 
 // Original Ruby source (line-for-line):

@@ -1,18 +1,88 @@
 module language
 
 import brew_runtime
+import homebrew.utils
 
 // Translated from Homebrew/brew `language/perl.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `perl_shebang_rewrite_info(perl_path)` at line 27.
 pub fn ruby_perl_l27_d1_perl_shebang_rewrite_info(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('perl_shebang_rewrite_info', ...args)
+	if args.len == 0 {
+		return brew_runtime.object_value('ArgumentError', 'Perl path is required')
+	}
+	info := perl_shebang_rewrite_info(args[0].as_string()) or {
+		return brew_runtime.object_value('ArgumentError', err.msg())
+	}
+	return utils.rewrite_info_value(info)
 }
 
 // Ruby method `detected_perl_shebang(formula = T.cast(self, Formula))` at line 36.
 pub fn ruby_perl_l36_d2_detected_perl_shebang(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('detected_perl_shebang', ...args)
+	dependencies := if args.len > 0 {
+		perl_dependencies_from_value(args[0])
+	} else {
+		[]PerlDependency{}
+	}
+	prefix := if args.len > 1 { args[1].as_string() } else { '/opt/homebrew' }
+	preferred_version := if args.len > 2 { args[2].as_string() } else { '' }
+	info := detected_perl_shebang(dependencies, prefix, preferred_version) or {
+		return brew_runtime.object_value('ShebangDetectionError', err.msg())
+	}
+	return utils.rewrite_info_value(info)
+}
+
+pub struct PerlDependency {
+pub:
+	name              string
+	required          bool = true
+	uses_from_macos   bool
+	use_macos_install bool
+}
+
+pub fn perl_shebang_rewrite_info(perl_path string) !utils.RewriteInfo {
+	if perl_path.trim_space() == '' {
+		return error('Perl path is required')
+	}
+	return utils.new_shebang_rewrite_info(r'^#! ?(?:/usr/bin/(?:env )?)?perl( |$)', '#! /usr/bin/env perl '.len, '${perl_path}\\1')
+}
+
+pub fn detected_perl_shebang(dependencies []PerlDependency, prefix string,
+	preferred_version string) !utils.RewriteInfo {
+	perl_dependencies := dependencies.filter(it.required && it.name == 'perl')
+	if perl_dependencies.len == 0 {
+		return error('Cannot detect Perl shebang: formula does not depend on Perl.')
+	}
+	use_brewed_perl := perl_dependencies.any(!it.uses_from_macos || !it.use_macos_install)
+	perl_path := if use_brewed_perl {
+		'${prefix.trim_right('/')}/opt/perl/bin/perl'
+	} else {
+		'/usr/bin/perl${preferred_version}'
+	}
+	return perl_shebang_rewrite_info(perl_path)
+}
+
+fn perl_dependency_from_value(value brew_runtime.Value) PerlDependency {
+	if value.type_name == 'String' {
+		return PerlDependency{ name: value.as_string() }
+	}
+	return PerlDependency{
+		name: value.attribute('name') or { value.as_string() }
+		required: (value.attribute('required') or { 'true' }) == 'true'
+		uses_from_macos: (value.attribute('uses_from_macos') or { 'false' }) == 'true'
+		use_macos_install: (value.attribute('use_macos_install') or { 'false' }) == 'true'
+	}
+}
+
+fn perl_dependencies_from_value(value brew_runtime.Value) []PerlDependency {
+	values := if value.type_name == 'Array' {
+		value.as_array() or { [] }
+	} else {
+		[
+			value,
+		]
+	}
+	return values.map(perl_dependency_from_value(it))
 }
 
 // Original Ruby source (line-for-line):

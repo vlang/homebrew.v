@@ -1,178 +1,245 @@
 module test
 
-import brew_runtime
+import homebrew
 
 // Translated from Homebrew/brew `test/deprecate_disable_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby let `let(:deprecate_date) { Date.parse("2020-01-01") }` at line 7.
-pub fn ruby_deprecate_disable_spec_l7_d1_deprecate_date(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('deprecate_date', ...args)
+pub fn ruby_deprecate_disable_spec_l7_d1_deprecate_date() string {
+	return '2020-01-01'
 }
 
 // Ruby let `let(:disable_date) { deprecate_date >> DeprecateDisable::REMOVE_DISABLED_TIME_WINDOW }` at line 8.
-pub fn ruby_deprecate_disable_spec_l8_d2_disable_date(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('disable_date', ...args)
+pub fn ruby_deprecate_disable_spec_l8_d2_disable_date() string {
+	return '2021-01-01'
 }
 
 // Ruby let `let(:deprecated_formula) do` at line 9.
-pub fn ruby_deprecate_disable_spec_l9_d3_deprecated_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('deprecated_formula', ...args)
+pub fn ruby_deprecate_disable_spec_l9_d3_deprecated_formula() homebrew.DeprecateDisableSubject {
+	return homebrew.DeprecateDisableSubject{
+		kind: .formula
+		deprecated: true
+		deprecation_reason: 'does_not_build'
+	}
 }
 
 // Ruby let `let(:deprecated_formula_with_date) do` at line 14.
-pub fn ruby_deprecate_disable_spec_l14_d4_deprecated_formula_with_date(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('deprecated_formula_with_date', ...args)
+pub fn ruby_deprecate_disable_spec_l14_d4_deprecated_formula_with_date() homebrew.DeprecateDisableSubject {
+	return homebrew.DeprecateDisableSubject{
+		...ruby_deprecate_disable_spec_l9_d3_deprecated_formula()
+		deprecation_date: ruby_deprecate_disable_spec_l7_d1_deprecate_date()
+	}
 }
 
 // Ruby let `let(:disabled_formula) do` at line 19.
-pub fn ruby_deprecate_disable_spec_l19_d5_disabled_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('disabled_formula', ...args)
+pub fn ruby_deprecate_disable_spec_l19_d5_disabled_formula() homebrew.DeprecateDisableSubject {
+	return homebrew.DeprecateDisableSubject{
+		kind: .formula
+		disabled: true
+		disable_reason: 'is broken'
+	}
 }
 
 // Ruby let `let(:disabled_formula_with_date) do` at line 25.
-pub fn ruby_deprecate_disable_spec_l25_d6_disabled_formula_with_date(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('disabled_formula_with_date', ...args)
+pub fn ruby_deprecate_disable_spec_l25_d6_disabled_formula_with_date() homebrew.DeprecateDisableSubject {
+	return homebrew.DeprecateDisableSubject{
+		kind: .formula
+		disabled: true
+		disable_reason: 'does_not_build'
+		disable_date: ruby_deprecate_disable_spec_l8_d2_disable_date()
+	}
 }
 
 // Ruby let `let(:deprecated_cask) do` at line 31.
-pub fn ruby_deprecate_disable_spec_l31_d7_deprecated_cask(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('deprecated_cask', ...args)
+pub fn ruby_deprecate_disable_spec_l31_d7_deprecated_cask() homebrew.DeprecateDisableSubject {
+	return homebrew.DeprecateDisableSubject{
+		kind: .cask
+		deprecated: true
+		deprecation_reason: 'discontinued'
+	}
 }
 
 // Ruby let `let(:disabled_cask) do` at line 36.
-pub fn ruby_deprecate_disable_spec_l36_d8_disabled_cask(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('disabled_cask', ...args)
+pub fn ruby_deprecate_disable_spec_l36_d8_disabled_cask() homebrew.DeprecateDisableSubject {
+	return homebrew.DeprecateDisableSubject{
+		kind: .cask
+		disabled: true
+	}
 }
 
 // Ruby let `let(:deprecated_formula_with_replacement) do` at line 42.
-pub fn ruby_deprecate_disable_spec_l42_d9_deprecated_formula_with_replacement(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('deprecated_formula_with_replacement', ...args)
+pub fn ruby_deprecate_disable_spec_l42_d9_deprecated_formula_with_replacement() homebrew.DeprecateDisableSubject {
+	return ruby_deprecate_disable_spec_l9_d3_deprecated_formula()
 }
 
 // Ruby let `let(:disabled_formula_with_replacement) do` at line 46.
-pub fn ruby_deprecate_disable_spec_l46_d10_disabled_formula_with_replacement(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('disabled_formula_with_replacement', ...args)
+pub fn ruby_deprecate_disable_spec_l46_d10_disabled_formula_with_replacement() homebrew.DeprecateDisableSubject {
+	return ruby_deprecate_disable_spec_l19_d5_disabled_formula()
 }
 
 // Ruby let `let(:deprecated_cask_with_replacement) do` at line 50.
-pub fn ruby_deprecate_disable_spec_l50_d11_deprecated_cask_with_replacement(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('deprecated_cask_with_replacement', ...args)
+pub fn ruby_deprecate_disable_spec_l50_d11_deprecated_cask_with_replacement() homebrew.DeprecateDisableSubject {
+	return ruby_deprecate_disable_spec_l31_d7_deprecated_cask()
 }
 
 // Ruby let `let(:disabled_cask_with_replacement) do` at line 54.
-pub fn ruby_deprecate_disable_spec_l54_d12_disabled_cask_with_replacement(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('disabled_cask_with_replacement', ...args)
+pub fn ruby_deprecate_disable_spec_l54_d12_disabled_cask_with_replacement() homebrew.DeprecateDisableSubject {
+	return ruby_deprecate_disable_spec_l36_d8_disabled_cask()
 }
 
 // Ruby it `it "returns :deprecated if the formula is deprecated" do` at line 88.
-pub fn ruby_deprecate_disable_spec_l88_d13_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_deprecate_disable_spec_l88_d13_returns() bool {
+	return homebrew.deprecate_disable_type(ruby_deprecate_disable_spec_l9_d3_deprecated_formula()) == 'deprecated'
 }
 
 // Ruby it `it "returns :disabled if the formula is disabled" do` at line 92.
-pub fn ruby_deprecate_disable_spec_l92_d14_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_deprecate_disable_spec_l92_d14_returns() bool {
+	return homebrew.deprecate_disable_type(ruby_deprecate_disable_spec_l19_d5_disabled_formula()) == 'disabled'
 }
 
 // Ruby it `it "returns :deprecated if the cask is deprecated" do` at line 96.
-pub fn ruby_deprecate_disable_spec_l96_d15_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_deprecate_disable_spec_l96_d15_returns() bool {
+	return homebrew.deprecate_disable_type(ruby_deprecate_disable_spec_l31_d7_deprecated_cask()) == 'deprecated'
 }
 
 // Ruby it `it "returns :disabled if the cask is disabled" do` at line 100.
-pub fn ruby_deprecate_disable_spec_l100_d16_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_deprecate_disable_spec_l100_d16_returns() bool {
+	return homebrew.deprecate_disable_type(ruby_deprecate_disable_spec_l36_d8_disabled_cask()) == 'disabled'
 }
 
 // Ruby it `it "returns a deprecation message with a preset formula reason" do` at line 106.
-pub fn ruby_deprecate_disable_spec_l106_d17_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_deprecate_disable_spec_l106_d17_returns() bool {
+	return homebrew.deprecate_disable_message(ruby_deprecate_disable_spec_l9_d3_deprecated_formula(), '2020-01-01') or { '' } == 'deprecated because it does not build!'
 }
 
 // Ruby it `it "returns a deprecation message with disable date" do` at line 111.
-pub fn ruby_deprecate_disable_spec_l111_d18_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_deprecate_disable_spec_l111_d18_returns() bool {
+	return homebrew.deprecate_disable_message(ruby_deprecate_disable_spec_l14_d4_deprecated_formula_with_date(), '2020-01-02') or { '' } == 'deprecated because it does not build! It will be disabled on 2021-01-01.'
 }
 
 // Ruby it `it "returns a disable message with a custom reason" do` at line 117.
-pub fn ruby_deprecate_disable_spec_l117_d19_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_deprecate_disable_spec_l117_d19_returns() bool {
+	return homebrew.deprecate_disable_message(ruby_deprecate_disable_spec_l19_d5_disabled_formula(), '2020-01-01') or { '' } == 'disabled because it is broken!'
 }
 
 // Ruby it `it "returns a disable message with disable date" do` at line 122.
-pub fn ruby_deprecate_disable_spec_l122_d20_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_deprecate_disable_spec_l122_d20_returns() bool {
+	return homebrew.deprecate_disable_message(ruby_deprecate_disable_spec_l25_d6_disabled_formula_with_date(), '2021-01-02') or { '' } == 'disabled because it does not build! It was disabled on 2021-01-01.'
 }
 
 // Ruby it `it "returns a deprecation message with a preset cask reason" do` at line 127.
-pub fn ruby_deprecate_disable_spec_l127_d21_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_deprecate_disable_spec_l127_d21_returns() bool {
+	return homebrew.deprecate_disable_message(ruby_deprecate_disable_spec_l31_d7_deprecated_cask(), '2020-01-01') or { '' } == 'deprecated because it is discontinued upstream!'
 }
 
 // Ruby it `it "returns a deprecation message with no reason" do` at line 132.
-pub fn ruby_deprecate_disable_spec_l132_d22_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_deprecate_disable_spec_l132_d22_returns() bool {
+	return homebrew.deprecate_disable_message(ruby_deprecate_disable_spec_l36_d8_disabled_cask(), '2020-01-01') or { '' } == 'disabled!'
 }
 
 // Ruby it `it "returns a replacement formula message for a deprecated formula" do` at line 137.
-pub fn ruby_deprecate_disable_spec_l137_d23_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_deprecate_disable_spec_l137_d23_returns() bool {
+	subject := homebrew.DeprecateDisableSubject{
+		...ruby_deprecate_disable_spec_l42_d9_deprecated_formula_with_replacement()
+		deprecation_formula: 'foo'
+	}
+	return (homebrew.deprecate_disable_message(subject, '2020-01-01') or { '' }) == 'deprecated because it does not build!\nReplacement:\n  brew install --formula foo\n'
 }
 
 // Ruby it `it "returns a replacement cask message for a deprecated formula" do` at line 144.
-pub fn ruby_deprecate_disable_spec_l144_d24_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_deprecate_disable_spec_l144_d24_returns() bool {
+	subject := homebrew.DeprecateDisableSubject{
+		...ruby_deprecate_disable_spec_l42_d9_deprecated_formula_with_replacement()
+		deprecation_cask: 'foo'
+	}
+	return (homebrew.deprecate_disable_message(subject, '2020-01-01') or { '' }) == 'deprecated because it does not build!\nReplacement:\n  brew install --cask foo\n'
 }
 
 // Ruby it `it "returns a replacement formula message for a disabled formula" do` at line 151.
-pub fn ruby_deprecate_disable_spec_l151_d25_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_deprecate_disable_spec_l151_d25_returns() bool {
+	subject := homebrew.DeprecateDisableSubject{
+		...ruby_deprecate_disable_spec_l46_d10_disabled_formula_with_replacement()
+		disable_formula: 'bar'
+	}
+	return (homebrew.deprecate_disable_message(subject, '2020-01-01') or { '' }) == 'disabled because it is broken!\nReplacement:\n  brew install --formula bar\n'
 }
 
 // Ruby it `it "returns a replacement cask message for a disabled formula" do` at line 158.
-pub fn ruby_deprecate_disable_spec_l158_d26_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_deprecate_disable_spec_l158_d26_returns() bool {
+	subject := homebrew.DeprecateDisableSubject{
+		...ruby_deprecate_disable_spec_l46_d10_disabled_formula_with_replacement()
+		disable_cask: 'bar'
+	}
+	return (homebrew.deprecate_disable_message(subject, '2020-01-01') or { '' }) == 'disabled because it is broken!\nReplacement:\n  brew install --cask bar\n'
 }
 
 // Ruby it `it "returns a replacement formula message for a deprecated cask" do` at line 165.
-pub fn ruby_deprecate_disable_spec_l165_d27_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_deprecate_disable_spec_l165_d27_returns() bool {
+	subject := homebrew.DeprecateDisableSubject{
+		...ruby_deprecate_disable_spec_l50_d11_deprecated_cask_with_replacement()
+		deprecation_formula: 'baz'
+	}
+	return (homebrew.deprecate_disable_message(subject, '2020-01-01') or { '' }) == 'deprecated because it is discontinued upstream!\nReplacement:\n  brew install --formula baz\n'
 }
 
 // Ruby it `it "returns a replacement cask message for a deprecated cask" do` at line 172.
-pub fn ruby_deprecate_disable_spec_l172_d28_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_deprecate_disable_spec_l172_d28_returns() bool {
+	subject := homebrew.DeprecateDisableSubject{
+		...ruby_deprecate_disable_spec_l50_d11_deprecated_cask_with_replacement()
+		deprecation_cask: 'baz'
+	}
+	return (homebrew.deprecate_disable_message(subject, '2020-01-01') or { '' }) == 'deprecated because it is discontinued upstream!\nReplacement:\n  brew install --cask baz\n'
 }
 
 // Ruby it `it "returns a replacement formula message for a disabled cask" do` at line 179.
-pub fn ruby_deprecate_disable_spec_l179_d29_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_deprecate_disable_spec_l179_d29_returns() bool {
+	subject := homebrew.DeprecateDisableSubject{
+		...ruby_deprecate_disable_spec_l54_d12_disabled_cask_with_replacement()
+		disable_formula: 'qux'
+	}
+	return (homebrew.deprecate_disable_message(subject, '2020-01-01') or { '' }) == 'disabled!\nReplacement:\n  brew install --formula qux\n'
 }
 
 // Ruby it `it "returns a replacement cask message for a disabled cask" do` at line 186.
-pub fn ruby_deprecate_disable_spec_l186_d30_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_deprecate_disable_spec_l186_d30_returns() bool {
+	subject := homebrew.DeprecateDisableSubject{
+		...ruby_deprecate_disable_spec_l54_d12_disabled_cask_with_replacement()
+		disable_cask: 'qux'
+	}
+	return (homebrew.deprecate_disable_message(subject, '2020-01-01') or { '' }) == 'disabled!\nReplacement:\n  brew install --cask qux\n'
 }
 
 // Ruby it `it "returns the original string if it isn't a formula preset reason" do` at line 195.
-pub fn ruby_deprecate_disable_spec_l195_d31_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_deprecate_disable_spec_l195_d31_returns() bool {
+	reason := homebrew.deprecate_disable_reason_from_string('discontinued', .formula) or {
+		return false
+	}
+	return reason.value == 'discontinued' && !reason.is_symbol
 }
 
 // Ruby it `it "returns the original string if it isn't a cask preset reason" do` at line 199.
-pub fn ruby_deprecate_disable_spec_l199_d32_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_deprecate_disable_spec_l199_d32_returns() bool {
+	reason := homebrew.deprecate_disable_reason_from_string('does_not_build', .cask) or {
+		return false
+	}
+	return reason.value == 'does_not_build' && !reason.is_symbol
 }
 
 // Ruby it `it "returns a symbol if the original string is a formula preset reason" do` at line 203.
-pub fn ruby_deprecate_disable_spec_l203_d33_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_deprecate_disable_spec_l203_d33_returns() bool {
+	reason := homebrew.deprecate_disable_reason_from_string('does_not_build', .formula) or {
+		return false
+	}
+	return reason.value == 'does_not_build' && reason.is_symbol
 }
 
 // Ruby it `it "returns a symbol if the original string is a cask preset reason" do` at line 208.
-pub fn ruby_deprecate_disable_spec_l208_d34_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_deprecate_disable_spec_l208_d34_returns() bool {
+	reason := homebrew.deprecate_disable_reason_from_string('discontinued', .cask) or {
+		return false
+	}
+	return reason.value == 'discontinued' && reason.is_symbol
 }
 
 // Original Ruby source (line-for-line):

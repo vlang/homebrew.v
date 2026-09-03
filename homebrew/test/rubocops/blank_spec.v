@@ -1,43 +1,87 @@
 module rubocops
 
-import brew_runtime
+import homebrew.rubocops as blank_core
 
 // Translated from Homebrew/brew `test/rubocops/blank_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "registers an offense and corrects" do` at line 8.
-pub fn ruby_blank_spec_l8_d1_registers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('registers', ...args)
+pub fn ruby_blank_spec_l8_d1_registers() bool {
+	sources := [
+		'foo.nil? || foo.empty?',
+		'nil? || empty?',
+		'foo == nil || foo.empty?',
+		'nil == foo || foo.empty?',
+		'!foo || foo.empty?',
+		'foo.nil? || !!foo.empty?',
+		'foo == nil || !!foo.empty?',
+		'nil == foo || !!foo.empty?',
+		'foo.bar.nil? || foo.bar.empty?',
+		'FOO.nil? || FOO.empty?',
+		'Foo.nil? || Foo.empty?',
+		'Foo::Bar.nil? || Foo::Bar.empty?',
+		'@foo.nil? || @foo.empty?',
+		'\$foo.nil? || \$foo.empty?',
+		'@@foo.nil? || @@foo.empty?',
+		'foo[bar].nil? || foo[bar].empty?',
+		'foo(bar).nil? || foo(bar).empty?',
+	]
+	corrections := [
+		'foo.blank?',
+		'blank?',
+		'foo.blank?',
+		'foo.blank?',
+		'foo.blank?',
+		'foo.blank?',
+		'foo.blank?',
+		'foo.blank?',
+		'foo.bar.blank?',
+		'FOO.blank?',
+		'Foo.blank?',
+		'Foo::Bar.blank?',
+		'@foo.blank?',
+		'\$foo.blank?',
+		'@@foo.blank?',
+		'foo[bar].blank?',
+		'foo(bar).blank?',
+	]
+	for index, source in sources {
+		offenses := blank_core.audit_blank(source)
+		if offenses.len != 1 || offenses[0].begin_pos != 0 || offenses[0].end_pos != source.len || offenses[0].message != 'Use `${corrections[index]}` instead of `${source}`.' || blank_core.correct_blank(source) != corrections[index] {
+			return false
+		}
+	}
+	return true
 }
 
 // Ruby it `it "accepts checking nil?" do` at line 20.
-pub fn ruby_blank_spec_l20_d2_accepts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('accepts', ...args)
+pub fn ruby_blank_spec_l20_d2_accepts() bool {
+	return blank_core.audit_blank('foo.nil?').len == 0
 }
 
 // Ruby it `it "accepts checking empty?" do` at line 24.
-pub fn ruby_blank_spec_l24_d3_accepts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('accepts', ...args)
+pub fn ruby_blank_spec_l24_d3_accepts() bool {
+	return blank_core.audit_blank('foo.empty?').len == 0
 }
 
 // Ruby it `it "accepts checking nil? || empty? on different objects" do` at line 28.
-pub fn ruby_blank_spec_l28_d4_accepts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('accepts', ...args)
+pub fn ruby_blank_spec_l28_d4_accepts() bool {
+	return blank_core.audit_blank('foo.nil? || bar.empty?').len == 0
 }
 
 // Ruby it `it "does not break when RHS of `or` is a naked falsiness check" do` at line 33.
-pub fn ruby_blank_spec_l33_d5_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_blank_spec_l33_d5_does() bool {
+	return blank_core.audit_blank('foo.empty? || bar').len == 0
 }
 
 // Ruby it `it "does not break when LHS of `or` is a naked falsiness check" do` at line 37.
-pub fn ruby_blank_spec_l37_d6_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_blank_spec_l37_d6_does() bool {
+	return blank_core.audit_blank('bar || foo.empty?').len == 0
 }
 
 // Ruby it `it "does not break when LHS of `or` is a send node with an argument" do` at line 42.
-pub fn ruby_blank_spec_l42_d7_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_blank_spec_l42_d7_does() bool {
+	return blank_core.audit_blank('x(1) || something').len == 0
 }
 
 // Original Ruby source (line-for-line):

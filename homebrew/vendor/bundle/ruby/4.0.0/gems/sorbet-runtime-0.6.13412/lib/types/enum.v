@@ -1,163 +1,646 @@
 module types
 
 import brew_runtime
+import sync
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/sorbet-runtime-0.6.13412/lib/types/enum.rb`.
 // The original source is retained below until every stub has a typed V body.
+const enum_unbound_suffix = " Enums are not initialized until the 'enums do' block they are defined in has finished running."
+
+pub struct EnumDefinition {
+pub:
+	name       string
+	serialized ?brew_runtime.Value
+}
+
+pub struct EnumLookup {
+pub:
+	found bool
+	value &EnumValue = unsafe { nil }
+}
+
+@[heap]
+pub struct EnumValue {
+pub:
+	class &EnumClass
+mut:
+	serialized_value brew_runtime.Value
+	uses_default     bool
+	const_name       string
+	bound            bool
+}
+
+@[heap]
+pub struct EnumClass {
+	mutex &sync.Mutex = sync.new_mutex()
+pub:
+	name    string
+	is_base bool
+mut:
+	started bool
+	fully   bool
+	values  []&EnumValue
+	mapping map[string]&EnumValue
+}
+
+pub fn new_enum_class(name string) &EnumClass {
+	return &EnumClass{
+		name: name
+		is_base: name == 'T::Enum'
+		mapping: map[string]&EnumValue{}
+	}
+}
+
+fn enum_nil_value() brew_runtime.Value {
+	return brew_runtime.object_value('NilClass', 'nil')
+}
+
+fn enum_serialized_key(value brew_runtime.Value) string {
+	return '${value.type_name}\0${value.repr}'
+}
+
+fn enum_unbound_value_message(class_name string) string {
+	return 'Attempting to access Enum value on ${class_name} before it has been initialized.' + enum_unbound_suffix
+}
+
+fn enum_unbound_values_message(class_name string) string {
+	return 'Attempting to access values of ${class_name} before it has been initialized.' + enum_unbound_suffix
+}
+
+fn enum_unbound_mapping_message(class_name string) string {
+	return 'Attempting to access serialization map of ${class_name} before it has been initialized.' + enum_unbound_suffix
+}
+
+pub fn (mut class EnumClass) begin_initializing() ! {
+	class.mutex.lock()
+	defer {
+		class.mutex.unlock()
+	}
+	if class.is_base {
+		return error('enums cannot be defined for T::Enum')
+	}
+	if class.fully {
+		return error('Enum ${class.name} was already initialized')
+	}
+	if class.started {
+		return error('Enum ${class.name} is still initializing')
+	}
+	class.started = true
+	class.values = []&EnumValue{}
+	class.mapping = map[string]&EnumValue{}
+}
+
+pub fn (mut class EnumClass) new_value(serialized ?brew_runtime.Value) !&EnumValue {
+	class.mutex.lock()
+	defer {
+		class.mutex.unlock()
+	}
+	if class.is_base {
+		return error('T::Enum is abstract')
+	}
+	if !class.started {
+		return error("Must instantiate all enum values of ${class.name} inside 'enums do'.")
+	}
+	if class.fully {
+		return error('Cannot instantiate a new enum value of ${class.name} after it has been initialized.')
+	}
+	mut value := &EnumValue{
+		class: class
+		serialized_value: enum_nil_value()
+		uses_default: true
+	}
+	if custom := serialized {
+		value.serialized_value = custom
+		value.uses_default = false
+	}
+	class.values << value
+	return value
+}
+
+pub fn (mut value EnumValue) bind_name(name string) {
+	clean_name := name.trim_string_left(':')
+	value.const_name = clean_name
+	if value.uses_default {
+		value.serialized_value = brew_runtime.string_value(clean_name.to_lower())
+	}
+	value.bound = true
+}
+
+pub fn (value &EnumValue) serialize_value() !brew_runtime.Value {
+	if !value.bound {
+		return error(enum_unbound_value_message(value.class.name))
+	}
+	return value.serialized_value
+}
+
+pub fn (value &EnumValue) inspect_value() string {
+	name := if value.bound { value.const_name } else { '__UNINITIALIZED__' }
+	return '#<${value.class.name}::${name}>'
+}
+
+pub fn (mut class EnumClass) finish_initializing(constants map[string]&EnumValue) ! {
+	class.mutex.lock()
+	if !class.started || class.fully {
+		class.mutex.unlock()
+		return error('Enum ${class.name} is not initializing')
+	}
+	mut mapping := map[string]&EnumValue{}
+	mut assigned := []&EnumValue{}
+	for name, value in constants {
+		if value.class != class {
+			class.mutex.unlock()
+			return error('Invalid constant ${class.name}::${name} on enum. All constants defined for an enum must be instances itself (e.g. `Foo = new`).')
+		}
+		mut bound_value := unsafe { &EnumValue(value) }
+		bound_value.bind_name(name)
+		key := enum_serialized_key(bound_value.serialized_value)
+		if key in mapping {
+			class.mutex.unlock()
+			return error("Enum values must have unique serializations. Value '${value.serialized_value.as_string()}' is repeated on ${class.name}.")
+		}
+		mapping[key] = bound_value
+		assigned << bound_value
+	}
+	mut orphaned := []string{}
+	for value in class.values {
+		if value !in assigned {
+			orphaned << value.serialized_value.as_string()
+		}
+	}
+	if orphaned.len > 0 {
+		class.mutex.unlock()
+		return error('Enum values must be assigned to constants: ${orphaned}')
+	}
+	class.mapping = mapping.clone()
+	class.fully = true
+	class.mutex.unlock()
+}
+
+pub fn define_enum(class_name string, definitions []EnumDefinition) !&EnumClass {
+	mut class := new_enum_class(class_name)
+	class.begin_initializing()!
+	mut constants := map[string]&EnumValue{}
+	for definition in definitions {
+		constants[definition.name] = class.new_value(definition.serialized)!
+	}
+	class.finish_initializing(constants)!
+	return class
+}
+
+pub fn (mut class EnumClass) all_values() ![]&EnumValue {
+	class.mutex.lock()
+	defer {
+		class.mutex.unlock()
+	}
+	if !class.fully {
+		return error(enum_unbound_values_message(class.name))
+	}
+	return class.values.clone()
+}
+
+pub fn (mut class EnumClass) try_deserialize(value brew_runtime.Value) !EnumLookup {
+	class.mutex.lock()
+	defer {
+		class.mutex.unlock()
+	}
+	if !class.fully {
+		return error(enum_unbound_mapping_message(class.name))
+	}
+	if found := class.mapping[enum_serialized_key(value)] {
+		return EnumLookup{
+			found: true
+			value: found
+		}
+	}
+	return EnumLookup{}
+}
+
+pub fn (mut class EnumClass) from_serialized(value brew_runtime.Value) !&EnumValue {
+	result := class.try_deserialize(value)!
+	if result.found {
+		return result.value
+	}
+	return error('Enum ${class.name} key not found: ${value.as_string()}')
+}
+
+pub fn (mut class EnumClass) has_serialized(value brew_runtime.Value) !bool {
+	class.mutex.lock()
+	defer {
+		class.mutex.unlock()
+	}
+	if !class.fully {
+		return error(enum_unbound_mapping_message(class.name))
+	}
+	return enum_serialized_key(value) in class.mapping
+}
+
+fn enum_class_value(class &EnumClass) brew_runtime.Value {
+	return brew_runtime.structured_value('Class', class.name, {
+		'enum_class_address': u64(voidptr(class)).str()
+		'name':               class.name
+	})
+}
+
+fn enum_class_from_value(value brew_runtime.Value) &EnumClass {
+	address := value.attribute('enum_class_address') or { panic('invalid Enum class receiver') }
+	return unsafe { &EnumClass(voidptr(address.u64())) }
+}
+
+fn enum_value_value(value &EnumValue) brew_runtime.Value {
+	return brew_runtime.Value{
+		type_name: value.class.name
+		repr: value.inspect_value()
+		map_data: {
+			'serialized': value.serialized_value
+		}
+		attributes: {
+			'enum_value_address': u64(voidptr(value)).str()
+			'enum_class_address': u64(voidptr(value.class)).str()
+			'class_name':         value.class.name
+			'const_name':         value.const_name
+			'bound':              value.bound.str()
+		}
+	}
+}
+
+fn enum_value_from_value(value brew_runtime.Value) &EnumValue {
+	address := value.attribute('enum_value_address') or { panic('invalid Enum value receiver') }
+	return unsafe { &EnumValue(voidptr(address.u64())) }
+}
+
+fn enum_values_value(values []&EnumValue) brew_runtime.Value {
+	return brew_runtime.array_value(values.map(enum_value_value(it)))
+}
+
+fn enum_compare_serialized(left brew_runtime.Value, right brew_runtime.Value) ?int {
+	if left.type_name in ['Integer', 'Float'] && right.type_name in ['Integer', 'Float'] {
+		left_number := left.as_float() or { return none }
+		right_number := right.as_float() or { return none }
+		return if left_number < right_number {
+			-1
+		} else if left_number > right_number { 1 } else { 0 }
+	}
+	if left.type_name != right.type_name {
+		return none
+	}
+	return if left.as_string() < right.as_string() {
+		-1
+	} else if left.as_string() > right.as_string() { 1 } else { 0 }
+}
+
+fn enum_json(value brew_runtime.Value) string {
+	if value.type_name == 'String' {
+		return '"${value.as_string().replace('\\', '\\\\').replace('"', '\\"')}"'
+	}
+	if value.type_name == 'NilClass' {
+		return 'null'
+	}
+	return value.as_string()
+}
+
+fn enum_serialized_argument(value brew_runtime.Value) brew_runtime.Value {
+	return value.map_data['value'] or { value }
+}
 
 // Ruby method `self.values` at line 57.
 pub fn ruby_enum_l57_d1_self_values(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.values', ...args)
+	if args.len == 0 {
+		panic('Enum.values requires a class receiver')
+	}
+	mut class := enum_class_from_value(args[0])
+	return enum_values_value(class.all_values() or { panic(err) })
 }
 
 // Ruby method `self.each_value(&blk)` at line 67.
 pub fn ruby_enum_l67_d2_self_each_value(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.each_value', ...args)
+	if args.len == 0 {
+		panic('Enum.each_value requires a class receiver')
+	}
+	mut class := enum_class_from_value(args[0])
+	values := class.all_values() or { panic(err) }
+	if args.len > 1 && args[1].type_name != 'NilClass' {
+		return enum_values_value(values)
+	}
+	return brew_runtime.Value{
+		type_name: 'Enumerator'
+		repr: '#<Enumerator: ${class.name}:each_value>'
+		array_data: values.map(enum_value_value(it))
+	}
 }
 
 // Ruby method `self.try_deserialize(serialized_val)` at line 80.
 pub fn ruby_enum_l80_d3_self_try_deserialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.try_deserialize', ...args)
+	if args.len < 2 {
+		panic('Enum.try_deserialize requires a class receiver and serialized value')
+	}
+	mut class := enum_class_from_value(args[0])
+	result := class.try_deserialize(args[1]) or { panic(err) }
+	return if result.found { enum_value_value(result.value) } else { enum_nil_value() }
 }
 
 // Ruby method `self.from_serialized(serialized_val)` at line 95.
 pub fn ruby_enum_l95_d4_self_from_serialized(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.from_serialized', ...args)
+	if args.len < 2 {
+		panic('Enum.from_serialized requires a class receiver and serialized value')
+	}
+	mut class := enum_class_from_value(args[0])
+	return enum_value_value(class.from_serialized(args[1]) or { panic(err) })
 }
 
 // Ruby method `self.has_serialized?(serialized_val)` at line 106.
 pub fn ruby_enum_l106_d5_self_has_serialized(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.has_serialized?', ...args)
+	if args.len < 2 {
+		panic('Enum.has_serialized? requires a class receiver and serialized value')
+	}
+	mut class := enum_class_from_value(args[0])
+	return brew_runtime.bool_value(class.has_serialized(args[1]) or { panic(err) })
 }
 
 // Ruby method `self.serialize(instance)` at line 115.
 pub fn ruby_enum_l115_d6_self_serialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.serialize', ...args)
+	if args.len < 2 || args[1].type_name == 'NilClass' {
+		return enum_nil_value()
+	}
+	class := enum_class_from_value(args[0])
+	if class.is_base {
+		panic('Cannot call T::Enum.serialize directly. You must call on a specific child class.')
+	}
+	value := enum_value_from_value(args[1])
+	if value.class != class {
+		panic('Cannot call #serialize on a value that is not an instance of ${class.name}.')
+	}
+	return value.serialize_value() or { panic(err) }
 }
 
 // Ruby method `self.deserialize(mongo_value)` at line 132.
 pub fn ruby_enum_l132_d7_self_deserialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.deserialize', ...args)
+	if args.len < 2 {
+		panic('Enum.deserialize requires a class receiver and serialized value')
+	}
+	class := enum_class_from_value(args[0])
+	if class.is_base {
+		panic('Cannot call T::Enum.deserialize directly. You must call on a specific child class.')
+	}
+	return ruby_enum_l95_d4_self_from_serialized(args[0], args[1])
 }
 
 // Ruby method `dup` at line 142.
 pub fn ruby_enum_l142_d8_dup(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dup', ...args)
+	if args.len == 0 {
+		panic('Enum#dup requires a receiver')
+	}
+	return args[0]
 }
 
 // Ruby method `clone` at line 147.
 pub fn ruby_enum_l147_d9_clone(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('clone', ...args)
+	if args.len == 0 {
+		panic('Enum#clone requires a receiver')
+	}
+	return args[0]
 }
 
 // Ruby method `serialize` at line 167.
 pub fn ruby_enum_l167_d10_serialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('serialize', ...args)
+	if args.len == 0 {
+		panic('Enum#serialize requires a receiver')
+	}
+	return enum_value_from_value(args[0]).serialize_value() or { panic(err) }
 }
 
 // Ruby method `to_json(*args)` at line 177.
 pub fn ruby_enum_l177_d11_to_json(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_json', ...args)
+	if args.len == 0 {
+		panic('Enum#to_json requires a receiver')
+	}
+	serialized := enum_value_from_value(args[0]).serialize_value() or { panic(err) }
+	return brew_runtime.string_value(enum_json(serialized))
 }
 
 // Ruby method `as_json(*args)` at line 182.
 pub fn ruby_enum_l182_d12_as_json(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('as_json', ...args)
+	if args.len == 0 {
+		panic('Enum#as_json requires a receiver')
+	}
+	serialized := enum_value_from_value(args[0]).serialize_value() or { panic(err) }
+	return serialized.map_data['as_json'] or { serialized }
 }
 
 // Ruby method `to_s` at line 192.
 pub fn ruby_enum_l192_d13_to_s(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_s', ...args)
+	return ruby_enum_l197_d14_inspect(...args)
 }
 
 // Ruby method `inspect` at line 197.
 pub fn ruby_enum_l197_d14_inspect(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('inspect', ...args)
+	if args.len == 0 {
+		panic('Enum#inspect requires a receiver')
+	}
+	return brew_runtime.string_value(enum_value_from_value(args[0]).inspect_value())
 }
 
 // Ruby method `<=>(other)` at line 202.
 pub fn ruby_enum_l202_d15_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('<=>', ...args)
+	if args.len < 2 {
+		return enum_nil_value()
+	}
+	left := enum_value_from_value(args[0])
+	if args[1].attributes['enum_class_address'] or { '' } != u64(voidptr(left.class)).str() {
+		return enum_nil_value()
+	}
+	right := enum_value_from_value(args[1])
+	comparison := enum_compare_serialized(left.serialize_value() or { panic(err) }, right.serialize_value() or {
+		panic(err)
+	}) or { return enum_nil_value() }
+	return brew_runtime.int_value(comparison)
 }
 
 // Ruby method `to_str` at line 219.
 pub fn ruby_enum_l219_d16_to_str(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_str', ...args)
+	if args.len == 0 {
+		panic('Enum#to_str requires a receiver')
+	}
+	mut state := global_configuration()
+	state.mutex.lock()
+	legacy := state.legacy_t_enum_mode
+	state.mutex.unlock()
+	if !legacy {
+		panic('Implicit conversion of Enum instances to strings is not allowed. Call #serialize instead.')
+	}
+	value := enum_value_from_value(args[0])
+	return brew_runtime.string_value((value.serialize_value() or { panic(err) }).as_string())
 }
 
 // Ruby method `serialize; end` at line 244.
 pub fn ruby_enum_l244_d17_serialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('serialize', ...args)
+	return ruby_enum_l167_d10_serialize(...args)
 }
 
 // Ruby method `==(other)` at line 249.
 pub fn ruby_enum_l249_d18_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('==', ...args)
+	if args.len < 2 {
+		return brew_runtime.bool_value(false)
+	}
+	value := enum_value_from_value(args[0])
+	if args[1].type_name == 'String' {
+		mut state := global_configuration()
+		state.mutex.lock()
+		legacy := state.legacy_t_enum_mode
+		state.mutex.unlock()
+		return brew_runtime.bool_value(legacy && (value.serialize_value() or { panic(err) }).as_string() == args[1].as_string())
+	}
+	return brew_runtime.bool_value(args[0].attributes['enum_value_address'] or { '' } == args[1].attributes['enum_value_address'] or {
+		'!'
+	})
 }
 
 // Ruby method `===(other)` at line 265.
 pub fn ruby_enum_l265_d19_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('===', ...args)
+	return ruby_enum_l249_d18_anonymous(...args)
 }
 
 // Ruby method `comparison_assertion_failed(method, other)` at line 282.
 pub fn ruby_enum_l282_d20_comparison_assertion_failed(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('comparison_assertion_failed', ...args)
+	return brew_runtime.structured_value('SoftAssertion', 'Enum to string comparison not allowed. Compare to the Enum instance directly instead. See go/enum-migration', {
+		'method': if args.len > 1 { args[1].as_string() } else { '' }
+		'other':  if args.len > 2 { args[2].as_string() } else { '' }
+	})
 }
 
 // Ruby method `initialize(serialized_val=UNSET)` at line 303.
 pub fn ruby_enum_l303_d21_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	if args.len == 0 {
+		panic('Enum#initialize requires an enum class')
+	}
+	mut class := enum_class_from_value(args[0])
+	serialized := if args.len > 1 { ?brew_runtime.Value(args[1]) } else { none }
+	return enum_value_value(class.new_value(serialized) or { panic(err) })
 }
 
 // Ruby method `assert_bound!` at line 319.
 pub fn ruby_enum_l319_d22_assert_bound(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('assert_bound!', ...args)
+	if args.len == 0 {
+		panic('Enum#assert_bound! requires a receiver')
+	}
+	value := enum_value_from_value(args[0])
+	value.serialize_value() or { panic(err) }
+	return enum_nil_value()
 }
 
 // Ruby method `_bind_name(const_name)` at line 326.
 pub fn ruby_enum_l326_d23_bind_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('_bind_name', ...args)
+	if args.len < 2 {
+		panic('Enum#_bind_name requires a receiver and constant name')
+	}
+	mut value := enum_value_from_value(args[0])
+	value.bind_name(args[1].as_string())
+	return args[1]
 }
 
 // Ruby method `const_to_serialized_val(const_name)` at line 333.
 pub fn ruby_enum_l333_d24_const_to_serialized_val(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('const_to_serialized_val', ...args)
+	if args.len == 0 {
+		panic('const_to_serialized_val requires a constant name')
+	}
+	return brew_runtime.string_value(args[args.len - 1].as_string().trim_string_left(':').to_lower())
 }
 
 // Ruby method `self.started_initializing?` at line 341.
 pub fn ruby_enum_l341_d25_self_started_initializing(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.started_initializing?', ...args)
+	if args.len == 0 {
+		panic('Enum.started_initializing? requires a class receiver')
+	}
+	mut class := enum_class_from_value(args[0])
+	class.mutex.lock()
+	started := class.started
+	class.mutex.unlock()
+	return brew_runtime.bool_value(started)
 }
 
 // Ruby method `self.fully_initialized?` at line 349.
 pub fn ruby_enum_l349_d26_self_fully_initialized(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.fully_initialized?', ...args)
+	if args.len == 0 {
+		panic('Enum.fully_initialized? requires a class receiver')
+	}
+	mut class := enum_class_from_value(args[0])
+	class.mutex.lock()
+	fully := class.fully
+	class.mutex.unlock()
+	return brew_runtime.bool_value(fully)
 }
 
 // Ruby method `self._register_instance(instance)` at line 358.
 pub fn ruby_enum_l358_d27_self_register_instance(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self._register_instance', ...args)
+	if args.len < 2 {
+		panic('Enum._register_instance requires a class and value')
+	}
+	mut class := enum_class_from_value(args[0])
+	value := enum_value_from_value(args[1])
+	class.mutex.lock()
+	if value !in class.values {
+		class.values << value
+	}
+	class.mutex.unlock()
+	return args[1]
 }
 
 // Ruby method `self.enums(&blk)` at line 366.
 pub fn ruby_enum_l366_d28_self_enums(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.enums', ...args)
+	if args.len < 2 {
+		panic('Enum.enums requires a class receiver and constants descriptor')
+	}
+	mut class := enum_class_from_value(args[0])
+	class.begin_initializing() or { panic(err) }
+	descriptor := args[1].map_data['constants'] or { args[1] }
+	mut constants := map[string]&EnumValue{}
+	for name, serialized in descriptor.map_data {
+		custom := if serialized.type_name == 'T::Enum::UNSET' {
+			none
+		} else {
+			?brew_runtime.Value(serialized)
+		}
+		constants[name] = class.new_value(custom) or { panic(err) }
+	}
+	class.finish_initializing(constants) or { panic(err) }
+	return enum_nil_value()
 }
 
 // Ruby method `self.inherited(child_class)` at line 407.
 pub fn ruby_enum_l407_d29_self_inherited(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.inherited', ...args)
+	if args.len < 2 {
+		panic('Enum.inherited requires parent and child classes')
+	}
+	parent := enum_class_from_value(args[0])
+	if !parent.is_base {
+		panic('Inheriting from children of T::Enum is prohibited')
+	}
+	return args[1]
 }
 
 // Ruby method `_dump(_level)` at line 420.
 pub fn ruby_enum_l420_d30_dump(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('_dump', ...args)
+	if args.len == 0 {
+		panic('Enum#_dump requires a receiver')
+	}
+	serialized := enum_value_from_value(args[0]).serialize_value() or { panic(err) }
+	return brew_runtime.Value{
+		type_name: 'String'
+		repr: serialized.as_string()
+		map_data: {
+			'value': serialized
+		}
+		attributes: {
+			'marshal': 'true'
+		}
+	}
 }
 
 // Ruby method `self._load(args)` at line 425.
 pub fn ruby_enum_l425_d31_self_load(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self._load', ...args)
+	if args.len < 2 {
+		panic('Enum._load requires a class and dumped String')
+	}
+	return ruby_enum_l132_d7_self_deserialize(args[0], enum_serialized_argument(args[1]))
 }
 
 // Original Ruby source (line-for-line):

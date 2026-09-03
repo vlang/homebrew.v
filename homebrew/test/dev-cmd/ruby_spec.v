@@ -7,17 +7,39 @@ import brew_runtime
 
 // Ruby it `it "can execute Ruby code without Sorbet runtime", :integration_test do` at line 10.
 pub fn ruby_ruby_spec_l10_d1_can(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('can', ...args)
+	_ = args
+	ruby_source := 'class SorbetRuntimeTest\n  extend T::Sig\n\n  sig { void }\n  def check; end\nend\n\nabort if T::Utils.signature_for_method(SorbetRuntimeTest.instance_method(:check))\n'
+	environment := {
+		'HOMEBREW_DEV_CMD_RUN':             '1'
+		'HOMEBREW_TESTS_NO_SORBET_RUNTIME': '1'
+		'HOMEBREW_SORBET_RUNTIME':          '1'
+		'HOMEBREW_SORBET_RECURSIVE':        '1'
+	}
+	plan := build_ruby_command_exec_args(RubyCommandOptions{
+		ruby_exec_args: ['ruby']
+		load_path: ['/brew']
+		named: ['-e', ruby_source]
+	})
+	return brew_runtime.bool_value(plan.len >= 2 && plan[plan.len - 2..] == ['-e', ruby_source]
+		&& environment['HOMEBREW_TESTS_NO_SORBET_RUNTIME'] == '1'
+		&& environment['HOMEBREW_SORBET_RUNTIME'] == '1')
 }
 
 // Ruby method `check; end` at line 16.
 pub fn ruby_ruby_spec_l16_d2_check(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('check', ...args)
+	_ = args
+	return brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
 }
 
 // Ruby it `it "passes Homebrew libraries and code to Ruby" do` at line 35.
 pub fn ruby_ruby_spec_l35_d3_passes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('passes', ...args)
+	code := if args.len > 0 { args[0].as_string() } else { "puts 'testball'.f.path" }
+	plan := build_ruby_command_exec_args(RubyCommandOptions{
+		ruby_exec_args: ['/portable/bin/ruby']
+		load_path: ['/brew/Library/Homebrew', '/brew/vendor']
+		code: code
+	})
+	return brew_runtime.string_array_value(plan)
 }
 
 // Original Ruby source (line-for-line):

@@ -4,40 +4,79 @@ import brew_runtime
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/sorbet-runtime-0.6.13412/lib/types/types/typed_range.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub fn new_typed_range_type(type_value brew_runtime.Value) &TypedEnumerableType {
+	return new_typed_enumerable_subtype(type_value, 'Range', 'T::Range')
+}
+
+fn typed_range_value(type_value brew_runtime.Value) brew_runtime.Value {
+	return typed_enumerable_value(new_typed_range_type(type_value))
+}
+
+pub fn typed_range_new(args []brew_runtime.Value) !brew_runtime.Value {
+	if args.len < 2 {
+		return error('bad value for range')
+	}
+	exclude_end := if args.len > 2 { args[2].as_bool()! } else { false }
+	separator := if exclude_end { '...' } else { '..' }
+	return brew_runtime.Value{
+		type_name: 'Range'
+		repr: '${args[0].as_string()}${separator}${args[1].as_string()}'
+		array_data: [args[0], args[1]]
+		attributes: {
+			'exclude_end': exclude_end.str()
+		}
+	}
+}
 
 // Ruby method `underlying_class` at line 6.
 pub fn ruby_typed_range_l6_d1_underlying_class(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('underlying_class', ...args)
+	typed_enumerable_from_args(args)
+	return brew_runtime.object_value('Class', 'Range')
 }
 
 // Ruby method `name` at line 11.
 pub fn ruby_typed_range_l11_d2_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('name', ...args)
+	return brew_runtime.string_value(typed_enumerable_from_args(args).name())
 }
 
 // Ruby method `recursively_valid?(obj)` at line 16.
 pub fn ruby_typed_range_l16_d3_recursively_valid(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('recursively_valid?', ...args)
+	if args.len < 2 {
+		panic('TypedRange#recursively_valid? requires an object')
+	}
+	return brew_runtime.bool_value(typed_enumerable_from_args(args).recursively_valid(args[1]) or {
+		panic(err)
+	})
 }
 
 // Ruby method `valid?(obj)` at line 21.
 pub fn ruby_typed_range_l21_d4_valid(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('valid?', ...args)
+	if args.len < 2 {
+		panic('TypedRange#valid? requires an object')
+	}
+	return brew_runtime.bool_value(args[1].type_name == 'Range')
 }
 
 // Ruby method `new(...)` at line 25.
 pub fn ruby_typed_range_l25_d5_new(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('new', ...args)
+	if args.len == 0 {
+		panic('TypedRange#new requires a receiver')
+	}
+	typed_enumerable_from_args(args)
+	return typed_range_new(args[1..]) or { panic(err) }
 }
 
 // Ruby method `initialize` at line 30.
 pub fn ruby_typed_range_l30_d6_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	return typed_range_value(base_type_boundary_value(base_untyped_type()))
 }
 
 // Ruby method `valid?(obj)` at line 34.
 pub fn ruby_typed_range_l34_d7_valid(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('valid?', ...args)
+	if args.len < 2 {
+		panic('TypedRange::Untyped#valid? requires an object')
+	}
+	return brew_runtime.bool_value(args[1].type_name == 'Range')
 }
 
 // Original Ruby source (line-for-line):

@@ -7,7 +7,16 @@ import brew_runtime
 
 // Ruby method `deep_dup` at line 14.
 pub fn ruby_array_l14_d1_deep_dup(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('deep_dup', ...args)
+	if args.len == 0 {
+		return brew_runtime.array_value([])
+	}
+	return brew_runtime.array_value(deep_dup_array_values(args[0].as_array() or { [] }))
+}
+
+// deep_dup_values translates Array#deep_dup using the shared recursive value
+// copier used by Object#deep_dup.
+pub fn deep_dup_array_values(values []brew_runtime.Value) []brew_runtime.Value {
+	return values.map(deep_dup_value(it))
 }
 
 // Original Ruby source (line-for-line):

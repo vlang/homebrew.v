@@ -1,13 +1,90 @@
 module subcommand
 
 import brew_runtime
+import homebrew.bundle
 
 // Translated from Homebrew/brew `bundle/subcommand/add.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `run` at line 46.
 pub fn ruby_add_l46_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('run', ...args)
+	if args.len < 3 {
+		return brew_runtime.object_value('ArgumentError', 'items, selected type, and Brewfile are required')
+	}
+	items := if args[0].type_name == 'Array' {
+		args[0].as_array() or { [] }.map(it.as_string())
+	} else {
+		[args[0].as_string()]
+	}
+	selected_types := args[1].as_string_array() or { [args[1].as_string()] }
+	file := args[2].as_string()
+	describe := if args.len > 3 { args[3].as_bool() or { true } } else { true }
+	descriptions := if args.len > 4 {
+		subcommand_descriptions_from_value(args[4])
+	} else {
+		map[string]string{}
+	}
+	result := run_bundle_add(BundleAddCommandOptions{
+		items: items
+		selected_types: selected_types
+		file: file
+		describe: describe
+		descriptions: descriptions
+	}) or { return brew_runtime.object_value('UsageError', err.msg()) }
+	return brew_runtime.structured_value('Bundle::AddSubcommand::Result', result.path, {
+		'path':         result.path
+		'content':      result.content
+		'trusted_type': result.trusted_type
+	})
+}
+
+pub struct BundleAddCommandOptions {
+pub:
+	items                  []string
+	selected_types         []string
+	file                   string
+	describe               bool = true
+	descriptions           map[string]string
+	taps                   []string
+	unsupported_extensions []string
+}
+
+pub fn selected_bundle_add_type(selected_types []string) !string {
+	if selected_types.len != 1 {
+		return error('`add` supports only one type of entry at a time.')
+	}
+	entry_type := selected_types[0]
+	if entry_type == 'none' {
+		return 'brew'
+	}
+	if entry_type == 'mas' {
+		return error('`add` does not support `--mas`.')
+	}
+	return entry_type
+}
+
+pub fn run_bundle_add(options BundleAddCommandOptions) !bundle.BundleAddResult {
+	entry_type := selected_bundle_add_type(options.selected_types)!
+	if entry_type in options.unsupported_extensions {
+		return error('`add` does not support `--${entry_type}`.')
+	}
+	return bundle.add_bundle_entries(bundle.BundleAddOptions{
+		items: options.items
+		entry_type: entry_type
+		file: options.file
+		describe: options.describe
+		descriptions: options.descriptions
+		taps: options.taps
+	})
+}
+
+fn subcommand_descriptions_from_value(value brew_runtime.Value) map[string]string {
+	values := value.as_map() or { return map[string]string{} }
+	mut descriptions := map[string]string{}
+	for name, description in values {
+		descriptions[name] = description.as_string()
+	}
+	return descriptions
 }
 
 // Original Ruby source (line-for-line):

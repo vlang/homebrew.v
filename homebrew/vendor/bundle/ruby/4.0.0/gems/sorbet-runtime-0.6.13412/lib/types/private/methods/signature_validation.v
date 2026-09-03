@@ -4,60 +4,393 @@ import brew_runtime
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/sorbet-runtime-0.6.13412/lib/types/private/methods/signature_validation.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub struct ValidationTypePair {
+pub:
+	name       string
+	type_value brew_runtime.Value
+}
+
+@[heap]
+pub struct ValidationSignature {
+pub:
+	method_name                 string
+	method_desc                 string
+	mode                        string
+	owner                       string
+	owner_is_class              bool
+	owner_is_module_singleton   bool
+	owner_includes_enumerable   bool
+	visibility                  string = 'public'
+	arg_types                   []ValidationTypePair
+	req_arg_count               int
+	rest_name                   string
+	rest_type                   brew_runtime.Value
+	kwarg_types                 map[string]brew_runtime.Value
+	req_kwarg_names             []string
+	keyrest_name                string
+	keyrest_type                brew_runtime.Value
+	block_name                  string
+	effective_return_type       brew_runtime.Value
+	check_level                 string = 'always'
+	override_allow_incompatible string
+	super_signature             ?&ValidationSignature
+}
+
+pub fn pretty_signature_mode(mode string) string {
+	clean := mode.trim_string_left(':')
+	return if clean == 'overridable_override' { 'overridable.override' } else { clean }
+}
+
+pub fn validation_visibility_strength(visibility string) !int {
+	clean := visibility.trim_string_left(':')
+	index := ['public', 'protected', 'private'].index(clean)
+	if index < 0 {
+		return error('Unexpected visibility `${clean}`')
+	}
+	return index
+}
+
+pub fn validation_base_override_location(signature ValidationSignature,
+	super_signature ValidationSignature) string {
+	mode_noun := if super_signature.mode == 'abstract' { 'Implementation' } else { 'Override' }
+	return '\n * Base definition: in ${super_signature.method_desc}\n * ${mode_noun}: in ${signature.method_desc}'
+}
+
+pub fn validate_signature_override_mode(signature ValidationSignature,
+	super_signature ValidationSignature) ! {
+	mode := signature.mode.trim_string_left(':')
+	super_mode := super_signature.mode.trim_string_left(':')
+	if mode in override_modes || mode == 'abstract' {
+		return
+	}
+	if mode in non_override_modes {
+		if super_mode == 'standard' || super_mode == 'untyped' {
+			return
+		}
+		if super_mode == 'abstract' {
+			return error('You must use `.override` when overriding the abstract method `${signature.method_name}`.\n  Abstract definition: ${super_signature.method_desc}\n  Implementation definition: ${signature.method_desc}\n')
+		}
+		return error('You must use `.override` when overriding the existing method `${signature.method_name}`.\n  Parent definition: ${super_signature.method_desc}\n  Child definition:  ${signature.method_desc}\n')
+	}
+	return error('Unexpected mode: ${mode}. Please report this bug at https://github.com/sorbet/sorbet/issues')
+}
+
+pub fn validate_signature_non_override_mode(signature ValidationSignature) ! {
+	mode := signature.mode.trim_string_left(':')
+	if mode == 'override' && !(signature.method_name == 'each' && signature.owner_includes_enumerable) {
+		pretty := pretty_signature_mode(mode)
+		return error("You marked `${signature.method_name}` as ${pretty}, but that method doesn't already exist in this class/module to be overridden.\n  Either check for typos and for missing includes or super classes to make the parent method shows up\n  ... or remove ${pretty} here: ${signature.method_desc}\n")
+	}
+	if mode !in method_modes {
+		return error('Unexpected mode: ${mode}. Please report this bug at https://github.com/sorbet/sorbet/issues')
+	}
+	if (mode == 'abstract' || mode in overridable_modes) && signature.owner_is_module_singleton {
+		return error('Defining an overridable class method (via ${pretty_signature_mode(mode)}) on a module is not allowed. Class methods on modules do not get inherited and thus cannot be overridden.')
+	}
+}
+
+fn validation_is_nil_type(value brew_runtime.Value) bool {
+	return value.type_name == 'NilClass' || value.repr == 'nil'
+}
+
+fn validation_type_name(value brew_runtime.Value) string {
+	return value.attribute('name') or { value.attribute('raw_type') or { value.as_string() } }
+}
+
+fn validation_type_subtype(left brew_runtime.Value, right brew_runtime.Value) bool {
+	left_name := validation_type_name(left)
+	right_name := validation_type_name(right)
+	if right.type_name in ['T::Types::Anything', 'T::Types::Untyped'] || right_name in [
+		'T.anything',
+		'T.untyped',
+	] {
+		return true
+	}
+	if left.type_name == 'T::Types::NoReturn' || left_name == 'T.noreturn' || left_name == right_name {
+		return true
+	}
+	supertypes := left.attribute('supertypes') or { '' }.split(',').map(it.trim_space())
+	return right_name in supertypes
+}
+
+fn validation_mode_verb(super_signature ValidationSignature) string {
+	return if super_signature.mode.trim_string_left(':') == 'abstract' {
+		'implements'
+	} else {
+		'overrides'
+	}
+}
+
+pub fn validate_signature_override_shape(signature ValidationSignature,
+	super_signature ValidationSignature) ! {
+	if signature.override_allow_incompatible == 'true' || super_signature.mode.trim_string_left(':') == 'untyped' {
+		return
+	}
+	verb := validation_mode_verb(super_signature)
+	location := validation_base_override_location(signature, super_signature)
+	if validation_is_nil_type(signature.rest_type) && signature.arg_types.len < super_signature.arg_types.len {
+		return error('Your definition of `${signature.method_name}` must accept at least ${super_signature.arg_types.len} positional arguments to be compatible with the method it ${verb}: ${location}')
+	}
+	if validation_is_nil_type(signature.rest_type) && !validation_is_nil_type(super_signature.rest_type) {
+		return error('Your definition of `${signature.method_name}` must have `*${super_signature.rest_name}` to be compatible with the method it ${verb}: ${location}')
+	}
+	if signature.req_arg_count > super_signature.req_arg_count {
+		return error('Your definition of `${signature.method_name}` must have no more than ${super_signature.req_arg_count} required argument(s) to be compatible with the method it ${verb}: ${location}')
+	}
+	if validation_is_nil_type(signature.keyrest_type) && super_signature.kwarg_types.len > 0 {
+		missing := super_signature.kwarg_types.keys().filter(it !in signature.kwarg_types)
+		if missing.len > 0 {
+			return error('Your definition of `${signature.method_name}` is missing these keyword arg(s): ${missing} which are defined in the method it ${verb}: ${location}')
+		}
+	}
+	if validation_is_nil_type(signature.keyrest_type) && !validation_is_nil_type(super_signature.keyrest_type) {
+		return error('Your definition of `${signature.method_name}` must have `**${super_signature.keyrest_name}` to be compatible with the method it ${verb}: ${location}')
+	}
+	if signature.req_kwarg_names.len > 0 {
+		extra := signature.req_kwarg_names.filter(it !in super_signature.req_kwarg_names)
+		if extra.len > 0 {
+			return error('Your definition of `${signature.method_name}` has extra required keyword arg(s) ${extra} relative to the method it ${verb}, making it incompatible: ${location}')
+		}
+	}
+	if super_signature.block_name != '' && signature.block_name == '' {
+		return error('Your definition of `${signature.method_name}` must accept a block parameter to be compatible with the method it ${verb}: ${location}')
+	}
+}
+
+pub fn signature_check_level_active(signature ValidationSignature, tests_enabled bool) bool {
+	level := signature.check_level.trim_string_left(':')
+	return level == 'always' || (level == 'tests' && tests_enabled)
+}
+
+pub fn validate_signature_override_types(signature ValidationSignature,
+	super_signature ValidationSignature, tests_enabled bool) ! {
+	if signature.override_allow_incompatible == 'true' || super_signature.mode.trim_string_left(':') == 'untyped' || !signature_check_level_active(signature, tests_enabled) || !signature_check_level_active(super_signature, tests_enabled) {
+		return
+	}
+	mode_noun := if super_signature.mode.trim_string_left(':') == 'abstract' {
+		'implementation'
+	} else {
+		'override'
+	}
+	for index, base_pair in super_signature.arg_types {
+		pair := if index < signature.arg_types.len {
+			signature.arg_types[index]
+		} else {
+			ValidationTypePair{ name: signature.rest_name, type_value: signature.rest_type }
+		}
+		if !validation_type_subtype(base_pair.type_value, pair.type_value) {
+			return error('Incompatible type for arg #${index + 1} (`${pair.name}`) in signature for ${mode_noun} of method `${signature.method_name}`:\n* Base: `${validation_type_name(base_pair.type_value)}` (in ${super_signature.method_desc})\n* ${mode_noun.capitalize()}: `${validation_type_name(pair.type_value)}` (in ${signature.method_desc})\n(The types must be contravariant.)')
+		}
+	}
+	for name, base_type in super_signature.kwarg_types {
+		type_value := signature.kwarg_types[name] or { signature.keyrest_type }
+		if !validation_type_subtype(base_type, type_value) {
+			return error('Incompatible type for arg `${name}` in signature for ${mode_noun} of method `${signature.method_name}`:\n* Base: `${validation_type_name(base_type)}` (in ${super_signature.method_desc})\n* ${mode_noun.capitalize()}: `${validation_type_name(type_value)}` (in ${signature.method_desc})\n(The types must be contravariant.)')
+		}
+	}
+	mut base_return := super_signature.effective_return_type
+	if base_return.type_name == 'T::Private::Types::Void' {
+		base_return = brew_runtime.object_value('T::Types::Anything', 'T.anything')
+	}
+	if !validation_type_subtype(signature.effective_return_type, base_return) {
+		return error('Incompatible return type in signature for ${mode_noun} of method `${signature.method_name}`:\n* Base: `${validation_type_name(super_signature.effective_return_type)}` (in ${super_signature.method_desc})\n* ${mode_noun.capitalize()}: `${validation_type_name(signature.effective_return_type)}` (in ${signature.method_desc})\n(The types must be covariant.)')
+	}
+}
+
+pub fn validate_signature_override_visibility(signature ValidationSignature,
+	super_signature ValidationSignature) ! {
+	if super_signature.mode.trim_string_left(':') == 'untyped' || signature.mode.trim_string_left(':') !in override_modes || signature.override_allow_incompatible in [
+		'true',
+		'visibility',
+	] {
+		return
+	}
+	if validation_visibility_strength(signature.visibility)! > validation_visibility_strength(super_signature.visibility)! {
+		mode_noun := if super_signature.mode.trim_string_left(':') == 'abstract' {
+			'implementation'
+		} else {
+			'override'
+		}
+		return error('Incompatible visibility for ${mode_noun} of method ${signature.method_name}\n* Base: ${super_signature.visibility} (in ${super_signature.method_desc})\n* ${mode_noun.capitalize()}: ${signature.visibility} (in ${signature.method_desc})\n(The override must be at least as permissive as the supermethod)')
+	}
+}
+
+pub fn validate_signature(signature ValidationSignature, tests_enabled bool) ! {
+	if signature.method_name == 'initialize' && signature.owner_is_class && signature.mode.trim_string_left(':') == 'standard' {
+		return
+	}
+	if super_signature := signature.super_signature {
+		if super_signature.owner != signature.owner {
+			validate_signature_override_mode(signature, *super_signature)!
+			validate_signature_override_shape(signature, *super_signature)!
+			validate_signature_override_types(signature, *super_signature, tests_enabled)!
+			validate_signature_override_visibility(signature, *super_signature)!
+			return
+		}
+	}
+	validate_signature_non_override_mode(signature)!
+}
+
+fn signature_value_type(value brew_runtime.Value, key string) brew_runtime.Value {
+	return value.map_data[key] or { brew_runtime.object_value('NilClass', 'nil') }
+}
+
+fn validation_signature_from_value(value brew_runtime.Value) ValidationSignature {
+	mut arg_types := []ValidationTypePair{}
+	if raw_args := value.map_data['arg_types'] {
+		for name, type_value in raw_args.as_map() or { map[string]brew_runtime.Value{} } {
+			arg_types << ValidationTypePair{ name: name, type_value: type_value }
+		}
+	}
+	kwarg_types := if raw_kwargs := value.map_data['kwarg_types'] {
+		raw_kwargs.as_map() or { map[string]brew_runtime.Value{} }
+	} else {
+		map[string]brew_runtime.Value{}
+	}
+	mut super_signature := ?&ValidationSignature(none)
+	if raw_super := value.map_data['super_signature'] {
+		mut parsed := validation_signature_from_value(raw_super)
+		super_signature = &parsed
+	}
+	return ValidationSignature{
+		method_name: value.attribute('method_name') or { value.as_string() }
+		method_desc: value.attribute('method_desc') or { value.as_string() }
+		mode: value.attribute('mode') or { 'standard' }
+		owner: value.attribute('owner') or { '' }
+		owner_is_class: value.attribute('owner_is_class') or { 'false' } == 'true'
+		owner_is_module_singleton: value.attribute('owner_is_module_singleton') or { 'false' } == 'true'
+		owner_includes_enumerable: value.attribute('owner_includes_enumerable') or { 'false' } == 'true'
+		visibility: value.attribute('visibility') or { 'public' }
+		arg_types: arg_types
+		req_arg_count: value.attribute('req_arg_count') or { '0' }.int()
+		rest_name: value.attribute('rest_name') or { '' }
+		rest_type: signature_value_type(value, 'rest_type')
+		kwarg_types: kwarg_types
+		req_kwarg_names: value.attribute('req_kwarg_names') or { '' }.split(',').filter(it != '')
+		keyrest_name: value.attribute('keyrest_name') or { '' }
+		keyrest_type: signature_value_type(value, 'keyrest_type')
+		block_name: value.attribute('block_name') or { '' }
+		effective_return_type: signature_value_type(value, 'return_type')
+		check_level: value.attribute('check_level') or { 'always' }
+		override_allow_incompatible: value.attribute('override_allow_incompatible') or { '' }
+		super_signature: super_signature
+	}
+}
+
+fn signature_validation_value(signature ValidationSignature) brew_runtime.Value {
+	return brew_runtime.structured_value('T::Private::Methods::SignatureValidation', signature.method_name, {
+		'validated': 'true'
+	})
+}
 
 // Ruby method `self.validate(signature)` at line 8.
 pub fn ruby_signature_validation_l8_d1_self_validate(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.validate', ...args)
+	if args.len == 0 {
+		panic('SignatureValidation.validate requires a signature')
+	}
+	signature := validation_signature_from_value(args[0])
+	tests_enabled := if args.len > 1 { args[1].as_bool() or { false } } else { false }
+	validate_signature(signature, tests_enabled) or { panic(err.msg()) }
+	return signature_validation_value(signature)
 }
 
 // Ruby method `self.pretty_mode(mode)` at line 101.
 pub fn ruby_signature_validation_l101_d2_self_pretty_mode(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.pretty_mode', ...args)
+	return brew_runtime.string_value(pretty_signature_mode(if args.len > 0 {
+		args[0].as_string()
+	} else {
+		''
+	}))
 }
 
 // Ruby method `self.validate_override_mode(signature, super_signature)` at line 109.
 pub fn ruby_signature_validation_l109_d3_self_validate_override_mode(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.validate_override_mode', ...args)
+	if args.len < 2 {
+		panic('SignatureValidation.validate_override_mode requires two signatures')
+	}
+	validate_signature_override_mode(validation_signature_from_value(args[0]), validation_signature_from_value(args[1])) or { panic(err.msg()) }
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Ruby method `self.validate_non_override_mode(mode, method_name, method, source_loc=method.source_location)` at line 143.
 pub fn ruby_signature_validation_l143_d4_self_validate_non_override_mode(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.validate_non_override_mode', ...args)
+	if args.len < 3 {
+		panic('SignatureValidation.validate_non_override_mode requires mode, method name, and method')
+	}
+	method := args[2]
+	signature := ValidationSignature{
+		method_name: args[1].as_string().trim_string_left(':')
+		method_desc: method.attribute('method_desc') or { method.as_string() }
+		mode: args[0].as_string()
+		owner: method.attribute('owner') or { '' }
+		owner_is_module_singleton: method.attribute('owner_is_module_singleton') or { 'false' } == 'true'
+		owner_includes_enumerable: method.attribute('owner_includes_enumerable') or { 'false' } == 'true'
+	}
+	validate_signature_non_override_mode(signature) or { panic(err.msg()) }
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Ruby method `self.validate_override_shape(signature, super_signature)` at line 180.
 pub fn ruby_signature_validation_l180_d5_self_validate_override_shape(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.validate_override_shape', ...args)
+	if args.len < 2 {
+		panic('SignatureValidation.validate_override_shape requires two signatures')
+	}
+	validate_signature_override_shape(validation_signature_from_value(args[0]), validation_signature_from_value(args[1])) or { panic(err.msg()) }
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Ruby method `self.check_level_active?(sig)` at line 245.
 pub fn ruby_signature_validation_l245_d6_self_check_level_active(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.check_level_active?', ...args)
+	if args.len == 0 {
+		return brew_runtime.bool_value(false)
+	}
+	tests_enabled := if args.len > 1 { args[1].as_bool() or { false } } else { false }
+	return brew_runtime.bool_value(signature_check_level_active(validation_signature_from_value(args[0]), tests_enabled))
 }
 
 // Ruby method `self.validate_override_types(signature, super_signature)` at line 249.
 pub fn ruby_signature_validation_l249_d7_self_validate_override_types(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.validate_override_types', ...args)
+	if args.len < 2 {
+		panic('SignatureValidation.validate_override_types requires two signatures')
+	}
+	tests_enabled := if args.len > 2 { args[2].as_bool() or { false } } else { false }
+	validate_signature_override_types(validation_signature_from_value(args[0]), validation_signature_from_value(args[1]), tests_enabled) or { panic(err.msg()) }
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Ruby method `self.validate_override_visibility(signature, super_signature)` at line 316.
 pub fn ruby_signature_validation_l316_d8_self_validate_override_visibility(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.validate_override_visibility', ...args)
+	if args.len < 2 {
+		panic('SignatureValidation.validate_override_visibility requires two signatures')
+	}
+	validate_signature_override_visibility(validation_signature_from_value(args[0]), validation_signature_from_value(args[1])) or { panic(err.msg()) }
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Ruby method `self.method_visibility(method)` at line 339.
 pub fn ruby_signature_validation_l339_d9_self_method_visibility(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.method_visibility', ...args)
+	if args.len == 0 {
+		panic('SignatureValidation.method_visibility requires a method')
+	}
+	return brew_runtime.object_value('Symbol', ':${args[0].attribute('visibility') or { 'public' }}')
 }
 
 // Ruby method `self.visibility_strength(vis)` at line 347.
 pub fn ruby_signature_validation_l347_d10_self_visibility_strength(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.visibility_strength', ...args)
+	if args.len == 0 {
+		panic('SignatureValidation.visibility_strength requires a visibility')
+	}
+	return brew_runtime.int_value(i64(validation_visibility_strength(args[0].as_string()) or {
+		panic(err.msg())
+	}))
 }
 
 // Ruby method `self.base_override_loc_str(signature, super_signature)` at line 351.
 pub fn ruby_signature_validation_l351_d11_self_base_override_loc_str(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.base_override_loc_str', ...args)
+	if args.len < 2 {
+		panic('SignatureValidation.base_override_loc_str requires two signatures')
+	}
+	return brew_runtime.string_value(validation_base_override_location(validation_signature_from_value(args[0]), validation_signature_from_value(args[1])))
 }
 
 // Original Ruby source (line-for-line):

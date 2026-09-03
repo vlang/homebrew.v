@@ -1,143 +1,411 @@
 module download_strategy
 
 import brew_runtime
+import os
+import time
 
 // Translated from Homebrew/brew `download_strategy/git_download_strategy.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `initialize(url, name, version, **meta)` at line 11.
-pub fn ruby_git_download_strategy_l11_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+// Git's sparse-checkout cone mode consumes directory patterns with both a
+// leading and trailing slash, so normalize the source `only_path` metadata
+// before the shared VCS initializer computes its cache tag.
+pub fn new_git_download_strategy(url string, name string, version string, source_meta VCSDownloadMeta) VCSDownloadStrategy {
+	mut meta := source_meta
+	if meta.only_path != '' {
+		if !meta.only_path.starts_with('/') {
+			meta.only_path = '/${meta.only_path}'
+		}
+		if !meta.only_path.ends_with('/') {
+			meta.only_path += '/'
+		}
+	}
+	mut strategy := new_vcs_download_strategy(url, name, version, meta, if meta.only_path == '' {
+		'git'
+	} else {
+		'git-sparse'
+	}, .git)
+	if strategy.ref_type == .unspecified {
+		strategy.ref_type = .branch
+		strategy.ref = 'master'
+	}
+	return strategy
 }
 
 // Ruby method `source_modified_time` at line 31.
-pub fn ruby_git_download_strategy_l31_d2_source_modified_time(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('source_modified_time', ...args)
+pub fn (strategy &VCSDownloadStrategy) git_source_modified_time() !i64 {
+	result := vcs_command_checked('git', ['--git-dir', strategy.git_dir(), 'show', '-s',
+		'--format=%cD'], '', strategy.git_local_env(), none)!
+	parsed := time.parse_rfc2822(result.output.trim_space()) or {
+		return error('invalid Git commit time `${result.output.trim_space()}`')
+	}
+	return parsed.unix()
 }
 
 // Ruby method `source_revision = current_revision.presence` at line 40.
-pub fn ruby_git_download_strategy_l40_d3_source_revision(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('source_revision', ...args)
+pub fn (strategy &VCSDownloadStrategy) git_source_revision() !string {
+	return strategy.git_current_revision()
 }
 
 // Ruby method `last_commit` at line 46.
-pub fn ruby_git_download_strategy_l46_d4_last_commit(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('last_commit', ...args)
+pub fn (strategy &VCSDownloadStrategy) git_last_commit() !string {
+	result := vcs_command('git', ['--git-dir', strategy.git_dir(), 'rev-parse', '--short=7', 'HEAD'], '', strategy.git_local_env(), none)!
+	if result.exit_code != 0 {
+		return ''
+	}
+	return result.output.trim_space()
 }
 
 // Ruby method `ref?` at line 53.
-pub fn ruby_git_download_strategy_l53_d5_ref(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ref?', ...args)
+pub fn (strategy &VCSDownloadStrategy) git_ref() bool {
+	result := vcs_command('git', ['--git-dir', strategy.git_dir(), 'rev-parse', '-q', '--verify',
+		'--end-of-options', '${strategy.ref}^{commit}'], '', strategy.git_local_env(), none) or { return false }
+	return result.exit_code == 0
 }
 
 // Ruby method `clone_args` at line 61.
-pub fn ruby_git_download_strategy_l61_d6_clone_args(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('clone_args', ...args)
+pub fn (strategy &VCSDownloadStrategy) git_clone_args() []string {
+	mut args := ['clone']
+	if strategy.ref_type in [.branch, .tag] {
+		args << '--branch'
+		args << strategy.ref
+	}
+	if strategy.git_partial_clone_sparse_checkout() {
+		args << '--no-checkout'
+		args << '--filter=blob:none'
+	}
+	args << '--config'
+	args << 'advice.detachedHead=false'
+	args << '--config'
+	args << 'core.fsmonitor=false'
+	args << '--end-of-options'
+	args << strategy.url
+	args << strategy.cached_location_value
+	return args
 }
 
 // Ruby method `env` at line 81.
-pub fn ruby_git_download_strategy_l81_d7_env(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('env', ...args)
+pub fn (strategy &VCSDownloadStrategy) git_env() map[string]string {
+	_ = strategy
+	return {
+		'GIT_TERMINAL_PROMPT': '0'
+	}
 }
 
 // Ruby method `local_git_env` at line 90.
-pub fn ruby_git_download_strategy_l90_d8_local_git_env(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('local_git_env', ...args)
+pub fn (strategy &VCSDownloadStrategy) git_local_env() map[string]string {
+	mut environment := strategy.git_env()
+	environment['GIT_CONFIG_GLOBAL'] = '/dev/null'
+	return environment
 }
 
 // Ruby method `cache_tag` at line 96.
-pub fn ruby_git_download_strategy_l96_d9_cache_tag(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cache_tag', ...args)
+pub fn (strategy &VCSDownloadStrategy) git_cache_tag() string {
+	return if strategy.git_partial_clone_sparse_checkout() { 'git-sparse' } else { 'git' }
 }
 
 // Ruby method `cache_version` at line 105.
-pub fn ruby_git_download_strategy_l105_d10_cache_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cache_version', ...args)
+pub fn (strategy &VCSDownloadStrategy) git_cache_version() int {
+	_ = strategy
+	return 0
 }
 
 // Ruby method `update(timeout: nil)` at line 110.
-pub fn ruby_git_download_strategy_l110_d11_update(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('update', ...args)
+pub fn (mut strategy VCSDownloadStrategy) git_update(deadline ?i64) ! {
+	strategy.git_config_repo(deadline)!
+	strategy.git_update_repo(deadline)!
+	strategy.git_checkout(deadline)!
+	strategy.git_reset(deadline)!
+	if strategy.git_submodules() {
+		strategy.git_update_submodules(deadline)!
+	}
 }
 
 // Ruby method `shallow_dir?` at line 119.
-pub fn ruby_git_download_strategy_l119_d12_shallow_dir(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('shallow_dir?', ...args)
+pub fn (strategy &VCSDownloadStrategy) git_shallow_dir() bool {
+	return os.exists(os.join_path(strategy.git_dir(), 'shallow'))
 }
 
 // Ruby method `git_dir` at line 124.
-pub fn ruby_git_download_strategy_l124_d13_git_dir(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('git_dir', ...args)
+pub fn (strategy &VCSDownloadStrategy) git_dir() string {
+	return os.join_path(strategy.cached_location_value, '.git')
 }
 
 // Ruby method `current_revision` at line 129.
-pub fn ruby_git_download_strategy_l129_d14_current_revision(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('current_revision', ...args)
+pub fn (strategy &VCSDownloadStrategy) git_current_revision() !string {
+	result := vcs_command('git', ['--git-dir', strategy.git_dir(), 'rev-parse', '-q', '--verify',
+		'HEAD'], '', strategy.git_local_env(), none)!
+	return if result.exit_code == 0 { result.output.trim_space() } else { '' }
 }
 
 // Ruby method `repo_valid?` at line 135.
-pub fn ruby_git_download_strategy_l135_d15_repo_valid(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('repo_valid?', ...args)
+pub fn (strategy &VCSDownloadStrategy) git_repo_valid() bool {
+	result := vcs_command('git', ['-C', strategy.cached_location_value, 'status', '-s'], '', strategy.git_env(), none) or { return false }
+	return result.exit_code == 0
 }
 
 // Ruby method `submodules?` at line 140.
-pub fn ruby_git_download_strategy_l140_d16_submodules(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('submodules?', ...args)
+pub fn (strategy &VCSDownloadStrategy) git_submodules() bool {
+	return os.exists(os.join_path(strategy.cached_location_value, '.gitmodules'))
 }
 
 // Ruby method `partial_clone_sparse_checkout?` at line 145.
-pub fn ruby_git_download_strategy_l145_d17_partial_clone_sparse_checkout(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('partial_clone_sparse_checkout?', ...args)
+pub fn (strategy &VCSDownloadStrategy) git_partial_clone_sparse_checkout() bool {
+	if strategy.only_path == '' {
+		return false
+	}
+	result := vcs_command('git', ['--version'], '', map[string]string{}, none) or { return false }
+	parts := result.output.trim_space().split(' ').last().split('.')
+	if parts.len < 2 {
+		return false
+	}
+	return parts[0].int() > 2 || (parts[0].int() == 2 && parts[1].int() >= 25)
 }
 
 // Ruby method `refspec` at line 153.
-pub fn ruby_git_download_strategy_l153_d18_refspec(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('refspec', ...args)
+pub fn (strategy &VCSDownloadStrategy) git_refspec() string {
+	return match strategy.ref_type {
+		.branch { '+refs/heads/${strategy.ref}:refs/remotes/origin/${strategy.ref}' }
+		.tag { '+refs/tags/${strategy.ref}:refs/tags/${strategy.ref}' }
+		else { strategy.git_default_refspec() }
+	}
 }
 
 // Ruby method `default_refspec` at line 162.
-pub fn ruby_git_download_strategy_l162_d19_default_refspec(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('default_refspec', ...args)
+pub fn (strategy &VCSDownloadStrategy) git_default_refspec() string {
+	_ = strategy
+	// https://git-scm.com/book/en/v2/Git-Internals-The-Refspec
+	return '+refs/heads/*:refs/remotes/origin/*'
 }
 
 // Ruby method `config_repo` at line 168.
-pub fn ruby_git_download_strategy_l168_d20_config_repo(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('config_repo', ...args)
+pub fn (strategy &VCSDownloadStrategy) git_config_repo(deadline ?i64) ! {
+	settings := {
+		'remote.origin.url':    strategy.url
+		'remote.origin.fetch':  strategy.git_refspec()
+		'remote.origin.tagOpt': '--no-tags'
+		'advice.detachedHead':  'false'
+		'core.fsmonitor':       'false'
+	}
+	for key, value in settings {
+		vcs_command_checked('git', ['config', key, value], strategy.cached_location_value, strategy.git_env(), deadline)!
+	}
+	if strategy.git_partial_clone_sparse_checkout() {
+		vcs_command_checked('git', ['config', 'origin.partialclonefilter', 'blob:none'], strategy.cached_location_value, strategy.git_env(), deadline)!
+		strategy.git_configure_sparse_checkout(deadline)!
+	}
 }
 
 // Ruby method `update_repo(timeout: nil)` at line 194.
-pub fn ruby_git_download_strategy_l194_d21_update_repo(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('update_repo', ...args)
+pub fn (strategy &VCSDownloadStrategy) git_update_repo(deadline ?i64) ! {
+	if strategy.ref_type != .branch && strategy.git_ref() {
+		return
+	}
+	mut args := ['fetch', 'origin']
+	if strategy.git_shallow_dir() {
+		args << '--unshallow'
+	}
+	vcs_command_checked('git', args, strategy.cached_location_value, strategy.git_env(), deadline)!
 }
 
 // Ruby method `clone_repo(timeout: nil)` at line 214.
-pub fn ruby_git_download_strategy_l214_d22_clone_repo(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('clone_repo', ...args)
+pub fn (mut strategy VCSDownloadStrategy) git_clone_repo(deadline ?i64) ! {
+	vcs_command_checked('git', strategy.git_clone_args(), '', strategy.git_env(), deadline)!
+	vcs_command_checked('git', ['config', 'homebrew.cacheversion',
+		strategy.git_cache_version().str()], strategy.cached_location_value, strategy.git_env(), deadline)!
+	if strategy.git_partial_clone_sparse_checkout() {
+		strategy.git_configure_sparse_checkout(deadline)!
+	}
+	strategy.git_checkout(deadline)!
+	if strategy.git_submodules() {
+		strategy.git_update_submodules(deadline)!
+	}
 }
 
 // Ruby method `checkout(timeout: nil)` at line 232.
-pub fn ruby_git_download_strategy_l232_d23_checkout(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('checkout', ...args)
+pub fn (strategy &VCSDownloadStrategy) git_checkout(deadline ?i64) ! {
+	if strategy.ref != '' {
+		strategy.base.ohai('Checking out ${strategy.ref_type} ${strategy.ref}')
+	}
+	vcs_command_checked('git', ['checkout', '-f', strategy.ref, '--'], strategy.cached_location_value, strategy.git_env(), deadline)!
 }
 
 // Ruby method `reset` at line 239.
-pub fn ruby_git_download_strategy_l239_d24_reset(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reset', ...args)
+pub fn (strategy &VCSDownloadStrategy) git_reset(deadline ?i64) ! {
+	mut args := ['reset', '--hard']
+	match strategy.ref_type {
+		.branch { args << 'origin/${strategy.ref}' }
+		.revision, .tag { args << strategy.ref }
+		else {}
+	}
+	args << '--'
+	vcs_command_checked('git', args, strategy.cached_location_value, strategy.git_env(), deadline)!
 }
 
 // Ruby method `update_submodules(timeout: nil)` at line 253.
-pub fn ruby_git_download_strategy_l253_d25_update_submodules(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('update_submodules', ...args)
+pub fn (strategy &VCSDownloadStrategy) git_update_submodules(deadline ?i64) ! {
+	vcs_command_checked('git', ['submodule', 'foreach', '--recursive', 'git submodule sync'], strategy.cached_location_value, strategy.git_env(), deadline)!
+	vcs_command_checked('git', ['submodule', 'update', '--init', '--recursive'], strategy.cached_location_value, strategy.git_env(), deadline)!
+	strategy.git_fix_absolute_submodule_gitdir_references()!
 }
 
 // Ruby method `fix_absolute_submodule_gitdir_references!` at line 275.
-pub fn ruby_git_download_strategy_l275_d26_fix_absolute_submodule_gitdir_references(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fix_absolute_submodule_gitdir_references!', ...args)
+pub fn (strategy &VCSDownloadStrategy) git_fix_absolute_submodule_gitdir_references() ! {
+	result := vcs_command_checked('git', ['submodule', '--quiet', 'foreach', '--recursive', 'pwd'], strategy.cached_location_value, strategy.git_env(), none)!
+	for submodule_dir in result.output.split_into_lines() {
+		work_dir := submodule_dir.trim_space()
+		if work_dir == '' {
+			continue
+		}
+		dot_git := os.join_path(work_dir, '.git')
+		if !os.is_file(dot_git) {
+			continue
+		}
+		line := os.read_file(dot_git)!.trim_space()
+		if !line.starts_with('gitdir: ') {
+			continue
+		}
+		git_directory := line.all_after('gitdir: ')
+		if !os.is_abs_path(git_directory) {
+			continue
+		}
+		relative := lexical_relative_path(work_dir, git_directory)
+		brew_runtime.atomic_write_file(dot_git, 'gitdir: ${relative}\n')!
+	}
 }
 
 // Ruby method `configure_sparse_checkout` at line 304.
-pub fn ruby_git_download_strategy_l304_d27_configure_sparse_checkout(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('configure_sparse_checkout', ...args)
+pub fn (strategy &VCSDownloadStrategy) git_configure_sparse_checkout(deadline ?i64) ! {
+	vcs_command_checked('git', ['config', 'core.sparseCheckout', 'true'], strategy.cached_location_value, strategy.git_env(), deadline)!
+	vcs_command_checked('git', ['config', 'core.sparseCheckoutCone', 'true'], strategy.cached_location_value, strategy.git_env(), deadline)!
+	info := os.join_path(strategy.git_dir(), 'info')
+	os.mkdir_all(info)!
+	os.write_file(os.join_path(info, 'sparse-checkout'), '${strategy.only_path}\n')!
+}
+
+fn lexical_relative_path(base string, destination string) string {
+	base_parts := os.norm_path(base).split('/').filter(it != '')
+	destination_parts := os.norm_path(destination).split('/').filter(it != '')
+	mut common_count := 0
+	for common_count < base_parts.len && common_count < destination_parts.len && base_parts[common_count] == destination_parts[common_count] {
+		common_count++
+	}
+	mut parts := []string{}
+	for _ in common_count .. base_parts.len {
+		parts << '..'
+	}
+	parts << destination_parts[common_count..]
+	return if parts.len == 0 { '.' } else { parts.join('/') }
+}
+
+// Source entrypoint translations.
+pub fn ruby_git_download_strategy_l11_d1_initialize(url string, name string, version string, meta VCSDownloadMeta) VCSDownloadStrategy {
+	return new_git_download_strategy(url, name, version, meta)
+}
+
+pub fn ruby_git_download_strategy_l31_d2_source_modified_time(strategy &VCSDownloadStrategy) !i64 {
+	return strategy.git_source_modified_time()
+}
+
+pub fn ruby_git_download_strategy_l40_d3_source_revision(strategy &VCSDownloadStrategy) !string {
+	return strategy.git_source_revision()
+}
+
+pub fn ruby_git_download_strategy_l46_d4_last_commit(strategy &VCSDownloadStrategy) !string {
+	return strategy.git_last_commit()
+}
+
+pub fn ruby_git_download_strategy_l53_d5_ref(strategy &VCSDownloadStrategy) bool {
+	return strategy.git_ref()
+}
+
+pub fn ruby_git_download_strategy_l61_d6_clone_args(strategy &VCSDownloadStrategy) []string {
+	return strategy.git_clone_args()
+}
+
+pub fn ruby_git_download_strategy_l81_d7_env(strategy &VCSDownloadStrategy) map[string]string {
+	return strategy.git_env()
+}
+
+pub fn ruby_git_download_strategy_l90_d8_local_git_env(strategy &VCSDownloadStrategy) map[string]string {
+	return strategy.git_local_env()
+}
+
+pub fn ruby_git_download_strategy_l96_d9_cache_tag(strategy &VCSDownloadStrategy) string {
+	return strategy.git_cache_tag()
+}
+
+pub fn ruby_git_download_strategy_l105_d10_cache_version(strategy &VCSDownloadStrategy) int {
+	return strategy.git_cache_version()
+}
+
+pub fn ruby_git_download_strategy_l110_d11_update(mut strategy VCSDownloadStrategy, deadline ?i64) ! {
+	strategy.git_update(deadline)!
+}
+
+pub fn ruby_git_download_strategy_l119_d12_shallow_dir(strategy &VCSDownloadStrategy) bool {
+	return strategy.git_shallow_dir()
+}
+
+pub fn ruby_git_download_strategy_l124_d13_git_dir(strategy &VCSDownloadStrategy) string {
+	return strategy.git_dir()
+}
+
+pub fn ruby_git_download_strategy_l129_d14_current_revision(strategy &VCSDownloadStrategy) !string {
+	return strategy.git_current_revision()
+}
+
+pub fn ruby_git_download_strategy_l135_d15_repo_valid(strategy &VCSDownloadStrategy) bool {
+	return strategy.git_repo_valid()
+}
+
+pub fn ruby_git_download_strategy_l140_d16_submodules(strategy &VCSDownloadStrategy) bool {
+	return strategy.git_submodules()
+}
+
+pub fn ruby_git_download_strategy_l145_d17_partial_clone_sparse_checkout(strategy &VCSDownloadStrategy) bool {
+	return strategy.git_partial_clone_sparse_checkout()
+}
+
+pub fn ruby_git_download_strategy_l153_d18_refspec(strategy &VCSDownloadStrategy) string {
+	return strategy.git_refspec()
+}
+
+pub fn ruby_git_download_strategy_l162_d19_default_refspec(strategy &VCSDownloadStrategy) string {
+	return strategy.git_default_refspec()
+}
+
+pub fn ruby_git_download_strategy_l168_d20_config_repo(strategy &VCSDownloadStrategy, deadline ?i64) ! {
+	strategy.git_config_repo(deadline)!
+}
+
+pub fn ruby_git_download_strategy_l194_d21_update_repo(strategy &VCSDownloadStrategy, deadline ?i64) ! {
+	strategy.git_update_repo(deadline)!
+}
+
+pub fn ruby_git_download_strategy_l214_d22_clone_repo(mut strategy VCSDownloadStrategy, deadline ?i64) ! {
+	strategy.git_clone_repo(deadline)!
+}
+
+pub fn ruby_git_download_strategy_l232_d23_checkout(strategy &VCSDownloadStrategy, deadline ?i64) ! {
+	strategy.git_checkout(deadline)!
+}
+
+pub fn ruby_git_download_strategy_l239_d24_reset(strategy &VCSDownloadStrategy, deadline ?i64) ! {
+	strategy.git_reset(deadline)!
+}
+
+pub fn ruby_git_download_strategy_l253_d25_update_submodules(strategy &VCSDownloadStrategy, deadline ?i64) ! {
+	strategy.git_update_submodules(deadline)!
+}
+
+pub fn ruby_git_download_strategy_l275_d26_fix_absolute_submodule_gitdir_references(strategy &VCSDownloadStrategy) ! {
+	strategy.git_fix_absolute_submodule_gitdir_references()!
+}
+
+pub fn ruby_git_download_strategy_l304_d27_configure_sparse_checkout(strategy &VCSDownloadStrategy, deadline ?i64) ! {
+	strategy.git_configure_sparse_checkout(deadline)!
 }
 
 // Original Ruby source (line-for-line):

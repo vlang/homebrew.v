@@ -1,43 +1,80 @@
 module cmd
 
-import brew_runtime
+import homebrew.cmd as desc_core
 
 // Translated from Homebrew/brew `test/cmd/desc_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "shows a given Formula's description", :integration_test do` at line 10.
-pub fn ruby_desc_spec_l10_d1_shows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('shows', ...args)
+pub fn ruby_desc_spec_l10_d1_shows() bool {
+	result := desc_core.run_desc_command(desc_core.DescCommandRequest{
+		named: ['testball']
+		items: [desc_core.DescItem{
+			kind: .formula
+			full_name: 'testball'
+			description: 'Some test'
+		}]
+	}) or { return false }
+	return result.output == 'testball: Some test\n'
 }
 
 // Ruby it `it "shows an installed Cask's description with status" do` at line 19.
-pub fn ruby_desc_spec_l19_d2_shows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('shows', ...args)
+pub fn ruby_desc_spec_l19_d2_shows() bool {
+	result := desc_core.run_desc_command(desc_core.DescCommandRequest{
+		named: ['local-transmission']
+		tty: true
+		items: [desc_core.DescItem{
+			kind: .cask
+			full_name: 'local-transmission'
+			names: ['Transmission']
+			description: 'BitTorrent client'
+			installed: true
+		}]
+	}) or { return false }
+	return result.output.contains('local-transmission ✔: (Transmission) BitTorrent client')
 }
 
 // Ruby it `it "omits a Cask without a description" do` at line 41.
-pub fn ruby_desc_spec_l41_d3_omits(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('omits', ...args)
+pub fn ruby_desc_spec_l41_d3_omits() bool {
+	result := desc_core.run_desc_command(desc_core.DescCommandRequest{
+		named: ['no-description']
+		items: [desc_core.DescItem{
+			kind: .cask
+			full_name: 'no-description'
+			names: ['No Description']
+		}]
+	}) or { return false }
+	return result.output == ''
+}
+
+fn desc_spec_search(query string, no_install_from_api bool, tap_trust_configured bool) bool {
+	result := desc_core.run_desc_command(desc_core.DescCommandRequest{
+		named: [query]
+		search: true
+		no_install_from_api: no_install_from_api
+		tap_trust_configured: tap_trust_configured
+	}) or { return false }
+	return result.searched && result.search_query == query && result.search_field == .either
 }
 
 // Ruby it `it "successfully searches without API by default" do` at line 56.
-pub fn ruby_desc_spec_l56_d4_successfully(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('successfully', ...args)
+pub fn ruby_desc_spec_l56_d4_successfully() bool {
+	return desc_spec_search('testball', false, false)
 }
 
 // Ruby it `it "successfully searches with --search and HOMEBREW_NO_REQUIRE_TAP_TRUST" do` at line 70.
-pub fn ruby_desc_spec_l70_d5_successfully(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('successfully', ...args)
+pub fn ruby_desc_spec_l70_d5_successfully() bool {
+	return desc_spec_search('ball', true, true)
 }
 
 // Ruby it `it "successfully searches with --search and HOMEBREW_REQUIRE_TAP_TRUST" do` at line 78.
-pub fn ruby_desc_spec_l78_d6_successfully(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('successfully', ...args)
+pub fn ruby_desc_spec_l78_d6_successfully() bool {
+	return desc_spec_search('ball', true, true)
 }
 
 // Ruby it `it "successfully searches with API" do` at line 86.
-pub fn ruby_desc_spec_l86_d7_successfully(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('successfully', ...args)
+pub fn ruby_desc_spec_l86_d7_successfully() bool {
+	return desc_spec_search('testball', false, false)
 }
 
 // Original Ruby source (line-for-line):

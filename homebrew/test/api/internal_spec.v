@@ -1,148 +1,279 @@
 module api
 
 import brew_runtime
+import homebrew.api as internal_api
+import os
 
 // Translated from Homebrew/brew `test/api/internal_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby let `let(:cache_dir) { mktmpdir }` at line 7.
 pub fn ruby_internal_spec_l7_d1_cache_dir(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cache_dir', ...args)
+	path := os.join_path(os.temp_dir(), 'brew-v-internal-${os.getpid()}')
+	os.mkdir_all(path) or {}
+	return brew_runtime.object_value('Pathname', path)
 }
 
 // Ruby let `let(:packages_json) do` at line 8.
 pub fn ruby_internal_spec_l8_d2_packages_json(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('packages_json', ...args)
+	return brew_runtime.string_value(internal_spec_packages_json())
 }
 
 // Ruby let `let(:formula_hashes) do` at line 87.
 pub fn ruby_internal_spec_l87_d3_formula_hashes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_hashes', ...args)
+	return brew_runtime.map_value(internal_spec_formula_hashes())
 }
 
 // Ruby let `let(:cask_hashes) do` at line 117.
 pub fn ruby_internal_spec_l117_d4_cask_hashes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask_hashes', ...args)
+	return brew_runtime.map_value(internal_spec_cask_hashes())
 }
 
 // Ruby let `let(:formula_structs) do` at line 139.
 pub fn ruby_internal_spec_l139_d5_formula_structs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_structs', ...args)
+	mut values := map[string]brew_runtime.Value{}
+	for name, hash in internal_spec_formula_hashes() {
+		values[name] = brew_runtime.map_value(internal_api.formula_struct_deserialize(hash.map_data.clone(), 'arm64_sonoma', internal_api.ApiStructPaths{}).serialize('arm64_sonoma'))
+	}
+	return brew_runtime.map_value(values)
 }
 
 // Ruby let `let(:cask_structs) do` at line 145.
 pub fn ruby_internal_spec_l145_d6_cask_structs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask_structs', ...args)
+	mut values := map[string]brew_runtime.Value{}
+	for name, hash in internal_spec_cask_hashes() {
+		values[name] = brew_runtime.map_value(internal_api.cask_struct_deserialize(hash.map_data.clone(), internal_api.ApiStructPaths{}).serialize())
+	}
+	return brew_runtime.map_value(values)
 }
 
 // Ruby let `let(:formulae_aliases) do` at line 151.
 pub fn ruby_internal_spec_l151_d7_formulae_aliases(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formulae_aliases', ...args)
+	return brew_runtime.map_value(internal_spec_string_map_value({
+		'foo-alias1': 'foo'
+		'foo-alias2': 'foo'
+		'bar-alias':  'bar'
+	}))
 }
 
 // Ruby let `let(:formulae_renames) do` at line 158.
 pub fn ruby_internal_spec_l158_d8_formulae_renames(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formulae_renames', ...args)
+	return brew_runtime.map_value(internal_spec_string_map_value({
+		'foo-old': 'foo'
+		'bar-old': 'bar'
+		'baz-old': 'baz'
+	}))
 }
 
 // Ruby let `let(:cask_renames) do` at line 165.
 pub fn ruby_internal_spec_l165_d9_cask_renames(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask_renames', ...args)
+	return brew_runtime.map_value(internal_spec_string_map_value({
+		'foo-old': 'foo'
+		'bar-old': 'bar'
+		'baz-old': 'baz'
+	}))
 }
 
 // Ruby let `let(:formula_tap_git_head) { "b871900717ccbb3508ca93fa56e128940b9bd371" }` at line 172.
 pub fn ruby_internal_spec_l172_d10_formula_tap_git_head(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_tap_git_head', ...args)
+	return brew_runtime.string_value('b871900717ccbb3508ca93fa56e128940b9bd371')
 }
 
 // Ruby let `let(:cask_tap_git_head) { "030eea17b14b437b0a7b96f4dbc9473cce4be31c" }` at line 173.
 pub fn ruby_internal_spec_l173_d11_cask_tap_git_head(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask_tap_git_head', ...args)
+	return brew_runtime.string_value('030eea17b14b437b0a7b96f4dbc9473cce4be31c')
 }
 
 // Ruby let `let(:formula_tap_migrations) do` at line 174.
 pub fn ruby_internal_spec_l174_d12_formula_tap_migrations(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_tap_migrations', ...args)
+	return brew_runtime.map_value(internal_spec_string_map_value({
+		'abc': 'some/tap'
+		'def': 'another/tap'
+	}))
 }
 
 // Ruby let `let(:cask_tap_migrations) do` at line 180.
 pub fn ruby_internal_spec_l180_d13_cask_tap_migrations(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask_tap_migrations', ...args)
+	return brew_runtime.map_value(internal_spec_string_map_value({
+		'abc': 'some/tap'
+		'def': 'another/tap'
+	}))
 }
 
 // Ruby it `it "returns the expected formula structs" do` at line 199.
 pub fn ruby_internal_spec_l199_d14_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	mut state := internal_spec_state()
+	for name, expected in internal_spec_formula_hashes() {
+		actual := internal_api.internal_state_formula_struct(mut state, name) or { return brew_runtime.bool_value(false) }
+		if !actual.equals(internal_api.formula_struct_deserialize(expected.map_data.clone(), 'arm64_sonoma', internal_api.ApiStructPaths{}), 'arm64_sonoma') {
+			return brew_runtime.bool_value(false)
+		}
+	}
+	return brew_runtime.bool_value(true)
 }
 
 // Ruby it `it "returns the expected cask structs" do` at line 205.
 pub fn ruby_internal_spec_l205_d15_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	mut state := internal_spec_state()
+	for name, expected in internal_spec_cask_hashes() {
+		actual := internal_api.internal_state_cask_struct(mut state, name) or { return brew_runtime.bool_value(false) }
+		if !actual.equals(internal_api.cask_struct_deserialize(expected.map_data.clone(), internal_api.ApiStructPaths{})) {
+			return brew_runtime.bool_value(false)
+		}
+	}
+	return brew_runtime.bool_value(true)
 }
 
 // Ruby it `it "returns the expected formula hashes" do` at line 211.
 pub fn ruby_internal_spec_l211_d16_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	mut state := internal_spec_state()
+	return brew_runtime.bool_value(internal_spec_maps_equal(internal_api.internal_formula_hashes(mut state) or { return brew_runtime.bool_value(false) }, internal_spec_formula_hashes()))
 }
 
 // Ruby it `it "writes formula executables from the internal packages JSON" do` at line 216.
 pub fn ruby_internal_spec_l216_d17_writes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('writes', ...args)
+	mut state := internal_spec_state()
+	state.cache_dir = os.join_path(os.temp_dir(), 'brew-v-internal-write-${os.getpid()}')
+	internal_api.internal_write_formula_names_and_aliases(mut state, true) or { return brew_runtime.bool_value(false) }
+	contents := os.read_file(os.join_path(state.cache_dir, 'internal', 'executables.txt')) or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value(contents == 'foo:foo-bin food\n')
 }
 
 // Ruby it `it "returns the expected cask hashes" do` at line 222.
 pub fn ruby_internal_spec_l222_d18_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	mut state := internal_spec_state()
+	return brew_runtime.bool_value(internal_spec_maps_equal(internal_api.internal_cask_hashes(mut state) or { return brew_runtime.bool_value(false) }, internal_spec_cask_hashes()))
 }
 
 // Ruby it `it "returns the expected formula alias list" do` at line 227.
 pub fn ruby_internal_spec_l227_d19_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	mut state := internal_spec_state()
+	return brew_runtime.bool_value(internal_spec_value_equal(internal_api.internal_packages_value(mut state, 'formula_aliases') or { return brew_runtime.bool_value(false) }, ruby_internal_spec_l151_d7_formulae_aliases()))
 }
 
 // Ruby it `it "returns the expected formula rename list" do` at line 232.
 pub fn ruby_internal_spec_l232_d20_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	mut state := internal_spec_state()
+	return brew_runtime.bool_value(internal_spec_value_equal(internal_api.internal_packages_value(mut state, 'formula_renames') or { return brew_runtime.bool_value(false) }, ruby_internal_spec_l158_d8_formulae_renames()))
 }
 
 // Ruby it `it "returns the expected cask rename list" do` at line 237.
 pub fn ruby_internal_spec_l237_d21_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	mut state := internal_spec_state()
+	return brew_runtime.bool_value(internal_spec_value_equal(internal_api.internal_packages_value(mut state, 'cask_renames') or { return brew_runtime.bool_value(false) }, ruby_internal_spec_l165_d9_cask_renames()))
 }
 
 // Ruby it `it "returns the expected formula tap git head" do` at line 242.
 pub fn ruby_internal_spec_l242_d22_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	mut state := internal_spec_state()
+	return brew_runtime.bool_value((internal_api.internal_packages_value(mut state, 'formula_tap_git_head') or { return brew_runtime.bool_value(false) }).as_string() == ruby_internal_spec_l172_d10_formula_tap_git_head().as_string())
 }
 
 // Ruby it `it "returns the expected cask tap git head" do` at line 247.
 pub fn ruby_internal_spec_l247_d23_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	mut state := internal_spec_state()
+	return brew_runtime.bool_value((internal_api.internal_packages_value(mut state, 'cask_tap_git_head') or { return brew_runtime.bool_value(false) }).as_string() == ruby_internal_spec_l173_d11_cask_tap_git_head().as_string())
 }
 
 // Ruby it `it "returns the expected formula tap migrations list" do` at line 252.
 pub fn ruby_internal_spec_l252_d24_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	mut state := internal_spec_state()
+	return brew_runtime.bool_value(internal_spec_value_equal(internal_api.internal_packages_value(mut state, 'formula_tap_migrations') or { return brew_runtime.bool_value(false) }, ruby_internal_spec_l174_d12_formula_tap_migrations()))
 }
 
 // Ruby it `it "returns the expected cask tap migrations list" do` at line 257.
 pub fn ruby_internal_spec_l257_d25_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	mut state := internal_spec_state()
+	return brew_runtime.bool_value(internal_spec_value_equal(internal_api.internal_packages_value(mut state, 'cask_tap_migrations') or { return brew_runtime.bool_value(false) }, ruby_internal_spec_l180_d13_cask_tap_migrations()))
 }
 
 // Ruby let `let(:compact_payload) { JSON.generate(JSON.parse(packages_json)) }` at line 263.
 pub fn ruby_internal_spec_l263_d26_compact_payload(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('compact_payload', ...args)
+	parsed := brew_runtime.parse_json_value(internal_spec_packages_json()) or { return brew_runtime.string_value('') }
+	return brew_runtime.string_value(brew_runtime.json_value_to_string(parsed))
 }
 
 // Ruby it `it "builds an index on first load and serves formula structs from it afterwards" do` at line 280.
 pub fn ruby_internal_spec_l280_d27_builds(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('builds', ...args)
+	mut fixture := internal_spec_index_fixture() or { return brew_runtime.bool_value(false) }
+	defer { os.rmdir_all(fixture.cache_dir) or {} }
+	first := internal_api.internal_state_formula_struct(mut fixture, 'foo') or { return brew_runtime.bool_value(false) }
+	if first.desc != 'Foo formula' || !os.exists(internal_api.packages_index_path_for(internal_api.internal_cached_packages_json_file_path(fixture.cache_dir, fixture.effective_tag))) {
+		return brew_runtime.bool_value(false)
+	}
+	mut loaded := internal_spec_index_state(fixture.cache_dir)
+	second := internal_api.internal_state_formula_struct(mut loaded, 'foo') or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value(second.desc == 'Foo formula' && (internal_api.internal_packages_value(mut loaded, 'formula_tap_git_head') or { return brew_runtime.bool_value(false) }).as_string() == 'b871900717ccbb3508ca93fa56e128940b9bd371' && (internal_api.internal_formula_name(mut loaded, 'bar') or { false }) && !(internal_api.internal_formula_name(mut loaded, 'missing') or { true }))
 }
 
 // Ruby it `it "materialises full hashes from an index-served payload" do` at line 298.
 pub fn ruby_internal_spec_l298_d28_materialises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('materialises', ...args)
+	mut fixture := internal_spec_index_fixture() or { return brew_runtime.bool_value(false) }
+	defer { os.rmdir_all(fixture.cache_dir) or {} }
+	_ := internal_api.internal_state_formula_struct(mut fixture, 'foo') or { return brew_runtime.bool_value(false) }
+	mut loaded := internal_spec_index_state(fixture.cache_dir)
+	actual := internal_api.internal_formula_hashes(mut loaded) or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value(internal_spec_maps_equal(actual, internal_spec_formula_hashes()))
+}
+
+fn internal_spec_packages_json() string {
+	return '{"formulae":{"foo":{"desc":"Foo formula","executables":["foo-bin","food"],"homepage":"https://example.com/foo","license":"MIT","ruby_source_checksum":"09f88b61e36045188ddb1b1ba8e402b9f3debee1770cc4ca91355eeccb5f4a38","stable_version":"1.0.0"},"bar":{"desc":"Bar formula","homepage":"https://example.com/bar","license":"Apache-2.0","ruby_source_checksum":"bb6e3408f39a404770529cfce548dc2666e861077acd173825cb3138c27c205a","stable_version":"0.4.0","revision":5,"version_scheme":1},"baz":{"desc":"Baz formula","homepage":"https://example.com/baz","license":"GPL-3.0-or-later","ruby_source_checksum":"404c97537d65ca0b75c389e7d439dcefb9b56f34d3b98017669eda0d0501add7","stable_version":"10.4.5","revision":2,"bottle_rebuild":2}},"casks":{"foo":{"desc":"Foo cask","homepage":"https://example.com/foo","sha256":"09f88b61e36045188ddb1b1ba8e402b9f3debee1770cc4ca91355eeccb5f4a38","version":"1.0.0"},"bar":{"desc":"Bar cask","homepage":"https://example.com/bar","sha256":"bb6e3408f39a404770529cfce548dc2666e861077acd173825cb3138c27c205a","version":"0.4.0"},"baz":{"desc":"Baz cask","homepage":"https://example.com/baz","sha256":"404c97537d65ca0b75c389e7d439dcefb9b56f34d3b98017669eda0d0501add7","version":"10.4.5"}},"formula_aliases":{"foo-alias1":"foo","foo-alias2":"foo","bar-alias":"bar"},"formula_renames":{"foo-old":"foo","bar-old":"bar","baz-old":"baz"},"cask_renames":{"foo-old":"foo","bar-old":"bar","baz-old":"baz"},"formula_tap_git_head":"b871900717ccbb3508ca93fa56e128940b9bd371","cask_tap_git_head":"030eea17b14b437b0a7b96f4dbc9473cce4be31c","formula_tap_migrations":{"abc":"some/tap","def":"another/tap"},"cask_tap_migrations":{"abc":"some/tap","def":"another/tap"}}'
+}
+
+fn internal_spec_parsed() brew_runtime.Value {
+	return brew_runtime.parse_json_value(internal_spec_packages_json()) or { brew_runtime.map_value(map[string]brew_runtime.Value{}) }
+}
+
+fn internal_spec_formula_hashes() map[string]brew_runtime.Value {
+	return (internal_spec_parsed().map_data['formulae'] or { brew_runtime.map_value(map[string]brew_runtime.Value{}) }).map_data.clone()
+}
+
+fn internal_spec_cask_hashes() map[string]brew_runtime.Value {
+	return (internal_spec_parsed().map_data['casks'] or { brew_runtime.map_value(map[string]brew_runtime.Value{}) }).map_data.clone()
+}
+
+fn internal_spec_state() internal_api.InternalApiState {
+	mut state := internal_api.InternalApiState{ effective_tag: 'arm64_sonoma', sidecar_verified: true }
+	internal_api.internal_cache_parsed_packages(mut state, internal_spec_parsed())
+	return state
+}
+
+fn internal_spec_string_map_value(values map[string]string) map[string]brew_runtime.Value {
+	mut result := map[string]brew_runtime.Value{}
+	for key, value in values {
+		result[key] = brew_runtime.string_value(value)
+	}
+	return result
+}
+
+fn internal_spec_value_equal(left brew_runtime.Value, right brew_runtime.Value) bool {
+	return brew_runtime.json_value_to_string(left) == brew_runtime.json_value_to_string(right)
+}
+
+fn internal_spec_maps_equal(left map[string]brew_runtime.Value, right map[string]brew_runtime.Value) bool {
+	return internal_spec_value_equal(brew_runtime.map_value(left), brew_runtime.map_value(right))
+}
+
+fn internal_spec_index_fixture() !internal_api.InternalApiState {
+	cache_dir := os.join_path(os.temp_dir(), 'brew-v-internal-index-${os.getpid()}')
+	os.rmdir_all(cache_dir) or {}
+	target := internal_api.internal_cached_packages_json_file_path(cache_dir, 'arm64_sonoma')
+	os.mkdir_all(os.dir(target))!
+	os.write_file(target, 'envelope')!
+	stat := internal_api.packages_source_stat(target)!
+	payload := internal_spec_packages_json()
+	header := brew_runtime.map_value({
+		'protected':       brew_runtime.string_value('protected')
+		'signature':       brew_runtime.string_value('signature')
+		'source_size':     brew_runtime.int_value(stat.size)
+		'source_mtime_ns': brew_runtime.int_value(stat.mtime_ns)
+	})
+	os.write_file('${target}.payload', '${brew_runtime.json_value_to_string(header)}\n${payload}')!
+	return internal_spec_index_state(cache_dir)
+}
+
+fn internal_spec_index_state(cache_dir string) internal_api.InternalApiState {
+	return internal_api.InternalApiState{ effective_tag: 'arm64_sonoma', cache_dir: cache_dir, sidecar_verified: true }
 }
 
 // Original Ruby source (line-for-line):

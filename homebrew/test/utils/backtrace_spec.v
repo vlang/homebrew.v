@@ -1,53 +1,120 @@
 module utils
 
 import brew_runtime
+import homebrew.utils as production_utils
 
 // Translated from Homebrew/brew `test/utils/backtrace_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby let `let(:backtrace_no_sorbet_paths) do` at line 7.
 pub fn ruby_backtrace_spec_l7_d1_backtrace_no_sorbet_paths(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('backtrace_no_sorbet_paths', ...args)
+	_ = args
+	return brew_runtime.string_array_value(backtrace_spec_without_sorbet())
 }
 
 // Ruby let `let(:backtrace_with_sorbet_paths) do` at line 24.
 pub fn ruby_backtrace_spec_l24_d2_backtrace_with_sorbet_paths(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('backtrace_with_sorbet_paths', ...args)
+	_ = args
+	return brew_runtime.string_array_value(backtrace_spec_with_sorbet())
 }
 
 // Ruby let `let(:backtrace_with_sorbet_error) do` at line 50.
 pub fn ruby_backtrace_spec_l50_d3_backtrace_with_sorbet_error(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('backtrace_with_sorbet_error', ...args)
+	_ = args
+	return brew_runtime.string_array_value(backtrace_spec_with_sorbet()[1..])
 }
 
 // Ruby method `exception_with(backtrace:)` at line 54.
 pub fn ruby_backtrace_spec_l54_d4_exception_with(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('exception_with', ...args)
+	backtrace := if args.len > 0 { args[0] } else { brew_runtime.object_value('NilClass', '') }
+	return brew_runtime.map_value({
+		'backtrace': backtrace
+	})
 }
 
 // Ruby it `it "handles nil backtrace" do` at line 66.
 pub fn ruby_backtrace_spec_l66_d5_handles(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('handles', ...args)
+	_ = args
+	result := production_utils.clean_backtrace(false, []string{}, false, backtrace_spec_sorbet_path)
+	return brew_runtime.bool_value(!result.has_backtrace)
 }
 
 // Ruby it `it "handles empty array backtrace" do` at line 71.
 pub fn ruby_backtrace_spec_l71_d6_handles(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('handles', ...args)
+	_ = args
+	result := production_utils.clean_backtrace(true, []string{}, false, backtrace_spec_sorbet_path)
+	return brew_runtime.bool_value(result.has_backtrace && result.backtrace.len == 0)
 }
 
 // Ruby it `it "removes sorbet paths when top error is not from sorbet" do` at line 76.
 pub fn ruby_backtrace_spec_l76_d7_removes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('removes', ...args)
+	_ = args
+	result := production_utils.clean_backtrace(true, backtrace_spec_with_sorbet(), false, backtrace_spec_sorbet_path)
+	return brew_runtime.bool_value(result.backtrace == backtrace_spec_without_sorbet()
+		&& result.removed_sorbet_lines)
 }
 
 // Ruby it `it "includes sorbet paths when top error is not from sorbet and verbose is set" do` at line 81.
 pub fn ruby_backtrace_spec_l81_d8_includes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('includes', ...args)
+	_ = args
+	with_sorbet := backtrace_spec_with_sorbet()
+	result := production_utils.clean_backtrace(true, with_sorbet, true, backtrace_spec_sorbet_path)
+	return brew_runtime.bool_value(result.backtrace == with_sorbet && !result.removed_sorbet_lines)
 }
 
 // Ruby it `it "doesn't change backtrace when error is from sorbet" do` at line 87.
 pub fn ruby_backtrace_spec_l87_d9_doesn(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('doesn', ...args)
+	_ = args
+	sorbet_error := backtrace_spec_with_sorbet()[1..]
+	result := production_utils.clean_backtrace(true, sorbet_error, false, backtrace_spec_sorbet_path)
+	return brew_runtime.bool_value(result.backtrace == sorbet_error && !result.removed_sorbet_lines)
+}
+
+const backtrace_spec_sorbet_path = '/Library/Homebrew/vendor/bundle/ruby/2.6.0/gems/sorbet-runtime'
+
+fn backtrace_spec_without_sorbet() []string {
+	return [
+		'/Library/Homebrew/downloadable.rb:75:in',
+		'/Library/Homebrew/downloadable.rb:50:in',
+		'/Library/Homebrew/cmd/fetch.rb:236:in',
+		'/Library/Homebrew/cmd/fetch.rb:201:in',
+		'/Library/Homebrew/cmd/fetch.rb:178:in',
+		'/Library/Homebrew/simulate_system.rb:29:in',
+		'/Library/Homebrew/cmd/fetch.rb:166:in',
+		'/Library/Homebrew/cmd/fetch.rb:163:in',
+		'/Library/Homebrew/cmd/fetch.rb:163:in',
+		'/Library/Homebrew/cmd/fetch.rb:94:in',
+		'/Library/Homebrew/cmd/fetch.rb:94:in',
+		'/Library/Homebrew/brew.rb:94:in',
+	]
+}
+
+fn backtrace_spec_with_sorbet() []string {
+	sorbet_call := '${backtrace_spec_sorbet_path}-0.5.10461/lib/call_validation.rb:157:in'
+	sorbet_methods := '${backtrace_spec_sorbet_path}-0.5.10461/lib/_methods.rb:270:in'
+	return [
+		'/Library/Homebrew/downloadable.rb:75:in',
+		sorbet_call,
+		sorbet_call,
+		sorbet_methods,
+		'/Library/Homebrew/downloadable.rb:50:in',
+		sorbet_call,
+		sorbet_call,
+		sorbet_methods,
+		'/Library/Homebrew/cmd/fetch.rb:236:in',
+		'/Library/Homebrew/cmd/fetch.rb:201:in',
+		'/Library/Homebrew/cmd/fetch.rb:178:in',
+		'/Library/Homebrew/simulate_system.rb:29:in',
+		sorbet_call,
+		sorbet_call,
+		sorbet_methods,
+		'/Library/Homebrew/cmd/fetch.rb:166:in',
+		'/Library/Homebrew/cmd/fetch.rb:163:in',
+		'/Library/Homebrew/cmd/fetch.rb:163:in',
+		'/Library/Homebrew/cmd/fetch.rb:94:in',
+		'/Library/Homebrew/cmd/fetch.rb:94:in',
+		'/Library/Homebrew/brew.rb:94:in',
+	]
 }
 
 // Original Ruby source (line-for-line):

@@ -1,28 +1,40 @@
 module system
 
 import brew_runtime
+import homebrew.services.system
+import os
+import time
 
 // Translated from Homebrew/brew `test/services/system/systemctl_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby let `let(:bindir) { mktmpdir }` at line 11.
 pub fn ruby_systemctl_spec_l11_d1_bindir(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('bindir', ...args)
+	return brew_runtime.object_value('Pathname', os.join_path(os.temp_dir(), 'brew-v-systemctl-spec'))
 }
 
 // Ruby it `it "outputs systemctl scope for user" do` at line 14.
 pub fn ruby_systemctl_spec_l14_d2_outputs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('outputs', ...args)
+	state := system.new_systemctl_state('', false)
+	return brew_runtime.bool_value(state.scope() == '--user')
 }
 
 // Ruby it `it "outputs systemctl scope for root" do` at line 19.
 pub fn ruby_systemctl_spec_l19_d3_outputs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('outputs', ...args)
+	state := system.new_systemctl_state('', true)
+	return brew_runtime.bool_value(state.scope() == '--system')
 }
 
 // Ruby it `it "outputs systemctl command location" do` at line 26.
 pub fn ruby_systemctl_spec_l26_d4_outputs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('outputs', ...args)
+	bindir := os.join_path(os.temp_dir(), 'brew-v-systemctl-spec-${os.getpid()}-${time.now().unix_micro()}')
+	os.mkdir_all(bindir) or { return brew_runtime.bool_value(false) }
+	defer { os.rmdir_all(bindir) or {} }
+	executable := os.join_path(bindir, 'systemctl')
+	os.write_file(executable, '#!/bin/sh\nexit 0\n') or { return brew_runtime.bool_value(false) }
+	os.chmod(executable, 0o755) or { return brew_runtime.bool_value(false) }
+	mut state := system.new_systemctl_state(bindir, false)
+	return brew_runtime.bool_value((state.executable() or { '' }) == executable)
 }
 
 // Original Ruby source (line-for-line):

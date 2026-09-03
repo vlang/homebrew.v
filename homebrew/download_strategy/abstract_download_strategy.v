@@ -1,133 +1,364 @@
 module download_strategy
 
 import brew_runtime
+import os
 
 // Translated from Homebrew/brew `download_strategy/abstract_download_strategy.rb`.
 // The original source is retained below until every stub has a typed V body.
 
+// DownloadMeta is the typed subset of Ruby's keyword metadata used by the base
+// and curl file strategies.
+pub struct DownloadMeta {
+pub mut:
+	cache                       string
+	mirrors                     []string
+	headers                     []string
+	header                      string
+	cookies                     map[string]string
+	referer                     string
+	user                        string
+	user_agent                  string
+	artifact_domain             string
+	artifact_domain_no_fallback bool
+	no_insecure_redirect        bool
+}
+
+// AbstractDownloadStrategy carries the state initialized by the Ruby abstract
+// superclass. Concrete V strategies embed this value explicitly.
+pub struct AbstractDownloadStrategy {
+pub:
+	url     string
+	cache   string
+	name    string
+	version string
+pub mut:
+	meta        DownloadMeta
+	quiet_value bool
+}
+
+// new_abstract_download_strategy translates initialize(url, name, version, **meta).
+pub fn new_abstract_download_strategy(url string, name string, version string, meta DownloadMeta) AbstractDownloadStrategy {
+	cache := if meta.cache != '' { meta.cache } else { default_homebrew_cache() }
+	return AbstractDownloadStrategy{
+		url:     url
+		cache:   cache
+		name:    name
+		version: version
+		meta:    meta
+	}
+}
+
+fn default_homebrew_cache() string {
+	if configured := os.getenv_opt('HOMEBREW_CACHE') {
+		if configured != '' {
+			return configured
+		}
+	}
+	$if macos {
+		return os.join_path(os.home_dir(), 'Library/Caches/Homebrew')
+	} $else {
+		base := os.getenv('XDG_CACHE_HOME')
+		return os.join_path(if base != '' { base } else { os.join_path(os.home_dir(), '.cache') },
+			'Homebrew')
+	}
+}
+
+// fetch is the source no-op supplied by the overridable abstract base.
+pub fn (mut strategy AbstractDownloadStrategy) fetch(timeout ?f64) ! {
+	_ = timeout
+}
+
+// fetched_size is nil in the source abstract base.
+pub fn (strategy &AbstractDownloadStrategy) fetched_size() ?i64 {
+	return none
+}
+
+// total_size is nil in the source abstract base.
+pub fn (strategy &AbstractDownloadStrategy) total_size() ?i64 {
+	return none
+}
+
+// cached_location is abstract in Ruby and remains an explicit typed boundary.
+pub fn (strategy &AbstractDownloadStrategy) cached_location() !string {
+	return error('cached_location must be implemented by a concrete download strategy')
+}
+
+// quiet disables any output during downloading.
+pub fn (mut strategy AbstractDownloadStrategy) quiet() {
+	strategy.quiet_value = true
+}
+
+pub fn (strategy &AbstractDownloadStrategy) is_quiet() bool {
+	return strategy.quiet_value
+}
+
+// expand_deferred_environment_for translates the controlled-strategy class check.
+pub fn expand_deferred_environment_for(strategy DownloadStrategy) bool {
+	return strategy in [.curl_apache_mirror, .curl, .curl_github_packages, .curl_post, .homebrew_curl,
+		.no_unzip_curl, .pypi]
+}
+
+// stage extracts a cached file into destination and returns the directory in
+// which the source block would run. Archive format detection is the directly
+// translated boundary for the still-untranslated UnpackStrategy subsystem.
+pub fn (strategy &AbstractDownloadStrategy) stage(cached_location string, destination string) !string {
+	os.mkdir_all(destination)!
+	name := os.file_name(cached_location).to_lower()
+	mut result := brew_runtime.CommandResult{}
+	if name.ends_with('.zip') {
+		unzip := brew_runtime.find_executable('unzip')!
+		result = brew_runtime.run_command(unzip, ['-q', '-o', cached_location, '-d', destination])
+	} else if name.ends_with('.tar') || name.ends_with('.tar.gz') || name.ends_with('.tgz')
+		|| name.ends_with('.tar.bz2') || name.ends_with('.tbz') || name.ends_with('.tbz2')
+		|| name.ends_with('.tar.xz') || name.ends_with('.txz') || name.ends_with('.tar.zst') {
+		tar := brew_runtime.find_executable('tar')!
+		result = brew_runtime.run_command(tar, ['-xf', cached_location, '-C', destination])
+	} else {
+		os.cp(cached_location, os.join_path(destination, strategy.basename(cached_location)))!
+		return strategy.stage_working_directory(destination)
+	}
+	if result.exit_code != 0 {
+		return error('failed to extract ${cached_location}: ${result.output.trim_space()}')
+	}
+	return strategy.stage_working_directory(destination)
+}
+
+// stage_working_directory translates the private chdir selection performed
+// after extraction.
+pub fn (strategy &AbstractDownloadStrategy) stage_working_directory(directory string) !string {
+	mut entries := os.ls(directory)!
+	entries.sort()
+	if entries.len == 0 {
+		return error('Empty archive')
+	}
+	if entries.len == 1 {
+		candidate := os.join_path(directory, entries[0])
+		if os.is_dir(candidate) {
+			return candidate
+		}
+	}
+	return directory
+}
+
+// source_modified_time returns the latest mtime among staged non-directory
+// entries and deliberately ignores dangling symlinks.
+pub fn (strategy &AbstractDownloadStrategy) source_modified_time(directory string) !i64 {
+	_ = strategy
+	return collect_latest_modified_time(directory)
+}
+
+fn collect_latest_modified_time(directory string) !i64 {
+	mut latest := i64(0)
+	for entry in os.ls(directory)! {
+		path := os.join_path(directory, entry)
+		if os.is_dir(path) {
+			modified := collect_latest_modified_time(path)!
+			if modified > latest {
+				latest = modified
+			}
+		} else if os.exists(path) {
+			modified := os.file_last_mod_unix(path)
+			if modified > latest {
+				latest = modified
+			}
+		}
+	}
+	return latest
+}
+
+// source_revision is nil for file strategies in the source base.
+pub fn (strategy &AbstractDownloadStrategy) source_revision() ?string {
+	return none
+}
+
+// clear_cache removes precisely the concrete strategy's cached location.
+pub fn (strategy &AbstractDownloadStrategy) clear_cache(cached_location string) ! {
+	remove_path(cached_location)!
+}
+
+fn remove_path(path string) ! {
+	if os.is_dir(path) && !os.is_link(path) {
+		os.rmdir_all(path)!
+	} else if os.exists(path) || os.is_link(path) {
+		os.rm(path)!
+	}
+}
+
+pub fn (strategy &AbstractDownloadStrategy) basename(cached_location string) string {
+	_ = strategy
+	name := os.file_name(cached_location)
+	// AbstractFileDownloadStrategy overrides this in Ruby. Composition in V
+	// performs the same dispatch here for digest-addressed file downloads.
+	if name.len > 66 && name[64..66] == '--' && is_lower_hex(name[..64]) {
+		return name[66..]
+	}
+	return name
+}
+
+pub fn (strategy &AbstractDownloadStrategy) ohai(title string, details ...string) {
+	if strategy.is_quiet() {
+		return
+	}
+	println('==> ${title}')
+	for detail in details {
+		println(detail)
+	}
+}
+
+pub fn (strategy &AbstractDownloadStrategy) puts(messages ...string) {
+	if !strategy.is_quiet() {
+		for message in messages {
+			println(message)
+		}
+	}
+}
+
+pub fn (strategy &AbstractDownloadStrategy) silent_command(program string, arguments []string) brew_runtime.CommandResult {
+	_ = strategy
+	return brew_runtime.run_command(program, arguments)
+}
+
+pub fn (strategy &AbstractDownloadStrategy) command(program string, arguments []string) !brew_runtime.CommandResult {
+	result := strategy.silent_command(program, arguments)
+	if result.exit_code != 0 {
+		return error('command failed (${result.exit_code}): ${program}: ${result.output.trim_space()}')
+	}
+	return result
+}
+
+pub fn (strategy &AbstractDownloadStrategy) command_output_options() bool {
+	return strategy.is_quiet()
+}
+
+pub fn (strategy &AbstractDownloadStrategy) env() map[string]string {
+	_ = strategy
+	return map[string]string{}
+}
+
+// Source entrypoint translations.
 // Ruby attr_reader `attr_reader :url` at line 18.
-pub fn ruby_abstract_download_strategy_l18_d1_url(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('url', ...args)
+pub fn ruby_abstract_download_strategy_l18_d1_url(strategy &AbstractDownloadStrategy) string {
+	return strategy.url
 }
 
 // Ruby attr_reader `attr_reader :cache` at line 21.
-pub fn ruby_abstract_download_strategy_l21_d2_cache(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cache', ...args)
+pub fn ruby_abstract_download_strategy_l21_d2_cache(strategy &AbstractDownloadStrategy) string {
+	return strategy.cache
 }
 
 // Ruby attr_reader `attr_reader :meta` at line 24.
-pub fn ruby_abstract_download_strategy_l24_d3_meta(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('meta', ...args)
+pub fn ruby_abstract_download_strategy_l24_d3_meta(strategy &AbstractDownloadStrategy) DownloadMeta {
+	return strategy.meta
 }
 
 // Ruby attr_reader `attr_reader :name` at line 27.
-pub fn ruby_abstract_download_strategy_l27_d4_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('name', ...args)
+pub fn ruby_abstract_download_strategy_l27_d4_name(strategy &AbstractDownloadStrategy) string {
+	return strategy.name
 }
 
 // Ruby attr_reader `attr_reader :version` at line 30.
-pub fn ruby_abstract_download_strategy_l30_d5_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('version', ...args)
+pub fn ruby_abstract_download_strategy_l30_d5_version(strategy &AbstractDownloadStrategy) string {
+	return strategy.version
 }
 
 // Ruby method `initialize(url, name, version, **meta)` at line 35.
-pub fn ruby_abstract_download_strategy_l35_d6_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+pub fn ruby_abstract_download_strategy_l35_d6_initialize(url string, name string, version string, meta DownloadMeta) AbstractDownloadStrategy {
+	return new_abstract_download_strategy(url, name, version, meta)
 }
 
 // Ruby method `fetch(timeout: nil); end` at line 51.
-pub fn ruby_abstract_download_strategy_l51_d7_fetch(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fetch', ...args)
+pub fn ruby_abstract_download_strategy_l51_d7_fetch(mut strategy AbstractDownloadStrategy, timeout ?f64) ! {
+	strategy.fetch(timeout)!
 }
 
 // Ruby method `fetched_size; end` at line 55.
-pub fn ruby_abstract_download_strategy_l55_d8_fetched_size(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fetched_size', ...args)
+pub fn ruby_abstract_download_strategy_l55_d8_fetched_size(strategy &AbstractDownloadStrategy) ?i64 {
+	return strategy.fetched_size()
 }
 
 // Ruby method `total_size; end` at line 59.
-pub fn ruby_abstract_download_strategy_l59_d9_total_size(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('total_size', ...args)
+pub fn ruby_abstract_download_strategy_l59_d9_total_size(strategy &AbstractDownloadStrategy) ?i64 {
+	return strategy.total_size()
 }
 
 // Ruby method `cached_location; end` at line 65.
-pub fn ruby_abstract_download_strategy_l65_d10_cached_location(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cached_location', ...args)
+pub fn ruby_abstract_download_strategy_l65_d10_cached_location(strategy &AbstractDownloadStrategy) !string {
+	return strategy.cached_location()
 }
 
 // Ruby method `quiet!` at line 71.
-pub fn ruby_abstract_download_strategy_l71_d11_quiet(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('quiet!', ...args)
+pub fn ruby_abstract_download_strategy_l71_d11_quiet(mut strategy AbstractDownloadStrategy) {
+	strategy.quiet()
 }
 
 // Ruby method `quiet?` at line 76.
-pub fn ruby_abstract_download_strategy_l76_d12_quiet(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('quiet?', ...args)
+pub fn ruby_abstract_download_strategy_l76_d12_quiet(strategy &AbstractDownloadStrategy) bool {
+	return strategy.is_quiet()
 }
 
 // Ruby method `self.expand_deferred_environment_for?(downloader)` at line 81.
-pub fn ruby_abstract_download_strategy_l81_d13_self_expand_deferred_environment_for(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.expand_deferred_environment_for?', ...args)
+pub fn ruby_abstract_download_strategy_l81_d13_self_expand_deferred_environment_for(strategy DownloadStrategy) bool {
+	return expand_deferred_environment_for(strategy)
 }
 
 // Ruby method `stage(&block)` at line 95.
-pub fn ruby_abstract_download_strategy_l95_d14_stage(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('stage', ...args)
+pub fn ruby_abstract_download_strategy_l95_d14_stage(strategy &AbstractDownloadStrategy, cached_location string, destination string) !string {
+	return strategy.stage(cached_location, destination)
 }
 
 // Ruby method `chdir(&block)` at line 106.
-pub fn ruby_abstract_download_strategy_l106_d15_chdir(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('chdir', ...args)
+pub fn ruby_abstract_download_strategy_l106_d15_chdir(strategy &AbstractDownloadStrategy, directory string) !string {
+	return strategy.stage_working_directory(directory)
 }
 
 // Ruby method `source_modified_time` at line 129.
-pub fn ruby_abstract_download_strategy_l129_d16_source_modified_time(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('source_modified_time', ...args)
+pub fn ruby_abstract_download_strategy_l129_d16_source_modified_time(strategy &AbstractDownloadStrategy, directory string) !i64 {
+	return strategy.source_modified_time(directory)
 }
 
 // Ruby method `source_revision; end` at line 137.
-pub fn ruby_abstract_download_strategy_l137_d17_source_revision(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('source_revision', ...args)
+pub fn ruby_abstract_download_strategy_l137_d17_source_revision(strategy &AbstractDownloadStrategy) ?string {
+	return strategy.source_revision()
 }
 
 // Ruby method `clear_cache` at line 144.
-pub fn ruby_abstract_download_strategy_l144_d18_clear_cache(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('clear_cache', ...args)
+pub fn ruby_abstract_download_strategy_l144_d18_clear_cache(strategy &AbstractDownloadStrategy, cached_location string) ! {
+	strategy.clear_cache(cached_location)!
 }
 
 // Ruby method `basename` at line 149.
-pub fn ruby_abstract_download_strategy_l149_d19_basename(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('basename', ...args)
+pub fn ruby_abstract_download_strategy_l149_d19_basename(strategy &AbstractDownloadStrategy, cached_location string) string {
+	return strategy.basename(cached_location)
 }
 
 // Ruby method `ohai(title, *sput)` at line 154.
-pub fn ruby_abstract_download_strategy_l154_d20_ohai(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ohai', ...args)
+pub fn ruby_abstract_download_strategy_l154_d20_ohai(strategy &AbstractDownloadStrategy, title string, details ...string) {
+	strategy.ohai(title, ...details)
 }
 
 // Ruby method `puts(*args)` at line 161.
-pub fn ruby_abstract_download_strategy_l161_d21_puts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('puts', ...args)
+pub fn ruby_abstract_download_strategy_l161_d21_puts(strategy &AbstractDownloadStrategy, messages ...string) {
+	strategy.puts(...messages)
 }
 
 // Ruby method `silent_command(*args, **options)` at line 166.
-pub fn ruby_abstract_download_strategy_l166_d22_silent_command(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('silent_command', ...args)
+pub fn ruby_abstract_download_strategy_l166_d22_silent_command(strategy &AbstractDownloadStrategy, program string, arguments []string) brew_runtime.CommandResult {
+	return strategy.silent_command(program, arguments)
 }
 
 // Ruby method `command!(*args, **options)` at line 171.
-pub fn ruby_abstract_download_strategy_l171_d23_command(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('command!', ...args)
+pub fn ruby_abstract_download_strategy_l171_d23_command(strategy &AbstractDownloadStrategy, program string, arguments []string) !brew_runtime.CommandResult {
+	return strategy.command(program, arguments)
 }
 
 // Ruby method `command_output_options` at line 181.
-pub fn ruby_abstract_download_strategy_l181_d24_command_output_options(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('command_output_options', ...args)
+pub fn ruby_abstract_download_strategy_l181_d24_command_output_options(strategy &AbstractDownloadStrategy) bool {
+	return strategy.command_output_options()
 }
 
 // Ruby method `env` at line 190.
-pub fn ruby_abstract_download_strategy_l190_d25_env(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('env', ...args)
+pub fn ruby_abstract_download_strategy_l190_d25_env(strategy &AbstractDownloadStrategy) map[string]string {
+	return strategy.env()
 }
 
 // Original Ruby source (line-for-line):

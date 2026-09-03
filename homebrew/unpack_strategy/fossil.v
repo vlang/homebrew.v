@@ -6,18 +6,41 @@ import brew_runtime
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `self.extensions` at line 13.
-pub fn ruby_fossil_l13_d1_self_extensions(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.extensions', ...args)
+pub fn ruby_fossil_l13_d1_self_extensions() []string {
+	return fossil_extensions()
 }
 
 // Ruby method `self.can_extract?(path)` at line 18.
-pub fn ruby_fossil_l18_d2_self_can_extract(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.can_extract?', ...args)
+pub fn ruby_fossil_l18_d2_self_can_extract(path string) bool {
+	return fossil_can_extract(path)
 }
 
 // Ruby method `extract_to_dir(unpack_dir, basename:, verbose:)` at line 29.
-pub fn ruby_fossil_l29_d3_extract_to_dir(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('extract_to_dir', ...args)
+pub fn ruby_fossil_l29_d3_extract_to_dir(strategy Strategy, unpack_dir string, basename string, verbose bool) ! {
+	fossil_extract_to_dir(strategy, unpack_dir, basename, verbose)!
+}
+
+pub fn fossil_extensions() []string {
+	return []
+}
+
+pub fn fossil_can_extract(path string) bool {
+	if !file_starts_with(path, [u8(`S`), `Q`, `L`, `i`, `t`, `e`, ` `, `f`, `o`, `r`, `m`, `a`,
+		`t`, ` `, `3`, 0]) {
+		return false
+	}
+	sqlite := command_path('sqlite3') or { return false }
+	query := "select count(*) from sqlite_master where type = 'view' and name = 'artifact'"
+	result := brew_runtime.run_command(sqlite, [path, query])
+	return result.exit_code == 0 && result.output.trim_space().int() == 1
+}
+
+pub fn fossil_extract_to_dir(strategy Strategy, unpack_dir string, basename string, verbose bool) ! {
+	_ = basename
+	_ = verbose
+	mut args := ['open', strategy.path]
+	if strategy.ref_type != '' && strategy.ref != '' { args << strategy.ref }
+	checked_command_in_directory(command_path('fossil')!, args, unpack_dir)!
 }
 
 // Original Ruby source (line-for-line):

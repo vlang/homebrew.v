@@ -1,63 +1,327 @@
 module utils
 
 import brew_runtime
+import os
 
 // Translated from Homebrew/brew `utils/shell.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `from_path(path)` at line 15.
 pub fn ruby_shell_l15_d1_from_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('from_path', ...args)
+	if args.len == 0 { panic('Utils::Shell.from_path requires a path') }
+	if shell := shell_from_path(args[0].as_string()) {
+		return brew_runtime.object_value('Symbol', shell)
+	}
+	return shell_nil_value()
 }
 
 // Ruby method `preferred_path(default: "")` at line 24.
 pub fn ruby_shell_l24_d2_preferred_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('preferred_path', ...args)
+	default_value := if args.len > 0 { args[0].as_string() } else { '' }
+	return brew_runtime.string_value(shell_preferred_path(default_value))
 }
 
 // Ruby method `preferred` at line 29.
 pub fn ruby_shell_l29_d3_preferred(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('preferred', ...args)
+	if shell := shell_preferred() {
+		return brew_runtime.object_value('Symbol', shell)
+	}
+	return shell_nil_value()
 }
 
 // Ruby method `parent` at line 34.
 pub fn ruby_shell_l34_d4_parent(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('parent', ...args)
+	if shell := shell_parent() {
+		return brew_runtime.object_value('Symbol', shell)
+	}
+	return shell_nil_value()
 }
 
 // Ruby method `export_value(key, value, shell = preferred)` at line 40.
 pub fn ruby_shell_l40_d5_export_value(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('export_value', ...args)
+	if args.len < 2 { panic('Utils::Shell.export_value requires key and value') }
+	shell := if args.len > 2 {
+		args[2].as_string().trim_left(':')
+	} else {
+		shell_preferred() or { '' }
+	}
+	if exported := shell_export_value(args[0].as_string(), args[1].as_string(), shell) {
+		return brew_runtime.string_value(exported)
+	}
+	return shell_nil_value()
 }
 
 // Ruby method `profile` at line 58.
 pub fn ruby_shell_l58_d6_profile(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('profile', ...args)
+	return brew_runtime.string_value(shell_profile())
 }
 
 // Ruby method `set_variable_in_profile(variable, value)` at line 80.
 pub fn ruby_shell_l80_d7_set_variable_in_profile(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('set_variable_in_profile', ...args)
+	if args.len < 2 { panic('Utils::Shell.set_variable_in_profile requires variable and value') }
+	if command := shell_set_variable_in_profile(args[0].as_string(), args[1].as_string(), shell_preferred() or { '' }, shell_profile()) {
+		return brew_runtime.string_value(command)
+	}
+	return shell_nil_value()
 }
 
 // Ruby method `prepend_path_in_profile(path)` at line 96.
 pub fn ruby_shell_l96_d8_prepend_path_in_profile(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prepend_path_in_profile', ...args)
+	if args.len == 0 { panic('Utils::Shell.prepend_path_in_profile requires a path') }
+	if command := shell_prepend_path_in_profile(args[0].as_string(), shell_preferred() or { '' }, shell_profile()) {
+		return brew_runtime.string_value(command)
+	}
+	return shell_nil_value()
 }
 
 // Ruby method `csh_quote(str)` at line 130.
 pub fn ruby_shell_l130_d9_csh_quote(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('csh_quote', ...args)
+	if args.len == 0 { panic('Utils::Shell.csh_quote requires a value') }
+	return brew_runtime.string_value(shell_csh_quote(args[0].as_string()))
 }
 
 // Ruby method `sh_quote(str)` at line 144.
 pub fn ruby_shell_l144_d10_sh_quote(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sh_quote', ...args)
+	if args.len == 0 { panic('Utils::Shell.sh_quote requires a value') }
+	return brew_runtime.string_value(shell_sh_quote(args[0].as_string()))
 }
 
 // Ruby method `shell_with_prompt(type, preferred_path:, notice:, home: Dir.home)` at line 157.
 pub fn ruby_shell_l157_d11_shell_with_prompt(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('shell_with_prompt', ...args)
+	if args.len < 2 { panic('Utils::Shell.shell_with_prompt requires type and preferred_path') }
+	notice := if args.len > 2 { args[2].as_string() } else { '' }
+	home := if args.len > 3 { args[3].as_string() } else { os.home_dir() }
+	command := shell_with_prompt(args[0].as_string(), ShellPromptOptions{
+		preferred_path: args[1].as_string()
+		notice: notice
+		home: home
+	}) or { return brew_runtime.object_value('RuntimeError', err.msg()) }
+	return brew_runtime.string_value(command)
+}
+
+const shell_names = ['bash', 'csh', 'fish', 'ksh', 'mksh', 'pwsh', 'rc', 'sh', 'tcsh', 'zsh']
+
+const shell_profile_map = {
+	'bash': '~/.profile'
+	'csh':  '~/.cshrc'
+	'fish': '~/.config/fish/config.fish'
+	'ksh':  '~/.kshrc'
+	'mksh': '~/.kshrc'
+	'pwsh': '~/.config/powershell/Microsoft.PowerShell_profile.ps1'
+	'rc':   '~/.rcrc'
+	'sh':   '~/.profile'
+	'tcsh': '~/.tcshrc'
+	'zsh':  '~/.zshrc'
+}
+
+pub struct ShellPromptOptions {
+pub:
+	preferred_path string
+	notice         string
+	home           string
+	path           string
+	temporary      string
+	library_path   string
+}
+
+pub struct ShellPromptPlan {
+pub:
+	command string
+	notice  string
+}
+
+pub fn shell_from_path(path string) ?string {
+	mut shell_name := os.base(path)
+	if shell_name.contains('-') {
+		shell_name = shell_name.all_before('-')
+	}
+	return if shell_name in shell_names { shell_name } else { none }
+}
+
+pub fn shell_preferred_path(default_value string) string {
+	return os.getenv_opt('SHELL') or { default_value }
+}
+
+pub fn shell_preferred() ?string {
+	return shell_from_path(shell_preferred_path(''))
+}
+
+pub fn shell_parent() ?string {
+	result := brew_runtime.run_captured_command(['ps', '-p', os.getppid().str(), '-o', 'ucomm='], brew_runtime.CapturedCommandOptions{ environment: brew_runtime.environment() }) or { return none }
+	if result.exit_code != 0 {
+		return none
+	}
+	return shell_from_path(result.stdout.trim_space())
+}
+
+pub fn shell_export_value(key string, value string, shell string) ?string {
+	return match shell {
+		'bash', 'ksh', 'mksh', 'sh', 'zsh' { 'export ${key}="${shell_sh_quote(value)}"' }
+		'fish' { 'set -gx ${key} "${shell_sh_quote(value)}"' }
+		'rc' { '${key}=(${shell_sh_quote(value)})' }
+		'csh', 'tcsh' { 'setenv ${key} ${shell_csh_quote(value)};' }
+		else { none }
+	}
+}
+
+pub fn shell_profile() string {
+	return shell_profile_for(shell_preferred() or { '' }, os.home_dir(), os.getenv('HOMEBREW_ZDOTDIR'))
+}
+
+pub fn shell_profile_for(shell string, home string, zdotdir string) string {
+	match shell {
+		'bash' {
+			bash_profile := os.join_path(home, '.bash_profile')
+			if os.exists(bash_profile) {
+				return bash_profile
+			}
+		}
+		'pwsh' {
+			pwsh_profile := os.join_path(home, '.config', 'powershell', 'Microsoft.PowerShell_profile.ps1')
+			if os.exists(pwsh_profile) {
+				return pwsh_profile
+			}
+		}
+		'rc' {
+			rc_profile := os.join_path(home, '.rcrc')
+			if os.exists(rc_profile) {
+				return rc_profile
+			}
+		}
+		'zsh' {
+			if zdotdir != '' {
+				return os.join_path(zdotdir, '.zshrc')
+			}
+		}
+		else {}
+	}
+	if shell == '' {
+		return '~/.profile'
+	}
+	return shell_profile_map[shell] or { '~/.profile' }
+}
+
+pub fn shell_set_variable_in_profile(variable string, value string, shell string, profile string) ?string {
+	return match shell {
+		'', 'bash', 'ksh', 'mksh', 'sh', 'zsh' {
+			"echo 'export ${variable}=${shell_sh_quote(value)}' >> ${profile}"
+		}
+		'pwsh' { "\$env:${variable}='${value}' >> ${profile}" }
+		'rc' { "echo '${variable}=(${shell_sh_quote(value)})' >> ${profile}" }
+		'csh', 'tcsh' { "echo 'setenv ${variable} ${shell_csh_quote(value)}' >> ${profile}" }
+		'fish' { "echo 'set -gx ${variable} ${shell_sh_quote(value)}' >> ${profile}" }
+		else { none }
+	}
+}
+
+pub fn shell_prepend_path_in_profile(path string, shell string, profile string) ?string {
+	return match shell {
+		'', 'bash', 'ksh', 'mksh', 'sh', 'zsh' {
+			'echo \'export PATH="${shell_sh_quote(path)}:\$PATH"\' >> ${profile}'
+		}
+		'pwsh' { '\$env:PATH = \'${path}\' + "\${env:PATH}" >> ${profile}' }
+		'rc' { "echo 'path=(${shell_sh_quote(path)} \$path)' >> ${profile}" }
+		'csh', 'tcsh' { "echo 'setenv PATH ${shell_csh_quote(path)}:\$PATH' >> ${profile}" }
+		'fish' { 'fish_add_path ${shell_sh_quote(path)}' }
+		else { none }
+	}
+}
+
+pub fn shell_csh_quote(value string) string {
+	if value == '' {
+		return "''"
+	}
+	return shell_escape_unsafe(value).replace('\n', "'\\\n'")
+}
+
+pub fn shell_sh_quote(value string) string {
+	if value == '' {
+		return "''"
+	}
+	return shell_escape_unsafe(value).replace('\n', "'\n'")
+}
+
+pub fn shell_with_prompt(prompt_type string, options ShellPromptOptions) !string {
+	plan := shell_prompt_plan(prompt_type, options)!
+	if plan.notice != '' {
+		println(plan.notice)
+	}
+	return plan.command
+}
+
+pub fn shell_prompt_plan(prompt_type string, options ShellPromptOptions) !ShellPromptPlan {
+	preferred := shell_from_path(options.preferred_path) or { '' }
+	path := if options.path != '' { options.path } else { os.getenv('PATH') }
+	temporary := if options.temporary != '' { options.temporary } else { shell_homebrew_temp() }
+	library_path := if options.library_path != '' {
+		options.library_path
+	} else {
+		shell_homebrew_library_path()
+	}
+	home := if options.home != '' { options.home } else { os.home_dir() }
+	command := match preferred {
+		'zsh' {
+			zdotdir := os.join_path(temporary, 'brew-zsh-prompt-${os.geteuid()}')
+			os.mkdir_all(zdotdir)!
+			os.chmod(zdotdir, 0o700)!
+			source := os.join_path(library_path, 'utils', 'zsh', 'brew-sh-prompt-zshrc.zsh')
+			os.cp(source, os.join_path(zdotdir, '.zshrc'))!
+			for file in ['.zshenv', '.zcompdump', '.zsh_history', '.zsh_sessions'] {
+				destination := os.join_path(zdotdir, file)
+				if os.exists(destination) || os.is_link(destination) { os.rm(destination)! }
+				os.symlink(os.join_path(home, file), destination)!
+			}
+			'BREW_PROMPT_PATH="${path}" BREW_PROMPT_TYPE="${prompt_type}" ZDOTDIR="${zdotdir}" ${options.preferred_path}'
+		}
+		'bash' {
+			'BREW_PROMPT_PATH="${path}" BREW_PROMPT_TYPE="${prompt_type}" ${options.preferred_path} --rcfile "${os.join_path(library_path, 'utils', 'bash', 'brew-sh-prompt-bashrc.bash')}"'
+		}
+		else {
+			'PS1="\\[\\033[1;32m\\]${prompt_type} \\[\\033[1;31m\\]\\w \\[\\033[1;34m\\]\$\\[\\033[0m\\] " ${options.preferred_path}'
+		}
+	}
+	return ShellPromptPlan{
+		command: command
+		notice: options.notice
+	}
+}
+
+fn shell_escape_unsafe(value string) string {
+	mut output := []rune{}
+	for character in value.runes() {
+		if !shell_safe_character(character) && character != `\n` { output << `\\` }
+		output << character
+	}
+	return output.string()
+}
+
+fn shell_safe_character(character rune) bool {
+	return (character >= `A` && character <= `Z`) || (character >= `a` && character <= `z`) || (character >= `0` && character <= `9`) || character in [
+		`_`,
+		`-`,
+		`.`,
+		`,`,
+		`:`,
+		`/`,
+		`@`,
+		`~`,
+		`+`,
+		`\n`,
+	]
+}
+
+fn shell_homebrew_temp() string {
+	value := os.getenv('HOMEBREW_TEMP')
+	return if value != '' { value } else { os.temp_dir() }
+}
+
+fn shell_homebrew_library_path() string {
+	value := os.getenv('HOMEBREW_LIBRARY_PATH')
+	return if value != '' { value } else { os.join_path(os.getwd(), 'homebrew') }
+}
+
+fn shell_nil_value() brew_runtime.Value {
+	return brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
 }
 
 // Original Ruby source (line-for-line):

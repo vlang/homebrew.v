@@ -5,109 +5,409 @@ import brew_runtime
 // Translated from Homebrew/brew `utils/tty.rb`.
 // The original source is retained below until every stub has a typed V body.
 
+pub struct TerminalSize {
+pub:
+	height int
+	width  int
+}
+
+pub struct TtyState {
+pub:
+	stream_is_tty bool
+	no_color      bool
+	force_color   bool
+pub mut:
+	escape_sequence []int
+}
+
+pub fn current_tty_state() TtyState {
+	return TtyState{
+		stream_is_tty: brew_runtime.stdout_is_terminal()
+		no_color:      brew_runtime.environment_value('HOMEBREW_NO_COLOR') != ''
+		force_color:   brew_runtime.environment_value('HOMEBREW_COLOR') != ''
+	}
+}
+
+pub fn (state TtyState) with_stream(stream_is_tty bool) TtyState {
+	return TtyState{
+		stream_is_tty:   stream_is_tty
+		no_color:        state.no_color
+		force_color:     state.force_color
+		escape_sequence: state.escape_sequence.clone()
+	}
+}
+
+pub fn tty_strip_ansi(input string) string {
+	mut output := []u8{cap: input.len}
+	mut index := 0
+	for index < input.len {
+		if input[index] == 0x1b && index + 2 < input.len && input[index + 1] == `[` {
+			mut cursor := index + 2
+			mut has_digit := false
+			for cursor < input.len && ((input[cursor] >= `0` && input[cursor] <= `9`)
+				|| input[cursor] == `;`) {
+				if input[cursor] != `;` {
+					has_digit = true
+				}
+				cursor++
+			}
+			if has_digit && cursor < input.len && input[cursor] == `m` {
+				index = cursor + 1
+				continue
+			}
+		}
+		output << input[index]
+		index++
+	}
+	return output.bytestr()
+}
+
+pub fn tty_collapse_carriage_returns(input string) string {
+	mut lines := []string{}
+	for line in input.split('\n') {
+		mut last := ''
+		for segment in line.split('\r') {
+			if segment != '' {
+				last = segment
+			}
+		}
+		lines << last
+	}
+	return lines.join('\n')
+}
+
+pub fn tty_move_cursor_up_beginning(line_count int) string {
+	return '\x1b[${line_count}F'
+}
+
+pub fn tty_move_cursor_beginning() string {
+	return '\x1b[0G'
+}
+
+pub fn tty_move_cursor_down(line_count int) string {
+	return '\x1b[${line_count}B'
+}
+
+pub fn tty_clear_to_end() string {
+	return '\x1b[K'
+}
+
+pub fn tty_hide_cursor() string {
+	return '\x1b[?25l'
+}
+
+pub fn tty_show_cursor() string {
+	return '\x1b[?25h'
+}
+
+pub fn tty_begin_synchronized_update() string {
+	return '\x1b[?2026h'
+}
+
+pub fn tty_end_synchronized_update() string {
+	return '\x1b[?2026l'
+}
+
+pub fn tty_size() ?TerminalSize {
+	result := brew_runtime.run_command('/bin/stty', ['size'])
+	if result.exit_code != 0 {
+		return none
+	}
+	parts := result.output.trim_space().split_any(' \t')
+	if parts.len < 2 || parts[0].int() <= 0 || parts[1].int() <= 0 {
+		return none
+	}
+	return TerminalSize{
+		height: parts[0].int()
+		width:  parts[1].int()
+	}
+}
+
+pub fn tty_height() int {
+	if size := tty_size() {
+		return size.height
+	}
+	result := brew_runtime.run_command('/usr/bin/tput', ['lines'])
+	return if result.exit_code == 0 && result.output.trim_space().int() > 0 {
+		result.output.trim_space().int()
+	} else {
+		40
+	}
+}
+
+pub fn tty_width() int {
+	if size := tty_size() {
+		return size.width
+	}
+	result := brew_runtime.run_command('/usr/bin/tput', ['cols'])
+	return if result.exit_code == 0 && result.output.trim_space().int() > 0 {
+		result.output.trim_space().int()
+	} else {
+		80
+	}
+}
+
+pub fn tty_truncate(input string, width int) string {
+	if width == 0 {
+		return input
+	}
+	runes := input.runes()
+	end := width - 4
+	if end <= 0 {
+		return ''
+	}
+	if runes.len <= end {
+		return input
+	}
+	return runes[..end].string()
+}
+
+fn tty_code(name string) !int {
+	return match name.trim_left(':') {
+		'red' { 31 }
+		'green' { 32 }
+		'yellow' { 33 }
+		'blue' { 34 }
+		'magenta' { 35 }
+		'cyan' { 36 }
+		'default' { 39 }
+		'reset' { 0 }
+		'bold' { 1 }
+		'italic' { 3 }
+		'underline' { 4 }
+		'strikethrough' { 9 }
+		'no_underline' { 24 }
+		else { return error('unknown TTY code: ${name}') }
+	}
+}
+
+pub fn (state TtyState) color() bool {
+	if state.no_color {
+		return false
+	}
+	if state.force_color {
+		return true
+	}
+	return state.stream_is_tty
+}
+
+pub fn (state TtyState) current_escape_sequence() string {
+	if state.escape_sequence.len == 0 {
+		return ''
+	}
+	return '\x1b[${state.escape_sequence.map(it.str()).join(';')}m'
+}
+
+pub fn (mut state TtyState) add_code(name string) ! {
+	state.escape_sequence << tty_code(name)!
+}
+
+pub fn (mut state TtyState) reset_escape_sequence() {
+	state.escape_sequence.clear()
+}
+
+pub fn (mut state TtyState) str() string {
+	output := if state.color() { state.current_escape_sequence() } else { '' }
+	state.reset_escape_sequence()
+	return output
+}
+
+pub fn tty_escape(name string) string {
+	mut state := current_tty_state()
+	state.add_code(name) or { return '' }
+	return state.str()
+}
+
+pub fn tty_special_code(name string, stream_is_tty bool) string {
+	if !stream_is_tty {
+		return ''
+	}
+	code := match name.trim_left(':') {
+		'up' { '1A' }
+		'down' { '1B' }
+		'right' { '1C' }
+		'left' { '1D' }
+		'erase_line' { 'K' }
+		'erase_char' { 'P' }
+		else { return '' }
+	}
+	return '\x1b[${code}'
+}
+
+fn tty_state_value(state TtyState) brew_runtime.Value {
+	return brew_runtime.structured_value('Tty', state.current_escape_sequence(), {
+		'stream_is_tty':   state.stream_is_tty.str()
+		'no_color':        state.no_color.str()
+		'force_color':     state.force_color.str()
+		'escape_sequence': state.escape_sequence.map(it.str()).join(',')
+	})
+}
+
+fn tty_state_from_value(value brew_runtime.Value) TtyState {
+	if value.type_name != 'Tty' {
+		return current_tty_state()
+	}
+	codes_text := value.attribute('escape_sequence') or { '' }
+	mut codes := []int{}
+	if codes_text != '' {
+		codes = codes_text.split(',').map(it.int())
+	}
+	return TtyState{
+		stream_is_tty:   (value.attribute('stream_is_tty') or { 'false' }) == 'true'
+		no_color:        (value.attribute('no_color') or { 'false' }) == 'true'
+		force_color:     (value.attribute('force_color') or { 'false' }) == 'true'
+		escape_sequence: codes
+	}
+}
+
 // Ruby method `with(stream, &_block)` at line 49.
 pub fn ruby_tty_l49_d1_with(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('with', ...args)
+	if args.len == 0 {
+		panic('Tty.with requires a stream')
+	}
+	stream_is_tty := if args[0].type_name == 'Bool' { args[0].as_bool() or { false } } else { false }
+	return tty_state_value(current_tty_state().with_stream(stream_is_tty))
 }
 
 // Ruby method `strip_ansi(string)` at line 59.
 pub fn ruby_tty_l59_d2_strip_ansi(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('strip_ansi', ...args)
+	if args.len == 0 {
+		panic('Tty.strip_ansi requires a string')
+	}
+	return brew_runtime.string_value(tty_strip_ansi(args[0].as_string()))
 }
 
 // Ruby method `collapse_carriage_returns(string)` at line 65.
 pub fn ruby_tty_l65_d3_collapse_carriage_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('collapse_carriage_returns', ...args)
+	if args.len == 0 {
+		panic('Tty.collapse_carriage_returns requires a string')
+	}
+	return brew_runtime.string_value(tty_collapse_carriage_returns(args[0].as_string()))
 }
 
 // Ruby method `move_cursor_up_beginning(line_count)` at line 73.
 pub fn ruby_tty_l73_d4_move_cursor_up_beginning(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('move_cursor_up_beginning', ...args)
+	if args.len == 0 {
+		panic('Tty.move_cursor_up_beginning requires a line count')
+	}
+	return brew_runtime.string_value(tty_move_cursor_up_beginning(int(args[0].as_int() or {
+		panic(err)
+	})))
 }
 
 // Ruby method `move_cursor_beginning` at line 78.
 pub fn ruby_tty_l78_d5_move_cursor_beginning(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('move_cursor_beginning', ...args)
+	return brew_runtime.string_value(tty_move_cursor_beginning())
 }
 
 // Ruby method `move_cursor_down(line_count)` at line 83.
 pub fn ruby_tty_l83_d6_move_cursor_down(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('move_cursor_down', ...args)
+	if args.len == 0 {
+		panic('Tty.move_cursor_down requires a line count')
+	}
+	return brew_runtime.string_value(tty_move_cursor_down(int(args[0].as_int() or { panic(err) })))
 }
 
 // Ruby method `clear_to_end` at line 88.
 pub fn ruby_tty_l88_d7_clear_to_end(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('clear_to_end', ...args)
+	return brew_runtime.string_value(tty_clear_to_end())
 }
 
 // Ruby method `hide_cursor` at line 93.
 pub fn ruby_tty_l93_d8_hide_cursor(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('hide_cursor', ...args)
+	return brew_runtime.string_value(tty_hide_cursor())
 }
 
 // Ruby method `show_cursor` at line 98.
 pub fn ruby_tty_l98_d9_show_cursor(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('show_cursor', ...args)
+	return brew_runtime.string_value(tty_show_cursor())
 }
 
 // Ruby method `begin_synchronized_update` at line 103.
 pub fn ruby_tty_l103_d10_begin_synchronized_update(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('begin_synchronized_update', ...args)
+	return brew_runtime.string_value(tty_begin_synchronized_update())
 }
 
 // Ruby method `end_synchronized_update` at line 108.
 pub fn ruby_tty_l108_d11_end_synchronized_update(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('end_synchronized_update', ...args)
+	return brew_runtime.string_value(tty_end_synchronized_update())
 }
 
 // Ruby method `size` at line 113.
 pub fn ruby_tty_l113_d12_size(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('size', ...args)
+	if size := tty_size() {
+		return brew_runtime.structured_value('Array', '[${size.height}, ${size.width}]', {
+			'height': size.height.str()
+			'width':  size.width.str()
+		})
+	}
+	return brew_runtime.object_value('NilClass', '')
 }
 
 // Ruby method `height` at line 123.
 pub fn ruby_tty_l123_d13_height(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('height', ...args)
+	return brew_runtime.int_value(tty_height())
 }
 
 // Ruby method `width` at line 129.
 pub fn ruby_tty_l129_d14_width(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('width', ...args)
+	return brew_runtime.int_value(tty_width())
 }
 
 // Ruby method `truncate(string)` at line 134.
 pub fn ruby_tty_l134_d15_truncate(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('truncate', ...args)
+	if args.len == 0 {
+		panic('Tty.truncate requires a string')
+	}
+	return brew_runtime.string_value(tty_truncate(args[0].as_string(), tty_width()))
 }
 
 // Ruby method `current_escape_sequence` at line 139.
 pub fn ruby_tty_l139_d16_current_escape_sequence(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('current_escape_sequence', ...args)
+	state := if args.len > 0 { tty_state_from_value(args[0]) } else { current_tty_state() }
+	return brew_runtime.string_value(state.current_escape_sequence())
 }
 
 // Ruby method `reset_escape_sequence!` at line 146.
 pub fn ruby_tty_l146_d17_reset_escape_sequence(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reset_escape_sequence!', ...args)
+	mut state := if args.len > 0 { tty_state_from_value(args[0]) } else { current_tty_state() }
+	state.reset_escape_sequence()
+	return tty_state_value(state)
 }
 
 // Ruby define_method `define_method(name) do` at line 151.
 pub fn ruby_tty_l151_d18_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('name', ...args)
+	if args.len == 0 {
+		panic('Tty color method requires a name')
+	}
+	mut state := if args.len > 1 { tty_state_from_value(args[1]) } else { current_tty_state() }
+	state.add_code(args[0].as_string()) or { panic(err) }
+	return tty_state_value(state)
 }
 
 // Ruby define_method `define_method(name) do` at line 159.
 pub fn ruby_tty_l159_d19_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('name', ...args)
+	if args.len == 0 {
+		panic('Tty special method requires a name')
+	}
+	stream_is_tty := if args.len > 1 && args[1].type_name == 'Bool' {
+		args[1].as_bool() or { false }
+	} else {
+		brew_runtime.stdout_is_terminal()
+	}
+	return brew_runtime.string_value(tty_special_code(args[0].as_string(), stream_is_tty))
 }
 
 // Ruby method `to_s` at line 170.
 pub fn ruby_tty_l170_d20_to_s(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_s', ...args)
+	mut state := if args.len > 0 { tty_state_from_value(args[0]) } else { current_tty_state() }
+	return brew_runtime.string_value(state.str())
 }
 
 // Ruby method `color?` at line 179.
 pub fn ruby_tty_l179_d21_color(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('color?', ...args)
+	state := if args.len > 0 { tty_state_from_value(args[0]) } else { current_tty_state() }
+	return brew_runtime.bool_value(state.color())
 }
 
 // Original Ruby source (line-for-line):

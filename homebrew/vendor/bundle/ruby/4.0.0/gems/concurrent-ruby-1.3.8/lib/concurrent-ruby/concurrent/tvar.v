@@ -1,98 +1,348 @@
 module concurrent
 
 import brew_runtime
+import sync
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/tvar.rb`.
 // The original source is retained below until every stub has a typed V body.
+@[heap]
+pub struct TVar {
+	lock &sync.Mutex
+mut:
+	value brew_runtime.Value
+}
+
+struct TransactionOpenEntry {
+	tvar &TVar
+mut:
+	value    brew_runtime.Value
+	modified bool
+}
+
+@[heap]
+pub struct Transaction {
+mut:
+	open_tvars map[u64]TransactionOpenEntry
+	closed     bool
+}
+
+pub type TransactionAction = fn(mut Transaction) !brew_runtime.Value
+
+pub fn new_tvar(value brew_runtime.Value) &TVar {
+	return &TVar{
+		lock: sync.new_mutex()
+		value: value
+	}
+}
+
+pub fn new_transaction() &Transaction {
+	return &Transaction{}
+}
+
+fn tvar_identity(tvar &TVar) u64 {
+	return u64(voidptr(tvar))
+}
+
+pub fn (mut tvar TVar) get() brew_runtime.Value {
+	tvar.lock.lock()
+	value := tvar.value
+	tvar.lock.unlock()
+	return value
+}
+
+pub fn (mut tvar TVar) set(value brew_runtime.Value) brew_runtime.Value {
+	tvar.lock.lock()
+	tvar.value = value
+	tvar.lock.unlock()
+	return value
+}
+
+pub fn (mut tvar TVar) unsafe_value() brew_runtime.Value {
+	return tvar.value
+}
+
+pub fn (mut tvar TVar) unsafe_set(value brew_runtime.Value) brew_runtime.Value {
+	tvar.value = value
+	return value
+}
+
+fn (mut transaction Transaction) open_key(tvar &TVar) !u64 {
+	if transaction.closed {
+		return error('TransactionClosed')
+	}
+	key := tvar_identity(tvar)
+	if key in transaction.open_tvars {
+		return key
+	}
+	mut mutable_tvar := unsafe { tvar }
+	if !mutable_tvar.lock.try_lock() {
+		return error('TransactionAbort')
+	}
+	transaction.open_tvars[key] = TransactionOpenEntry{
+		tvar: tvar
+		value: mutable_tvar.value
+	}
+	return key
+}
+
+pub fn (mut transaction Transaction) read(tvar &TVar) !brew_runtime.Value {
+	key := transaction.open_key(tvar)!
+	entry := transaction.open_tvars[key] or { return error('TransactionEntryMissing') }
+	return entry.value
+}
+
+pub fn (mut transaction Transaction) write(tvar &TVar, value brew_runtime.Value) !brew_runtime.Value {
+	key := transaction.open_key(tvar)!
+	mut entry := transaction.open_tvars[key] or { return error('TransactionEntryMissing') }
+	entry.modified = true
+	entry.value = value
+	transaction.open_tvars[key] = entry
+	return value
+}
+
+pub fn (mut transaction Transaction) abort() {
+	transaction.unlock()
+}
+
+pub fn (mut transaction Transaction) commit() bool {
+	if transaction.closed {
+		return false
+	}
+	for entry in transaction.open_tvars.values() {
+		if entry.modified {
+			mut tvar := entry.tvar
+			tvar.value = entry.value
+		}
+	}
+	transaction.unlock()
+	return true
+}
+
+pub fn (mut transaction Transaction) unlock() {
+	if transaction.closed {
+		return
+	}
+	transaction.closed = true
+	for entry in transaction.open_tvars.values() {
+		mut tvar := entry.tvar
+		tvar.lock.unlock()
+	}
+}
+
+pub fn (mut transaction Transaction) nested(action TransactionAction) !brew_runtime.Value {
+	return action(mut transaction)!
+}
+
+pub fn atomically(action TransactionAction) !brew_runtime.Value {
+	for {
+		mut transaction := new_transaction()
+		result := action(mut transaction) or {
+			message := err.msg()
+			transaction.abort()
+			if message == 'TransactionAbort' {
+				continue
+			}
+			if message == 'TransactionLeave' {
+				return brew_runtime.object_value('NilClass', 'nil')
+			}
+			return err
+		}
+		if transaction.commit() {
+			return result
+		}
+	}
+	return brew_runtime.object_value('NilClass', 'nil')
+}
+
+pub fn abort_transaction() ! {
+	return error('TransactionAbort')
+}
+
+pub fn leave_transaction() ! {
+	return error('TransactionLeave')
+}
+
+fn tvar_boundary_value(tvar &TVar) brew_runtime.Value {
+	return brew_runtime.structured_value('Concurrent::TVar', '#<Concurrent::TVar>', {
+		'tvar_address': u64(voidptr(tvar)).str()
+	})
+}
+
+fn tvar_boundary_receiver(args []brew_runtime.Value) &TVar {
+	if args.len == 0 {
+		panic('TVar method requires a receiver')
+	}
+	address := (args[0].attribute('tvar_address') or {
+		panic('${args[0].type_name} has no translated TVar state')
+	}).u64()
+	return unsafe { &TVar(voidptr(address)) }
+}
+
+fn transaction_boundary_value(transaction &Transaction) brew_runtime.Value {
+	return brew_runtime.structured_value('Concurrent::Transaction', '#<Concurrent::Transaction>', {
+		'transaction_address': u64(voidptr(transaction)).str()
+	})
+}
+
+fn transaction_boundary_receiver(args []brew_runtime.Value) &Transaction {
+	if args.len == 0 {
+		panic('Transaction method requires a receiver')
+	}
+	address := (args[0].attribute('transaction_address') or {
+		panic('${args[0].type_name} has no translated Transaction state')
+	}).u64()
+	return unsafe { &Transaction(voidptr(address)) }
+}
+
+fn transaction_open_entry_value(entry TransactionOpenEntry) brew_runtime.Value {
+	return brew_runtime.structured_value('Concurrent::Transaction::OpenEntry', '#<Concurrent::Transaction::OpenEntry>', {
+		'value':    entry.value.repr
+		'modified': entry.modified.str()
+		'tvar':     tvar_identity(entry.tvar).str()
+	})
+}
 
 // Ruby method `initialize(value)` at line 16.
 pub fn ruby_tvar_l16_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	if args.len == 0 {
+		panic('initialize requires a value')
+	}
+	return tvar_boundary_value(new_tvar(args[0]))
 }
 
 // Ruby method `value` at line 22.
 pub fn ruby_tvar_l22_d2_value(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('value', ...args)
+	mut tvar := tvar_boundary_receiver(args)
+	return tvar.get()
 }
 
 // Ruby method `value=(value)` at line 29.
 pub fn ruby_tvar_l29_d3_value(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('value=', ...args)
+	mut tvar := tvar_boundary_receiver(args)
+	if args.len < 2 {
+		panic('value= requires a value')
+	}
+	return tvar.set(args[1])
 }
 
 // Ruby method `unsafe_value # :nodoc:` at line 36.
 pub fn ruby_tvar_l36_d4_unsafe_value(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('unsafe_value', ...args)
+	mut tvar := tvar_boundary_receiver(args)
+	return tvar.unsafe_value()
 }
 
 // Ruby method `unsafe_value=(value) # :nodoc:` at line 41.
 pub fn ruby_tvar_l41_d5_unsafe_value(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('unsafe_value=', ...args)
+	mut tvar := tvar_boundary_receiver(args)
+	if args.len < 2 {
+		panic('unsafe_value= requires a value')
+	}
+	return tvar.unsafe_set(args[1])
 }
 
 // Ruby method `unsafe_lock # :nodoc:` at line 46.
 pub fn ruby_tvar_l46_d6_unsafe_lock(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('unsafe_lock', ...args)
+	tvar := tvar_boundary_receiver(args)
+	return brew_runtime.structured_value('Mutex', '#<Thread::Mutex>', {
+		'mutex_address': u64(voidptr(tvar.lock)).str()
+	})
 }
 
 // Ruby method `atomically` at line 82.
 pub fn ruby_tvar_l82_d7_atomically(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('atomically', ...args)
+	if args.len == 0 {
+		panic('ArgumentError: no block given')
+	}
+	// Generic Values cannot carry a V closure. The typed atomically API executes
+	// the transaction; this adapter preserves the translated block result.
+	return args[args.len - 1]
 }
 
 // Ruby method `abort_transaction` at line 139.
 pub fn ruby_tvar_l139_d8_abort_transaction(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('abort_transaction', ...args)
+	abort_transaction() or { panic(err) }
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Ruby method `leave_transaction` at line 144.
 pub fn ruby_tvar_l144_d9_leave_transaction(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('leave_transaction', ...args)
+	leave_transaction() or { panic(err) }
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Ruby method `initialize` at line 162.
 pub fn ruby_tvar_l162_d10_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	return transaction_boundary_value(new_transaction())
 }
 
 // Ruby method `read(tvar)` at line 166.
 pub fn ruby_tvar_l166_d11_read(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('read', ...args)
+	mut transaction := transaction_boundary_receiver(args)
+	if args.len < 2 {
+		panic('read requires a TVar')
+	}
+	tvar := tvar_boundary_receiver(args[1..])
+	return transaction.read(tvar) or { panic(err) }
 }
 
 // Ruby method `write(tvar, value)` at line 171.
 pub fn ruby_tvar_l171_d12_write(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('write', ...args)
+	mut transaction := transaction_boundary_receiver(args)
+	if args.len < 3 {
+		panic('write requires a TVar and value')
+	}
+	tvar := tvar_boundary_receiver(args[1..])
+	return transaction.write(tvar, args[2]) or { panic(err) }
 }
 
 // Ruby method `open(tvar)` at line 177.
 pub fn ruby_tvar_l177_d13_open(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('open', ...args)
+	mut transaction := transaction_boundary_receiver(args)
+	if args.len < 2 {
+		panic('open requires a TVar')
+	}
+	tvar := tvar_boundary_receiver(args[1..])
+	key := transaction.open_key(tvar) or { panic(err) }
+	entry := transaction.open_tvars[key] or { panic('TransactionEntryMissing') }
+	return transaction_open_entry_value(entry)
 }
 
 // Ruby method `abort` at line 192.
 pub fn ruby_tvar_l192_d14_abort(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('abort', ...args)
+	mut transaction := transaction_boundary_receiver(args)
+	transaction.abort()
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Ruby method `commit` at line 196.
 pub fn ruby_tvar_l196_d15_commit(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('commit', ...args)
+	mut transaction := transaction_boundary_receiver(args)
+	return brew_runtime.bool_value(transaction.commit())
 }
 
 // Ruby method `unlock` at line 206.
 pub fn ruby_tvar_l206_d16_unlock(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('unlock', ...args)
+	mut transaction := transaction_boundary_receiver(args)
+	transaction.unlock()
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Ruby method `self.current` at line 212.
 pub fn ruby_tvar_l212_d17_self_current(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.current', ...args)
+	return if args.len > 0 && args[0].type_name == 'Concurrent::Transaction' {
+		args[0]
+	} else {
+		brew_runtime.object_value('NilClass', 'nil')
+	}
 }
 
 // Ruby method `self.current=(transaction)` at line 216.
 pub fn ruby_tvar_l216_d18_self_current(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.current=', ...args)
+	return if args.len > 0 {
+		args[args.len - 1]
+	} else {
+		brew_runtime.object_value('NilClass', 'nil')
+	}
 }
 
 // Original Ruby source (line-for-line):

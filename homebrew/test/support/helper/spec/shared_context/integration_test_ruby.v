@@ -1,68 +1,436 @@
 module shared_context
 
 import brew_runtime
+import crypto.sha256
+import homebrew
+import os
 
 // Translated from Homebrew/brew `test/support/helper/spec/shared_context/integration_test.rb`.
 // The original source is retained below until every stub has a typed V body.
 
+pub struct IntegrationCommandResult {
+pub:
+	exit_code int
+	stdout    string
+	stderr    string
+}
+
+pub fn (result IntegrationCommandResult) success() bool {
+	return result.exit_code == 0
+}
+
+pub struct IntegrationTestConfig {
+pub:
+	prefix        string
+	library_path  string
+	test_tmpdir   string
+	fixture_dir   string
+	cache         string
+	cellar        string
+	tap_directory string
+	core_tap_path string
+	brew_command  []string
+	brew_sh_path  string
+	linux         bool
+}
+
+@[heap]
+pub struct IntegrationTestRuntime {
+pub:
+	config IntegrationTestConfig
+pub mut:
+	command_number     int
+	commands           [][]string
+	command_envs       []map[string]string
+	stdout             []string
+	stderr             []string
+	installed_formulae []string
+	tap_cache_clears   int
+}
+
+pub fn new_integration_test_runtime(config IntegrationTestConfig) &IntegrationTestRuntime {
+	return &IntegrationTestRuntime{
+		config: config
+	}
+}
+
+pub fn (mut runtime IntegrationTestRuntime) command_id() string {
+	runtime.command_number++
+	return '${os.getpid()}:${os.getenv('TEST_ENV_NUMBER')}:${runtime.command_number}'
+}
+
+fn integration_path(values []string) string {
+	return values.filter(it != '').join(os.path_delimiter)
+}
+
+fn (mut runtime IntegrationTestRuntime) capture(command []string,
+	environment map[string]string) IntegrationCommandResult {
+	if command.len == 0 {
+		return IntegrationCommandResult{
+			exit_code: 127
+			stderr: 'integration command is empty'
+		}
+	}
+	runtime.commands << command.clone()
+	runtime.command_envs << environment.clone()
+	result := brew_runtime.run_captured_command(command, brew_runtime.CapturedCommandOptions{
+		environment: environment
+	}) or {
+		return IntegrationCommandResult{
+			exit_code: 127
+			stderr: err.msg()
+		}
+	}
+	runtime.stdout << result.stdout
+	runtime.stderr << result.stderr
+	return IntegrationCommandResult{
+		exit_code: result.exit_code
+		stdout: result.stdout
+		stderr: result.stderr
+	}
+}
+
+pub fn (mut runtime IntegrationTestRuntime) brew(arguments []string,
+	overrides map[string]string) IntegrationCommandResult {
+	mut environment := os.environ()
+	for key, value in overrides {
+		environment[key] = value
+	}
+	path := integration_path([
+		overrides['PATH'] or { '' },
+		os.join_path(runtime.config.library_path, 'test', 'support', 'helper', 'cmd'),
+		os.join_path(runtime.config.prefix, 'bin'),
+		environment['PATH'] or { '' },
+	])
+	environment['PATH'] = path
+	environment['HOMEBREW_PATH'] = path
+	environment['HOMEBREW_BREW_FILE'] = os.join_path(runtime.config.prefix, 'bin', 'brew')
+	environment['HOMEBREW_INTEGRATION_TEST'] = runtime.command_id()
+	environment['HOMEBREW_TEST_TMPDIR'] = runtime.config.test_tmpdir
+	environment['HOMEBREW_DEV_CMD_RUN'] = 'true'
+	environment.delete('HOMEBREW_ASK')
+	environment.delete('GEM_HOME')
+	mut command := runtime.config.brew_command.clone()
+	if command.len == 0 {
+		command << os.join_path(runtime.config.prefix, 'bin', 'brew')
+	}
+	command << arguments
+	return runtime.capture(command, environment)
+}
+
+pub fn (mut runtime IntegrationTestRuntime) brew_sh(arguments []string,
+	overrides map[string]string) IntegrationCommandResult {
+	mut environment := os.environ()
+	environment['HOMEBREW_CACHE'] = runtime.config.cache
+	environment['HOMEBREW_INTEGRATION_TEST'] = runtime.command_id()
+	for key, value in overrides {
+		environment[key] = value
+	}
+	executable := environment['HOMEBREW_BREW_SH'] or {
+		if runtime.config.brew_sh_path != '' {
+			runtime.config.brew_sh_path
+		} else {
+			os.join_path(runtime.config.prefix, 'bin', 'brew')
+		}
+	}
+	environment.delete('HOMEBREW_BREW_SH')
+	mut command := [executable]
+	command << arguments
+	return runtime.capture(command, environment)
+}
+
+fn integration_formula_content(runtime &IntegrationTestRuntime, name string, supplied string,
+	bottle_block string) !string {
+	if name.starts_with('testball') {
+		prefix := if name == 'testball2' { 'testball2' } else { 'testball' }
+		tarball_name := if runtime.config.linux {
+			'${prefix}-0.1-linux.tbz'
+		} else {
+			'${prefix}-0.1.tbz'
+		}
+		tarball := os.join_path(runtime.config.fixture_dir, 'tarballs', tarball_name)
+		if !os.is_file(tarball) {
+			return error('missing integration fixture ${tarball}')
+		}
+		digest := sha256.sum256(os.read_bytes(tarball)!).hex()
+		bottle := if bottle_block != '' {
+			bottle_block
+		} else if name == 'testball_bottle' {
+			'bottle do\n  root_url "file://${runtime.config.fixture_dir}/bottles"\n  sha256 cellar: :any_skip_relocation, all: "d7b9f4e8bf83608b71fe958a99f19f2e5e68bb2582965d32e41759c24f1aef97"\nend'
+		} else {
+			''
+		}
+		return 'desc "Some test"\nhomepage "https://brew.sh/${name}"\nurl "file://${tarball}"\nsha256 "${digest}"\n\noption "with-foo", "Build with foo"\n${bottle}\ndef install\n  (prefix/"foo"/"test").write("test") if build.with? "foo"\n  prefix.install Dir["*"]\nend\n\n${supplied}\n\n# something here'
+	}
+	if name == 'bar' {
+		return 'url "https://brew.sh/bar-1.0"\ndepends_on "foo"'
+	}
+	if name == 'package_license' {
+		return 'url "https://brew.sh/#patchelf-1.0"\nlicense "0BSD"'
+	}
+	return if supplied != '' { supplied } else { 'url "https://brew.sh/${name}-1.0"' }
+}
+
+pub fn (mut runtime IntegrationTestRuntime) setup_test_formula(name string, supplied string,
+	tap_path string, bottle_block string, tab_attributes map[string]string) !string {
+	content := integration_formula_content(runtime, name, supplied, bottle_block)!
+	formula_directory := os.join_path(tap_path, 'Formula')
+	os.mkdir_all(formula_directory)!
+	formula_path := os.join_path(formula_directory, '${name.to_lower()}.rb')
+	indented := content.split_into_lines().map(if it == '' { '' } else { '  ${it}' }).join('\n')
+	os.write_file(formula_path, 'class ${homebrew.ruby_formulary_l452_d27_self_class_s(name)} < Formula\n${indented}\nend\n')!
+	runtime.tap_cache_clears++
+	if tab_attributes.len > 0 {
+		keg := os.join_path(runtime.config.cellar, name, '0.1')
+		os.mkdir_all(keg)!
+		mut lines := []string{}
+		for key, value in tab_attributes {
+			lines << '${key}=${value}'
+		}
+		lines.sort()
+		os.write_file(os.join_path(keg, 'INSTALL_RECEIPT.json'), '${lines.join('\n')}\n')!
+	}
+	return formula_path
+}
+
+pub fn (mut runtime IntegrationTestRuntime) install_formula_fixture(name string) !string {
+	prefix := os.join_path(runtime.config.cellar, name, '0.1')
+	bin := os.join_path(prefix, 'bin')
+	os.mkdir_all(bin)!
+	executable := os.join_path(bin, 'test')
+	os.write_file(executable, '#!/bin/sh\nprintf test\n')!
+	os.chmod(executable, 0o755)!
+	if name !in runtime.installed_formulae {
+		runtime.installed_formulae << name
+	}
+	return prefix
+}
+
+pub fn (mut runtime IntegrationTestRuntime) install_test_formula(name string, content string,
+	build_bottle bool) !string {
+	_ = build_bottle
+	runtime.setup_test_formula(name, content, runtime.config.core_tap_path, '', {})!
+	return runtime.install_formula_fixture(name)!
+}
+
+pub fn (mut runtime IntegrationTestRuntime) uninstall_test_formula(name string) ! {
+	rack := os.join_path(runtime.config.cellar, name)
+	if os.is_dir(rack) {
+		os.rmdir_all(rack)!
+	}
+	runtime.installed_formulae = runtime.installed_formulae.filter(it != name)
+}
+
+fn integration_git(path string, arguments []string) ! {
+	mut command := ['git', '-C', path]
+	command << arguments
+	result := brew_runtime.run_captured_command(command, brew_runtime.CapturedCommandOptions{
+		environment: os.environ()
+	})!
+	if result.exit_code != 0 {
+		return error(result.stderr)
+	}
+}
+
+pub fn (mut runtime IntegrationTestRuntime) setup_test_tap() !string {
+	path := os.join_path(runtime.config.tap_directory, 'homebrew', 'homebrew-foo')
+	os.mkdir_all(path)!
+	integration_git(path, ['init'])!
+	integration_git(path, ['config', 'user.name', 'Brew V Tests'])!
+	integration_git(path, ['config', 'user.email', 'brew-v@example.invalid'])!
+	integration_git(path, ['remote', 'add', 'origin', 'https://github.com/Homebrew/homebrew-foo'])!
+	os.write_file(os.join_path(path, 'readme'), '')!
+	integration_git(path, ['add', '--all'])!
+	integration_git(path, ['commit', '-m', 'init'])!
+	return path
+}
+
+pub fn (mut runtime IntegrationTestRuntime) install_and_rename_coretap_formula(old_name string,
+	new_name string) ! {
+	tap_path := runtime.config.core_tap_path
+	os.mkdir_all(os.join_path(tap_path, 'Formula'))!
+	integration_git(tap_path, ['init'])!
+	integration_git(tap_path, ['config', 'user.name', 'Brew V Tests'])!
+	integration_git(tap_path, ['config', 'user.email', 'brew-v@example.invalid'])!
+	old_path := os.join_path(tap_path, 'Formula', '${old_name}.rb')
+	if !os.is_file(old_path) {
+		runtime.setup_test_formula(old_name, '', tap_path, '', {})!
+	}
+	integration_git(tap_path, ['add', '--all'])!
+	integration_git(tap_path, ['commit', '-m', '${old_name.capitalize()} has not yet been renamed'])!
+	result := runtime.brew(['install', old_name], {})
+	if !result.success() {
+		return error('failed to install ${old_name}: ${result.stderr}')
+	}
+	os.rm(old_path)!
+	os.write_file(os.join_path(tap_path, 'formula_renames.json'), '{\n  "${old_name}": "${new_name}"\n}\n')!
+	integration_git(tap_path, ['add', '--all'])!
+	integration_git(tap_path, ['commit', '-m',
+		'${old_name.capitalize()} has been renamed to ${new_name.capitalize()}'])!
+}
+
+fn integration_runtime_value(runtime &IntegrationTestRuntime) brew_runtime.Value {
+	return brew_runtime.structured_value('IntegrationTest', '', {
+		'integration_runtime_address': u64(voidptr(runtime)).str()
+	})
+}
+
+pub fn integration_runtime_boundary(runtime &IntegrationTestRuntime) brew_runtime.Value {
+	return integration_runtime_value(runtime)
+}
+
+fn integration_runtime_from_args(args []brew_runtime.Value, method string) &IntegrationTestRuntime {
+	if args.len == 0 || args[0].type_name != 'IntegrationTest' {
+		panic('IntegrationTest#${method} requires a translated runtime')
+	}
+	address := args[0].attributes['integration_runtime_address'] or {
+		panic('IntegrationTest runtime has no translated state')
+	}
+	return unsafe { &IntegrationTestRuntime(voidptr(address.u64())) }
+}
+
+fn integration_result_value(result IntegrationCommandResult) brew_runtime.Value {
+	return brew_runtime.Value{
+		type_name: 'Process::Status'
+		repr: result.exit_code.str()
+		map_data: {
+			'exit_code': brew_runtime.int_value(result.exit_code)
+			'stdout':    brew_runtime.string_value(result.stdout)
+			'stderr':    brew_runtime.string_value(result.stderr)
+			'success?':  brew_runtime.bool_value(result.success())
+		}
+	}
+}
+
+fn integration_string_map(value brew_runtime.Value) map[string]string {
+	mut result := map[string]string{}
+	for key, item in value.as_map() or { return result } {
+		result[key] = item.as_string()
+	}
+	return result
+}
+
 // Ruby method `supports_block_expectations?` at line 20.
 pub fn ruby_integration_test_l20_d1_supports_block_expectations(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('supports_block_expectations?', ...args)
+	_ = args
+	return brew_runtime.bool_value(true)
 }
 
 // Ruby method `expects_call_stack_jump?` at line 40.
 pub fn ruby_integration_test_l40_d2_expects_call_stack_jump(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('expects_call_stack_jump?', ...args)
+	_ = args
+	return brew_runtime.bool_value(true)
 }
 
 // Ruby method `command_id` at line 57.
 pub fn ruby_integration_test_l57_d3_command_id(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('command_id', ...args)
+	mut runtime := integration_runtime_from_args(args, 'command_id')
+	return brew_runtime.string_value(runtime.command_id())
 }
 
 // Ruby method `brew(*args)` at line 65.
 pub fn ruby_integration_test_l65_d4_brew(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('brew', ...args)
+	mut runtime := integration_runtime_from_args(args, 'brew')
+	arguments := if args.len > 1 { args[1].as_string_array() or { [] } } else { [] }
+	overrides := if args.len > 2 { integration_string_map(args[2]) } else { map[string]string{} }
+	return integration_result_value(runtime.brew(arguments, overrides))
 }
 
 // Ruby method `brew_sh(*args)` at line 122.
 pub fn ruby_integration_test_l122_d5_brew_sh(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('brew_sh', ...args)
+	mut runtime := integration_runtime_from_args(args, 'brew_sh')
+	arguments := if args.len > 1 { args[1].as_string_array() or { [] } } else { [] }
+	overrides := if args.len > 2 { integration_string_map(args[2]) } else { map[string]string{} }
+	return integration_result_value(runtime.brew_sh(arguments, overrides))
 }
 
 // Ruby method `setup_test_formula(name, content = nil, tap: CoreTap.instance,` at line 151.
 pub fn ruby_integration_test_l151_d6_setup_test_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('setup_test_formula', ...args)
+	mut runtime := integration_runtime_from_args(args, 'setup_test_formula')
+	if args.len < 2 {
+		panic('setup_test_formula requires a name')
+	}
+	content := if args.len > 2 && args[2].type_name !in ['Nil', 'NilClass'] {
+		args[2].as_string()
+	} else {
+		''
+	}
+	options := if args.len > 3 { args[3].map_data } else { map[string]brew_runtime.Value{} }
+	tap_path := (options['tap'] or { brew_runtime.string_value(runtime.config.core_tap_path) }).as_string()
+	bottle_block := (options['bottle_block'] or { brew_runtime.string_value('') }).as_string()
+	tab_attributes := if value := options['tab_attributes'] {
+		integration_string_map(value)
+	} else {
+		map[string]string{}
+	}
+	path := runtime.setup_test_formula(args[1].as_string(), content, tap_path, bottle_block, tab_attributes) or { return brew_runtime.object_value('RuntimeError', err.msg()) }
+	return brew_runtime.object_value('Pathname', path)
 }
 
 // Ruby method `install` at line 176.
 pub fn ruby_integration_test_l176_d7_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	mut runtime := integration_runtime_from_args(args, 'install')
+	name := if args.len > 1 { args[1].as_string() } else { 'testball' }
+	path := runtime.install_formula_fixture(name) or {
+		return brew_runtime.object_value('RuntimeError', err.msg())
+	}
+	return brew_runtime.object_value('Pathname', path)
 }
 
 // Ruby method `install_test_formula(name, content = nil, build_bottle: false)` at line 232.
 pub fn ruby_integration_test_l232_d8_install_test_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install_test_formula', ...args)
+	mut runtime := integration_runtime_from_args(args, 'install_test_formula')
+	if args.len < 2 {
+		panic('install_test_formula requires a name')
+	}
+	content := if args.len > 2 && args[2].type_name !in ['Nil', 'NilClass'] {
+		args[2].as_string()
+	} else {
+		''
+	}
+	build_bottle := args.len > 3 && (args[3].as_bool() or { false })
+	path := runtime.install_test_formula(args[1].as_string(), content, build_bottle) or {
+		return brew_runtime.object_value('RuntimeError', err.msg())
+	}
+	return brew_runtime.object_value('Pathname', path)
 }
 
 // Ruby method `uninstall_test_formula(name)` at line 243.
 pub fn ruby_integration_test_l243_d9_uninstall_test_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uninstall_test_formula', ...args)
+	mut runtime := integration_runtime_from_args(args, 'uninstall_test_formula')
+	if args.len > 1 {
+		runtime.uninstall_test_formula(args[1].as_string()) or {
+			return brew_runtime.object_value('RuntimeError', err.msg())
+		}
+	}
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Ruby method `setup_test_tap` at line 252.
 pub fn ruby_integration_test_l252_d10_setup_test_tap(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('setup_test_tap', ...args)
+	mut runtime := integration_runtime_from_args(args, 'setup_test_tap')
+	path := runtime.setup_test_tap() or {
+		return brew_runtime.object_value('RuntimeError', err.msg())
+	}
+	return brew_runtime.object_value('Pathname', path)
 }
 
 // Ruby method `install_and_rename_coretap_formula(old_name, new_name)` at line 266.
 pub fn ruby_integration_test_l266_d11_install_and_rename_coretap_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install_and_rename_coretap_formula', ...args)
+	mut runtime := integration_runtime_from_args(args, 'install_and_rename_coretap_formula')
+	if args.len < 3 {
+		panic('install_and_rename_coretap_formula requires old and new names')
+	}
+	runtime.install_and_rename_coretap_formula(args[1].as_string(), args[2].as_string()) or {
+		return brew_runtime.object_value('RuntimeError', err.msg())
+	}
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Ruby method `testball` at line 285.
 pub fn ruby_integration_test_l285_d12_testball(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('testball', ...args)
+	runtime := integration_runtime_from_args(args, 'testball')
+	return brew_runtime.string_value(os.join_path(runtime.config.fixture_dir, 'testball.rb'))
 }
 
 // Original Ruby source (line-for-line):

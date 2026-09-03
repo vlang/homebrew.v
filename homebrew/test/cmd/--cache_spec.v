@@ -1,23 +1,60 @@
 module cmd
 
 import brew_runtime
+import homebrew.cmd as cmd_core
+
+fn cache_spec_formula(cache string) cmd_core.FormulaCacheEntry {
+	return cmd_core.FormulaCacheEntry{
+		full_name: 'testball'
+		cached_download: '${cache}/downloads/0123456789abcdef--testball-1.0.tar.gz'
+	}
+}
+
+fn cache_spec_cask(cache string) cmd_core.CaskCacheEntry {
+	return cmd_core.CaskCacheEntry{
+		token: 'local-caffeine'
+		cached_location: '${cache}/downloads/fedcba9876543210--caffeine.zip'
+	}
+}
 
 // Translated from Homebrew/brew `test/cmd/--cache_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "prints all cache files for a given Formula" do` at line 10.
 pub fn ruby_cache_spec_l10_d1_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+	cache := if args.len > 0 { args[0].as_string() } else { '/tmp/cache' }
+	result := cmd_core.cache_command(cache, [
+		cmd_core.CacheEntry(cache_spec_formula(cache)),
+	], [], cmd_core.CacheCommandOptions{})
+	return brew_runtime.bool_value(result.paths == [
+		cache_spec_formula(cache).cached_download,
+	])
 }
 
 // Ruby it `it "prints the cache files for a given Cask", :cask do` at line 16.
 pub fn ruby_cache_spec_l16_d2_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+	cache := if args.len > 0 { args[0].as_string() } else { '/tmp/cache' }
+	result := cmd_core.cache_command(cache, [
+		cmd_core.CacheEntry(cache_spec_cask(cache)),
+	], [
+		cmd_core.CacheOsArch{
+			os: 'macos'
+		},
+	], cmd_core.CacheCommandOptions{})
+	return brew_runtime.bool_value(result.paths == [
+		cache_spec_cask(cache).cached_location,
+	])
 }
 
 // Ruby it `it "prints the cache files for a given Formula and Cask", :integration_test, :needs_macos do` at line 22.
 pub fn ruby_cache_spec_l22_d3_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+	cache := if args.len > 0 { args[0].as_string() } else { '/tmp/cache' }
+	formula := cache_spec_formula(cache)
+	cask := cache_spec_cask(cache)
+	result := cmd_core.cache_command(cache, [cmd_core.CacheEntry(formula), cmd_core.CacheEntry(cask)], [cmd_core.CacheOsArch{
+		os: 'macos'
+	}], cmd_core.CacheCommandOptions{})
+	return brew_runtime.bool_value(result.paths == [formula.cached_download, cask.cached_location])
 }
 
 // Original Ruby source (line-for-line):

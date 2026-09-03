@@ -1,13 +1,55 @@
 module artifact
 
 import brew_runtime
+import homebrew.cask.artifact as base_artifact
+import os
+
+pub struct MacSymlinkCreationResult {
+pub:
+	command  base_artifact.ArtifactCommand
+	altname  string
+	metadata bool
+}
+
+pub fn mac_create_filesystem_link(source string, target string, target_parent_writable bool,
+	runner base_artifact.ArtifactCommandRunner) !MacSymlinkCreationResult {
+	os.mkdir_all(os.dir(target))!
+	command := base_artifact.ArtifactCommand{
+		executable: '/bin/ln'
+		args: ['-h', '-f', '-s', '--', source, target]
+		sudo: !target_parent_writable
+	}
+	if !runner(command)! {
+		return error('failed to create filesystem link ${target}')
+	}
+	return MacSymlinkCreationResult{
+		command: command
+		altname: os.file_name(target)
+		metadata: true
+	}
+}
+
+fn mac_symlink_fixture_runner(command base_artifact.ArtifactCommand) !bool {
+	return command.executable == '/bin/ln' && command.args.len == 6
+}
 
 // Translated from Homebrew/brew `extend/os/mac/cask/artifact/symlinked.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `create_filesystem_link(command)` at line 16.
 pub fn ruby_symlinked_l16_d1_create_filesystem_link(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('create_filesystem_link', ...args)
+	if args.len < 2 {
+		panic('create_filesystem_link requires source and target')
+	}
+	writable := if args.len > 2 { args[2].as_bool() or { panic(err) } } else { true }
+	result := mac_create_filesystem_link(args[0].as_string(), args[1].as_string(), writable, mac_symlink_fixture_runner) or { panic(err) }
+	return brew_runtime.map_value({
+		'executable': brew_runtime.string_value(result.command.executable)
+		'args':       brew_runtime.string_array_value(result.command.args)
+		'sudo':       brew_runtime.bool_value(result.command.sudo)
+		'altname':    brew_runtime.string_value(result.altname)
+		'metadata':   brew_runtime.bool_value(result.metadata)
+	})
 }
 
 // Original Ruby source (line-for-line):

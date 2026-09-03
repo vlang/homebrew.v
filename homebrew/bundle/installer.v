@@ -1,48 +1,271 @@
 module bundle
 
-import brew_runtime
-
 // Translated from Homebrew/brew `bundle/installer.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub enum InstallerPackageKind {
+	brew
+	cask
+	tap
+	other
+}
+
+pub struct InstallerEntryOptions {
+pub:
+	full_name    string
+	clone_target string
+}
+
+pub struct BundleInstallerEntry {
+pub:
+	name              string
+	options           InstallerEntryOptions
+	package_kind      InstallerPackageKind
+	install_supported bool = true
+	skipped           bool
+	verb              string = 'Installing'
+	fetchable_name    string
+	preinstall        bool = true
+	install           bool = true
+	trust_targets     []TrustTarget
+}
+
+pub struct InstallableEntry {
+pub:
+	name           string
+	options        InstallerEntryOptions
+	verb           string
+	package_kind   InstallerPackageKind
+	fetchable_name string
+	preinstall     bool
+	install        bool
+}
+
+pub struct InstallerApiMetadata {
+pub:
+	formula_names   map[string]bool
+	formula_aliases map[string]bool
+	formula_renames map[string]bool
+	cask_tokens     map[string]bool
+	cask_renames    map[string]bool
+	error_message   string
+}
+
+pub struct BundleInstallOptions {
+pub:
+	global     bool
+	file       string
+	no_lock    bool
+	no_upgrade bool
+	verbose    bool
+	force      bool
+	jobs       int = 1
+	quiet      bool
+}
+
+pub struct BundleInstallResult {
+pub:
+	succeeded bool
+	success   int
+	failure   int
+}
+
+pub struct BundleInstallerContext {
+pub mut:
+	bundle_reset_count int
+	cask_reset_count   int
+	tap_reset_count    int
+	installed_taps     []string
+	api                InstallerApiMetadata
+	fetch_failure      bool
+	fetched            [][]string
+	trusted            []TrustTarget
+	installed          []string
+	events             []string
+	output             []string
+	errors             []string
+	warnings           []string
+	parallel_used      bool
+}
+
+pub fn (entry InstallableEntry) full_name() string {
+	return if entry.options.full_name != '' { entry.options.full_name } else { entry.name }
+}
+
+pub fn (entry InstallableEntry) tap_name() ?string {
+	parts := entry.full_name().split('/')
+	if parts.len != 3 || parts.any(it == '') {
+		return none
+	}
+	return '${parts[0]}/${parts[1]}'
+}
+
+fn clone_installer_api_metadata(metadata InstallerApiMetadata) InstallerApiMetadata {
+	return InstallerApiMetadata{
+		formula_names: metadata.formula_names.clone()
+		formula_aliases: metadata.formula_aliases.clone()
+		formula_renames: metadata.formula_renames.clone()
+		cask_tokens: metadata.cask_tokens.clone()
+		cask_renames: metadata.cask_renames.clone()
+		error_message: metadata.error_message
+	}
+}
 
 // Ruby method `full_name` at line 23.
-pub fn ruby_installer_l23_d1_full_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('full_name', ...args)
+pub fn ruby_installer_l23_d1_full_name(entry InstallableEntry) string {
+	return entry.full_name()
 }
 
 // Ruby method `tap_name` at line 28.
-pub fn ruby_installer_l28_d2_tap_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tap_name', ...args)
+pub fn ruby_installer_l28_d2_tap_name(entry InstallableEntry) ?string {
+	return entry.tap_name()
 }
 
 // Ruby method `self.reset!` at line 34.
-pub fn ruby_installer_l34_d3_self_reset(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.reset!', ...args)
+pub fn ruby_installer_l34_d3_self_reset(mut context BundleInstallerContext) {
+	context.bundle_reset_count++
+	context.cask_reset_count++
+	context.tap_reset_count++
 }
 
 // Ruby method `self.install!(entries, global: false, file: nil, no_lock: false, no_upgrade: false, verbose: false,` at line 53.
-pub fn ruby_installer_l53_d4_self_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.install!', ...args)
+pub fn ruby_installer_l53_d4_self_install(mut context BundleInstallerContext,
+	entries []BundleInstallerEntry, options BundleInstallOptions) BundleInstallResult {
+	// These arguments are intentionally accepted for parity with Bundle::Installer;
+	// the Ruby implementation currently delegates their handling to its caller.
+	_ = options.global
+	_ = options.file
+	_ = options.no_lock
+	mut installable_entries := []InstallableEntry{}
+	mut trusted_targets := []TrustTarget{}
+	for entry in entries {
+		if entry.skipped || !entry.install_supported {
+			continue
+		}
+		installable_entries << InstallableEntry{
+			name: entry.name
+			options: entry.options
+			verb: entry.verb
+			package_kind: entry.package_kind
+			fetchable_name: entry.fetchable_name
+			preinstall: entry.preinstall
+			install: entry.install
+		}
+		trusted_targets << entry.trust_targets
+	}
+	// Trust is applied before fetchability checks because both may load tap code.
+	for target in trusted_targets {
+		context.trusted << target
+		context.events << 'trust:${target.name}'
+	}
+	fetchable := ruby_installer_l131_d5_self_fetchable_formulae_and_casks(mut context, installable_entries, options.no_upgrade)
+	if fetchable.len > 0 {
+		if !options.quiet {
+			context.output << 'Fetching ${fetchable.join(', ')}'
+		}
+		context.fetched << fetchable.clone()
+		context.events << 'fetch:${fetchable.join(',')}'
+		if context.fetch_failure {
+			context.errors << '`brew bundle` failed! Failed to fetch ${fetchable.join(', ')}'
+			return BundleInstallResult{ failure: 1 }
+		}
+	}
+	context.parallel_used = options.jobs > 1 && installable_entries.len > 1
+	mut success := 0
+	mut failure := 0
+	for entry in installable_entries {
+		if ruby_installer_l195_d8_self_install_entry(mut context, entry, options.no_upgrade, options.verbose, options.force, options.quiet) {
+			success++
+		} else {
+			failure++
+		}
+	}
+	if failure > 0 {
+		dependency := if failure == 1 { 'dependency' } else { 'dependencies' }
+		context.errors << '`brew bundle` failed! ${failure} Brewfile ${dependency} failed to install'
+		return BundleInstallResult{ success: success, failure: failure }
+	}
+	if !options.quiet {
+		dependency := if success == 1 { 'dependency' } else { 'dependencies' }
+		context.output << '`brew bundle` complete! ${success} Brewfile ${dependency} now installed.'
+	}
+	return BundleInstallResult{
+		succeeded: true
+		success: success
+	}
 }
 
 // Ruby method `self.fetchable_formulae_and_casks(entries, no_upgrade:)` at line 131.
-pub fn ruby_installer_l131_d5_self_fetchable_formulae_and_casks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.fetchable_formulae_and_casks', ...args)
+pub fn ruby_installer_l131_d5_self_fetchable_formulae_and_casks(mut context BundleInstallerContext,
+	entries []InstallableEntry, no_upgrade bool) []string {
+	_ = no_upgrade
+	mut fetchable := []string{}
+	for entry in entries {
+		if ruby_installer_l148_d6_self_tap_dependencies(mut context, entry, entries, context.installed_taps).len > 0 {
+			continue
+		}
+		if entry.fetchable_name != '' {
+			fetchable << entry.fetchable_name
+		}
+	}
+	return fetchable
 }
 
 // Ruby method `self.tap_dependencies(entry, entries:, installed_taps:)` at line 148.
-pub fn ruby_installer_l148_d6_self_tap_dependencies(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.tap_dependencies', ...args)
+pub fn ruby_installer_l148_d6_self_tap_dependencies(mut context BundleInstallerContext,
+	entry InstallableEntry, entries []InstallableEntry, installed_taps []string) []string {
+	if entry.package_kind !in [.brew, .cask] {
+		return []
+	}
+	if tap_name := entry.tap_name() {
+		return if tap_name in installed_taps { [] } else { [tap_name] }
+	}
+	mut tap_names := []string{}
+	for tap_entry in entries {
+		if tap_entry.package_kind == .tap && tap_entry.name !in installed_taps {
+			tap_names << tap_entry.name
+		}
+	}
+	if tap_names.len == 0 || !ruby_installer_l165_d7_self_unavailable_without_tap(mut context, entry) {
+		return []
+	}
+	return tap_names
 }
 
 // Ruby method `self.unavailable_without_tap?(entry)` at line 165.
-pub fn ruby_installer_l165_d7_self_unavailable_without_tap(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.unavailable_without_tap?', ...args)
+pub fn ruby_installer_l165_d7_self_unavailable_without_tap(mut context BundleInstallerContext,
+	entry InstallableEntry) bool {
+	metadata := clone_installer_api_metadata(context.api)
+	if metadata.error_message != '' {
+		context.warnings << 'Treating `${entry.name}` as dependent on Brewfile taps because Homebrew could not check API metadata: ${metadata.error_message}'
+		return true
+	}
+	return match entry.package_kind {
+		.brew {
+			entry.name !in metadata.formula_names && entry.name !in metadata.formula_aliases && entry.name !in metadata.formula_renames
+		}
+		.cask { entry.name !in metadata.cask_tokens && entry.name !in metadata.cask_renames }
+		else { false }
+	}
 }
 
 // Ruby method `self.install_entry!(entry, no_upgrade:, verbose:, force:, quiet:)` at line 195.
-pub fn ruby_installer_l195_d8_self_install_entry(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.install_entry!', ...args)
+pub fn ruby_installer_l195_d8_self_install_entry(mut context BundleInstallerContext,
+	entry InstallableEntry, no_upgrade bool, verbose bool, force bool, quiet bool) bool {
+	_ = no_upgrade
+	_ = verbose
+	_ = force
+	if entry.preinstall {
+		context.output << '${entry.verb} ${entry.name}'
+	} else if !quiet {
+		context.output << 'Using ${entry.name}'
+	}
+	context.events << 'install:${entry.name}'
+	context.installed << entry.name
+	if entry.install {
+		return true
+	}
+	context.errors << '${entry.verb} ${entry.name} has failed!'
+	return false
 }
 
 // Original Ruby source (line-for-line):

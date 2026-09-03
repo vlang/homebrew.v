@@ -1,33 +1,177 @@
 module cmd
 
 import brew_runtime
+import homebrew.cmd as deps_cmd
+
+fn deps_spec_dependency(name string) deps_cmd.DepsItem {
+	return deps_cmd.DepsItem{
+		kind: .dependency
+		name: name
+		full_name: name
+	}
+}
+
+fn deps_spec_tagged_dependency(name string, tag string) deps_cmd.DepsItem {
+	return deps_cmd.DepsItem{
+		kind: .dependency
+		name: name
+		full_name: name
+		tags: [tag]
+		build: tag == 'build'
+		test: tag == 'test'
+		optional: tag == 'optional'
+		recommended: tag == 'recommended'
+	}
+}
+
+fn deps_spec_formula(name string, dependencies []deps_cmd.DepsItem,
+	installed bool) deps_cmd.DepsDependent {
+	return deps_cmd.DepsDependent{
+		kind: .formula
+		name: name
+		full_name: name
+		deps: dependencies
+		any_version_installed: installed
+	}
+}
+
+fn deps_spec_fixture(installed_depends_on_baz bool) (deps_cmd.DepsDependent, map[string]deps_cmd.DepsDependent) {
+	foo := deps_spec_formula('foo', [], false)
+	bar := deps_spec_formula('bar', [deps_spec_dependency('foo')], false)
+	test_formula := deps_spec_formula('test', [], false)
+	build := deps_spec_formula('build', [], false)
+	optional := deps_spec_formula('optional', [], false)
+	recommended := deps_spec_formula('recommended_test', [], false)
+	mut installed_dependencies := []deps_cmd.DepsItem{}
+	if installed_depends_on_baz {
+		installed_dependencies << deps_spec_dependency('baz')
+	} else {
+		installed_dependencies << deps_spec_dependency('bar')
+	}
+	installed := deps_spec_formula('installed', installed_dependencies, true)
+	mut installed_item := deps_spec_dependency('installed')
+	installed_item = deps_cmd.DepsItem{
+		...installed_item
+		installed: true
+		satisfied: true
+	}
+	recommended_test := deps_cmd.DepsItem{
+		...deps_spec_tagged_dependency('recommended_test', 'recommended')
+		test: true
+		tags: ['recommended', 'test']
+	}
+	baz := deps_spec_formula('baz', [
+		deps_spec_dependency('bar'),
+		deps_spec_tagged_dependency('build', 'build'),
+		deps_spec_tagged_dependency('test', 'test'),
+		deps_spec_tagged_dependency('optional', 'optional'),
+		recommended_test,
+		installed_item,
+	], false)
+	return baz, {
+		'foo':              foo
+		'bar':              bar
+		'test':             test_formula
+		'build':            build
+		'optional':         optional
+		'recommended_test': recommended
+		'installed':        installed
+		'baz':              baz
+	}
+}
+
+fn deps_spec_command(options deps_cmd.DepsCommandOptions, named []deps_cmd.DepsDependent,
+	installed_depends_on_baz bool) deps_cmd.DepsCommand {
+	_, registry := deps_spec_fixture(installed_depends_on_baz)
+	return deps_cmd.DepsCommand{
+		options: options
+		named: named
+		registry: registry
+		use_runtime_dependencies: true
+	}
+}
+
+fn deps_spec_truth(value bool) brew_runtime.Value {
+	return brew_runtime.bool_value(value)
+}
 
 // Translated from Homebrew/brew `test/cmd/deps_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "outputs all of a Formula's dependencies and their dependencies on separate lines" do` at line 39.
 pub fn ruby_deps_spec_l39_d1_outputs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('outputs', ...args)
+	baz, _ := deps_spec_fixture(false)
+	mut command := deps_spec_command(deps_cmd.DepsCommandOptions{
+		include_test: true
+		missing: true
+		skip_recommended: true
+	}, [baz], false)
+	result := deps_cmd.run_deps_command(mut command)
+	return deps_spec_truth(!result.failed && result.stdout == 'bar\nfoo\ntest\n' && result.stderr.contains('not the actual runtime dependencies'))
 }
 
 // Ruby it `it "outputs all requested recursive dependencies" do` at line 50.
 pub fn ruby_deps_spec_l50_d2_outputs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('outputs', ...args)
+	baz, _ := deps_spec_fixture(false)
+	mut command := deps_spec_command(deps_cmd.DepsCommandOptions{
+		tree: true
+		include_build: true
+		no_env_hints: true
+	}, [baz], false)
+	result := deps_cmd.run_deps_command(mut command)
+	expected := 'baz\n├── bar\n│   └── foo\n├── build\n├── recommended_test\n└── installed\n    └── bar\n        └── foo\n\n'
+	return deps_spec_truth(!result.failed && result.stdout == expected)
 }
 
 // Ruby it `it "--prune skips already seen recursive dependencies" do` at line 71.
 pub fn ruby_deps_spec_l71_d3_prune(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('--prune', ...args)
+	baz, _ := deps_spec_fixture(false)
+	mut command := deps_spec_command(deps_cmd.DepsCommandOptions{
+		tree: true
+		prune: true
+		no_env_hints: true
+	}, [baz], false)
+	result := deps_cmd.run_deps_command(mut command)
+	expected := 'baz\n├── bar\n│   └── foo\n├── recommended_test\n└── installed\n    └── bar (PRUNED)\n\n'
+	return deps_spec_truth(!result.failed && result.stdout == expected)
 }
 
 // Ruby it `it "reads inputs from a Brewfile alongside named arguments" do` at line 90.
 pub fn ruby_deps_spec_l90_d4_reads(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reads', ...args)
+	baz, registry := deps_spec_fixture(false)
+	bar := registry['bar'] or { return deps_spec_truth(false) }
+	mut reads_registry := registry.clone()
+	reads_registry['installed'] = deps_spec_formula('installed', [], true)
+	mut command := deps_cmd.DepsCommand{
+		options: deps_cmd.DepsCommandOptions{
+			tree: true
+			brewfile: true
+			brewfile_value: 'deps.Brewfile'
+			no_env_hints: true
+		}
+		named: [bar]
+		registry: reads_registry
+		use_runtime_dependencies: true
+	}
+	command.brewfile_entries << deps_cmd.DepsBrewfileEntry{
+		kind: .formula
+		dependent: baz
+	}
+	result := deps_cmd.run_deps_command(mut command)
+	expected := 'bar\n└── foo\n\nbaz\n├── bar\n│   └── foo\n├── recommended_test\n└── installed\n\n'
+	return deps_spec_truth(!result.failed && result.stdout == expected)
 }
 
 // Ruby it `it "detects circular dependencies" do` at line 113.
 pub fn ruby_deps_spec_l113_d5_detects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('detects', ...args)
+	baz, _ := deps_spec_fixture(true)
+	mut command := deps_spec_command(deps_cmd.DepsCommandOptions{
+		tree: true
+		no_env_hints: true
+	}, [baz], true)
+	result := deps_cmd.run_deps_command(mut command)
+	expected := 'baz\n├── bar\n│   └── foo\n├── recommended_test\n└── installed\n    └── baz (CIRCULAR DEPENDENCY)\n\n'
+	return deps_spec_truth(result.failed && result.stdout == expected)
 }
 
 // Original Ruby source (line-for-line):

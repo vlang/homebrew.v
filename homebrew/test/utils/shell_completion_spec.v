@@ -1,98 +1,142 @@
 module utils
 
 import brew_runtime
+import homebrew.utils as brew_utils
 
 // Translated from Homebrew/brew `test/utils/shell_completion_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "returns bash, zsh, and fish for nil format" do` at line 8.
 pub fn ruby_shell_completion_spec_l8_d1_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	return brew_runtime.bool_value(brew_utils.default_completion_shells('') == [
+		'bash',
+		'zsh',
+		'fish',
+	])
 }
 
 // Ruby it `it "returns bash, zsh, and fish for unrecognized format" do` at line 12.
 pub fn ruby_shell_completion_spec_l12_d2_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	return brew_runtime.bool_value(brew_utils.default_completion_shells('unknown') == [
+		'bash',
+		'zsh',
+		'fish',
+	])
 }
 
 // Ruby it `it "includes pwsh for cobra format" do` at line 16.
 pub fn ruby_shell_completion_spec_l16_d3_includes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('includes', ...args)
+	return brew_runtime.bool_value(brew_utils.default_completion_shells('cobra') == [
+		'bash',
+		'zsh',
+		'fish',
+		'pwsh',
+	])
 }
 
 // Ruby it `it "includes pwsh for typer format" do` at line 20.
 pub fn ruby_shell_completion_spec_l20_d4_includes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('includes', ...args)
+	return brew_runtime.bool_value(brew_utils.default_completion_shells('typer') == [
+		'bash',
+		'zsh',
+		'fish',
+		'pwsh',
+	])
 }
 
 // Ruby let `let(:env) { {} }` at line 26.
 pub fn ruby_shell_completion_spec_l26_d5_env(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('env', ...args)
+	return brew_runtime.structured_value('Hash', '{}', {})
 }
 
 // Ruby it `it "returns shell name for nil format" do` at line 28.
 pub fn ruby_shell_completion_spec_l28_d6_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	result := brew_utils.completion_shell_parameter('', 'bash', '/usr/bin/foo', {})
+	return brew_runtime.bool_value(result.arguments == ['bash'])
 }
 
 // Ruby it `it "returns --shell=<name> for :arg format" do` at line 32.
 pub fn ruby_shell_completion_spec_l32_d7_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	result := brew_utils.completion_shell_parameter('arg', 'zsh', '/usr/bin/foo', {})
+	return brew_runtime.bool_value(result.arguments == ['--shell=zsh'])
 }
 
 // Ruby it `it "sets env and returns nil for :clap format" do` at line 36.
 pub fn ruby_shell_completion_spec_l36_d8_sets(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sets', ...args)
+	result := brew_utils.completion_shell_parameter('clap', 'fish', '/usr/bin/foo', {})
+	return brew_runtime.bool_value(result.arguments.len == 0
+		&& result.environment['COMPLETE'] == 'fish')
 }
 
 // Ruby it `it "sets env with uppercased program name for :click format" do` at line 42.
 pub fn ruby_shell_completion_spec_l42_d9_sets(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sets', ...args)
+	result := brew_utils.completion_shell_parameter('click', 'bash', '/usr/local/bin/my-tool', {})
+	return brew_runtime.bool_value(result.arguments.len == 0
+		&& result.environment['_MY_TOOL_COMPLETE'] == 'bash_source')
 }
 
 // Ruby it `it "returns subcommand array for :cobra format" do` at line 48.
 pub fn ruby_shell_completion_spec_l48_d10_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	result := brew_utils.completion_shell_parameter('cobra', 'zsh', '/usr/bin/foo', {})
+	return brew_runtime.bool_value(result.arguments == ['completion', 'zsh'])
 }
 
 // Ruby it `it "returns --<shell> for :flag format" do` at line 53.
 pub fn ruby_shell_completion_spec_l53_d11_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	result := brew_utils.completion_shell_parameter('flag', 'fish', '/usr/bin/foo', {})
+	return brew_runtime.bool_value(result.arguments == ['--fish'])
 }
 
 // Ruby it `it "returns nil for :none format" do` at line 57.
 pub fn ruby_shell_completion_spec_l57_d12_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	return brew_runtime.bool_value(brew_utils.completion_shell_parameter('none', 'bash',
+		'/usr/bin/foo', {}).arguments.len == 0)
 }
 
 // Ruby it `it "returns subcommand array for :typer format and sets env" do` at line 61.
 pub fn ruby_shell_completion_spec_l61_d13_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	result := brew_utils.completion_shell_parameter('typer', 'bash', '/usr/bin/foo', {})
+	return brew_runtime.bool_value(result.arguments == ['--show-completion', 'bash']
+		&& result.environment['_TYPER_COMPLETE_TEST_DISABLE_SHELL_DETECTION'] == '1')
 }
 
 // Ruby it `it "maps :pwsh to 'powershell'" do` at line 67.
 pub fn ruby_shell_completion_spec_l67_d14_maps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('maps', ...args)
+	return brew_runtime.bool_value(brew_utils.completion_shell_parameter('', 'pwsh',
+		'/usr/bin/foo', {}).arguments == ['powershell'])
 }
 
 // Ruby it `it "interpolates custom format string" do` at line 71.
 pub fn ruby_shell_completion_spec_l71_d15_interpolates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('interpolates', ...args)
+	return brew_runtime.bool_value(brew_utils.completion_shell_parameter('--complete-', 'zsh',
+		'/usr/bin/foo', {}).arguments == ['--complete-zsh'])
 }
 
 // Ruby it `it "calls safe_popen_read with commands and shell parameter" do` at line 78.
 pub fn ruby_shell_completion_spec_l78_d16_calls(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('calls', ...args)
+	command := if args.len > 0 { args[0].as_string() } else { '/bin/echo' }
+	output := brew_utils.generate_completion_output([command, 'completions'], brew_utils.CompletionParameter{ arguments: [
+		'bash',
+	] }) or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value(output.trim_space() == 'completions bash')
 }
 
 // Ruby it `it "flattens array shell parameters" do` at line 90.
 pub fn ruby_shell_completion_spec_l90_d17_flattens(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('flattens', ...args)
+	command := if args.len > 0 { args[0].as_string() } else { '/bin/echo' }
+	output := brew_utils.generate_completion_output([command], brew_utils.CompletionParameter{
+		arguments: ['completion', 'zsh']
+	}) or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value(output.trim_space() == 'completion zsh')
 }
 
 // Ruby it `it "handles nil shell parameter" do` at line 100.
 pub fn ruby_shell_completion_spec_l100_d18_handles(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('handles', ...args)
+	command := if args.len > 0 { args[0].as_string() } else { '/bin/echo' }
+	output := brew_utils.generate_completion_output([command], brew_utils.CompletionParameter{}) or {
+		return brew_runtime.bool_value(false)
+	}
+	return brew_runtime.bool_value(output.trim_space() == '')
 }
 
 // Original Ruby source (line-for-line):

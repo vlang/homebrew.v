@@ -7,7 +7,10 @@ import brew_runtime
 
 // Ruby let `let(:path) { TEST_FIXTURE_DIR/"cask/container.gz" }` at line 7.
 pub fn ruby_gzip_spec_l7_d1_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('path', ...args)
+	return brew_runtime.string_value(spec_compressed_fixture('gzip', 'gzip', '.gz', [
+		u8(0x1f),
+		0x8b,
+	]))
 }
 
 // Original Ruby source (line-for-line):

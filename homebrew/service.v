@@ -1,293 +1,1333 @@
 module homebrew
 
-import brew_runtime
+import os
+import strconv
+
+pub enum ServiceOS {
+	macos
+	linux
+}
+
+pub enum ServiceRunType {
+	immediate
+	interval
+	cron
+}
+
+pub enum ServiceProcessType {
+	background
+	standard
+	interactive
+	adaptive
+}
+
+pub enum ServiceRunValueKind {
+	none
+	scalar
+	array
+}
+
+pub struct ServiceRunValue {
+pub:
+	kind   ServiceRunValueKind
+	values []string
+}
+
+pub struct ServiceRunParams {
+pub:
+	direct      ServiceRunValue
+	macos       ServiceRunValue
+	linux       ServiceRunValue
+	conditional bool
+}
+
+pub struct ServiceFormulaPaths {
+pub:
+	name         string
+	prefix       string
+	cellar       string
+	home         string
+	bin          string
+	etc          string
+	libexec      string
+	opt_bin      string
+	opt_libexec  string
+	opt_pkgshare string
+	opt_prefix   string
+	opt_sbin     string
+	var          string
+}
+
+pub fn new_service_formula_paths(name string, prefix string, cellar string,
+	home string) ServiceFormulaPaths {
+	opt_prefix := os.join_path(prefix, 'opt', name)
+	return ServiceFormulaPaths{
+		name: name
+		prefix: prefix
+		cellar: cellar
+		home: home
+		bin: os.join_path(cellar, name, '1.0', 'bin')
+		etc: os.join_path(prefix, 'etc')
+		libexec: os.join_path(cellar, name, '1.0', 'libexec')
+		opt_bin: os.join_path(opt_prefix, 'bin')
+		opt_libexec: os.join_path(opt_prefix, 'libexec')
+		opt_pkgshare: os.join_path(opt_prefix, 'share', name)
+		opt_prefix: opt_prefix
+		opt_sbin: os.join_path(opt_prefix, 'sbin')
+		var: os.join_path(prefix, 'var')
+	}
+}
+
+pub struct ServiceKeepAlive {
+pub:
+	has_always          bool
+	always              bool
+	has_successful_exit bool
+	successful_exit     bool
+	has_crashed         bool
+	crashed             bool
+	path                string
+}
+
+pub struct ServiceKeepAliveInput {
+pub:
+	set          bool
+	boolean      ?bool
+	value        ServiceKeepAlive
+	invalid_keys []string
+}
+
+pub struct ServiceSocket {
+pub:
+	host     string
+	port     string
+	protocol string
+}
+
+pub struct ServiceSocketsInput {
+pub:
+	set    bool
+	scalar ServiceStringValue
+	values map[string]string
+}
+
+pub struct ServiceEnvironment {
+pub:
+	values map[string]string
+	order  []string
+}
+
+pub struct ServiceEnvironmentResult {
+pub:
+	environment ServiceEnvironment
+	warnings    []string
+}
+
+pub struct ServiceStringValue {
+pub:
+	present bool
+	value   string
+}
+
+pub struct ServiceIntValue {
+pub:
+	present bool
+	value   int
+}
+
+pub struct ServiceEnumInput {
+pub:
+	set   bool
+	value string
+}
+
+pub struct ServiceNameInput {
+pub:
+	macos ?string
+	linux ?string
+}
+
+pub struct ServiceHash {
+pub:
+	has_name                  bool
+	name                      map[string]string
+	has_run                   bool
+	run                       ServiceRunParams
+	has_run_type              bool
+	run_type                  string
+	has_interval              bool
+	interval                  int
+	cron                      string
+	has_keep_alive            bool
+	keep_alive                ServiceKeepAlive
+	has_launch_only_once      bool
+	launch_only_once          bool
+	has_require_root          bool
+	require_root              bool
+	has_environment_variables bool
+	environment_variables     ServiceEnvironment
+	working_dir               string
+	root_dir                  string
+	input_path                string
+	log_path                  string
+	error_log_path            string
+	has_restart_delay         bool
+	restart_delay             int
+	has_throttle_interval     bool
+	throttle_interval         int
+	has_stop_timeout          bool
+	stop_timeout              int
+	has_nice                  bool
+	nice                      int
+	process_type              string
+	has_macos_legacy_timers   bool
+	macos_legacy_timers       bool
+	has_sockets               bool
+	sockets                   map[string]string
+	sockets_scalar            bool
+	invalid_run               bool
+}
+
+pub struct BrewService {
+pub:
+	formula ServiceFormulaPaths
+pub mut:
+	plist_name            string
+	service_name          string
+	cron                  map[string]string
+	environment_variables ServiceEnvironment
+	error_log_path        ?string
+	input_path            ?string
+	interval              ?int
+	keep_alive            ServiceKeepAlive
+	launch_only_once      bool
+	log_path              ?string
+	macos_legacy_timers   bool
+	nice                  ?int
+	process_type          ?ServiceProcessType
+	require_root          bool
+	restart_delay         ?int
+	throttle_interval     ?int
+	root_dir              ?string
+	run                   []string
+	run_at_load           bool
+	run_params            ServiceRunParams
+	run_type              ServiceRunType
+	sockets               map[string]ServiceSocket
+	stop_timeout          ?int
+	working_dir           ?string
+}
+
+pub fn new_brew_service(formula ServiceFormulaPaths) !BrewService {
+	service := BrewService{
+		formula: formula
+		plist_name: 'homebrew.mxcl.${formula.name}'
+		service_name: 'homebrew.${formula.name}'
+		cron: map[string]string{}
+		environment_variables: ServiceEnvironment{
+			values: map[string]string{}
+		}
+		run_at_load: true
+		run_type: .immediate
+		sockets: map[string]ServiceSocket{}
+	}
+	service_validate(service)!
+	return service
+}
+
+pub fn service_validate(service &BrewService) ! {
+	if service_nice_requires_root(service) {
+		return error('Service#nice: require_root true is required for negative nice values')
+	}
+}
+
+pub fn service_nice_requires_root(service &BrewService) bool {
+	nice := service.nice or { return false }
+	return nice < 0 && !service.require_root
+}
+
+fn service_run_value(values []string, scalar bool) ServiceRunValue {
+	return ServiceRunValue{
+		kind: if scalar { .scalar } else { .array }
+		values: values.clone()
+	}
+}
+
+pub fn service_set_run(mut service BrewService, direct ServiceRunValue, macos ServiceRunValue,
+	linux ServiceRunValue, system ServiceOS) []string {
+	if direct.kind != .none {
+		service.run_params = ServiceRunParams{ direct: direct }
+	} else if macos.kind != .none || linux.kind != .none {
+		service.run_params = ServiceRunParams{
+			macos: macos
+			linux: linux
+			conditional: true
+		}
+	} else {
+		return service.run.clone()
+	}
+	selected := if direct.kind != .none {
+		direct
+	} else if system == .macos {
+		macos
+	} else {
+		linux
+	}
+	service.run = if selected.kind == .none { [] } else { selected.values.clone() }
+	return service.run.clone()
+}
+
+fn service_expand_path(path string, home string) string {
+	if path == '~' {
+		return home
+	}
+	if path.starts_with('~/') {
+		return os.join_path(home, path[2..])
+	}
+	return path
+}
+
+pub fn service_command(service &BrewService) []string {
+	return service.run.map(service_expand_path(it, service.formula.home))
+}
+
+pub fn service_keep_alive(mut service BrewService, input ServiceKeepAliveInput) !ServiceKeepAlive {
+	if !input.set {
+		return service.keep_alive
+	}
+	if input.invalid_keys.len > 0 {
+		return error('Service#keep_alive only allows: [:always, :successful_exit, :crashed, :path]')
+	}
+	if boolean := input.boolean {
+		service.keep_alive = ServiceKeepAlive{ has_always: true, always: boolean }
+	} else {
+		service.keep_alive = input.value
+	}
+	return service.keep_alive
+}
+
+pub fn service_keep_alive_enabled(service &BrewService) bool {
+	keep_alive := service.keep_alive
+	has_value := keep_alive.has_always || keep_alive.has_successful_exit || keep_alive.has_crashed || keep_alive.path != ''
+	return has_value && !(keep_alive.has_always && !keep_alive.always)
+}
+
+fn service_valid_ipv4(host string) bool {
+	parts := host.split('.')
+	if parts.len != 4 {
+		return false
+	}
+	for part in parts {
+		if part == '' || !part.bytes().all(it >= `0` && it <= `9`) {
+			return false
+		}
+		value := strconv.atoi(part) or { return false }
+		if value < 0 || value > 255 {
+			return false
+		}
+	}
+	return true
+}
+
+fn service_valid_ipv6_piece(piece string) bool {
+	return piece.len >= 1 && piece.len <= 4 && piece.bytes().all((it >= `0` && it <= `9`) || (it >= `a` && it <= `f`) || (it >= `A` && it <= `F`))
+}
+
+fn service_valid_ipv6(host string) bool {
+	if !host.contains(':') || host.count('::') > 1 {
+		return false
+	}
+	compressed := host.contains('::')
+	parts := host.split(':')
+	mut groups := 0
+	for index, part in parts {
+		if part == '' {
+			if !compressed && index != 0 && index != parts.len - 1 {
+				return false
+			}
+			continue
+		}
+		if part.contains('.') {
+			if index != parts.len - 1 || !service_valid_ipv4(part) {
+				return false
+			}
+			groups += 2
+		} else if service_valid_ipv6_piece(part) {
+			groups++
+		} else {
+			return false
+		}
+	}
+	return if compressed { groups < 8 } else { groups == 8 }
+}
+
+fn service_valid_ip(host string) bool {
+	return service_valid_ipv4(host) || service_valid_ipv6(host)
+}
+
+pub fn service_sockets(mut service BrewService, input ServiceSocketsInput) !map[string]ServiceSocket {
+	if !input.set {
+		return service.sockets.clone()
+	}
+	values := if input.scalar.present {
+		{
+			'listeners': input.scalar.value
+		}
+	} else {
+		input.values
+	}
+	mut parsed := map[string]ServiceSocket{}
+	for name, socket_string in values {
+		scheme_index := socket_string.index('://') or {
+			return error('Service#sockets a formatted socket definition as <type>://<host>:<port>')
+		}
+		protocol := socket_string[..scheme_index]
+		address := socket_string[scheme_index + 3..]
+		colon := address.last_index(':') or {
+			return error('Service#sockets a formatted socket definition as <type>://<host>:<port>')
+		}
+		host := address[..colon]
+		port := address[colon + 1..]
+		if protocol == '' || !protocol.bytes().all((it >= `a` && it <= `z`) || (it >= `A` && it <= `Z`)) || host == '' || port == '' || !port.bytes().all(it >= `0` && it <= `9`) {
+			return error('Service#sockets a formatted socket definition as <type>://<host>:<port>')
+		}
+		if !service_valid_ip(host) {
+			return error('Service#sockets expects a valid ipv4 or ipv6 host address')
+		}
+		parsed[name] = ServiceSocket{ host: host, port: port, protocol: protocol }
+	}
+	service.sockets = parsed.clone()
+	return parsed
+}
+
+pub fn service_default_cron_values() map[string]string {
+	return {
+		'Month':   '*'
+		'Day':     '*'
+		'Weekday': '*'
+		'Hour':    '*'
+		'Minute':  '*'
+	}
+}
+
+pub fn service_parse_cron(statement string) !map[string]string {
+	mut parsed := service_default_cron_values()
+	match statement {
+		'@hourly' {
+			parsed['Minute'] = '0'
+		}
+		'@daily' {
+			parsed['Minute'] = '0'
+			parsed['Hour'] = '0'
+		}
+		'@weekly' {
+			parsed['Minute'] = '0'
+			parsed['Hour'] = '0'
+			parsed['Weekday'] = '0'
+		}
+		'@monthly' {
+			parsed['Minute'] = '0'
+			parsed['Hour'] = '0'
+			parsed['Day'] = '1'
+		}
+		'@yearly', '@annually' {
+			parsed['Minute'] = '0'
+			parsed['Hour'] = '0'
+			parsed['Day'] = '1'
+			parsed['Month'] = '1'
+		}
+		else {
+			parts := statement.fields()
+			if parts.len != 5 {
+				return error('Service#parse_cron expects a valid cron syntax')
+			}
+			for index, selector in ['Minute', 'Hour', 'Day', 'Month', 'Weekday'] {
+				if parts[index] != '*' {
+					parsed[selector] = strconv.atoi(parts[index])!.str()
+				}
+			}
+		}
+	}
+	return parsed
+}
+
+pub fn service_effective_environment_variables(service &BrewService,
+	user_config_home string, effective_uid int) ServiceEnvironmentResult {
+	mut values := service.environment_variables.values.clone()
+	mut order := service.environment_variables.order.clone()
+	mut warnings := []string{}
+	env_file := os.join_path(user_config_home, 'services', '${service.formula.name}.env')
+	if !os.is_file(env_file) {
+		return ServiceEnvironmentResult{ environment: ServiceEnvironment{ values: values, order: order } }
+	}
+	if effective_uid == 0 {
+		warnings << 'Skipping ${env_file}: user env overrides are not supported for root services.'
+		return ServiceEnvironmentResult{ environment: ServiceEnvironment{ values: values, order: order }, warnings: warnings }
+	}
+	mode := int(os.stat(env_file) or {
+		return ServiceEnvironmentResult{ environment: ServiceEnvironment{ values: values, order: order } }
+	}.get_mode().bitmask())
+	if mode & 0o002 != 0 {
+		warnings << 'Skipping ${env_file}: file is world-writable.'
+		return ServiceEnvironmentResult{ environment: ServiceEnvironment{ values: values, order: order }, warnings: warnings }
+	}
+	if mode & 0o020 != 0 {
+		warnings << 'Skipping ${env_file}: file is group-writable.'
+		return ServiceEnvironmentResult{ environment: ServiceEnvironment{ values: values, order: order }, warnings: warnings }
+	}
+	contents := os.read_file(env_file) or { '' }
+	for raw_line in contents.split_into_lines() {
+		line := raw_line.trim_space()
+		if line == '' || line.starts_with('#') {
+			continue
+		}
+		equals := line.index('=') or {
+			warnings << 'Skipping invalid line in ${env_file}: ${line}'
+			continue
+		}
+		key := line[..equals].trim_space()
+		if key == '' {
+			warnings << 'Skipping invalid line in ${env_file}: ${line}'
+			continue
+		}
+		if key !in values {
+			order << key
+		}
+		values[key] = line[equals + 1..].trim_space()
+	}
+	return ServiceEnvironmentResult{
+		environment: ServiceEnvironment{ values: values, order: order }
+		warnings: warnings
+	}
+}
+
+fn service_shell_quote(value string) string {
+	if value == '' {
+		return "''"
+	}
+	mut quoted := ''
+	for character in value.runes() {
+		if (character >= `A` && character <= `Z`) || (character >= `a` && character <= `z`) || (character >= `0` && character <= `9`) || character in [
+			`_`,
+			`-`,
+			`.`,
+			`,`,
+			`:`,
+			`/`,
+			`@`,
+			`~`,
+			`+`,
+		] {
+			quoted += character.str()
+		} else if character == `\n` {
+			quoted += "'\n'"
+		} else {
+			quoted += '\\${character.str()}'
+		}
+	}
+	return quoted
+}
+
+pub fn service_manual_command(service &BrewService, user_config_home string,
+	effective_uid int) string {
+	effective := service_effective_environment_variables(service, user_config_home, effective_uid)
+	mut command := []string{}
+	for key in effective.environment.order {
+		if key != 'PATH' {
+			command << '${key}="${effective.environment.values[key]}"'
+		}
+	}
+	command << service_command(service).map(service_shell_quote(it))
+	return command.join(' ')
+}
+
+pub fn service_path_dir(path ?string, home string) ?string {
+	value := path or { return none }
+	if value == '' || (!value.starts_with('/') && !value.starts_with('~')) {
+		return none
+	}
+	return os.norm_path(service_expand_path(value, home))
+}
+
+pub fn service_path_parent_dir(path ?string, home string) ?string {
+	value := service_path_dir(path, home) or { return none }
+	return os.dir(value)
+}
+
+pub fn service_path_dirs(service &BrewService) []string {
+	mut paths := []string{}
+	for candidate in [service_path_dir(service.working_dir, service.formula.home),
+		service_path_dir(service.root_dir, service.formula.home),
+		service_path_parent_dir(service.input_path, service.formula.home),
+		service_path_parent_dir(service.log_path, service.formula.home),
+		service_path_parent_dir(service.error_log_path, service.formula.home)] {
+		if value := candidate {
+			if value !in paths {
+				paths << value
+			}
+		}
+	}
+	return paths
+}
+
+fn service_xml_escape(value string) string {
+	return value.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+}
+
+fn service_plist_key(key string) string {
+	return '\t<key>${key}</key>\n'
+}
+
+fn service_plist_string(key string, value string) string {
+	return '${service_plist_key(key)}\t<string>${service_xml_escape(value)}</string>\n'
+}
+
+fn service_plist_integer(key string, value int) string {
+	return '${service_plist_key(key)}\t<integer>${value}</integer>\n'
+}
+
+fn service_plist_boolean(key string, value bool) string {
+	return '${service_plist_key(key)}\t<${if value { 'true' } else { 'false' }}/>' + '\n'
+}
+
+fn service_plist_string_array(key string, values []string) string {
+	mut output := '${service_plist_key(key)}\t<array>\n'
+	for value in values {
+		output += '\t\t<string>${service_xml_escape(value)}</string>\n'
+	}
+	return output + '\t</array>\n'
+}
+
+fn service_plist_environment(environment ServiceEnvironment) string {
+	mut keys := environment.values.keys()
+	keys.sort()
+	mut output := '${service_plist_key('EnvironmentVariables')}\t<dict>\n'
+	for key in keys {
+		output += '\t\t<key>${service_xml_escape(key)}</key>\n'
+		output += '\t\t<string>${service_xml_escape(environment.values[key])}</string>\n'
+	}
+	return output + '\t</dict>\n'
+}
+
+fn service_plist_keep_alive(keep_alive ServiceKeepAlive) string {
+	if keep_alive.has_always && keep_alive.always {
+		return service_plist_boolean('KeepAlive', true)
+	}
+	mut key := ''
+	mut boolean := false
+	mut path := ''
+	if keep_alive.has_successful_exit {
+		key = 'SuccessfulExit'
+		boolean = keep_alive.successful_exit
+	} else if keep_alive.has_crashed {
+		key = 'Crashed'
+		boolean = keep_alive.crashed
+	} else if keep_alive.path != '' {
+		key = 'PathState'
+		path = keep_alive.path
+	}
+	if key == '' {
+		return ''
+	}
+	mut output := '${service_plist_key('KeepAlive')}\t<dict>\n\t\t<key>${key}</key>\n'
+	if path != '' {
+		output += '\t\t<string>${service_xml_escape(path)}</string>\n'
+	} else {
+		output += '\t\t<${if boolean { 'true' } else { 'false' }}/>\n'
+	}
+	return output + '\t</dict>\n'
+}
+
+fn service_plist_sockets(sockets map[string]ServiceSocket) string {
+	mut names := sockets.keys()
+	names.sort()
+	mut output := '${service_plist_key('Sockets')}\t<dict>\n'
+	for name in names {
+		socket := sockets[name]
+		output += '\t\t<key>${service_xml_escape(name)}</key>\n\t\t<dict>\n'
+		output += '\t\t\t<key>SockNodeName</key>\n\t\t\t<string>${service_xml_escape(socket.host)}</string>\n'
+		output += '\t\t\t<key>SockProtocol</key>\n\t\t\t<string>${service_xml_escape(socket.protocol.to_upper())}</string>\n'
+		output += '\t\t\t<key>SockServiceName</key>\n\t\t\t<string>${service_xml_escape(socket.port)}</string>\n'
+		output += '\t\t</dict>\n'
+	}
+	return output + '\t</dict>\n'
+}
+
+fn service_plist_cron(cron map[string]string) string {
+	mut keys := cron.keys().filter(cron[it] != '*')
+	keys.sort()
+	mut output := '${service_plist_key('StartCalendarInterval')}\t<dict>\n'
+	for key in keys {
+		output += '\t\t<key>${key}</key>\n\t\t<integer>${cron[key]}</integer>\n'
+	}
+	return output + '\t</dict>\n'
+}
+
+pub fn service_to_plist(service &BrewService, user_config_home string,
+	effective_uid int) string {
+	effective := service_effective_environment_variables(service, user_config_home, effective_uid)
+	mut body := ''
+	if effective.environment.values.len > 0 {
+		body += service_plist_environment(effective.environment)
+	}
+	if value := service.stop_timeout {
+		body += service_plist_integer('ExitTimeOut', value)
+	}
+	if service_keep_alive_enabled(service) {
+		body += service_plist_keep_alive(service.keep_alive)
+	}
+	body += service_plist_string('Label', service.plist_name)
+	if service.launch_only_once {
+		body += service_plist_boolean('LaunchOnlyOnce', true)
+	}
+	if service.macos_legacy_timers {
+		body += service_plist_boolean('LegacyTimers', true)
+	}
+	body += service_plist_string_array('LimitLoadToSessionType', ['Aqua', 'Background', 'LoginWindow',
+		'StandardIO', 'System'])
+	if value := service.nice {
+		body += service_plist_integer('Nice', value)
+	}
+	if process_type := service.process_type {
+		name := process_type.str()
+		body += service_plist_string('ProcessType', name[..1].to_upper() + name[1..])
+	}
+	body += service_plist_string_array('ProgramArguments', service_command(service))
+	if value := service.root_dir {
+		body += service_plist_string('RootDirectory', service_expand_path(value, service.formula.home))
+	}
+	body += service_plist_boolean('RunAtLoad', service.run_at_load)
+	if service.sockets.len > 0 {
+		body += service_plist_sockets(service.sockets)
+	}
+	if value := service.error_log_path {
+		body += service_plist_string('StandardErrorPath', service_expand_path(value, service.formula.home))
+	}
+	if value := service.input_path {
+		body += service_plist_string('StandardInPath', service_expand_path(value, service.formula.home))
+	}
+	if value := service.log_path {
+		body += service_plist_string('StandardOutPath', service_expand_path(value, service.formula.home))
+	}
+	if service.cron.len > 0 && service.run_type == .cron {
+		body += service_plist_cron(service.cron)
+	}
+	if value := service.interval {
+		if service.run_type == .interval {
+			body += service_plist_integer('StartInterval', value)
+		}
+	}
+	if value := service.throttle_interval {
+		body += service_plist_integer('ThrottleInterval', value)
+	}
+	if value := service.restart_delay {
+		body += service_plist_integer('TimeOut', value)
+	}
+	if value := service.working_dir {
+		body += service_plist_string('WorkingDirectory', service_expand_path(value, service.formula.home))
+	}
+	return '<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n<plist version="1.0">\n<dict>\n${body}</dict>\n</plist>\n'
+}
+
+fn service_systemd_quote(value string) string {
+	mut result := '"'
+	for character in value.runes() {
+		result += match character {
+			`\a` { '\\a' }
+			`\b` { '\\b' }
+			`\f` { '\\f' }
+			`\n` { '\\n' }
+			`\r` { '\\r' }
+			`\t` { '\\t' }
+			`\v` { '\\v' }
+			`\\` { '\\\\' }
+			`"` { '\\"' }
+			else { character.str() }
+		}
+	}
+	return result + '"'
+}
+
+pub fn service_to_systemd_unit(service &BrewService, user_config_home string,
+	effective_uid int) string {
+	command := service_command(service).map(service_systemd_quote(it)).join(' ')
+	mut options := []string{}
+	options << 'Type=${if service.launch_only_once { 'oneshot' } else { 'simple' }}'
+	options << 'ExecStart=${command}'
+	keep_alive := service.keep_alive
+	if (keep_alive.has_always && keep_alive.always) || (keep_alive.has_crashed && keep_alive.crashed) {
+		options << 'Restart=on-failure'
+	} else if keep_alive.has_successful_exit && keep_alive.successful_exit {
+		options << 'Restart=on-success'
+	}
+	if value := service.restart_delay {
+		options << 'RestartSec=${value}'
+	}
+	if value := service.stop_timeout {
+		options << 'TimeoutStopSec=${value}'
+	}
+	if value := service.nice {
+		options << 'Nice=${value}'
+	}
+	if value := service.working_dir {
+		options << 'WorkingDirectory=${service_expand_path(value, service.formula.home)}'
+	}
+	if value := service.root_dir {
+		options << 'RootDirectory=${service_expand_path(value, service.formula.home)}'
+	}
+	if value := service.input_path {
+		options << 'StandardInput=file:${service_expand_path(value, service.formula.home)}'
+	}
+	if value := service.log_path {
+		options << 'StandardOutput=append:${service_expand_path(value, service.formula.home)}'
+	}
+	if value := service.error_log_path {
+		options << 'StandardError=append:${service_expand_path(value, service.formula.home)}'
+	}
+	effective := service_effective_environment_variables(service, user_config_home, effective_uid)
+	for key in effective.environment.order {
+		options << 'Environment="${key}=${effective.environment.values[key]}"'
+	}
+	return '[Unit]\nDescription=Homebrew generated unit for ${service.formula.name}\n\n[Install]\nWantedBy=default.target\n\n[Service]\n${options.join('\n')}\n'
+}
+
+pub fn service_cron_weekday_to_systemd_weekday(cron_weekday string) string {
+	if cron_weekday == '*' {
+		return ''
+	}
+	weekday := strconv.atoi(cron_weekday) or { 0 }
+	if weekday < 0 || weekday > 7 {
+		return ''
+	}
+	return ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][weekday % 7] + ' '
+}
+
+fn service_two_digit(value string) string {
+	number := value.int().str()
+	return if number.len < 2 { '0${number}' } else { number }
+}
+
+pub fn service_to_systemd_timer(service &BrewService) string {
+	mut options := []string{}
+	if service.run_type == .cron {
+		options << 'Persistent=true'
+	}
+	if service.run_type == .interval {
+		if interval := service.interval {
+			options << 'OnUnitActiveSec=${interval}'
+		}
+	}
+	if service.run_type == .cron {
+		minutes_value := service.cron['Minute'] or { '*' }
+		hours_value := service.cron['Hour'] or { '*' }
+		minutes := if minutes_value == '*' { '*' } else { service_two_digit(minutes_value) }
+		hours := if hours_value == '*' { '*' } else { service_two_digit(hours_value) }
+		weekday := service.cron['Weekday'] or { '*' }
+		month := service.cron['Month'] or { '*' }
+		day := service.cron['Day'] or { '*' }
+		options << 'OnCalendar=${service_cron_weekday_to_systemd_weekday(weekday)}*-${month}-${day} ${hours}:${minutes}:00'
+	}
+	return '[Unit]\nDescription=Homebrew generated timer for ${service.formula.name}\n\n[Install]\nWantedBy=timers.target\n\n[Timer]\nUnit=${service.service_name}.service\n${options.join('\n')}\n'
+}
+
+fn service_run_value_replace(value ServiceRunValue, prefix string, cellar string,
+	home string) ServiceRunValue {
+	return ServiceRunValue{
+		kind: value.kind
+		values: value.values.map(service_replace_placeholders(it, prefix, cellar, home))
+	}
+}
+
+pub fn service_to_hash(service &BrewService) ServiceHash {
+	mut names := map[string]string{}
+	if service.plist_name != 'homebrew.mxcl.${service.formula.name}' {
+		names['macos'] = service.plist_name
+	}
+	if service.service_name != 'homebrew.${service.formula.name}' {
+		names['linux'] = service.service_name
+	}
+	if service.run_params.direct.kind == .none && !service.run_params.conditional {
+		return ServiceHash{ has_name: names.len > 0, name: names }
+	}
+	mut cron_string := ''
+	if service.cron.len > 0 {
+		cron_string = ['Minute', 'Hour', 'Day', 'Month', 'Weekday'].map(service.cron[it] or { '' }).filter(it != '').join(' ')
+	}
+	mut sockets := map[string]string{}
+	for name, socket in service.sockets {
+		sockets[name] = '${socket.protocol}://${socket.host}:${socket.port}'
+	}
+	keep_alive := service.keep_alive
+	has_keep_alive := keep_alive.has_always || keep_alive.has_successful_exit || keep_alive.has_crashed || keep_alive.path != ''
+	return ServiceHash{
+		has_name: names.len > 0
+		name: names
+		has_run: true
+		run: service.run_params
+		has_run_type: true
+		run_type: service.run_type.str()
+		has_interval: service.interval != none
+		interval: service.interval or { 0 }
+		cron: cron_string
+		has_keep_alive: has_keep_alive
+		keep_alive: keep_alive
+		has_launch_only_once: service.launch_only_once
+		launch_only_once: service.launch_only_once
+		has_require_root: service.require_root
+		require_root: service.require_root
+		has_environment_variables: service.environment_variables.values.len > 0
+		environment_variables: service.environment_variables
+		working_dir: service.working_dir or { '' }
+		root_dir: service.root_dir or { '' }
+		input_path: service.input_path or { '' }
+		log_path: service.log_path or { '' }
+		error_log_path: service.error_log_path or { '' }
+		has_restart_delay: service.restart_delay != none
+		restart_delay: service.restart_delay or { 0 }
+		has_throttle_interval: service.throttle_interval != none
+		throttle_interval: service.throttle_interval or { 0 }
+		has_stop_timeout: service.stop_timeout != none
+		stop_timeout: service.stop_timeout or { 0 }
+		has_nice: service.nice != none
+		nice: service.nice or { 0 }
+		process_type: if process_type := service.process_type { process_type.str() } else { '' }
+		has_macos_legacy_timers: service.macos_legacy_timers
+		macos_legacy_timers: service.macos_legacy_timers
+		has_sockets: sockets.len > 0
+		sockets: sockets
+		sockets_scalar: sockets.len == 1 && 'listeners' in sockets
+	}
+}
+
+pub fn service_replace_placeholders(value string, prefix string, cellar string,
+	home string) string {
+	return value.replace('\$HOMEBREW_PREFIX', prefix).replace('\$HOMEBREW_CELLAR', cellar).replace('/\$HOME', home)
+}
+
+pub fn service_from_hash(api_hash ServiceHash, prefix string, cellar string,
+	home string) !ServiceHash {
+	if api_hash.invalid_run {
+		return error('Unexpected run command')
+	}
+	if !api_hash.has_run {
+		return ServiceHash{ has_name: api_hash.has_name, name: api_hash.name.clone() }
+	}
+	mut environment_values := map[string]string{}
+	for key, value in api_hash.environment_variables.values {
+		environment_values[key] = service_replace_placeholders(value, prefix, cellar, home)
+	}
+	return ServiceHash{
+		...api_hash
+		name: api_hash.name.clone()
+		run: ServiceRunParams{
+			direct: service_run_value_replace(api_hash.run.direct, prefix, cellar, home)
+			macos: service_run_value_replace(api_hash.run.macos, prefix, cellar, home)
+			linux: service_run_value_replace(api_hash.run.linux, prefix, cellar, home)
+			conditional: api_hash.run.conditional
+		}
+		environment_variables: ServiceEnvironment{
+			values: environment_values
+			order: api_hash.environment_variables.order.clone()
+		}
+		working_dir: service_replace_placeholders(api_hash.working_dir, prefix, cellar, home)
+		root_dir: service_replace_placeholders(api_hash.root_dir, prefix, cellar, home)
+		input_path: service_replace_placeholders(api_hash.input_path, prefix, cellar, home)
+		log_path: service_replace_placeholders(api_hash.log_path, prefix, cellar, home)
+		error_log_path: service_replace_placeholders(api_hash.error_log_path, prefix, cellar, home)
+		sockets: api_hash.sockets.clone()
+	}
+}
 
 // Translated from Homebrew/brew `service.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby attr_reader `attr_reader :plist_name, :service_name` at line 36.
-pub fn ruby_service_l36_d1_plist_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('plist_name', ...args)
+pub fn ruby_service_l36_d1_plist_name(service &BrewService) string {
+	return service.plist_name
 }
 
 // Ruby attr_reader `attr_reader :plist_name, :service_name` at line 36.
-pub fn ruby_service_l36_d2_service_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('service_name', ...args)
+pub fn ruby_service_l36_d2_service_name(service &BrewService) string {
+	return service.service_name
 }
 
 // Ruby method `initialize(formula, &block)` at line 39.
-pub fn ruby_service_l39_d3_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+pub fn ruby_service_l39_d3_initialize(formula ServiceFormulaPaths) !BrewService {
+	return new_brew_service(formula)
 }
 
 // Ruby method `nice_requires_root?` at line 71.
-pub fn ruby_service_l71_d4_nice_requires_root(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('nice_requires_root?', ...args)
+pub fn ruby_service_l71_d4_nice_requires_root(service &BrewService) bool {
+	return service_nice_requires_root(service)
 }
 
 // Ruby method `f` at line 76.
-pub fn ruby_service_l76_d5_f(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f', ...args)
+pub fn ruby_service_l76_d5_f(service &BrewService) ServiceFormulaPaths {
+	return service.formula
 }
 
 // Ruby method `default_plist_name` at line 81.
-pub fn ruby_service_l81_d6_default_plist_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('default_plist_name', ...args)
+pub fn ruby_service_l81_d6_default_plist_name(service &BrewService) string {
+	return 'homebrew.mxcl.${service.formula.name}'
 }
 
 // Ruby method `default_service_name` at line 86.
-pub fn ruby_service_l86_d7_default_service_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('default_service_name', ...args)
+pub fn ruby_service_l86_d7_default_service_name(service &BrewService) string {
+	return 'homebrew.${service.formula.name}'
 }
 
 // Ruby method `name(macos: nil, linux: nil)` at line 96.
-pub fn ruby_service_l96_d8_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('name', ...args)
+pub fn ruby_service_l96_d8_name(mut service BrewService, input ServiceNameInput) ! {
+	macos := input.macos
+	linux := input.linux
+	if macos == none && linux == none {
+		return error('Service#name expects at least one String')
+	}
+	if value := macos {
+		service.plist_name = value
+	}
+	if value := linux {
+		service.service_name = value
+	}
 }
 
 // Ruby method `run(command = nil, macos: nil, linux: nil)` at line 113.
-pub fn ruby_service_l113_d9_run(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('run', ...args)
+pub fn ruby_service_l113_d9_run(mut service BrewService, params ServiceRunParams,
+	system ServiceOS) []string {
+	return service_set_run(mut service, params.direct, params.macos, params.linux, system)
 }
 
 // Ruby method `working_dir(path = T.unsafe(nil))` at line 136.
-pub fn ruby_service_l136_d10_working_dir(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('working_dir', ...args)
+pub fn ruby_service_l136_d10_working_dir(mut service BrewService, path ?string) ?string {
+	if value := path {
+		service.working_dir = value
+	}
+	return service.working_dir
 }
 
 // Ruby method `root_dir(path = T.unsafe(nil))` at line 148.
-pub fn ruby_service_l148_d11_root_dir(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('root_dir', ...args)
+pub fn ruby_service_l148_d11_root_dir(mut service BrewService, path ?string) ?string {
+	if value := path {
+		service.root_dir = value
+	}
+	return service.root_dir
 }
 
 // Ruby method `input_path(path = T.unsafe(nil))` at line 160.
-pub fn ruby_service_l160_d12_input_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('input_path', ...args)
+pub fn ruby_service_l160_d12_input_path(mut service BrewService, path ?string) ?string {
+	if value := path {
+		service.input_path = value
+	}
+	return service.input_path
 }
 
 // Ruby method `log_path(path = T.unsafe(nil))` at line 172.
-pub fn ruby_service_l172_d13_log_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('log_path', ...args)
+pub fn ruby_service_l172_d13_log_path(mut service BrewService, path ?string) ?string {
+	if value := path {
+		service.log_path = value
+	}
+	return service.log_path
 }
 
 // Ruby method `error_log_path(path = T.unsafe(nil))` at line 184.
-pub fn ruby_service_l184_d14_error_log_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('error_log_path', ...args)
+pub fn ruby_service_l184_d14_error_log_path(mut service BrewService, path ?string) ?string {
+	if value := path {
+		service.error_log_path = value
+	}
+	return service.error_log_path
 }
 
 // Ruby method `keep_alive(value = T.unsafe(nil))` at line 199.
-pub fn ruby_service_l199_d15_keep_alive(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('keep_alive', ...args)
+pub fn ruby_service_l199_d15_keep_alive(mut service BrewService,
+	input ServiceKeepAliveInput) !ServiceKeepAlive {
+	return service_keep_alive(mut service, input)
 }
 
 // Ruby method `require_root(value = T.unsafe(nil))` at line 219.
-pub fn ruby_service_l219_d16_require_root(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('require_root', ...args)
+pub fn ruby_service_l219_d16_require_root(mut service BrewService, value ?bool) bool {
+	if update := value {
+		service.require_root = update
+	}
+	return service.require_root
 }
 
 // Ruby method `requires_root?` at line 229.
-pub fn ruby_service_l229_d17_requires_root(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('requires_root?', ...args)
+pub fn ruby_service_l229_d17_requires_root(service &BrewService) bool {
+	return service.require_root
 }
 
 // Ruby method `run_at_load(value = T.unsafe(nil))` at line 237.
-pub fn ruby_service_l237_d18_run_at_load(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('run_at_load', ...args)
+pub fn ruby_service_l237_d18_run_at_load(mut service BrewService, value ?bool) bool {
+	if update := value {
+		service.run_at_load = update
+	}
+	return service.run_at_load
 }
 
 // Ruby method `sockets(value = T.unsafe(nil))` at line 252.
-pub fn ruby_service_l252_d19_sockets(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sockets', ...args)
+pub fn ruby_service_l252_d19_sockets(mut service BrewService,
+	input ServiceSocketsInput) !map[string]ServiceSocket {
+	return service_sockets(mut service, input)
 }
 
 // Ruby method `keep_alive?` at line 278.
-pub fn ruby_service_l278_d20_keep_alive(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('keep_alive?', ...args)
+pub fn ruby_service_l278_d20_keep_alive(service &BrewService) bool {
+	return service_keep_alive_enabled(service)
 }
 
 // Ruby method `launch_only_once(value = T.unsafe(nil))` at line 286.
-pub fn ruby_service_l286_d21_launch_only_once(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('launch_only_once', ...args)
+pub fn ruby_service_l286_d21_launch_only_once(mut service BrewService, value ?bool) bool {
+	if update := value {
+		service.launch_only_once = update
+	}
+	return service.launch_only_once
 }
 
 // Ruby method `restart_delay(value = T.unsafe(nil))` at line 298.
-pub fn ruby_service_l298_d22_restart_delay(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('restart_delay', ...args)
+pub fn ruby_service_l298_d22_restart_delay(mut service BrewService, value ?int) ?int {
+	if update := value {
+		service.restart_delay = update
+	}
+	return service.restart_delay
 }
 
 // Ruby method `throttle_interval(value = T.unsafe(nil))` at line 310.
-pub fn ruby_service_l310_d23_throttle_interval(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('throttle_interval', ...args)
+pub fn ruby_service_l310_d23_throttle_interval(mut service BrewService, value ?int) ?int {
+	if update := value {
+		service.throttle_interval = update
+	}
+	return service.throttle_interval
 }
 
 // Ruby method `stop_timeout(value = T.unsafe(nil))` at line 320.
-pub fn ruby_service_l320_d24_stop_timeout(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('stop_timeout', ...args)
+pub fn ruby_service_l320_d24_stop_timeout(mut service BrewService,
+	value ?int) !ServiceIntValue {
+	if update := value {
+		if update < 0 {
+			return error('Service#stop_timeout must be a non-negative integer')
+		}
+		service.stop_timeout = update
+	}
+	current := service.stop_timeout or { return ServiceIntValue{} }
+	return ServiceIntValue{ present: true, value: current }
 }
 
 // Ruby method `process_type(value = T.unsafe(nil))` at line 333.
-pub fn ruby_service_l333_d25_process_type(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('process_type', ...args)
+pub fn ruby_service_l333_d25_process_type(mut service BrewService,
+	input ServiceEnumInput) !string {
+	if !input.set {
+		return if value := service.process_type { value.str() } else { '' }
+	}
+	service.process_type = match input.value {
+		'background' { ServiceProcessType.background }
+		'standard' { ServiceProcessType.standard }
+		'interactive' { ServiceProcessType.interactive }
+		'adaptive' { ServiceProcessType.adaptive }
+		else {
+			return error("Service#process_type allows: 'background'/'standard'/'interactive'/'adaptive'")
+		}
+	}
+	return input.value
 }
 
 // Ruby method `run_type(value = T.unsafe(nil))` at line 350.
-pub fn ruby_service_l350_d26_run_type(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('run_type', ...args)
+pub fn ruby_service_l350_d26_run_type(mut service BrewService,
+	input ServiceEnumInput) !string {
+	if !input.set {
+		return service.run_type.str()
+	}
+	service.run_type = match input.value {
+		'immediate' { ServiceRunType.immediate }
+		'interval' { ServiceRunType.interval }
+		'cron' { ServiceRunType.cron }
+		else {
+			return error("Service#run_type allows: 'immediate'/'interval'/'cron'")
+		}
+	}
+	return input.value
 }
 
 // Ruby method `interval(value = T.unsafe(nil))` at line 365.
-pub fn ruby_service_l365_d27_interval(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('interval', ...args)
+pub fn ruby_service_l365_d27_interval(mut service BrewService, value ?int) ?int {
+	if update := value {
+		service.interval = update
+	}
+	return service.interval
 }
 
 // Ruby method `cron(value = T.unsafe(nil))` at line 377.
-pub fn ruby_service_l377_d28_cron(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cron', ...args)
+pub fn ruby_service_l377_d28_cron(mut service BrewService, value ?string) !map[string]string {
+	if update := value {
+		service.cron = service_parse_cron(update)!
+	}
+	return service.cron.clone()
 }
 
 // Ruby method `default_cron_values` at line 386.
-pub fn ruby_service_l386_d29_default_cron_values(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('default_cron_values', ...args)
+pub fn ruby_service_l386_d29_default_cron_values() map[string]string {
+	return service_default_cron_values()
 }
 
 // Ruby method `parse_cron(cron_statement)` at line 397.
-pub fn ruby_service_l397_d30_parse_cron(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('parse_cron', ...args)
+pub fn ruby_service_l397_d30_parse_cron(cron_statement string) !map[string]string {
+	return service_parse_cron(cron_statement)
 }
 
 // Ruby method `environment_variables(variables = {})` at line 435.
-pub fn ruby_service_l435_d31_environment_variables(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('environment_variables', ...args)
+pub fn ruby_service_l435_d31_environment_variables(mut service BrewService,
+	variables ServiceEnvironment) ServiceEnvironment {
+	service.environment_variables = ServiceEnvironment{
+		values: variables.values.clone()
+		order: variables.order.clone()
+	}
+	return service.environment_variables
 }
 
 // Ruby method `effective_environment_variables` at line 443.
-pub fn ruby_service_l443_d32_effective_environment_variables(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('effective_environment_variables', ...args)
+pub fn ruby_service_l443_d32_effective_environment_variables(service &BrewService,
+	user_config_home string, effective_uid int) ServiceEnvironmentResult {
+	return service_effective_environment_variables(service, user_config_home, effective_uid)
 }
 
 // Ruby method `macos_legacy_timers(value = T.unsafe(nil))` at line 494.
-pub fn ruby_service_l494_d33_macos_legacy_timers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('macos_legacy_timers', ...args)
+pub fn ruby_service_l494_d33_macos_legacy_timers(mut service BrewService,
+	value ?bool) bool {
+	if update := value {
+		service.macos_legacy_timers = update
+	}
+	return service.macos_legacy_timers
 }
 
 // Ruby method `nice(value = T.unsafe(nil))` at line 508.
-pub fn ruby_service_l508_d34_nice(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('nice', ...args)
+pub fn ruby_service_l508_d34_nice(mut service BrewService, value ?int) !ServiceIntValue {
+	if update := value {
+		if update < -20 || update > 19 {
+			return error('Service#nice value should be in -20..19')
+		}
+		service.nice = update
+	}
+	current := service.nice or { return ServiceIntValue{} }
+	return ServiceIntValue{ present: true, value: current }
 }
 
 // Ruby delegate `delegate [:bin, :etc, :libexec, :opt_bin, :opt_libexec, :opt_pkgshare, :opt_prefix, :opt_sbin, :var] => :@formula` at line 516.
-pub fn ruby_service_l516_d35_etc(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('etc', ...args)
+pub fn ruby_service_l516_d35_etc(service &BrewService) string {
+	return service.formula.etc
 }
 
 // Ruby delegate `delegate [:bin, :etc, :libexec, :opt_bin, :opt_libexec, :opt_pkgshare, :opt_prefix, :opt_sbin, :var] => :@formula` at line 516.
-pub fn ruby_service_l516_d36_libexec(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('libexec', ...args)
+pub fn ruby_service_l516_d36_libexec(service &BrewService) string {
+	return service.formula.libexec
 }
 
 // Ruby delegate `delegate [:bin, :etc, :libexec, :opt_bin, :opt_libexec, :opt_pkgshare, :opt_prefix, :opt_sbin, :var] => :@formula` at line 516.
-pub fn ruby_service_l516_d37_opt_bin(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('opt_bin', ...args)
+pub fn ruby_service_l516_d37_opt_bin(service &BrewService) string {
+	return service.formula.opt_bin
 }
 
 // Ruby delegate `delegate [:bin, :etc, :libexec, :opt_bin, :opt_libexec, :opt_pkgshare, :opt_prefix, :opt_sbin, :var] => :@formula` at line 516.
-pub fn ruby_service_l516_d38_opt_libexec(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('opt_libexec', ...args)
+pub fn ruby_service_l516_d38_opt_libexec(service &BrewService) string {
+	return service.formula.opt_libexec
 }
 
 // Ruby delegate `delegate [:bin, :etc, :libexec, :opt_bin, :opt_libexec, :opt_pkgshare, :opt_prefix, :opt_sbin, :var] => :@formula` at line 516.
-pub fn ruby_service_l516_d39_opt_pkgshare(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('opt_pkgshare', ...args)
+pub fn ruby_service_l516_d39_opt_pkgshare(service &BrewService) string {
+	return service.formula.opt_pkgshare
 }
 
 // Ruby delegate `delegate [:bin, :etc, :libexec, :opt_bin, :opt_libexec, :opt_pkgshare, :opt_prefix, :opt_sbin, :var] => :@formula` at line 516.
-pub fn ruby_service_l516_d40_opt_prefix(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('opt_prefix', ...args)
+pub fn ruby_service_l516_d40_opt_prefix(service &BrewService) string {
+	return service.formula.opt_prefix
 }
 
 // Ruby delegate `delegate [:bin, :etc, :libexec, :opt_bin, :opt_libexec, :opt_pkgshare, :opt_prefix, :opt_sbin, :var] => :@formula` at line 516.
-pub fn ruby_service_l516_d41_opt_sbin(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('opt_sbin', ...args)
+pub fn ruby_service_l516_d41_opt_sbin(service &BrewService) string {
+	return service.formula.opt_sbin
 }
 
 // Ruby delegate `delegate [:bin, :etc, :libexec, :opt_bin, :opt_libexec, :opt_pkgshare, :opt_prefix, :opt_sbin, :var] => :@formula` at line 516.
-pub fn ruby_service_l516_d42_var(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('var]', ...args)
+pub fn ruby_service_l516_d42_var(service &BrewService) string {
+	return service.formula.var
 }
 
 // Ruby method `std_service_path_env` at line 520.
-pub fn ruby_service_l520_d43_std_service_path_env(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('std_service_path_env', ...args)
+pub fn ruby_service_l520_d43_std_service_path_env(service &BrewService) string {
+	return '${service.formula.prefix}/bin:${service.formula.prefix}/sbin:/usr/bin:/bin:/usr/sbin:/sbin'
 }
 
 // Ruby method `command` at line 525.
-pub fn ruby_service_l525_d44_command(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('command', ...args)
+pub fn ruby_service_l525_d44_command(service &BrewService) []string {
+	return service_command(service)
 }
 
 // Ruby method `command?` at line 530.
-pub fn ruby_service_l530_d45_command(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('command?', ...args)
+pub fn ruby_service_l530_d45_command(service &BrewService) bool {
+	return service.run.len > 0
 }
 
 // Ruby method `path_dirs` at line 535.
-pub fn ruby_service_l535_d46_path_dirs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('path_dirs', ...args)
+pub fn ruby_service_l535_d46_path_dirs(service &BrewService) []string {
+	return service_path_dirs(service)
 }
 
 // Ruby method `manual_command` at line 550.
-pub fn ruby_service_l550_d47_manual_command(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('manual_command', ...args)
+pub fn ruby_service_l550_d47_manual_command(service &BrewService, user_config_home string,
+	effective_uid int) string {
+	return service_manual_command(service, user_config_home, effective_uid)
 }
 
 // Ruby method `timed?` at line 560.
-pub fn ruby_service_l560_d48_timed(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('timed?', ...args)
+pub fn ruby_service_l560_d48_timed(service &BrewService) bool {
+	return service.run_type in [.cron, .interval]
 }
 
 // Ruby method `to_plist` at line 566.
-pub fn ruby_service_l566_d49_to_plist(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_plist', ...args)
+pub fn ruby_service_l566_d49_to_plist(service &BrewService, user_config_home string,
+	effective_uid int) string {
+	return service_to_plist(service, user_config_home, effective_uid)
 }
 
 // Ruby method `to_systemd_unit` at line 632.
-pub fn ruby_service_l632_d50_to_systemd_unit(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_systemd_unit', ...args)
+pub fn ruby_service_l632_d50_to_systemd_unit(service &BrewService, user_config_home string,
+	effective_uid int) string {
+	return service_to_systemd_unit(service, user_config_home, effective_uid)
 }
 
 // Ruby method `cron_weekday_to_systemd_weekday(cron_weekday)` at line 676.
-pub fn ruby_service_l676_d51_cron_weekday_to_systemd_weekday(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cron_weekday_to_systemd_weekday', ...args)
+pub fn ruby_service_l676_d51_cron_weekday_to_systemd_weekday(cron_weekday string) string {
+	return service_cron_weekday_to_systemd_weekday(cron_weekday)
 }
 
 // Ruby method `to_systemd_timer` at line 688.
-pub fn ruby_service_l688_d52_to_systemd_timer(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_systemd_timer', ...args)
+pub fn ruby_service_l688_d52_to_systemd_timer(service &BrewService) string {
+	return service_to_systemd_timer(service)
 }
 
 // Ruby method `to_hash` at line 715.
-pub fn ruby_service_l715_d53_to_hash(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_hash', ...args)
+pub fn ruby_service_l715_d53_to_hash(service &BrewService) ServiceHash {
+	return service_to_hash(service)
 }
 
 // Ruby method `self.from_hash(api_hash)` at line 771.
-pub fn ruby_service_l771_d54_self_from_hash(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.from_hash', ...args)
+pub fn ruby_service_l771_d54_self_from_hash(api_hash ServiceHash, prefix string, cellar string,
+	home string) !ServiceHash {
+	return service_from_hash(api_hash, prefix, cellar, home)
 }
 
 // Ruby method `self.replace_placeholders(string)` at line 839.
-pub fn ruby_service_l839_d55_self_replace_placeholders(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.replace_placeholders', ...args)
+pub fn ruby_service_l839_d55_self_replace_placeholders(value string, prefix string,
+	cellar string, home string) string {
+	return service_replace_placeholders(value, prefix, cellar, home)
 }
 
 // Ruby method `path_dir(path)` at line 847.
-pub fn ruby_service_l847_d56_path_dir(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('path_dir', ...args)
+pub fn ruby_service_l847_d56_path_dir(path ?string, home string) ?string {
+	return service_path_dir(path, home)
 }
 
 // Ruby method `path_parent_dir(path)` at line 855.
-pub fn ruby_service_l855_d57_path_parent_dir(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('path_parent_dir', ...args)
+pub fn ruby_service_l855_d57_path_parent_dir(path ?string, home string) ?string {
+	return service_path_parent_dir(path, home)
 }
 
 // Original Ruby source (line-for-line):

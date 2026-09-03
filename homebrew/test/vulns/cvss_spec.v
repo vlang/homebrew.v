@@ -1,78 +1,96 @@
 module vulns
 
-import brew_runtime
+import homebrew.vulns as cvss_core
 
 // Translated from Homebrew/brew `test/vulns/cvss_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "scores` at line 27.
-pub fn ruby_cvss_spec_l27_d1_scores(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('scores', ...args)
+pub fn ruby_cvss_spec_l27_d1_scores(vector string, expected f64) bool {
+	return cvss_core.cvss_base_score(vector) or { return false } == expected
 }
 
 // Ruby it `it "ignores temporal and environmental metrics" do` at line 32.
-pub fn ruby_cvss_spec_l32_d2_ignores(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ignores', ...args)
+pub fn ruby_cvss_spec_l32_d2_ignores() bool {
+	vector := 'CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H/E:P/RL:O/RC:C'
+	return cvss_core.cvss_base_score(vector) or { return false } == 9.8
 }
 
 // Ruby it `it "returns nil for CVSS v4.0 vectors" do` at line 37.
-pub fn ruby_cvss_spec_l37_d3_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_cvss_spec_l37_d3_returns() bool {
+	return cvss_core.cvss_base_score('CVSS:4.0/AV:N/AC:L/AT:N/PR:H/UI:N/VC:L/VI:L/VA:N/SC:N/SI:N/SA:N') == none
 }
 
 // Ruby it `it "returns nil for CVSS v2 vectors" do` at line 43.
-pub fn ruby_cvss_spec_l43_d4_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_cvss_spec_l43_d4_returns() bool {
+	return cvss_core.cvss_base_score('AV:N/AC:L/Au:N/C:C/I:C/A:C') == none
 }
 
 // Ruby it `it "returns nil for a vector missing required base metrics" do` at line 47.
-pub fn ruby_cvss_spec_l47_d5_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_cvss_spec_l47_d5_returns() bool {
+	return cvss_core.cvss_base_score('CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H') == none
 }
 
 // Ruby it `it "returns nil for a vector with an unknown metric value" do` at line 51.
-pub fn ruby_cvss_spec_l51_d6_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_cvss_spec_l51_d6_returns() bool {
+	return cvss_core.cvss_base_score('CVSS:3.1/AV:X/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H') == none
 }
 
 // Ruby it `it "returns nil for garbage input" do` at line 55.
-pub fn ruby_cvss_spec_l55_d7_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_cvss_spec_l55_d7_returns() bool {
+	for vector in ['', 'INVALID-CVSS', 'CVSS:3.1/'] {
+		if cvss_core.cvss_base_score(vector) != none {
+			return false
+		}
+	}
+	return true
 }
 
 // Ruby it `it "buckets a 9.8 vector as critical" do` at line 64.
-pub fn ruby_cvss_spec_l64_d8_buckets(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('buckets', ...args)
+pub fn ruby_cvss_spec_l64_d8_buckets() bool {
+	severity := cvss_core.cvss_severity('CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H') or {
+		return false
+	}
+	return severity == .critical
 }
 
 // Ruby it `it "buckets an 8.8 vector as high" do` at line 68.
-pub fn ruby_cvss_spec_l68_d9_buckets(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('buckets', ...args)
+pub fn ruby_cvss_spec_l68_d9_buckets() bool {
+	severity := cvss_core.cvss_severity('CVSS:3.1/AV:L/AC:L/PR:L/UI:N/S:C/C:H/I:H/A:H') or {
+		return false
+	}
+	return severity == .high
 }
 
 // Ruby it `it "buckets a 5.5 vector as medium" do` at line 72.
-pub fn ruby_cvss_spec_l72_d10_buckets(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('buckets', ...args)
+pub fn ruby_cvss_spec_l72_d10_buckets() bool {
+	severity := cvss_core.cvss_severity('CVSS:3.1/AV:L/AC:L/PR:L/UI:N/S:U/C:H/I:N/A:N') or {
+		return false
+	}
+	return severity == .medium
 }
 
 // Ruby it `it "buckets a 1.8 vector as low" do` at line 76.
-pub fn ruby_cvss_spec_l76_d11_buckets(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('buckets', ...args)
+pub fn ruby_cvss_spec_l76_d11_buckets() bool {
+	severity := cvss_core.cvss_severity('CVSS:3.1/AV:L/AC:H/PR:H/UI:R/S:U/C:L/I:N/A:N') or {
+		return false
+	}
+	return severity == .low
 }
 
 // Ruby it `it "returns nil for a zero-impact vector" do` at line 80.
-pub fn ruby_cvss_spec_l80_d12_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_cvss_spec_l80_d12_returns() bool {
+	return cvss_core.cvss_severity('CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:N') == none
 }
 
 // Ruby it `it "returns nil for an unsupported version" do` at line 84.
-pub fn ruby_cvss_spec_l84_d13_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_cvss_spec_l84_d13_returns() bool {
+	return cvss_core.cvss_severity('CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:N/VI:N/VA:N/SC:N/SI:N/SA:N') == none
 }
 
 // Ruby it `it "returns nil for an unparseable vector" do` at line 90.
-pub fn ruby_cvss_spec_l90_d14_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_cvss_spec_l90_d14_returns() bool {
+	return cvss_core.cvss_severity('INVALID-CVSS') == none
 }
 
 // Original Ruby source (line-for-line):

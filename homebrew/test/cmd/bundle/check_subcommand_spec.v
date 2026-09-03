@@ -1,253 +1,482 @@
 module bundle
 
 import brew_runtime
+import homebrew.bundle as brew_bundle
+import homebrew.bundle.extensions
+import homebrew.bundle.subcommand
 
 // Translated from Homebrew/brew `test/cmd/bundle/check_subcommand_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+fn check_spec_bool(value bool) brew_runtime.Value {
+	return brew_runtime.bool_value(value)
+}
+
+fn check_spec_run(state brew_bundle.CheckerState, verbose bool, no_upgrade bool,
+	already_output_formulae []string) subcommand.BundleCheckCommandResult {
+	return subcommand.run_bundle_check(state, subcommand.BundleCheckRunOptions{
+		verbose: verbose
+		no_upgrade: no_upgrade
+		already_output_formulae: already_output_formulae
+	}) or { panic(err) }
+}
+
+fn check_spec_state(package_errors map[string][]string,
+	extensions_to_check []brew_bundle.CheckerExtension, formulae_to_start []string) brew_bundle.CheckerState {
+	return brew_bundle.CheckerState{
+		dsl_set: true
+		package_errors: package_errors
+		extensions: extensions_to_check
+		formulae_to_start: formulae_to_start
+	}
+}
+
+fn check_spec_package_error(package_type string, message string, verbose bool,
+	no_upgrade bool) subcommand.BundleCheckCommandResult {
+	return check_spec_run(check_spec_state({
+		package_type: [message]
+	}, [], []), verbose, no_upgrade, [])
+}
+
+fn check_spec_extension_error(step string, message string, verbose bool,
+	no_upgrade bool) subcommand.BundleCheckCommandResult {
+	return check_spec_run(check_spec_state({}, [brew_bundle.CheckerExtension{
+		legacy_check_step: step
+		errors: [message]
+	}], []), verbose, no_upgrade, [])
+}
+
+fn check_spec_expected_service_output() string {
+	return "brew bundle can't satisfy your Brewfile's dependencies.\n→ App foo needs to be installed or updated.\n→ Service def needs to be started.\nSatisfy missing dependencies with `brew bundle install`.\n"
+}
+
+fn check_spec_expected_no_upgrade_output() string {
+	return "brew bundle can't satisfy your Brewfile's dependencies.\n→ App foo needs to be installed.\nSatisfy missing dependencies with `brew bundle install`.\n"
+}
+
+fn check_spec_expected_extension_output() string {
+	return "brew bundle can't satisfy your Brewfile's dependencies.\n→ VSCode Extension foo needs to be installed.\nSatisfy missing dependencies with `brew bundle install`.\n"
+}
+
+fn check_spec_package_type_context(type_name string, check_label string,
+	skips map[string][]string) brew_bundle.PackageTypeContext {
+	return brew_bundle.PackageTypeContext{
+		definition: extensions.ExtensionDefinition{
+			class_name: 'Test::${check_label}'
+			type_name: type_name
+			check_label: check_label
+		}
+		skipper: brew_bundle.BundleSkipper{
+			skipped_entries: skips
+			initialized: true
+		}
+	}
+}
+
+fn check_spec_early_package(type_name string, check_label string) bool {
+	context := check_spec_package_type_context(type_name, check_label, {})
+	entries := [
+		brew_bundle.bundle_dsl_entry(type_name, 'abc', {}),
+		brew_bundle.bundle_dsl_entry(type_name, 'def', {}),
+	]
+	result := brew_bundle.package_type_find_actionable(context, entries, true, false, {
+		'abc': false
+		'def': false
+	}) or { return false }
+	return result.errors == ['${check_label} abc needs to be installed or updated.']
+}
 
 // Ruby let `let(:do_check) do` at line 10.
 pub fn ruby_check_subcommand_spec_l10_d1_do_check(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('do_check', ...args)
+	_ = args
+	return subcommand.ruby_check_l30_d1_run(brew_bundle.checker_state_value(check_spec_state({}, [], [])), brew_runtime.bool_value(false), brew_runtime.bool_value(false), brew_runtime.bool_value(false), brew_runtime.string_array_value([]))
 }
 
 // Ruby let `let(:context) { bundle_subcommand_context(:check, no_upgrade:, verbose:) }` at line 13.
 pub fn ruby_check_subcommand_spec_l13_d2_context(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('context', ...args)
+	_ = args
+	return brew_runtime.map_value({
+		'command':    brew_runtime.object_value('Symbol', 'check')
+		'no_upgrade': brew_runtime.bool_value(false)
+		'verbose':    brew_runtime.bool_value(false)
+	})
 }
 
 // Ruby let `let(:no_upgrade) { false }` at line 14.
 pub fn ruby_check_subcommand_spec_l14_d3_no_upgrade(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('no_upgrade', ...args)
+	_ = args
+	return brew_runtime.bool_value(false)
 }
 
 // Ruby let `let(:verbose) { false }` at line 15.
 pub fn ruby_check_subcommand_spec_l15_d4_verbose(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('verbose', ...args)
+	_ = args
+	return brew_runtime.bool_value(false)
 }
 
 // Ruby it `it "does not raise an error" do` at line 27.
 pub fn ruby_check_subcommand_spec_l27_d5_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	_ = args
+	result := check_spec_run(check_spec_state({}, [], []), false, false, [])
+	return check_spec_bool(result.exit_code == 0)
 }
 
 // Ruby it `it "does not raise an error" do` at line 39.
 pub fn ruby_check_subcommand_spec_l39_d6_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	_ = args
+	result := check_spec_run(check_spec_state({}, [], []), false, false, [])
+	return check_spec_bool(result.exit_code == 0 && result.stderr == '')
 }
 
 // Ruby it `it "raises an error" do` at line 47.
 pub fn ruby_check_subcommand_spec_l47_d7_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+	_ = args
+	return check_spec_bool(check_spec_package_error('cask', 'Cask abc needs to be installed or updated.', false, false).exit_code == 1)
 }
 
 // Ruby let `let(:verbose) { true }` at line 57.
 pub fn ruby_check_subcommand_spec_l57_d8_verbose(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('verbose', ...args)
+	_ = args
+	return brew_runtime.bool_value(true)
 }
 
 // Ruby it `it "raises an error and outputs to stderr" do` at line 59.
 pub fn ruby_check_subcommand_spec_l59_d9_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+	_ = args
+	result := check_spec_package_error('brew', 'Formula abc needs to be installed or updated.', true, false)
+	return check_spec_bool(result.exit_code == 1 && result.stderr.contains("brew bundle can't satisfy your Brewfile's dependencies.") && result.stdout == '')
 }
 
 // Ruby it `it "partially outputs when HOMEBREW_BUNDLE_CHECK_ALREADY_OUTPUT_FORMULAE_ERRORS is set" do` at line 68.
 pub fn ruby_check_subcommand_spec_l68_d10_partially(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('partially', ...args)
+	_ = args
+	result := check_spec_run(check_spec_state({
+		'brew': ['Formula abc needs to be installed or updated.']
+	}, [], []), true, false, ['abc'])
+	return check_spec_bool(result.exit_code == 1 && result.stderr == 'Satisfy missing dependencies with `brew bundle install`.\n')
 }
 
 // Ruby it `it "does not raise error on skippable formula" do` at line 77.
 pub fn ruby_check_subcommand_spec_l77_d11_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	_ = args
+	context := check_spec_package_type_context('brew', 'Formula', {
+		'brew': ['abc']
+	})
+	checked := brew_bundle.package_type_find_actionable(context, [
+		brew_bundle.bundle_dsl_entry('brew', 'abc', {}),
+	], false, false, map[string]bool{}) or { return check_spec_bool(false) }
+	result := check_spec_run(check_spec_state({
+		'brew': checked.errors
+	}, [], []), false, false, [])
+	return check_spec_bool(result.exit_code == 0)
 }
 
 // Ruby it `it "raises an error" do` at line 96.
 pub fn ruby_check_subcommand_spec_l96_d12_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+	_ = args
+	result := check_spec_package_error('brew', 'Formula abc needs to be linked.', false, false)
+	return check_spec_bool(result.exit_code == 1 && result.stderr.contains('Run `brew bundle check --verbose` to list unmet dependencies.'))
 }
 
 // Ruby it `it "raises an error for an implicitly unlinked non-keg-only formula" do` at line 104.
 pub fn ruby_check_subcommand_spec_l104_d13_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+	_ = args
+	return check_spec_bool(check_spec_package_error('brew', 'Formula abc needs to be linked.', false, false).exit_code == 1)
 }
 
 // Ruby it `it "does not raise an error when live link status satisfies an implicit check" do` at line 113.
 pub fn ruby_check_subcommand_spec_l113_d14_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	_ = args
+	return check_spec_bool(check_spec_run(check_spec_state({}, [], []), false, false, []).exit_code == 0)
 }
 
 // Ruby let `let(:verbose) { true }` at line 122.
 pub fn ruby_check_subcommand_spec_l122_d15_verbose(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('verbose', ...args)
+	_ = args
+	return brew_runtime.bool_value(true)
 }
 
 // Ruby it `it "outputs the link status error" do` at line 124.
 pub fn ruby_check_subcommand_spec_l124_d16_outputs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('outputs', ...args)
+	_ = args
+	result := check_spec_package_error('brew', 'Formula abc needs to be unlinked.', true, false)
+	return check_spec_bool(result.exit_code == 1 && result.stderr.contains('Formula abc needs to be unlinked.'))
 }
 
 // Ruby it `it "outputs the implicit link status error" do` at line 132.
 pub fn ruby_check_subcommand_spec_l132_d17_outputs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('outputs', ...args)
+	_ = args
+	result := check_spec_package_error('brew', 'Formula abc needs to be unlinked.', true, false)
+	return check_spec_bool(result.stderr.contains('→ Formula abc needs to be unlinked.'))
 }
 
 // Ruby it `it "raises an error after install leaves a formula with the wrong link status" do` at line 143.
 pub fn ruby_check_subcommand_spec_l143_d18_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+	_ = args
+	return check_spec_bool(check_spec_package_error('brew', 'Formula abc needs to be linked.', false, false).exit_code == 1)
 }
 
 // Ruby it `it "raises an error" do` at line 159.
 pub fn ruby_check_subcommand_spec_l159_d19_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+	_ = args
+	return check_spec_bool(check_spec_package_error('tap', 'Tap abc/def needs to be installed or updated.', false, false).exit_code == 1)
 }
 
 // Ruby it `it "raises an error" do` at line 168.
 pub fn ruby_check_subcommand_spec_l168_d20_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+	_ = args
+	return check_spec_bool(check_spec_extension_error('apps_to_install', 'App foo needs to be installed or updated.', false, false).exit_code == 1)
 }
 
 // Ruby let `let(:verbose) { true }` at line 177.
 pub fn ruby_check_subcommand_spec_l177_d21_verbose(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('verbose', ...args)
+	_ = args
+	return brew_runtime.bool_value(true)
 }
 
 // Ruby let `let(:expected_output) do` at line 178.
 pub fn ruby_check_subcommand_spec_l178_d22_expected_output(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('expected_output', ...args)
+	_ = args
+	return brew_runtime.string_value(check_spec_expected_service_output())
 }
 
 // Ruby it `it "does not raise error when no service needs to be started" do` at line 197.
 pub fn ruby_check_subcommand_spec_l197_d23_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	_ = args
+	return check_spec_bool(check_spec_run(check_spec_state({}, [], []), true, false, []).exit_code == 0)
 }
 
 // Ruby it `it "raises an error" do` at line 209.
 pub fn ruby_check_subcommand_spec_l209_d24_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+	_ = args
+	state := check_spec_state({}, [brew_bundle.CheckerExtension{
+		legacy_check_step: 'apps_to_install'
+		errors: ['App foo needs to be installed or updated.']
+	}], ['Service def needs to be started.'])
+	result := check_spec_run(state, true, false, [])
+	return check_spec_bool(result.exit_code == 1 && result.stderr == check_spec_expected_service_output())
 }
 
 // Ruby it `it "raises an error" do` at line 219.
 pub fn ruby_check_subcommand_spec_l219_d25_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+	_ = args
+	state := check_spec_state({}, [brew_bundle.CheckerExtension{
+		legacy_check_step: 'apps_to_install'
+		errors: ['App foo needs to be installed or updated.']
+	}], ['Service def needs to be started.'])
+	return check_spec_bool(check_spec_run(state, true, false, []).stderr == check_spec_expected_service_output())
 }
 
 // Ruby let `let(:expected_output) do` at line 230.
 pub fn ruby_check_subcommand_spec_l230_d26_expected_output(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('expected_output', ...args)
+	_ = args
+	return brew_runtime.string_value(check_spec_expected_no_upgrade_output())
 }
 
 // Ruby let `let(:no_upgrade) { true }` at line 237.
 pub fn ruby_check_subcommand_spec_l237_d27_no_upgrade(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('no_upgrade', ...args)
+	_ = args
+	return brew_runtime.bool_value(true)
 }
 
 // Ruby let `let(:verbose) { true }` at line 238.
 pub fn ruby_check_subcommand_spec_l238_d28_verbose(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('verbose', ...args)
+	_ = args
+	return brew_runtime.bool_value(true)
 }
 
 // Ruby it `it "raises an error that doesn't mention upgrade" do` at line 247.
 pub fn ruby_check_subcommand_spec_l247_d29_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+	_ = args
+	result := check_spec_extension_error('apps_to_install', 'App foo needs to be installed.', true, true)
+	return check_spec_bool(result.exit_code == 1 && result.stderr == check_spec_expected_no_upgrade_output())
 }
 
 // Ruby let `let(:expected_output) do` at line 256.
 pub fn ruby_check_subcommand_spec_l256_d30_expected_output(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('expected_output', ...args)
+	_ = args
+	return brew_runtime.string_value(check_spec_expected_extension_output())
 }
 
 // Ruby let `let(:verbose) { true }` at line 263.
 pub fn ruby_check_subcommand_spec_l263_d31_verbose(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('verbose', ...args)
+	_ = args
+	return brew_runtime.bool_value(true)
 }
 
 // Ruby it `it "raises an error that doesn't mention upgrade" do` at line 271.
 pub fn ruby_check_subcommand_spec_l271_d32_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+	_ = args
+	result := check_spec_extension_error('registered_extensions_to_install', 'VSCode Extension foo needs to be installed.', true, false)
+	return check_spec_bool(result.exit_code == 1 && result.stderr == check_spec_expected_extension_output())
 }
 
 // Ruby it `it "does not check for casks" do` at line 283.
 pub fn ruby_check_subcommand_spec_l283_d33_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	_ = args
+	state := check_spec_state({
+		'tap':  ['Tap asdf needs to be installed or updated.']
+		'cask': ['Cask ignored needs to be installed or updated.']
+		'brew': ['Formula ignored needs to be installed or updated.']
+	}, [brew_bundle.CheckerExtension{
+		legacy_check_step: 'apps_to_install'
+		errors: ['App ignored needs to be installed or updated.']
+	}], [])
+	check := brew_bundle.check_bundle_state(state, brew_bundle.CheckerOptions{
+		exit_on_first_error: true
+	}) or { return check_spec_bool(false) }
+	return check_spec_bool(check.errors.len == 1 && check.checked_steps == [
+		'taps_to_tap',
+	])
 }
 
 // Ruby it `it "does not check for formulae" do` at line 288.
 pub fn ruby_check_subcommand_spec_l288_d34_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	_ = args
+	state := check_spec_state({
+		'tap':  ['Tap asdf needs to be installed or updated.']
+		'brew': ['Formula ignored needs to be installed or updated.']
+	}, [], [])
+	check := brew_bundle.check_bundle_state(state, brew_bundle.CheckerOptions{
+		exit_on_first_error: true
+	}) or { return check_spec_bool(false) }
+	return check_spec_bool(check.errors == [
+		'Tap asdf needs to be installed or updated.',
+	] && check.checked_steps == ['taps_to_tap'])
 }
 
 // Ruby it `it "does not check for apps" do` at line 293.
 pub fn ruby_check_subcommand_spec_l293_d35_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	_ = args
+	state := check_spec_state({
+		'tap': ['Tap asdf needs to be installed or updated.']
+	}, [brew_bundle.CheckerExtension{
+		legacy_check_step: 'apps_to_install'
+		errors: ['App ignored needs to be installed or updated.']
+	}], [])
+	check := brew_bundle.check_bundle_state(state, brew_bundle.CheckerOptions{
+		exit_on_first_error: true
+	}) or { return check_spec_bool(false) }
+	return check_spec_bool(check.checked_steps == ['taps_to_tap'])
 }
 
 // Ruby it `it "does not check for formulae" do` at line 305.
 pub fn ruby_check_subcommand_spec_l305_d36_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	_ = args
+	state := check_spec_state({
+		'brew': ['Formula ignored needs to be installed or updated.']
+	}, [brew_bundle.CheckerExtension{
+		legacy_check_step: 'registered_extensions_to_install'
+		errors: ['VSCode Extension asdf needs to be installed.']
+	}], [])
+	check := brew_bundle.check_bundle_state(state, brew_bundle.CheckerOptions{
+		exit_on_first_error: true
+	}) or { return check_spec_bool(false) }
+	return check_spec_bool(check.errors == [
+		'VSCode Extension asdf needs to be installed.',
+	] && check.checked_steps == ['taps_to_tap', 'casks_to_install', 'registered_extensions_to_install'])
 }
 
 // Ruby it `it "does not check for apps" do` at line 310.
 pub fn ruby_check_subcommand_spec_l310_d37_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	_ = args
+	state := check_spec_state({}, [brew_bundle.CheckerExtension{
+		legacy_check_step: 'registered_extensions_to_install'
+		errors: ['VSCode Extension asdf needs to be installed.']
+	}, brew_bundle.CheckerExtension{
+		legacy_check_step: 'apps_to_install'
+		errors: ['App ignored needs to be installed.']
+	}], [])
+	check := brew_bundle.check_bundle_state(state, brew_bundle.CheckerOptions{
+		exit_on_first_error: true
+	}) or { return check_spec_bool(false) }
+	return check_spec_bool(check.checked_steps == ['taps_to_tap', 'casks_to_install',
+		'registered_extensions_to_install'])
 }
 
 // Ruby it `it "does not start formulae" do` at line 326.
 pub fn ruby_check_subcommand_spec_l326_d38_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	_ = args
+	state := check_spec_state({
+		'brew': ['Formula one needs to be installed or updated.']
+	}, [], ['Service ignored needs to be started.'])
+	check := brew_bundle.check_bundle_state(state, brew_bundle.CheckerOptions{
+		exit_on_first_error: true
+	}) or { return check_spec_bool(false) }
+	return check_spec_bool(check.checked_steps == ['taps_to_tap', 'casks_to_install',
+		'registered_extensions_to_install', 'apps_to_install', 'formulae_to_install'])
 }
 
 // Ruby it `it "stops checking after the first missing formula" do` at line 333.
 pub fn ruby_check_subcommand_spec_l333_d39_stops(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('stops', ...args)
+	_ = args
+	return check_spec_bool(check_spec_early_package('brew', 'Formula'))
 }
 
 // Ruby it `it "stops checking after the first missing cask", :needs_macos do` at line 343.
 pub fn ruby_check_subcommand_spec_l343_d40_stops(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('stops', ...args)
+	_ = args
+	return check_spec_bool(check_spec_early_package('cask', 'Cask'))
 }
 
 // Ruby it `it "stops checking after the first missing mac app", :needs_macos do` at line 351.
 pub fn ruby_check_subcommand_spec_l351_d41_stops(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('stops', ...args)
+	_ = args
+	return check_spec_bool(check_spec_early_package('mas', 'App'))
 }
 
 // Ruby it `it "stops checking after the first VSCode extension" do` at line 359.
 pub fn ruby_check_subcommand_spec_l359_d42_stops(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('stops', ...args)
+	_ = args
+	return check_spec_bool(check_spec_early_package('vscode', 'VSCode Extension'))
 }
 
 // Ruby it `it "raises an exception" do` at line 369.
 pub fn ruby_check_subcommand_spec_l369_d43_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+	_ = args
+	context := check_spec_package_type_context('test', 'Test', {})
+	if _ := brew_bundle.package_type_find_actionable(context, [
+		brew_bundle.bundle_dsl_entry('test', 'test', {}),
+	], false, false, map[string]bool{}) {
+		return check_spec_bool(false)
+	} else {
+		return check_spec_bool(err.msg() == 'NotImplementedError')
+	}
 }
 
 // Ruby method `self.type = :test` at line 371.
 pub fn ruby_check_subcommand_spec_l371_d44_self_type(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.type', ...args)
+	_ = args
+	return brew_runtime.object_value('Symbol', 'test')
 }
 
 // Ruby method `self.check_label = "Test"` at line 372.
 pub fn ruby_check_subcommand_spec_l372_d45_self_check_label(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.check_label', ...args)
+	_ = args
+	return brew_runtime.string_value('Test')
 }
 
 // Ruby method `self.reset!; end` at line 374.
 pub fn ruby_check_subcommand_spec_l374_d46_self_reset(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.reset!', ...args)
+	_ = args
+	return brew_runtime.object_value('NilClass', '')
 }
 
 // Ruby method `self.preinstall!(name, no_upgrade: false, verbose: false, **options)` at line 376.
 pub fn ruby_check_subcommand_spec_l376_d47_self_preinstall(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.preinstall!', ...args)
+	_ = args
+	return brew_runtime.object_value('NilClass', '')
 }
 
 // Ruby method `self.install!(name, preinstall: true, no_upgrade: false, verbose: false, force: false, **options)` at line 383.
 pub fn ruby_check_subcommand_spec_l383_d48_self_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.install!', ...args)
+	_ = args
+	return brew_runtime.object_value('NilClass', '')
 }
 
 // Ruby method `self.dump` at line 392.
 pub fn ruby_check_subcommand_spec_l392_d49_self_dump(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.dump', ...args)
+	_ = args
+	return brew_runtime.string_value('')
 }
 
 // Original Ruby source (line-for-line):

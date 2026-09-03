@@ -1,103 +1,283 @@
 module utils
 
 import brew_runtime
+import os
 
 // Translated from Homebrew/brew `utils/path.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `self.child_of?(parent, child)` at line 10.
 pub fn ruby_path_l10_d1_self_child_of(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.child_of?', ...args)
+	if args.len < 2 { panic('Utils::Path.child_of? requires parent and child') }
+	return brew_runtime.bool_value(path_child_of(args[0].as_string(), args[1].as_string()))
 }
 
 // Ruby method `self.ensure_child_of!(parent, child, message:)` at line 18.
 pub fn ruby_path_l18_d2_self_ensure_child_of(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.ensure_child_of!', ...args)
+	if args.len < 2 { panic('Utils::Path.ensure_child_of! requires parent and child') }
+	message := if args.len > 2 { args[2].as_string() } else { 'outside' }
+	path_ensure_child_of(args[0].as_string(), args[1].as_string(), message) or {
+		return brew_runtime.object_value('RuntimeError', err.msg())
+	}
+	return brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
 }
 
 // Ruby method `self.formula_opt_prefix(formula_name)` at line 28.
 pub fn ruby_path_l28_d3_self_formula_opt_prefix(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.formula_opt_prefix', ...args)
+	if args.len == 0 { panic('Utils::Path.formula_opt_prefix requires a formula name') }
+	return brew_runtime.string_value(path_formula_opt_prefix(path_homebrew_prefix(), args[0].as_string()))
 }
 
 // Ruby method `formula_opt_prefix(formula_name)` at line 36.
 pub fn ruby_path_l36_d4_formula_opt_prefix(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_opt_prefix', ...args)
+	return ruby_path_l28_d3_self_formula_opt_prefix(...args)
 }
 
 // Ruby method `self.formula_opt_bin(formula_name)` at line 44.
 pub fn ruby_path_l44_d5_self_formula_opt_bin(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.formula_opt_bin', ...args)
+	if args.len == 0 { panic('Utils::Path.formula_opt_bin requires a formula name') }
+	return brew_runtime.string_value(path_formula_opt_bin(path_homebrew_prefix(), args[0].as_string()))
 }
 
 // Ruby method `formula_opt_bin(formula_name)` at line 52.
 pub fn ruby_path_l52_d6_formula_opt_bin(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_opt_bin', ...args)
+	return ruby_path_l44_d5_self_formula_opt_bin(...args)
 }
 
 // Ruby method `self.formula_opt_lib(formula_name)` at line 60.
 pub fn ruby_path_l60_d7_self_formula_opt_lib(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.formula_opt_lib', ...args)
+	if args.len == 0 { panic('Utils::Path.formula_opt_lib requires a formula name') }
+	return brew_runtime.string_value(path_formula_opt_lib(path_homebrew_prefix(), args[0].as_string()))
 }
 
 // Ruby method `formula_opt_lib(formula_name)` at line 68.
 pub fn ruby_path_l68_d8_formula_opt_lib(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_opt_lib', ...args)
+	return ruby_path_l60_d7_self_formula_opt_lib(...args)
 }
 
 // Ruby method `self.formula_opt_libexec(formula_name)` at line 76.
 pub fn ruby_path_l76_d9_self_formula_opt_libexec(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.formula_opt_libexec', ...args)
+	if args.len == 0 { panic('Utils::Path.formula_opt_libexec requires a formula name') }
+	return brew_runtime.string_value(path_formula_opt_libexec(path_homebrew_prefix(), args[0].as_string()))
 }
 
 // Ruby method `formula_opt_libexec(formula_name)` at line 84.
 pub fn ruby_path_l84_d10_formula_opt_libexec(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_opt_libexec', ...args)
+	return ruby_path_l76_d9_self_formula_opt_libexec(...args)
 }
 
 // Ruby method `self.formula_opt_include(formula_name)` at line 92.
 pub fn ruby_path_l92_d11_self_formula_opt_include(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.formula_opt_include', ...args)
+	if args.len == 0 { panic('Utils::Path.formula_opt_include requires a formula name') }
+	return brew_runtime.string_value(path_formula_opt_include(path_homebrew_prefix(), args[0].as_string()))
 }
 
 // Ruby method `formula_opt_include(formula_name)` at line 100.
 pub fn ruby_path_l100_d12_formula_opt_include(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_opt_include', ...args)
+	return ruby_path_l92_d11_self_formula_opt_include(...args)
 }
 
 // Ruby method `self.formula_installed_prefixes(formula_names)` at line 108.
 pub fn ruby_path_l108_d13_self_formula_installed_prefixes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.formula_installed_prefixes', ...args)
+	if args.len == 0 { panic('Utils::Path.formula_installed_prefixes requires formula names') }
+	names := path_names_from_value(args[0])
+	return brew_runtime.string_array_value(path_formula_installed_prefixes(path_homebrew_cellar(), names))
 }
 
 // Ruby method `self.formula_any_version_installed?(formula_names)` at line 120.
 pub fn ruby_path_l120_d14_self_formula_any_version_installed(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.formula_any_version_installed?', ...args)
+	if args.len == 0 { panic('Utils::Path.formula_any_version_installed? requires formula names') }
+	return brew_runtime.bool_value(path_formula_any_version_installed(path_homebrew_cellar(), path_names_from_value(args[0])))
 }
 
 // Ruby method `formula_any_version_installed?(formula_names)` at line 128.
 pub fn ruby_path_l128_d15_formula_any_version_installed(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_any_version_installed?', ...args)
+	return ruby_path_l120_d14_self_formula_any_version_installed(...args)
 }
 
 // Ruby method `self.formula_opt_bin_path(formula_name, *paths)` at line 136.
 pub fn ruby_path_l136_d16_self_formula_opt_bin_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.formula_opt_bin_path', ...args)
+	if args.len == 0 { panic('Utils::Path.formula_opt_bin_path requires a formula name') }
+	extra := if args.len > 1 { args[1..].map(it.as_string()) } else { []string{} }
+	return brew_runtime.string_value(path_formula_opt_bin_path(path_homebrew_prefix(), args[0].as_string(), extra, os.getenv('PATH')))
 }
 
 // Ruby method `self.formula_opt_bin_env(formula_name, *paths)` at line 144.
 pub fn ruby_path_l144_d17_self_formula_opt_bin_env(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.formula_opt_bin_env', ...args)
+	path := ruby_path_l136_d16_self_formula_opt_bin_path(...args).as_string()
+	return brew_runtime.map_value({
+		'PATH': brew_runtime.string_value(path)
+	})
 }
 
 // Ruby method `self.loadable_package_path?(path, package_type)` at line 149.
 pub fn ruby_path_l149_d18_self_loadable_package_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.loadable_package_path?', ...args)
+	if args.len < 2 { panic('Utils::Path.loadable_package_path? requires path and package type') }
+	mut options := PathLoadOptions{}
+	if args.len > 2 && args[2].type_name == 'Hash' {
+		values := args[2].map_data.clone()
+		options = PathLoadOptions{
+			forbid_packages_from_paths: (values['forbid'] or { brew_runtime.bool_value(false) }).bool_data
+			library: (values['library'] or { brew_runtime.string_value('') }).as_string()
+			cellar: (values['cellar'] or { brew_runtime.string_value('') }).as_string()
+			caskroom: (values['caskroom'] or { brew_runtime.string_value('') }).as_string()
+		}
+	}
+	accepted := path_loadable_package_path(args[0].as_string(), args[1].as_string().trim_left(':'), options) or {
+		return brew_runtime.object_value('RuntimeError', err.msg())
+	}
+	return brew_runtime.bool_value(accepted)
 }
 
 // Ruby method `self.trusted_package_root(path)` at line 192.
 pub fn ruby_path_l192_d19_self_trusted_package_root(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.trusted_package_root', ...args)
+	if args.len == 0 { panic('Utils::Path.trusted_package_root requires a path') }
+	return brew_runtime.string_value(path_trusted_package_root(args[0].as_string()))
+}
+
+pub struct PathLoadOptions {
+pub:
+	forbid_packages_from_paths bool
+	library                    string
+	cellar                     string
+	caskroom                   string
+}
+
+pub fn path_child_of(parent string, child string) bool {
+	parent_path := os.norm_path(os.abs_path(parent))
+	mut current := os.norm_path(os.abs_path(child))
+	for {
+		if current == parent_path {
+			return true
+		}
+		next := os.dir(current)
+		if next == current {
+			break
+		}
+		current = next
+	}
+	return false
+}
+
+pub fn path_ensure_child_of(parent string, child string, message string) ! {
+	if !path_child_of(parent, child) {
+		return error(message)
+	}
+}
+
+pub fn path_formula_opt_prefix(prefix string, formula_name string) string {
+	return os.join_path(prefix, 'opt', path_name_from_full_name(formula_name))
+}
+
+pub fn path_formula_opt_bin(prefix string, formula_name string) string {
+	return os.join_path(path_formula_opt_prefix(prefix, formula_name), 'bin')
+}
+
+pub fn path_formula_opt_lib(prefix string, formula_name string) string {
+	return os.join_path(path_formula_opt_prefix(prefix, formula_name), 'lib')
+}
+
+pub fn path_formula_opt_libexec(prefix string, formula_name string) string {
+	return os.join_path(path_formula_opt_prefix(prefix, formula_name), 'libexec')
+}
+
+pub fn path_formula_opt_include(prefix string, formula_name string) string {
+	return os.join_path(path_formula_opt_prefix(prefix, formula_name), 'include')
+}
+
+pub fn path_formula_installed_prefixes(cellar string, formula_names []string) []string {
+	mut seen_racks := map[string]bool{}
+	mut prefixes := []string{}
+	for formula_name in formula_names {
+		rack := os.join_path(cellar, path_name_from_full_name(formula_name))
+		if !os.is_dir(rack) {
+			continue
+		}
+		real_rack := os.real_path(rack)
+		if real_rack in seen_racks {
+			continue
+		}
+		seen_racks[real_rack] = true
+		for child in os.ls(rack) or { []string{} } {
+			prefix := os.join_path(rack, child)
+			if os.is_dir(prefix) { prefixes << prefix }
+		}
+	}
+	prefixes.sort_with_compare(fn (left &string, right &string) int {
+		return compare_strings(os.base(*left), os.base(*right))
+	})
+	return prefixes
+}
+
+pub fn path_formula_any_version_installed(cellar string, formula_names []string) bool {
+	return path_formula_installed_prefixes(cellar, formula_names).any(os.is_file(os.join_path(it, 'INSTALL_RECEIPT.json')))
+}
+
+pub fn path_formula_opt_bin_path(prefix string, formula_name string, extra_paths []string, current_path string) string {
+	mut paths := [path_formula_opt_bin(prefix, formula_name)]
+	paths << extra_paths
+	if current_path != '' { paths << current_path }
+	return paths.join(os.path_delimiter)
+}
+
+pub fn path_loadable_package_path(path string, package_type string, options PathLoadOptions) !bool {
+	if !options.forbid_packages_from_paths {
+		return true
+	}
+	path_string := path
+	path_realpath := if os.exists(path) {
+		os.real_path(path)
+	} else {
+		os.norm_path(os.abs_path(path))
+	}
+	mut allowed_paths := [
+		path_trusted_package_root(os.join_path(options.library, 'Taps')),
+	]
+	allowed_paths << path_trusted_package_root(if package_type == 'formula' {
+		options.cellar
+	} else {
+		options.caskroom
+	})
+	extensions := if package_type == 'cask' { ['.rb', '.json'] } else { ['.rb'] }
+	if extensions.all(!path_realpath.ends_with(it) && !path_string.ends_with(it)) {
+		return true
+	}
+	if allowed_paths.any(path_child_of(it, path_realpath) || path_child_of(it, path)) {
+		return true
+	}
+	if path_string.contains('./') || path_string.ends_with('.rb') || path_string.count('/') != 2 {
+		plural := '${package_type}s'
+		different := if path_realpath != path_string { ' (${path_realpath})' } else { '' }
+		create_flag := if package_type == 'cask' { ' --cask' } else { '' }
+		return error('Homebrew requires ${plural} to be in a tap, rejecting:\n  ${path_string}${different}\n\nTo create a tap, run e.g.\n  brew tap-new <user|org>/<repository>\nTo create a ${package_type} in a tap run e.g.\n  brew create${create_flag} <url> --tap=<user|org>/<repository>')
+	}
+	return path_string.count('/') != 2
+}
+
+pub fn path_trusted_package_root(path string) string {
+	return if os.exists(path) { os.real_path(path) } else { os.norm_path(os.abs_path(path)) }
+}
+
+fn path_names_from_value(value brew_runtime.Value) []string {
+	return if value.type_name == 'Array' {
+		value.as_string_array() or { value.array_data.map(it.as_string()) }
+	} else {
+		[value.as_string()]
+	}
+}
+
+fn path_name_from_full_name(full_name string) string {
+	return full_name.all_after_last('/')
+}
+
+fn path_homebrew_prefix() string {
+	value := brew_runtime.environment_value('HOMEBREW_PREFIX')
+	return if value != '' { value } else { '/usr/local' }
+}
+
+fn path_homebrew_cellar() string {
+	value := brew_runtime.environment_value('HOMEBREW_CELLAR')
+	return if value != '' { value } else { os.join_path(path_homebrew_prefix(), 'Cellar') }
 }
 
 // Original Ruby source (line-for-line):

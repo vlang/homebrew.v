@@ -1,38 +1,83 @@
 module test
 
 import brew_runtime
+import homebrew
 
 // Translated from Homebrew/brew `test/cask_dependent_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+fn cask_dependent_spec_cask() homebrew.CaskDependentCask {
+	return homebrew.CaskDependentCask{
+		token: 'testing'
+		full_name: 'testing'
+		formula_dependencies: ['baz']
+		cask_dependencies: ['foo-cask']
+		macos: true
+	}
+}
+
+fn cask_dependent_spec_graph() homebrew.CaskDependentGraph {
+	return homebrew.CaskDependentGraph{
+		formulae: {
+			'foo': homebrew.CaskDependentFormula{
+				name: 'foo'
+			}
+			'bar': homebrew.CaskDependentFormula{
+				name: 'bar'
+				dependencies: ['foo']
+			}
+			'baz': homebrew.CaskDependentFormula{
+				name: 'baz'
+				dependencies: ['bar']
+				runtime_dependencies: ['bar', 'foo']
+			}
+		}
+	}
+}
+
+fn cask_dependent_spec_dependent() homebrew.CaskDependent {
+	return homebrew.new_cask_dependent(cask_dependent_spec_cask(), cask_dependent_spec_graph())
+}
 
 // Ruby subject `subject(:dependent) { described_class.new test_cask }` at line 8.
 pub fn ruby_cask_dependent_spec_l8_d1_dependent(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dependent', ...args)
+	return homebrew.cask_dependent_value(cask_dependent_spec_dependent())
 }
 
 // Ruby let `let :test_cask do` at line 10.
 pub fn ruby_cask_dependent_spec_l10_d2_test_cask(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('test_cask', ...args)
+	return homebrew.cask_dependent_cask_value(cask_dependent_spec_cask())
 }
 
 // Ruby it `it "is the formula dependencies of the cask" do` at line 21.
 pub fn ruby_cask_dependent_spec_l21_d3_is(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('is', ...args)
+	return brew_runtime.bool_value(cask_dependent_spec_dependent().deps().map(it.name) == [
+		'baz',
+	])
 }
 
 // Ruby it `it "is the requirements of the cask" do` at line 28.
 pub fn ruby_cask_dependent_spec_l28_d4_is(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('is', ...args)
+	return brew_runtime.bool_value(cask_dependent_spec_dependent().requirements().map(it.name) == [
+		'foo-cask',
+		'macos',
+	])
 }
 
 // Ruby it `it "is all the dependencies of the cask" do` at line 35.
 pub fn ruby_cask_dependent_spec_l35_d5_is(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('is', ...args)
+	return brew_runtime.bool_value(cask_dependent_spec_dependent().recursive_dependencies().map(it.name) == [
+		'foo',
+		'bar',
+		'baz',
+	])
 }
 
 // Ruby it `it "is all the dependencies of the cask" do` at line 49.
 pub fn ruby_cask_dependent_spec_l49_d6_is(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('is', ...args)
+	return brew_runtime.bool_value(cask_dependent_spec_dependent().recursive_requirements().map(it.name) == [
+		'foo-cask',
+		'macos',
+	])
 }
 
 // Original Ruby source (line-for-line):

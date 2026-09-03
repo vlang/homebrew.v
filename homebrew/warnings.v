@@ -7,22 +7,80 @@ import brew_runtime
 
 // Ruby method `warn(message, category: nil)` at line 8.
 pub fn ruby_warnings_l8_d1_warn(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('warn', ...args)
+	if args.len == 0 {
+		return brew_runtime.object_value('Nil', '')
+	}
+	filter := WarningFilter{
+		patterns: args[1..].map(it.as_string())
+	}
+	return brew_runtime.string_value(filter.emit(args[0].as_string()))
 }
 
 // Ruby method `self.ignore(*warnings, &_block)` at line 28.
 pub fn ruby_warnings_l28_d2_self_ignore(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.ignore', ...args)
+	return brew_runtime.string_array_value(expand_warning_patterns(args.map(it.as_string())))
 }
 
 // Ruby method `self.ignored?(message)` at line 43.
 pub fn ruby_warnings_l43_d3_self_ignored(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.ignored?', ...args)
+	if args.len == 0 {
+		return brew_runtime.bool_value(false)
+	}
+	filter := WarningFilter{
+		patterns: expand_warning_patterns(args[1..].map(it.as_string()))
+	}
+	return brew_runtime.bool_value(filter.ignored(args[0].as_string()))
 }
 
 // Ruby method `self.ignored_warnings` at line 48.
 pub fn ruby_warnings_l48_d4_self_ignored_warnings(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.ignored_warnings', ...args)
+	return brew_runtime.string_array_value(expand_warning_patterns(args.map(it.as_string())))
+}
+
+const parser_syntax_warning_patterns = [
+	'parser/current is loading parser/ruby',
+	'-compliant syntax, but you are running ',
+	'https://github.com/whitequark/parser#compatibility-with-ruby-mri',
+]
+
+// WarningFilter is the explicit V equivalent of Ruby's thread-local ignored
+// warning list. Passing it into a block keeps nested scopes isolated and makes
+// restoration automatic when that block returns an error.
+pub struct WarningFilter {
+pub:
+	patterns []string
+}
+
+pub fn expand_warning_patterns(patterns []string) []string {
+	mut expanded := []string{}
+	for pattern in patterns {
+		if pattern == 'parser_syntax' {
+			expanded << parser_syntax_warning_patterns
+		} else {
+			expanded << pattern
+		}
+	}
+	return expanded
+}
+
+pub fn (filter WarningFilter) ignored(message string) bool {
+	return filter.patterns.any(message.contains(it))
+}
+
+// emit translates Warning.warn's filter: ignored text produces no output and
+// other warnings are forwarded unchanged.
+pub fn (filter WarningFilter) emit(message string) string {
+	return if filter.ignored(message) { '' } else { message }
+}
+
+pub fn with_ignored_warnings[T](filter WarningFilter, patterns []string,
+	block fn (WarningFilter) !T) !T {
+	mut nested_patterns := filter.patterns.clone()
+	nested_patterns << expand_warning_patterns(patterns)
+	nested := WarningFilter{
+		patterns: nested_patterns
+	}
+	return block(nested)
 }
 
 // Original Ruby source (line-for-line):

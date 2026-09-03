@@ -1,43 +1,135 @@
 module homebrew
 
 import brew_runtime
+import time
 
 // Translated from Homebrew/brew `homebrew.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub type HomebrewRequireLoader = fn(string) !
+
+pub type HomebrewSystemRunner = fn(HomebrewSystemRequest) !brew_runtime.CommandResult
+
+pub type DumpStatsMatcher = fn(string) bool
+
+pub type DumpStatsMethod = fn() !string
+
+pub struct HomebrewSystemRequest {
+pub:
+	command     ?string
+	argv0       ?string
+	arguments   []string
+	environment map[string]string
+	chdir       ?string
+	quiet       bool
+}
+
+pub struct DumpStatsState {
+pub mut:
+	injected_methods []string
+	times            map[string]f64
+}
+
+fn default_homebrew_system_runner(request HomebrewSystemRequest) !brew_runtime.CommandResult {
+	command := request.command or { return brew_runtime.CommandResult{ exit_code: 1 } }
+	if request.environment.len > 0 {
+		return brew_runtime.run_command_with_environment(command, request.arguments, request.environment)
+	}
+	return brew_runtime.run_command(command, request.arguments)
+}
+
+pub fn homebrew_require(path ?string, loader HomebrewRequireLoader) bool {
+	value := path or { return false }
+	loader(value) or { return false }
+	return true
+}
+
+pub fn homebrew_system_with_runner(request HomebrewSystemRequest,
+	runner HomebrewSystemRunner) bool {
+	result := runner(request) or { return false }
+	if !request.quiet && result.output != '' {
+		print(result.output)
+	}
+	return result.exit_code == 0
+}
+
+pub fn homebrew_system(request HomebrewSystemRequest) bool {
+	return homebrew_system_with_runner(request, default_homebrew_system_runner)
+}
+
+pub fn homebrew_safe_system(request HomebrewSystemRequest) ! {
+	if homebrew_system(request) {
+		return
+	}
+	command := request.command or { '' }
+	mut command_line := [command]
+	command_line << request.arguments
+	return error('Failure while executing: ${command_line.join(' ')}')
+}
+
+pub fn inject_dump_stats(mut state DumpStatsState, method_names []string,
+	matcher DumpStatsMatcher) []string {
+	mut wrapped := []string{}
+	for name in method_names {
+		if !matcher(name) || name in state.injected_methods {
+			continue
+		}
+		state.injected_methods << name
+		wrapped << name
+	}
+	return wrapped
+}
+
+pub fn run_dump_stats_method(mut state DumpStatsState, name string,
+	method DumpStatsMethod) !string {
+	started := time.now()
+	result := method() or {
+		elapsed := f64(time.since(started)) / f64(time.second)
+		state.times[name] = (state.times[name] or { 0.0 }) + elapsed
+		return err
+	}
+	elapsed := f64(time.since(started)) / f64(time.second)
+	state.times[name] = (state.times[name] or { 0.0 }) + elapsed
+	return result
+}
 
 // Ruby method `self.require?(path)` at line 10.
-pub fn ruby_homebrew_l10_d1_self_require(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.require?', ...args)
+pub fn ruby_homebrew_l10_d1_self_require(path ?string, loader HomebrewRequireLoader) bool {
+	return homebrew_require(path, loader)
 }
 
 // Ruby method `self._system(cmd, argv0 = nil, *args, **options, &_block)` at line 38.
-pub fn ruby_homebrew_l38_d2_self_system(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self._system', ...args)
+pub fn ruby_homebrew_l38_d2_self_system(request HomebrewSystemRequest) bool {
+	return homebrew_system(request)
 }
 
 // Ruby method `self.system(cmd, argv0 = nil, *args, **options)` at line 67.
-pub fn ruby_homebrew_l67_d3_self_system(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.system', ...args)
+pub fn ruby_homebrew_l67_d3_self_system(request HomebrewSystemRequest) bool {
+	return homebrew_system(request)
 }
 
 // Ruby method `self.safe_system(cmd, argv0 = nil, *args, **options)` at line 84.
-pub fn ruby_homebrew_l84_d4_self_safe_system(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.safe_system', ...args)
+pub fn ruby_homebrew_l84_d4_self_safe_system(request HomebrewSystemRequest) ! {
+	homebrew_safe_system(request)!
 }
 
 // Ruby method `self.quiet_system(cmd, argv0 = nil, *args)` at line 97.
-pub fn ruby_homebrew_l97_d5_self_quiet_system(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.quiet_system', ...args)
+pub fn ruby_homebrew_l97_d5_self_quiet_system(request HomebrewSystemRequest) bool {
+	return homebrew_system(HomebrewSystemRequest{
+		...request
+		quiet: true
+	})
 }
 
 // Ruby method `self.inject_dump_stats!(the_module, pattern)` at line 109.
-pub fn ruby_homebrew_l109_d6_self_inject_dump_stats(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.inject_dump_stats!', ...args)
+pub fn ruby_homebrew_l109_d6_self_inject_dump_stats(mut state DumpStatsState,
+	method_names []string, matcher DumpStatsMatcher) []string {
+	return inject_dump_stats(mut state, method_names, matcher)
 }
 
 // Ruby define_method `wrapper.define_method(name) do |*args, &block|` at line 118.
-pub fn ruby_homebrew_l118_d7_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('name', ...args)
+pub fn ruby_homebrew_l118_d7_name(mut state DumpStatsState, name string,
+	method DumpStatsMethod) !string {
+	return run_dump_stats_method(mut state, name, method)
 }
 
 // Original Ruby source (line-for-line):

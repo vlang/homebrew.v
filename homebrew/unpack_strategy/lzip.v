@@ -1,28 +1,50 @@
 module unpack_strategy
 
 import brew_runtime
+import os
 
 // Translated from Homebrew/brew `unpack_strategy/lzip.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `self.extensions` at line 10.
-pub fn ruby_lzip_l10_d1_self_extensions(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.extensions', ...args)
+pub fn ruby_lzip_l10_d1_self_extensions() []string {
+	return lzip_extensions()
 }
 
 // Ruby method `self.can_extract?(path)` at line 15.
-pub fn ruby_lzip_l15_d2_self_can_extract(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.can_extract?', ...args)
+pub fn ruby_lzip_l15_d2_self_can_extract(path string) bool {
+	return lzip_can_extract(path)
 }
 
 // Ruby method `dependencies` at line 20.
-pub fn ruby_lzip_l20_d3_dependencies(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dependencies', ...args)
+pub fn ruby_lzip_l20_d3_dependencies() []string {
+	return lzip_dependencies()
 }
 
 // Ruby method `extract_to_dir(unpack_dir, basename:, verbose:)` at line 27.
-pub fn ruby_lzip_l27_d4_extract_to_dir(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('extract_to_dir', ...args)
+pub fn ruby_lzip_l27_d4_extract_to_dir(path string, unpack_dir string, basename string, verbose bool) ! {
+	lzip_extract_to_dir(path, unpack_dir, basename, verbose)!
+}
+
+pub fn lzip_extensions() []string {
+	return ['.lz']
+}
+
+pub fn lzip_can_extract(path string) bool {
+	return file_starts_with(path, 'LZIP'.bytes())
+}
+
+pub fn lzip_dependencies() []string {
+	return ['lzip']
+}
+
+pub fn lzip_extract_to_dir(path string, unpack_dir string, basename string, verbose bool) ! {
+	target := brew_runtime.join_path(unpack_dir, basename)
+	os.cp(path, target)!
+	mut args := ['-d']
+	if !verbose { args << '-q' }
+	args << target
+	checked_command(command_path('lzip')!, args)!
 }
 
 // Original Ruby source (line-for-line):

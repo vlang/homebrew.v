@@ -5,24 +5,134 @@ import brew_runtime
 // Translated from Homebrew/brew `cmd/command-not-found-init.rb`.
 // The original source is retained below until every stub has a typed V body.
 
+pub struct CommandNotFoundInitOptions {
+pub:
+	stdout_tty      bool
+	parent_shell    string
+	preferred_shell string
+	handler_sh      string
+	handler_fish    string
+}
+
+pub struct CommandNotFoundInitResult {
+pub:
+	shell  string
+	mode   string
+	stdout string
+}
+
+pub fn command_not_found_shell(parent_shell string, preferred_shell string) string {
+	return if parent_shell.len > 0 { parent_shell } else { preferred_shell }
+}
+
+pub fn command_not_found_init_output(shell string, handler_sh string, handler_fish string) !string {
+	return match shell {
+		'bash', 'zsh' { if handler_sh.ends_with('\n') { handler_sh } else { '${handler_sh}\n' } }
+		'fish' { if handler_fish.ends_with('\n') { handler_fish } else { '${handler_fish}\n' } }
+		else { return error('Unsupported shell type ${shell}') }
+	}
+}
+
+pub fn command_not_found_help_output(shell string) !string {
+	return match shell {
+		'bash', 'zsh' {
+			'# To enable command-not-found\n# Add the following lines to ~/.${shell}rc\n\nHOMEBREW_COMMAND_NOT_FOUND_HANDLER="\$(brew --repository)/Library/Homebrew/command-not-found/handler.sh"\nif [ -f "\$HOMEBREW_COMMAND_NOT_FOUND_HANDLER" ]; then\n  source "\$HOMEBREW_COMMAND_NOT_FOUND_HANDLER";\nfi\n'
+		}
+		'fish' {
+			'# To enable command-not-found\n# Add the following line to ~/.config/fish/config.fish\n\nset HOMEBREW_COMMAND_NOT_FOUND_HANDLER (brew --repository)/Library/Homebrew/command-not-found/handler.fish\nif test -f \$HOMEBREW_COMMAND_NOT_FOUND_HANDLER\n  source \$HOMEBREW_COMMAND_NOT_FOUND_HANDLER\nend\n'
+		}
+		else { return error('Unsupported shell type ${shell}') }
+	}
+}
+
+pub fn run_command_not_found_init(options CommandNotFoundInitOptions) !CommandNotFoundInitResult {
+	shell := command_not_found_shell(options.parent_shell, options.preferred_shell)
+	if options.stdout_tty {
+		return CommandNotFoundInitResult{
+			shell: shell
+			mode: 'help'
+			stdout: command_not_found_help_output(shell)!
+		}
+	}
+	return CommandNotFoundInitResult{
+		shell: shell
+		mode: 'init'
+		stdout: command_not_found_init_output(shell, options.handler_sh, options.handler_fish)!
+	}
+}
+
+@[heap]
+pub struct CommandNotFoundInitInput {
+pub:
+	options CommandNotFoundInitOptions
+}
+
+pub fn command_not_found_init_input_boundary(input &CommandNotFoundInitInput) brew_runtime.Value {
+	return brew_runtime.structured_value('Homebrew::Cmd::CommandNotFoundInit::Input', '', {
+		'command_not_found_init_input_address': u64(voidptr(input)).str()
+	})
+}
+
+fn command_not_found_init_input_from_value(value brew_runtime.Value) &CommandNotFoundInitInput {
+	address := value.attributes['command_not_found_init_input_address'] or {
+		panic('invalid CommandNotFoundInit input')
+	}
+	return unsafe { &CommandNotFoundInitInput(voidptr(address.u64())) }
+}
+
+fn command_not_found_init_result_value(result CommandNotFoundInitResult) brew_runtime.Value {
+	return brew_runtime.map_value({
+		'shell': brew_runtime.object_value('Symbol', result.shell)
+		'mode': brew_runtime.object_value('Symbol', result.mode)
+		'stdout': brew_runtime.string_value(result.stdout)
+	})
+}
+
 // Ruby method `run` at line 25.
 pub fn ruby_command_not_found_init_l25_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('run', ...args)
+	if args.len == 0 {
+		return brew_runtime.object_value('ArgumentError', 'command input is required')
+	}
+	return command_not_found_init_result_value(run_command_not_found_init(command_not_found_init_input_from_value(args[0]).options) or {
+		return brew_runtime.object_value('RuntimeError', err.msg())
+	})
 }
 
 // Ruby method `shell` at line 34.
 pub fn ruby_command_not_found_init_l34_d2_shell(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('shell', ...args)
+	if args.len == 0 {
+		return brew_runtime.object_value('ArgumentError', 'command input is required')
+	}
+	options := command_not_found_init_input_from_value(args[0]).options
+	shell := command_not_found_shell(options.parent_shell, options.preferred_shell)
+	return if shell.len > 0 {
+		brew_runtime.object_value('Symbol', shell)
+	} else {
+		brew_runtime.object_value('NilClass', '')
+	}
 }
 
 // Ruby method `init` at line 39.
 pub fn ruby_command_not_found_init_l39_d3_init(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('init', ...args)
+	if args.len == 0 {
+		return brew_runtime.object_value('ArgumentError', 'command input is required')
+	}
+	options := command_not_found_init_input_from_value(args[0]).options
+	shell := command_not_found_shell(options.parent_shell, options.preferred_shell)
+	return brew_runtime.string_value(command_not_found_init_output(shell, options.handler_sh,
+		options.handler_fish) or { return brew_runtime.object_value('RuntimeError', err.msg()) })
 }
 
 // Ruby method `help` at line 51.
 pub fn ruby_command_not_found_init_l51_d4_help(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('help', ...args)
+	if args.len == 0 {
+		return brew_runtime.object_value('ArgumentError', 'command input is required')
+	}
+	options := command_not_found_init_input_from_value(args[0]).options
+	shell := command_not_found_shell(options.parent_shell, options.preferred_shell)
+	return brew_runtime.string_value(command_not_found_help_output(shell) or {
+		return brew_runtime.object_value('RuntimeError', err.msg())
+	})
 }
 
 // Original Ruby source (line-for-line):

@@ -7,12 +7,22 @@ import brew_runtime
 
 // Ruby method `note_start` at line 15.
 pub fn ruby_note_segment_l15_d1_note_start(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('note_start', ...args)
+	if args.len == 0 {
+		panic('NoteSegment#note_start requires a header')
+	}
+	return brew_runtime.int_value((args[0].attribute('p_offset') or {
+		panic('program header has no p_offset')
+	}).i64())
 }
 
 // Ruby method `note_total_size` at line 21.
 pub fn ruby_note_segment_l21_d2_note_total_size(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('note_total_size', ...args)
+	if args.len == 0 {
+		panic('NoteSegment#note_total_size requires a header')
+	}
+	return brew_runtime.int_value((args[0].attribute('p_filesz') or {
+		panic('program header has no p_filesz')
+	}).i64())
 }
 
 // Original Ruby source (line-for-line):

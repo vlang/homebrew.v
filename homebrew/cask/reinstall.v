@@ -4,10 +4,153 @@ import brew_runtime
 
 // Translated from Homebrew/brew `cask/reinstall.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub struct ReinstallCask {
+pub:
+	full_name    string
+	installed    bool
+	fail_message ?string
+}
+
+pub struct ReinstallCaskOptions {
+pub:
+	verbose             bool
+	force               bool
+	skip_cask_deps      bool
+	binaries            bool
+	require_sha         bool
+	zap                 bool
+	skip_prefetch       bool
+	download_queue_name ?string
+	global_failed       bool
+}
+
+pub struct ReinstallCaskResult {
+pub:
+	installed              []string
+	failures               map[string]string
+	prefetched             []string
+	output                 []string
+	created_download_queue bool
+	queue_name             string
+	queue_shutdown         bool
+}
+
+pub fn reinstall_casks(casks []ReinstallCask, options ReinstallCaskOptions) ReinstallCaskResult {
+	mut created_queue := false
+	queue_name := if supplied := options.download_queue_name {
+		supplied
+	} else if options.skip_prefetch {
+		'default'
+	} else {
+		created_queue = true
+		'reinstall'
+	}
+	mut prefetched := []string{}
+	if !options.skip_prefetch {
+		prefetched = casks.map(it.full_name)
+	}
+	mut installed := []string{}
+	mut failures := map[string]string{}
+	mut output := []string{}
+	for cask in casks {
+		if options.zap {
+			output << 'Dispatching zap stanza for ${cask.full_name}'
+		} else if cask.installed {
+			output << 'Uninstalling Cask ${cask.full_name}'
+		}
+		output << 'Installing Cask ${cask.full_name}'
+		if failure := cask.fail_message {
+			failures[cask.full_name] = failure
+			output << '${cask.full_name}: ${failure}'
+			continue
+		}
+		installed << cask.full_name
+		output << '${cask.full_name} was successfully installed!'
+	}
+	return ReinstallCaskResult{
+		installed: installed
+		failures: failures
+		prefetched: prefetched
+		output: output
+		created_download_queue: created_queue
+		queue_name: queue_name
+		queue_shutdown: created_queue
+	}
+}
+
+pub fn reinstall_cask_to_value(cask ReinstallCask) brew_runtime.Value {
+	mut attributes := {
+		'full_name': cask.full_name
+		'installed': cask.installed.str()
+	}
+	if failure := cask.fail_message {
+		attributes['fail_message'] = failure
+	}
+	return brew_runtime.structured_value('Cask', cask.full_name, attributes)
+}
+
+fn reinstall_cask_from_value(value brew_runtime.Value) ReinstallCask {
+	failure := if message := value.attributes['fail_message'] { ?string(message) } else { none }
+	return ReinstallCask{
+		full_name: value.attributes['full_name'] or { value.as_string() }
+		installed: (value.attributes['installed'] or { 'false' }) == 'true'
+		fail_message: failure
+	}
+}
+
+pub fn reinstall_cask_result_to_value(result ReinstallCaskResult) brew_runtime.Value {
+	mut failures := map[string]brew_runtime.Value{}
+	for name, message in result.failures {
+		failures[name] = brew_runtime.string_value(message)
+	}
+	return brew_runtime.map_value({
+		'installed':              brew_runtime.string_array_value(result.installed)
+		'failures':               brew_runtime.map_value(failures)
+		'prefetched':             brew_runtime.string_array_value(result.prefetched)
+		'output':                 brew_runtime.string_array_value(result.output)
+		'created_download_queue': brew_runtime.bool_value(result.created_download_queue)
+		'queue_name':             brew_runtime.string_value(result.queue_name)
+		'queue_shutdown':         brew_runtime.bool_value(result.queue_shutdown)
+	})
+}
 
 // Ruby method `self.reinstall_casks(` at line 18.
 pub fn ruby_reinstall_l18_d1_self_reinstall_casks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.reinstall_casks', ...args)
+	if args.len == 0 {
+		return reinstall_cask_result_to_value(reinstall_casks([]ReinstallCask{}, ReinstallCaskOptions{}))
+	}
+	values := args[0].as_map() or { return brew_runtime.object_value('ArgumentError', err.msg()) }
+	cask_values := if value := values['casks'] {
+		value.as_array() or { []brew_runtime.Value{} }
+	} else {
+		[]brew_runtime.Value{}
+	}
+	mut queue := ?string(none)
+	if value := values['download_queue'] {
+		if value.type_name != 'NilClass' {
+			queue = value.as_string()
+		}
+	}
+	options := ReinstallCaskOptions{
+		verbose: if value := values['verbose'] { value.as_bool() or { false } } else { false }
+		force: if value := values['force'] { value.as_bool() or { false } } else { false }
+		skip_cask_deps: if value := values['skip_cask_deps'] {
+			value.as_bool() or { false }} else {
+			false}
+		binaries: if value := values['binaries'] { value.as_bool() or { false } } else { false }
+		require_sha: if value := values['require_sha'] {
+			value.as_bool() or { false }} else {
+			false}
+		zap: if value := values['zap'] { value.as_bool() or { false } } else { false }
+		skip_prefetch: if value := values['skip_prefetch'] {
+			value.as_bool() or { false }} else {
+			false}
+		download_queue_name: queue
+		global_failed: if value := values['global_failed'] {
+			value.as_bool() or { false }} else {
+			false}
+	}
+	return reinstall_cask_result_to_value(reinstall_casks(cask_values.map(reinstall_cask_from_value(it)), options))
 }
 
 // Original Ruby source (line-for-line):

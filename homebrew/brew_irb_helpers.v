@@ -7,12 +7,71 @@ import brew_runtime
 
 // Ruby method `f(*args)` at line 13.
 pub fn ruby_brew_irb_helpers_l13_d1_f(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f', ...args)
+	if args.len == 0 {
+		return brew_runtime.object_value('ArgumentError', 'formula name is required')
+	}
+	mut factory_args := []int{}
+	for argument in args[1..] {
+		factory_args << int(argument.as_int() or { 0 })
+	}
+	return irb_formula_value(irb_formula(args[0].as_string(), factory_args))
 }
 
 // Ruby method `c(config: nil)` at line 19.
 pub fn ruby_brew_irb_helpers_l19_d2_c(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('c', ...args)
+	if args.len == 0 {
+		return brew_runtime.object_value('ArgumentError', 'cask token is required')
+	}
+	config := if args.len > 1 { irb_cask_config_from_value(args[1]) } else { map[string]string{} }
+	return irb_cask_value(irb_cask(args[0].as_string(), config))
+}
+
+pub struct IrbFormula {
+pub:
+	name         string
+	factory_args []int
+}
+
+pub struct IrbCask {
+pub:
+	token  string
+	config map[string]string
+}
+
+pub fn irb_formula(name string, factory_args []int) IrbFormula {
+	return IrbFormula{
+		name: name
+		factory_args: factory_args.clone()
+	}
+}
+
+pub fn irb_cask(token string, config map[string]string) IrbCask {
+	return IrbCask{
+		token: token
+		config: config.clone()
+	}
+}
+
+pub fn irb_formula_value(formula IrbFormula) brew_runtime.Value {
+	return brew_runtime.structured_value('Formula', formula.name, {
+		'name':         formula.name
+		'factory_args': formula.factory_args.map(it.str()).join(',')
+	})
+}
+
+pub fn irb_cask_value(cask IrbCask) brew_runtime.Value {
+	mut attributes := cask.config.clone()
+	attributes['token'] = cask.token
+	return brew_runtime.structured_value('Cask::Cask', cask.token, attributes)
+}
+
+pub fn irb_cask_config_from_value(value brew_runtime.Value) map[string]string {
+	values := value.as_map() or { return map[string]string{} }
+	mut config := map[string]string{}
+	for key, entry in values {
+		config[key] = entry.as_string()
+	}
+	return config
 }
 
 // Original Ruby source (line-for-line):

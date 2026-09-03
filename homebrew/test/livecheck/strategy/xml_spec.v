@@ -1,183 +1,458 @@
 module strategy
 
-import brew_runtime
+import encoding.xml
+import homebrew.livecheck as strategy_core
+import homebrew.livecheck.strategy as xml_core
+import homebrew.utils
 
 // Translated from Homebrew/brew `test/livecheck/strategy/xml_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+fn xml_spec_string(value string) strategy_core.StrategyBlockValue {
+	return strategy_core.StrategyBlockValue{
+		kind: .string_value
+		value: value
+	}
+}
+
+fn xml_spec_strings(values []string) strategy_core.StrategyBlockValue {
+	return strategy_core.StrategyBlockValue{
+		kind: .array
+		values: values.map(strategy_core.StrategyBlockItem{
+			kind: .string_value
+			value: it
+		})
+	}
+}
+
+fn xml_spec_version_capture(value string) ?string {
+	mut candidate := value.trim_space()
+	if candidate.len > 0 && candidate[0] in [`v`, `V`] {
+		candidate = candidate[1..]
+	}
+	parts := candidate.split('.')
+	if parts.len < 2 || parts.any(it == '' || !it.bytes().all(it >= `0` && it <= `9`)) {
+		return none
+	}
+	return candidate
+}
+
+fn xml_spec_simple_block(document xml.XMLDocument,
+	regex ?xml_core.XmlRegex) !strategy_core.StrategyBlockValue {
+	value := xml_core.xml_element_text(document.root, none) or {
+		return strategy_core.StrategyBlockValue{ kind: .nil_value }
+	}
+	if _ := regex {
+		capture := xml_spec_version_capture(value) or {
+			return strategy_core.StrategyBlockValue{ kind: .nil_value }
+		}
+		return xml_spec_string(capture)
+	}
+	return xml_spec_string(value)
+}
+
+fn xml_spec_versions_block(document xml.XMLDocument,
+	_ ?xml_core.XmlRegex) !strategy_core.StrategyBlockValue {
+	mut versions := []string{}
+	for node in xml_core.xml_elements(document, '/versions/version') {
+		text := xml_core.xml_element_text(node, none) or { continue }
+		if version := xml_spec_version_capture(text) {
+			versions << version
+		}
+	}
+	return xml_spec_strings(versions)
+}
+
+fn xml_spec_attributes_block(document xml.XMLDocument,
+	_ ?xml_core.XmlRegex) !strategy_core.StrategyBlockValue {
+	mut versions := []string{}
+	for node in xml_core.xml_elements(document, '/items/item') {
+		text := node.attributes['version'] or { continue }
+		if version := xml_spec_version_capture(text) {
+			versions << version
+		}
+	}
+	return xml_spec_strings(versions)
+}
+
+fn xml_spec_nil_block(_ xml.XMLDocument,
+	_ ?xml_core.XmlRegex) !strategy_core.StrategyBlockValue {
+	return strategy_core.StrategyBlockValue{ kind: .nil_value }
+}
+
+fn xml_spec_invalid_block(_ xml.XMLDocument,
+	_ ?xml_core.XmlRegex) !strategy_core.StrategyBlockValue {
+	return strategy_core.StrategyBlockValue{ kind: .invalid }
+}
+
+fn xml_spec_fetched_content(_ strategy_core.StrategyCurlRequest) !utils.CurlCommandResult {
+	content := ruby_xml_spec_l14_d5_content_version_text()
+	return utils.CurlCommandResult{
+		stdout: 'HTTP/1.1 200 OK\r\nContent-Type: application/xml\r\n\r\n${content}'
+		exit_status: 0
+	}
+}
+
+fn xml_spec_unused_fetcher(_ strategy_core.StrategyCurlRequest) !utils.CurlCommandResult {
+	return error('cached content unexpectedly fetched')
+}
+
+fn xml_spec_missing_prefix_parser(_ string) !xml.XMLDocument {
+	return error('Undefined namespace')
+}
+
+fn xml_spec_repeated_prefix_parser(_ string) !xml.XMLDocument {
+	return error('Undefined prefix something found')
+}
+
+fn xml_spec_regex() xml_core.XmlRegex {
+	return xml_core.XmlRegex{
+		pattern: r'^v?(\d+(?:\.\d+)+)$'
+		case_insensitive: true
+	}
+}
+
+fn xml_spec_find_request(url string, content ?string, regex ?xml_core.XmlRegex,
+	block xml_core.XmlVersionsBlock, block_arity int) xml_core.XmlFindVersionsRequest {
+	return xml_core.XmlFindVersionsRequest{
+		url: url
+		content: content
+		regex: regex
+		has_block: true
+		block_arity: block_arity
+		block: block
+	}
+}
+
+fn xml_spec_match_equal(left xml_core.XmlMatchData, right xml_core.XmlMatchData) bool {
+	left_regex := if value := left.regex { value.pattern } else { '' }
+	right_regex := if value := right.regex { value.pattern } else { '' }
+	return left.matches == right.matches && left_regex == right_regex && left.url == right.url && left.cached == right.cached && left.has_cached == right.has_cached && left.content == right.content && left.has_content == right.has_content && left.final_url == right.final_url && left.has_final_url == right.has_final_url && left.messages == right.messages && left.has_messages == right.has_messages
+}
 
 // Ruby subject `subject(:xml) { described_class }` at line 9.
-pub fn ruby_xml_spec_l9_d1_xml(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('xml', ...args)
+pub fn ruby_xml_spec_l9_d1_xml() string {
+	return 'Xml'
 }
 
 // Ruby let `let(:http_url) { "https://brew.sh/blog/" }` at line 11.
-pub fn ruby_xml_spec_l11_d2_http_url(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('http_url', ...args)
+pub fn ruby_xml_spec_l11_d2_http_url() string {
+	return 'https://brew.sh/blog/'
 }
 
 // Ruby let `let(:non_http_url) { "ftp://brew.sh/" }` at line 12.
-pub fn ruby_xml_spec_l12_d3_non_http_url(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('non_http_url', ...args)
+pub fn ruby_xml_spec_l12_d3_non_http_url() string {
+	return 'ftp://brew.sh/'
 }
 
 // Ruby let `let(:regex) { /^v?(\d+(?:\.\d+)+)$/i }` at line 13.
-pub fn ruby_xml_spec_l13_d4_regex(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('regex', ...args)
+pub fn ruby_xml_spec_l13_d4_regex() xml_core.XmlRegex {
+	return xml_spec_regex()
 }
 
 // Ruby let `let(:content_version_text) do` at line 14.
-pub fn ruby_xml_spec_l14_d5_content_version_text(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('content_version_text', ...args)
+pub fn ruby_xml_spec_l14_d5_content_version_text() string {
+	versions := ['1.1.2', '1.1.2b', '1.1.2a', '1.1.1', '1.1.0', '1.1.0-rc3', '1.1.0-rc2', '1.1.0-rc1',
+		'1.0.x-last', '1.0.3', '1.0.3-rc3', '1.0.3-rc2', '1.0.3-rc1', '1.0.2', '1.0.2-rc1', '1.0.1',
+		'1.0.1-rc1', '1.0.0', '1.0.0-rc1']
+	mut lines := ['<?xml version="1.0" encoding="utf-8"?>', '<versions>']
+	lines << versions.map('  <version>${it}</version>')
+	lines << '</versions>'
+	return lines.join('\n') + '\n'
 }
 
 // Ruby let `let(:content_version_attr) do` at line 40.
-pub fn ruby_xml_spec_l40_d6_content_version_attr(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('content_version_attr', ...args)
+pub fn ruby_xml_spec_l40_d6_content_version_attr() string {
+	versions := ['1.1.2', '1.1.2b', '1.1.2a', '1.1.1', '1.1.0', '1.1.0-rc3', '1.1.0-rc2', '1.1.0-rc1',
+		'1.0.x-last', '1.0.3', '1.0.3-rc3', '1.0.3-rc2', '1.0.3-rc1', '1.0.2', '1.0.2-rc1', '1.0.1',
+		'1.0.1-rc1', '1.0.0', '1.0.0-rc1']
+	mut lines := ['<?xml version="1.0" encoding="utf-8"?>', '<items>']
+	lines << versions.map('  <item version="${it}" />')
+	lines << '</items>'
+	return lines.join('\n') + '\n'
 }
 
 // Ruby let `let(:content_simple) do` at line 66.
-pub fn ruby_xml_spec_l66_d7_content_simple(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('content_simple', ...args)
+pub fn ruby_xml_spec_l66_d7_content_simple() string {
+	return '<?xml version="1.0" encoding="utf-8"?>\n<version>1.2.3</version>\n'
 }
 
 // Ruby let `let(:content_undefined_namespace) do` at line 72.
-pub fn ruby_xml_spec_l72_d8_content_undefined_namespace(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('content_undefined_namespace', ...args)
+pub fn ruby_xml_spec_l72_d8_content_undefined_namespace() string {
+	return '<?xml version="1.0" encoding="utf-8"?>\n<something:version>1.2.3</something:version>\n'
 }
 
 // Ruby let `let(:parent_child_text) { { parent: "1.2.3", child: "4.5.6" } }` at line 78.
-pub fn ruby_xml_spec_l78_d9_parent_child_text(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('parent_child_text', ...args)
+pub fn ruby_xml_spec_l78_d9_parent_child_text() map[string]string {
+	return {
+		'parent': '1.2.3'
+		'child':  '4.5.6'
+	}
 }
 
 // Ruby let `let(:content_parent_child) do` at line 79.
-pub fn ruby_xml_spec_l79_d10_content_parent_child(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('content_parent_child', ...args)
+pub fn ruby_xml_spec_l79_d10_content_parent_child() string {
+	return '<?xml version="1.0" encoding="utf-8"?>\n<elements>\n  <parent>\n    1.2.3\n    <child> 4.5.6 </child>\n  </parent>\n  <blank-parent>\n    <blank-child></blank-child>\n  </blank-parent>\n</elements>\n'
 }
 
 // Ruby let `let(:matches) do` at line 95.
-pub fn ruby_xml_spec_l95_d11_matches(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('matches', ...args)
+pub fn ruby_xml_spec_l95_d11_matches() map[string][]string {
+	return {
+		'content': ['1.1.2', '1.1.1', '1.1.0', '1.0.3', '1.0.2', '1.0.1', '1.0.0']
+		'simple':  ['1.2.3']
+	}
 }
 
 // Ruby it `it "returns true for an HTTP URL" do` at line 103.
-pub fn ruby_xml_spec_l103_d12_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_xml_spec_l103_d12_returns() bool {
+	return xml_core.ruby_xml_l49_d1_self_match(ruby_xml_spec_l11_d2_http_url())
 }
 
 // Ruby it `it "returns false for a non-HTTP URL" do` at line 107.
-pub fn ruby_xml_spec_l107_d13_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_xml_spec_l107_d13_returns() bool {
+	return !xml_core.ruby_xml_l49_d1_self_match(ruby_xml_spec_l12_d3_non_http_url())
 }
 
 // Ruby it `it "returns an REXML::Document when given XML content" do` at line 114.
-pub fn ruby_xml_spec_l114_d14_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_xml_spec_l114_d14_returns() bool {
+	document := xml_core.ruby_xml_l57_d2_self_parse_xml(ruby_xml_spec_l14_d5_content_version_text()) or {
+		return false
+	}
+	return document.root.name == 'versions'
 }
 
 // Ruby it `it "returns an REXML::Document when given XML content with an undefined namespace" do` at line 118.
-pub fn ruby_xml_spec_l118_d15_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_xml_spec_l118_d15_returns() bool {
+	document := xml_core.ruby_xml_l57_d2_self_parse_xml(ruby_xml_spec_l72_d8_content_undefined_namespace()) or {
+		return false
+	}
+	return document.root.name == 'something:version' || document.root.name == 'version'
 }
 
 // Ruby it `it "errors if an undefined prefix name is not provided in the UndefinedNamespaceException" do` at line 122.
-pub fn ruby_xml_spec_l122_d16_errors(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('errors', ...args)
+pub fn ruby_xml_spec_l122_d16_errors() bool {
+	xml_core.xml_parse_xml_with(ruby_xml_spec_l72_d8_content_undefined_namespace(), xml_spec_missing_prefix_parser) or {
+		return err.msg() == 'Could not identify undefined prefix.'
+	}
+	return false
 }
 
 // Ruby it `it "errors if XML cannot be parsed after removing undefined prefix" do` at line 129.
-pub fn ruby_xml_spec_l129_d17_errors(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('errors', ...args)
+pub fn ruby_xml_spec_l129_d17_errors() bool {
+	xml_core.xml_parse_xml_with(ruby_xml_spec_l72_d8_content_undefined_namespace(), xml_spec_repeated_prefix_parser) or {
+		return err.msg() == 'Could not parse XML after removing undefined prefix.'
+	}
+	return false
 }
 
 // Ruby let `let(:parent_child_doc) { xml.parse_xml(content_parent_child) }` at line 138.
-pub fn ruby_xml_spec_l138_d18_parent_child_doc(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('parent_child_doc', ...args)
+pub fn ruby_xml_spec_l138_d18_parent_child_doc() !xml.XMLDocument {
+	return xml_core.ruby_xml_l57_d2_self_parse_xml(ruby_xml_spec_l79_d10_content_parent_child())
 }
 
 // Ruby let `let(:parent) { parent_child_doc.get_elements("/elements/parent").first }` at line 139.
-pub fn ruby_xml_spec_l139_d19_parent(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('parent', ...args)
+pub fn ruby_xml_spec_l139_d19_parent() !xml.XMLNode {
+	document := ruby_xml_spec_l138_d18_parent_child_doc()!
+	return xml_core.xml_elements(document, '/elements/parent')[0]
 }
 
 // Ruby let `let(:blank_parent) { parent_child_doc.get_elements("/elements/blank-parent").first }` at line 140.
-pub fn ruby_xml_spec_l140_d20_blank_parent(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('blank_parent', ...args)
+pub fn ruby_xml_spec_l140_d20_blank_parent() !xml.XMLNode {
+	document := ruby_xml_spec_l138_d18_parent_child_doc()!
+	return xml_core.xml_elements(document, '/elements/blank-parent')[0]
 }
 
 // Ruby it `it "returns the element text if child_name is not provided" do` at line 142.
-pub fn ruby_xml_spec_l142_d21_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_xml_spec_l142_d21_returns() bool {
+	parent := ruby_xml_spec_l139_d19_parent() or { return false }
+	return xml_core.ruby_xml_l91_d3_self_element_text(parent, none) or { '' } == ruby_xml_spec_l78_d9_parent_child_text()['parent']
 }
 
 // Ruby it `it "returns the child element text if child_name is provided" do` at line 146.
-pub fn ruby_xml_spec_l146_d22_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_xml_spec_l146_d22_returns() bool {
+	parent := ruby_xml_spec_l139_d19_parent() or { return false }
+	return xml_core.ruby_xml_l91_d3_self_element_text(parent, 'child') or { '' } == ruby_xml_spec_l78_d9_parent_child_text()['child']
 }
 
 // Ruby it `it "returns `nil` if the provided child element does not exist" do` at line 150.
-pub fn ruby_xml_spec_l150_d23_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_xml_spec_l150_d23_returns() bool {
+	parent := ruby_xml_spec_l139_d19_parent() or { return false }
+	if _ := xml_core.ruby_xml_l91_d3_self_element_text(parent, 'nonexistent') {
+		return false
+	}
+	return true
 }
 
 // Ruby it `it "returns `nil` if the retrieved text is blank" do` at line 154.
-pub fn ruby_xml_spec_l154_d24_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_xml_spec_l154_d24_returns() bool {
+	parent := ruby_xml_spec_l140_d20_blank_parent() or { return false }
+	if _ := xml_core.ruby_xml_l91_d3_self_element_text(parent, none) {
+		return false
+	}
+	if _ := xml_core.ruby_xml_l91_d3_self_element_text(parent, 'blank-child') {
+		return false
+	}
+	return true
 }
 
 // Ruby it `it "returns an empty array when given a block but content is blank" do` at line 161.
-pub fn ruby_xml_spec_l161_d25_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_xml_spec_l161_d25_returns() bool {
+	result := xml_core.ruby_xml_l114_d4_self_versions_from_content(xml_core.XmlVersionsRequest{
+		regex: xml_spec_regex()
+		has_block: true
+		block_arity: 1
+		block: xml_spec_simple_block
+	}) or { return false }
+	return result.len == 0
 }
 
 // Ruby it `it "returns an array of version strings when given content and a block" do` at line 165.
-pub fn ruby_xml_spec_l165_d26_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_xml_spec_l165_d26_returns() bool {
+	simple := xml_core.ruby_xml_l114_d4_self_versions_from_content(xml_core.XmlVersionsRequest{
+		content: ruby_xml_spec_l66_d7_content_simple()
+		has_block: true
+		block_arity: 1
+		block: xml_spec_simple_block
+	}) or { return false }
+	simple_regex := xml_core.ruby_xml_l114_d4_self_versions_from_content(xml_core.XmlVersionsRequest{
+		content: ruby_xml_spec_l66_d7_content_simple()
+		regex: xml_spec_regex()
+		has_block: true
+		block_arity: 1
+		block: xml_spec_simple_block
+	}) or { return false }
+	text_versions := xml_core.ruby_xml_l114_d4_self_versions_from_content(xml_core.XmlVersionsRequest{
+		content: ruby_xml_spec_l14_d5_content_version_text()
+		regex: xml_spec_regex()
+		has_block: true
+		block_arity: 2
+		block: xml_spec_versions_block
+	}) or { return false }
+	attribute_versions := xml_core.ruby_xml_l114_d4_self_versions_from_content(xml_core.XmlVersionsRequest{
+		content: ruby_xml_spec_l40_d6_content_version_attr()
+		regex: xml_spec_regex()
+		has_block: true
+		block_arity: 2
+		block: xml_spec_attributes_block
+	}) or { return false }
+	expected := ruby_xml_spec_l95_d11_matches()
+	return simple == expected['simple'] && simple_regex == expected['simple'] && text_versions == expected['content'] && attribute_versions == expected['content']
 }
 
 // Ruby it `it "allows a nil return from a block" do` at line 192.
-pub fn ruby_xml_spec_l192_d27_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+pub fn ruby_xml_spec_l192_d27_allows() bool {
+	result := xml_core.ruby_xml_l114_d4_self_versions_from_content(xml_core.XmlVersionsRequest{
+		content: ruby_xml_spec_l66_d7_content_simple()
+		regex: xml_spec_regex()
+		has_block: true
+		block_arity: 1
+		block: xml_spec_nil_block
+	}) or { return false }
+	return result.len == 0
 }
 
 // Ruby it `it "errors if a block uses two arguments but a regex is not given" do` at line 196.
-pub fn ruby_xml_spec_l196_d28_errors(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('errors', ...args)
+pub fn ruby_xml_spec_l196_d28_errors() bool {
+	xml_core.ruby_xml_l114_d4_self_versions_from_content(xml_core.XmlVersionsRequest{
+		content: ruby_xml_spec_l66_d7_content_simple()
+		has_block: true
+		block_arity: 2
+		block: xml_spec_simple_block
+	}) or {
+		return err.msg() == 'Two arguments found in `strategy` block but no regex provided.'
+	}
+	return false
 }
 
 // Ruby it `it "errors on an invalid return type from a block" do` at line 201.
-pub fn ruby_xml_spec_l201_d29_errors(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('errors', ...args)
+pub fn ruby_xml_spec_l201_d29_errors() bool {
+	xml_core.ruby_xml_l114_d4_self_versions_from_content(xml_core.XmlVersionsRequest{
+		content: ruby_xml_spec_l66_d7_content_simple()
+		regex: xml_spec_regex()
+		has_block: true
+		block_arity: 0
+		block: xml_spec_invalid_block
+	}) or {
+		return err.msg() == 'Return value of a strategy block must be a string or array of strings.'
+	}
+	return false
 }
 
 // Ruby let `let(:match_data) do` at line 208.
-pub fn ruby_xml_spec_l208_d30_match_data(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('match_data', ...args)
+pub fn ruby_xml_spec_l208_d30_match_data() map[string]xml_core.XmlMatchData {
+	matches := ruby_xml_spec_l95_d11_matches()['content'].clone()
+	mut mapped := map[string]string{}
+	for version in matches {
+		mapped[version] = version
+	}
+	base := xml_core.XmlMatchData{
+		matches: mapped
+		regex: xml_spec_regex()
+		url: ruby_xml_spec_l11_d2_http_url()
+	}
+	return {
+		'fetched':        xml_core.XmlMatchData{
+			...base
+			content: ruby_xml_spec_l14_d5_content_version_text()
+			has_content: true
+		}
+		'cached':         xml_core.XmlMatchData{ ...base, cached: true, has_cached: true }
+		'cached_default': xml_core.XmlMatchData{
+			...base
+			matches: map[string]string{}
+			cached: true
+			has_cached: true
+		}
+	}
 }
 
 // Ruby it `it "finds versions in fetched content" do` at line 222.
-pub fn ruby_xml_spec_l222_d31_finds(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('finds', ...args)
+pub fn ruby_xml_spec_l222_d31_finds() bool {
+	actual := xml_core.ruby_xml_l147_d5_self_find_versions(xml_spec_find_request(ruby_xml_spec_l11_d2_http_url(), none, xml_spec_regex(), xml_spec_versions_block, 2), xml_spec_fetched_content) or {
+		return false
+	}
+	return xml_spec_match_equal(actual, ruby_xml_spec_l208_d30_match_data()['fetched'])
 }
 
 // Ruby it `it "finds versions in content using a block" do` at line 230.
-pub fn ruby_xml_spec_l230_d32_finds(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('finds', ...args)
+pub fn ruby_xml_spec_l230_d32_finds() bool {
+	content := ruby_xml_spec_l14_d5_content_version_text()
+	with_regex := xml_core.ruby_xml_l147_d5_self_find_versions(xml_spec_find_request(ruby_xml_spec_l11_d2_http_url(), content, xml_spec_regex(), xml_spec_versions_block, 2), xml_spec_unused_fetcher) or {
+		return false
+	}
+	without_regex := xml_core.ruby_xml_l147_d5_self_find_versions(xml_spec_find_request(ruby_xml_spec_l11_d2_http_url(), content, none, xml_spec_versions_block, 1), xml_spec_unused_fetcher) or {
+		return false
+	}
+	expected := ruby_xml_spec_l208_d30_match_data()['cached']
+	mut expected_without_regex := expected
+	expected_without_regex = xml_core.XmlMatchData{ ...expected_without_regex, regex: none }
+	return xml_spec_match_equal(with_regex, expected) && xml_spec_match_equal(without_regex, expected_without_regex)
 }
 
 // Ruby it `it "errors if a block is not provided" do` at line 245.
-pub fn ruby_xml_spec_l245_d33_errors(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('errors', ...args)
+pub fn ruby_xml_spec_l245_d33_errors() bool {
+	xml_core.ruby_xml_l147_d5_self_find_versions(xml_core.XmlFindVersionsRequest{
+		url: ruby_xml_spec_l11_d2_http_url()
+		content: ruby_xml_spec_l66_d7_content_simple()
+	}, xml_spec_unused_fetcher) or {
+		return err.msg() == 'Xml requires a `strategy` block'
+	}
+	return false
 }
 
 // Ruby it `it "returns default match_data when url is blank" do` at line 250.
-pub fn ruby_xml_spec_l250_d34_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_xml_spec_l250_d34_returns() bool {
+	actual := xml_core.ruby_xml_l147_d5_self_find_versions(xml_spec_find_request('', ruby_xml_spec_l66_d7_content_simple(), xml_spec_regex(), xml_spec_simple_block, 1), xml_spec_unused_fetcher) or { return false }
+	expected := ruby_xml_spec_l208_d30_match_data()['cached_default']
+	expected_blank := xml_core.XmlMatchData{ ...expected, url: '' }
+	return xml_spec_match_equal(actual, expected_blank)
 }
 
 // Ruby it `it "returns default match_data when content is blank" do` at line 255.
-pub fn ruby_xml_spec_l255_d35_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_xml_spec_l255_d35_returns() bool {
+	actual := xml_core.ruby_xml_l147_d5_self_find_versions(xml_spec_find_request(ruby_xml_spec_l11_d2_http_url(), '', xml_spec_regex(), xml_spec_simple_block, 1), xml_spec_unused_fetcher) or {
+		return false
+	}
+	return xml_spec_match_equal(actual, ruby_xml_spec_l208_d30_match_data()['cached_default'])
 }
 
 // Original Ruby source (line-for-line):

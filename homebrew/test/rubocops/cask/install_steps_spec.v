@@ -1,108 +1,164 @@
 module cask
 
-import brew_runtime
+import homebrew.rubocops.cask as install_steps_core
 
 // Translated from Homebrew/brew `test/rubocops/cask/install_steps_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+fn install_steps_spec_source(body string) string {
+	return 'cask "foo" do\n  version :latest\n  sha256 :no_check\n\n${body}\nend\n'
+}
 
 // Ruby it `it "allows a flight block after matching steps in third-party taps during migration" do` at line 7.
-pub fn ruby_install_steps_spec_l7_d1_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+pub fn ruby_install_steps_spec_l7_d1_allows() bool {
+	source := install_steps_spec_source('  postflight_steps do\n    touch "foo"\n  end\n\n  postflight do\n    touch "foo"\n  end')
+	return install_steps_core.audit_cask_install_steps(source, '/Taps/example/homebrew-cask/Casks/f/foo.rb').len == 0
 }
 
 // Ruby it `it "rejects flight blocks in official Homebrew taps" do` at line 24.
-pub fn ruby_install_steps_spec_l24_d2_rejects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('rejects', ...args)
+pub fn ruby_install_steps_spec_l24_d2_rejects() bool {
+	source := install_steps_spec_source('  postflight_steps do\n    touch "foo"\n  end\n\n  postflight do\n    touch "foo"\n  end')
+	offenses := install_steps_core.audit_cask_install_steps(source, '/Taps/homebrew/homebrew-example/Casks/f/foo.rb')
+	return offenses.len == 1 && offenses[0].message == 'Casks in official Homebrew taps must use `postflight_steps` instead of `postflight`.' && source[offenses[0].begin_pos..offenses[0].end_pos].starts_with('postflight do')
 }
 
 // Ruby it `it "reports an offense when a steps block contains Ruby code" do` at line 42.
-pub fn ruby_install_steps_spec_l42_d3_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_install_steps_spec_l42_d3_reports() bool {
+	source := install_steps_spec_source('  preflight_steps do\n    system "true"\n  end')
+	offenses := install_steps_core.audit_cask_install_steps(source, '')
+	return offenses.len == 1 && source[offenses[0].begin_pos..offenses[0].end_pos] == 'system "true"' && offenses[0].message.contains('Steps blocks may only contain install step DSL calls.')
 }
 
 // Ruby it `it "rejects `brew ruby` in steps blocks" do` at line 56.
-pub fn ruby_install_steps_spec_l56_d4_rejects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('rejects', ...args)
+pub fn ruby_install_steps_spec_l56_d4_rejects() bool {
+	source := install_steps_spec_source('  preflight_steps do\n    run "{{HOMEBREW_BREW_FILE}}", args: ["ruby", "--", "{{staged_path}}/post-install.rb"]\n  end')
+	offenses := install_steps_core.audit_cask_install_steps(source, '')
+	return offenses.len == 1 && source[offenses[0].begin_pos..offenses[0].end_pos] == '"{{HOMEBREW_BREW_FILE}}"' && offenses[0].message == install_steps_core.cask_install_steps_brew_ruby_message
 }
 
 // Ruby it `it "reports an offense when cask steps contain formula rebuild actions" do` at line 70.
-pub fn ruby_install_steps_spec_l70_d5_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_install_steps_spec_l70_d5_reports() bool {
+	source := install_steps_spec_source('  preflight_steps do\n    update_desktop_database\n  end')
+	offenses := install_steps_core.audit_cask_install_steps(source, '')
+	return offenses.len == 1 && source[offenses[0].begin_pos..offenses[0].end_pos] == 'update_desktop_database'
 }
 
 // Ruby it `it "accepts install step DSL calls" do` at line 84.
-pub fn ruby_install_steps_spec_l84_d6_accepts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('accepts', ...args)
+pub fn ruby_install_steps_spec_l84_d6_accepts() bool {
+	source := install_steps_spec_source('  preflight_steps do\n    mkdir_p "foo"\n    touch "foo/state"\n    touch "#{token}/state"\n    move "source", "target"\n    move_contents "source", "target"\n    inreplace "foo.conf", "@PREFIX@", "{{HOMEBREW_PREFIX}}"\n    symlink "source", "target", source_base: :relative, overwrite: true, remove_on_uninstall: true\n    write_file "foo.conf", "key = value\\n"\n    set_permissions "Foo.app", "0755"\n    set_ownership "Foo.app", user: "root", group: "wheel"\n    run "foo", args: ["--repair"], writable_paths: ["Library/Application Support/Foo"], writable_base: :home\n    terminate_process "foo", attempts: 3\n    change_dylib_id "Foo.app/Contents/Frameworks/libfoo.dylib", "@rpath/libfoo.dylib"\n    delete_keychain_certificates "Charles"\n    delete_keychain_certificates "NodeMITMProxyCA", fingerprint_of: "~/Library/Application Support/betwixt/ssl/certs/ca.pem"\n    on_macos do\n      if_path_exists "Foo.app" do\n        touch "Foo.app/marker"\n      end\n    end\n    on_linux do\n      unless_path_exists "foo.conf" do\n        write_file "foo.conf", "key = value\\n"\n      end\n    end\n  end')
+	return install_steps_core.audit_cask_install_steps(source, '').len == 0
 }
 
 // Ruby it `it "autocorrects legacy install step names" do` at line 121.
-pub fn ruby_install_steps_spec_l121_d7_autocorrects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('autocorrects', ...args)
+pub fn ruby_install_steps_spec_l121_d7_autocorrects() bool {
+	source := install_steps_spec_source('  preflight_steps do\n    mkdir "foo"\n    mv "source", "target"\n    move_children "source", "target"\n    ln_s "source", "target"\n    ln_sf "source", "target"\n    write "foo.conf", "content"\n    write "banner", <<~TEXT\n      banner\n    TEXT\n    delete_keychain_certificate "Charles", matching_certificate: "certificate.pem"\n  end')
+	expected := install_steps_spec_source('  preflight_steps do\n    mkdir_p "foo"\n    move "source", "target"\n    move_contents "source", "target"\n    symlink "source", "target"\n    symlink "source", "target", overwrite: true\n    write_file "foo.conf", "content", overwrite: false, append_newline: true\n    write_file "banner", <<~TEXT, overwrite: false, append_newline: true\n      banner\n    TEXT\n    delete_keychain_certificates "Charles", fingerprint_of: "certificate.pem"\n  end')
+	analysis := install_steps_core.analyze_cask_install_steps(source, '')
+	return analysis.offenses.len == 9 && analysis.corrected == expected
 }
 
 // Ruby it `it "autocorrects legacy install step keywords" do` at line 172.
-pub fn ruby_install_steps_spec_l172_d8_autocorrects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('autocorrects', ...args)
+pub fn ruby_install_steps_spec_l172_d8_autocorrects() bool {
+	source := install_steps_spec_source('  preflight_steps do\n    delete_keychain_certificates "Charles",\n                                 matching_certificate: "certificate.pem"\n  end')
+	expected := source.replace('matching_certificate:', 'fingerprint_of:')
+	analysis := install_steps_core.analyze_cask_install_steps(source, '')
+	return analysis.offenses.len == 1 && source[analysis.offenses[0].begin_pos..analysis.offenses[0].end_pos] == 'matching_certificate' && analysis.corrected == expected
 }
 
 // Ruby it `it "reports an offense when a step string uses unsupported interpolation" do` at line 199.
-pub fn ruby_install_steps_spec_l199_d9_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_install_steps_spec_l199_d9_reports() bool {
+	source := install_steps_spec_source('  preflight_steps do\n    touch "#{appdir}/state"\n  end')
+	offenses := install_steps_core.audit_cask_install_steps(source, '')
+	return offenses.len == 1 && source[offenses[0].begin_pos..offenses[0].end_pos] == '#{appdir}'
 }
 
 // Ruby it `it "reports an offense when a scope contains Ruby code" do` at line 213.
-pub fn ruby_install_steps_spec_l213_d10_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_install_steps_spec_l213_d10_reports() bool {
+	source := install_steps_spec_source('  preflight_steps do\n    on_macos do\n      system "true"\n    end\n  end')
+	offenses := install_steps_core.audit_cask_install_steps(source, '')
+	return offenses.len == 1 && source[offenses[0].begin_pos..offenses[0].end_pos] == 'system "true"'
 }
 
 // Ruby it `it "autocorrects simple flight block file preparation" do` at line 229.
-pub fn ruby_install_steps_spec_l229_d11_autocorrects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('autocorrects', ...args)
+pub fn ruby_install_steps_spec_l229_d11_autocorrects() bool {
+	source := install_steps_spec_source('  postflight do\n    (staged_path/"Prepared").mkpath\n    FileUtils.touch staged_path/"Prepared/touched"\n    FileUtils.mv staged_path/"source", staged_path/"target"\n    FileUtils.ln_s "target", staged_path/"Linked"\n  end')
+	expected := install_steps_spec_source('  postflight_steps do\n    mkdir_p "Prepared"\n    touch "Prepared/touched"\n    move "source", "target"\n    symlink "target", "Linked", source_base: :relative\n  end')
+	return install_steps_core.correct_cask_install_steps(source, '/Taps/homebrew/homebrew-cask/Casks/f/foo.rb') == expected
 }
 
 // Ruby it `it "autocorrects simple flight block config writes" do` at line 260.
-pub fn ruby_install_steps_spec_l260_d12_autocorrects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('autocorrects', ...args)
+pub fn ruby_install_steps_spec_l260_d12_autocorrects() bool {
+	source := install_steps_spec_source('  postflight do\n    File.write staged_path/"Prepared/foo.conf", "key = value\\n"\n  end')
+	expected := install_steps_spec_source('  postflight_steps do\n    write_file "Prepared/foo.conf", "key = value\\n"\n  end')
+	return install_steps_core.correct_cask_install_steps(source, '') == expected
 }
 
 // Ruby it `it "autocorrects fixed keychain certificate deletion flight blocks" do` at line 285.
-pub fn ruby_install_steps_spec_l285_d13_autocorrects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('autocorrects', ...args)
+pub fn ruby_install_steps_spec_l285_d13_autocorrects() bool {
+	source := install_steps_spec_source('  preflight do\n    stdout, * = system_command "/usr/bin/security",\n                               args: ["find-certificate", "-a", "-c", "Charles", "-Z"],\n                               sudo: true\n    hashes = stdout.lines.grep(/^SHA-256 hash:/) { |l| l.split(":").second.strip }\n    hashes.each do |h|\n      system_command "/usr/bin/security",\n                     args: ["delete-certificate", "-Z", h],\n                     sudo: true\n    end\n  end\n\n  postflight do\n    ["AutoFirma ROOT", "127.0.0.1"].each do |cert_name|\n      stdout, * = system_command "/usr/bin/security",\n                                 args: ["find-certificate", "-a", "-c", cert_name, "-Z"],\n                                 sudo: true\n      hashes = stdout.lines.grep(/^SHA-256 hash:/) { |l| l.split(":").second.strip }\n      hashes.each do |h|\n        system_command "/usr/bin/security",\n                       args: ["delete-certificate", "-Z", h],\n                       sudo: true\n      end\n    end\n  end\n\n  uninstall_postflight do\n    cert = Pathname("~/Library/Application Support/betwixt/ssl/certs/ca.pem").expand_path\n    next unless cert.exist?\n\n    stdout, * = system_command "/usr/bin/openssl",\n                               args: ["x509", "-fingerprint", "-sha256", "-noout", "-in", cert]\n    hash = stdout.lines.first.split("=").second.delete(":").strip\n    stdout, * = system_command "/usr/bin/security",\n                               args: ["find-certificate", "-a", "-c", "NodeMITMProxyCA", "-Z"],\n                               sudo: true\n    hashes = stdout.lines.grep(/^SHA-256 hash:/) { |l| l.split(":").second.strip }\n    if hashes.include?(hash)\n      system_command "/usr/bin/security",\n                     args: ["delete-certificate", "-Z", hash],\n                     sudo: true\n    end\n  end')
+	expected := install_steps_spec_source('  preflight_steps do\n    delete_keychain_certificates "Charles"\n  end\n\n  postflight_steps do\n    delete_keychain_certificates "AutoFirma ROOT"\n    delete_keychain_certificates "127.0.0.1"\n  end\n\n  uninstall_postflight_steps do\n    delete_keychain_certificates "NodeMITMProxyCA",\n                                 fingerprint_of: "~/Library/Application Support/betwixt/ssl/certs/ca.pem"\n  end')
+	analysis := install_steps_core.analyze_cask_install_steps(source, '')
+	return analysis.offenses.len == 3 && analysis.corrected == expected
 }
 
 // Ruby it `it "does not autocorrect altered or mixed keychain deletion blocks" do` at line 362.
-pub fn ruby_install_steps_spec_l362_d14_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_install_steps_spec_l362_d14_does() bool {
+	for body in [
+		'  uninstall_postflight do\n    stdout, * = system_command "/usr/local/bin/security",\n                               args: ["find-certificate", "-a", "-c", "Charles", "-Z"],\n                               sudo: true\n    hashes = stdout.lines.grep(/^SHA-256 hash:/) { |l| l.split(":").second.strip }\n    hashes.each do |h|\n      system_command "/usr/local/bin/security", args: ["delete-certificate", "-Z", h], sudo: true\n    end\n  end',
+		'  uninstall_postflight do\n    stdout, * = system_command "/usr/bin/security",\n                               args: ["find-certificate", "-a", "-c", "Charles", "-Z", "login.keychain"],\n                               sudo: true\n    hashes = stdout.lines.grep(/^SHA-256 hash:/) { |l| l.split(":").second.strip }\n    hashes.each do |h|\n      system_command "/usr/bin/security", args: ["delete-certificate", "-Z", h], sudo: true\n    end\n  end',
+		'  uninstall_postflight do\n    stdout, * = system_command "/usr/bin/security", args: ["find-certificate", "-a", "-c", "Charles", "-Z"], sudo: true\n    hashes = stdout.lines.grep(/^SHA-256 hash:/) { |l| l.split(":").second.strip }\n    hashes.each do |h|\n      system_command "/usr/bin/security", args: ["delete-certificate", "-Z", h], sudo: true\n    end\n    system_command "/usr/bin/true"\n  end',
+	] {
+		if install_steps_core.audit_cask_install_steps(install_steps_spec_source(body), '').len != 0 {
+			return false
+		}
+	}
+	return true
 }
 
 // Ruby it `it "does not re-report declarative keychain, permission or ownership steps" do` at line 422.
-pub fn ruby_install_steps_spec_l422_d15_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_install_steps_spec_l422_d15_does() bool {
+	source := install_steps_spec_source('  uninstall_postflight_steps do\n    delete_keychain_certificates "Charles"\n    set_permissions "Foo.app", "0755"\n    set_ownership "Foo.app", user: "root", group: "wheel"\n  end')
+	return install_steps_core.audit_cask_install_steps(source, '').len == 0
 }
 
 // Ruby it `it "autocorrects pure permission and ownership flight blocks" do` at line 437.
-pub fn ruby_install_steps_spec_l437_d16_autocorrects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('autocorrects', ...args)
+pub fn ruby_install_steps_spec_l437_d16_autocorrects() bool {
+	source := install_steps_spec_source('  preflight do\n    set_permissions "#{staged_path}/Foo.app", "0755"\n  end\n\n  postflight do\n    set_permissions "#{appdir}/Foo.app", "0555"\n    set_ownership "#{HOMEBREW_PREFIX}/foo"\n  end\n\n  uninstall_preflight do\n    set_ownership ["/usr/local/include", "/usr/local/lib"], user: "root", group: "wheel"\n  end\n\n  uninstall_postflight do\n    set_ownership staged_path.to_s\n  end')
+	expected := install_steps_spec_source('  preflight_steps do\n    set_permissions "Foo.app", "0755"\n  end\n\n  postflight_steps do\n    set_permissions "Foo.app", "0555", base: :appdir\n    set_ownership "foo", base: :homebrew_prefix\n  end\n\n  uninstall_preflight_steps do\n    set_ownership ["/usr/local/include", "/usr/local/lib"], user: "root", group: "wheel"\n  end\n\n  uninstall_postflight_steps do\n    set_ownership "."\n  end')
+	return install_steps_core.correct_cask_install_steps(source, '') == expected
 }
 
 // Ruby it `it "does not autocorrect dynamic, unsupported or mixed permission work" do` at line 491.
-pub fn ruby_install_steps_spec_l491_d17_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_install_steps_spec_l491_d17_does() bool {
+	for body in [
+		'  postflight do\n    set_ownership "#{staged_path}/foo-#{arch}"\n  end',
+		'  postflight do\n    set_permissions "#{staged_path}/Foo.app", "0755", recursive: false\n  end',
+		'  postflight do\n    set_ownership ["#{staged_path}/Foo.app", "#{appdir}/Foo.app"]\n  end',
+		'  postflight do\n    set_permissions "#{staged_path}/Foo.app", "0755"\n    system_command "/usr/bin/true"\n  end',
+	] {
+		if install_steps_core.audit_cask_install_steps(install_steps_spec_source(body), '').len != 0 {
+			return false
+		}
+	}
+	return true
 }
 
 // Ruby it `it "autocorrects config writes without trailing newlines" do` at line 538.
-pub fn ruby_install_steps_spec_l538_d18_autocorrects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('autocorrects', ...args)
+pub fn ruby_install_steps_spec_l538_d18_autocorrects() bool {
+	source := install_steps_spec_source('  postflight do\n    File.write staged_path/"Prepared/foo.conf", "key = value"\n  end')
+	expected := install_steps_spec_source('  postflight_steps do\n    write_file "Prepared/foo.conf", "key = value"\n  end')
+	return install_steps_core.correct_cask_install_steps(source, '') == expected
 }
 
 // Ruby it `it "does not autocorrect non-file preparation in flight blocks" do` at line 563.
-pub fn ruby_install_steps_spec_l563_d19_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_install_steps_spec_l563_d19_does() bool {
+	source := install_steps_spec_source('  postflight do\n    system_command "/usr/bin/true"\n  end')
+	return install_steps_core.audit_cask_install_steps(source, '').len == 0
 }
 
 // Ruby it `it "does not autocorrect formula rebuild actions in flight blocks" do` at line 576.
-pub fn ruby_install_steps_spec_l576_d20_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_install_steps_spec_l576_d20_does() bool {
+	source := install_steps_spec_source('  postflight do\n    system Formula["desktop-file-utils"].opt_bin/"update-desktop-database", HOMEBREW_PREFIX/"share/applications"\n  end')
+	return install_steps_core.audit_cask_install_steps(source, '').len == 0
 }
 
 // Original Ruby source (line-for-line):

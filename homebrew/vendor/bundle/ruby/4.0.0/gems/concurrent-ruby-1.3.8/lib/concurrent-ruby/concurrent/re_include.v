@@ -4,20 +4,72 @@ import brew_runtime
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/re_include.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub enum ReIncludeMethod {
+	include_module
+	extend_module
+}
+
+pub struct ReIncludeTarget {
+pub:
+	method ReIncludeMethod
+	base   string
+}
+
+pub struct ReIncludeOperation {
+pub:
+	method ReIncludeMethod
+	base   string
+	module string
+}
+
+pub struct ReInclude {
+mut:
+	targets []ReIncludeTarget
+}
+
+pub fn (mut re_include ReInclude) included(base string) string {
+	re_include.targets << ReIncludeTarget{
+		method: .include_module
+		base: base
+	}
+	return base
+}
+
+pub fn (mut re_include ReInclude) extended(base string) string {
+	re_include.targets << ReIncludeTarget{
+		method: .extend_module
+		base: base
+	}
+	return base
+}
+
+pub fn (re_include ReInclude) include_modules(modules []string) []ReIncludeOperation {
+	mut operations := []ReIncludeOperation{cap: modules.len * re_include.targets.len}
+	for module_name in modules.reverse() {
+		for target in re_include.targets {
+			operations << ReIncludeOperation{
+				method: target.method
+				base: target.base
+				module: module_name
+			}
+		}
+	}
+	return operations
+}
 
 // Ruby method `included(base)` at line 38.
 pub fn ruby_re_include_l38_d1_included(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('included', ...args)
+	return if args.len > 0 { args[0] } else { brew_runtime.object_value('NilClass', 'nil') }
 }
 
 // Ruby method `extended(base)` at line 44.
 pub fn ruby_re_include_l44_d2_extended(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('extended', ...args)
+	return if args.len > 0 { args[0] } else { brew_runtime.object_value('NilClass', 'nil') }
 }
 
 // Ruby method `include(*modules)` at line 50.
 pub fn ruby_re_include_l50_d3_include(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('include', ...args)
+	return brew_runtime.array_value(args)
 }
 
 // Original Ruby source (line-for-line):

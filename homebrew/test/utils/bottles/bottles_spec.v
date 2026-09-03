@@ -1,23 +1,51 @@
 module bottles
 
 import brew_runtime
+import homebrew.utils
 
 // Translated from Homebrew/brew `test/utils/bottles/bottles_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "returns :big_sur or :arm64_big_sur on Big Sur" do` at line 8.
 pub fn ruby_bottles_spec_l8_d1_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	mut arch := 'x86_64'
+	if args.len > 0 && args[0].repr != '' {
+		arch = args[0].repr
+	} else {
+		$if arm64 {
+			arch = 'arm64'
+		} $else $if aarch64 {
+			arch = 'arm64'
+		}
+	}
+	tag := utils.new_bottles_tag('big_sur', arch)
+	expected := if tag.standardized_arch() == 'x86_64' {
+		'big_sur'
+	} else {
+		'arm64_big_sur'
+	}
+	return brew_runtime.bool_value(tag.symbol() == expected)
 }
 
 // Ruby it `it "returns an empty rebuild for bottles without rebuilds" do` at line 19.
 pub fn ruby_bottles_spec_l19_d2_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	actual := utils.bottles_extname_tag_rebuild('gh--2.93.0.arm64_sonoma.bottle.tar.gz')
+	return brew_runtime.bool_value(actual == ['.arm64_sonoma.bottle.tar.gz', 'arm64_sonoma',
+		''])
 }
 
 // Ruby it `it "includes runtime_dependencies" do` at line 50.
 pub fn ruby_bottles_spec_l50_d3_includes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('includes', ...args)
+	tab := utils.bottles_load_tab(utils.BottlesLoadTabInput{
+		runtime_dependencies: [
+			utils.BottlesRuntimeDependency{
+				full_name: 'testball1'
+				version:   '0.1'
+			},
+		]
+	}) or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value(tab.runtime_dependencies.len == 1
+		&& tab.runtime_dependencies[0].full_name == 'testball1')
 }
 
 // Original Ruby source (line-for-line):

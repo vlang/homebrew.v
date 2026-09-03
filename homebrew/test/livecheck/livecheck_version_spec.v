@@ -1,28 +1,65 @@
 module livecheck
 
-import brew_runtime
+import homebrew.livecheck as livecheck_core
 
 // Translated from Homebrew/brew `test/livecheck/livecheck_version_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby let `let(:formula) { instance_double(Formula) }` at line 7.
-pub fn ruby_livecheck_version_spec_l7_d1_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula', ...args)
+pub fn ruby_livecheck_version_spec_l7_d1_formula() livecheck_core.LivecheckVersionPackageKind {
+	return .formula
 }
 
 // Ruby let `let(:cask) { instance_double(Cask::Cask) }` at line 8.
-pub fn ruby_livecheck_version_spec_l8_d2_cask(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask', ...args)
+pub fn ruby_livecheck_version_spec_l8_d2_cask() livecheck_core.LivecheckVersionPackageKind {
+	return .cask
 }
 
 // Ruby let `let(:resource) { instance_double(Resource) }` at line 9.
-pub fn ruby_livecheck_version_spec_l9_d3_resource(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('resource', ...args)
+pub fn ruby_livecheck_version_spec_l9_d3_resource() livecheck_core.LivecheckVersionPackageKind {
+	return .resource
 }
 
 // Ruby specify `specify "::create" do` at line 21.
-pub fn ruby_livecheck_version_spec_l21_d4_create(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('::create', ...args)
+pub fn ruby_livecheck_version_spec_l21_d4_create() !bool {
+	cases := ['1.1.6', '2.19.0,1.8.0', '0.17.0,20210111183933,226']
+	for value in cases {
+		version := livecheck_core.new_livecheck_version_component(value)!
+		for package_kind in [ruby_livecheck_version_spec_l7_d1_formula(),
+			ruby_livecheck_version_spec_l9_d3_resource()] {
+			created := livecheck_core.ruby_livecheck_version_l13_d1_self_create(package_kind, version)!
+			if created.versions.map(it.value) != [value] {
+				return false
+			}
+		}
+	}
+	cask_expectations := {
+		'1.1.6':                     ['1.1.6']
+		'2.19.0,1.8.0':              ['2.19.0', '1.8.0']
+		'0.17.0,20210111183933,226': ['0.17.0', '20210111183933', '226']
+	}
+	for value, expected in cask_expectations {
+		created := livecheck_core.ruby_livecheck_version_l13_d1_self_create(ruby_livecheck_version_spec_l8_d2_cask(), livecheck_core.new_livecheck_version_component(value)!)!
+		if created.versions.map(it.value) != expected {
+			return false
+		}
+	}
+	return true
+}
+
+pub struct LivecheckVersionSpecBoundary {
+pub:
+	line   int
+	passed bool
+}
+
+pub fn livecheck_version_spec_all_boundaries() ![]LivecheckVersionSpecBoundary {
+	return [
+		LivecheckVersionSpecBoundary{ line: 7, passed: ruby_livecheck_version_spec_l7_d1_formula() == .formula },
+		LivecheckVersionSpecBoundary{ line: 8, passed: ruby_livecheck_version_spec_l8_d2_cask() == .cask },
+		LivecheckVersionSpecBoundary{ line: 9, passed: ruby_livecheck_version_spec_l9_d3_resource() == .resource },
+		LivecheckVersionSpecBoundary{ line: 21, passed: ruby_livecheck_version_spec_l21_d4_create()! },
+	]
 }
 
 // Original Ruby source (line-for-line):

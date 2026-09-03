@@ -7,12 +7,43 @@ import brew_runtime
 
 // Ruby method `test_each(iter, &block)` at line 19.
 pub fn ruby_test_each_l19_d1_test_each(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('test_each', ...args)
+	if args.len == 0 {
+		return brew_runtime.array_value([])
+	}
+	return brew_runtime.array_value(test_each_values(args[0].as_array() or { [] }))
 }
 
 // Ruby method `test_each_hash(hash, &block)` at line 29.
 pub fn ruby_test_each_l29_d2_test_each_hash(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('test_each_hash', ...args)
+	if args.len == 0 {
+		return brew_runtime.array_value([])
+	}
+	pairs := test_each_hash_values(args[0].as_map() or { map[string]brew_runtime.Value{} })
+	return brew_runtime.array_value(pairs.map(brew_runtime.array_value([
+		brew_runtime.string_value(it.key),
+		it.value,
+	])))
+}
+
+pub struct TestEachPair {
+pub:
+	key   string
+	value brew_runtime.Value
+}
+
+pub fn test_each_values(iter []brew_runtime.Value) []brew_runtime.Value {
+	return iter.clone()
+}
+
+pub fn test_each_hash_values(hash map[string]brew_runtime.Value) []TestEachPair {
+	mut pairs := []TestEachPair{cap: hash.len}
+	for key, value in hash {
+		pairs << TestEachPair{
+			key: key
+			value: value
+		}
+	}
+	return pairs
 }
 
 // Original Ruby source (line-for-line):

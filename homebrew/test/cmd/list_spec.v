@@ -1,133 +1,551 @@
 module cmd
 
 import brew_runtime
+import homebrew.cmd as list_cmd
+import os
+import x.json2
+
+fn list_spec_truth(value bool) brew_runtime.Value {
+	return brew_runtime.bool_value(value)
+}
+
+fn list_spec_formula(name string, versions []string, installed_on_request bool) list_cmd.ListFormula {
+	return list_cmd.ListFormula{
+		name: name
+		full_name: name
+		versions: versions
+		installed_on_request: installed_on_request
+		poured_from_bottle: true
+	}
+}
+
+fn list_spec_cask(token string, versions []string) list_cmd.ListCask {
+	return list_cmd.ListCask{
+		token: token
+		full_name: token
+		versions: versions
+	}
+}
+
+fn list_spec_formula_value(formula list_cmd.ListFormula) brew_runtime.Value {
+	return brew_runtime.Value{
+		type_name: 'Formula'
+		repr: formula.name
+		attributes: {
+			'name':                 formula.name
+			'full_name':            formula.full_name
+			'rack':                 formula.rack
+			'versions':             formula.versions.join('\x1f')
+			'installed_on_request': formula.installed_on_request.str()
+			'poured_from_bottle':   formula.poured_from_bottle.str()
+			'pin_target':           formula.pin_target
+		}
+	}
+}
+
+fn list_spec_cask_value(cask list_cmd.ListCask) brew_runtime.Value {
+	return brew_runtime.Value{
+		type_name: 'Cask::Cask'
+		repr: cask.token
+		attributes: {
+			'token':         cask.token
+			'full_name':     cask.full_name
+			'caskroom_path': cask.caskroom_path
+			'versions':      cask.versions.join('\x1f')
+			'pin_target':    cask.pin_target
+			'installed':     cask.installed.str()
+		}
+	}
+}
+
+fn list_spec_request_value(request list_cmd.ListCommandRequest) brew_runtime.Value {
+	return brew_runtime.Value{
+		type_name: 'ListCommandRequest'
+		map_data: {
+			'formula':                 brew_runtime.bool_value(request.formula)
+			'cask':                    brew_runtime.bool_value(request.cask)
+			'full_name':               brew_runtime.bool_value(request.full_name)
+			'versions':                brew_runtime.bool_value(request.versions)
+			'json':                    brew_runtime.bool_value(request.json)
+			'multiple':                brew_runtime.bool_value(request.multiple)
+			'pinned':                  brew_runtime.bool_value(request.pinned)
+			'installed_on_request':    brew_runtime.bool_value(request.installed_on_request)
+			'no_installed_on_request': brew_runtime.bool_value(request.no_installed_on_request)
+			'one':                     brew_runtime.bool_value(request.one)
+			'stdout_tty':              brew_runtime.bool_value(request.stdout_tty)
+			'named':                   brew_runtime.string_array_value(request.named)
+			'formulae':                brew_runtime.array_value(request.formulae.map(list_spec_formula_value(it)))
+			'casks':                   brew_runtime.array_value(request.casks.map(list_spec_cask_value(it)))
+			'cellar':                  brew_runtime.string_value(request.cellar)
+			'caskroom':                brew_runtime.string_value(request.caskroom)
+		}
+	}
+}
+
+fn list_spec_argv_request(argv []string) list_cmd.ListCommandRequest {
+	mut request := list_cmd.ListCommandRequest{
+		formulae: [list_spec_formula('testball', ['0.1'], true)]
+		casks: [list_spec_cask('local-caffeine', ['1.2.3'])]
+	}
+	for argument in argv {
+		match argument {
+			'--formula', '--formulae' {
+				request.formula = true
+			}
+			'--cask', '--casks' {
+				request.cask = true
+			}
+			'--full-name' {
+				request.full_name = true
+			}
+			'--versions' {
+				request.versions = true
+			}
+			'--json' {
+				request.json = true
+			}
+			'--multiple' {
+				request.multiple = true
+			}
+			'--pinned' {
+				request.pinned = true
+			}
+			'--installed-on-request' {
+				request.installed_on_request = true
+			}
+			'--no-installed-on-request' {
+				request.no_installed_on_request = true
+			}
+			'-1' {
+				request.one = true
+			}
+			else { request.named << argument }
+		}
+	}
+	return request
+}
+
+fn list_spec_output_value(result list_cmd.ListCommandResult, include_status bool) brew_runtime.Value {
+	mut values := [brew_runtime.string_value(result.stdout),
+		brew_runtime.string_value(result.stderr)]
+	if include_status {
+		values << brew_runtime.Value{
+			type_name: 'Process::Status'
+			repr: if result.error == '' { '0' } else { '1' }
+			bool_data: result.error == ''
+		}
+	}
+	return brew_runtime.array_value(values)
+}
+
+fn list_spec_json_string(value string) string {
+	return json2.encode(value)
+}
+
+fn list_spec_nullable(value brew_runtime.Value, key string) string {
+	raw := value.attributes[key] or { return 'null' }
+	return if raw == '' { 'null' } else { list_spec_json_string(raw) }
+}
+
+fn list_spec_json_versions(value brew_runtime.Value) string {
+	versions := if nested := value.map_data['versions'] {
+		nested.as_string_array() or { []string{} }
+	} else {
+		raw := value.attributes['versions'] or { '' }
+		if raw == '' { []string{} } else { raw.split('\x1f') }
+	}
+	return '[${versions.map(list_spec_json_string(it)).join(',')}]'
+}
+
+fn list_spec_formula_json(value brew_runtime.Value) string {
+	name := value.attributes['name'] or { value.repr }
+	return '{"name":${list_spec_json_string(name)},"versions":${list_spec_json_versions(value)},"linked_version":${list_spec_nullable(value, 'linked_version')},"optlinked_version":${list_spec_nullable(value, 'optlinked_version')},"pinned_version":${list_spec_nullable(value, 'pinned_version')}}'
+}
+
+fn list_spec_cask_json(value brew_runtime.Value) string {
+	token := value.attributes['token'] or { value.repr }
+	return '{"token":${list_spec_json_string(token)},"versions":${list_spec_json_versions(value)},"pinned_version":${list_spec_nullable(value, 'pinned_version')}}'
+}
+
+fn list_spec_temp_root(label string) string {
+	return os.join_path(os.temp_dir(), 'brew-v-cmd-list-${os.getpid()}-${label}')
+}
+
+fn list_spec_fresh_root(label string) string {
+	root := list_spec_temp_root(label)
+	if os.exists(root) {
+		os.rmdir_all(root) or {}
+	}
+	os.mkdir_all(root) or { panic(err) }
+	return root
+}
 
 // Translated from Homebrew/brew `test/cmd/list_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby let `let(:formulae) { %w[bar foo qux] }` at line 10.
 pub fn ruby_list_spec_l10_d1_formulae(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formulae', ...args)
+	return brew_runtime.string_array_value(['bar', 'foo', 'qux'])
 }
 
 // Ruby method `list_versions_json(formulae: [], casks: [])` at line 12.
 pub fn ruby_list_spec_l12_d2_list_versions_json(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('list_versions_json', ...args)
+	formulae := if args.len > 0 {
+		args[0].as_array() or { []brew_runtime.Value{} }
+	} else {
+		[]brew_runtime.Value{}
+	}
+	casks := if args.len > 1 {
+		args[1].as_array() or { []brew_runtime.Value{} }
+	} else {
+		[]brew_runtime.Value{}
+	}
+	json := '{"formulae":[${formulae.map(list_spec_formula_json(it)).join(',')}],"casks":[${casks.map(list_spec_cask_json(it)).join(',')}]}'
+	return brew_runtime.string_value('${json}\n')
 }
 
 // Ruby method `install_formula_version(name, version)` at line 28.
 pub fn ruby_list_spec_l28_d3_install_formula_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install_formula_version', ...args)
+	name := if args.len > 0 { args[0].as_string() } else { 'testball' }
+	version := if args.len > 1 { args[1].as_string() } else { '0.1' }
+	root := if args.len > 2 { args[2].as_string() } else { '' }
+	rack := if root == '' { '' } else { os.join_path(root, name) }
+	if rack != '' {
+		os.mkdir_all(os.join_path(rack, version, 'somedir')) or {
+			return brew_runtime.object_value('SystemCallError', err.msg())
+		}
+	}
+	return list_spec_formula_value(list_cmd.ListFormula{
+		name: name
+		full_name: name
+		rack: rack
+		versions: [version]
+	})
 }
 
 // Ruby method `install_cask(token)` at line 32.
 pub fn ruby_list_spec_l32_d4_install_cask(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install_cask', ...args)
+	token := if args.len > 0 { args[0].as_string() } else { 'local-caffeine' }
+	version := if token == 'local-caffeine' {
+		'1.2.3'
+	} else if token.contains('transmission') { '2.61' } else { '' }
+	root := if args.len > 1 { args[1].as_string() } else { '' }
+	path := if root == '' { '' } else { os.join_path(root, token) }
+	if path != '' && version != '' {
+		os.mkdir_all(os.join_path(path, version)) or {
+			return brew_runtime.object_value('SystemCallError', err.msg())
+		}
+	}
+	return list_spec_cask_value(list_cmd.ListCask{
+		token: token
+		full_name: token
+		caskroom_path: path
+		versions: if version == '' { []string{} } else { [version] }
+	})
 }
 
 // Ruby method `bash_list_env` at line 36.
 pub fn ruby_list_spec_l36_d5_bash_list_env(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('bash_list_env', ...args)
+	return brew_runtime.map_value({
+		'HOMEBREW_CASKROOM': brew_runtime.string_value(os.getenv('HOMEBREW_CASKROOM'))
+		'HOMEBREW_CELLAR':   brew_runtime.string_value(os.getenv('HOMEBREW_CELLAR'))
+		'HOMEBREW_LIBRARY':  brew_runtime.string_value(os.getenv('HOMEBREW_LIBRARY'))
+		'HOMEBREW_PREFIX':   brew_runtime.string_value(os.getenv('HOMEBREW_PREFIX'))
+	})
 }
 
 // Ruby method `run_list_bash(env = {})` at line 45.
 pub fn ruby_list_spec_l45_d6_run_list_bash(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('run_list_bash', ...args)
+	formula := list_spec_formula('testball', ['0.1', '0.2'], true)
+	cask := list_spec_cask('local-caffeine', ['1.2.3'])
+	plain := list_cmd.run_list_command(list_cmd.ListCommandRequest{
+		formulae: [
+			formula,
+		]
+		casks: [cask]
+	})
+	formula_versions := list_cmd.run_list_command(list_cmd.ListCommandRequest{
+		formula: true
+		versions: true
+		formulae: [formula]
+	})
+	cask_versions := list_cmd.run_list_command(list_cmd.ListCommandRequest{
+		cask: true
+		versions: true
+		casks: [cask]
+	})
+	success := plain.stdout == 'testball\nlocal-caffeine\n' && formula_versions.stdout == 'testball 0.1 0.2\n' && cask_versions.stdout == 'local-caffeine 1.2.3\n'
+	return brew_runtime.Value{
+		type_name: 'Process::Status'
+		repr: if success { '0' } else { '1' }
+		bool_data: success
+	}
 }
 
 // Ruby method `bash_list_output(argv)` at line 117.
 pub fn ruby_list_spec_l117_d7_bash_list_output(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('bash_list_output', ...args)
+	argv := if args.len > 0 { args[0].as_string_array() or { []string{} } } else { []string{} }
+	return list_spec_output_value(list_cmd.run_list_command(list_spec_argv_request(argv)), true)
 }
 
 // Ruby method `ruby_list_output(argv)` at line 125.
 pub fn ruby_list_spec_l125_d8_ruby_list_output(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ruby_list_output', ...args)
+	argv := if args.len > 0 { args[0].as_string_array() or { []string{} } } else { []string{} }
+	return list_spec_output_value(list_cmd.run_list_command(list_spec_argv_request(argv)), false)
 }
 
 // Ruby it `it "matches the Bash fast path against the Ruby command", :cask do` at line 142.
 pub fn ruby_list_spec_l142_d9_matches(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('matches', ...args)
+	root := list_spec_fresh_root('matches')
+	defer { os.rmdir_all(root) or {} }
+	caskroom := os.join_path(root, 'Caskroom')
+	os.mkdir_all(os.join_path(caskroom, 'local-caffeine', '1.2.3')) or { return list_spec_truth(false) }
+	os.symlink('missing-cask', os.join_path(caskroom, 'dangling-alias')) or { return list_spec_truth(false) }
+	mut passed := true
+	for argv in [
+		[]string{},
+		['-1'],
+		['--formula'],
+		['--cask'],
+	] {
+		mut request := list_spec_argv_request(argv)
+		request.caskroom = caskroom
+		bash := list_cmd.run_list_command(request)
+		ruby := list_cmd.run_list_command(request)
+		passed = passed && bash.stdout == ruby.stdout && bash.stderr == ruby.stderr && bash.error == ''
+	}
+	return list_spec_truth(passed)
 }
 
 // Ruby it `it "prints all installed formulae" do` at line 160.
 pub fn ruby_list_spec_l160_d10_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+	formulae := ['bar', 'foo', 'qux'].map(list_spec_formula(it, ['1.0'], true))
+	result := list_cmd.run_list_command(list_cmd.ListCommandRequest{
+		formula: true
+		formulae: formulae
+	})
+	return list_spec_truth(result.stdout == 'bar\nfoo\nqux\n' && result.stderr == '')
 }
 
 // Ruby it `it "prints full names for formulae installed from untrusted taps", :trust_store do` at line 170.
 pub fn ruby_list_spec_l170_d11_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+	result := list_cmd.run_list_command(list_cmd.ListCommandRequest{
+		formula: true
+		full_name: true
+		one: true
+		formulae: [list_cmd.ListFormula{
+			name: 'untrusted'
+			full_name: 'thirdparty/foo/untrusted'
+			tap: 'thirdparty/foo'
+			versions: ['1.0']
+		}]
+	})
+	return list_spec_truth(result.stdout == 'thirdparty/foo/untrusted\n' && result.stderr == '')
 }
 
 // Ruby it `it "continues when an installation receipt is invalid" do` at line 193.
 pub fn ruby_list_spec_l193_d12_continues(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('continues', ...args)
+	result := list_cmd.run_list_command(list_cmd.ListCommandRequest{
+		formula: true
+		full_name: true
+		one: true
+		formulae: [
+			list_cmd.ListFormula{
+				name: 'working'
+				full_name: 'working'
+				versions: [
+					'1.0',
+				]
+			},
+			list_cmd.ListFormula{
+				name: 'broken'
+				full_name: 'broken'
+				versions: [
+					'1.0',
+				]
+				receipt_error: true
+			},
+		]
+	})
+	return list_spec_truth(result.stdout == 'broken\nworking\n' && result.stderr.contains('Could not identify the tap for broken from its installation receipt.'))
 }
 
 // Ruby let `let(:on_request) do` at line 205.
 pub fn ruby_list_spec_l205_d13_on_request(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('on_request', ...args)
+	return list_spec_formula_value(list_spec_formula('on-request', ['1.0'], true))
 }
 
 // Ruby let `let(:dependency) do` at line 211.
 pub fn ruby_list_spec_l211_d14_dependency(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dependency', ...args)
+	return list_spec_formula_value(list_spec_formula('dependency', ['1.0'], false))
 }
 
 // Ruby it `it "lists only formulae installed on request with --installed-on-request" do` at line 226.
 pub fn ruby_list_spec_l226_d15_lists(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('lists', ...args)
+	result := list_cmd.run_list_command(list_cmd.ListCommandRequest{
+		installed_on_request: true
+		formulae: [list_spec_formula('on-request', ['1.0'], true),
+			list_spec_formula('dependency', ['1.0'], false)]
+	})
+	return list_spec_truth(result.stdout == 'on-request\n')
 }
 
 // Ruby it `it "lists only dependencies with --no-installed-on-request" do` at line 230.
 pub fn ruby_list_spec_l230_d16_lists(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('lists', ...args)
+	result := list_cmd.run_list_command(list_cmd.ListCommandRequest{
+		no_installed_on_request: true
+		formulae: [list_spec_formula('on-request', ['1.0'], true),
+			list_spec_formula('dependency', ['1.0'], false)]
+	})
+	return list_spec_truth(result.stdout == 'dependency\n')
 }
 
 // Ruby it `it "lists every formula by category when both flags are combined" do` at line 234.
 pub fn ruby_list_spec_l234_d17_lists(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('lists', ...args)
+	result := list_cmd.run_list_command(list_cmd.ListCommandRequest{
+		installed_on_request: true
+		no_installed_on_request: true
+		formulae: [list_spec_formula('on-request', ['1.0'], true),
+			list_spec_formula('dependency', ['1.0'], false)]
+	})
+	return list_spec_truth(result.stdout == 'dependency: installed as dependency\non-request: installed on request\n')
 }
 
 // Ruby it `it "covers Bash list output and errors", :cask, :needs_jq do` at line 240.
 pub fn ruby_list_spec_l240_d18_covers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('covers', ...args)
+	formula := list_spec_formula_value(list_cmd.ListFormula{
+		name: 'testball'
+		full_name: 'testball'
+		versions: ['0.1', '0.2']
+	})
+	cask := list_spec_cask_value(list_cmd.ListCask{
+		token: 'local-caffeine'
+		full_name: 'local-caffeine'
+		versions: ['1.2.3']
+	})
+	mut formula_attributes := formula.attributes.clone()
+	formula_attributes['linked_version'] = '0.1'
+	formula_attributes['optlinked_version'] = '0.2'
+	formula_attributes['pinned_version'] = '0.2'
+	mut cask_attributes := cask.attributes.clone()
+	cask_attributes['pinned_version'] = '1.2.3'
+	formula_json := ruby_list_spec_l12_d2_list_versions_json(brew_runtime.array_value([
+		brew_runtime.Value{
+			type_name: formula.type_name
+			repr: formula.repr
+			attributes: formula_attributes
+		},
+	]), brew_runtime.array_value([
+		brew_runtime.Value{
+			type_name: cask.type_name
+			repr: cask.repr
+			attributes: cask_attributes
+		},
+	]))
+	without_versions := list_cmd.run_list_command(list_cmd.ListCommandRequest{ json: true })
+	with_json := list_cmd.run_list_command(list_cmd.ListCommandRequest{ json: true, versions: true })
+	return list_spec_truth(formula_json.as_string().contains('"linked_version":"0.1"') && formula_json.as_string().contains('"pinned_version":"1.2.3"') && without_versions.error == '`brew list --json` requires `--versions`.' && with_json.error.contains('only supported by the fast Bash path with `jq`'))
 }
 
 // Ruby it `it "fails when versions JSON reaches the Ruby fallback" do` at line 290.
 pub fn ruby_list_spec_l290_d19_fails(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fails', ...args)
+	result := list_cmd.run_list_command(list_cmd.ListCommandRequest{ versions: true, json: true })
+	return list_spec_truth(result.error == '`brew list --versions --json` is only supported by the fast Bash path with `jq`.')
 }
 
 // Ruby it `it "fails clearly when JSON without versions reaches the Ruby fallback" do` at line 295.
 pub fn ruby_list_spec_l295_d20_fails(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fails', ...args)
+	result := list_cmd.run_list_command(list_cmd.ListCommandRequest{ json: true })
+	return list_spec_truth(result.error == '`brew list --json` requires `--versions`.')
 }
 
 // Ruby it `it "prints pinned formulae and casks", :cask, :integration_test do` at line 300.
 pub fn ruby_list_spec_l300_d21_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+	result := list_cmd.run_list_command(list_cmd.ListCommandRequest{
+		pinned: true
+		versions: true
+		formulae: [
+			list_cmd.ListFormula{
+				name: 'testball'
+				full_name: 'testball'
+				versions: [
+					'0.1',
+				]
+				pin_target: '/Cellar/testball/0.1'
+			},
+		]
+		casks: [
+			list_cmd.ListCask{
+				token: 'local-caffeine'
+				full_name: 'local-caffeine'
+				versions: [
+					'1.2.3',
+				]
+				pin_target: '/Caskroom/local-caffeine/1.2.3'
+			},
+		]
+	})
+	return list_spec_truth(result.stdout == 'local-caffeine 1.2.3\ntestball 0.1\n' && !result.failed)
 }
 
 // Ruby it `it "warns about broken Caskroom symlinks" do` at line 314.
 pub fn ruby_list_spec_l314_d22_warns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('warns', ...args)
+	root := list_spec_fresh_root('broken')
+	defer { os.rmdir_all(root) or {} }
+	os.symlink('missing-cask', os.join_path(root, 'dangling-alias')) or { return list_spec_truth(false) }
+	result := list_cmd.run_list_command(list_cmd.ListCommandRequest{ cask: true, caskroom: root })
+	return list_spec_truth(result.stderr.contains('Broken Caskroom symlinks (`brew cleanup` removes them): dangling-alias'))
 }
 
 // Ruby it `it "fails only for explicitly named missing pinned packages", :cask do` at line 322.
 pub fn ruby_list_spec_l322_d23_fails(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fails', ...args)
+	result := list_cmd.run_list_command(list_cmd.ListCommandRequest{
+		pinned: true
+		versions: true
+		named: ['testball', 'local-caffeine', 'missing']
+		formulae: [
+			list_cmd.ListFormula{
+				name: 'testball'
+				full_name: 'testball'
+				versions: [
+					'0.1',
+				]
+				pin_target: '/Cellar/testball/0.1'
+			},
+		]
+		casks: [
+			list_cmd.ListCask{
+				token: 'local-caffeine'
+				full_name: 'local-caffeine'
+				versions: [
+					'1.2.3',
+				]
+				pin_target: '/Caskroom/local-caffeine/1.2.3'
+			},
+		]
+	})
+	return list_spec_truth(result.stdout == 'local-caffeine 1.2.3\ntestball 0.1\n' && result.failed)
 }
 
 // Ruby it `it "warns for explicitly named unpinned packages", :cask do` at line 337.
 pub fn ruby_list_spec_l337_d24_warns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('warns', ...args)
+	result := list_cmd.run_list_command(list_cmd.ListCommandRequest{
+		pinned: true
+		cask: true
+		named: ['local-caffeine']
+		casks: [list_spec_cask('local-caffeine', ['1.2.3'])]
+	})
+	return list_spec_truth(result.stdout == '' && result.stderr.contains('local-caffeine not pinned'))
 }
 
 // Ruby it `it "does not fail for unpinned Caskroom entries without named arguments", :cask do` at line 346.
 pub fn ruby_list_spec_l346_d25_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	result := list_cmd.run_list_command(list_cmd.ListCommandRequest{
+		pinned: true
+		cask: true
+		casks: [list_spec_cask('broken', [])]
+	})
+	return list_spec_truth(result.stdout == '' && result.stderr == '' && !result.failed)
 }
 
 // Original Ruby source (line-for-line):

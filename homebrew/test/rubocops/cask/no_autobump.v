@@ -1,48 +1,62 @@
 module cask
 
-import brew_runtime
+import homebrew.rubocops.cask as no_autobump_core
 
 // Translated from Homebrew/brew `test/rubocops/cask/no_autobump.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "reports no offenses if `reason` is acceptable" do` at line 7.
-pub fn ruby_no_autobump_l7_d1_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_no_autobump_l7_d1_reports() bool {
+	return no_autobump_core.audit_cask_no_autobump('cask "foo" do\n  no_autobump! because: "some reason"\nend').len == 0
 }
 
 // Ruby it `it "reports no offenses if `reason` is acceptable as a symbol" do` at line 15.
-pub fn ruby_no_autobump_l15_d2_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_no_autobump_l15_d2_reports() bool {
+	return no_autobump_core.audit_cask_no_autobump('cask "foo" do\n  no_autobump! because: :bumped_by_upstream\nend').len == 0
 }
 
 // Ruby it `it "reports an offense if `reason` is absent" do` at line 23.
-pub fn ruby_no_autobump_l23_d3_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_no_autobump_l23_d3_reports() bool {
+	return no_autobump_core.audit_cask_no_autobump('cask "foo" do\n  no_autobump!\nend').map(it.kind) == [
+		'missing_reason',
+	]
 }
 
 // Ruby it `it "reports an offense is `reason` should not be set manually" do` at line 32.
-pub fn ruby_no_autobump_l32_d4_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_no_autobump_l32_d4_reports() bool {
+	return no_autobump_core.audit_cask_no_autobump('cask "foo" do\n  no_autobump! because: :extract_plist\nend').map(it.kind) == [
+		'disallowed_symbol',
+	]
 }
 
 // Ruby it `it "reports and corrects an offense if `reason` starts with 'it'" do` at line 41.
-pub fn ruby_no_autobump_l41_d5_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_no_autobump_l41_d5_reports() bool {
+	source := 'cask "foo" do\n  no_autobump! because: "it does something"\nend'
+	return no_autobump_core.audit_cask_no_autobump(source).map(it.kind) == [
+		'starts_with_it',
+	] && no_autobump_core.correct_cask_no_autobump(source).contains('because: "does something"')
+}
+
+fn cask_no_autobump_punctuation_case(mark string) bool {
+	source := 'cask "foo" do\n  no_autobump! because: "does something${mark}"\nend'
+	return no_autobump_core.audit_cask_no_autobump(source).map(it.kind) == [
+		'trailing_punctuation',
+	] && no_autobump_core.correct_cask_no_autobump(source).contains('because: "does something"')
 }
 
 // Ruby it `it "reports and corrects an offense if `reason` ends with a period" do` at line 56.
-pub fn ruby_no_autobump_l56_d6_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_no_autobump_l56_d6_reports() bool {
+	return cask_no_autobump_punctuation_case('.')
 }
 
 // Ruby it `it "reports and corrects an offense if `reason` ends with an exclamation point" do` at line 71.
-pub fn ruby_no_autobump_l71_d7_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_no_autobump_l71_d7_reports() bool {
+	return cask_no_autobump_punctuation_case('!')
 }
 
 // Ruby it `it "reports and corrects an offense if `reason` ends with a question mark" do` at line 86.
-pub fn ruby_no_autobump_l86_d8_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_no_autobump_l86_d8_reports() bool {
+	return cask_no_autobump_punctuation_case('?')
 }
 
 // Original Ruby source (line-for-line):

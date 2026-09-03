@@ -1,23 +1,56 @@
 module cmd
 
-import brew_runtime
+import homebrew.cmd as brew_cmd
 
 // Translated from Homebrew/brew `test/cmd/unpin_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "unpins a Formula's version", :integration_test do` at line 10.
-pub fn ruby_unpin_spec_l10_d1_unpins(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('unpins', ...args)
+pub fn ruby_unpin_spec_l10_d1_unpins() bool {
+	mut packages := [brew_cmd.PinPackageState{
+		kind: .formula
+		full_name: 'testball'
+		version: '1.0'
+		installed: true
+		pinnable: true
+		pinned: true
+		pin_symlink: true
+		pinned_version: '1.0'
+	}]
+	result := brew_cmd.unpin_packages(mut packages)
+	return !result.failed() && result.warnings.len == 0 && !packages[0].pinned && !packages[0].pin_symlink && packages[0].pinned_version == none
 }
 
 // Ruby it `it "unpins a Cask's version", :cask do` at line 17.
-pub fn ruby_unpin_spec_l17_d2_unpins(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('unpins', ...args)
+pub fn ruby_unpin_spec_l17_d2_unpins() bool {
+	mut packages := [brew_cmd.PinPackageState{
+		kind: .cask
+		full_name: 'local-caffeine'
+		version: '1.2.3'
+		installed: true
+		pinnable: true
+		pinned: true
+		pin_symlink: true
+		pinned_version: '1.2.3'
+	}]
+	result := brew_cmd.unpin_packages(mut packages)
+	return !result.failed() && result.warnings.len == 0 && !packages[0].pinned && !packages[0].pin_symlink
 }
 
 // Ruby it `it "removes a dangling Cask pin", :cask do` at line 28.
-pub fn ruby_unpin_spec_l28_d3_removes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('removes', ...args)
+pub fn ruby_unpin_spec_l28_d3_removes() bool {
+	mut packages := [brew_cmd.PinPackageState{
+		kind: .cask
+		full_name: 'local-caffeine'
+		version: '1.2.3'
+		installed: false
+		pinnable: false
+		pinned: false
+		pin_symlink: true
+		pinned_version: none
+	}]
+	result := brew_cmd.unpin_packages(mut packages)
+	return !result.failed() && result.warnings.len == 0 && !packages[0].pinned && !packages[0].pin_symlink
 }
 
 // Original Ruby source (line-for-line):

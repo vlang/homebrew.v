@@ -5,19 +5,165 @@ import brew_runtime
 // Translated from Homebrew/brew `cmd/--prefix.rb`.
 // The original source is retained below until every stub has a typed V body.
 
+const unbrewed_exclude_files = ['.DS_Store']
+
+const unbrewed_exclude_paths = ['*/.keepme', '.github/*', 'bin/brew', 'completions/zsh/_brew',
+	'docs/*', 'lib/gdk-pixbuf-2.0/*', 'lib/gio/*', 'lib/node_modules/*',
+	'lib/python[23].[0-9]/*', 'lib/python3.[0-9][0-9]/*', 'lib/pypy/*', 'lib/pypy3/*',
+	'lib/ruby/gems/[12].*', 'lib/ruby/site_ruby/[12].*', 'lib/ruby/vendor_ruby/[12].*',
+	'manpages/brew.1', 'share/pypy/*', 'share/pypy3/*', 'share/info/dir', 'share/man/whatis',
+	'share/mime/*', 'texlive/*']
+
+pub struct PrefixFormula {
+pub:
+	name              string
+	opt_prefix        string
+	opt_prefix_exists bool
+	optlinked         bool
+}
+
+pub struct PrefixOptions {
+pub:
+	prefix            string
+	unbrewed          bool
+	installed         bool
+	formulae          []PrefixFormula
+	named             []string
+	resolution_error  string
+	subdirs           []string
+	cache             string
+	logs              string
+	repository        string
+}
+
+pub struct PrefixResult {
+pub:
+	stdout      string
+	working_dir string
+	find_command []string
+}
+
+pub fn prefix_unbrewed_find_command(options PrefixOptions) []string {
+	mut directories := options.subdirs.filter(it !in ['Library', 'Cellar', 'Caskroom', '.git'])
+	for path in [options.cache, options.logs, options.repository] {
+		if path.len == 0 {
+			continue
+		}
+		relative := path.trim_string_left('${options.prefix}/')
+		directories = directories.filter(it != relative)
+	}
+	directories = directories.filter(it !in ['etc', 'var'])
+	directories.sort()
+	mut arguments := directories.clone()
+	arguments << ['-type', 'f', '(']
+	for file in unbrewed_exclude_files {
+		arguments << ['!', '-name', file]
+	}
+	for path in unbrewed_exclude_paths {
+		arguments << ['!', '-path', path]
+	}
+	arguments << ')'
+	mut command := ['find']
+	command << arguments
+	return command
+}
+
+pub fn run_prefix(options PrefixOptions) !PrefixResult {
+	if options.installed && options.named.len == 0 {
+		return error('UsageError: `--installed` requires a formula argument.')
+	}
+	if options.unbrewed {
+		if options.named.len > 0 {
+			return error('UsageError: `--unbrewed` does not take a formula argument.')
+		}
+		return PrefixResult{
+			working_dir: options.prefix
+			find_command: prefix_unbrewed_find_command(options)
+		}
+	}
+	if options.named.len == 0 {
+		return PrefixResult{
+			stdout: '${options.prefix}\n'
+		}
+	}
+	if options.resolution_error.len > 0 {
+		return error('FormulaUnavailableError: ${options.resolution_error}')
+	}
+	mut prefixes := []string{}
+	for formula in options.formulae {
+		if options.installed && !formula.opt_prefix_exists {
+			continue
+		}
+		prefixes << formula.opt_prefix
+	}
+	if options.installed {
+		missing := options.formulae.filter(!it.optlinked).map(it.name)
+		if missing.len > 0 {
+			return error('NotAKegError: The following formulae are not installed:\n${missing.join(' ')}')
+		}
+	}
+	return PrefixResult{
+		stdout: if prefixes.len > 0 { '${prefixes.join('\n')}\n' } else { '' }
+	}
+}
+
+@[heap]
+pub struct PrefixInput {
+pub:
+	options PrefixOptions
+}
+
+pub fn prefix_input_boundary(input &PrefixInput) brew_runtime.Value {
+	return brew_runtime.structured_value('Homebrew::Cmd::Prefix::Input', '', {
+		'prefix_input_address': u64(voidptr(input)).str()
+	})
+}
+
+fn prefix_input_from_value(value brew_runtime.Value) &PrefixInput {
+	address := value.attributes['prefix_input_address'] or { panic('invalid Prefix input') }
+	return unsafe { &PrefixInput(voidptr(address.u64())) }
+}
+
+fn prefix_result_value(result PrefixResult) brew_runtime.Value {
+	return brew_runtime.map_value({
+		'stdout': brew_runtime.string_value(result.stdout)
+		'working_dir': brew_runtime.string_value(result.working_dir)
+		'find_command': brew_runtime.string_array_value(result.find_command)
+	})
+}
+
 // Ruby method `self.command_name = "--prefix"` at line 39.
 pub fn ruby_prefix_l39_d1_self_command_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.command_name', ...args)
+	_ = args
+	return brew_runtime.string_value('--prefix')
 }
 
 // Ruby method `run` at line 62.
 pub fn ruby_prefix_l62_d2_run(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('run', ...args)
+	if args.len == 0 {
+		return brew_runtime.object_value('ArgumentError', 'command input is required')
+	}
+	return prefix_result_value(run_prefix(prefix_input_from_value(args[0]).options) or {
+		message := err.msg()
+		type_name := if message.starts_with('UsageError:') {
+			'UsageError'
+		} else if message.starts_with('FormulaUnavailableError:') {
+			'FormulaUnavailableError'
+		} else if message.starts_with('NotAKegError:') {
+			'NotAKegError'
+		} else {
+			'Error'
+		}
+		return brew_runtime.object_value(type_name, message.all_after(': ').trim_space())
+	})
 }
 
 // Ruby method `list_unbrewed` at line 96.
 pub fn ruby_prefix_l96_d3_list_unbrewed(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('list_unbrewed', ...args)
+	if args.len == 0 {
+		return brew_runtime.object_value('ArgumentError', 'command input is required')
+	}
+	return brew_runtime.string_array_value(prefix_unbrewed_find_command(prefix_input_from_value(args[0]).options))
 }
 
 // Original Ruby source (line-for-line):

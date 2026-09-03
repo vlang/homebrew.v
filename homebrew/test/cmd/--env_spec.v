@@ -1,13 +1,21 @@
 module cmd
 
 import brew_runtime
+import homebrew.cmd as cmd_core
 
 // Translated from Homebrew/brew `test/cmd/--env_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "prints the Homebrew build environment variables in Bash syntax" do` at line 11.
 pub fn ruby_env_spec_l11_d1_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+	path := if args.len > 0 { args[0].as_string() } else { '/opt/homebrew' }
+	result := cmd_core.run_env_command(cmd_core.EnvCommandRequest{
+		environment: {
+			'CMAKE_PREFIX_PATH': path
+		}
+		requested_shell: 'bash'
+	})
+	return brew_runtime.bool_value(cmd_core.env_command_output(result) == 'export CMAKE_PREFIX_PATH="${path}"\n')
 }
 
 // Original Ruby source (line-for-line):

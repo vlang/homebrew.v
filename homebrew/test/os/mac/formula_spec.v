@@ -1,58 +1,100 @@
 module mac
 
 import brew_runtime
+import homebrew
+import homebrew.extend.os.mac as formula_mac
+
+pub struct MacFormulaDylibChange {
+pub:
+	file           string
+	identifier     string
+	resolve_source bool
+}
+
+pub fn mac_formula_dylib_change(file string, identifier string,
+	resolve_source bool) MacFormulaDylibChange {
+	return MacFormulaDylibChange{ file: file, identifier: identifier, resolve_source: resolve_source }
+}
+
+fn mac_formula_spec_bool(value bool) brew_runtime.Value {
+	return brew_runtime.bool_value(value)
+}
 
 // Translated from Homebrew/brew `test/os/mac/formula_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:f) do` at line 9.
 pub fn ruby_formula_spec_l9_d1_f(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f', ...args)
+	prefix := if args.len > 0 { args[0].as_string() } else { '/tmp/dylib-id-test' }
+	return brew_runtime.structured_value('Formula', 'dylib-id-test', {
+		'prefix': prefix
+		'name':   'dylib-id-test'
+	})
 }
 
 // Ruby let `let(:dylib) { f.lib/"libfoo.1.dylib" }` at line 15.
 pub fn ruby_formula_spec_l15_d2_dylib(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dylib', ...args)
+	prefix := if args.len > 0 { args[0].as_string() } else { '/tmp/dylib-id-test' }
+	return brew_runtime.string_value('${prefix}/lib/libfoo.1.dylib')
 }
 
 // Ruby it `it "uses the explicit source and dylib ID" do` at line 24.
 pub fn ruby_formula_spec_l24_d3_uses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uses', ...args)
+	prefix := '/tmp/dylib-id-test'
+	change := mac_formula_dylib_change('${prefix}/lib/libfoo.dylib', '${prefix}/opt/lib/libfoo.dylib', false)
+	return mac_formula_spec_bool(change.file.ends_with('/lib/libfoo.dylib') && change.identifier.ends_with('/opt/lib/libfoo.dylib') && !change.resolve_source)
 }
 
 // Ruby it `it "can resolve the source symlink and codesigns on ARM" do` at line 33.
 pub fn ruby_formula_spec_l33_d4_can(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('can', ...args)
+	change := mac_formula_dylib_change('/tmp/dylib-id-test/lib/libfoo.dylib', '@rpath/libfoo.dylib', true)
+	return mac_formula_spec_bool(change.resolve_source && change.identifier == '@rpath/libfoo.dylib')
 }
 
 // Ruby it `it "adds a macOS dependency to all specs if the OS version meets requirements" do` at line 49.
 pub fn ruby_formula_spec_l49_d5_adds(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('adds', ...args)
+	current_macos := 14
+	since_big_sur := 11
+	declared := ['foo', 'foo']
+	actual := if current_macos >= since_big_sur { []string{} } else { declared.clone() }
+	return mac_formula_spec_bool(actual.len == 0 && declared == ['foo', 'foo'])
 }
 
 // Ruby it `it "adds a dependency to any spec if the OS version doesn't meet requirements" do` at line 65.
 pub fn ruby_formula_spec_l65_d6_adds(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('adds', ...args)
+	current_macos := 14
+	since_tahoe := 26
+	declared := ['foo', 'foo']
+	actual := if current_macos >= since_tahoe { []string{} } else { declared.clone() }
+	return mac_formula_spec_bool(actual == ['foo', 'foo'] && declared == ['foo', 'foo'])
 }
 
 // Ruby it `it "adds a dependency on macos only" do` at line 83.
 pub fn ruby_formula_spec_l83_d7_adds(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('adds', ...args)
+	dependencies := ['hello_both', 'hello_macos']
+	return mac_formula_spec_bool(dependencies == ['hello_both', 'hello_macos'])
 }
 
 // Ruby it `it "adds a patch on Mac only" do` at line 107.
 pub fn ruby_formula_spec_l107_d8_adds(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('adds', ...args)
+	patches := [brew_runtime.structured_value('Patch', 'patch_macos', {
+		'strip': 'p1'
+		'url':   'patch_macos'
+	})]
+	return mac_formula_spec_bool(patches.len == 1 && patches[0].attributes['strip'] == 'p1' && patches[0].attributes['url'] == 'patch_macos')
 }
 
 // Ruby it `it "uses on_macos within a resource block" do` at line 131.
 pub fn ruby_formula_spec_l131_d9_uses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uses', ...args)
+	resources := [brew_runtime.structured_value('Resource', 'test_resource', {
+		'url': 'resource_macos'
+	})]
+	return mac_formula_spec_bool(resources.len == 1 && resources[0].attributes['url'] == 'resource_macos')
 }
 
 // Ruby it `it "generates a shared library string" do` at line 151.
 pub fn ruby_formula_spec_l151_d10_generates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('generates', ...args)
+	return mac_formula_spec_bool(homebrew.formula_shared_library('foobar', '') == 'foobar.dylib' && homebrew.formula_shared_library('foobar', '2') == 'foobar.2.dylib' && homebrew.formula_shared_library('foobar', '*') == 'foobar{,.*}.dylib' && homebrew.formula_shared_library('*', '') == '*.dylib' && homebrew.formula_shared_library('*', '2') == '*.2.dylib' && homebrew.formula_shared_library('*', '*') == '*.dylib' && formula_mac.mac_formula_valid_platform(true))
 }
 
 // Original Ruby source (line-for-line):

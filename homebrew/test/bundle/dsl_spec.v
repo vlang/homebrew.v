@@ -1,118 +1,192 @@
 module bundle
 
-import brew_runtime
+import homebrew.bundle as brew_bundle
 
 // Translated from Homebrew/brew `test/bundle/dsl_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `dsl_from_string(string)` at line 8.
-pub fn ruby_dsl_spec_l8_d1_dsl_from_string(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dsl_from_string', ...args)
+pub fn ruby_dsl_spec_l8_d1_dsl_from_string(input string) !brew_bundle.BundleDsl {
+	return brew_bundle.parse_bundle_dsl('<StringIO>', input)
 }
 
 // Ruby subject `subject(:dsl) do` at line 13.
-pub fn ruby_dsl_spec_l13_d2_dsl(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dsl', ...args)
+pub fn ruby_dsl_spec_l13_d2_dsl() !brew_bundle.BundleDsl {
+	return ruby_dsl_spec_l8_d1_dsl_from_string(dsl_spec_example_input())
+}
+
+fn dsl_spec_error_contains(input string, fragment string) bool {
+	ruby_dsl_spec_l8_d1_dsl_from_string(input) or { return err.msg().contains(fragment) }
+	return false
 }
 
 // Ruby it `it "processes input" do` at line 41.
-pub fn ruby_dsl_spec_l41_d3_processes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('processes', ...args)
+pub fn ruby_dsl_spec_l41_d3_processes() bool {
+	dsl := ruby_dsl_spec_l13_d2_dsl() or { return false }
+	with_values := dsl.entries[14].options['with'].as_array() or { return false }
+	return dsl.cask_arguments['appdir'].repr == '/Applications' && dsl.entries.len == 15 && dsl.entries[0].name == 'homebrew/cask' && dsl.entries[1].options['clone_target'].repr == 'https://telemachus@bitbucket.org/telemachus/brew.git' && dsl.entries[4].name == 'mysql@5.6' && dsl.entries[5].options['link'].repr == 'overwrite' && dsl.entries[8].options['args'].map_data['appdir'].repr == '~/my-apps/Applications' && dsl.entries[9].options['id'].int_data == 443987910 && dsl.entries[11].options['source'].repr == 'msstore' && with_values.map(it.repr) == [
+		'mkdocs-material<10',
+	]
 }
 
 // Ruby it `it "processes trusted options without a clone target" do` at line 70.
-pub fn ruby_dsl_spec_l70_d4_processes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('processes', ...args)
+pub fn ruby_dsl_spec_l70_d4_processes() bool {
+	dsl := ruby_dsl_spec_l8_d1_dsl_from_string('tap "thirdparty/tap", trusted: true') or {
+		return false
+	}
+	return dsl.entries[0].options['trusted'].bool_data && dsl.entries[0].options['clone_target'].type_name == 'NilClass'
 }
 
 // Ruby subject `subject(:dsl) do` at line 77.
-pub fn ruby_dsl_spec_l77_d5_dsl(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dsl', ...args)
+pub fn ruby_dsl_spec_l77_d5_dsl() !brew_bundle.BundleDsl {
+	return ruby_dsl_spec_l8_d1_dsl_from_string("cask_args appdir: '/global-apps'\ncask_args require_sha: true\ncask_args appdir: '~/my-apps'")
 }
 
 // Ruby it `it "merges the arguments" do` at line 85.
-pub fn ruby_dsl_spec_l85_d6_merges(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('merges', ...args)
+pub fn ruby_dsl_spec_l85_d6_merges() bool {
+	dsl := ruby_dsl_spec_l77_d5_dsl() or { return false }
+	return dsl.cask_arguments['appdir'].repr == '~/my-apps' && dsl.cask_arguments['require_sha'].bool_data
 }
 
 // Ruby it `it "processes flatpak without options" do` at line 91.
-pub fn ruby_dsl_spec_l91_d7_processes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('processes', ...args)
+pub fn ruby_dsl_spec_l91_d7_processes() bool {
+	dsl := ruby_dsl_spec_l8_d1_dsl_from_string('flatpak "org.gnome.Calculator"') or {
+		return false
+	}
+	return dsl.entries[0].name == 'org.gnome.Calculator' && dsl.entries[0].options['remote'].repr == 'flathub'
 }
 
 // Ruby it `it "processes flatpak with remote option" do` at line 97.
-pub fn ruby_dsl_spec_l97_d8_processes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('processes', ...args)
+pub fn ruby_dsl_spec_l97_d8_processes() bool {
+	dsl := ruby_dsl_spec_l8_d1_dsl_from_string('flatpak "com.custom.App", remote: "custom-repo"') or {
+		return false
+	}
+	return dsl.entries[0].options['remote'].repr == 'custom-repo'
 }
 
 // Ruby it `it "processes flatpak with explicit flathub remote" do` at line 103.
-pub fn ruby_dsl_spec_l103_d9_processes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('processes', ...args)
+pub fn ruby_dsl_spec_l103_d9_processes() bool {
+	dsl := ruby_dsl_spec_l8_d1_dsl_from_string('flatpak "org.gnome.Calculator", remote: "flathub"') or {
+		return false
+	}
+	return dsl.entries[0].options['remote'].repr == 'flathub'
 }
 
 // Ruby it `it "processes flatpak with URL remote" do` at line 109.
-pub fn ruby_dsl_spec_l109_d10_processes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('processes', ...args)
+pub fn ruby_dsl_spec_l109_d10_processes() bool {
+	dsl := ruby_dsl_spec_l8_d1_dsl_from_string('flatpak "org.godotengine.Godot", remote: "https://dl.flathub.org/beta-repo/"') or {
+		return false
+	}
+	return dsl.entries[0].options['remote'].repr == 'https://dl.flathub.org/beta-repo/'
 }
 
 // Ruby it `it "accepts positional option hashes for extensions" do` at line 117.
-pub fn ruby_dsl_spec_l117_d11_accepts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('accepts', ...args)
+pub fn ruby_dsl_spec_l117_d11_accepts() bool {
+	dsl := ruby_dsl_spec_l8_d1_dsl_from_string('uv "mkdocs", { with: ["mkdocs-material<10"] }') or {
+		return false
+	}
+	with_values := dsl.entries[0].options['with'].as_array() or { return false }
+	return with_values.map(it.repr) == [
+		'mkdocs-material<10',
+	]
 }
 
 // Ruby it `it "accepts a uv source option" do` at line 123.
-pub fn ruby_dsl_spec_l123_d12_accepts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('accepts', ...args)
+pub fn ruby_dsl_spec_l123_d12_accepts() bool {
+	dsl := ruby_dsl_spec_l8_d1_dsl_from_string('uv "ruff", source: "git+https://github.com/astral-sh/ruff.git"') or {
+		return false
+	}
+	return dsl.entries[0].options['source'].repr == 'git+https://github.com/astral-sh/ruff.git'
 }
 
 // Ruby it `it "handles completely invalid code" do` at line 130.
-pub fn ruby_dsl_spec_l130_d13_handles(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('handles', ...args)
+pub fn ruby_dsl_spec_l130_d13_handles() bool {
+	if _ := ruby_dsl_spec_l8_d1_dsl_from_string('abcdef') {
+		return false
+	} else {
+		return err.msg().contains('Invalid Brewfile')
+	}
 }
 
 // Ruby it `it "handles valid commands but with invalid options" do` at line 134.
-pub fn ruby_dsl_spec_l134_d14_handles(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('handles', ...args)
+pub fn ruby_dsl_spec_l134_d14_handles() bool {
+	for input in ['brew 1', 'cask 1', 'tap 1', "cask_args ''"] {
+		if _ := ruby_dsl_spec_l8_d1_dsl_from_string(input) {
+			return false
+		}
+	}
+	return true
 }
 
 // Ruby it `it "errors on bad options" do` at line 141.
-pub fn ruby_dsl_spec_l141_d15_errors(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('errors', ...args)
+pub fn ruby_dsl_spec_l141_d15_errors() bool {
+	for input in ["brew 'foo', ['bad_option']", "cask 'foo', ['bad_option']",
+		"tap 'foo', ['bad_clone_target']", "flatpak 'foo', ['bad_option']"] {
+		if _ := ruby_dsl_spec_l8_d1_dsl_from_string(input) {
+			return false
+		}
+	}
+	return true
 }
 
 // Ruby it `it "errors on unknown go options" do` at line 148.
-pub fn ruby_dsl_spec_l148_d16_errors(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('errors', ...args)
+pub fn ruby_dsl_spec_l148_d16_errors() bool {
+	if _ := ruby_dsl_spec_l8_d1_dsl_from_string('go "github.com/charmbracelet/crush", with: ["github.com/charmbracelet/gum"]') {
+		return false
+	} else {
+		return err.msg().contains('unknown options') && err.msg().contains('for go')
+	}
 }
 
 // Ruby it `it "errors on invalid uv with options" do` at line 154.
-pub fn ruby_dsl_spec_l154_d17_errors(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('errors', ...args)
+pub fn ruby_dsl_spec_l154_d17_errors() bool {
+	for input in ['uv "mkdocs", with: "mkdocs-material<10"', 'uv "mkdocs", with: [1]',
+		'uv "mkdocs", with: false'] {
+		if !dsl_spec_error_contains(input, 'Array of String objects') {
+			return false
+		}
+	}
+	return true
 }
 
 // Ruby it `it "errors on invalid uv source options" do` at line 166.
-pub fn ruby_dsl_spec_l166_d18_errors(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('errors', ...args)
+pub fn ruby_dsl_spec_l166_d18_errors() bool {
+	for input in ['uv "ruff", source: 123', 'uv "ruff", branch: "main"'] {
+		if _ := ruby_dsl_spec_l8_d1_dsl_from_string(input) {
+			return false
+		}
+	}
+	return true
 }
 
 // Ruby it `it "errors on invalid winget options" do` at line 175.
-pub fn ruby_dsl_spec_l175_d19_errors(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('errors', ...args)
+pub fn ruby_dsl_spec_l175_d19_errors() bool {
+	for input in ['winget "PowerToys", id: 123', 'winget "PowerToys", source: "chocolatey"',
+		'winget "PowerToys", interactive: true', 'winget "PowerToys", elevated: true'] {
+		if _ := ruby_dsl_spec_l8_d1_dsl_from_string(input) {
+			return false
+		}
+	}
+	return true
 }
 
 // Ruby it `it ".sanitize_brew_name" do` at line 191.
-pub fn ruby_dsl_spec_l191_d20_sanitize_brew_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('.sanitize_brew_name', ...args)
+pub fn ruby_dsl_spec_l191_d20_sanitize_brew_name() bool {
+	return brew_bundle.sanitize_brew_name('homebrew/homebrew/foo') == 'foo' && brew_bundle.sanitize_brew_name('homebrew/homebrew-bar/foo') == 'homebrew/bar/foo' && brew_bundle.sanitize_brew_name('homebrew/bar/foo') == 'homebrew/bar/foo' && brew_bundle.sanitize_brew_name('foo') == 'foo'
 }
 
 // Ruby it `it ".sanitize_tap_name" do` at line 198.
-pub fn ruby_dsl_spec_l198_d21_sanitize_tap_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('.sanitize_tap_name', ...args)
+pub fn ruby_dsl_spec_l198_d21_sanitize_tap_name() bool {
+	return brew_bundle.sanitize_tap_name('homebrew/homebrew-foo') == 'homebrew/foo' && brew_bundle.sanitize_tap_name('homebrew/foo') == 'homebrew/foo'
 }
 
 // Ruby it `it ".sanitize_cask_name" do` at line 203.
-pub fn ruby_dsl_spec_l203_d22_sanitize_cask_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('.sanitize_cask_name', ...args)
+pub fn ruby_dsl_spec_l203_d22_sanitize_cask_name() bool {
+	return brew_bundle.sanitize_cask_name('homebrew/cask-versions/adoptopenjdk8') == 'adoptopenjdk8' && brew_bundle.sanitize_cask_name('adoptopenjdk8') == 'adoptopenjdk8'
+}
+
+fn dsl_spec_example_input() string {
+	return "cask_args appdir: '/Applications'\ntap 'homebrew/cask'\ntap 'telemachus/brew', 'https://telemachus@bitbucket.org/telemachus/brew.git'\ntap 'auto/update', 'https://bitbucket.org/auto/update.git'\nbrew 'imagemagick'\nbrew 'mysql@5.6', restart_service: true, link: true, conflicts_with: ['mysql']\nbrew 'emacs', args: ['with-cocoa', 'with-gnutls'], link: :overwrite\ncask 'google-chrome'\ncask 'java' unless system '/usr/libexec/java_home --failfast'\ncask 'firefox', args: { appdir: '~/my-apps/Applications' }\nmas '1Password', id: 443987910\nvscode 'GitHub.codespaces'\nwinget 'PowerToys', id: 'XP89DCGQ3K6VLD', source: 'msstore'\ngo 'github.com/charmbracelet/crush'\ncargo 'ripgrep'\nuv 'mkdocs', with: ['mkdocs-material<10']"
 }
 
 // Original Ruby source (line-for-line):

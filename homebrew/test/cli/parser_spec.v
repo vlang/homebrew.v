@@ -1,598 +1,1221 @@
 module cli
 
-import brew_runtime
+import homebrew.cli as brew_cli
 
 // Translated from Homebrew/brew `test/cli/parser_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+fn switch_options_parser() brew_cli.Parser {
+	mut parser := brew_cli.new_parser('test')
+	parser.add_switch(['--more-verbose'], brew_cli.OptionConfig{
+		description: 'Flag for higher verbosity'
+	})
+	parser.add_switch(['--pry'], brew_cli.OptionConfig{
+		env: 'pry'
+		env_is_set: true
+		env_value: '1'
+	})
+	parser.add_switch(['--foo'], brew_cli.OptionConfig{
+		env: 'foo'
+		env_is_set: true
+		env_value: ''
+	})
+	parser.add_switch(['--bar'], brew_cli.OptionConfig{
+		env: 'bar'
+		env_is_set: true
+		env_value: '1'
+	})
+	parser.add_switch(['--hidden'], brew_cli.OptionConfig{
+		hidden: true
+	})
+	return parser
+}
+
+fn binary_switch_parser() brew_cli.Parser {
+	mut parser := brew_cli.new_parser('test')
+	parser.add_switch(['--[no-]positive'], brew_cli.OptionConfig{})
+	return parser
+}
+
+fn negative_switch_parser() brew_cli.Parser {
+	mut parser := brew_cli.new_parser('test')
+	parser.add_switch(['--no-positive'], brew_cli.OptionConfig{})
+	return parser
+}
+
+fn ask_parser(no_ask string, ask string) brew_cli.Parser {
+	mut parser := brew_cli.new_parser('test')
+	parser.add_switch(['--no-ask', '--yes', '-y'], brew_cli.OptionConfig{
+		env: 'no_ask'
+		env_is_set: true
+		env_value: no_ask
+	})
+	parser.add_switch(['--ask'], brew_cli.OptionConfig{
+		env: 'ask'
+		env_is_set: true
+		env_value: ask
+	})
+	parser.add_conflicts(['--ask', '--no-ask'])
+	return parser
+}
+
+fn describe_parser(no_describe string, describe string) brew_cli.Parser {
+	mut parser := brew_cli.new_parser('test')
+	parser.add_switch(['--no-describe'], brew_cli.OptionConfig{
+		env: 'bundle_no_describe'
+		env_is_set: true
+		env_value: no_describe
+	})
+	parser.add_switch(['--describe'], brew_cli.OptionConfig{
+		env: 'bundle_describe'
+		env_is_set: true
+		env_value: describe
+	})
+	parser.add_conflicts(['--describe', '--no-describe'])
+	return parser
+}
+
+fn long_flag_parser() brew_cli.Parser {
+	mut parser := brew_cli.new_parser('test')
+	parser.add_flag(['--filename='], brew_cli.OptionConfig{
+		description: 'Name of the file'
+	})
+	parser.add_comma_array('--files', brew_cli.OptionConfig{
+		description: 'Comma-separated filenames'
+	})
+	parser.add_flag(['--hidden='], brew_cli.OptionConfig{
+		hidden: true
+	})
+	parser.add_comma_array('--hidden-array', brew_cli.OptionConfig{
+		hidden: true
+	})
+	return parser
+}
+
+fn short_flag_parser() brew_cli.Parser {
+	mut parser := brew_cli.new_parser('test')
+	parser.add_flag(['-f', '--filename='], brew_cli.OptionConfig{
+		description: 'Name of the file'
+	})
+	return parser
+}
+
+fn flag_constraints_parser(invalid bool) brew_cli.Parser {
+	mut parser := brew_cli.new_parser('test')
+	parser.add_flag(['--flag1='], brew_cli.OptionConfig{})
+	parser.add_flag(['--flag2='], brew_cli.OptionConfig{
+		depends_on: '--flag1='
+	})
+	if !invalid {
+		parser.add_flag(['--flag3='], brew_cli.OptionConfig{})
+		parser.add_conflicts(['--flag1', '--flag3'])
+	} else {
+		parser.add_conflicts(['--flag1', '--flag2'])
+	}
+	return parser
+}
+
+fn switch_constraints_parser(env_a string, env_b string) brew_cli.Parser {
+	mut parser := brew_cli.new_parser('test')
+	parser.add_switch(['-a', '--switch-a'], brew_cli.OptionConfig{
+		env: 'switch_a'
+		env_is_set: true
+		env_value: env_a
+	})
+	parser.add_switch(['-b', '--switch-b'], brew_cli.OptionConfig{
+		env: 'switch_b'
+		env_is_set: true
+		env_value: env_b
+	})
+	parser.add_switch(['--switch-c'], brew_cli.OptionConfig{
+		depends_on: '--switch-a'
+	})
+	parser.add_conflicts(['--switch-a', '--switch-b'])
+	return parser
+}
+
+fn immutability_parser() brew_cli.Parser {
+	mut parser := brew_cli.new_parser('test')
+	parser.add_switch(['-a', '--switch-a'], brew_cli.OptionConfig{})
+	parser.add_switch(['-b', '--switch-b'], brew_cli.OptionConfig{})
+	return parser
+}
+
+fn inferrability_parser() brew_cli.Parser {
+	mut parser := brew_cli.new_parser('test')
+	parser.add_switch(['--switch-a'], brew_cli.OptionConfig{})
+	parser.add_switch(['--switch-b'], brew_cli.OptionConfig{})
+	parser.add_switch(['--foo-switch'], brew_cli.OptionConfig{})
+	parser.add_flag(['--flag-foo='], brew_cli.OptionConfig{})
+	parser.add_comma_array('--comma-array-foo', brew_cli.OptionConfig{})
+	return parser
+}
+
+fn argv_parser() brew_cli.Parser {
+	mut parser := brew_cli.new_parser('test')
+	parser.add_switch(['--foo'], brew_cli.OptionConfig{})
+	parser.add_flag(['--bar'], brew_cli.OptionConfig{})
+	parser.add_switch(['-s'], brew_cli.OptionConfig{})
+	return parser
+}
+
+fn parser_none() brew_cli.Parser {
+	mut parser := brew_cli.new_parser('test')
+	parser.configure_named_args(brew_cli.NamedArgumentConfig{
+		types: ['none']
+	}) or { panic(err) }
+	return parser
+}
+
+fn parser_number() brew_cli.Parser {
+	mut parser := brew_cli.new_parser('test')
+	parser.configure_named_args(brew_cli.NamedArgumentConfig{
+		number: 1
+	}) or { panic(err) }
+	return parser
+}
+
+fn configure_install_subcommand(mut parser brew_cli.Parser) ! {
+	parser.set_usage_banner('`test install`:\nInstall dependencies.')!
+	parser.add_switch(['--force'], brew_cli.OptionConfig{})
+	parser.configure_named_args(brew_cli.NamedArgumentConfig{
+		types: ['none']
+	})!
+}
+
+fn configure_info_subcommand(mut parser brew_cli.Parser) ! {
+	parser.set_usage_banner('`test info` <service>:\nShow service information.')!
+	parser.add_switch(['--json'], brew_cli.OptionConfig{})
+	parser.configure_named_args(brew_cli.NamedArgumentConfig{
+		types: ['service']
+		minimum: 1
+	})!
+}
+
+fn subcommand_parser() brew_cli.Parser {
+	mut parser := brew_cli.new_parser('test')
+	parser.set_usage_banner('`test` [<subcommand>]') or { panic(err) }
+	parser.set_description('Test command.')
+	parser.add_switch(['--global'], brew_cli.OptionConfig{})
+	parser.add_subcommand('install', brew_cli.SubcommandConfig{
+		default: true
+	}, configure_install_subcommand) or { panic(err) }
+	parser.add_subcommand('info', brew_cli.SubcommandConfig{
+		aliases: ['i']
+	}, configure_info_subcommand) or { panic(err) }
+	return parser
+}
+
+fn switch_value_is(args brew_cli.Args, name string, expected bool) bool {
+	value := args.switch_value(name) or { return false }
+	return value == expected
+}
+
+fn configure_none_subcommand(mut parser brew_cli.Parser) ! {
+	parser.configure_named_args(brew_cli.NamedArgumentConfig{
+		types: ['none']
+	})!
+}
+
+fn configure_verbose_subcommand(mut parser brew_cli.Parser) ! {
+	parser.add_switch(['-v', '--verbose'], brew_cli.OptionConfig{
+		description: 'Print output from commands as they are run.'
+	})
+	configure_none_subcommand(mut parser)!
+}
+
+fn configure_install_constraints(mut parser brew_cli.Parser) ! {
+	parser.add_switch(['--cleanup'], brew_cli.OptionConfig{})
+	parser.add_switch(['--zap'], brew_cli.OptionConfig{
+		depends_on: '--cleanup'
+	})
+	configure_none_subcommand(mut parser)!
+}
+
+fn configure_cleanup_constraints(mut parser brew_cli.Parser) ! {
+	parser.add_switch(['--zap'], brew_cli.OptionConfig{})
+	configure_none_subcommand(mut parser)!
+}
+
+fn configure_alias_install(mut parser brew_cli.Parser) ! {
+	parser.add_switch(['--upgrade'], brew_cli.OptionConfig{})
+	parser.add_switch(['--force'], brew_cli.OptionConfig{})
+	configure_none_subcommand(mut parser)!
+}
+
+fn parser_with_global_redeclaration() !brew_cli.Parser {
+	mut parser := brew_cli.new_parser('test')
+	parser.add_subcommand('install', brew_cli.SubcommandConfig{
+		default: true
+	}, configure_verbose_subcommand)!
+	parser.add_subcommand('cleanup', brew_cli.SubcommandConfig{}, configure_none_subcommand)!
+	return parser
+}
+
+fn parser_with_scoped_constraints() !brew_cli.Parser {
+	mut parser := brew_cli.new_parser('test')
+	parser.add_subcommand('install', brew_cli.SubcommandConfig{
+		default: true
+	}, configure_install_constraints)!
+	parser.add_subcommand('cleanup', brew_cli.SubcommandConfig{}, configure_cleanup_constraints)!
+	return parser
+}
 
 // Ruby subject `subject(:parser) do` at line 10.
-pub fn ruby_parser_spec_l10_d1_parser(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('parser', ...args)
+pub fn ruby_parser_spec_l10_d1_parser() brew_cli.Parser {
+	return switch_options_parser()
 }
 
 // Ruby subject `subject(:parser) do` at line 28.
-pub fn ruby_parser_spec_l28_d2_parser(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('parser', ...args)
+pub fn ruby_parser_spec_l28_d2_parser() brew_cli.Parser {
+	return binary_switch_parser()
 }
 
 // Ruby it `it "does not create no_positive?" do` at line 34.
-pub fn ruby_parser_spec_l34_d3_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_parser_spec_l34_d3_does() bool {
+	mut parser := binary_switch_parser()
+	parsed := parser.parse(['--no-positive'], false) or { return false }
+	if _ := parsed.switch_value('no_positive') {
+		return false
+	}
+	return true
 }
 
 // Ruby it `it "sets the positive name to false if the negative switch is passed" do` at line 39.
-pub fn ruby_parser_spec_l39_d4_sets(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sets', ...args)
+pub fn ruby_parser_spec_l39_d4_sets() bool {
+	mut parser := binary_switch_parser()
+	parsed := parser.parse(['--no-positive'], false) or { return false }
+	return switch_value_is(parsed, 'positive', false)
 }
 
 // Ruby it `it "sets the positive name to true if the positive switch is passed" do` at line 44.
-pub fn ruby_parser_spec_l44_d5_sets(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sets', ...args)
+pub fn ruby_parser_spec_l44_d5_sets() bool {
+	mut parser := binary_switch_parser()
+	parsed := parser.parse(['--positive'], false) or { return false }
+	return switch_value_is(parsed, 'positive', true)
 }
 
 // Ruby it `it "does not set the positive name if the positive switch is not passed" do` at line 49.
-pub fn ruby_parser_spec_l49_d6_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_parser_spec_l49_d6_does() bool {
+	mut parser := binary_switch_parser()
+	parsed := parser.parse([]string{}, false) or { return false }
+	if _ := parsed.switch_value('positive') {
+		return false
+	}
+	return true
 }
 
 // Ruby subject `subject(:parser) do` at line 56.
-pub fn ruby_parser_spec_l56_d7_parser(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('parser', ...args)
+pub fn ruby_parser_spec_l56_d7_parser() brew_cli.Parser {
+	return negative_switch_parser()
 }
 
 // Ruby it `it "does not set the positive name" do` at line 62.
-pub fn ruby_parser_spec_l62_d8_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_parser_spec_l62_d8_does() bool {
+	mut parser := negative_switch_parser()
+	parsed := parser.parse(['--no-positive'], false) or { return false }
+	if _ := parsed.switch_value('positive') {
+		return false
+	}
+	return true
 }
 
 // Ruby it `it "fails when using the positive name" do` at line 67.
-pub fn ruby_parser_spec_l67_d9_fails(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fails', ...args)
+pub fn ruby_parser_spec_l67_d9_fails() bool {
+	mut parser := negative_switch_parser()
+	parser.parse(['--positive'], false) or { return err.msg().contains('invalid option') }
+	return false
 }
 
 // Ruby it `it "sets the negative name to true if the negative switch is passed" do` at line 73.
-pub fn ruby_parser_spec_l73_d10_sets(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sets', ...args)
+pub fn ruby_parser_spec_l73_d10_sets() bool {
+	mut parser := negative_switch_parser()
+	parsed := parser.parse(['--no-positive'], false) or { return false }
+	return switch_value_is(parsed, 'no_positive', true)
 }
 
 // Ruby it `it "passes through invalid options" do` at line 80.
-pub fn ruby_parser_spec_l80_d11_passes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('passes', ...args)
+pub fn ruby_parser_spec_l80_d11_passes() bool {
+	mut parser := switch_options_parser()
+	parsed := parser.parse(['-v', 'named-arg', '--not-a-valid-option'], true) or { return false }
+	return parsed.remaining == ['named-arg', '--not-a-valid-option'] && parsed.named.empty()
 }
 
 // Ruby it `it "flattens arguments after `--` into remaining" do` at line 87.
-pub fn ruby_parser_spec_l87_d12_flattens(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('flattens', ...args)
+pub fn ruby_parser_spec_l87_d12_flattens() bool {
+	mut parser := switch_options_parser()
+	parsed := parser.parse(['-v', '--', 'foo', 'bar'], false) or { return false }
+	return parsed.remaining == ['--', 'foo', 'bar']
 }
 
 // Ruby it `it "parses short option" do` at line 92.
-pub fn ruby_parser_spec_l92_d13_parses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('parses', ...args)
+pub fn ruby_parser_spec_l92_d13_parses() bool {
+	mut parser := switch_options_parser()
+	parsed := parser.parse(['-v'], false) or { return false }
+	return switch_value_is(parsed, 'verbose', true)
 }
 
 // Ruby it `it "parses a single valid option" do` at line 97.
-pub fn ruby_parser_spec_l97_d14_parses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('parses', ...args)
+pub fn ruby_parser_spec_l97_d14_parses() bool {
+	mut parser := switch_options_parser()
+	parsed := parser.parse(['--verbose'], false) or { return false }
+	return switch_value_is(parsed, 'verbose', true)
 }
 
 // Ruby it `it "parses a valid option along with few unnamed args" do` at line 102.
-pub fn ruby_parser_spec_l102_d15_parses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('parses', ...args)
+pub fn ruby_parser_spec_l102_d15_parses() bool {
+	mut parser := switch_options_parser()
+	parsed := parser.parse(['--verbose', 'unnamed', 'args'], false) or { return false }
+	return switch_value_is(parsed, 'verbose', true) && parsed.named.values == [
+		'unnamed',
+		'args',
+	]
 }
 
 // Ruby it `it "parses a single option and checks other options to be false" do` at line 108.
-pub fn ruby_parser_spec_l108_d16_parses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('parses', ...args)
+pub fn ruby_parser_spec_l108_d16_parses() bool {
+	mut parser := switch_options_parser()
+	parsed := parser.parse(['--verbose'], false) or { return false }
+	return switch_value_is(parsed, 'verbose', true) && switch_value_is(parsed, 'more_verbose', false)
 }
 
 // Ruby it `it "sets the correct value for a hidden switch" do` at line 114.
-pub fn ruby_parser_spec_l114_d17_sets(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sets', ...args)
+pub fn ruby_parser_spec_l114_d17_sets() bool {
+	mut parser := switch_options_parser()
+	parsed := parser.parse([]string{}, false) or { return false }
+	return switch_value_is(parsed, 'hidden', false)
 }
 
 // Ruby it `it "raises an exception and outputs help text when an invalid option is passed" do` at line 119.
-pub fn ruby_parser_spec_l119_d18_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+pub fn ruby_parser_spec_l119_d18_raises() bool {
+	mut parser := switch_options_parser()
+	parser.parse(['--random'], false) or {
+		return err.msg().contains('--random') && parser.generate_help_text().contains('Usage: brew')
+	}
+	return false
 }
 
 // Ruby it `it "maps environment var to an option" do` at line 124.
-pub fn ruby_parser_spec_l124_d19_maps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('maps', ...args)
+pub fn ruby_parser_spec_l124_d19_maps() bool {
+	mut parser := switch_options_parser()
+	parsed := parser.parse([]string{}, false) or { return false }
+	return switch_value_is(parsed, 'pry', true) && switch_value_is(parsed, 'foo', false) && switch_value_is(parsed, 'bar', true)
 }
 
 // Ruby subject `subject(:parser) do` at line 133.
-pub fn ruby_parser_spec_l133_d20_parser(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('parser', ...args)
+pub fn ruby_parser_spec_l133_d20_parser() brew_cli.Parser {
+	return ask_parser('', '')
 }
 
 // Ruby it `it "lets HOMEBREW_NO_ASK override default ask mode" do` at line 141.
-pub fn ruby_parser_spec_l141_d21_lets(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('lets', ...args)
+pub fn ruby_parser_spec_l141_d21_lets() bool {
+	mut parser := ask_parser('1', '')
+	parsed := parser.parse([]string{}, false) or { return false }
+	return switch_value_is(parsed, 'no_ask', true)
 }
 
 // Ruby it `it "lets --ask override HOMEBREW_NO_ASK" do` at line 147.
-pub fn ruby_parser_spec_l147_d22_lets(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('lets', ...args)
+pub fn ruby_parser_spec_l147_d22_lets() bool {
+	mut parser := ask_parser('1', '')
+	parsed := parser.parse(['--ask'], false) or { return false }
+	return switch_value_is(parsed, 'ask', true) && switch_value_is(parsed, 'no_ask', false)
 }
 
 // Ruby it `it "lets --no-ask, --yes and -y override default ask mode" do` at line 155.
-pub fn ruby_parser_spec_l155_d23_lets(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('lets', ...args)
+pub fn ruby_parser_spec_l155_d23_lets() bool {
+	for option in ['--no-ask', '--yes', '-y'] {
+		mut parser := ask_parser('', '')
+		parsed := parser.parse([option], false) or { return false }
+		if !switch_value_is(parsed, 'no_ask', true) {
+			return false
+		}
+	}
+	return true
 }
 
 // Ruby subject `subject(:parser) do` at line 167.
-pub fn ruby_parser_spec_l167_d24_parser(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('parser', ...args)
+pub fn ruby_parser_spec_l167_d24_parser() brew_cli.Parser {
+	return describe_parser('', '')
 }
 
 // Ruby it `it "lets --describe override HOMEBREW_BUNDLE_NO_DESCRIBE" do` at line 175.
-pub fn ruby_parser_spec_l175_d25_lets(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('lets', ...args)
+pub fn ruby_parser_spec_l175_d25_lets() bool {
+	mut parser := describe_parser('1', '')
+	parsed := parser.parse(['--describe'], false) or { return false }
+	return switch_value_is(parsed, 'describe', true) && switch_value_is(parsed, 'no_describe', false)
 }
 
 // Ruby subject `subject(:parser) do` at line 185.
-pub fn ruby_parser_spec_l185_d26_parser(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('parser', ...args)
+pub fn ruby_parser_spec_l185_d26_parser() brew_cli.Parser {
+	return long_flag_parser()
 }
 
 // Ruby it `it "parses a long flag option with its argument" do` at line 194.
-pub fn ruby_parser_spec_l194_d27_parses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('parses', ...args)
+pub fn ruby_parser_spec_l194_d27_parses() bool {
+	mut parser := long_flag_parser()
+	parsed := parser.parse(['--filename=random.txt'], false) or { return false }
+	filename := parsed.flag_value('filename') or { return false }
+	return filename == 'random.txt'
 }
 
 // Ruby it `it "raises an exception when a flag's required value is not passed" do` at line 199.
-pub fn ruby_parser_spec_l199_d28_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+pub fn ruby_parser_spec_l199_d28_raises() bool {
+	mut parser := long_flag_parser()
+	parser.parse(['--filename'], false) or { return err.msg().contains('--filename') }
+	return false
 }
 
 // Ruby it `it "parses a comma array flag option" do` at line 203.
-pub fn ruby_parser_spec_l203_d29_parses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('parses', ...args)
+pub fn ruby_parser_spec_l203_d29_parses() bool {
+	mut parser := long_flag_parser()
+	parsed := parser.parse(['--files=random1.txt,random2.txt'], false) or { return false }
+	files := parsed.comma_array_value('files') or { return false }
+	return files == ['random1.txt', 'random2.txt']
 }
 
 // Ruby it `it "sets the correct value for hidden flags" do` at line 208.
-pub fn ruby_parser_spec_l208_d30_sets(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sets', ...args)
+pub fn ruby_parser_spec_l208_d30_sets() bool {
+	mut parser := long_flag_parser()
+	parsed := parser.parse(['--hidden=foo', '--hidden-array=bar,baz'], false) or { return false }
+	hidden := parsed.flag_value('hidden') or { return false }
+	hidden_array := parsed.comma_array_value('hidden_array') or { return false }
+	return hidden == 'foo' && hidden_array == ['bar', 'baz']
 }
 
 // Ruby subject `subject(:parser) do` at line 216.
-pub fn ruby_parser_spec_l216_d31_parser(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('parser', ...args)
+pub fn ruby_parser_spec_l216_d31_parser() brew_cli.Parser {
+	return short_flag_parser()
 }
 
 // Ruby it `it "parses a short flag option with its argument" do` at line 222.
-pub fn ruby_parser_spec_l222_d32_parses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('parses', ...args)
+pub fn ruby_parser_spec_l222_d32_parses() bool {
+	mut parser := short_flag_parser()
+	parsed := parser.parse(['--filename=random.txt'], false) or { return false }
+	filename := parsed.flag_value('filename') or { return false }
+	short := parsed.flag_value('f') or { return false }
+	return filename == 'random.txt' && short == 'random.txt'
 }
 
 // Ruby subject `subject(:parser) do` at line 230.
-pub fn ruby_parser_spec_l230_d33_parser(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('parser', ...args)
+pub fn ruby_parser_spec_l230_d33_parser() brew_cli.Parser {
+	return flag_constraints_parser(false)
 }
 
 // Ruby it `it "raises exception on depends_on constraint violation" do` at line 240.
-pub fn ruby_parser_spec_l240_d34_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+pub fn ruby_parser_spec_l240_d34_raises() bool {
+	mut parser := flag_constraints_parser(false)
+	parser.parse(['--flag2=flag2'], false) or { return err.msg().contains('cannot be passed without') }
+	return false
 }
 
 // Ruby it `it "raises exception for conflict violation" do` at line 244.
-pub fn ruby_parser_spec_l244_d35_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+pub fn ruby_parser_spec_l244_d35_raises() bool {
+	mut parser := flag_constraints_parser(false)
+	parser.parse(['--flag1=flag1', '--flag3=flag3'], false) or {
+		return err.msg().contains('mutually exclusive')
+	}
+	return false
 }
 
 // Ruby it `it "raises no exception" do` at line 248.
-pub fn ruby_parser_spec_l248_d36_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+pub fn ruby_parser_spec_l248_d36_raises() bool {
+	mut parser := flag_constraints_parser(false)
+	parsed := parser.parse(['--flag1=flag1', '--flag2=flag2'], false) or { return false }
+	flag1 := parsed.flag_value('flag1') or { return false }
+	flag2 := parsed.flag_value('flag2') or { return false }
+	return flag1 == 'flag1' && flag2 == 'flag2'
 }
 
 // Ruby it `it "raises no exception for optional dependency" do` at line 254.
-pub fn ruby_parser_spec_l254_d37_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+pub fn ruby_parser_spec_l254_d37_raises() bool {
+	mut parser := flag_constraints_parser(false)
+	parsed := parser.parse(['--flag3=flag3'], false) or { return false }
+	flag3 := parsed.flag_value('flag3') or { return false }
+	return flag3 == 'flag3'
 }
 
 // Ruby subject `subject(:parser) do` at line 261.
-pub fn ruby_parser_spec_l261_d38_parser(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('parser', ...args)
+pub fn ruby_parser_spec_l261_d38_parser() brew_cli.Parser {
+	return flag_constraints_parser(true)
 }
 
 // Ruby it `it "raises exception due to invalid constraints" do` at line 270.
-pub fn ruby_parser_spec_l270_d39_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+pub fn ruby_parser_spec_l270_d39_raises() bool {
+	mut parser := flag_constraints_parser(true)
+	parser.parse([]string{}, false) or { return err.msg().contains('simultaneously') }
+	return false
 }
 
 // Ruby subject `subject(:parser) do` at line 276.
-pub fn ruby_parser_spec_l276_d40_parser(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('parser', ...args)
+pub fn ruby_parser_spec_l276_d40_parser() brew_cli.Parser {
+	return switch_constraints_parser('', '')
 }
 
 // Ruby it `it "raises exception on depends_on constraint violation" do` at line 286.
-pub fn ruby_parser_spec_l286_d41_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+pub fn ruby_parser_spec_l286_d41_raises() bool {
+	mut parser := switch_constraints_parser('', '')
+	parser.parse(['--switch-c'], false) or { return err.msg().contains('cannot be passed without') }
+	return false
 }
 
 // Ruby it `it "raises exception for conflict violation" do` at line 290.
-pub fn ruby_parser_spec_l290_d42_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+pub fn ruby_parser_spec_l290_d42_raises() bool {
+	mut parser := switch_constraints_parser('', '')
+	parser.parse(['-ab'], false) or { return err.msg().contains('mutually exclusive') }
+	return false
 }
 
 // Ruby it `it "raises no exception" do` at line 294.
-pub fn ruby_parser_spec_l294_d43_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+pub fn ruby_parser_spec_l294_d43_raises() bool {
+	mut parser := switch_constraints_parser('', '')
+	parsed := parser.parse(['--switch-a', '--switch-c'], false) or { return false }
+	return switch_value_is(parsed, 'switch_a', true) && switch_value_is(parsed, 'switch_c', true)
 }
 
 // Ruby it `it "raises no exception for optional dependency" do` at line 300.
-pub fn ruby_parser_spec_l300_d44_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+pub fn ruby_parser_spec_l300_d44_raises() bool {
+	mut parser := switch_constraints_parser('', '')
+	parsed := parser.parse(['--switch-b'], false) or { return false }
+	return switch_value_is(parsed, 'switch_b', true)
 }
 
 // Ruby it `it "prioritizes cli arguments over env vars when they conflict" do` at line 305.
-pub fn ruby_parser_spec_l305_d45_prioritizes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prioritizes', ...args)
+pub fn ruby_parser_spec_l305_d45_prioritizes() bool {
+	mut parser := switch_constraints_parser('1', '')
+	parsed := parser.parse(['--switch-b'], false) or { return false }
+	return switch_value_is(parsed, 'switch_a', false) && switch_value_is(parsed, 'switch_b', true)
 }
 
 // Ruby it `it "raises an exception on constraint violation when both are env vars" do` at line 314.
-pub fn ruby_parser_spec_l314_d46_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+pub fn ruby_parser_spec_l314_d46_raises() bool {
+	mut parser := switch_constraints_parser('1', '1')
+	parser.parse([]string{}, false) or { return err.msg().contains('mutually exclusive') }
+	return false
 }
 
 // Ruby subject `subject(:parser) do` at line 323.
-pub fn ruby_parser_spec_l323_d47_parser(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('parser', ...args)
+pub fn ruby_parser_spec_l323_d47_parser() brew_cli.Parser {
+	return immutability_parser()
 }
 
 // Ruby it `it "raises exception when arguments were already parsed" do` at line 330.
-pub fn ruby_parser_spec_l330_d48_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+pub fn ruby_parser_spec_l330_d48_raises() bool {
+	mut parser := immutability_parser()
+	parser.parse(['--switch-a'], false) or { return false }
+	parser.parse(['--switch-b'], false) or { return err.msg().contains('Arguments were already parsed!') }
+	return false
 }
 
 // Ruby subject `subject(:parser) do` at line 337.
-pub fn ruby_parser_spec_l337_d49_parser(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('parser', ...args)
+pub fn ruby_parser_spec_l337_d49_parser() brew_cli.Parser {
+	return inferrability_parser()
 }
 
 // Ruby it `it "parses a valid switch that uses `_` instead of `-`" do` at line 347.
-pub fn ruby_parser_spec_l347_d50_parses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('parses', ...args)
+pub fn ruby_parser_spec_l347_d50_parses() bool {
+	mut parser := inferrability_parser()
+	parsed := parser.parse(['--switch_a'], false) or { return false }
+	return switch_value_is(parsed, 'switch_a', true)
 }
 
 // Ruby it `it "parses a valid flag that uses `_` instead of `-`" do` at line 352.
-pub fn ruby_parser_spec_l352_d51_parses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('parses', ...args)
+pub fn ruby_parser_spec_l352_d51_parses() bool {
+	mut parser := inferrability_parser()
+	parsed := parser.parse(['--flag_foo=foo.txt'], false) or { return false }
+	flag := parsed.flag_value('flag_foo') or { return false }
+	return flag == 'foo.txt'
 }
 
 // Ruby it `it "parses a valid comma_array that uses `_` instead of `-`" do` at line 357.
-pub fn ruby_parser_spec_l357_d52_parses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('parses', ...args)
+pub fn ruby_parser_spec_l357_d52_parses() bool {
+	mut parser := inferrability_parser()
+	parsed := parser.parse(['--comma_array_foo=foo.txt,bar.txt'], false) or { return false }
+	items := parsed.comma_array_value('comma_array_foo') or { return false }
+	return items == ['foo.txt', 'bar.txt']
 }
 
 // Ruby it `it "raises an error when option is ambiguous" do` at line 362.
-pub fn ruby_parser_spec_l362_d53_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+pub fn ruby_parser_spec_l362_d53_raises() bool {
+	mut parser := inferrability_parser()
+	parser.parse(['--switch'], false) or { return err.msg().contains('ambiguous option: --switch') }
+	return false
 }
 
 // Ruby it `it "inferrs the option from an abbreviated name" do` at line 366.
-pub fn ruby_parser_spec_l366_d54_inferrs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('inferrs', ...args)
+pub fn ruby_parser_spec_l366_d54_inferrs() bool {
+	mut parser := inferrability_parser()
+	parsed := parser.parse(['--foo'], false) or { return false }
+	return switch_value_is(parsed, 'foo_switch', true)
 }
 
 // Ruby subject `subject(:parser) do` at line 373.
-pub fn ruby_parser_spec_l373_d55_parser(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('parser', ...args)
+pub fn ruby_parser_spec_l373_d55_parser() brew_cli.Parser {
+	return argv_parser()
 }
 
 // Ruby it `it "#options_only" do` at line 381.
-pub fn ruby_parser_spec_l381_d56_options_only(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#options_only', ...args)
+pub fn ruby_parser_spec_l381_d56_options_only() bool {
+	mut parser := argv_parser()
+	parsed := parser.parse(['--foo', '--bar=value', '-v', '-s', 'a', 'b', 'cdefg'], false) or {
+		return false
+	}
+	return parsed.options_only == ['--verbose', '--foo', '--bar=value', '-s']
 }
 
 // Ruby it `it "#flags_only" do` at line 386.
-pub fn ruby_parser_spec_l386_d57_flags_only(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#flags_only', ...args)
+pub fn ruby_parser_spec_l386_d57_flags_only() bool {
+	mut parser := argv_parser()
+	parsed := parser.parse(['--foo', '--bar=value', '-v', '-s', 'a', 'b', 'cdefg'], false) or {
+		return false
+	}
+	return parsed.flags_only == ['--verbose', '--foo', '--bar=value']
 }
 
 // Ruby it `it "#named returns an array of non-option arguments" do` at line 391.
-pub fn ruby_parser_spec_l391_d58_named(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#named', ...args)
+pub fn ruby_parser_spec_l391_d58_named() bool {
+	mut parser := argv_parser()
+	parsed := parser.parse(['foo', '-v', '-s'], false) or { return false }
+	return parsed.named.values == ['foo']
 }
 
 // Ruby it `it "#named returns an empty array when there are no named arguments" do` at line 396.
-pub fn ruby_parser_spec_l396_d59_named(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#named', ...args)
+pub fn ruby_parser_spec_l396_d59_named() bool {
+	mut parser := argv_parser()
+	parsed := parser.parse([]string{}, false) or { return false }
+	return parsed.named.empty()
 }
 
 // Ruby it `it "includes `[options]` if more than two non-global options are available" do` at line 403.
-pub fn ruby_parser_spec_l403_d60_includes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('includes', ...args)
+pub fn ruby_parser_spec_l403_d60_includes() bool {
+	mut parser := brew_cli.new_parser('test')
+	for option in ['--foo', '--baz', '--bar'] {
+		parser.add_switch([option], brew_cli.OptionConfig{})
+	}
+	return parser.generate_help_text().contains('[options]')
 }
 
 // Ruby it `it "includes individual options if less than two non-global options are available" do` at line 412.
-pub fn ruby_parser_spec_l412_d61_includes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('includes', ...args)
+pub fn ruby_parser_spec_l412_d61_includes() bool {
+	mut parser := brew_cli.new_parser('test')
+	parser.add_switch(['--foo'], brew_cli.OptionConfig{})
+	parser.add_switch(['--bar'], brew_cli.OptionConfig{})
+	return parser.generate_help_text().contains('[--foo] [--bar]')
 }
 
 // Ruby it `it "formats flags correctly when less than two non-global options are available" do` at line 420.
-pub fn ruby_parser_spec_l420_d62_formats(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formats', ...args)
+pub fn ruby_parser_spec_l420_d62_formats() bool {
+	mut parser := brew_cli.new_parser('test')
+	parser.add_flag(['--foo'], brew_cli.OptionConfig{})
+	parser.add_flag(['--bar='], brew_cli.OptionConfig{})
+	return parser.generate_help_text().contains('[--foo] [--bar=]')
 }
 
 // Ruby it `it "formats comma arrays correctly when less than two non-global options are available" do` at line 428.
-pub fn ruby_parser_spec_l428_d63_formats(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formats', ...args)
+pub fn ruby_parser_spec_l428_d63_formats() bool {
+	mut parser := brew_cli.new_parser('test')
+	parser.add_comma_array('--foo', brew_cli.OptionConfig{})
+	return parser.generate_help_text().contains('[--foo=]')
 }
 
 // Ruby it `it "does not include hidden options" do` at line 435.
-pub fn ruby_parser_spec_l435_d64_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_parser_spec_l435_d64_does() bool {
+	mut parser := brew_cli.new_parser('test')
+	parser.add_switch(['--foo'], brew_cli.OptionConfig{
+		hidden: true
+	})
+	return !parser.generate_help_text().contains('[--foo]')
 }
 
 // Ruby it `it "doesn't include `[options]` if non non-global options are available" do` at line 442.
-pub fn ruby_parser_spec_l442_d65_doesn(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('doesn', ...args)
+pub fn ruby_parser_spec_l442_d65_doesn() bool {
+	parser := brew_cli.new_parser('test')
+	return !parser.generate_help_text().contains('[options]')
 }
 
 // Ruby it `it "includes a description" do` at line 447.
-pub fn ruby_parser_spec_l447_d66_includes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('includes', ...args)
+pub fn ruby_parser_spec_l447_d66_includes() bool {
+	mut parser := brew_cli.new_parser('test')
+	parser.set_description('This command does something\n')
+	return parser.generate_help_text().contains('This command does something')
 }
 
 // Ruby it `it "allows the usage banner to be overridden" do` at line 456.
-pub fn ruby_parser_spec_l456_d67_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+pub fn ruby_parser_spec_l456_d67_allows() bool {
+	mut parser := brew_cli.new_parser('test')
+	parser.set_usage_banner('`test` [foo] <bar>') or { return false }
+	return parser.generate_help_text().contains('test [foo] bar')
 }
 
 // Ruby it `it "allows a usage banner and a description to be overridden" do` at line 463.
-pub fn ruby_parser_spec_l463_d68_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+pub fn ruby_parser_spec_l463_d68_allows() bool {
+	mut parser := brew_cli.new_parser('test')
+	parser.set_usage_banner('`test` [foo] <bar>') or { return false }
+	parser.set_description('This command does something')
+	help := parser.generate_help_text()
+	return help.contains('test [foo] bar') && help.contains('This command does something')
 }
 
 // Ruby it `it "shows the correct usage for no named argument" do` at line 474.
-pub fn ruby_parser_spec_l474_d69_shows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('shows', ...args)
+pub fn ruby_parser_spec_l474_d69_shows() bool {
+	mut parser := brew_cli.new_parser('test')
+	parser.configure_named_args(brew_cli.NamedArgumentConfig{
+		types: ['none']
+	}) or { return false }
+	first_line := parser.generate_help_text().split_into_lines()[0]
+	return !first_line.contains('[')
 }
 
 // Ruby it `it "shows the correct usage for a single typed argument" do` at line 481.
-pub fn ruby_parser_spec_l481_d70_shows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('shows', ...args)
+pub fn ruby_parser_spec_l481_d70_shows() bool {
+	mut parser := brew_cli.new_parser('test')
+	parser.configure_named_args(brew_cli.NamedArgumentConfig{
+		types: ['formula']
+		number: 1
+	}) or { return false }
+	return parser.generate_help_text().split_into_lines()[0].ends_with(' formula')
 }
 
 // Ruby it `it "shows the correct usage for a subcommand argument with a maximum" do` at line 488.
-pub fn ruby_parser_spec_l488_d71_shows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('shows', ...args)
+pub fn ruby_parser_spec_l488_d71_shows() bool {
+	mut parser := brew_cli.new_parser('test')
+	parser.configure_named_args(brew_cli.NamedArgumentConfig{
+		types: ['off', 'on']
+		types_are_choices: true
+		maximum: 1
+	}) or { return false }
+	return parser.generate_help_text().split_into_lines()[0].ends_with(' [subcommand]')
 }
 
 // Ruby it `it "shows the correct usage for multiple typed argument with no maximum or minimum" do` at line 495.
-pub fn ruby_parser_spec_l495_d72_shows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('shows', ...args)
+pub fn ruby_parser_spec_l495_d72_shows() bool {
+	mut parser := brew_cli.new_parser('test')
+	parser.configure_named_args(brew_cli.NamedArgumentConfig{
+		types: ['tap', 'command']
+	}) or { return false }
+	return parser.generate_help_text().split_into_lines()[0].ends_with(' [tap|command ...]')
 }
 
 // Ruby it `it "shows the correct usage for a subcommand argument with a minimum of 1" do` at line 502.
-pub fn ruby_parser_spec_l502_d73_shows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('shows', ...args)
+pub fn ruby_parser_spec_l502_d73_shows() bool {
+	mut parser := brew_cli.new_parser('test')
+	parser.configure_named_args(brew_cli.NamedArgumentConfig{
+		types: ['installed_formula']
+		minimum: 1
+	}) or { return false }
+	return parser.generate_help_text().split_into_lines()[0].ends_with(' installed_formula [...]')
 }
 
 // Ruby it `it "shows the correct usage for a subcommand argument with a minimum greater than 1" do` at line 509.
-pub fn ruby_parser_spec_l509_d74_shows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('shows', ...args)
+pub fn ruby_parser_spec_l509_d74_shows() bool {
+	mut parser := brew_cli.new_parser('test')
+	parser.configure_named_args(brew_cli.NamedArgumentConfig{
+		types: ['installed_formula']
+		minimum: 2
+	}) or { return false }
+	return parser.generate_help_text().split_into_lines()[0].ends_with(' installed_formula ...')
 }
 
 // Ruby let `let(:parser_none) do` at line 518.
-pub fn ruby_parser_spec_l518_d75_parser_none(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('parser_none', ...args)
+pub fn ruby_parser_spec_l518_d75_parser_none() brew_cli.Parser {
+	return parser_none()
 }
 
 // Ruby let `let(:parser_number) do` at line 523.
-pub fn ruby_parser_spec_l523_d76_parser_number(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('parser_number', ...args)
+pub fn ruby_parser_spec_l523_d76_parser_number() brew_cli.Parser {
+	return parser_number()
 }
 
 // Ruby it `it "doesn't allow :none passed with a number" do` at line 529.
-pub fn ruby_parser_spec_l529_d77_doesn(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('doesn', ...args)
+pub fn ruby_parser_spec_l529_d77_doesn() bool {
+	mut parser := brew_cli.new_parser('test')
+	parser.configure_named_args(brew_cli.NamedArgumentConfig{
+		types: ['none']
+		number: 1
+	}) or { return err.msg().contains('named_args :none') }
+	return false
 }
 
 // Ruby it `it "doesn't allow number and min" do` at line 537.
-pub fn ruby_parser_spec_l537_d78_doesn(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('doesn', ...args)
+pub fn ruby_parser_spec_l537_d78_doesn() bool {
+	mut parser := brew_cli.new_parser('test')
+	parser.configure_named_args(brew_cli.NamedArgumentConfig{
+		number: 1
+		minimum: 1
+	}) or { return err.msg().contains('both `number` and `min` or `max`') }
+	return false
 }
 
 // Ruby it `it "doesn't accept fewer than the passed number of arguments" do` at line 545.
-pub fn ruby_parser_spec_l545_d79_doesn(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('doesn', ...args)
+pub fn ruby_parser_spec_l545_d79_doesn() bool {
+	mut parser := parser_number()
+	parser.parse([]string{}, false) or { return err.msg().contains('exactly 1') }
+	return false
 }
 
 // Ruby it `it "doesn't accept more than the passed number of arguments" do` at line 549.
-pub fn ruby_parser_spec_l549_d80_doesn(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('doesn', ...args)
+pub fn ruby_parser_spec_l549_d80_doesn() bool {
+	mut parser := parser_number()
+	parser.parse(['foo', 'bar'], false) or { return err.msg().contains('exactly 1') }
+	return false
 }
 
 // Ruby it `it "accepts the passed number of arguments" do` at line 553.
-pub fn ruby_parser_spec_l553_d81_accepts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('accepts', ...args)
+pub fn ruby_parser_spec_l553_d81_accepts() bool {
+	mut parser := parser_number()
+	parsed := parser.parse(['foo'], false) or { return false }
+	return parsed.named.values == ['foo']
 }
 
 // Ruby it `it "doesn't accept any arguments with :none" do` at line 557.
-pub fn ruby_parser_spec_l557_d82_doesn(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('doesn', ...args)
+pub fn ruby_parser_spec_l557_d82_doesn() bool {
+	mut parser := parser_none()
+	parser.parse(['foo'], false) or { return err.msg().contains('does not take named arguments') }
+	return false
 }
 
 // Ruby it `it "accepts no arguments with :none" do` at line 562.
-pub fn ruby_parser_spec_l562_d83_accepts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('accepts', ...args)
+pub fn ruby_parser_spec_l562_d83_accepts() bool {
+	mut parser := parser_none()
+	parsed := parser.parse([]string{}, false) or { return false }
+	return parsed.named.empty()
 }
 
 // Ruby it `it "displays the correct error message with no arg types and min" do` at line 566.
-pub fn ruby_parser_spec_l566_d84_displays(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('displays', ...args)
+pub fn ruby_parser_spec_l566_d84_displays() bool {
+	mut parser := brew_cli.new_parser('test')
+	parser.configure_named_args(brew_cli.NamedArgumentConfig{
+		minimum: 2
+	}) or { return false }
+	parser.parse([]string{}, false) or { return err.msg().contains('at least 2 named arguments') }
+	return false
 }
 
 // Ruby it `it "displays the correct error message with no arg types and number" do` at line 575.
-pub fn ruby_parser_spec_l575_d85_displays(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('displays', ...args)
+pub fn ruby_parser_spec_l575_d85_displays() bool {
+	mut parser := brew_cli.new_parser('test')
+	parser.configure_named_args(brew_cli.NamedArgumentConfig{
+		number: 2
+	}) or { return false }
+	parser.parse([]string{}, false) or { return err.msg().contains('exactly 2 named arguments') }
+	return false
 }
 
 // Ruby it `it "displays the correct error message with no arg types and max" do` at line 584.
-pub fn ruby_parser_spec_l584_d86_displays(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('displays', ...args)
+pub fn ruby_parser_spec_l584_d86_displays() bool {
+	mut parser := brew_cli.new_parser('test')
+	parser.configure_named_args(brew_cli.NamedArgumentConfig{
+		maximum: 1
+	}) or { return false }
+	parser.parse(['foo', 'bar'], false) or { return err.msg().contains('more than 1 named argument') }
+	return false
 }
 
 // Ruby it `it "displays the correct error message with an array of strings" do` at line 593.
-pub fn ruby_parser_spec_l593_d87_displays(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('displays', ...args)
+pub fn ruby_parser_spec_l593_d87_displays() bool {
+	mut parser := brew_cli.new_parser('test')
+	parser.configure_named_args(brew_cli.NamedArgumentConfig{
+		types: ['on', 'off']
+		types_are_choices: true
+		number: 1
+	}) or { return false }
+	parser.parse([]string{}, false) or { return err.msg().contains('exactly 1 subcommand') }
+	return false
 }
 
 // Ruby it `it "displays the correct error message with an array of symbols" do` at line 602.
-pub fn ruby_parser_spec_l602_d88_displays(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('displays', ...args)
+pub fn ruby_parser_spec_l602_d88_displays() bool {
+	mut parser := brew_cli.new_parser('test')
+	parser.configure_named_args(brew_cli.NamedArgumentConfig{
+		types: ['formula', 'cask']
+		minimum: 1
+	}) or { return false }
+	parser.parse([]string{}, false) or { return err.msg().contains('at least 1 formula or cask argument') }
+	return false
 }
 
 // Ruby it `it "displays the correct error message with an array of symbols and max" do` at line 611.
-pub fn ruby_parser_spec_l611_d89_displays(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('displays', ...args)
+pub fn ruby_parser_spec_l611_d89_displays() bool {
+	mut parser := brew_cli.new_parser('test')
+	parser.configure_named_args(brew_cli.NamedArgumentConfig{
+		types: ['formula', 'cask']
+		maximum: 1
+	}) or { return false }
+	parser.parse(['foo', 'bar'], false) or { return err.msg().contains('more than 1 formula or cask argument') }
+	return false
 }
 
 // Ruby it `it "accepts commands with :command" do` at line 620.
-pub fn ruby_parser_spec_l620_d90_accepts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('accepts', ...args)
+pub fn ruby_parser_spec_l620_d90_accepts() bool {
+	mut parser := brew_cli.new_parser('test')
+	parser.configure_named_args(brew_cli.NamedArgumentConfig{
+		types: ['command']
+	}) or { return false }
+	parser.set_allowed_commands(['--prefix', '--version'])
+	parsed := parser.parse(['--prefix', '--version'], false) or { return false }
+	return parsed.named.values == ['--prefix', '--version']
 }
 
 // Ruby it `it "doesn't accept invalid options with :command" do` at line 627.
-pub fn ruby_parser_spec_l627_d91_doesn(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('doesn', ...args)
+pub fn ruby_parser_spec_l627_d91_doesn() bool {
+	mut parser := brew_cli.new_parser('test')
+	parser.configure_named_args(brew_cli.NamedArgumentConfig{
+		types: ['command']
+	}) or { return false }
+	parser.set_allowed_commands(['--prefix', '--version'])
+	parser.parse(['--not-a-command'], false) or { return err.msg().contains('--not-a-command') }
+	return false
 }
 
 // Ruby method `subcommand_parser` at line 636.
-pub fn ruby_parser_spec_l636_d92_subcommand_parser(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('subcommand_parser', ...args)
+pub fn ruby_parser_spec_l636_d92_subcommand_parser() brew_cli.Parser {
+	return subcommand_parser()
 }
 
 // Ruby it `it "exposes subcommand metadata as named args" do` at line 662.
-pub fn ruby_parser_spec_l662_d93_exposes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('exposes', ...args)
+pub fn ruby_parser_spec_l662_d93_exposes() bool {
+	parser := subcommand_parser()
+	commands := parser.subcommand_list()
+	return parser.named_args_type() == ['install', 'info'] && commands.map(it.name) == [
+		'install',
+		'info',
+	] && commands[1].aliases == ['i'] && commands[1].description == 'Show service information.' && commands[1].usage_banner.contains('`test info` <service>:')
 }
 
 // Ruby it `it "combines subcommand usage banners with the main usage banner" do` at line 672.
-pub fn ruby_parser_spec_l672_d94_combines(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('combines', ...args)
+pub fn ruby_parser_spec_l672_d94_combines() bool {
+	text := subcommand_parser().usage_banner_text()
+	return text.contains('`test install`:') && text.contains('Show service information.')
 }
 
 // Ruby it `it "generates usage-error help for the matched subcommand" do` at line 677.
-pub fn ruby_parser_spec_l677_d95_generates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('generates', ...args)
+pub fn ruby_parser_spec_l677_d95_generates() bool {
+	help := subcommand_parser().generate_help_text_for(['info', 'foo', '--force'], true)
+	return help.contains('Usage: brew test info service:') && help.contains('Show service information.') && help.contains('--json') && help.contains('--global') && !help.contains('--force') && !help.contains('Usage: brew test install')
 }
 
 // Ruby it `it "generates usage-error help for the root command when no subcommand matches" do` at line 688.
-pub fn ruby_parser_spec_l688_d96_generates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('generates', ...args)
+pub fn ruby_parser_spec_l688_d96_generates() bool {
+	help := subcommand_parser().generate_help_text_for(['unknown'], true)
+	return help.contains('Usage: brew test [subcommand]') && help.contains('Subcommands:') && help.contains('install') && help.contains('info') && help.contains('--global') && !help.contains('--force') && !help.contains('--json') && !help.contains('Usage: brew test install') && !help.contains('Usage: brew test info')
 }
 
 // Ruby it `it "prints root command help for the help switch" do` at line 702.
-pub fn ruby_parser_spec_l702_d97_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+pub fn ruby_parser_spec_l702_d97_prints() bool {
+	mut parser := subcommand_parser()
+	parser.parse_with_help_exit(['--help'], false) or {
+		help := parser.parse_help(['--help'])
+		return err.msg() == 'SystemExit' && help.contains('Subcommands:') && help.contains('--global') && !help.contains('--force') && !help.contains('--json') && !help.contains('Usage: brew test install')
+	}
+	return false
 }
 
 // Ruby it `it "prints matched subcommand help for the help switch" do` at line 709.
-pub fn ruby_parser_spec_l709_d98_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+pub fn ruby_parser_spec_l709_d98_prints() bool {
+	mut parser := subcommand_parser()
+	parser.parse_with_help_exit(['install', '--help'], false) or {
+		help := parser.parse_help(['install', '--help'])
+		return err.msg() == 'SystemExit' && help.contains('Usage: brew test install') && help.contains('--force') && help.contains('--global') && !help.contains('--json') && !help.contains('Subcommands:')
+	}
+	return false
 }
 
 // Ruby it `it "stores the canonical subcommand name" do` at line 716.
-pub fn ruby_parser_spec_l716_d99_stores(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('stores', ...args)
+pub fn ruby_parser_spec_l716_d99_stores() bool {
+	mut parser := subcommand_parser()
+	parsed := parser.parse(['i', 'foo', '--json'], false) or { return false }
+	command := parsed.flag_value('subcommand') or { return false }
+	return command == 'info' && parsed.named.values == ['foo'] && switch_value_is(parsed, 'json', true)
 }
 
 // Ruby it `it "rejects multiple positional names when defining a subcommand" do` at line 724.
-pub fn ruby_parser_spec_l724_d100_rejects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('rejects', ...args)
+pub fn ruby_parser_spec_l724_d100_rejects() bool {
+	mut parser := brew_cli.new_parser('test')
+	parser.add_subcommand_names(['install', 'upgrade'], brew_cli.SubcommandConfig{}) or {
+		return err.msg().contains('wrong number of arguments')
+	}
+	return false
 }
 
 // Ruby it `it "uses the default subcommand when one is not passed" do` at line 732.
-pub fn ruby_parser_spec_l732_d101_uses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uses', ...args)
+pub fn ruby_parser_spec_l732_d101_uses() bool {
+	mut parser := subcommand_parser()
+	parsed := parser.parse(['--force'], false) or { return false }
+	command := parsed.flag_value('subcommand') or { return false }
+	return command == 'install' && switch_value_is(parsed, 'force', true)
 }
 
 // Ruby it `it "validates named args for the matched subcommand" do` at line 739.
-pub fn ruby_parser_spec_l739_d102_validates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('validates', ...args)
+pub fn ruby_parser_spec_l739_d102_validates() bool {
+	mut parser := subcommand_parser()
+	parser.parse(['info'], false) or { return err.msg().contains('at least 1 service argument') }
+	return false
 }
 
 // Ruby it `it "rejects options from other subcommands" do` at line 744.
-pub fn ruby_parser_spec_l744_d103_rejects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('rejects', ...args)
+pub fn ruby_parser_spec_l744_d103_rejects() bool {
+	mut parser := subcommand_parser()
+	parser.parse(['info', 'foo', '--force'], false) or {
+		return err.msg().contains('`info` subcommand does not accept the `--force` switch')
+	}
+	return false
 }
 
 // Ruby it `it "accepts global options re-declared inside a subcommand on every subcommand", :aggregate_failures do` at line 749.
-pub fn ruby_parser_spec_l749_d104_accepts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('accepts', ...args)
+pub fn ruby_parser_spec_l749_d104_accepts() bool {
+	for arguments in [['install', '--verbose'], ['cleanup', '--verbose'], ['cleanup', '-v']] {
+		mut parser := parser_with_global_redeclaration() or { return false }
+		parsed := parser.parse(arguments, false) or { return false }
+		if !switch_value_is(parsed, 'verbose', true) {
+			return false
+		}
+	}
+	return true
 }
 
 // Ruby it `it "applies option constraints only for the matching subcommand", :aggregate_failures do` at line 768.
-pub fn ruby_parser_spec_l768_d105_applies(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('applies', ...args)
+pub fn ruby_parser_spec_l768_d105_applies() bool {
+	mut first := parser_with_scoped_constraints() or { return false }
+	first.parse(['--zap'], false) or {
+		if !err.msg().contains('`--zap` cannot be passed without `--cleanup`') {
+			return false
+		}
+	}
+	mut second := parser_with_scoped_constraints() or { return false }
+	second_args := second.parse(['--cleanup', '--zap'], false) or { return false }
+	second_command := second_args.flag_value('subcommand') or { return false }
+	if second_command != 'install' {
+		return false
+	}
+	mut third := parser_with_scoped_constraints() or { return false }
+	third_args := third.parse(['cleanup', '--zap'], false) or { return false }
+	third_command := third_args.flag_value('subcommand') or { return false }
+	return third_command == 'cleanup'
 }
 
 // Ruby it `it "allows global options on all subcommands" do` at line 790.
-pub fn ruby_parser_spec_l790_d106_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+pub fn ruby_parser_spec_l790_d106_allows() bool {
+	mut parser := subcommand_parser()
+	parsed := parser.parse(['info', 'foo', '--global'], false) or { return false }
+	command := parsed.flag_value('subcommand') or { return false }
+	return command == 'info' && switch_value_is(parsed, 'global', true)
 }
 
 // Ruby it `it "applies implied options from subcommand aliases", :aggregate_failures do` at line 797.
-pub fn ruby_parser_spec_l797_d107_applies(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('applies', ...args)
+pub fn ruby_parser_spec_l797_d107_applies() bool {
+	mut parser := brew_cli.new_parser('test')
+	parser.add_subcommand('install', brew_cli.SubcommandConfig{
+		alias_options: {
+			'upgrade': '--upgrade'
+		}
+	}, configure_alias_install) or { return false }
+	parsed := parser.parse(['upgrade', '--force'], false) or { return false }
+	commands := parser.subcommand_list()
+	command := parsed.flag_value('subcommand') or { return false }
+	return commands[0].aliases == ['upgrade'] && command == 'install' && switch_value_is(parsed, 'upgrade', true) && switch_value_is(parsed, 'force', true)
 }
 
 // Ruby it `it "deprecates subcommands" do` at line 814.
-pub fn ruby_parser_spec_l814_d108_deprecates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('deprecates', ...args)
+pub fn ruby_parser_spec_l814_d108_deprecates() bool {
+	mut parser := brew_cli.new_parser('test')
+	parser.add_subcommand('install', brew_cli.SubcommandConfig{
+		deprecated: true
+	}, configure_none_subcommand) or { return false }
+	parser.parse(['install'], false) or {
+		return err.msg().contains('the `install` subcommand') && err.msg().contains('deprecated')
+	}
+	return false
 }
 
 // Ruby it `it "disables subcommands" do` at line 825.
-pub fn ruby_parser_spec_l825_d109_disables(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('disables', ...args)
+pub fn ruby_parser_spec_l825_d109_disables() bool {
+	mut parser := brew_cli.new_parser('test')
+	parser.add_subcommand('install', brew_cli.SubcommandConfig{
+		disabled: true
+	}, configure_none_subcommand) or { return false }
+	parser.parse(['install'], false) or {
+		return err.msg().contains('the `install` subcommand') && err.msg().contains('disabled')
+	}
+	return false
 }
 
 // Ruby it `it "hides deprecated subcommands from root help" do` at line 836.
-pub fn ruby_parser_spec_l836_d110_hides(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('hides', ...args)
+pub fn ruby_parser_spec_l836_d110_hides() bool {
+	mut parser := brew_cli.new_parser('test')
+	parser.set_usage_banner('`test` [<subcommand>]') or { return false }
+	parser.add_subcommand('install', brew_cli.SubcommandConfig{
+		deprecated: true
+	}, configure_none_subcommand) or { return false }
+	parser.add_subcommand('info', brew_cli.SubcommandConfig{}, configure_none_subcommand) or {
+		return false
+	}
+	help := parser.generate_help_text()
+	return help.contains('info') && !help.contains('install')
 }
 
 // Ruby it `it "returns options for a specific subcommand" do` at line 851.
-pub fn ruby_parser_spec_l851_d111_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_parser_spec_l851_d111_returns() bool {
+	parser := subcommand_parser()
+	install_options := parser.processed_options_for_subcommand('install').map(it.long)
+	info_options := parser.processed_options_for_subcommand('info').map(it.long)
+	return '--force' in install_options && '--json' !in install_options && '--json' in info_options && '--force' !in info_options
 }
 
 // Ruby subject `subject(:parser) do` at line 866.
-pub fn ruby_parser_spec_l866_d112_parser(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('parser', ...args)
+pub fn ruby_parser_spec_l866_d112_parser() brew_cli.Parser {
+	mut parser := brew_cli.new_parser('test')
+	parser.add_switch(['--cask'], brew_cli.OptionConfig{})
+	return parser
 }
 
 // Ruby it `it "succeeds for developer commands" do` at line 874.
-pub fn ruby_parser_spec_l874_d113_succeeds(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('succeeds', ...args)
+pub fn ruby_parser_spec_l874_d113_succeeds() bool {
+	mut parser := ruby_parser_spec_l866_d112_parser()
+	parsed := parser.parse(['--cask', 'cask_name'], false) or { return false }
+	return switch_value_is(parsed, 'cask', true)
 }
 
 // Ruby subject `subject(:parser) do` at line 882.
-pub fn ruby_parser_spec_l882_d114_parser(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('parser', ...args)
+pub fn ruby_parser_spec_l882_d114_parser() brew_cli.Parser {
+	mut parser := brew_cli.new_parser('test')
+	parser.add_switch(['--cask'], brew_cli.OptionConfig{})
+	parser.add_switch(['--formula'], brew_cli.OptionConfig{})
+	parser.add_conflicts(['--cask', '--formula'])
+	return parser
 }
 
 // Ruby it `it "throws an error when both defined" do` at line 890.
-pub fn ruby_parser_spec_l890_d115_throws(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('throws', ...args)
+pub fn ruby_parser_spec_l890_d115_throws() bool {
+	mut parser := ruby_parser_spec_l882_d114_parser()
+	parser.parse(['--cask', '--formula'], false) or { return err.msg().contains('mutually exclusive') }
+	return false
 }
 
 // Ruby it `it "doesn't set --formula when not defined" do` at line 898.
-pub fn ruby_parser_spec_l898_d116_doesn(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('doesn', ...args)
+pub fn ruby_parser_spec_l898_d116_doesn() bool {
+	mut parser := brew_cli.new_parser('test')
+	parsed := parser.parse([]string{}, false) or { return false }
+	if _ := parsed.switch_value('formula') {
+		return false
+	}
+	return true
 }
 
 // Ruby it `it "doesn't set --formula when defined" do` at line 904.
-pub fn ruby_parser_spec_l904_d117_doesn(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('doesn', ...args)
+pub fn ruby_parser_spec_l904_d117_doesn() bool {
+	mut parser := brew_cli.new_parser('test')
+	parser.add_switch(['--formula'], brew_cli.OptionConfig{})
+	parsed := parser.parse([]string{}, false) or { return false }
+	return switch_value_is(parsed, 'formula', false)
 }
 
 // Ruby it `it "does not set --formula to true when --cask" do` at line 912.
-pub fn ruby_parser_spec_l912_d118_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_parser_spec_l912_d118_does() bool {
+	mut parser := brew_cli.new_parser('test')
+	parser.add_switch(['--cask'], brew_cli.OptionConfig{})
+	parsed := parser.parse([]string{}, false) or { return false }
+	if _ := parsed.switch_value('formula') {
+		return false
+	}
+	return true
 }
 
 // Original Ruby source (line-for-line):

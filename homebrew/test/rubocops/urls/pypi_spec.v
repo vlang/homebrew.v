@@ -1,28 +1,36 @@
 module urls
 
 import brew_runtime
+import homebrew.rubocops as urls_core
 
 // Translated from Homebrew/brew `test/rubocops/urls/pypi_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+fn pypi_spec_audit(url string) urls_core.FormulaUrlsAnalysis {
+	source := 'class Foo < Formula\n  desc "foo"\n  url "${url}"\nend'
+	return urls_core.audit_formula_pypi_urls(urls_core.FormulaUrlsContext{ source: source })
+}
 
 // Ruby subject `subject(:cop) { described_class.new }` at line 7.
 pub fn ruby_pypi_spec_l7_d1_cop(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cop', ...args)
+	return brew_runtime.object_value('RuboCop::Cop::FormulaAudit::PyPiUrls', 'FormulaAudit/PyPiUrls')
 }
 
 // Ruby it `it "reports an offense for pypi.python.org urls" do` at line 10.
 pub fn ruby_pypi_spec_l10_d2_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	offenses := pypi_spec_audit('https://pypi.python.org/packages/source/foo/foo-0.1.tar.gz').offenses
+	return brew_runtime.bool_value(offenses.len == 1 && offenses[0].message == 'Use the "Source" URL found on the PyPI downloads page (https://pypi.org/project/foo/#files)')
 }
 
 // Ruby it `it "reports an offense for short file.pythonhosted.org urls" do` at line 20.
 pub fn ruby_pypi_spec_l20_d3_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	offenses := pypi_spec_audit('https://files.pythonhosted.org/packages/source/f/foo/foo-0.1.tar.gz').offenses
+	return brew_runtime.bool_value(offenses.len == 1 && offenses[0].message == 'Use the "Source" URL found on the PyPI downloads page (https://pypi.org/project/foo/#files)')
 }
 
 // Ruby it `it "reports no offenses for long file.pythonhosted.org urls" do` at line 30.
 pub fn ruby_pypi_spec_l30_d4_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	url := 'https://files.pythonhosted.org/packages/a0/b1/a01b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f/foo-0.1.tar.gz'
+	return brew_runtime.bool_value(pypi_spec_audit(url).offenses.len == 0)
 }
 
 // Original Ruby source (line-for-line):

@@ -1,98 +1,133 @@
 module test
 
 import brew_runtime
+import homebrew
 
 // Translated from Homebrew/brew `test/PATH_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+fn path_spec_true(_ string) bool {
+	return true
+}
+
+fn path_spec_directory(path string) bool {
+	return path == '/path1'
+}
 
 // Ruby it `it "can take multiple arguments" do` at line 8.
-pub fn ruby_path_spec_l8_d1_can(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('can', ...args)
+pub fn ruby_path_spec_l8_d1_can() bool {
+	return homebrew.new_brew_path(homebrew.path_input('/path1'), homebrew.path_input('/path2')).str() == '/path1:/path2'
 }
 
 // Ruby it `it "can parse a mix of arrays and arguments" do` at line 12.
-pub fn ruby_path_spec_l12_d2_can(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('can', ...args)
+pub fn ruby_path_spec_l12_d2_can() bool {
+	return homebrew.new_brew_path(homebrew.path_array_input(['/path1', '/path2']), homebrew.path_input('/path3')).str() == '/path1:/path2:/path3'
 }
 
 // Ruby it `it "splits an existing PATH" do` at line 16.
-pub fn ruby_path_spec_l16_d3_splits(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('splits', ...args)
+pub fn ruby_path_spec_l16_d3_splits() bool {
+	return homebrew.new_brew_path(homebrew.path_input('/path1:/path2')).paths == [
+		'/path1',
+		'/path2',
+	]
 }
 
 // Ruby it `it "removes duplicates" do` at line 20.
-pub fn ruby_path_spec_l20_d4_removes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('removes', ...args)
+pub fn ruby_path_spec_l20_d4_removes() bool {
+	return homebrew.new_brew_path(homebrew.path_input('/path1'), homebrew.path_input('/path1')).str() == '/path1'
 }
 
 // Ruby it `it "returns a PATH array" do` at line 26.
-pub fn ruby_path_spec_l26_d5_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_path_spec_l26_d5_returns() bool {
+	return homebrew.new_brew_path(homebrew.path_input('/path1'), homebrew.path_input('/path2')).to_array() == [
+		'/path1',
+		'/path2',
+	]
 }
 
 // Ruby it `it "does not allow mutating the original" do` at line 30.
-pub fn ruby_path_spec_l30_d6_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_path_spec_l30_d6_does() bool {
+	path := homebrew.new_brew_path(homebrew.path_input('/path1'), homebrew.path_input('/path2'))
+	mut array := path.to_array()
+	array << '/path3'
+	return !path.contains('/path3')
 }
 
 // Ruby it `it "returns a PATH string" do` at line 39.
-pub fn ruby_path_spec_l39_d7_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_path_spec_l39_d7_returns() bool {
+	return homebrew.new_brew_path(homebrew.path_input('/path1'), homebrew.path_input('/path2')).str() == '/path1:/path2'
 }
 
 // Ruby specify `specify(:aggregate_failures) do` at line 45.
-pub fn ruby_path_spec_l45_d8_aggregate_failures(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('aggregate_failures', ...args)
+pub fn ruby_path_spec_l45_d8_aggregate_failures() bool {
+	mut first := homebrew.new_brew_path(homebrew.path_input('/path1'))
+	mut duplicate := homebrew.new_brew_path(homebrew.path_input('/path1'))
+	return first.prepend(homebrew.path_input('/path2')).str() == '/path2:/path1' && duplicate.prepend(homebrew.path_input('/path1')).str() == '/path1'
 }
 
 // Ruby specify `specify(:aggregate_failures) do` at line 52.
-pub fn ruby_path_spec_l52_d9_aggregate_failures(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('aggregate_failures', ...args)
+pub fn ruby_path_spec_l52_d9_aggregate_failures() bool {
+	mut first := homebrew.new_brew_path(homebrew.path_input('/path1'))
+	mut duplicate := homebrew.new_brew_path(homebrew.path_input('/path1'))
+	return first.append(homebrew.path_input('/path2')).str() == '/path1:/path2' && duplicate.append(homebrew.path_input('/path1')).str() == '/path1'
 }
 
 // Ruby specify `specify(:aggregate_failures) do` at line 59.
-pub fn ruby_path_spec_l59_d10_aggregate_failures(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('aggregate_failures', ...args)
+pub fn ruby_path_spec_l59_d10_aggregate_failures() bool {
+	mut first := homebrew.new_brew_path(homebrew.path_input('/path1'))
+	mut second := homebrew.new_brew_path(homebrew.path_input('/path1'))
+	return (first.insert(0, homebrew.path_input('/path2')) or { return false }).str() == '/path2:/path1' && (second.insert(0, homebrew.path_input('/path2'), homebrew.path_input('/path3')) or {
+		return false
+	}).str() == '/path2:/path3:/path1'
 }
 
 // Ruby it `it "always returns false when comparing against something which does not respond to `#to_ary` or `#to_str`" do` at line 66.
-pub fn ruby_path_spec_l66_d11_always(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('always', ...args)
+pub fn ruby_path_spec_l66_d11_always() bool {
+	path := homebrew.new_brew_path()
+	return !homebrew.brew_path_equals_value(path, brew_runtime.object_value('Object', '#<Object>'))
 }
 
 // Ruby it `it "returns true if a path is included", :aggregate_failures do` at line 72.
-pub fn ruby_path_spec_l72_d12_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_path_spec_l72_d12_returns() bool {
+	path := homebrew.new_brew_path(homebrew.path_input('/path1'), homebrew.path_input('/path2'))
+	return path.contains('/path1') && path.contains('/path2') && !path.contains('/path1:')
 }
 
 // Ruby it `it "returns false if a path is not included" do` at line 79.
-pub fn ruby_path_spec_l79_d13_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_path_spec_l79_d13_returns() bool {
+	return !homebrew.new_brew_path(homebrew.path_input('/path1')).contains('/path2')
 }
 
 // Ruby it `it "loops through each path" do` at line 85.
-pub fn ruby_path_spec_l85_d14_loops(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('loops', ...args)
+pub fn ruby_path_spec_l85_d14_loops() bool {
+	enumerator := homebrew.new_brew_path(homebrew.path_input('/path1'), homebrew.path_input('/path2')).to_array()
+	return enumerator[0] == '/path1' && enumerator[1] == '/path2'
 }
 
 // Ruby it `it "returns an object of the same class instead of an Array" do` at line 94.
-pub fn ruby_path_spec_l94_d15_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_path_spec_l94_d15_returns() bool {
+	selected := homebrew.new_brew_path().select_paths(path_spec_true)
+	return selected.paths.len == 0
 }
 
 // Ruby it `it "returns an object of the same class instead of an Array" do` at line 100.
-pub fn ruby_path_spec_l100_d16_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_path_spec_l100_d16_returns() bool {
+	rejected := homebrew.new_brew_path().reject_paths(path_spec_true)
+	return rejected.paths.len == 0
 }
 
 // Ruby it `it "returns a new PATH without non-existent paths", :aggregate_failures do` at line 106.
-pub fn ruby_path_spec_l106_d17_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_path_spec_l106_d17_returns() bool {
+	path := homebrew.new_brew_path(homebrew.path_input('/path1'), homebrew.path_input('/path2'))
+	existing := path.existing_with(path_spec_directory) or { return false }
+	return existing.to_array() == ['/path1'] && path.to_array() == ['/path1', '/path2']
 }
 
 // Ruby it `it "returns nil instead of an empty` at line 117.
-pub fn ruby_path_spec_l117_d18_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_path_spec_l117_d18_returns() bool {
+	if _ := homebrew.new_brew_path().existing() {
+		return false
+	}
+	return true
 }
 
 // Original Ruby source (line-for-line):

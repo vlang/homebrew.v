@@ -1,73 +1,316 @@
 module strategy
 
 import brew_runtime
+import homebrew.livecheck
+import homebrew.livecheck.strategy as apache_core
+import homebrew.utils
 
 // Translated from Homebrew/brew `test/livecheck/strategy/apache_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub struct ApacheSpecContent {
+pub:
+	directories string
+	files       string
+}
+
+pub struct ApacheSpecMatches {
+pub:
+	directories []string
+	files       []string
+}
+
+pub struct ApacheSpecMatchData {
+pub:
+	cached_dirs         apache_core.PageMatchData
+	cached_files        apache_core.PageMatchData
+	cached_dirs_default apache_core.PageMatchData
+}
+
+fn apache_spec_scan_block(page string,
+	provided ?apache_core.PageMatchRegex) !livecheck.StrategyBlockValue {
+	match_regex := provided or { return livecheck.StrategyBlockValue{ kind: .nil_value } }
+	versions := apache_core.page_match_scan(page, match_regex)!
+	return livecheck.StrategyBlockValue{
+		kind: .array
+		values: versions.map(livecheck.StrategyBlockItem{
+			kind: .string_value
+			value: it
+		})
+	}
+}
+
+fn apache_spec_unused_fetcher(_ livecheck.StrategyCurlRequest) !utils.CurlCommandResult {
+	return error('cached Apache content unexpectedly fetched')
+}
+
+fn apache_spec_regex_equal(left ?apache_core.PageMatchRegex,
+	right ?apache_core.PageMatchRegex) bool {
+	if left_value := left {
+		right_value := right or { return false }
+		return left_value == right_value
+	}
+	if _ := right {
+		return false
+	}
+	return true
+}
+
+fn apache_spec_match_data_equal(left apache_core.PageMatchData,
+	right apache_core.PageMatchData) bool {
+	return left.matches == right.matches && apache_spec_regex_equal(left.regex, right.regex) && left.url == right.url && left.cached == right.cached && left.has_cached == right.has_cached && left.content == right.content && left.has_content == right.has_content && left.final_url == right.final_url && left.has_final_url == right.has_final_url && left.messages == right.messages && left.has_messages == right.has_messages
+}
 
 // Ruby subject `subject(:apache) { described_class }` at line 7.
-pub fn ruby_apache_spec_l7_d1_apache(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('apache', ...args)
+pub fn ruby_apache_spec_l7_d1_apache() brew_runtime.Value {
+	return brew_runtime.object_value('Class', 'Homebrew::Livecheck::Strategy::Apache')
 }
 
 // Ruby let `let(:apache_urls) do` at line 9.
-pub fn ruby_apache_spec_l9_d2_apache_urls(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('apache_urls', ...args)
+pub fn ruby_apache_spec_l9_d2_apache_urls() map[string]string {
+	return {
+		'version_dir':                    'https://www.apache.org/dyn/closer.lua?path=abc/1.2.3/def-1.2.3.tar.gz'
+		'version_dir_root':               'https://www.apache.org/dyn/closer.lua?path=/abc/1.2.3/def-1.2.3.tar.gz'
+		'name_and_version_dir':           'https://www.apache.org/dyn/closer.lua?path=abc/def-1.2.3/ghi-1.2.3.tar.gz'
+		'name_dir_bin':                   'https://www.apache.org/dyn/closer.lua?path=abc/def/ghi-1.2.3-bin.tar.gz'
+		'name_dir_bin_no_suffix':         'https://www.apache.org/dyn/closer.lua?path=abc/def/ghi-1.2.3'
+		'archive_version_dir':            'https://archive.apache.org/dist/abc/1.2.3/def-1.2.3.tar.gz'
+		'archive_name_and_version_dir':   'https://archive.apache.org/dist/abc/def-1.2.3/ghi-1.2.3.tar.gz'
+		'archive_name_dir_bin':           'https://archive.apache.org/dist/abc/def/ghi-1.2.3-bin.tar.gz'
+		'dlcdn_version_dir':              'https://dlcdn.apache.org/abc/1.2.3/def-1.2.3.tar.gz'
+		'dlcdn_name_and_version_dir':     'https://dlcdn.apache.org/abc/def-1.2.3/ghi-1.2.3.tar.gz'
+		'dlcdn_name_dir_bin':             'https://dlcdn.apache.org/abc/def/ghi-1.2.3-bin.tar.gz'
+		'downloads_version_dir':          'https://downloads.apache.org/abc/1.2.3/def-1.2.3.tar.gz'
+		'downloads_name_and_version_dir': 'https://downloads.apache.org/abc/def-1.2.3/ghi-1.2.3.tar.gz'
+		'downloads_name_dir_bin':         'https://downloads.apache.org/abc/def/ghi-1.2.3-bin.tar.gz'
+		'mirrors_version_dir':            'https://www.apache.org/dyn/mirrors/mirrors.cgi?action=download&filename=abc/1.2.3/def-1.2.3.tar.gz'
+		'mirrors_version_dir_root':       'https://www.apache.org/dyn/mirrors/mirrors.cgi?action=download&filename=/abc/1.2.3/def-1.2.3.tar.gz'
+		'mirrors_name_and_version_dir':   'https://www.apache.org/dyn/mirrors/mirrors.cgi?action=download&filename=abc/def-1.2.3/ghi-1.2.3.tar.gz'
+		'mirrors_name_dir_bin':           'https://www.apache.org/dyn/mirrors/mirrors.cgi?action=download&filename=abc/def/ghi-1.2.3-bin.tar.gz'
+	}
 }
 
 // Ruby let `let(:non_apache_url) { "https://brew.sh/test" }` at line 31.
-pub fn ruby_apache_spec_l31_d3_non_apache_url(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('non_apache_url', ...args)
+pub fn ruby_apache_spec_l31_d3_non_apache_url() string {
+	return 'https://brew.sh/test'
 }
 
 // Ruby let `let(:generated) do` at line 32.
-pub fn ruby_apache_spec_l32_d4_generated(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('generated', ...args)
+pub fn ruby_apache_spec_l32_d4_generated() map[string]apache_core.ApacheInputValues {
+	version_dir := apache_core.ApacheInputValues{
+		present: true
+		url: 'https://archive.apache.org/dist/abc/'
+		regex: apache_core.PageMatchRegex{
+			pattern: 'href=["\']?v?(\\d+(?:\\.\\d+)+)/'
+			case_insensitive: true
+		}
+	}
+	name_and_version_dir := apache_core.ApacheInputValues{
+		present: true
+		url: 'https://archive.apache.org/dist/abc/'
+		regex: apache_core.PageMatchRegex{
+			pattern: 'href=["\']?def-v?(\\d+(?:\\.\\d+)+)/'
+			case_insensitive: true
+		}
+	}
+	name_dir_bin := apache_core.ApacheInputValues{
+		present: true
+		url: 'https://archive.apache.org/dist/abc/def/'
+		regex: apache_core.PageMatchRegex{
+			pattern: 'href=["\']?ghi-v?(\\d+(?:\\.\\d+)+)-bin\\.t'
+			case_insensitive: true
+		}
+	}
+	name_dir_bin_no_suffix := apache_core.ApacheInputValues{
+		present: true
+		url: 'https://archive.apache.org/dist/abc/def/'
+		regex: apache_core.PageMatchRegex{
+			pattern: 'href=["\']?ghi-v?(\\d+(?:\\.\\d+)+)'
+			case_insensitive: true
+		}
+	}
+	return {
+		'version_dir':                    version_dir
+		'version_dir_root':               version_dir
+		'name_and_version_dir':           name_and_version_dir
+		'name_dir_bin':                   name_dir_bin
+		'name_dir_bin_no_suffix':         name_dir_bin_no_suffix
+		'archive_version_dir':            version_dir
+		'archive_name_and_version_dir':   name_and_version_dir
+		'archive_name_dir_bin':           name_dir_bin
+		'dlcdn_version_dir':              version_dir
+		'dlcdn_name_and_version_dir':     name_and_version_dir
+		'dlcdn_name_dir_bin':             name_dir_bin
+		'downloads_version_dir':          version_dir
+		'downloads_name_and_version_dir': name_and_version_dir
+		'downloads_name_dir_bin':         name_dir_bin
+		'mirrors_version_dir':            version_dir
+		'mirrors_version_dir_root':       version_dir
+		'mirrors_name_and_version_dir':   name_and_version_dir
+		'mirrors_name_dir_bin':           name_dir_bin
+	}
 }
 
 // Ruby let `let(:content) do` at line 68.
-pub fn ruby_apache_spec_l68_d5_content(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('content', ...args)
+pub fn ruby_apache_spec_l68_d5_content() ApacheSpecContent {
+	start_html := [
+		'<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">',
+		'<html>',
+		'<head>',
+		'  <title>Index of /dist/abc</title>',
+		'</head>',
+		'<body>',
+		'  <h1>Index of /dist/abc</h1>',
+		'  <pre>',
+		'    <img src="/icons/blank.gif" alt="Icon ">',
+		'    <a href="?C=N;O=D">Name</a>',
+		'    <a href="?C=M;O=A">Last modified</a>',
+		'    <a href="?C=S;O=A">Size</a>',
+		'    <a href="?C=D;O=A">Description</a>',
+		'    <hr>',
+		'    <img src="/icons/back.gif" alt="[PARENTDIR]">',
+		'    <a href="/dist/">Parent Directory</a>',
+		'                                                       -',
+	].join('\n') + '\n'
+	end_html := [
+		'    <hr>',
+		'  </pre>',
+		'</body>',
+		'</html>',
+	].join('\n') + '\n'
+	directories := [
+		'<img src="/icons/folder.gif" alt="[DIR]"> <a href="1.2.0/">1.2.0/</a>                  2022-01-20 01:20    -',
+		'<img src="/icons/folder.gif" alt="[DIR]"> <a href="1.2.1/">1.2.1/</a>                  2022-01-21 01:21    -',
+		'<img src="/icons/folder.gif" alt="[DIR]"> <a href="1.2.2/">1.2.2/</a>                  2022-01-22 01:22    -',
+		'<img src="/icons/folder.gif" alt="[DIR]"> <a href="abc-other/">abc-other/</a>         2022-01-02 01:02    -',
+		'<img src="/icons/folder.gif" alt="[DIR]"> <a href="abc-something/">abc-something/</a> 2022-01-03 01:03    -',
+	].join('\n') + '\n'
+	files := [
+		'<img src="/icons/compressed.gif" alt="[   ]"> <a href="ghi-1.2.3-bin.tar.gz">ghi-1.2.3-bin.tar.gz</a>        2022-01-23 01:23   45M',
+		'<img src="/icons/text.gif" alt="[TXT]"> <a href="ghi-1.2.3-bin.tar.gz.asc">ghi-1.2.3-bin.tar.gz.asc</a>    2022-01-23 01:23  456',
+		'<img src="/icons/text.gif" alt="[TXT]"> <a href="ghi-1.2.3-bin.tar.gz.sha512">ghi-1.2.3-bin.tar.gz.sha512</a> 2022-01-23 01:23  123',
+		'<img src="/icons/compressed.gif" alt="[   ]"> <a href="ghi-1.2.3-src.tar.gz">ghi-1.2.3-src.tar.gz</a>        2022-01-23 01:23  4.5M',
+		'<img src="/icons/text.gif" alt="[TXT]"> <a href="ghi-1.2.3-src.tar.gz.asc">ghi-1.2.3-src.tar.gz.asc</a>    2022-01-23 01:23  456',
+		'<img src="/icons/text.gif" alt="[TXT]"> <a href="ghi-1.2.3-src.tar.gz.sha512">ghi-1.2.3-src.tar.gz.sha512</a> 2022-01-23 01:23  123',
+		'<img src="/icons/compressed.gif" alt="[   ]"> <a href="ghi-1.2.4-bin.tar.gz">ghi-1.2.4-bin.tar.gz</a>        2022-01-24 01:24   56M',
+		'<img src="/icons/text.gif" alt="[TXT]"> <a href="ghi-1.2.4-bin.tar.gz.asc">ghi-1.2.4-bin.tar.gz.asc</a>    2022-01-24 01:24  567',
+		'<img src="/icons/text.gif" alt="[TXT]"> <a href="ghi-1.2.4-bin.tar.gz.sha512">ghi-1.2.4-bin.tar.gz.sha512</a> 2022-01-24 01:24  124',
+		'<img src="/icons/compressed.gif" alt="[   ]"> <a href="ghi-1.2.4-src.tar.gz">ghi-1.2.4-src.tar.gz</a>        2022-01-24 01:24  5.6M',
+		'<img src="/icons/text.gif" alt="[TXT]"> <a href="ghi-1.2.4-src.tar.gz.asc">ghi-1.2.4-src.tar.gz.asc</a>    2022-01-24 01:24  567',
+		'<img src="/icons/text.gif" alt="[TXT]"> <a href="ghi-1.2.4-src.tar.gz.sha512">ghi-1.2.4-src.tar.gz.sha512</a> 2022-01-24 01:24  124',
+	].join('\n') + '\n'
+	return ApacheSpecContent{
+		directories: start_html + directories + end_html
+		files: start_html + files + end_html
+	}
 }
 
 // Ruby let `let(:matches) do` at line 124.
-pub fn ruby_apache_spec_l124_d6_matches(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('matches', ...args)
+pub fn ruby_apache_spec_l124_d6_matches() ApacheSpecMatches {
+	return ApacheSpecMatches{
+		directories: ['1.2.0', '1.2.1', '1.2.2']
+		files: ['1.2.3', '1.2.4']
+	}
 }
 
 // Ruby it `it "returns true for an Apache URL" do` at line 132.
-pub fn ruby_apache_spec_l132_d7_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_apache_spec_l132_d7_returns() bool {
+	for url in ruby_apache_spec_l9_d2_apache_urls().values() {
+		if !apache_core.apache_matches_url(url) {
+			return false
+		}
+	}
+	return true
 }
 
 // Ruby it `it "returns false for a non-Apache URL" do` at line 136.
-pub fn ruby_apache_spec_l136_d8_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_apache_spec_l136_d8_returns() bool {
+	return !apache_core.apache_matches_url(ruby_apache_spec_l31_d3_non_apache_url())
 }
 
 // Ruby it `it "returns a hash containing url and regex for an Apache URL" do` at line 142.
-pub fn ruby_apache_spec_l142_d9_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_apache_spec_l142_d9_returns() bool {
+	generated := ruby_apache_spec_l32_d4_generated()
+	for key, url in ruby_apache_spec_l9_d2_apache_urls() {
+		if apache_core.apache_generate_input_values(url) != generated[key] {
+			return false
+		}
+	}
+	return true
 }
 
 // Ruby it `it "returns an empty hash for a non-Apache URL" do` at line 148.
-pub fn ruby_apache_spec_l148_d10_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_apache_spec_l148_d10_returns() bool {
+	return !apache_core.apache_generate_input_values(ruby_apache_spec_l31_d3_non_apache_url()).present
 }
 
 // Ruby let `let(:match_data) do` at line 154.
-pub fn ruby_apache_spec_l154_d11_match_data(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('match_data', ...args)
+pub fn ruby_apache_spec_l154_d11_match_data() ApacheSpecMatchData {
+	generated := ruby_apache_spec_l32_d4_generated()
+	matches := ruby_apache_spec_l124_d6_matches()
+	mut directory_versions := map[string]string{}
+	for version in matches.directories {
+		directory_versions[version] = version
+	}
+	mut file_versions := map[string]string{}
+	for version in matches.files {
+		file_versions[version] = version
+	}
+	cached_dirs := apache_core.PageMatchData{
+		matches: directory_versions
+		regex: generated['version_dir'].regex
+		url: generated['version_dir'].url
+		cached: true
+		has_cached: true
+	}
+	return ApacheSpecMatchData{
+		cached_dirs: cached_dirs
+		cached_files: apache_core.PageMatchData{
+			matches: file_versions
+			regex: generated['name_dir_bin'].regex
+			url: generated['name_dir_bin'].url
+			cached: true
+			has_cached: true
+		}
+		cached_dirs_default: apache_core.PageMatchData{
+			...cached_dirs
+			matches: map[string]string{}
+		}
+	}
 }
 
 // Ruby it `it "finds versions in provided content" do` at line 174.
-pub fn ruby_apache_spec_l174_d12_finds(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('finds', ...args)
+pub fn ruby_apache_spec_l174_d12_finds() bool {
+	urls := ruby_apache_spec_l9_d2_apache_urls()
+	generated := ruby_apache_spec_l32_d4_generated()
+	content := ruby_apache_spec_l68_d5_content()
+	directories := apache_core.apache_find_versions(apache_core.ApacheFindRequest{
+		url: urls['version_dir']
+		content: content.directories
+	}, apache_spec_unused_fetcher) or { return false }
+	files := apache_core.apache_find_versions(apache_core.ApacheFindRequest{
+		url: urls['name_dir_bin']
+		regex: generated['name_dir_bin'].regex
+		content: content.files
+	}, apache_spec_unused_fetcher) or { return false }
+	// This `strategy` block is unnecessary but it's intended to test using a
+	// generated regex in a `strategy` block.
+	with_block := apache_core.apache_find_versions(apache_core.ApacheFindRequest{
+		url: urls['version_dir']
+		content: content.directories
+		has_block: true
+		block: apache_spec_scan_block
+	}, apache_spec_unused_fetcher) or { return false }
+	expected := ruby_apache_spec_l154_d11_match_data()
+	return apache_spec_match_data_equal(directories, expected.cached_dirs) && apache_spec_match_data_equal(files, expected.cached_files) && apache_spec_match_data_equal(with_block, expected.cached_dirs)
 }
 
 // Ruby it `it "returns default match_data when content is blank" do` at line 193.
-pub fn ruby_apache_spec_l193_d13_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_apache_spec_l193_d13_returns() bool {
+	actual := apache_core.apache_find_versions(apache_core.ApacheFindRequest{
+		url: ruby_apache_spec_l9_d2_apache_urls()['version_dir']
+		content: ''
+	}, apache_spec_unused_fetcher) or { return false }
+	return apache_spec_match_data_equal(actual, ruby_apache_spec_l154_d11_match_data().cached_dirs_default)
 }
 
 // Original Ruby source (line-for-line):

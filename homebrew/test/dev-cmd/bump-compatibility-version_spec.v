@@ -7,12 +7,24 @@ import brew_runtime
 
 // Ruby it `it "adds compatibility_version 1 with --write-only" do` at line 15.
 pub fn ruby_bump_compatibility_version_spec_l15_d1_adds(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('adds', ...args)
+	source := if args.len > 0 {
+		args[0].as_string()
+	} else {
+		'class Foo < Formula\n  url "https://brew.sh/foo-1.0"\nend\n'
+	}
+	updated, version := bump_compatibility_version_source(source, none)
+	return brew_runtime.bool_value(version == 1 && updated.contains('  compatibility_version 1\n'))
 }
 
 // Ruby it `it "increments compatibility_version with --write-only" do` at line 34.
 pub fn ruby_bump_compatibility_version_spec_l34_d2_increments(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('increments', ...args)
+	source := if args.len > 0 {
+		args[0].as_string()
+	} else {
+		'class Foo < Formula\n  url "https://brew.sh/foo-1.0"\n  compatibility_version 2\nend\n'
+	}
+	updated, version := bump_compatibility_version_source(source, 2)
+	return brew_runtime.bool_value(version == 3 && updated.contains('  compatibility_version 3\n'))
 }
 
 // Original Ruby source (line-for-line):

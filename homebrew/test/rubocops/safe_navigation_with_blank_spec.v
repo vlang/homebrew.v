@@ -1,28 +1,30 @@
 module rubocops
 
-import brew_runtime
+import homebrew.rubocops as safe_blank_core
 
 // Translated from Homebrew/brew `test/rubocops/safe_navigation_with_blank_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "registers an offense on a single conditional" do` at line 8.
-pub fn ruby_safe_navigation_with_blank_spec_l8_d1_registers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('registers', ...args)
+pub fn ruby_safe_navigation_with_blank_spec_l8_d1_registers() bool {
+	source := 'do_something unless foo&.blank?'
+	return safe_blank_core.audit_safe_navigation_with_blank(source).len == 1 && safe_blank_core.correct_safe_navigation_with_blank(source) == 'do_something unless foo.blank?'
 }
 
 // Ruby it `it "registers an offense on chained conditionals" do` at line 19.
-pub fn ruby_safe_navigation_with_blank_spec_l19_d2_registers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('registers', ...args)
+pub fn ruby_safe_navigation_with_blank_spec_l19_d2_registers() bool {
+	source := 'do_something unless foo&.bar&.blank?'
+	return safe_blank_core.audit_safe_navigation_with_blank(source).len == 1 && safe_blank_core.correct_safe_navigation_with_blank(source) == 'do_something unless foo&.bar.blank?'
 }
 
 // Ruby it `it "does not register an offense on `.blank?`" do` at line 30.
-pub fn ruby_safe_navigation_with_blank_spec_l30_d3_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_safe_navigation_with_blank_spec_l30_d3_does() bool {
+	return safe_blank_core.audit_safe_navigation_with_blank('return if foo.blank?').len == 0
 }
 
 // Ruby it `it "registers no offense" do` at line 38.
-pub fn ruby_safe_navigation_with_blank_spec_l38_d4_registers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('registers', ...args)
+pub fn ruby_safe_navigation_with_blank_spec_l38_d4_registers() bool {
+	return safe_blank_core.audit_safe_navigation_with_blank('bar = foo&.blank?').len == 0
 }
 
 // Original Ruby source (line-for-line):

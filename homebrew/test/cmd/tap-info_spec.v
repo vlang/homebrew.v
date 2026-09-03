@@ -1,163 +1,306 @@
 module cmd
 
 import brew_runtime
+import homebrew.cmd as brew_cmd
 
 // Translated from Homebrew/brew `test/cmd/tap-info_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+fn tap_info_spec_package(outdated bool, deprecated bool, disabled bool) brew_cmd.TapInfoPackage {
+	return brew_cmd.TapInfoPackage{
+		outdated: outdated
+		deprecated: deprecated
+		disabled: disabled
+	}
+}
+
+fn tap_info_spec_tap() brew_cmd.TapInfoTap {
+	return brew_cmd.TapInfoTap{
+		name: 'homebrew/foo'
+		installed: true
+		path: '/tmp/Library/Taps/homebrew/homebrew-foo'
+		abbreviated_path: '/tmp/Library/Taps/homebrew/homebrew-foo'
+		remote: 'https://github.com/Homebrew/homebrew-foo'
+		default_remote: 'https://github.com/Homebrew/homebrew-foo'
+		git_head: 'abc123'
+		git_last_commit: '1 second ago'
+		git_branch: 'main'
+	}
+}
+
+fn tap_info_spec_bool(ok bool) brew_runtime.Value {
+	return brew_runtime.bool_value(ok)
+}
+
+fn tap_info_spec_context_value() brew_runtime.Value {
+	return brew_runtime.Value{
+		type_name: 'TapInfo'
+		repr: 'Homebrew::Cmd::TapInfo'
+	}
+}
 
 // Ruby it `it "gets information for a given Tap", :integration_test do` at line 10.
 pub fn ruby_tap_info_spec_l10_d1_gets(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('gets', ...args)
+	tap := tap_info_spec_tap()
+	result := brew_cmd.tap_info_run(brew_cmd.TapInfoContext{
+		installed: true
+		json_version: 'v1'
+		installed_taps: [tap]
+	})
+	return tap_info_spec_bool(result.usage_error == '' && result.stderr == '' && result.stdout.contains('https://github.com/Homebrew/homebrew-foo'))
 }
 
 // Ruby it `it "display brief statistics for all installed taps" do` at line 27.
 pub fn ruby_tap_info_spec_l27_d2_display(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('display', ...args)
+	tap := brew_cmd.TapInfoTap{
+		installed: true
+	}
+	result := brew_cmd.tap_info_run(brew_cmd.TapInfoContext{
+		installed_taps: [tap]
+	})
+	return tap_info_spec_bool(result.stderr == '' && result.stdout.contains('1 tap, 0 private'))
 }
 
 // Ruby it `it "prints trusted tap status when tap trust is required" do` at line 36.
 pub fn ruby_tap_info_spec_l36_d3_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+	mut tap := tap_info_spec_tap()
+	tap.name = 'thirdparty/foo'
+	tap.remote = 'https://github.com/thirdparty/homebrew-foo'
+	tap.default_remote = tap.remote
+	tap.trusted = true
+	result := brew_cmd.tap_info_print_info([tap], brew_cmd.TapInfoContext{
+		require_tap_trust: true
+	})
+	return tap_info_spec_bool(result.stdout.contains('thirdparty/foo: Installed\nTrusted\nNo commands/casks/formulae'))
 }
 
 // Ruby it `it "prints untrusted tap status when tap trust is required" do` at line 64.
 pub fn ruby_tap_info_spec_l64_d4_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+	mut tap := tap_info_spec_tap()
+	tap.name = 'thirdparty/foo'
+	tap.remote = 'https://github.com/thirdparty/homebrew-foo'
+	tap.default_remote = tap.remote
+	result := brew_cmd.tap_info_print_info([tap], brew_cmd.TapInfoContext{
+		require_tap_trust: true
+	})
+	return tap_info_spec_bool(result.stdout.contains('thirdparty/foo: Installed\nUntrusted\nNo commands/casks/formulae'))
 }
 
 // Ruby it `it "prints tap hashes as JSON in the given order" do` at line 93.
 pub fn ruby_tap_info_spec_l93_d5_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+	output := brew_cmd.tap_info_print_json([
+		brew_cmd.TapInfoTap{
+			name: 'user/a'
+			hash: {
+				'name': 'user/a'
+			}
+		},
+		brew_cmd.TapInfoTap{
+			name: 'user/b'
+			hash: {
+				'name': 'user/b'
+			}
+		},
+	])
+	return tap_info_spec_bool(output.index('"name": "user/a"') or { -1 } < output.index('"name": "user/b"') or { -1 })
 }
 
 // Ruby let `let(:tap_info) { described_class.new([]) }` at line 105.
 pub fn ruby_tap_info_spec_l105_d6_tap_info(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tap_info', ...args)
+	return tap_info_spec_context_value()
 }
 
 // Ruby let `let(:tap) { instance_double(Tap, name: "homebrew/foo") }` at line 106.
 pub fn ruby_tap_info_spec_l106_d7_tap(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tap', ...args)
+	return brew_cmd.tap_info_tap_value(tap_info_spec_tap())
 }
 
 // Ruby it `it "does not mark an uninstalled formula" do` at line 113.
 pub fn ruby_tap_info_spec_l113_d8_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	return tap_info_spec_bool(!brew_cmd.tap_info_decorate_formula(tap_info_spec_tap(), 'missing', false, {}, true).contains('✘'))
 }
 
 // Ruby it `it "marks an installed formula as satisfied" do` at line 117.
 pub fn ruby_tap_info_spec_l117_d9_marks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('marks', ...args)
+	value := brew_cmd.tap_info_decorate_formula(tap_info_spec_tap(), 'installed', true, {
+		'homebrew/foo/installed': tap_info_spec_package(false, false, false)
+	}, true)
+	return tap_info_spec_bool(value.contains('installed') && value.contains('✔'))
 }
 
 // Ruby it `it "marks an outdated installed formula as upgradable" do` at line 124.
 pub fn ruby_tap_info_spec_l124_d10_marks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('marks', ...args)
+	value := brew_cmd.tap_info_decorate_formula(tap_info_spec_tap(), 'outdated', true, {
+		'homebrew/foo/outdated': tap_info_spec_package(true, false, false)
+	}, true)
+	return tap_info_spec_bool(value.contains('outdated') && value.contains('↑'))
 }
 
 // Ruby it `it "marks a deprecated formula with `(deprecated)`" do` at line 131.
 pub fn ruby_tap_info_spec_l131_d11_marks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('marks', ...args)
+	value := brew_cmd.tap_info_decorate_formula(tap_info_spec_tap(), 'old', false, {
+		'homebrew/foo/old': tap_info_spec_package(false, true, false)
+	}, true)
+	return tap_info_spec_bool(value.contains('old') && value.contains('(deprecated)'))
 }
 
 // Ruby it `it "marks a disabled formula with `(disabled)`" do` at line 138.
 pub fn ruby_tap_info_spec_l138_d12_marks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('marks', ...args)
+	value := brew_cmd.tap_info_decorate_formula(tap_info_spec_tap(), 'gone', false, {
+		'homebrew/foo/gone': tap_info_spec_package(false, false, true)
+	}, true)
+	return tap_info_spec_bool(value.contains('gone') && value.contains('(disabled)'))
 }
 
 // Ruby let `let(:tap_info) { described_class.new([]) }` at line 147.
 pub fn ruby_tap_info_spec_l147_d13_tap_info(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tap_info', ...args)
+	return tap_info_spec_context_value()
 }
 
 // Ruby let `let(:tap) { instance_double(Tap, name: "homebrew/foo") }` at line 148.
 pub fn ruby_tap_info_spec_l148_d14_tap(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tap', ...args)
+	return brew_cmd.tap_info_tap_value(tap_info_spec_tap())
 }
 
 // Ruby it `it "does not mark an uninstalled cask" do` at line 155.
 pub fn ruby_tap_info_spec_l155_d15_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	return tap_info_spec_bool(!brew_cmd.tap_info_decorate_cask(tap_info_spec_tap(), 'missing', false, {}, true).contains('✘'))
 }
 
 // Ruby it `it "marks an installed cask as satisfied" do` at line 159.
 pub fn ruby_tap_info_spec_l159_d16_marks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('marks', ...args)
+	value := brew_cmd.tap_info_decorate_cask(tap_info_spec_tap(), 'installed', true, {
+		'homebrew/foo/installed': tap_info_spec_package(false, false, false)
+	}, true)
+	return tap_info_spec_bool(value.contains('installed') && value.contains('✔'))
 }
 
 // Ruby it `it "marks an outdated installed cask as upgradable" do` at line 166.
 pub fn ruby_tap_info_spec_l166_d17_marks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('marks', ...args)
+	value := brew_cmd.tap_info_decorate_cask(tap_info_spec_tap(), 'outdated', true, {
+		'homebrew/foo/outdated': tap_info_spec_package(true, false, false)
+	}, true)
+	return tap_info_spec_bool(value.contains('outdated') && value.contains('↑'))
 }
 
 // Ruby it `it "marks a deprecated cask with `(deprecated)`" do` at line 173.
 pub fn ruby_tap_info_spec_l173_d18_marks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('marks', ...args)
+	value := brew_cmd.tap_info_decorate_cask(tap_info_spec_tap(), 'old', false, {
+		'homebrew/foo/old': tap_info_spec_package(false, true, false)
+	}, true)
+	return tap_info_spec_bool(value.contains('old') && value.contains('(deprecated)'))
 }
 
 // Ruby it `it "marks a disabled cask with `(disabled)`" do` at line 180.
 pub fn ruby_tap_info_spec_l180_d19_marks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('marks', ...args)
+	value := brew_cmd.tap_info_decorate_cask(tap_info_spec_tap(), 'gone', false, {
+		'homebrew/foo/gone': tap_info_spec_package(false, false, true)
+	}, true)
+	return tap_info_spec_bool(value.contains('gone') && value.contains('(disabled)'))
 }
 
 // Ruby let `let(:tap_info) { described_class.new([]) }` at line 189.
 pub fn ruby_tap_info_spec_l189_d20_tap_info(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tap_info', ...args)
+	return tap_info_spec_context_value()
 }
 
 // Ruby let `let(:tap) do` at line 196.
 pub fn ruby_tap_info_spec_l196_d21_tap(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tap', ...args)
+	mut tap := tap_info_spec_tap()
+	tap.command_files = ['/some/tap/cmd/brew-mycmd.rb']
+	tap.formula_names = ['homebrew/foo/foo', 'homebrew/foo/uninstalled-formula']
+	tap.cask_tokens = ['homebrew/foo/bar', 'homebrew/foo/uninstalled-cask']
+	return brew_cmd.tap_info_tap_value(tap)
 }
 
 // Ruby it `it "lists every formula and cask, marking only the installed ones" do` at line 228.
 pub fn ruby_tap_info_spec_l228_d22_lists(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('lists', ...args)
+	mut tap := tap_info_spec_tap()
+	tap.command_files = ['/some/tap/cmd/brew-mycmd.rb']
+	tap.formula_names = ['homebrew/foo/foo', 'homebrew/foo/uninstalled-formula']
+	tap.cask_tokens = ['homebrew/foo/bar', 'homebrew/foo/uninstalled-cask']
+	result := brew_cmd.tap_info_print_tap_listings(tap, ['foo'], ['bar'], {
+		'homebrew/foo/foo':                 tap_info_spec_package(false, false, false)
+		'homebrew/foo/uninstalled-formula': tap_info_spec_package(false, false, false)
+	}, {
+		'homebrew/foo/bar':              tap_info_spec_package(false, false, false)
+		'homebrew/foo/uninstalled-cask': tap_info_spec_package(false, false, false)
+	}, true, 120)
+	return tap_info_spec_bool(result.stdout.contains('Commands') && result.stdout.contains('mycmd') && result.stdout.contains('Formulae') && result.stdout.contains('foo') && result.stdout.contains('Casks') && result.stdout.contains('bar') && result.stdout.contains('✔') && !result.stdout.contains('✘'))
 }
 
 // Ruby let `let(:formula_names) { (1..40).map { |i| "homebrew/foo/formula#{i}" } }` at line 238.
 pub fn ruby_tap_info_spec_l238_d23_formula_names(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_names', ...args)
+	return brew_runtime.string_array_value(tap_info_spec_formula_names())
 }
 
 // Ruby let `let(:tap) do` at line 239.
 pub fn ruby_tap_info_spec_l239_d24_tap(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tap', ...args)
+	mut tap := tap_info_spec_tap()
+	tap.formula_names = tap_info_spec_formula_names()
+	return brew_cmd.tap_info_tap_value(tap)
 }
 
 // Ruby it `it "warns about truncation and shows only installed entries under the standard header" do` at line 259.
 pub fn ruby_tap_info_spec_l259_d25_warns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('warns', ...args)
+	mut tap := tap_info_spec_tap()
+	tap.formula_names = tap_info_spec_formula_names()
+	result := brew_cmd.tap_info_print_tap_listings(tap, ['formula7'], [], {
+		'homebrew/foo/formula7': tap_info_spec_package(false, false, false)
+	}, {}, true, 80)
+	return tap_info_spec_bool(result.stdout.contains('==> Formulae') && result.stdout.contains('formula7') && result.stdout.contains('✔') && result.stderr.contains('Tap has more than 30 formulae; showing only installed entries.'))
 }
 
 // Ruby let `let(:tap) do` at line 267.
 pub fn ruby_tap_info_spec_l267_d26_tap(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tap', ...args)
+	mut tap := tap_info_spec_tap()
+	tap.formula_names = ['homebrew/foo/foo', 'homebrew/foo/baz']
+	tap.cask_tokens = ['homebrew/foo/bar']
+	return brew_cmd.tap_info_tap_value(tap)
 }
 
 // Ruby it `it "lists every formula and cask without uninstalled markers" do` at line 283.
 pub fn ruby_tap_info_spec_l283_d27_lists(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('lists', ...args)
+	mut tap := tap_info_spec_tap()
+	tap.formula_names = ['homebrew/foo/foo', 'homebrew/foo/baz']
+	tap.cask_tokens = ['homebrew/foo/bar']
+	result := brew_cmd.tap_info_print_tap_listings(tap, [], [], {}, {}, true, 80)
+	return tap_info_spec_bool(result.stdout.contains('==> Formulae') && result.stdout.index('baz') or { -1 } < result.stdout.index('foo') or { -1 } && result.stdout.contains('==> Casks') && result.stdout.contains('bar') && !result.stdout.contains('✘'))
 }
 
 // Ruby let `let(:formula_names) { (1..40).map { |i| "homebrew/foo/formula#{i}" } }` at line 291.
 pub fn ruby_tap_info_spec_l291_d28_formula_names(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_names', ...args)
+	return brew_runtime.string_array_value(tap_info_spec_formula_names())
 }
 
 // Ruby let `let(:tap) do` at line 292.
 pub fn ruby_tap_info_spec_l292_d29_tap(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tap', ...args)
+	mut tap := tap_info_spec_tap()
+	tap.formula_names = tap_info_spec_formula_names()
+	return brew_cmd.tap_info_tap_value(tap)
 }
 
 // Ruby it `it "shows a link to the tap remote and warns when nothing is installed" do` at line 308.
 pub fn ruby_tap_info_spec_l308_d30_shows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('shows', ...args)
+	mut tap := tap_info_spec_tap()
+	tap.formula_names = tap_info_spec_formula_names()
+	result := brew_cmd.tap_info_print_tap_listings(tap, [], [], {}, {}, true, 80)
+	return tap_info_spec_bool(result.stdout.contains('See: https://github.com/Homebrew/homebrew-foo') && result.stderr.contains('Tap has more than 30 formulae and none are installed.'))
 }
 
 // Ruby it `it "does not list individual formula names" do` at line 314.
 pub fn ruby_tap_info_spec_l314_d31_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	mut tap := tap_info_spec_tap()
+	tap.formula_names = tap_info_spec_formula_names()
+	result := brew_cmd.tap_info_print_tap_listings(tap, [], [], {}, {}, true, 80)
+	return tap_info_spec_bool(!result.stdout.contains('formula1'))
+}
+
+fn tap_info_spec_formula_names() []string {
+	mut names := []string{cap: 40}
+	for index in 1 .. 41 {
+		names << 'homebrew/foo/formula${index}'
+	}
+	return names
 }
 
 // Original Ruby source (line-for-line):

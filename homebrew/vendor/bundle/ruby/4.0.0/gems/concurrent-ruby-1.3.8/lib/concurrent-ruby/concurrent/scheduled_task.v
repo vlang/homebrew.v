@@ -1,83 +1,553 @@
 module concurrent
 
 import brew_runtime
+import sync
+import time
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/scheduled_task.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub type ScheduledTaskAction = fn([]brew_runtime.Value) !brew_runtime.Value
+
+pub type ScheduledExecution = fn([]brew_runtime.Value)
+
+pub type ScheduledExecutorPost = fn(voidptr, ScheduledExecution, []brew_runtime.Value) bool
+
+pub struct ScheduledExecutor {
+pub:
+	context voidptr
+	post_fn ScheduledExecutorPost @[required]
+	name    string
+}
+
+pub fn (executor ScheduledExecutor) post(task ScheduledExecution, args []brew_runtime.Value) bool {
+	return executor.post_fn(executor.context, task, args)
+}
+
+fn execute_scheduled_asynchronously(task ScheduledExecution, args []brew_runtime.Value) {
+	task(args)
+}
+
+fn asynchronous_scheduled_post(_ voidptr, task ScheduledExecution, args []brew_runtime.Value) bool {
+	spawn execute_scheduled_asynchronously(task, args.clone())
+	return true
+}
+
+pub fn asynchronous_scheduled_executor(name string) ScheduledExecutor {
+	return ScheduledExecutor{
+		post_fn: asynchronous_scheduled_post
+		name: name
+	}
+}
+
+pub enum ScheduledTaskState {
+	unscheduled
+	pending
+	processing
+	fulfilled
+	rejected
+	cancelled
+}
+
+@[heap]
+pub struct ScheduledTaskScheduler {
+	mutex &sync.Mutex
+	wake  chan bool
+mut:
+	tasks      []&ScheduledTask
+	running    bool
+	processing bool
+}
+
+pub fn new_scheduled_task_scheduler() &ScheduledTaskScheduler {
+	return &ScheduledTaskScheduler{
+		mutex: sync.new_mutex()
+		wake: chan bool{ cap: 1 }
+		running: true
+	}
+}
+
+fn scheduled_monotonic_seconds() f64 {
+	return f64(time.sys_mono_now()) / f64(time.second)
+}
+
+fn wake_scheduled_task_scheduler(scheduler &ScheduledTaskScheduler) {
+	select {
+		scheduler.wake <- true {
+		}
+		else {
+		}
+	}
+}
+
+fn run_scheduled_task_scheduler(scheduler_address u64) {
+	mut active_scheduler := unsafe { &ScheduledTaskScheduler(voidptr(scheduler_address)) }
+	active_scheduler.process_tasks()
+}
+
+fn (mut scheduler ScheduledTaskScheduler) add(task &ScheduledTask) bool {
+	scheduler.mutex.lock()
+	if !scheduler.running {
+		scheduler.mutex.unlock()
+		return false
+	}
+	if task.initial_delay() <= 0.01 {
+		scheduler.mutex.unlock()
+		return task.dispatch()
+	}
+	schedule_time := task.scheduled_at()
+	mut index := 0
+	for index < scheduler.tasks.len && scheduler.tasks[index].scheduled_at() <= schedule_time {
+		index++
+	}
+	scheduler.tasks.insert(index, task)
+	start_worker := !scheduler.processing
+	if start_worker {
+		scheduler.processing = true
+	}
+	scheduler.mutex.unlock()
+	wake_scheduled_task_scheduler(scheduler)
+	if start_worker {
+		spawn run_scheduled_task_scheduler(u64(voidptr(scheduler)))
+	}
+	return true
+}
+
+fn (mut scheduler ScheduledTaskScheduler) remove(task &ScheduledTask) bool {
+	scheduler.mutex.lock()
+	mut removed := false
+	for index, queued in scheduler.tasks {
+		if queued == task {
+			scheduler.tasks.delete(index)
+			removed = true
+			break
+		}
+	}
+	scheduler.mutex.unlock()
+	if removed {
+		wake_scheduled_task_scheduler(scheduler)
+	}
+	return removed
+}
+
+pub fn (mut scheduler ScheduledTaskScheduler) shutdown() bool {
+	scheduler.mutex.lock()
+	scheduler.running = false
+	scheduler.tasks.clear()
+	scheduler.mutex.unlock()
+	wake_scheduled_task_scheduler(scheduler)
+	return true
+}
+
+fn (mut scheduler ScheduledTaskScheduler) process_tasks() {
+	for {
+		scheduler.mutex.lock()
+		if !scheduler.running || scheduler.tasks.len == 0 {
+			scheduler.processing = false
+			scheduler.mutex.unlock()
+			return
+		}
+		difference := scheduler.tasks[0].scheduled_at() - scheduled_monotonic_seconds()
+		if difference <= 0 {
+			task := scheduler.tasks[0]
+			scheduler.tasks.delete(0)
+			scheduler.mutex.unlock()
+			task.dispatch()
+			continue
+		}
+		scheduler.mutex.unlock()
+		requested_wait := time.Duration(difference * f64(time.second))
+		maximum_wait := 60 * time.second
+		wait := if requested_wait < maximum_wait { requested_wait } else { maximum_wait }
+		select {
+			_ := <-scheduler.wake {
+			}
+			wait {
+			}
+		}
+	}
+}
+
+@[heap]
+pub struct ScheduledTask {
+	mutex     &sync.Mutex
+	completed chan bool
+	parent    &ScheduledTaskScheduler
+	executor_ ScheduledExecutor
+	task      ScheduledTaskAction @[required]
+	args      []brew_runtime.Value
+mut:
+	delay          f64
+	time_          f64
+	has_time       bool
+	state_         ScheduledTaskState
+	value_         brew_runtime.Value
+	reason_        string
+	completion_set bool
+}
+
+pub fn new_scheduled_task_on(delay f64, args []brew_runtime.Value, parent &ScheduledTaskScheduler,
+	executor ScheduledExecutor, task ScheduledTaskAction) !&ScheduledTask {
+	if delay < 0 {
+		return error('seconds must be greater than zero')
+	}
+	return &ScheduledTask{
+		mutex: sync.new_mutex()
+		completed: chan bool{ cap: 1 }
+		parent: parent
+		executor_: executor
+		task: task
+		args: args.clone()
+		delay: delay
+		state_: .unscheduled
+		value_: brew_runtime.object_value('NilClass', 'nil')
+	}
+}
+
+pub fn new_scheduled_task(delay f64, args []brew_runtime.Value,
+	task ScheduledTaskAction) !&ScheduledTask {
+	return new_scheduled_task_on(delay, args, global_timer_set(), global_io_executor().adapter, task)
+}
+
+pub fn (task &ScheduledTask) executor() ScheduledExecutor {
+	return task.executor_
+}
+
+pub fn (task &ScheduledTask) initial_delay() f64 {
+	task.mutex.lock()
+	delay := task.delay
+	task.mutex.unlock()
+	return delay
+}
+
+pub fn (task &ScheduledTask) scheduled_at() f64 {
+	task.mutex.lock()
+	schedule_time := task.time_
+	task.mutex.unlock()
+	return schedule_time
+}
+
+pub fn (task &ScheduledTask) has_schedule_time() bool {
+	task.mutex.lock()
+	has_time := task.has_time
+	task.mutex.unlock()
+	return has_time
+}
+
+pub fn (task &ScheduledTask) state() ScheduledTaskState {
+	task.mutex.lock()
+	state := task.state_
+	task.mutex.unlock()
+	return state
+}
+
+pub fn (task &ScheduledTask) cancelled() bool {
+	return task.state() == .cancelled
+}
+
+pub fn (task &ScheduledTask) processing() bool {
+	return task.state() == .processing
+}
+
+pub fn (task &ScheduledTask) unscheduled() bool {
+	return task.state() == .unscheduled
+}
+
+pub fn (task &ScheduledTask) pending() bool {
+	return task.state() == .pending
+}
+
+fn signal_scheduled_task_completion(task &ScheduledTask) {
+	select {
+		task.completed <- true {
+		}
+		else {
+		}
+	}
+}
+
+pub fn (mut task ScheduledTask) cancel() bool {
+	task.mutex.lock()
+	if task.state_ !in [.pending, .unscheduled] {
+		task.mutex.unlock()
+		return false
+	}
+	task.state_ = .cancelled
+	task.value_ = brew_runtime.object_value('NilClass', 'nil')
+	task.reason_ = 'CancelledOperationError'
+	task.completion_set = true
+	task.mutex.unlock()
+	mut parent := task.parent
+	parent.remove(task)
+	signal_scheduled_task_completion(task)
+	return true
+}
+
+pub fn (mut task ScheduledTask) reset() bool {
+	return task.reschedule(task.initial_delay()) or { false }
+}
+
+pub fn (mut task ScheduledTask) reschedule(delay f64) !bool {
+	if delay < 0 {
+		return error('seconds must be greater than zero')
+	}
+	task.mutex.lock()
+	if task.state_ != .pending {
+		task.mutex.unlock()
+		return false
+	}
+	task.mutex.unlock()
+	mut parent := task.parent
+	if !parent.remove(task) {
+		return false
+	}
+	return task.schedule(delay)
+}
+
+pub fn (mut task ScheduledTask) execute() &ScheduledTask {
+	task.mutex.lock()
+	if task.state_ != .unscheduled {
+		task.mutex.unlock()
+		return task
+	}
+	task.state_ = .pending
+	delay := task.delay
+	task.mutex.unlock()
+	task.schedule(delay) or {
+		task.mutex.lock()
+		task.state_ = .unscheduled
+		task.mutex.unlock()
+	}
+	return task
+}
+
+fn scheduled_task_executor_entry(args []brew_runtime.Value) {
+	if args.len == 0 {
+		return
+	}
+	address := (args[0].attribute('scheduled_task_address') or { return }).u64()
+	mut task := unsafe { &ScheduledTask(voidptr(address)) }
+	task.process_task()
+}
+
+fn (task &ScheduledTask) dispatch() bool {
+	receiver := scheduled_task_boundary_value(task)
+	return task.executor_.post(scheduled_task_executor_entry, [receiver])
+}
+
+pub fn (mut task ScheduledTask) process_task() brew_runtime.Value {
+	task.mutex.lock()
+	if task.state_ != .pending {
+		value := task.value_
+		task.mutex.unlock()
+		return value
+	}
+	task.state_ = .processing
+	arguments := task.args.clone()
+	task.mutex.unlock()
+	value := task.task(arguments) or {
+		task.mutex.lock()
+		task.state_ = .rejected
+		task.reason_ = err.msg()
+		task.value_ = brew_runtime.object_value('NilClass', 'nil')
+		task.completion_set = true
+		task.mutex.unlock()
+		signal_scheduled_task_completion(task)
+		return brew_runtime.object_value('NilClass', 'nil')
+	}
+	task.mutex.lock()
+	task.state_ = .fulfilled
+	task.value_ = value
+	task.reason_ = ''
+	task.completion_set = true
+	task.mutex.unlock()
+	signal_scheduled_task_completion(task)
+	return value
+}
+
+fn (mut task ScheduledTask) schedule(delay f64) !bool {
+	task.mutex.lock()
+	task.delay = delay
+	task.time_ = scheduled_monotonic_seconds() + delay
+	task.has_time = true
+	task.mutex.unlock()
+	mut parent := task.parent
+	return parent.add(task)
+}
+
+pub fn (mut task ScheduledTask) wait(timeout time.Duration) bool {
+	started := time.sys_mono_now()
+	for {
+		task.mutex.lock()
+		done := task.completion_set
+		task.mutex.unlock()
+		if done {
+			return true
+		}
+		if timeout >= 0 && time.sys_mono_now() - started >= u64(timeout) {
+			return false
+		}
+		time.sleep(time.millisecond)
+	}
+	return false
+}
+
+pub fn (mut task ScheduledTask) value() brew_runtime.Value {
+	task.mutex.lock()
+	value := task.value_
+	task.mutex.unlock()
+	return value
+}
+
+pub fn (mut task ScheduledTask) reason() string {
+	task.mutex.lock()
+	reason := task.reason_
+	task.mutex.unlock()
+	return reason
+}
+
+fn scheduled_boundary_action(args []brew_runtime.Value) !brew_runtime.Value {
+	return if args.len > 0 { args[0] } else { brew_runtime.object_value('NilClass', 'nil') }
+}
+
+fn scheduled_task_boundary_value(task &ScheduledTask) brew_runtime.Value {
+	return brew_runtime.structured_value('Concurrent::ScheduledTask', '#<Concurrent::ScheduledTask>', {
+		'scheduled_task_address': u64(voidptr(task)).str()
+	})
+}
+
+fn scheduled_task_boundary_receiver(args []brew_runtime.Value) &ScheduledTask {
+	if args.len == 0 {
+		panic('ScheduledTask method requires a receiver')
+	}
+	address := (args[0].attribute('scheduled_task_address') or {
+		panic('${args[0].type_name} has no translated ScheduledTask state')
+	}).u64()
+	return unsafe { &ScheduledTask(voidptr(address)) }
+}
+
+fn scheduled_task_from_boundary(args []brew_runtime.Value, offset int) &ScheduledTask {
+	if args.len <= offset {
+		panic('ScheduledTask#initialize requires a delay')
+	}
+	delay := args[offset].as_float() or { panic(err) }
+	mut arguments := []brew_runtime.Value{}
+	if args.len > offset + 1 && args[offset + 1].type_name == 'Hash' {
+		options := args[offset + 1].as_map() or { panic(err) }
+		if 'args' in options {
+			arguments = options['args'].as_array() or { panic(err) }
+		}
+	}
+	if arguments.len == 0 && args.len > offset + 2 {
+		arguments = [args[offset + 2]]
+	}
+	return new_scheduled_task(delay, arguments, scheduled_boundary_action) or { panic(err) }
+}
 
 // Ruby attr_reader `attr_reader :executor` at line 163.
 pub fn ruby_scheduled_task_l163_d1_executor(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('executor', ...args)
+	task := scheduled_task_boundary_receiver(args)
+	return brew_runtime.object_value('Concurrent::ExecutorService', task.executor().name)
 }
 
 // Ruby method `initialize(delay, opts = {}, &task)` at line 178.
 pub fn ruby_scheduled_task_l178_d2_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	return scheduled_task_boundary_value(scheduled_task_from_boundary(args, 0))
 }
 
 // Ruby method `initial_delay` at line 199.
 pub fn ruby_scheduled_task_l199_d3_initial_delay(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initial_delay', ...args)
+	mut task := scheduled_task_boundary_receiver(args)
+	return brew_runtime.float_value(task.initial_delay())
 }
 
 // Ruby method `schedule_time` at line 206.
 pub fn ruby_scheduled_task_l206_d4_schedule_time(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('schedule_time', ...args)
+	mut task := scheduled_task_boundary_receiver(args)
+	if !task.has_schedule_time() {
+		return brew_runtime.object_value('NilClass', 'nil')
+	}
+	return brew_runtime.float_value(task.scheduled_at())
 }
 
 // Ruby method `<=>(other)` at line 213.
 pub fn ruby_scheduled_task_l213_d5_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('<=>', ...args)
+	if args.len < 2 {
+		panic('ScheduledTask#<=> requires another task')
+	}
+	mut left := scheduled_task_boundary_receiver(args)
+	mut right := scheduled_task_boundary_receiver(args[1..])
+	comparison := if left.scheduled_at() < right.scheduled_at() {
+		-1
+	} else if left.scheduled_at() > right.scheduled_at() { 1 } else { 0 }
+	return brew_runtime.int_value(comparison)
 }
 
 // Ruby method `cancelled?` at line 220.
 pub fn ruby_scheduled_task_l220_d6_cancelled(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cancelled?', ...args)
+	mut task := scheduled_task_boundary_receiver(args)
+	return brew_runtime.bool_value(task.cancelled())
 }
 
 // Ruby method `processing?` at line 227.
 pub fn ruby_scheduled_task_l227_d7_processing(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('processing?', ...args)
+	mut task := scheduled_task_boundary_receiver(args)
+	return brew_runtime.bool_value(task.processing())
 }
 
 // Ruby method `cancel` at line 235.
 pub fn ruby_scheduled_task_l235_d8_cancel(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cancel', ...args)
+	mut task := scheduled_task_boundary_receiver(args)
+	return brew_runtime.bool_value(task.cancel())
 }
 
 // Ruby method `reset` at line 250.
 pub fn ruby_scheduled_task_l250_d9_reset(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reset', ...args)
+	mut task := scheduled_task_boundary_receiver(args)
+	return brew_runtime.bool_value(task.reset())
 }
 
 // Ruby method `reschedule(delay)` at line 262.
 pub fn ruby_scheduled_task_l262_d10_reschedule(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reschedule', ...args)
+	if args.len < 2 {
+		panic('ScheduledTask#reschedule requires a delay')
+	}
+	mut task := scheduled_task_boundary_receiver(args)
+	delay := args[1].as_float() or { panic(err) }
+	return brew_runtime.bool_value(task.reschedule(delay) or { panic(err) })
 }
 
 // Ruby method `execute` at line 273.
 pub fn ruby_scheduled_task_l273_d11_execute(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('execute', ...args)
+	mut task := scheduled_task_boundary_receiver(args)
+	return scheduled_task_boundary_value(task.execute())
 }
 
 // Ruby method `self.execute(delay, opts = {}, &task)` at line 290.
 pub fn ruby_scheduled_task_l290_d12_self_execute(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.execute', ...args)
+	mut task := scheduled_task_from_boundary(args, 0)
+	return scheduled_task_boundary_value(task.execute())
 }
 
 // Ruby method `process_task` at line 297.
 pub fn ruby_scheduled_task_l297_d13_process_task(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('process_task', ...args)
+	mut task := scheduled_task_boundary_receiver(args)
+	return task.process_task()
 }
 
 // Ruby method `ns_schedule(delay)` at line 312.
 pub fn ruby_scheduled_task_l312_d14_ns_schedule(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ns_schedule', ...args)
+	if args.len < 2 {
+		panic('ScheduledTask#ns_schedule requires a delay')
+	}
+	mut task := scheduled_task_boundary_receiver(args)
+	return brew_runtime.bool_value(task.schedule(args[1].as_float() or { panic(err) }) or {
+		panic(err)
+	})
 }
 
 // Ruby method `ns_reschedule(delay)` at line 326.
 pub fn ruby_scheduled_task_l326_d15_ns_reschedule(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ns_reschedule', ...args)
+	return ruby_scheduled_task_l262_d10_reschedule(...args)
 }
 
 // Original Ruby source (line-for-line):

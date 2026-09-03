@@ -4,115 +4,558 @@ import brew_runtime
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/collection/map/non_concurrent_map_backend.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub struct MapBackendOptions {
+pub:
+	initial_capacity ?int
+	load_factor      ?f64
+}
+
+pub fn validate_map_backend_options(options MapBackendOptions) ! {
+	if initial_capacity := options.initial_capacity {
+		if initial_capacity < 0 {
+			return error(':initial_capacity must be a positive Integer')
+		}
+	}
+	if load_factor := options.load_factor {
+		if load_factor <= 0 || load_factor > 1 {
+			return error(':load_factor must be a number between 0 and 1')
+		}
+	}
+}
+
+pub struct ConcurrentMapValue {
+pub:
+	value    brew_runtime.Value
+	identity string
+	is_nil   bool
+}
+
+pub fn concurrent_map_value(value brew_runtime.Value, identity string) ConcurrentMapValue {
+	return ConcurrentMapValue{
+		value: value
+		identity: identity
+	}
+}
+
+pub fn concurrent_map_nil() ConcurrentMapValue {
+	return ConcurrentMapValue{
+		value: brew_runtime.object_value('NilClass', 'nil')
+		identity: 'nil'
+		is_nil: true
+	}
+}
+
+pub struct MapBackendLookup {
+pub:
+	present bool
+	value   ConcurrentMapValue
+}
+
+pub type MapBackendDefaultProc = fn(mut NonConcurrentMapBackend, string) ConcurrentMapValue
+
+pub type MapBackendProducer = fn() ConcurrentMapValue
+
+pub type MapBackendComputer = fn(ConcurrentMapValue) ConcurrentMapValue
+
+pub type MapBackendEachPair = fn(string, ConcurrentMapValue)
+
+fn absent_map_default(mut backend NonConcurrentMapBackend, key string) ConcurrentMapValue {
+	_ = backend
+	_ = key
+	return concurrent_map_nil()
+}
+
+@[heap]
+pub struct NonConcurrentMapBackend {
+mut:
+	backend map[string]ConcurrentMapValue
+pub:
+	default_proc     MapBackendDefaultProc = absent_map_default
+	has_default_proc bool
+}
+
+pub fn new_non_concurrent_map_backend(options MapBackendOptions) !NonConcurrentMapBackend {
+	validate_map_backend_options(options)!
+	return NonConcurrentMapBackend{
+		backend: map[string]ConcurrentMapValue{}
+	}
+}
+
+pub fn new_non_concurrent_map_backend_with_default(options MapBackendOptions, default_proc MapBackendDefaultProc) !NonConcurrentMapBackend {
+	validate_map_backend_options(options)!
+	return NonConcurrentMapBackend{
+		backend: map[string]ConcurrentMapValue{}
+		default_proc: default_proc
+		has_default_proc: true
+	}
+}
+
+pub fn (mut backend NonConcurrentMapBackend) get(key string) ConcurrentMapValue {
+	if value := backend.backend[key] {
+		return value
+	}
+	if backend.has_default_proc {
+		return backend.default_proc(mut backend, key)
+	}
+	return concurrent_map_nil()
+}
+
+pub fn (mut backend NonConcurrentMapBackend) set(key string, value ConcurrentMapValue) ConcurrentMapValue {
+	backend.backend[key] = value
+	return value
+}
+
+pub fn (backend &NonConcurrentMapBackend) lookup(key string) MapBackendLookup {
+	if value := backend.backend[key] {
+		return MapBackendLookup{
+			present: true
+			value: value
+		}
+	}
+	return MapBackendLookup{
+		value: concurrent_map_nil()
+	}
+}
+
+pub fn (mut backend NonConcurrentMapBackend) compute_if_absent(key string, producer MapBackendProducer) ConcurrentMapValue {
+	if value := backend.backend[key] {
+		return value
+	}
+	value := producer()
+	backend.backend[key] = value
+	return value
+}
+
+pub fn (mut backend NonConcurrentMapBackend) replace_pair(key string, old_value ConcurrentMapValue, new_value ConcurrentMapValue) bool {
+	if backend.pair(key, old_value) {
+		backend.backend[key] = new_value
+		return true
+	}
+	return false
+}
+
+pub fn (mut backend NonConcurrentMapBackend) replace_if_exists(key string, new_value ConcurrentMapValue) ConcurrentMapValue {
+	if stored_value := backend.backend[key] {
+		backend.backend[key] = new_value
+		return stored_value
+	}
+	return concurrent_map_nil()
+}
+
+pub fn (mut backend NonConcurrentMapBackend) compute_if_present(key string, computer MapBackendComputer) ConcurrentMapValue {
+	if stored_value := backend.backend[key] {
+		return backend.store_computed_value(key, computer(stored_value))
+	}
+	return concurrent_map_nil()
+}
+
+pub fn (mut backend NonConcurrentMapBackend) compute(key string, computer MapBackendComputer) ConcurrentMapValue {
+	old_value := backend.lookup(key).value
+	return backend.store_computed_value(key, computer(old_value))
+}
+
+pub fn (mut backend NonConcurrentMapBackend) merge_pair(key string, value ConcurrentMapValue, computer MapBackendComputer) ConcurrentMapValue {
+	if stored_value := backend.backend[key] {
+		return backend.store_computed_value(key, computer(stored_value))
+	}
+	backend.backend[key] = value
+	return value
+}
+
+pub fn (mut backend NonConcurrentMapBackend) get_and_set(key string, value ConcurrentMapValue) ConcurrentMapValue {
+	stored_value := backend.lookup(key).value
+	backend.backend[key] = value
+	return stored_value
+}
+
+pub fn (backend &NonConcurrentMapBackend) key(key string) bool {
+	return key in backend.backend
+}
+
+pub fn (mut backend NonConcurrentMapBackend) delete(key string) ConcurrentMapValue {
+	if stored_value := backend.backend[key] {
+		backend.backend.delete(key)
+		return stored_value
+	}
+	return concurrent_map_nil()
+}
+
+pub fn (mut backend NonConcurrentMapBackend) delete_pair(key string, value ConcurrentMapValue) bool {
+	if backend.pair(key, value) {
+		backend.backend.delete(key)
+		return true
+	}
+	return false
+}
+
+pub fn (mut backend NonConcurrentMapBackend) clear() &NonConcurrentMapBackend {
+	backend.backend.clear()
+	return backend
+}
+
+pub fn (mut backend NonConcurrentMapBackend) each_pair(each MapBackendEachPair) &NonConcurrentMapBackend {
+	snapshot := backend.dupped_backend()
+	for key, value in snapshot {
+		each(key, value)
+	}
+	return backend
+}
+
+pub fn (backend &NonConcurrentMapBackend) size() int {
+	return backend.backend.len
+}
+
+pub fn (mut backend NonConcurrentMapBackend) get_or_default(key string, default_value ConcurrentMapValue) ConcurrentMapValue {
+	return backend.backend[key] or { default_value }
+}
+
+pub fn (mut backend NonConcurrentMapBackend) set_backend() {
+	backend.backend = map[string]ConcurrentMapValue{}
+}
+
+pub fn (backend &NonConcurrentMapBackend) initialize_copy() NonConcurrentMapBackend {
+	return NonConcurrentMapBackend{
+		backend: map[string]ConcurrentMapValue{}
+		default_proc: backend.default_proc
+		has_default_proc: backend.has_default_proc
+	}
+}
+
+pub fn (backend &NonConcurrentMapBackend) dupped_backend() map[string]ConcurrentMapValue {
+	return backend.backend.clone()
+}
+
+pub fn (backend &NonConcurrentMapBackend) pair(key string, expected_value ConcurrentMapValue) bool {
+	if stored_value := backend.backend[key] {
+		return stored_value.identity == expected_value.identity
+	}
+	return false
+}
+
+pub fn (mut backend NonConcurrentMapBackend) store_computed_value(key string, new_value ConcurrentMapValue) ConcurrentMapValue {
+	if new_value.is_nil {
+		backend.backend.delete(key)
+		return concurrent_map_nil()
+	}
+	backend.backend[key] = new_value
+	return new_value
+}
+
+fn backend_nil_value() brew_runtime.Value {
+	return brew_runtime.object_value('NilClass', 'nil')
+}
+
+fn backend_boundary_key(value brew_runtime.Value) string {
+	return '${value.type_name}\0${value.repr}'
+}
+
+fn backend_boundary_identity(value brew_runtime.Value) string {
+	if identity := value.attributes['object_id'] {
+		return identity
+	}
+	return '${value.type_name}\0${value.repr}'
+}
+
+fn backend_boundary_same_object(left brew_runtime.Value, right brew_runtime.Value) bool {
+	return backend_boundary_identity(left) == backend_boundary_identity(right)
+}
+
+@[heap]
+struct BoundaryMapState {
+mut:
+	values map[string]brew_runtime.Value
+}
+
+fn backend_boundary_receiver(args []brew_runtime.Value) &BoundaryMapState {
+	if args.len == 0 {
+		panic('map backend method requires a receiver')
+	}
+	address := (args[0].attribute('backend_address') or {
+		panic('${args[0].type_name} has no translated backend state')
+	}).u64()
+	return unsafe { &BoundaryMapState(voidptr(address)) }
+}
+
+fn backend_boundary_new(type_name string, options MapBackendOptions) brew_runtime.Value {
+	state := &BoundaryMapState{
+		values: map[string]brew_runtime.Value{}
+	}
+	return brew_runtime.Value{
+		type_name: type_name
+		repr: '#<${type_name}>'
+		attributes: {
+			'initial_capacity': (options.initial_capacity or { 0 }).str()
+			'load_factor':      (options.load_factor or { 0.0 }).str()
+			'backend_address':  u64(voidptr(state)).str()
+		}
+	}
+}
+
+fn map_options_from_boundary(value brew_runtime.Value) MapBackendOptions {
+	initial_capacity := if item := value.map_data['initial_capacity'] {
+		?int(item.as_int() or { panic(err) })
+	} else {
+		none
+	}
+	load_factor := if item := value.map_data['load_factor'] {
+		?f64(item.as_float() or { panic(err) })
+	} else {
+		none
+	}
+	return MapBackendOptions{
+		initial_capacity: initial_capacity
+		load_factor: load_factor
+	}
+}
 
 // Ruby method `initialize(options = nil, &default_proc)` at line 15.
 pub fn ruby_non_concurrent_map_backend_l15_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	options := if args.len > 0 && args[0].type_name == 'Hash' {
+		map_options_from_boundary(args[0])
+	} else {
+		MapBackendOptions{}
+	}
+	validate_map_backend_options(options) or { panic(err) }
+	return backend_boundary_new('Concurrent::Collection::NonConcurrentMapBackend', options)
 }
 
 // Ruby method `[](key)` at line 21.
 pub fn ruby_non_concurrent_map_backend_l21_d2_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('[]', ...args)
+	if args.len < 2 {
+		panic('map [] requires a receiver and key')
+	}
+	backend := backend_boundary_receiver(args)
+	return backend.values[backend_boundary_key(args[1])] or { backend_nil_value() }
 }
 
 // Ruby method `[]=(key, value)` at line 25.
 pub fn ruby_non_concurrent_map_backend_l25_d3_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('[]=', ...args)
+	if args.len < 3 {
+		panic('map []= requires a receiver, key and value')
+	}
+	mut backend := backend_boundary_receiver(args)
+	backend.values[backend_boundary_key(args[1])] = args[2]
+	return args[2]
 }
 
 // Ruby method `compute_if_absent(key)` at line 29.
 pub fn ruby_non_concurrent_map_backend_l29_d4_compute_if_absent(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('compute_if_absent', ...args)
+	if args.len < 3 {
+		panic('compute_if_absent requires a receiver, key and yielded value')
+	}
+	mut backend := backend_boundary_receiver(args)
+	key := backend_boundary_key(args[1])
+	if stored_value := backend.values[key] {
+		return stored_value
+	}
+	backend.values[key] = args[2]
+	return args[2]
 }
 
 // Ruby method `replace_pair(key, old_value, new_value)` at line 37.
 pub fn ruby_non_concurrent_map_backend_l37_d5_replace_pair(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('replace_pair', ...args)
+	if args.len < 4 {
+		panic('replace_pair requires a receiver, key, old value and new value')
+	}
+	mut backend := backend_boundary_receiver(args)
+	key := backend_boundary_key(args[1])
+	if stored_value := backend.values[key] {
+		if backend_boundary_same_object(args[2], stored_value) {
+			backend.values[key] = args[3]
+			return brew_runtime.bool_value(true)
+		}
+	}
+	return brew_runtime.bool_value(false)
 }
 
 // Ruby method `replace_if_exists(key, new_value)` at line 46.
 pub fn ruby_non_concurrent_map_backend_l46_d6_replace_if_exists(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('replace_if_exists', ...args)
+	if args.len < 3 {
+		panic('replace_if_exists requires a receiver, key and new value')
+	}
+	mut backend := backend_boundary_receiver(args)
+	key := backend_boundary_key(args[1])
+	if stored_value := backend.values[key] {
+		backend.values[key] = args[2]
+		return stored_value
+	}
+	return backend_nil_value()
 }
 
 // Ruby method `compute_if_present(key)` at line 53.
 pub fn ruby_non_concurrent_map_backend_l53_d7_compute_if_present(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('compute_if_present', ...args)
+	if args.len < 3 {
+		panic('compute_if_present requires a receiver, key and yielded value')
+	}
+	mut backend := backend_boundary_receiver(args)
+	key := backend_boundary_key(args[1])
+	if key !in backend.values {
+		return backend_nil_value()
+	}
+	if args[2].type_name == 'NilClass' {
+		backend.values.delete(key)
+		return backend_nil_value()
+	}
+	backend.values[key] = args[2]
+	return args[2]
 }
 
 // Ruby method `compute(key)` at line 59.
 pub fn ruby_non_concurrent_map_backend_l59_d8_compute(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('compute', ...args)
+	if args.len < 3 {
+		panic('compute requires a receiver, key and yielded value')
+	}
+	mut backend := backend_boundary_receiver(args)
+	key := backend_boundary_key(args[1])
+	if args[2].type_name == 'NilClass' {
+		backend.values.delete(key)
+		return backend_nil_value()
+	}
+	backend.values[key] = args[2]
+	return args[2]
 }
 
 // Ruby method `merge_pair(key, value)` at line 63.
 pub fn ruby_non_concurrent_map_backend_l63_d9_merge_pair(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('merge_pair', ...args)
+	if args.len < 3 {
+		panic('merge_pair requires a receiver, key and value')
+	}
+	mut backend := backend_boundary_receiver(args)
+	key := backend_boundary_key(args[1])
+	if key !in backend.values {
+		backend.values[key] = args[2]
+		return args[2]
+	}
+	if args.len < 4 {
+		panic('merge_pair for an existing key requires the yielded value')
+	}
+	if args[3].type_name == 'NilClass' {
+		backend.values.delete(key)
+		return backend_nil_value()
+	}
+	backend.values[key] = args[3]
+	return args[3]
 }
 
 // Ruby method `get_and_set(key, value)` at line 71.
 pub fn ruby_non_concurrent_map_backend_l71_d10_get_and_set(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('get_and_set', ...args)
+	if args.len < 3 {
+		panic('get_and_set requires a receiver, key and value')
+	}
+	mut backend := backend_boundary_receiver(args)
+	key := backend_boundary_key(args[1])
+	stored_value := backend.values[key] or { backend_nil_value() }
+	backend.values[key] = args[2]
+	return stored_value
 }
 
 // Ruby method `key?(key)` at line 77.
 pub fn ruby_non_concurrent_map_backend_l77_d11_key(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('key?', ...args)
+	if args.len < 2 {
+		panic('key? requires a receiver and key')
+	}
+	backend := backend_boundary_receiver(args)
+	return brew_runtime.bool_value(backend_boundary_key(args[1]) in backend.values)
 }
 
 // Ruby method `delete(key)` at line 81.
 pub fn ruby_non_concurrent_map_backend_l81_d12_delete(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('delete', ...args)
+	if args.len < 2 {
+		panic('delete requires a receiver and key')
+	}
+	mut backend := backend_boundary_receiver(args)
+	key := backend_boundary_key(args[1])
+	stored_value := backend.values[key] or { return backend_nil_value() }
+	backend.values.delete(key)
+	return stored_value
 }
 
 // Ruby method `delete_pair(key, value)` at line 85.
 pub fn ruby_non_concurrent_map_backend_l85_d13_delete_pair(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('delete_pair', ...args)
+	if args.len < 3 {
+		panic('delete_pair requires a receiver, key and value')
+	}
+	mut backend := backend_boundary_receiver(args)
+	key := backend_boundary_key(args[1])
+	if stored_value := backend.values[key] {
+		if backend_boundary_same_object(args[2], stored_value) {
+			backend.values.delete(key)
+			return brew_runtime.bool_value(true)
+		}
+	}
+	return brew_runtime.bool_value(false)
 }
 
 // Ruby method `clear` at line 94.
 pub fn ruby_non_concurrent_map_backend_l94_d14_clear(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('clear', ...args)
+	mut backend := backend_boundary_receiver(args)
+	backend.values.clear()
+	return args[0]
 }
 
 // Ruby method `each_pair` at line 99.
 pub fn ruby_non_concurrent_map_backend_l99_d15_each_pair(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('each_pair', ...args)
+	_ = backend_boundary_receiver(args).values.clone()
+	return args[0]
 }
 
 // Ruby method `size` at line 106.
 pub fn ruby_non_concurrent_map_backend_l106_d16_size(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('size', ...args)
+	return brew_runtime.int_value(backend_boundary_receiver(args).values.len)
 }
 
 // Ruby method `get_or_default(key, default_value)` at line 110.
 pub fn ruby_non_concurrent_map_backend_l110_d17_get_or_default(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('get_or_default', ...args)
+	if args.len < 3 {
+		panic('get_or_default requires a receiver, key and default value')
+	}
+	backend := backend_boundary_receiver(args)
+	return backend.values[backend_boundary_key(args[1])] or { args[2] }
 }
 
 // Ruby method `set_backend(default_proc)` at line 116.
 pub fn ruby_non_concurrent_map_backend_l116_d18_set_backend(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('set_backend', ...args)
+	return backend_boundary_new('Concurrent::Collection::NonConcurrentMapBackend', MapBackendOptions{})
 }
 
 // Ruby method `initialize_copy(other)` at line 124.
 pub fn ruby_non_concurrent_map_backend_l124_d19_initialize_copy(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize_copy', ...args)
+	if args.len == 0 {
+		panic('initialize_copy requires the copied backend')
+	}
+	return backend_boundary_new(args[0].type_name, MapBackendOptions{})
 }
 
 // Ruby method `dupped_backend` at line 130.
 pub fn ruby_non_concurrent_map_backend_l130_d20_dupped_backend(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dupped_backend', ...args)
+	return brew_runtime.map_value(backend_boundary_receiver(args).values.clone())
 }
 
 // Ruby method `pair?(key, expected_value)` at line 134.
 pub fn ruby_non_concurrent_map_backend_l134_d21_pair(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('pair?', ...args)
+	if args.len < 3 {
+		panic('pair? requires a receiver, key and expected value')
+	}
+	backend := backend_boundary_receiver(args)
+	if stored_value := backend.values[backend_boundary_key(args[1])] {
+		return brew_runtime.bool_value(backend_boundary_same_object(args[2], stored_value))
+	}
+	return brew_runtime.bool_value(false)
 }
 
 // Ruby method `store_computed_value(key, new_value)` at line 138.
 pub fn ruby_non_concurrent_map_backend_l138_d22_store_computed_value(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('store_computed_value', ...args)
+	if args.len < 3 {
+		panic('store_computed_value requires a receiver, key and new value')
+	}
+	mut backend := backend_boundary_receiver(args)
+	key := backend_boundary_key(args[1])
+	if args[2].type_name == 'NilClass' {
+		backend.values.delete(key)
+		return backend_nil_value()
+	}
+	backend.values[key] = args[2]
+	return args[2]
 }
 
 // Original Ruby source (line-for-line):

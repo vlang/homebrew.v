@@ -4,70 +4,414 @@ import brew_runtime
 
 // Translated from Homebrew/brew `api/cask_struct.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub const cask_struct_predicate_names = ['auto_updates', 'caveats', 'conflicts', 'container',
+	'depends_on', 'deprecate', 'desc', 'disable', 'homepage']
+
+pub struct CaskStructPredicates {
+pub:
+	auto_updates bool
+	caveats      bool
+	conflicts    bool
+	container    bool
+	depends_on   bool
+	deprecate    bool
+	desc         bool
+	disable      bool
+	homepage     bool
+}
+
+pub struct CaskArtifact {
+pub:
+	key       string
+	args      []brew_runtime.Value
+	kwargs    map[string]brew_runtime.Value
+	has_block bool
+}
+
+pub struct CaskLanguageVariation {
+pub:
+	languages  []string
+	value      string
+	is_default bool
+	overrides  map[string]brew_runtime.Value
+}
+
+pub struct CaskStruct {
+pub:
+	auto_updates         bool
+	caveats_rosetta      bool
+	conflicts_with_args  map[string]brew_runtime.Value
+	container_args       map[string]brew_runtime.Value
+	depends_on_args      map[string]brew_runtime.Value
+	deprecate_args       map[string]brew_runtime.Value
+	desc                 ?string
+	disable_args         map[string]brew_runtime.Value
+	homepage             ?string
+	languages            []string
+	language_variations  []CaskLanguageVariation
+	names                []string
+	renames              [][]string
+	ruby_source_checksum map[string]brew_runtime.Value
+	ruby_source_path     ?string
+	sha256               string
+	tap_string           ?string
+	url_args             []string
+	url_kwargs           map[string]brew_runtime.Value
+	version              string
+	raw_artifacts        []CaskArtifact
+	raw_caveats          ?string
+	predicates           CaskStructPredicates
+}
+
+pub fn cask_struct_predicate(cask CaskStruct, name string) bool {
+	return match name.trim_right('?') {
+		'auto_updates' { cask.predicates.auto_updates }
+		'caveats' { cask.predicates.caveats }
+		'conflicts' { cask.predicates.conflicts }
+		'container' { cask.predicates.container }
+		'depends_on' { cask.predicates.depends_on }
+		'deprecate' { cask.predicates.deprecate }
+		'desc' { cask.predicates.desc }
+		'disable' { cask.predicates.disable }
+		'homepage' { cask.predicates.homepage }
+		else { false }
+	}
+}
+
+pub fn (cask CaskStruct) predicate(name string) bool {
+	return cask_struct_predicate(cask, name)
+}
+
+pub fn cask_struct_from_hash(hash map[string]brew_runtime.Value, paths ApiStructPaths,
+	ignore_types bool) CaskStruct {
+	cleaned := if ignore_types {
+		hash.clone()
+	} else {
+		api_struct_replace_map(hash, paths, paths.appdir)
+	}
+	return CaskStruct{
+		auto_updates: api_struct_bool(cleaned['auto_updates'] or { brew_runtime.bool_value(false) })
+		caveats_rosetta: api_struct_bool(cleaned['caveats_rosetta'] or { brew_runtime.bool_value(false) })
+		conflicts_with_args: api_struct_value_map(cleaned['conflicts_with_args'] or { brew_runtime.map_value({}) })
+		container_args: api_struct_value_map(cleaned['container_args'] or { brew_runtime.map_value({}) })
+		depends_on_args: api_struct_value_map(cleaned['depends_on_args'] or { brew_runtime.map_value({}) })
+		deprecate_args: api_struct_value_map(cleaned['deprecate_args'] or { brew_runtime.map_value({}) })
+		desc: api_struct_optional_string(cleaned['desc'] or { api_struct_nil_value() })
+		disable_args: api_struct_value_map(cleaned['disable_args'] or { brew_runtime.map_value({}) })
+		homepage: api_struct_optional_string(cleaned['homepage'] or { api_struct_nil_value() })
+		languages: api_struct_string_array(cleaned['languages'] or { brew_runtime.string_array_value([]) })
+		language_variations: cask_language_variations_from_value(cleaned['language_variations'] or {
+			brew_runtime.array_value([])})
+		names: api_struct_string_array(cleaned['names'] or { brew_runtime.string_array_value([]) })
+		renames: cask_renames_from_value(cleaned['renames'] or { brew_runtime.array_value([]) })
+		ruby_source_checksum: api_struct_value_map(cleaned['ruby_source_checksum'] or {
+			brew_runtime.map_value({
+				'sha256': api_struct_nil_value()
+			})})
+		ruby_source_path: api_struct_optional_string(cleaned['ruby_source_path'] or { api_struct_nil_value() })
+		sha256: api_struct_string(cleaned['sha256'] or { brew_runtime.string_value('') })
+		tap_string: api_struct_optional_string(cleaned['tap_string'] or { api_struct_nil_value() })
+		url_args: api_struct_string_array(cleaned['url_args'] or { brew_runtime.string_array_value([]) })
+		url_kwargs: api_struct_value_map(cleaned['url_kwargs'] or { brew_runtime.map_value({}) })
+		version: api_struct_string(cleaned['version'] or { brew_runtime.string_value('') })
+		raw_artifacts: cask_artifacts_from_value(cleaned['raw_artifacts'] or { brew_runtime.array_value([]) })
+		raw_caveats: api_struct_optional_string(cleaned['raw_caveats'] or { api_struct_nil_value() })
+		predicates: cask_struct_predicates_from_hash(cleaned)
+	}
+}
+
+fn cask_struct_predicates_from_hash(hash map[string]brew_runtime.Value) CaskStructPredicates {
+	return CaskStructPredicates{
+		auto_updates: api_struct_hash_bool(hash, 'auto_updates_present')
+		caveats: api_struct_hash_bool(hash, 'caveats_present')
+		conflicts: api_struct_hash_bool(hash, 'conflicts_present')
+		container: api_struct_hash_bool(hash, 'container_present')
+		depends_on: api_struct_hash_bool(hash, 'depends_on_present')
+		deprecate: api_struct_hash_bool(hash, 'deprecate_present')
+		desc: api_struct_hash_bool(hash, 'desc_present')
+		disable: api_struct_hash_bool(hash, 'disable_present')
+		homepage: api_struct_hash_bool(hash, 'homepage_present')
+	}
+}
+
+pub fn (cask CaskStruct) equals(other CaskStruct) bool {
+	return api_struct_maps_equal(cask.serialize(), other.serialize())
+}
+
+pub fn (cask CaskStruct) artifacts(appdir string, paths ApiStructPaths) []CaskArtifact {
+	return cask.raw_artifacts.map(CaskArtifact{
+		key: it.key
+		args: it.args.map(api_struct_deep_replace(it, paths, appdir))
+		kwargs: cask_replace_kwargs(it.kwargs, paths, appdir)
+		has_block: it.has_block
+	})
+}
+
+fn cask_replace_kwargs(kwargs map[string]brew_runtime.Value, paths ApiStructPaths,
+	appdir string) map[string]brew_runtime.Value {
+	mut replaced := map[string]brew_runtime.Value{}
+	for key, value in kwargs {
+		replaced[key] = api_struct_deep_replace(value, paths, appdir)
+	}
+	return replaced
+}
+
+pub fn (cask CaskStruct) caveats(appdir string, paths ApiStructPaths) ?string {
+	value := cask.raw_caveats or { return none }
+	return api_struct_deep_replace(brew_runtime.string_value(value), paths, appdir).as_string()
+}
+
+pub fn (cask CaskStruct) localise(languages []string, paths ApiStructPaths) CaskStruct {
+	variation := cask.language_variation(languages) or { return cask }
+	if variation.overrides.len == 0 {
+		return cask
+	}
+	mut serialized := cask.serialize()
+	for key, value in variation.overrides {
+		serialized[key.trim_string_left(':')] = value
+	}
+	return cask_struct_deserialize(serialized, paths)
+}
+
+pub fn (cask CaskStruct) language(languages []string) ?string {
+	variation := cask.language_variation(languages) or { return none }
+	return if variation.value == '' { none } else { variation.value }
+}
+
+pub fn (cask CaskStruct) serialize() map[string]brew_runtime.Value {
+	mut hash := map[string]brew_runtime.Value{}
+	api_struct_put_nonblank(mut hash, 'auto_updates', brew_runtime.bool_value(cask.auto_updates))
+	api_struct_put_nonblank(mut hash, 'caveats_rosetta', brew_runtime.bool_value(cask.caveats_rosetta))
+	api_struct_put_nonblank(mut hash, 'conflicts_with_args', brew_runtime.map_value(cask.conflicts_with_args))
+	api_struct_put_nonblank(mut hash, 'container_args', brew_runtime.map_value(cask.container_args))
+	api_struct_put_nonblank(mut hash, 'depends_on_args', brew_runtime.map_value(cask.depends_on_args))
+	api_struct_put_nonblank(mut hash, 'deprecate_args', brew_runtime.map_value(cask.deprecate_args))
+	if desc := cask.desc {
+		api_struct_put_nonblank(mut hash, 'desc', brew_runtime.string_value(desc))
+	}
+	api_struct_put_nonblank(mut hash, 'disable_args', brew_runtime.map_value(cask.disable_args))
+	if homepage := cask.homepage {
+		api_struct_put_nonblank(mut hash, 'homepage', brew_runtime.string_value(homepage))
+	}
+	api_struct_put_nonblank(mut hash, 'languages', brew_runtime.string_array_value(cask.languages))
+	api_struct_put_nonblank(mut hash, 'language_variations', cask_language_variations_value(cask.language_variations))
+	api_struct_put_nonblank(mut hash, 'names', brew_runtime.string_array_value(cask.names))
+	api_struct_put_nonblank(mut hash, 'renames', cask_renames_value(cask.renames))
+	api_struct_put_nonblank(mut hash, 'ruby_source_checksum', brew_runtime.map_value(cask.ruby_source_checksum))
+	if path := cask.ruby_source_path {
+		api_struct_put_nonblank(mut hash, 'ruby_source_path', brew_runtime.string_value(path))
+	}
+	api_struct_put_nonblank(mut hash, 'sha256', brew_runtime.string_value(cask.sha256))
+	if tap := cask.tap_string {
+		api_struct_put_nonblank(mut hash, 'tap_string', brew_runtime.string_value(tap))
+	}
+	api_struct_put_nonblank(mut hash, 'url_args', brew_runtime.string_array_value(cask.url_args))
+	api_struct_put_nonblank(mut hash, 'url_kwargs', brew_runtime.map_value(cask.url_kwargs))
+	api_struct_put_nonblank(mut hash, 'version', brew_runtime.string_value(cask.version))
+	if cask.raw_artifacts.len > 0 {
+		hash['raw_artifacts'] = brew_runtime.array_value(cask.raw_artifacts.map(brew_runtime.array_value(cask.serialize_artifact_args(it))))
+	}
+	if caveats := cask.raw_caveats {
+		api_struct_put_nonblank(mut hash, 'raw_caveats', brew_runtime.string_value(caveats))
+	}
+	return hash
+}
+
+pub fn cask_struct_deserialize(hash map[string]brew_runtime.Value,
+	paths ApiStructPaths) CaskStruct {
+	mut restored := hash.clone()
+	for name in cask_struct_predicate_names {
+		source := match name {
+			'auto_updates' { restored['auto_updates'] or { brew_runtime.bool_value(false) } }
+			'caveats' { restored['raw_caveats'] or { api_struct_nil_value() } }
+			'conflicts' { restored['conflicts_with_args'] or { api_struct_nil_value() } }
+			'desc' { restored['desc'] or { api_struct_nil_value() } }
+			'homepage' { restored['homepage'] or { api_struct_nil_value() } }
+			else { restored['${name}_args'] or { api_struct_nil_value() } }
+		}
+		restored['${name}_present'] = brew_runtime.bool_value(api_struct_value_present(source))
+	}
+	return cask_struct_from_hash(restored, paths, false)
+}
+
+pub fn (cask CaskStruct) serialize_artifact_args(artifact CaskArtifact) []brew_runtime.Value {
+	mut values := [brew_runtime.object_value('Symbol', ':${artifact.key}')]
+	if artifact.args.len > 0 {
+		values << brew_runtime.array_value(artifact.args)
+	}
+	if artifact.kwargs.len > 0 {
+		values << brew_runtime.map_value(artifact.kwargs)
+	}
+	if artifact.has_block {
+		values << brew_runtime.object_value('Symbol', ':empty_block')
+	}
+	return values
+}
+
+pub fn cask_struct_deserialize_artifact_args(values []brew_runtime.Value) CaskArtifact {
+	mut artifact := CaskArtifact{
+		key: api_struct_normalize_symbol(values[0] or { brew_runtime.string_value('') }.as_string())
+	}
+	for value in values[1..] {
+		if value.type_name == 'Array' {
+			artifact = CaskArtifact{
+				...artifact
+				args: api_struct_value_array(value)
+			}
+		} else if value.type_name == 'Hash' {
+			artifact = CaskArtifact{
+				...artifact
+				kwargs: api_struct_value_map(value)
+			}
+		} else if api_struct_normalize_symbol(value.as_string()) == 'empty_block' {
+			artifact = CaskArtifact{
+				...artifact
+				has_block: true
+			}
+		}
+	}
+	return artifact
+}
+
+pub fn (cask CaskStruct) language_variation(languages []string) ?CaskLanguageVariation {
+	for language in languages {
+		for variation in cask.language_variations {
+			if variation.languages.any(cask_locale_matches(language, it)) {
+				return variation
+			}
+		}
+	}
+	for variation in cask.language_variations {
+		if variation.is_default {
+			return variation
+		}
+	}
+	return none
+}
+
+fn cask_locale_matches(locale string, component string) bool {
+	parts := locale.split('-')
+	if component.len in [2, 3] && component.to_lower() == component {
+		return parts.len > 0 && parts[0] == component
+	}
+	if component.len == 4 {
+		return component in parts
+	}
+	if (component.len == 2 && component.to_upper() == component) || (component.len == 3 && component.bytes().all(it >= `0` && it <= `9`)) {
+		return component in parts
+	}
+	return locale == component
+}
+
+pub fn cask_struct_deep_remove_placeholders(value brew_runtime.Value, appdir string,
+	paths ApiStructPaths) brew_runtime.Value {
+	return api_struct_deep_replace(value, paths, appdir)
+}
 
 // Ruby method `self.from_hash(cask_hash, ignore_types: false)` at line 11.
-pub fn ruby_cask_struct_l11_d1_self_from_hash(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.from_hash', ...args)
+pub fn ruby_cask_struct_l11_d1_self_from_hash(hash map[string]brew_runtime.Value,
+	paths ApiStructPaths, ignore_types bool) CaskStruct {
+	return cask_struct_from_hash(hash, paths, ignore_types)
 }
 
 // Ruby define_method `define_method(predicate_method_name) do` at line 53.
-pub fn ruby_cask_struct_l53_d2_predicate_method_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('predicate_method_name', ...args)
+pub fn ruby_cask_struct_l53_d2_predicate_method_name(cask CaskStruct, name string) bool {
+	return cask_struct_predicate(cask, name)
 }
 
 // Ruby method `==(other)` at line 98.
-pub fn ruby_cask_struct_l98_d3_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('==', ...args)
+pub fn ruby_cask_struct_l98_d3_anonymous(cask CaskStruct, other CaskStruct) bool {
+	return cask.equals(other)
 }
 
 // Ruby method `artifacts(appdir:)` at line 108.
-pub fn ruby_cask_struct_l108_d4_artifacts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('artifacts', ...args)
+pub fn ruby_cask_struct_l108_d4_artifacts(cask CaskStruct, appdir string,
+	paths ApiStructPaths) []CaskArtifact {
+	return cask.artifacts(appdir, paths)
 }
 
 // Ruby method `caveats(appdir:)` at line 113.
-pub fn ruby_cask_struct_l113_d5_caveats(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('caveats', ...args)
+pub fn ruby_cask_struct_l113_d5_caveats(cask CaskStruct, appdir string,
+	paths ApiStructPaths) ?string {
+	return cask.caveats(appdir, paths)
 }
 
 // Ruby method `localise(languages)` at line 118.
-pub fn ruby_cask_struct_l118_d6_localise(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('localise', ...args)
+pub fn ruby_cask_struct_l118_d6_localise(cask CaskStruct, languages []string,
+	paths ApiStructPaths) CaskStruct {
+	return cask.localise(languages, paths)
 }
 
 // Ruby method `language(languages)` at line 130.
-pub fn ruby_cask_struct_l130_d7_language(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('language', ...args)
+pub fn ruby_cask_struct_l130_d7_language(cask CaskStruct, languages []string) ?string {
+	return cask.language(languages)
 }
 
 // Ruby method `serialize` at line 135.
-pub fn ruby_cask_struct_l135_d8_serialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('serialize', ...args)
+pub fn ruby_cask_struct_l135_d8_serialize(cask CaskStruct) map[string]brew_runtime.Value {
+	return cask.serialize()
 }
 
 // Ruby method `self.deserialize(hash)` at line 154.
-pub fn ruby_cask_struct_l154_d9_self_deserialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.deserialize', ...args)
+pub fn ruby_cask_struct_l154_d9_self_deserialize(hash map[string]brew_runtime.Value,
+	paths ApiStructPaths) CaskStruct {
+	return cask_struct_deserialize(hash, paths)
 }
 
 // Ruby method `serialize_artifact_args(artifact)` at line 178.
-pub fn ruby_cask_struct_l178_d10_serialize_artifact_args(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('serialize_artifact_args', ...args)
+pub fn ruby_cask_struct_l178_d10_serialize_artifact_args(cask CaskStruct,
+	artifact CaskArtifact) []brew_runtime.Value {
+	return cask.serialize_artifact_args(artifact)
 }
 
 // Ruby method `self.deserialize_artifact_args(args)` at line 202.
-pub fn ruby_cask_struct_l202_d11_self_deserialize_artifact_args(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.deserialize_artifact_args', ...args)
+pub fn ruby_cask_struct_l202_d11_self_deserialize_artifact_args(values []brew_runtime.Value) CaskArtifact {
+	return cask_struct_deserialize_artifact_args(values)
 }
 
 // Ruby method `language_variation(languages)` at line 221.
-pub fn ruby_cask_struct_l221_d12_language_variation(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('language_variation', ...args)
+pub fn ruby_cask_struct_l221_d12_language_variation(cask CaskStruct,
+	languages []string) ?CaskLanguageVariation {
+	return cask.language_variation(languages)
 }
 
 // Ruby method `deep_remove_placeholders(value, appdir)` at line 253.
-pub fn ruby_cask_struct_l253_d13_deep_remove_placeholders(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('deep_remove_placeholders', ...args)
+pub fn ruby_cask_struct_l253_d13_deep_remove_placeholders(value brew_runtime.Value,
+	appdir string, paths ApiStructPaths) brew_runtime.Value {
+	return cask_struct_deep_remove_placeholders(value, appdir, paths)
+}
+
+fn cask_artifacts_from_value(value brew_runtime.Value) []CaskArtifact {
+	return api_struct_value_array(value).map(cask_struct_deserialize_artifact_args(api_struct_value_array(it)))
+}
+
+fn cask_language_variations_from_value(value brew_runtime.Value) []CaskLanguageVariation {
+	return api_struct_value_array(value).map(fn (item brew_runtime.Value) CaskLanguageVariation {
+		variation := api_struct_value_map(item)
+		return CaskLanguageVariation{
+			languages: api_struct_string_array(variation['languages'] or { brew_runtime.string_array_value([]) })
+			value: api_struct_string(variation['value'] or { brew_runtime.string_value('') })
+			is_default: api_struct_bool(variation['default'] or { brew_runtime.bool_value(false) })
+			overrides: api_struct_value_map(variation['overrides'] or { brew_runtime.map_value({}) })
+		}
+	})
+}
+
+fn cask_language_variations_value(variations []CaskLanguageVariation) brew_runtime.Value {
+	return brew_runtime.array_value(variations.map(brew_runtime.map_value({
+		'languages': brew_runtime.string_array_value(it.languages)
+		'value':     brew_runtime.string_value(it.value)
+		'default':   brew_runtime.bool_value(it.is_default)
+		'overrides': brew_runtime.map_value(it.overrides)
+	})))
+}
+
+fn cask_renames_from_value(value brew_runtime.Value) [][]string {
+	return api_struct_value_array(value).map(api_struct_string_array(it))
+}
+
+fn cask_renames_value(renames [][]string) brew_runtime.Value {
+	return brew_runtime.array_value(renames.map(brew_runtime.string_array_value(it)))
 }
 
 // Original Ruby source (line-for-line):

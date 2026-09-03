@@ -4,10 +4,25 @@ import brew_runtime
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/logger-1.7.0/lib/logger/severity.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub fn coerce_severity(value brew_runtime.Value) !int {
+	if value.type_name == 'Integer' {
+		return int(value.as_int()!)
+	}
+	return match value.as_string().to_lower() {
+		'debug' { 0 }
+		'info' { 1 }
+		'warn' { 2 }
+		'error' { 3 }
+		'fatal' { 4 }
+		'unknown' { 5 }
+		else { error('invalid log level: ${value.as_string()}') }
+	}
+}
 
 // Ruby method `self.coerce(severity)` at line 29.
 pub fn ruby_severity_l29_d1_self_coerce(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.coerce', ...args)
+	if args.len == 0 { panic('Logger::Severity.coerce requires a severity') }
+	return brew_runtime.int_value(coerce_severity(args[0]) or { panic(err) })
 }
 
 // Original Ruby source (line-for-line):

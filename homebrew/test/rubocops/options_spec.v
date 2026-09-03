@@ -1,33 +1,38 @@
 module rubocops
 
 import brew_runtime
+import homebrew.rubocops as options_core
 
 // Translated from Homebrew/brew `test/rubocops/options_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:cop) { described_class.new }` at line 7.
 pub fn ruby_options_spec_l7_d1_cop(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cop', ...args)
+	return brew_runtime.object_value('RuboCop::Cop::FormulaAudit::Options', 'FormulaAudit/Options')
 }
 
 // Ruby it `it "reports an offense when using bad option names" do` at line 10.
-pub fn ruby_options_spec_l10_d2_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_options_spec_l10_d2_reports() bool {
+	problems := options_core.audit_formula_options('option "examples", "with-examples"', '', false)
+	return problems.len == 1 && problems[0].message == "Options should begin with `with` or `without`. Migrate '--examples' with `deprecated_option`."
 }
 
 // Ruby it `it "reports an offense when using `without-check` option names" do` at line 20.
-pub fn ruby_options_spec_l20_d3_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_options_spec_l20_d3_reports() bool {
+	problems := options_core.audit_formula_options('option "without-check"', '', false)
+	return problems.len == 1 && problems[0].message == "Use '--without-test' instead of '--without-check'. Migrate '--without-check' with `deprecated_option`."
 }
 
 // Ruby it `it "reports an offense when using `deprecated_option` in homebrew/core" do` at line 30.
-pub fn ruby_options_spec_l30_d4_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_options_spec_l30_d4_reports() bool {
+	problems := options_core.audit_formula_options('deprecated_option "examples" => "with-examples"', 'homebrew-core', false)
+	return problems.len == 1 && problems[0].message == options_core.options_deprecated_option_message
 }
 
 // Ruby it `it "reports an offense when using `option` in homebrew/core" do` at line 40.
-pub fn ruby_options_spec_l40_d5_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_options_spec_l40_d5_reports() bool {
+	problems := options_core.audit_formula_options('option "with-examples"', 'homebrew-core', false)
+	return problems.len == 1 && problems[0].message == options_core.options_option_message
 }
 
 // Original Ruby source (line-for-line):

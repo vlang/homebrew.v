@@ -1,58 +1,67 @@
 module cask
 
-import brew_runtime
+import homebrew.rubocops.cask as variables_core
 
 // Translated from Homebrew/brew `test/rubocops/cask/variables_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "accepts when there are no variables" do` at line 7.
-pub fn ruby_variables_spec_l7_d1_accepts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('accepts', ...args)
+pub fn ruby_variables_spec_l7_d1_accepts() bool {
+	return variables_core.audit_cask_variables('cask "foo" do\n  version :latest\nend').len == 0
 }
 
 // Ruby it `it "accepts when there is an `arch` stanza" do` at line 15.
-pub fn ruby_variables_spec_l15_d2_accepts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('accepts', ...args)
+pub fn ruby_variables_spec_l15_d2_accepts() bool {
+	return variables_core.audit_cask_variables('cask "foo" do\n  arch arm: "darwin-arm64", intel: "darwin"\nend').len == 0
 }
 
 // Ruby it `it "accepts an `on_arch_conditional` variable" do` at line 23.
-pub fn ruby_variables_spec_l23_d3_accepts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('accepts', ...args)
+pub fn ruby_variables_spec_l23_d3_accepts() bool {
+	return variables_core.audit_cask_variables('cask "foo" do\n  folder = on_arch_conditional arm: "darwin-arm64", intel: "darwin"\nend').len == 0
+}
+
+fn cask_variables_spec_case(assignment string, replacement string) bool {
+	source := 'cask "foo" do\n  ${assignment}\nend'
+	return variables_core.audit_cask_variables(source).len == 1 && variables_core.correct_cask_variables(source) == 'cask "foo" do\n  ${replacement}\nend'
 }
 
 // Ruby it `it "reports an offense for an `arch` variable using strings" do` at line 31.
-pub fn ruby_variables_spec_l31_d4_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_variables_spec_l31_d4_reports() bool {
+	return cask_variables_spec_case('arch = Hardware::CPU.intel? ? "darwin" : "darwin-arm64"', 'arch arm: "darwin-arm64", intel: "darwin"')
 }
 
 // Ruby it `it "reports an offense for an `arch` variable using symbols" do` at line 46.
-pub fn ruby_variables_spec_l46_d5_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_variables_spec_l46_d5_reports() bool {
+	return cask_variables_spec_case('arch = Hardware::CPU.intel? ? :darwin : :darwin_arm64', 'arch arm: :darwin_arm64, intel: :darwin')
 }
 
 // Ruby it `it "reports an offense for an `arch` variable with an empty string" do` at line 61.
-pub fn ruby_variables_spec_l61_d6_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_variables_spec_l61_d6_reports() bool {
+	return cask_variables_spec_case('arch = Hardware::CPU.intel? ? "" : "arm64"', 'arch arm: "arm64"')
 }
 
 // Ruby it `it "reports an offense for a non-`arch` variable using strings" do` at line 76.
-pub fn ruby_variables_spec_l76_d7_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_variables_spec_l76_d7_reports() bool {
+	return cask_variables_spec_case('folder = Hardware::CPU.intel? ? "darwin" : "darwin-arm64"', 'folder = on_arch_conditional arm: "darwin-arm64", intel: "darwin"')
 }
 
 // Ruby it `it "reports an offense for a non-`arch` variable with an empty string" do` at line 91.
-pub fn ruby_variables_spec_l91_d8_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_variables_spec_l91_d8_reports() bool {
+	return cask_variables_spec_case('folder = Hardware::CPU.intel? ? "amd64" : ""', 'folder = on_arch_conditional intel: "amd64"')
 }
 
 // Ruby it `it "reports an offense for consecutive `arch` and non-`arch` variables" do` at line 106.
-pub fn ruby_variables_spec_l106_d9_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_variables_spec_l106_d9_reports() bool {
+	source := 'cask "foo" do\n  arch = Hardware::CPU.arm? ? "darwin-arm64" : "darwin"\n  folder = Hardware::CPU.arm? ? "darwin-arm64" : "darwin"\nend'
+	corrected := 'cask "foo" do\n  arch arm: "darwin-arm64", intel: "darwin"\n  folder = on_arch_conditional arm: "darwin-arm64", intel: "darwin"\nend'
+	return variables_core.audit_cask_variables(source).len == 2 && variables_core.correct_cask_variables(source) == corrected
 }
 
 // Ruby it `it "reports an offense for two consecutive non-`arch` variables" do` at line 124.
-pub fn ruby_variables_spec_l124_d10_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_variables_spec_l124_d10_reports() bool {
+	source := 'cask "foo" do\n  folder = Hardware::CPU.arm? ? "darwin-arm64" : "darwin"\n  platform = Hardware::CPU.intel? ? "darwin": "darwin-arm64"\nend'
+	corrected := 'cask "foo" do\n  folder = on_arch_conditional arm: "darwin-arm64", intel: "darwin"\n  platform = on_arch_conditional arm: "darwin-arm64", intel: "darwin"\nend'
+	return variables_core.audit_cask_variables(source).len == 2 && variables_core.correct_cask_variables(source) == corrected
 }
 
 // Original Ruby source (line-for-line):

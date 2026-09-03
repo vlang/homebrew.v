@@ -1,18 +1,31 @@
 module unpack_strategy
 
-import brew_runtime
-
 // Translated from Homebrew/brew `unpack_strategy/executable.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `self.extensions` at line 10.
-pub fn ruby_executable_l10_d1_self_extensions(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.extensions', ...args)
+pub fn ruby_executable_l10_d1_self_extensions() []string {
+	return executable_extensions()
 }
 
 // Ruby method `self.can_extract?(path)` at line 15.
-pub fn ruby_executable_l15_d2_self_can_extract(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.can_extract?', ...args)
+pub fn ruby_executable_l15_d2_self_can_extract(path string) bool {
+	return executable_can_extract(path)
+}
+
+pub fn executable_extensions() []string {
+	return ['.sh', '.bash']
+}
+
+pub fn executable_can_extract(path string) bool {
+	bytes := read_file_prefix(path, 256) or { return false }
+	if bytes.len >= 2 && bytes[..2] == [u8(`M`), `Z`] { return true }
+	if bytes.len < 2 || bytes[..2] != [u8(`#`), `!`] { return false }
+	mut index := 2
+	for index < bytes.len && bytes[index].is_space() {
+		index++
+	}
+	return index < bytes.len && !bytes[index].is_space()
 }
 
 // Original Ruby source (line-for-line):

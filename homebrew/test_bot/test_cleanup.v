@@ -2,47 +2,532 @@ module test_bot
 
 import brew_runtime
 
+pub struct CleanupAction {
+pub:
+	kind        string
+	command     []string
+	paths       []string
+	repository  string
+	destination string
+	seconds     int
+}
+
+pub struct CleanupPath {
+pub:
+	path            string
+	symlink         bool
+	exists          bool = true
+	resolved_exists bool = true
+	owned           bool = true
+	readable        bool = true
+	writable        bool = true
+}
+
+pub struct CleanupTap {
+pub:
+	name string
+	path string
+}
+
+pub struct CleanupRepositoryState {
+pub:
+	repository     string
+	origin_head    string
+	current_branch string
+	diff_quiet     bool = true
+	clean_dry_run  string
+	gc_output      string
+	pr_locks       []string
+}
+
+pub struct DeleteOrMoveInput {
+pub:
+	paths                 []CleanupPath
+	github_actions        bool
+	self_hosted           bool
+	sudo                  bool
+	temporary_directories []string
+}
+
+pub struct CleanupSharedInput {
+pub:
+	git                   string = 'git'
+	repository            string
+	repository_exists     bool
+	homebrew_repository   string
+	homebrew_prefix       string
+	homebrew_cellar       string
+	homebrew_library      string
+	working_directory     string
+	has_tap               bool
+	tap_name              string
+	installed_taps        []CleanupTap
+	tap_repositories      []string
+	repositories          []CleanupRepositoryState
+	prefix_paths          []CleanupPath
+	must_be_writable      []string
+	github_actions        bool
+	self_hosted           bool
+	temporary_directories []string
+}
+
+pub struct CleanupPlan {
+pub:
+	actions        []CleanupAction
+	paths_to_purge []string
+}
+
+fn cleanup_action_value(action CleanupAction) brew_runtime.Value {
+	return brew_runtime.map_value({
+		'kind':        brew_runtime.string_value(action.kind)
+		'command':     brew_runtime.string_array_value(action.command)
+		'paths':       brew_runtime.string_array_value(action.paths)
+		'repository':  brew_runtime.string_value(action.repository)
+		'destination': brew_runtime.string_value(action.destination)
+		'seconds':     brew_runtime.int_value(action.seconds)
+	})
+}
+
+fn cleanup_actions_value(actions []CleanupAction) brew_runtime.Value {
+	return brew_runtime.array_value(actions.map(cleanup_action_value(it)))
+}
+
+fn cleanup_plan_value(plan CleanupPlan) brew_runtime.Value {
+	return brew_runtime.map_value({
+		'actions':        cleanup_actions_value(plan.actions)
+		'paths_to_purge': brew_runtime.string_array_value(plan.paths_to_purge)
+	})
+}
+
+fn cleanup_value_string(args []brew_runtime.Value, index int, fallback string) string {
+	if index >= args.len {
+		return fallback
+	}
+	return args[index].as_string()
+}
+
+fn cleanup_value_bool(args []brew_runtime.Value, index int, fallback bool) bool {
+	if index >= args.len || args[index].type_name != 'Bool' {
+		return fallback
+	}
+	return args[index].bool_data
+}
+
+fn cleanup_value_strings(args []brew_runtime.Value, index int) []string {
+	if index >= args.len {
+		return []string{}
+	}
+	return args[index].as_string_array() or { return []string{} }
+}
+
+fn cleanup_default_ref(origin_head string) string {
+	ref := origin_head.trim_space()
+	if ref == '' {
+		return 'origin/main'
+	}
+	return ref
+}
+
+fn cleanup_default_branch(origin_head string) string {
+	default_ref := cleanup_default_ref(origin_head)
+	slash := default_ref.index('/') or { return default_ref }
+	return default_ref[slash + 1..]
+}
+
+fn cleanup_git(git string) string {
+	if git == '' {
+		return 'git'
+	}
+	return git
+}
+
+fn cleanup_append_strings(prefix []string, suffix []string) []string {
+	mut values := prefix.clone()
+	values << suffix
+	return values
+}
+
+pub fn reset_if_needed_plan(state CleanupRepositoryState, git string) []CleanupAction {
+	if state.diff_quiet {
+		return []CleanupAction{}
+	}
+	default_ref := cleanup_default_ref(state.origin_head)
+	return [CleanupAction{
+		kind: 'command'
+		command: [cleanup_git(git), '-C', state.repository, 'reset', '--hard', default_ref]
+		repository: state.repository
+	}]
+}
+
+pub fn checkout_branch_if_needed_plan(state CleanupRepositoryState, git string) []CleanupAction {
+	default_branch := cleanup_default_branch(state.origin_head)
+	if state.current_branch.trim_space() == default_branch {
+		return []CleanupAction{}
+	}
+	return [CleanupAction{
+		kind: 'command'
+		command: [cleanup_git(git), '-C', state.repository, 'checkout', '-f', default_branch]
+		repository: state.repository
+	}]
+}
+
+pub fn cleanup_git_meta_plan(state CleanupRepositoryState) []CleanupAction {
+	mut actions := []CleanupAction{}
+	if state.pr_locks.len > 0 {
+		actions << CleanupAction{
+			kind: 'remove_file'
+			paths: state.pr_locks.clone()
+			repository: state.repository
+		}
+	}
+	actions << CleanupAction{
+		kind: 'remove_file'
+		paths: ['${state.repository}/.git/gc.log']
+		repository: state.repository
+	}
+	return actions
+}
+
+fn clean_arguments() []string {
+	return ['-dx', '--exclude=/*.bottle*.*', '--exclude=/Library/Taps',
+		'--exclude=/Library/Homebrew/vendor']
+}
+
+pub fn clean_if_needed_plan(state CleanupRepositoryState, git string, homebrew_prefix string, homebrew_repository string) []CleanupAction {
+	if state.repository == homebrew_prefix && homebrew_prefix != homebrew_repository {
+		return []CleanupAction{}
+	}
+	if state.clean_dry_run.trim_space() == '' {
+		return []CleanupAction{}
+	}
+	return [CleanupAction{
+		kind: 'command'
+		command: cleanup_append_strings([cleanup_git(git), '-C', state.repository, 'clean', '-ff'], clean_arguments())
+		repository: state.repository
+	}]
+}
+
+pub fn prune_if_needed_plan(state CleanupRepositoryState, git string) []CleanupAction {
+	if !state.gc_output.contains('git prune') {
+		return []CleanupAction{}
+	}
+	return [CleanupAction{
+		kind: 'command'
+		command: [cleanup_git(git), '-C', state.repository, 'prune']
+		repository: state.repository
+	}]
+}
+
+pub fn delete_or_move_plan(input DeleteOrMoveInput) []CleanupAction {
+	if input.paths.len == 0 {
+		return []CleanupAction{}
+	}
+	mut actions := []CleanupAction{}
+	symlinks := input.paths.filter(it.symlink).map(it.path)
+	if symlinks.len > 0 {
+		actions << CleanupAction{
+			kind: 'remove_file'
+			paths: symlinks
+		}
+	}
+	if !input.github_actions {
+		return actions
+	}
+	paths := input.paths.filter(!it.symlink && it.exists).map(it.path)
+	if paths.len == 0 {
+		return actions
+	}
+	if input.self_hosted {
+		if input.sudo {
+			actions << CleanupAction{
+				kind: 'command'
+				command: cleanup_append_strings(['sudo', 'rm', '-rf'], paths)
+				paths: paths
+			}
+		} else {
+			actions << CleanupAction{
+				kind: 'remove_tree'
+				paths: paths
+			}
+		}
+		return actions
+	}
+	for index, path in paths {
+		destination := if index < input.temporary_directories.len {
+			input.temporary_directories[index]
+		} else {
+			'/tmp/homebrew-test-bot-cleanup-${index}'
+		}
+		if input.sudo {
+			actions << CleanupAction{
+				kind: 'command'
+				command: ['sudo', 'mv', path, destination]
+				paths: [path]
+				destination: destination
+			}
+		} else {
+			actions << CleanupAction{
+				kind: 'move'
+				paths: [path]
+				destination: destination
+			}
+		}
+	}
+	return actions
+}
+
+fn cleanup_repository_state(input CleanupSharedInput, repository string) CleanupRepositoryState {
+	for state in input.repositories {
+		if state.repository == repository {
+			return state
+		}
+	}
+	return CleanupRepositoryState{
+		repository: repository
+	}
+}
+
+fn cleanup_path_basename(path string) string {
+	parts := path.split('/')
+	if parts.len == 0 {
+		return path
+	}
+	return parts[parts.len - 1]
+}
+
+fn cleanup_is_fuse_path(path string) bool {
+	mut relative := ''
+	if marker := path.index('/include/') {
+		relative = path[marker + 9..]
+	} else if marker := path.index('/lib/') {
+		relative = path[marker + 5..]
+	} else {
+		return false
+	}
+	for prefix in ['lib', 'osxfuse/', 'pkgconfig/'] {
+		if relative.starts_with(prefix) {
+			relative = relative[prefix.len..]
+			break
+		}
+	}
+	if !relative.starts_with('fuse') && !relative.starts_with('osxfuse')
+		&& !relative.starts_with('macfuse') {
+		return false
+	}
+	return !relative.contains('.') || relative.ends_with('.dylib') || relative.ends_with('.h')
+		|| relative.ends_with('.la') || relative.ends_with('.pc')
+}
+
+fn cleanup_should_purge_path(input CleanupSharedInput, path CleanupPath) bool {
+	if path.path in input.must_be_writable {
+		return false
+	}
+	if path.path == '${input.homebrew_prefix}/bin/brew' || path.path == '${input.homebrew_prefix}/var'
+		|| path.path == '${input.homebrew_prefix}/var/homebrew' {
+		return false
+	}
+	basename := cleanup_path_basename(path.path)
+	if basename == '.' || basename == '.keepme' {
+		return false
+	}
+	if path.path.starts_with(input.homebrew_repository)
+		|| path.path.starts_with(input.working_directory) {
+		return false
+	}
+	if (!path.symlink || path.resolved_exists) && cleanup_is_fuse_path(path.path) {
+		return false
+	}
+	return true
+}
+
+pub fn cleanup_shared_plan(input CleanupSharedInput) CleanupPlan {
+	mut actions := [CleanupAction{
+		kind: 'chmod_recursive'
+		paths: [input.homebrew_cellar]
+	}]
+	if input.repository_exists {
+		repository_state := cleanup_repository_state(input, input.repository)
+		actions << cleanup_git_meta_plan(repository_state)
+		actions << clean_if_needed_plan(repository_state, input.git, input.homebrew_prefix, input.homebrew_repository)
+		actions << prune_if_needed_plan(repository_state, input.git)
+	}
+	mut paths_to_purge := []CleanupPath{}
+	if input.homebrew_repository != input.homebrew_prefix {
+		actions << CleanupAction{
+			kind: 'info_header'
+			paths: ['Determining ${input.homebrew_prefix} files to purge...']
+		}
+		for path in input.must_be_writable {
+			actions << CleanupAction{
+				kind: 'mkdir'
+				paths: [path]
+			}
+		}
+		for path in input.prefix_paths {
+			if !cleanup_should_purge_path(input, path) {
+				continue
+			}
+			if path.owned && (!path.readable || !path.writable) {
+				actions << CleanupAction{
+					kind: 'chmod'
+					paths: [path.path]
+				}
+			}
+			paths_to_purge << path
+		}
+		actions << CleanupAction{
+			kind: 'info_header'
+			paths: ['Purging...']
+		}
+		actions << delete_or_move_plan(DeleteOrMoveInput{
+			paths: paths_to_purge
+			github_actions: input.github_actions
+			self_hosted: input.self_hosted
+			temporary_directories: input.temporary_directories
+		})
+	}
+	if input.has_tap {
+		homebrew_state := cleanup_repository_state(input, input.homebrew_repository)
+		actions << checkout_branch_if_needed_plan(homebrew_state, input.git)
+		actions << reset_if_needed_plan(homebrew_state, input.git)
+		actions << clean_if_needed_plan(homebrew_state, input.git, input.homebrew_prefix, input.homebrew_repository)
+	}
+	mut seen_tap_paths := map[string]bool{}
+	mut taps_to_remove := []CleanupPath{}
+	for tap in input.installed_taps {
+		if tap.name == input.tap_name || tap.name == 'homebrew/core' || tap.name == 'homebrew/cask'
+			|| tap.path in seen_tap_paths {
+			continue
+		}
+		seen_tap_paths[tap.path] = true
+		taps_to_remove << CleanupPath{
+			path: tap.path
+		}
+	}
+	actions << delete_or_move_plan(DeleteOrMoveInput{
+		paths: taps_to_remove
+		github_actions: input.github_actions
+		self_hosted: input.self_hosted
+		temporary_directories: input.temporary_directories
+	})
+	for repository in input.tap_repositories {
+		state := cleanup_repository_state(input, repository)
+		actions << cleanup_git_meta_plan(state)
+		if repository == input.repository {
+			continue
+		}
+		actions << checkout_branch_if_needed_plan(state, input.git)
+		actions << reset_if_needed_plan(state, input.git)
+		actions << clean_if_needed_plan(state, input.git, input.homebrew_prefix, input.homebrew_repository)
+		actions << prune_if_needed_plan(state, input.git)
+	}
+	if !input.github_actions || input.self_hosted {
+		actions << CleanupAction{
+			kind: 'command'
+			command: ['brew', 'cleanup', '--prune=3']
+		}
+	}
+	return CleanupPlan{
+		actions: actions
+		paths_to_purge: paths_to_purge.map(it.path)
+	}
+}
+
 // Translated from Homebrew/brew `test_bot/test_cleanup.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `reset_if_needed(repository)` at line 18.
 pub fn ruby_test_cleanup_l18_d1_reset_if_needed(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reset_if_needed', ...args)
+	repository := cleanup_value_string(args, 0, '')
+	return cleanup_actions_value(reset_if_needed_plan(CleanupRepositoryState{
+		repository: repository
+		origin_head: cleanup_value_string(args, 2, '')
+		diff_quiet: cleanup_value_bool(args, 3, true)
+	}, cleanup_value_string(args, 1, 'git')))
 }
 
 // Ruby method `delete_or_move(paths, sudo: false)` at line 29.
 pub fn ruby_test_cleanup_l29_d2_delete_or_move(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('delete_or_move', ...args)
+	paths := cleanup_value_strings(args, 0)
+	symlinks := cleanup_value_strings(args, 1)
+	existing := cleanup_value_strings(args, 2)
+	mut path_inputs := []CleanupPath{}
+	for path in paths {
+		path_inputs << CleanupPath{
+			path: path
+			symlink: path in symlinks
+			exists: path in existing
+		}
+	}
+	return cleanup_actions_value(delete_or_move_plan(DeleteOrMoveInput{
+		paths: path_inputs
+		github_actions: cleanup_value_bool(args, 3, false)
+		self_hosted: cleanup_value_bool(args, 4, false)
+		sudo: cleanup_value_bool(args, 5, false)
+		temporary_directories: cleanup_value_strings(args, 6)
+	}))
 }
 
 // Ruby method `cleanup_shared` at line 58.
 pub fn ruby_test_cleanup_l58_d3_cleanup_shared(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cleanup_shared', ...args)
+	repository := cleanup_value_string(args, 0, '')
+	homebrew_repository := cleanup_value_string(args, 2, repository)
+	prefix := cleanup_value_string(args, 3, homebrew_repository)
+	has_tap := cleanup_value_bool(args, 4, false)
+	return cleanup_plan_value(cleanup_shared_plan(CleanupSharedInput{
+		repository: repository
+		repository_exists: cleanup_value_bool(args, 1, false)
+		homebrew_repository: homebrew_repository
+		homebrew_prefix: prefix
+		homebrew_cellar: '${prefix}/Cellar'
+		has_tap: has_tap
+		tap_name: cleanup_value_string(args, 5, '')
+		github_actions: cleanup_value_bool(args, 6, false)
+		self_hosted: cleanup_value_bool(args, 7, false)
+		repositories: [CleanupRepositoryState{
+			repository: homebrew_repository
+			origin_head: 'origin/main'
+			current_branch: 'main'
+		}]
+	}))
 }
 
 // Ruby method `default_origin_ref(repository)` at line 139.
 pub fn ruby_test_cleanup_l139_d4_default_origin_ref(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('default_origin_ref', ...args)
+	return brew_runtime.string_value(cleanup_default_ref(cleanup_value_string(args, 1, '')))
 }
 
 // Ruby method `checkout_branch_if_needed(repository)` at line 148.
 pub fn ruby_test_cleanup_l148_d5_checkout_branch_if_needed(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('checkout_branch_if_needed', ...args)
+	return cleanup_actions_value(checkout_branch_if_needed_plan(CleanupRepositoryState{
+		repository: cleanup_value_string(args, 0, '')
+		origin_head: cleanup_value_string(args, 2, '')
+		current_branch: cleanup_value_string(args, 3, '')
+	}, cleanup_value_string(args, 1, 'git')))
 }
 
 // Ruby method `cleanup_git_meta(repository)` at line 160.
 pub fn ruby_test_cleanup_l160_d6_cleanup_git_meta(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cleanup_git_meta', ...args)
+	return cleanup_actions_value(cleanup_git_meta_plan(CleanupRepositoryState{
+		repository: cleanup_value_string(args, 0, '')
+		pr_locks: cleanup_value_strings(args, 1)
+	}))
 }
 
 // Ruby method `clean_if_needed(repository)` at line 167.
 pub fn ruby_test_cleanup_l167_d7_clean_if_needed(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('clean_if_needed', ...args)
+	return cleanup_actions_value(clean_if_needed_plan(CleanupRepositoryState{
+		repository: cleanup_value_string(args, 0, '')
+		clean_dry_run: cleanup_value_string(args, 2, '')
+	}, cleanup_value_string(args, 1, 'git'), cleanup_value_string(args, 3, ''), cleanup_value_string(args, 4, '')))
 }
 
 // Ruby method `prune_if_needed(repository)` at line 184.
 pub fn ruby_test_cleanup_l184_d8_prune_if_needed(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prune_if_needed', ...args)
+	return cleanup_actions_value(prune_if_needed_plan(CleanupRepositoryState{
+		repository: cleanup_value_string(args, 0, '')
+		gc_output: cleanup_value_string(args, 2, '')
+	}, cleanup_value_string(args, 1, 'git')))
 }
 
 // Original Ruby source (line-for-line):

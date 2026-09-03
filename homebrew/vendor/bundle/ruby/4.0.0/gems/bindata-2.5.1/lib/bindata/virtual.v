@@ -7,22 +7,22 @@ import brew_runtime
 
 // Ruby method `do_read(io); end` at line 32.
 pub fn ruby_virtual_l32_d1_do_read(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('do_read', ...args)
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Ruby method `do_write(io); end` at line 34.
 pub fn ruby_virtual_l34_d2_do_write(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('do_write', ...args)
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Ruby method `do_num_bytes` at line 36.
 pub fn ruby_virtual_l36_d3_do_num_bytes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('do_num_bytes', ...args)
+	return brew_runtime.float_value(0.0)
 }
 
 // Ruby method `sensible_default` at line 40.
 pub fn ruby_virtual_l40_d4_sensible_default(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sensible_default', ...args)
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Original Ruby source (line-for-line):

@@ -1,58 +1,117 @@
 module bottles
 
-import brew_runtime
+import homebrew
 
 // Translated from Homebrew/brew `test/utils/bottles/collector_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:collector) { described_class.new }` at line 7.
-pub fn ruby_collector_spec_l7_d1_collector(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('collector', ...args)
+pub fn ruby_collector_spec_l7_d1_collector() homebrew.BottleTagCollector {
+	return homebrew.new_bottle_tag_collector()
 }
 
 // Ruby let `let(:tahoe) { Utils::Bottles::Tag.from_symbol(:tahoe) }` at line 9.
-pub fn ruby_collector_spec_l9_d2_tahoe(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tahoe', ...args)
+pub fn ruby_collector_spec_l9_d2_tahoe() homebrew.BottleTag {
+	return homebrew.bottle_tag_from_symbol('tahoe') or { panic(err) }
 }
 
 // Ruby let `let(:sequoia) { Utils::Bottles::Tag.from_symbol(:sequoia) }` at line 10.
-pub fn ruby_collector_spec_l10_d3_sequoia(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sequoia', ...args)
+pub fn ruby_collector_spec_l10_d3_sequoia() homebrew.BottleTag {
+	return homebrew.bottle_tag_from_symbol('sequoia') or { panic(err) }
 }
 
 // Ruby let `let(:sonoma) { Utils::Bottles::Tag.from_symbol(:sonoma) }` at line 11.
-pub fn ruby_collector_spec_l11_d4_sonoma(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sonoma', ...args)
+pub fn ruby_collector_spec_l11_d4_sonoma() homebrew.BottleTag {
+	return homebrew.bottle_tag_from_symbol('sonoma') or { panic(err) }
 }
 
 // Ruby it `it "returns passed tags" do` at line 14.
-pub fn ruby_collector_spec_l14_d5_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_collector_spec_l14_d5_returns() bool {
+	mut collector := ruby_collector_spec_l7_d1_collector()
+	sonoma := ruby_collector_spec_l11_d4_sonoma()
+	sequoia := ruby_collector_spec_l10_d3_sequoia()
+	collector.add(sonoma, homebrew.new_checksum('foo_checksum'), homebrew.bottle_cellar_path('foo_cellar'))
+	collector.add(sequoia, homebrew.new_checksum('bar_checksum'), homebrew.bottle_cellar_path('bar_cellar'))
+	specification := collector.specification_for(sequoia, false) or { return false }
+	return specification.tag.equals(sequoia)
+		&& specification.checksum.equals_string('bar_checksum')
+		&& specification.cellar.equals(homebrew.bottle_cellar_path('bar_cellar'))
 }
 
 // Ruby it `it "returns nil if empty" do` at line 24.
-pub fn ruby_collector_spec_l24_d6_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_collector_spec_l24_d6_returns() bool {
+	collector := ruby_collector_spec_l7_d1_collector()
+	unknown := homebrew.bottle_tag_from_symbol('foo') or { return false }
+	return collector.specification_for(unknown, false) == none
 }
 
 // Ruby it `it "returns nil when there is no match" do` at line 28.
-pub fn ruby_collector_spec_l28_d7_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_collector_spec_l28_d7_returns() bool {
+	mut collector := ruby_collector_spec_l7_d1_collector()
+	collector.add(ruby_collector_spec_l10_d3_sequoia(), homebrew.new_checksum('bar_checksum'), homebrew.bottle_cellar_path('bar_cellar'))
+	unknown := homebrew.bottle_tag_from_symbol('foo') or { return false }
+	return collector.specification_for(unknown, false) == none
 }
 
 // Ruby it `it "uses older tags when needed", :needs_macos do` at line 33.
-pub fn ruby_collector_spec_l33_d8_uses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uses', ...args)
+pub fn ruby_collector_spec_l33_d8_uses() bool {
+	mut collector := ruby_collector_spec_l7_d1_collector()
+	sonoma := ruby_collector_spec_l11_d4_sonoma()
+	sequoia := ruby_collector_spec_l10_d3_sequoia()
+	collector.add(sonoma, homebrew.new_checksum('foo_checksum'), homebrew.bottle_cellar_path('foo_cellar'))
+	exact := collector_spec_find_matching_tag(collector, sonoma, false, CollectorSpecMacContext{}) or { return false }
+	older := collector_spec_find_matching_tag(collector, sequoia, false, CollectorSpecMacContext{}) or { return false }
+	return exact.equals(sonoma) && older.equals(sonoma)
 }
 
 // Ruby it `it "does not use older tags when requested not to", :needs_macos do` at line 39.
-pub fn ruby_collector_spec_l39_d9_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_collector_spec_l39_d9_does() bool {
+	mut collector := ruby_collector_spec_l7_d1_collector()
+	sonoma := ruby_collector_spec_l11_d4_sonoma()
+	sequoia := ruby_collector_spec_l10_d3_sequoia()
+	collector.add(sonoma, homebrew.new_checksum('foo_checksum'), homebrew.bottle_cellar_path('foo_cellar'))
+	context := CollectorSpecMacContext{
+		version_prerelease: true
+		developer: true
+		skip_or_later_bottles: true
+	}
+	exact := collector_spec_find_matching_tag(collector, sonoma, false, context) or {
+		return false
+	}
+	return exact.equals(sonoma)
+		&& collector_spec_find_matching_tag(collector, sequoia, false, context) == none
 }
 
 // Ruby it `it "ignores HOMEBREW_SKIP_OR_LATER_BOTTLES on release versions", :needs_macos do` at line 47.
-pub fn ruby_collector_spec_l47_d10_ignores(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ignores', ...args)
+pub fn ruby_collector_spec_l47_d10_ignores() bool {
+	mut collector := ruby_collector_spec_l7_d1_collector()
+	sonoma := ruby_collector_spec_l11_d4_sonoma()
+	sequoia := ruby_collector_spec_l10_d3_sequoia()
+	collector.add(sonoma, homebrew.new_checksum('foo_checksum'), homebrew.bottle_cellar_path('foo_cellar'))
+	context := CollectorSpecMacContext{
+		skip_or_later_bottles: true
+	}
+	exact := collector_spec_find_matching_tag(collector, sonoma, false, context) or {
+		return false
+	}
+	older := collector_spec_find_matching_tag(collector, sequoia, false, context) or {
+		return false
+	}
+	return exact.equals(sonoma) && older.equals(sonoma)
+}
+
+struct CollectorSpecMacContext {
+	version_prerelease    bool
+	developer             bool
+	skip_or_later_bottles bool
+}
+
+fn collector_spec_find_matching_tag(collector homebrew.BottleTagCollector,
+	tag homebrew.BottleTag, no_older_versions bool,
+	context CollectorSpecMacContext) ?homebrew.BottleTag {
+	disable_older_versions := no_older_versions
+		|| (context.version_prerelease && context.developer && context.skip_or_later_bottles)
+	return collector.find_matching_tag(tag, disable_older_versions)
 }
 
 // Original Ruby source (line-for-line):

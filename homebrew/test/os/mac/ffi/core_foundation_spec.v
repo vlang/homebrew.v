@@ -1,13 +1,21 @@
 module ffi
 
-import brew_runtime
+import homebrew.os.mac.ffi as mac_ffi
 
 // Translated from Homebrew/brew `test/os/mac/ffi/core_foundation_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "creates CoreFoundation strings, dictionaries and file URLs" do` at line 7.
-pub fn ruby_core_foundation_spec_l7_d1_creates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('creates', ...args)
+pub fn ruby_core_foundation_spec_l7_d1_creates() bool {
+	cf_string := mac_ffi.core_foundation_string_create('/tmp', 'UTF-8')
+	key_callbacks := mac_ffi.core_foundation_constant('kCFTypeDictionaryKeyCallBacks', false)
+	value_callbacks := mac_ffi.core_foundation_constant('kCFTypeDictionaryValueCallBacks', false)
+	quarantine_key := mac_ffi.core_foundation_constant('kCFURLQuarantinePropertiesKey', true)
+	dictionary := mac_ffi.core_foundation_dictionary_create({
+		cf_string.address: cf_string
+	})
+	url := mac_ffi.core_foundation_url_create(cf_string)
+	return !cf_string.is_null() && !key_callbacks.is_null() && !value_callbacks.is_null() && !quarantine_key.is_null() && !dictionary.is_null() && !url.is_null()
 }
 
 // Original Ruby source (line-for-line):

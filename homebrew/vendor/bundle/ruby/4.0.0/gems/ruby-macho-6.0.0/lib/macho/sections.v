@@ -4,55 +4,258 @@ import brew_runtime
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/ruby-macho-6.0.0/lib/macho/sections.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub const section_type_mask = u32(0x0000_00ff)
+pub const section_attributes_mask = u32(0xffff_ff00)
+pub const section_attributes_usr_mask = u32(0xff00_0000)
+pub const section_attributes_sys_mask = u32(0x00ff_ff00)
+pub const max_sect_align = 15
+
+@[heap]
+pub struct MachoSection {
+pub:
+	is_64     bool
+	sectname  string
+	segname   string
+	addr      u64
+	size      u64
+	offset    u32
+	align     u32
+	reloff    u32
+	nreloc    u32
+	flags     u32
+	reserved1 u32
+	reserved2 u32
+	reserved3 u32
+}
+
+pub fn new_macho_section(sectname string, segname string, addr u64, size u64, offset u32, align u32, reloff u32, nreloc u32, flags u32, reserved1 u32, reserved2 u32) &MachoSection {
+	return &MachoSection{
+		sectname: sectname.trim_right('\0')
+		segname: segname.trim_right('\0')
+		addr: addr
+		size: size
+		offset: offset
+		align: align
+		reloff: reloff
+		nreloc: nreloc
+		flags: flags
+		reserved1: reserved1
+		reserved2: reserved2
+	}
+}
+
+pub fn new_macho_section64(sectname string, segname string, addr u64, size u64, offset u32, align u32, reloff u32, nreloc u32, flags u32, reserved1 u32, reserved2 u32, reserved3 u32) &MachoSection {
+	return &MachoSection{
+		is_64: true
+		sectname: sectname.trim_right('\0')
+		segname: segname.trim_right('\0')
+		addr: addr
+		size: size
+		offset: offset
+		align: align
+		reloff: reloff
+		nreloc: nreloc
+		flags: flags
+		reserved1: reserved1
+		reserved2: reserved2
+		reserved3: reserved3
+	}
+}
+
+fn section_type_value(symbol string) ?u32 {
+	value := match symbol.trim_string_left(':') {
+		'S_REGULAR' { u32(0x0) }
+		'S_ZEROFILL' { u32(0x1) }
+		'S_CSTRING_LITERALS' { u32(0x2) }
+		'S_4BYTE_LITERALS' { u32(0x3) }
+		'S_8BYTE_LITERALS' { u32(0x4) }
+		'S_LITERAL_POINTERS' { u32(0x5) }
+		'S_NON_LAZY_SYMBOL_POINTERS' { u32(0x6) }
+		'S_LAZY_SYMBOL_POINTERS' { u32(0x7) }
+		'S_SYMBOL_STUBS' { u32(0x8) }
+		'S_MOD_INIT_FUNC_POINTERS' { u32(0x9) }
+		'S_MOD_TERM_FUNC_POINTERS' { u32(0xa) }
+		'S_COALESCED' { u32(0xb) }
+		'S_GB_ZEROFILE' { u32(0xc) }
+		'S_INTERPOSING' { u32(0xd) }
+		'S_16BYTE_LITERALS' { u32(0xe) }
+		'S_DTRACE_DOF' { u32(0xf) }
+		'S_LAZY_DYLIB_SYMBOL_POINTERS' { u32(0x10) }
+		'S_THREAD_LOCAL_REGULAR' { u32(0x11) }
+		'S_THREAD_LOCAL_ZEROFILL' { u32(0x12) }
+		'S_THREAD_LOCAL_VARIABLES' { u32(0x13) }
+		'S_THREAD_LOCAL_VARIABLE_POINTERS' { u32(0x14) }
+		'S_THREAD_LOCAL_INIT_FUNCTION_POINTERS' { u32(0x15) }
+		'S_INIT_FUNC_OFFSETS' { u32(0x16) }
+		else {
+			return none
+		}
+	}
+	return value
+}
+
+fn section_attribute_value(symbol string) ?u32 {
+	value := match symbol.trim_string_left(':') {
+		'S_ATTR_PURE_INSTRUCTIONS' { u32(0x8000_0000) }
+		'S_ATTR_NO_TOC' { u32(0x4000_0000) }
+		'S_ATTR_STRIP_STATIC_SYMS' { u32(0x2000_0000) }
+		'S_ATTR_NO_DEAD_STRIP' { u32(0x1000_0000) }
+		'S_ATTR_LIVE_SUPPORT' { u32(0x0800_0000) }
+		'S_ATTR_SELF_MODIFYING_CODE' { u32(0x0400_0000) }
+		'S_ATTR_DEBUG' { u32(0x0200_0000) }
+		'S_ATTR_SOME_INSTRUCTIONS' { u32(0x0000_0400) }
+		'S_ATTR_EXT_RELOC' { u32(0x0000_0200) }
+		'S_ATTR_LOC_RELOC' { u32(0x0000_0100) }
+		else {
+			return none
+		}
+	}
+	return value
+}
+
+fn section_flag_value(symbol string) ?u32 {
+	if value := section_type_value(symbol) {
+		return value
+	}
+	return section_attribute_value(symbol)
+}
+
+pub fn (section &MachoSection) section_name() string {
+	return section.sectname
+}
+
+pub fn (section &MachoSection) segment_name() string {
+	return section.segname
+}
+
+pub fn (section &MachoSection) empty() bool {
+	return section.size == 0
+}
+
+pub fn (section &MachoSection) section_type() u32 {
+	return section.flags & section_type_mask
+}
+
+pub fn (section &MachoSection) is_type(symbol string) bool {
+	value := section_type_value(symbol) or { return false }
+	return section.section_type() == value
+}
+
+pub fn (section &MachoSection) attributes() u32 {
+	return section.flags & section_attributes_mask
+}
+
+pub fn (section &MachoSection) has_attribute(symbol string) !bool {
+	_ := section_attribute_value(symbol) or { return error('unknown Mach-O section attribute ${symbol}') }
+	// Ruby integers, including zero, are truthy; preserve the source's double-negation.
+	return true
+}
+
+pub fn (section &MachoSection) has_flag(symbol string) bool {
+	value := section_flag_value(symbol) or { return false }
+	return section.flags & value == value
+}
+
+pub fn (section &MachoSection) to_h() brew_runtime.Value {
+	mut values := {
+		'sectname':  brew_runtime.string_value(section.sectname)
+		'segname':   brew_runtime.string_value(section.segname)
+		'addr':      brew_runtime.int_value(i64(section.addr))
+		'size':      brew_runtime.int_value(i64(section.size))
+		'offset':    brew_runtime.int_value(section.offset)
+		'align':     brew_runtime.int_value(section.align)
+		'reloff':    brew_runtime.int_value(section.reloff)
+		'nreloc':    brew_runtime.int_value(section.nreloc)
+		'flags':     brew_runtime.int_value(section.flags)
+		'reserved1': brew_runtime.int_value(section.reserved1)
+		'reserved2': brew_runtime.int_value(section.reserved2)
+	}
+	if section.is_64 {
+		values['reserved3'] = brew_runtime.int_value(section.reserved3)
+		values['structure'] = header_structure_value('Z16Z16Q=Q=L=L=L=L=L=L=L=L=', 80)
+	} else {
+		values['structure'] = header_structure_value('Z16Z16L=L=L=L=L=L=L=L=L=', 68)
+	}
+	return brew_runtime.map_value(values)
+}
+
+fn macho_section_value(section &MachoSection) brew_runtime.Value {
+	return brew_runtime.structured_value(if section.is_64 {
+		'MachO::Sections::Section64'
+	} else {
+		'MachO::Sections::Section'
+	}, '#<MachO::Sections::Section ${section.segname},${section.sectname}>', {
+		'macho_section_address': u64(voidptr(section)).str()
+	})
+}
+
+fn macho_section_from_args(args []brew_runtime.Value) &MachoSection {
+	if args.len == 0 {
+		panic('Mach-O section method requires a receiver')
+	}
+	address := args[0].attribute('macho_section_address') or { panic('invalid Mach-O section receiver') }
+	return unsafe { &MachoSection(voidptr(address.u64())) }
+}
 
 // Ruby method `section_name` at line 126.
 pub fn ruby_sections_l126_d1_section_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('section_name', ...args)
+	return brew_runtime.string_value(macho_section_from_args(args).section_name())
 }
 
 // Ruby method `segment_name` at line 131.
 pub fn ruby_sections_l131_d2_segment_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('segment_name', ...args)
+	return brew_runtime.string_value(macho_section_from_args(args).segment_name())
 }
 
 // Ruby method `empty?` at line 136.
 pub fn ruby_sections_l136_d3_empty(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('empty?', ...args)
+	return brew_runtime.bool_value(macho_section_from_args(args).empty())
 }
 
 // Ruby method `type` at line 141.
 pub fn ruby_sections_l141_d4_type(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('type', ...args)
+	return brew_runtime.int_value(macho_section_from_args(args).section_type())
 }
 
 // Ruby method `type?(type_sym)` at line 149.
 pub fn ruby_sections_l149_d5_type(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('type?', ...args)
+	if args.len < 2 {
+		panic('Section#type? requires a type symbol')
+	}
+	return brew_runtime.bool_value(macho_section_from_args(args).is_type(args[1].as_string()))
 }
 
 // Ruby method `attributes` at line 154.
 pub fn ruby_sections_l154_d6_attributes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('attributes', ...args)
+	return brew_runtime.int_value(macho_section_from_args(args).attributes())
 }
 
 // Ruby method `attribute?(attr_sym)` at line 162.
 pub fn ruby_sections_l162_d7_attribute(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('attribute?', ...args)
+	if args.len < 2 {
+		panic('Section#attribute? requires an attribute symbol')
+	}
+	return brew_runtime.bool_value(macho_section_from_args(args).has_attribute(args[1].as_string()) or {
+		panic(err)
+	})
 }
 
 // Ruby method `flag?(flag)` at line 171.
 pub fn ruby_sections_l171_d8_flag(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('flag?', ...args)
+	if args.len < 2 {
+		panic('Section#flag? requires a flag symbol')
+	}
+	return brew_runtime.bool_value(macho_section_from_args(args).has_flag(args[1].as_string()))
 }
 
 // Ruby method `to_h` at line 180.
 pub fn ruby_sections_l180_d9_to_h(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_h', ...args)
+	return macho_section_from_args(args).to_h()
 }
 
 // Ruby method `to_h` at line 209.
 pub fn ruby_sections_l209_d10_to_h(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_h', ...args)
+	return macho_section_from_args(args).to_h()
 }
 
 // Original Ruby source (line-for-line):

@@ -1,13 +1,16 @@
 module cmd
 
-import brew_runtime
+import homebrew.cmd as brew_cmd
 
 // Translated from Homebrew/brew `test/cmd/commands_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "prints a list of all available commands", :integration_test do` at line 10.
-pub fn ruby_commands_spec_l10_d1_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+pub fn ruby_commands_spec_l10_d1_prints() bool {
+	output := brew_cmd.commands_command_output(brew_cmd.CommandsCommandConfig{
+		internal: ['install', 'list']
+	})
+	return output.contains('Built-in commands') && output.contains('install')
 }
 
 // Original Ruby source (line-for-line):

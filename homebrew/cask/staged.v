@@ -1,23 +1,147 @@
 module cask
 
 import brew_runtime
+import os
 
 // Translated from Homebrew/brew `cask/staged.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub struct StagedCommandInvocation {
+pub:
+	executable string
+	args       []string
+	sudo       bool
+}
+
+@[heap]
+pub struct StagedState {
+pub:
+	cask                  string
+	current_user          string = 'root'
+	existing_paths        []string
+	app_management_denied []string
+pub mut:
+	invocations []StagedCommandInvocation
+	messages    []string
+}
+
+pub fn new_staged_state(cask string, current_user string, existing_paths []string,
+	app_management_denied []string) &StagedState {
+	return &StagedState{
+		cask: cask
+		current_user: current_user
+		existing_paths: existing_paths.map(os.abs_path(it))
+		app_management_denied: app_management_denied.map(os.abs_path(it))
+	}
+}
+
+pub fn (state &StagedState) remove_nonexistent(paths []string) []string {
+	mut existing := []string{}
+	for path in paths {
+		full_path := os.abs_path(path)
+		if full_path in state.existing_paths || os.exists(full_path) || os.is_link(full_path) {
+			existing << full_path
+		}
+	}
+	return existing
+}
+
+pub fn (mut state StagedState) system_command(executable string, args []string, sudo bool) {
+	state.invocations << StagedCommandInvocation{
+		executable: executable
+		args: args.clone()
+		sudo: sudo
+	}
+}
+
+pub fn (mut state StagedState) set_permissions(paths []string, permissions string) {
+	full_paths := state.remove_nonexistent(paths)
+	if full_paths.len == 0 {
+		return
+	}
+	mut command_args := ['-R', '--', permissions]
+	command_args << full_paths
+	state.invocations << StagedCommandInvocation{
+		executable: 'chmod'
+		args: command_args
+		sudo: false
+	}
+}
+
+pub fn (mut state StagedState) set_ownership(paths []string, user string, group string) ! {
+	full_paths := state.remove_nonexistent(paths)
+	if full_paths.len == 0 {
+		return
+	}
+	for path in full_paths {
+		if path in state.app_management_denied {
+			return error("Cannot change the ownership of '${path}' because your terminal does not have App Management permissions.\nmacOS prevents modifying apps without these permissions, even when using `sudo`.\nTo fix this, approve the permissions prompt (if one was just shown) or go to\nSystem Settings → Privacy & Security → App Management and add or enable your terminal.\nThen run this command again.")
+		}
+	}
+	effective_user := if user != '' { user } else { state.current_user }
+	effective_group := if group != '' { group } else { 'staff' }
+	state.messages << 'Changing ownership of paths required by ${state.cask} with `sudo` (which may request your password)...'
+	mut command_args := ['-R', '--', '${effective_user}:${effective_group}']
+	command_args << full_paths
+	state.invocations << StagedCommandInvocation{
+		executable: 'chown'
+		args: command_args
+		sudo: true
+	}
+}
+
+fn staged_paths_from_value(value brew_runtime.Value) []string {
+	return if value.type_name == 'Array' {
+		value.as_string_array() or { [] }
+	} else {
+		[value.as_string()]
+	}
+}
+
+fn staged_state_value(state &StagedState) brew_runtime.Value {
+	return brew_runtime.structured_value('Cask::Staged', state.cask, {
+		'staged_state_address': u64(voidptr(state)).str()
+	})
+}
+
+fn staged_state_from_value(value brew_runtime.Value) &StagedState {
+	address := value.attributes['staged_state_address'] or { panic('invalid Cask::Staged state') }
+	return unsafe { &StagedState(voidptr(address.u64())) }
+}
+
+pub fn staged_state_boundary(state &StagedState) brew_runtime.Value {
+	return staged_state_value(state)
+}
 
 // Ruby method `set_permissions(paths, permissions_str)` at line 19.
 pub fn ruby_staged_l19_d1_set_permissions(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('set_permissions', ...args)
+	if args.len < 3 {
+		return brew_runtime.object_value('ArgumentError', 'state, paths and permissions are required')
+	}
+	mut state := staged_state_from_value(args[0])
+	state.set_permissions(staged_paths_from_value(args[1]), args[2].as_string())
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Ruby method `set_ownership(paths, user: T.must(User.current), group: "staff")` at line 28.
 pub fn ruby_staged_l28_d2_set_ownership(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('set_ownership', ...args)
+	if args.len < 2 {
+		return brew_runtime.object_value('ArgumentError', 'state and paths are required')
+	}
+	mut state := staged_state_from_value(args[0])
+	user := if args.len > 2 { args[2].as_string() } else { state.current_user }
+	group := if args.len > 3 { args[3].as_string() } else { 'staff' }
+	state.set_ownership(staged_paths_from_value(args[1]), user, group) or {
+		return brew_runtime.object_value('Cask::CaskError', err.msg())
+	}
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Ruby method `remove_nonexistent(paths)` at line 58.
 pub fn ruby_staged_l58_d3_remove_nonexistent(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('remove_nonexistent', ...args)
+	if args.len < 2 {
+		return brew_runtime.string_array_value([])
+	}
+	return brew_runtime.string_array_value(staged_state_from_value(args[0]).remove_nonexistent(staged_paths_from_value(args[1])))
 }
 
 // Original Ruby source (line-for-line):

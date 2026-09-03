@@ -1,18 +1,18 @@
 module test
 
-import brew_runtime
+import homebrew
 
 // Translated from Homebrew/brew `test/keg_only_reason_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "returns the reason provided" do` at line 8.
-pub fn ruby_keg_only_reason_spec_l8_d1_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_keg_only_reason_spec_l8_d1_returns() bool {
+	return homebrew.new_keg_only_reason('provided_by_macos', 'test').str() == 'test'
 }
 
 // Ruby it `it "returns a default message when no reason is provided" do` at line 13.
-pub fn ruby_keg_only_reason_spec_l13_d2_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_keg_only_reason_spec_l13_d2_returns() bool {
+	return homebrew.new_keg_only_reason('provided_by_macos', '').str().starts_with('macOS already provides')
 }
 
 // Original Ruby source (line-for-line):

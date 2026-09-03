@@ -1,113 +1,140 @@
 module test
 
-import brew_runtime
+import homebrew
 
 // Translated from Homebrew/brew `test/system_command_result_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:result) do` at line 7.
-pub fn ruby_system_command_result_spec_l7_d1_result(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('result', ...args)
+pub fn ruby_system_command_result_spec_l7_d1_result() homebrew.SystemCommandResult {
+	return system_command_result_spec_result_with_output(ruby_system_command_result_spec_l12_d2_output_array(), false)
 }
 
 // Ruby let `let(:output_array) do` at line 12.
-pub fn ruby_system_command_result_spec_l12_d2_output_array(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('output_array', ...args)
+pub fn ruby_system_command_result_spec_l12_d2_output_array() []homebrew.SystemCommandOutputLine {
+	return [
+		homebrew.SystemCommandOutputLine{ kind: .stdout, line: 'output\n' },
+		homebrew.SystemCommandOutputLine{ kind: .stderr, line: 'error\n' },
+	]
 }
 
 // Ruby it `it "can be destructed like `Open3.capture3`" do` at line 22.
-pub fn ruby_system_command_result_spec_l22_d3_can(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('can', ...args)
+pub fn ruby_system_command_result_spec_l22_d3_can() bool {
+	tuple := ruby_system_command_result_spec_l7_d1_result().to_tuple()
+	return tuple.stdout == 'output\n' && tuple.stderr == 'error\n' && tuple.status.success()
 }
 
 // Ruby it `it "returns the standard output" do` at line 32.
-pub fn ruby_system_command_result_spec_l32_d4_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_system_command_result_spec_l32_d4_returns() string {
+	return ruby_system_command_result_spec_l7_d1_result().stdout_text()
 }
 
 // Ruby it `it "returns the standard error output" do` at line 38.
-pub fn ruby_system_command_result_spec_l38_d5_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_system_command_result_spec_l38_d5_returns() string {
+	return ruby_system_command_result_spec_l7_d1_result().stderr_text()
 }
 
 // Ruby it `it "returns the combined standard and standard error output" do` at line 44.
-pub fn ruby_system_command_result_spec_l44_d6_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_system_command_result_spec_l44_d6_returns() string {
+	return ruby_system_command_result_spec_l7_d1_result().merged_output_text()
 }
 
 // Ruby subject `subject(:result_plist) { result.plist }` at line 50.
-pub fn ruby_system_command_result_spec_l50_d7_result_plist(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('result_plist', ...args)
+pub fn ruby_system_command_result_spec_l50_d7_result_plist(stdout string, verbose bool) ?homebrew.SystemCommandPlist {
+	return system_command_result_spec_result(stdout, verbose).plist()
 }
 
 // Ruby let `let(:stdout) { "" }` at line 52.
-pub fn ruby_system_command_result_spec_l52_d8_stdout(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('stdout', ...args)
+pub fn ruby_system_command_result_spec_l52_d8_stdout() string {
+	return ''
 }
 
 // Ruby let `let(:output_array) { [[:stdout, stdout]] }` at line 53.
-pub fn ruby_system_command_result_spec_l53_d9_output_array(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('output_array', ...args)
+pub fn ruby_system_command_result_spec_l53_d9_output_array(stdout string) []homebrew.SystemCommandOutputLine {
+	return [homebrew.SystemCommandOutputLine{ kind: .stdout, line: stdout }]
 }
 
 // Ruby let `let(:garbage) do` at line 54.
-pub fn ruby_system_command_result_spec_l54_d10_garbage(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('garbage', ...args)
+pub fn ruby_system_command_result_spec_l54_d10_garbage() string {
+	return "Hello there! I am in no way XML am I?!?!\n\n  That's a little silly... you were expecting XML here!\n\nWhat is a parser to do?\n\nHopefully <not> explode!\n"
 }
 
 // Ruby let `let(:plist) do` at line 65.
-pub fn ruby_system_command_result_spec_l65_d11_plist(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('plist', ...args)
+pub fn ruby_system_command_result_spec_l65_d11_plist() string {
+	return '<?xml version="1.0" encoding="UTF-8"?>\n' + '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n' + '<plist version="1.0">\n<dict>\n  <key>system-entities</key>\n  <array>\n' + '    <dict><key>content-hint</key><string>Apple_partition_map</string><key>dev-entry</key><string>/dev/disk3s1</string><key>potentially-mountable</key><false/><key>unmapped-content-hint</key><string>Apple_partition_map</string></dict>\n' + '    <dict><key>content-hint</key><string>Apple_partition_scheme</string><key>dev-entry</key><string>/dev/disk3</string><key>potentially-mountable</key><false/><key>unmapped-content-hint</key><string>Apple_partition_scheme</string></dict>\n' + '    <dict><key>content-hint</key><string>Apple_HFS</string><key>dev-entry</key><string>/dev/disk3s2</string><key>mount-point</key><string>/private/tmp/dmg.BhfS2g</string><key>potentially-mountable</key><true/><key>unmapped-content-hint</key><string>Apple_HFS</string><key>volume-kind</key><string>hfs</string></dict>\n' + '  </array>\n</dict>\n</plist>\n'
 }
 
 // Ruby let `let(:stdout) do` at line 114.
-pub fn ruby_system_command_result_spec_l114_d12_stdout(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('stdout', ...args)
+pub fn ruby_system_command_result_spec_l114_d12_stdout() string {
+	return ruby_system_command_result_spec_l54_d10_garbage() + '\n' + ruby_system_command_result_spec_l65_d11_plist()
 }
 
 // Ruby it `it "ignores garbage" do` at line 121.
-pub fn ruby_system_command_result_spec_l121_d13_ignores(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ignores', ...args)
+pub fn ruby_system_command_result_spec_l121_d13_ignores() bool {
+	plist := ruby_system_command_result_spec_l50_d7_result_plist(ruby_system_command_result_spec_l114_d12_stdout(), false) or { return false }
+	return plist.arrays['system-entities'].len == 3
 }
 
 // Ruby it `it "warns about garbage" do` at line 130.
-pub fn ruby_system_command_result_spec_l130_d14_warns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('warns', ...args)
+pub fn ruby_system_command_result_spec_l130_d14_warns() bool {
+	stdout := ruby_system_command_result_spec_l114_d12_stdout()
+	plist := ruby_system_command_result_spec_l50_d7_result_plist(stdout, false) or { return false }
+	return plist.garbage.len == 1 && plist.garbage[0].contains('Hello there!')
 }
 
 // Ruby let `let(:stdout) do` at line 138.
-pub fn ruby_system_command_result_spec_l138_d15_stdout(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('stdout', ...args)
+pub fn ruby_system_command_result_spec_l138_d15_stdout() string {
+	return ruby_system_command_result_spec_l65_d11_plist() + '\n' + ruby_system_command_result_spec_l54_d10_garbage()
 }
 
 // Ruby it `it "ignores garbage" do` at line 145.
-pub fn ruby_system_command_result_spec_l145_d16_ignores(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ignores', ...args)
+pub fn ruby_system_command_result_spec_l145_d16_ignores() bool {
+	plist := ruby_system_command_result_spec_l50_d7_result_plist(ruby_system_command_result_spec_l138_d15_stdout(), false) or { return false }
+	return plist.arrays['system-entities'].len == 3
 }
 
 // Ruby it `it "warns about garbage" do` at line 154.
-pub fn ruby_system_command_result_spec_l154_d17_warns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('warns', ...args)
+pub fn ruby_system_command_result_spec_l154_d17_warns() bool {
+	stdout := ruby_system_command_result_spec_l138_d15_stdout()
+	plist := ruby_system_command_result_spec_l50_d7_result_plist(stdout, false) or { return false }
+	return plist.garbage.len == 1 && plist.garbage[0].contains('Hopefully <not> explode!')
 }
 
 // Ruby let `let(:stdout) { plist }` at line 162.
-pub fn ruby_system_command_result_spec_l162_d18_stdout(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('stdout', ...args)
+pub fn ruby_system_command_result_spec_l162_d18_stdout() string {
+	return ruby_system_command_result_spec_l65_d11_plist()
 }
 
 // Ruby it `it "successfully parses it" do` at line 164.
-pub fn ruby_system_command_result_spec_l164_d19_successfully(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('successfully', ...args)
+pub fn ruby_system_command_result_spec_l164_d19_successfully() bool {
+	plist := ruby_system_command_result_spec_l50_d7_result_plist(ruby_system_command_result_spec_l162_d18_stdout(), false) or { return false }
+	entities := plist.arrays['system-entities']
+	return entities.len == 3 && entities.map(it['dev-entry']).str() == [
+		'/dev/disk3s1',
+		'/dev/disk3',
+		'/dev/disk3s2',
+	].str()
 }
 
 // Ruby let `let(:stdout) { "" }` at line 173.
-pub fn ruby_system_command_result_spec_l173_d20_stdout(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('stdout', ...args)
+pub fn ruby_system_command_result_spec_l173_d20_stdout() string {
+	return ''
 }
 
 // Ruby it `it "returns nil" do` at line 175.
-pub fn ruby_system_command_result_spec_l175_d21_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_system_command_result_spec_l175_d21_returns() bool {
+	return ruby_system_command_result_spec_l50_d7_result_plist(ruby_system_command_result_spec_l173_d20_stdout(), false) == none
+}
+
+fn system_command_result_spec_result(stdout string, verbose bool) homebrew.SystemCommandResult {
+	return system_command_result_spec_result_with_output(ruby_system_command_result_spec_l53_d9_output_array(stdout), verbose)
+}
+
+fn system_command_result_spec_result_with_output(output []homebrew.SystemCommandOutputLine,
+	verbose bool) homebrew.SystemCommandResult {
+	return homebrew.new_system_command_result([]string{}, output, homebrew.SystemCommandStatus{
+		exit_code: 0
+	}, []string{}, verbose)
 }
 
 // Original Ruby source (line-for-line):

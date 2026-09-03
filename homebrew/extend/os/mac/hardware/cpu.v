@@ -1,38 +1,114 @@
 module hardware
 
 import brew_runtime
+import homebrew
+import homebrew.extend.os.mac.hardware.cpu as mac_cpu
+import os
+
+pub fn mac_hardware_cpu_type(properties mac_cpu.MacCpuProperties, fallback_platform string) string {
+	cputype := mac_cpu.mac_cpu_sysctl_int(properties, 'hw.cputype')
+	return match cputype {
+		7 { 'intel' }
+		0x100000c { 'arm' }
+		else { homebrew.hardware_cpu_type(fallback_platform) }
+	}
+}
+
+pub fn mac_hardware_cpu_family(properties mac_cpu.MacCpuProperties, arm bool,
+	intel bool) string {
+	value := mac_cpu.mac_cpu_sysctl_int(properties, 'hw.cpufamily')
+	return if arm {
+		mac_cpu.mac_cpu_arm_family(value)
+	} else if intel {
+		mac_cpu.mac_cpu_intel_family(value)
+	} else {
+		'dunno'
+	}
+}
+
+pub fn mac_hardware_cpu_features(properties mac_cpu.MacCpuProperties) []string {
+	return mac_cpu.mac_cpu_sysctl_n(properties, ['machdep.cpu.features', 'machdep.cpu.extfeatures',
+		'machdep.cpu.leaf7_features']).split_any(' \n\t').filter(it != '').map(it.to_lower())
+}
+
+fn mac_hardware_properties_from_value(value brew_runtime.Value) mac_cpu.MacCpuProperties {
+	mut values := map[string]string{}
+	if value.type_name == 'Hash' {
+		for name, item in value.map_data {
+			values[name] = item.as_string()
+		}
+	}
+	return mac_cpu.MacCpuProperties{ values: values }
+}
 
 // Translated from Homebrew/brew `extend/os/mac/hardware/cpu.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `type` at line 20.
 pub fn ruby_cpu_l20_d1_type(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('type', ...args)
+	properties := if args.len > 0 {
+		mac_hardware_properties_from_value(args[0])
+	} else {
+		mac_cpu.MacCpuProperties{}
+	}
+	platform := if args.len > 1 { args[1].as_string() } else { os.uname().machine }
+	return brew_runtime.string_value(mac_hardware_cpu_type(properties, platform))
 }
 
 // Ruby method `family` at line 32.
 pub fn ruby_cpu_l32_d2_family(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('family', ...args)
+	properties := if args.len > 0 {
+		mac_hardware_properties_from_value(args[0])
+	} else {
+		mac_cpu.MacCpuProperties{}
+	}
+	arm := if args.len > 1 {
+		args[1].as_bool() or { panic(err) }
+	} else {
+		mac_hardware_cpu_type(properties, os.uname().machine) == 'arm'
+	}
+	intel := if args.len > 2 { args[2].as_bool() or { panic(err) } } else { !arm }
+	return brew_runtime.string_value(mac_hardware_cpu_family(properties, arm, intel))
 }
 
 // Ruby method `in_rosetta2?` at line 47.
 pub fn ruby_cpu_l47_d3_in_rosetta2(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('in_rosetta2?', ...args)
+	properties := if args.len > 0 {
+		mac_hardware_properties_from_value(args[0])
+	} else {
+		mac_cpu.MacCpuProperties{}
+	}
+	return brew_runtime.bool_value(mac_cpu.mac_cpu_sysctl_bool(properties, 'sysctl.proc_translated'))
 }
 
 // Ruby method `rosetta_installed?` at line 52.
 pub fn ruby_cpu_l52_d4_rosetta_installed(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('rosetta_installed?', ...args)
+	path := if args.len > 0 {
+		args[0].as_string()
+	} else {
+		'/Library/Apple/usr/libexec/oah/libRosettaRuntime'
+	}
+	return brew_runtime.bool_value(os.exists(path))
 }
 
 // Ruby method `features` at line 57.
 pub fn ruby_cpu_l57_d5_features(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('features', ...args)
+	properties := if args.len > 0 {
+		mac_hardware_properties_from_value(args[0])
+	} else {
+		mac_cpu.MacCpuProperties{}
+	}
+	return brew_runtime.string_array_value(mac_hardware_cpu_features(properties))
 }
 
 // Ruby method `sse4?` at line 66.
 pub fn ruby_cpu_l66_d6_sse4(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sse4?', ...args)
+	properties := if args.len > 0 {
+		mac_hardware_properties_from_value(args[0])
+	} else {
+		mac_cpu.MacCpuProperties{}
+	}
+	return brew_runtime.bool_value(mac_cpu.mac_cpu_sysctl_bool(properties, 'hw.optional.sse4_1'))
 }
 
 // Original Ruby source (line-for-line):

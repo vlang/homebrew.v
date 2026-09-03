@@ -7,7 +7,12 @@ import brew_runtime
 
 // Ruby it `it "does not require slow dependencies unnecessarily" do` at line 5.
 pub fn ruby_global_spec_l5_d1_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	if args.len == 0 {
+		return brew_runtime.bool_value(false)
+	}
+	exit_code := args[0].as_int() or { return brew_runtime.bool_value(false) }
+	output := if args.len > 1 { args[1].as_string() } else { '' }
+	return brew_runtime.bool_value(exit_code == 0 && output == '')
 }
 
 // Original Ruby source (line-for-line):

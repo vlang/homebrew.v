@@ -1,28 +1,50 @@
 module unpack_strategy
 
-import brew_runtime
-
 // Translated from Homebrew/brew `unpack_strategy/lha.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `self.extensions` at line 10.
-pub fn ruby_lha_l10_d1_self_extensions(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.extensions', ...args)
+pub fn ruby_lha_l10_d1_self_extensions() []string {
+	return lha_extensions()
 }
 
 // Ruby method `self.can_extract?(path)` at line 15.
-pub fn ruby_lha_l15_d2_self_can_extract(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.can_extract?', ...args)
+pub fn ruby_lha_l15_d2_self_can_extract(path string) bool {
+	return lha_can_extract(path)
 }
 
 // Ruby method `dependencies` at line 20.
-pub fn ruby_lha_l20_d3_dependencies(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dependencies', ...args)
+pub fn ruby_lha_l20_d3_dependencies() []string {
+	return lha_dependencies()
 }
 
 // Ruby method `extract_to_dir(unpack_dir, basename:, verbose:)` at line 27.
-pub fn ruby_lha_l27_d4_extract_to_dir(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('extract_to_dir', ...args)
+pub fn ruby_lha_l27_d4_extract_to_dir(path string, unpack_dir string, basename string, verbose bool) ! {
+	lha_extract_to_dir(path, unpack_dir, basename, verbose)!
+}
+
+pub fn lha_extensions() []string {
+	return ['.lha', '.lzh']
+}
+
+pub fn lha_can_extract(path string) bool {
+	bytes := read_file_prefix(path, 8) or { return false }
+	if bytes.len < 7 || bytes[2] != `-` || bytes[6] != `-` { return false }
+	method := bytes[3..6].bytestr()
+	return method in ['lh0', 'lh1', 'lz4', 'lz5', 'lzs', 'lh ', 'lhd', 'lh2', 'lh3', 'lh4', 'lh5']
+}
+
+pub fn lha_dependencies() []string {
+	return ['lha']
+}
+
+pub fn lha_extract_to_dir(path string, unpack_dir string, basename string, verbose bool) ! {
+	_ = basename
+	_ = verbose
+	lha := command_path('lha')!
+	members := archive_listing(lha, ['lq', path])!
+	validate_archive_members(members)!
+	checked_command(lha, ['xq2w=${unpack_dir}', path])!
 }
 
 // Original Ruby source (line-for-line):

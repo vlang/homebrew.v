@@ -1,13 +1,19 @@
 module dev_cmd
 
-import brew_runtime
-
 // Translated from Homebrew/brew `extend/os/linux/dev-cmd/update-test.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub type GitTagsReader = fn() !string
+
+pub fn linux_git_tags(super_tags string, reader GitTagsReader) !string {
+	if super_tags.trim_space() != '' {
+		return super_tags
+	}
+	return reader()!
+}
 
 // Ruby method `git_tags` at line 11.
-pub fn ruby_update_test_l11_d1_git_tags(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('git_tags', ...args)
+pub fn ruby_update_test_l11_d1_git_tags(super_tags string, reader GitTagsReader) !string {
+	return linux_git_tags(super_tags, reader)!
 }
 
 // Original Ruby source (line-for-line):

@@ -1,18 +1,23 @@
 module test
 
 import brew_runtime
+import homebrew
 
 // Translated from Homebrew/brew `test/bump_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "masks env-token credentials embedded in a push URL" do` at line 8.
 pub fn ruby_bump_spec_l8_d1_masks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('masks', ...args)
+	_ = args
+	url := 'https://x-access-token:ghp_secrettoken@github.com/Homebrew/homebrew-core'
+	return brew_runtime.bool_value(homebrew.bump_redacted_url(url, 'ghp_secrettoken') == 'https://x-access-token:******@github.com/Homebrew/homebrew-core')
 }
 
 // Ruby it `it "leaves a credential-free URL unchanged" do` at line 16.
 pub fn ruby_bump_spec_l16_d2_leaves(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('leaves', ...args)
+	_ = args
+	url := 'https://github.com/Homebrew/homebrew-core'
+	return brew_runtime.bool_value(homebrew.bump_redacted_url(url, none) == url)
 }
 
 // Original Ruby source (line-for-line):

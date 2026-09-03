@@ -6,23 +6,66 @@ import brew_runtime
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `self.extensions` at line 13.
-pub fn ruby_tar_l13_d1_self_extensions(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.extensions', ...args)
+pub fn ruby_tar_l13_d1_self_extensions() []string {
+	return tar_extensions()
 }
 
 // Ruby method `self.can_extract?(path)` at line 26.
-pub fn ruby_tar_l26_d2_self_can_extract(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.can_extract?', ...args)
+pub fn ruby_tar_l26_d2_self_can_extract(path string) bool {
+	return tar_can_extract(path)
 }
 
 // Ruby method `extract_to_dir(unpack_dir, basename:, verbose:)` at line 39.
-pub fn ruby_tar_l39_d3_extract_to_dir(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('extract_to_dir', ...args)
+pub fn ruby_tar_l39_d3_extract_to_dir(path string, unpack_dir string, basename string, verbose bool) ! {
+	tar_extract_to_dir(path, unpack_dir, basename, verbose)!
 }
 
 // Ruby method `subextract(extractor, dir, verbose)` at line 63.
-pub fn ruby_tar_l63_d4_subextract(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('subextract', ...args)
+pub fn ruby_tar_l63_d4_subextract(path string, kind StrategyKind, dir string, verbose bool) !string {
+	return tar_subextract(path, kind, dir, verbose)
+}
+
+pub fn tar_extensions() []string {
+	return ['.tar', '.tbz', '.tbz2', '.tar.bz2', '.tgz', '.tar.gz', '.tlzma', '.tar.lzma', '.txz',
+		'.tar.xz', '.tar.zst', '.crate']
+}
+
+pub fn tar_can_extract(path string) bool {
+	if file_has_bytes_at(path, 257, 'ustar'.bytes()) {
+		return true
+	}
+	if !gzip_can_extract(path) && !bzip2_can_extract(path) && !lzip_can_extract(path)
+		&& !xz_can_extract(path) && !zstd_can_extract(path) {
+		return false
+	}
+	tar := command_path('tar') or { return false }
+	result := brew_runtime.run_command(tar, ['--list', '--file', path])
+	return result.exit_code == 0 && result.output != ''
+}
+
+pub fn tar_extract_to_dir(path string, unpack_dir string, basename string, verbose bool) ! {
+	_ = basename
+	_ = verbose
+	tar := command_path('tar')!
+	listing := checked_command(tar, ['--list', '--file', path])!
+	validate_archive_members(listing.output.split_into_lines())!
+	checked_command(tar,
+		['--extract', '--no-same-owner', '--file', path, '--directory', unpack_dir])!
+}
+
+pub fn tar_subextract(path string, kind StrategyKind, dir string, verbose bool) !string {
+	Strategy{
+		kind: kind
+		path: path
+	}.extract(ExtractOptions{
+		destination: dir
+		verbose:     verbose
+	})!
+	children := brew_runtime.list_dir(dir)!
+	if children.len == 0 {
+		return error('compressed tar extraction produced no file')
+	}
+	return brew_runtime.join_path(dir, children[0])
 }
 
 // Original Ruby source (line-for-line):

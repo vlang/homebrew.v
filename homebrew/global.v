@@ -5,74 +5,129 @@ import brew_runtime
 // Translated from Homebrew/brew `global.rb`.
 // The original source is retained below until every stub has a typed V body.
 
+// GlobalState is V's explicit equivalent of the mutable singleton instance
+// variables on Ruby's Homebrew module. Explicit ownership avoids hidden globals
+// while retaining mutation and memoized Messages for a command invocation.
+pub struct GlobalState {
+pub mut:
+	failed                       bool
+	raise_deprecation_exceptions bool
+	auditing                     bool
+	messages                     Messages
+	process_euid                 int
+	owner_uid                    int
+	running_command              string
+}
+
+pub fn new_global_state(process_euid int, owner_uid int) GlobalState {
+	return GlobalState{
+		messages:     new_messages()
+		process_euid: process_euid
+		owner_uid:    owner_uid
+	}
+}
+
+pub fn global_state_from_process(original_brew_file string) !GlobalState {
+	return new_global_state(brew_runtime.effective_uid(),
+		brew_runtime.file_owner_uid(original_brew_file)!)
+}
+
+pub fn default_prefix(prefix string) bool {
+	return prefix == brew_runtime.environment_value('HOMEBREW_DEFAULT_PREFIX')
+}
+
+pub fn (state GlobalState) running_as_root() bool {
+	return state.process_euid == 0
+}
+
+pub fn (state GlobalState) running_as_root_but_not_owned_by_root() bool {
+	return state.running_as_root() && state.owner_uid != 0
+}
+
+pub fn auto_update_command() bool {
+	return brew_runtime.environment_value('HOMEBREW_AUTO_UPDATE_COMMAND').trim_space() != ''
+}
+
+pub fn (mut state GlobalState) set_running_command(cmd string, argv []string) {
+	state.running_command = '${cmd} ${argv.join(' ')}'.trim_space()
+}
+
+pub fn (state GlobalState) running_command_with_args() string {
+	return 'brew ${state.running_command}'.trim_space()
+}
+
 // Ruby attr_writer `attr_writer :failed` at line 65.
-pub fn ruby_global_l65_d1_failed(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('failed=', ...args)
+pub fn ruby_global_l65_d1_failed(mut state GlobalState, failed bool) bool {
+	state.failed = failed
+	return failed
 }
 
 // Ruby attr_writer `attr_writer :raise_deprecation_exceptions` at line 68.
-pub fn ruby_global_l68_d2_raise_deprecation_exceptions(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raise_deprecation_exceptions=', ...args)
+pub fn ruby_global_l68_d2_raise_deprecation_exceptions(mut state GlobalState,
+	raise_deprecation_exceptions bool) bool {
+	state.raise_deprecation_exceptions = raise_deprecation_exceptions
+	return raise_deprecation_exceptions
 }
 
 // Ruby attr_writer `attr_writer :auditing` at line 71.
-pub fn ruby_global_l71_d3_auditing(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('auditing=', ...args)
+pub fn ruby_global_l71_d3_auditing(mut state GlobalState, auditing bool) bool {
+	state.auditing = auditing
+	return auditing
 }
 
 // Ruby method `default_prefix?(prefix = HOMEBREW_PREFIX)` at line 77.
-pub fn ruby_global_l77_d4_default_prefix(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('default_prefix?', ...args)
+pub fn ruby_global_l77_d4_default_prefix(prefix string) bool {
+	return default_prefix(prefix)
 }
 
 // Ruby method `failed?` at line 82.
-pub fn ruby_global_l82_d5_failed(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('failed?', ...args)
+pub fn ruby_global_l82_d5_failed(state GlobalState) bool {
+	return state.failed == true
 }
 
 // Ruby method `messages` at line 88.
-pub fn ruby_global_l88_d6_messages(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('messages', ...args)
+pub fn ruby_global_l88_d6_messages(state GlobalState) Messages {
+	return state.messages.copy()
 }
 
 // Ruby method `raise_deprecation_exceptions?` at line 93.
-pub fn ruby_global_l93_d7_raise_deprecation_exceptions(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raise_deprecation_exceptions?', ...args)
+pub fn ruby_global_l93_d7_raise_deprecation_exceptions(state GlobalState) bool {
+	return state.raise_deprecation_exceptions == true
 }
 
 // Ruby method `auditing?` at line 99.
-pub fn ruby_global_l99_d8_auditing(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('auditing?', ...args)
+pub fn ruby_global_l99_d8_auditing(state GlobalState) bool {
+	return state.auditing == true
 }
 
 // Ruby method `running_as_root?` at line 105.
-pub fn ruby_global_l105_d9_running_as_root(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('running_as_root?', ...args)
+pub fn ruby_global_l105_d9_running_as_root(state GlobalState) bool {
+	return state.running_as_root()
 }
 
 // Ruby method `owner_uid` at line 111.
-pub fn ruby_global_l111_d10_owner_uid(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('owner_uid', ...args)
+pub fn ruby_global_l111_d10_owner_uid(state GlobalState) int {
+	return state.owner_uid
 }
 
 // Ruby method `running_as_root_but_not_owned_by_root?` at line 116.
-pub fn ruby_global_l116_d11_running_as_root_but_not_owned_by_root(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('running_as_root_but_not_owned_by_root?', ...args)
+pub fn ruby_global_l116_d11_running_as_root_but_not_owned_by_root(state GlobalState) bool {
+	return state.running_as_root_but_not_owned_by_root()
 }
 
 // Ruby method `auto_update_command?` at line 121.
-pub fn ruby_global_l121_d12_auto_update_command(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('auto_update_command?', ...args)
+pub fn ruby_global_l121_d12_auto_update_command() bool {
+	return auto_update_command()
 }
 
 // Ruby method `running_command=(cmd)` at line 126.
-pub fn ruby_global_l126_d13_running_command(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('running_command=', ...args)
+pub fn ruby_global_l126_d13_running_command(mut state GlobalState, cmd string, argv []string) {
+	state.set_running_command(cmd, argv)
 }
 
 // Ruby method `running_command_with_args` at line 131.
-pub fn ruby_global_l131_d14_running_command_with_args(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('running_command_with_args', ...args)
+pub fn ruby_global_l131_d14_running_command_with_args(state GlobalState) string {
+	return state.running_command_with_args()
 }
 
 // Original Ruby source (line-for-line):

@@ -1,253 +1,682 @@
 module test
 
-import brew_runtime
+import homebrew
+import os
 
 // Translated from Homebrew/brew `test/trust_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+struct TrustSpecFixture {
+	root   string
+	config homebrew.TrustConfig
+	tap    homebrew.TrustTap
+}
+
+fn trust_spec_fixture(label string, taps []homebrew.TrustTap) !TrustSpecFixture {
+	root := os.join_path(os.temp_dir(), 'brew-v-trust-' + os.getpid().str() + '-' + label)
+	os.rmdir_all(root) or {}
+	home := os.join_path(root, 'home')
+	config_home := os.join_path(home, '.homebrew')
+	tap_directory := os.join_path(root, 'taps')
+	os.mkdir_all(config_home)!
+	os.chmod(config_home, 0o700)!
+	os.mkdir_all(tap_directory)!
+	os.chmod(tap_directory, 0o700)!
+	config := homebrew.TrustConfig{
+		current_home: home
+		user_config_home: config_home
+		tap_directory: tap_directory
+		require_tap_trust: true
+		taps: taps
+	}
+	return TrustSpecFixture{
+		root: root
+		config: config
+		tap: if taps.len > 0 { taps[0] } else { homebrew.TrustTap{} }
+	}
+}
+
+fn (fixture TrustSpecFixture) cleanup() {
+	os.rmdir_all(fixture.root) or {}
+}
+
+fn trust_spec_tap(name string, remote string, formulae []string, casks []string,
+	commands []string) homebrew.TrustTap {
+	parts := name.split('/')
+	return homebrew.TrustTap{
+		name: name
+		remote: remote
+		path: if parts.len == 2 {
+			os.join_path('/taps', parts[0], 'homebrew-' + parts[1])} else {
+			''}
+		installed: true
+		formula_names: formulae
+		cask_names: casks
+		command_names: commands
+	}
+}
+
+fn trust_spec_target_equal(target homebrew.TrustTarget, target_type homebrew.TrustType,
+	name string) bool {
+	return target.target_type == target_type && target.name == name
+}
 
 // Ruby it `it "lets HOMEBREW_NO_REQUIRE_TAP_TRUST override HOMEBREW_REQUIRE_TAP_TRUST" do` at line 8.
-pub fn ruby_trust_spec_l8_d1_lets(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('lets', ...args)
+pub fn ruby_trust_spec_l8_d1_lets() bool {
+	config := homebrew.TrustConfig{
+		require_tap_trust: false
+		no_require_trust: true
+	}
+	return !config.require_tap_trust
 }
 
 // Ruby it `it "trusts third-party taps" do` at line 14.
-pub fn ruby_trust_spec_l14_d2_trusts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('trusts', ...args)
+pub fn ruby_trust_spec_l14_d2_trusts() !bool {
+	tap := trust_spec_tap('thirdparty/foo', '', [], [], [])
+	fixture := trust_spec_fixture('third-party', [tap])!
+	defer { fixture.cleanup() }
+	mut trust := homebrew.new_trust(fixture.config)
+	before := trust.trusted_tap(tap)!
+	trust.trust_item(.tap, 'thirdparty/foo')!
+	return !before && trust.trusted_tap(tap)!
 }
 
 // Ruby it `it "does not trust a custom-remote tap by its name but does by its remote URL" do` at line 27.
-pub fn ruby_trust_spec_l27_d3_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_trust_spec_l27_d3_does() !bool {
+	tap := trust_spec_tap('thirdparty/custom', 'https://gitlab.com/other/repo', [], [], [])
+	fixture := trust_spec_fixture('custom-remote', [tap])!
+	defer { fixture.cleanup() }
+	mut trust := homebrew.new_trust(fixture.config)
+	trust.trust_item(.tap, 'thirdparty/custom')!
+	by_name := trust.trusted_tap(tap)!
+	trust.trust_item(.tap, tap.remote)!
+	return !by_name && trust.trusted_tap(tap)!
 }
 
 // Ruby it `it "trusts a custom-remote tap passed as a Tap object" do` at line 43.
-pub fn ruby_trust_spec_l43_d4_trusts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('trusts', ...args)
+pub fn ruby_trust_spec_l43_d4_trusts() !bool {
+	tap := trust_spec_tap('thirdparty/custom', 'https://gitlab.com/other/repo', [], [], [])
+	fixture := trust_spec_fixture('tap-object', [tap])!
+	defer { fixture.cleanup() }
+	mut trust := homebrew.new_trust(fixture.config)
+	trust.trust_tap_object(.tap, tap)!
+	return trust.trusted_tap(tap)
 }
 
 // Ruby it `it "rejects a Tap object for a non-tap trust type" do` at line 56.
-pub fn ruby_trust_spec_l56_d5_rejects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('rejects', ...args)
+pub fn ruby_trust_spec_l56_d5_rejects() !bool {
+	fixture := trust_spec_fixture('reject-tap-object', [])!
+	defer { fixture.cleanup() }
+	mut trust := homebrew.new_trust(fixture.config)
+	if _ := trust.trust_tap_object(.formula, trust_spec_tap('thirdparty/custom', '', [], [], [])) {
+		return false
+	} else {
+		return err.msg().contains('must be a String, not a Tap')
+	}
 }
 
 // Ruby it `it "canonicalises a GitHub default-remote URL to the tap name" do` at line 61.
-pub fn ruby_trust_spec_l61_d6_canonicalises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('canonicalises', ...args)
+pub fn ruby_trust_spec_l61_d6_canonicalises() !bool {
+	fixture := trust_spec_fixture('github-target', [])!
+	defer { fixture.cleanup() }
+	mut trust := homebrew.new_trust(fixture.config)
+	target := trust.target('https://github.com/thirdparty/homebrew-foo', .tap, false, '')!
+	return trust_spec_target_equal(target, .tap, 'thirdparty/foo')
 }
 
 // Ruby it `it "stores a non-GitHub URL verbatim" do` at line 66.
-pub fn ruby_trust_spec_l66_d7_stores(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('stores', ...args)
+pub fn ruby_trust_spec_l66_d7_stores() !bool {
+	fixture := trust_spec_fixture('gitlab-target', [])!
+	defer { fixture.cleanup() }
+	mut trust := homebrew.new_trust(fixture.config)
+	target := trust.target('https://gitlab.com/other/repo', .tap, false, '')!
+	return trust_spec_target_equal(target, .tap, 'https://gitlab.com/other/repo')
 }
 
 // Ruby it `it "trusts a not-yet-installed tap by its non-GitHub remote URL" do` at line 71.
-pub fn ruby_trust_spec_l71_d8_trusts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('trusts', ...args)
+pub fn ruby_trust_spec_l71_d8_trusts() !bool {
+	fixture := trust_spec_fixture('absent-remote', [])!
+	defer { fixture.cleanup() }
+	mut trust := homebrew.new_trust(fixture.config)
+	trust.trust_item(.tap, 'https://gitlab.com/absent/repo')!
+	return 'https://gitlab.com/absent/repo' in trust.trusted_entries(.tap)!
 }
 
 // Ruby it `it "untrusts a tap by its remote URL" do` at line 78.
-pub fn ruby_trust_spec_l78_d9_untrusts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('untrusts', ...args)
+pub fn ruby_trust_spec_l78_d9_untrusts() !bool {
+	fixture := trust_spec_fixture('untrust-remote', [])!
+	defer { fixture.cleanup() }
+	mut trust := homebrew.new_trust(fixture.config)
+	remote := 'https://gitlab.com/other/repo'
+	trust.trust_item(.tap, remote)!
+	target := trust.target(remote, .tap, true, '')!
+	removed := trust.untrust(target.target_type, target.name)!
+	return removed && remote !in trust.trusted_entries(.tap)!
 }
 
 // Ruby it `it "invalidates old tap trust entries after a redirect" do` at line 88.
-pub fn ruby_trust_spec_l88_d10_invalidates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('invalidates', ...args)
+pub fn ruby_trust_spec_l88_d10_invalidates() !bool {
+	fixture := trust_spec_fixture('invalidate', [])!
+	defer { fixture.cleanup() }
+	mut trust := homebrew.new_trust(fixture.config)
+	trust.trust_item(.tap, 'thirdparty/foo')!
+	trust.trust_item(.tap, 'https://gitlab.com/old/repo')!
+	trust.trust_item(.formula, 'thirdparty/foo/bar')!
+	trust.trust_item(.cask, 'thirdparty/foo/baz')!
+	trust.trust_item(.command, 'thirdparty/foo/hello')!
+	changed := trust.invalidate_tap_references('thirdparty/foo', 'https://gitlab.com/old/repo')!
+	return changed && trust.trusted_entries(.tap)!.len == 0 && trust.trusted_entries(.formula)!.len == 0 && trust.trusted_entries(.cask)!.len == 0 && trust.trusted_entries(.command)!.len == 0
 }
 
 // Ruby it `it "infers tap type for a remote URL argument" do` at line 109.
-pub fn ruby_trust_spec_l109_d11_infers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('infers', ...args)
+pub fn ruby_trust_spec_l109_d11_infers() !bool {
+	fixture := trust_spec_fixture('infer-url', [])!
+	defer { fixture.cleanup() }
+	mut trust := homebrew.new_trust(fixture.config)
+	target := trust.target('https://gitlab.com/other/repo', none, false, '')!
+	return trust_spec_target_equal(target, .tap, 'https://gitlab.com/other/repo')
 }
 
 // Ruby it `it "infers tap type for an scp-style remote URL argument" do` at line 114.
-pub fn ruby_trust_spec_l114_d12_infers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('infers', ...args)
+pub fn ruby_trust_spec_l114_d12_infers() !bool {
+	fixture := trust_spec_fixture('infer-scp', [])!
+	defer { fixture.cleanup() }
+	mut trust := homebrew.new_trust(fixture.config)
+	target := trust.target('git@gitlab.com:other/repo', none, false, '')!
+	return trust_spec_target_equal(target, .tap, 'git@gitlab.com:other/repo')
 }
 
 // Ruby it `it "rejects a bare @-string rather than trusting it as a tap" do` at line 119.
-pub fn ruby_trust_spec_l119_d13_rejects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('rejects', ...args)
+pub fn ruby_trust_spec_l119_d13_rejects() !bool {
+	fixture := trust_spec_fixture('reject-bare-at', [])!
+	defer { fixture.cleanup() }
+	mut trust := homebrew.new_trust(fixture.config)
+	if _ := trust.target('foo@bar', none, false, '') {
+		return false
+	} else {
+		return err.msg().contains('fully-qualified') && trust.trusted_entries(.tap)!.len == 0
+	}
 }
 
 // Ruby it `it "rejects a bare @-string even with an explicit tap type" do` at line 125.
-pub fn ruby_trust_spec_l125_d14_rejects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('rejects', ...args)
+pub fn ruby_trust_spec_l125_d14_rejects() !bool {
+	fixture := trust_spec_fixture('reject-explicit-at', [])!
+	defer { fixture.cleanup() }
+	mut trust := homebrew.new_trust(fixture.config)
+	if _ := trust.target('not@valid', .tap, false, '') {
+		return false
+	} else {
+		return err.msg().contains('Invalid tap name') && trust.trusted_entries(.tap)!.len == 0
+	}
 }
 
 // Ruby it `it "trusts custom-remote tap items by remote but still resolves existing entries to untrust" do` at line 131.
-pub fn ruby_trust_spec_l131_d15_trusts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('trusts', ...args)
+pub fn ruby_trust_spec_l131_d15_trusts() !bool {
+	tap := trust_spec_tap('thirdparty/custom', 'https://gitlab.com/other/repo', ['bar', 'legacy'], [], [])
+	fixture := trust_spec_fixture('custom-item', [tap])!
+	defer { fixture.cleanup() }
+	mut trust := homebrew.new_trust(fixture.config)
+	target := trust.target('thirdparty/custom/bar', .formula, false, '')!
+	trust.trust_item(target.target_type, target.name)!
+	first_ok := trust.trusted(.formula, 'thirdparty/custom/bar')! && trust.trusted_entries(.formula)! == [
+		'https://gitlab.com/other/repo/bar',
+	]
+	trust.trust_item(.formula, 'thirdparty/custom/legacy')!
+	existing := trust.target('thirdparty/custom/legacy', .formula, true, '')!
+	return first_ok && trust_spec_target_equal(existing, .formula, 'thirdparty/custom/legacy')
 }
 
 // Ruby it `it "keys an item by a declared custom remote before the tap is installed" do` at line 150.
-pub fn ruby_trust_spec_l150_d16_keys(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('keys', ...args)
+pub fn ruby_trust_spec_l150_d16_keys() !bool {
+	fixture := trust_spec_fixture('declared-custom-item', [])!
+	defer { fixture.cleanup() }
+	mut trust := homebrew.new_trust(fixture.config)
+	target := trust.target('thirdparty/custom/bar', .formula, false, 'https://gitlab.com/other/repo')!
+	return trust_spec_target_equal(target, .formula, 'https://gitlab.com/other/repo/bar')
 }
 
 // Ruby it `it "keys an item by its tap name when the declared remote is its default remote" do` at line 156.
-pub fn ruby_trust_spec_l156_d17_keys(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('keys', ...args)
+pub fn ruby_trust_spec_l156_d17_keys() !bool {
+	fixture := trust_spec_fixture('declared-default-item', [])!
+	defer { fixture.cleanup() }
+	mut trust := homebrew.new_trust(fixture.config)
+	target := trust.target('thirdparty/custom/bar', .formula, false, 'https://github.com/thirdparty/homebrew-custom')!
+	return trust_spec_target_equal(target, .formula, 'thirdparty/custom/bar')
 }
 
 // Ruby it `it "keeps a declared remote custom relative to its tap name even when it resembles another default" do` at line 162.
-pub fn ruby_trust_spec_l162_d18_keeps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('keeps', ...args)
+pub fn ruby_trust_spec_l162_d18_keeps() !bool {
+	fixture := trust_spec_fixture('declared-other-default', [])!
+	defer { fixture.cleanup() }
+	mut trust := homebrew.new_trust(fixture.config)
+	target := trust.target('thirdparty/custom/bar', .formula, false, 'https://github.com/other/homebrew-project')!
+	return trust_spec_target_equal(target, .formula, 'https://github.com/other/homebrew-project/bar')
 }
 
 // Ruby it `it "keys a whole tap by a declared custom remote before the tap is installed" do` at line 168.
-pub fn ruby_trust_spec_l168_d19_keys(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('keys', ...args)
+pub fn ruby_trust_spec_l168_d19_keys() !bool {
+	fixture := trust_spec_fixture('declared-custom-tap', [])!
+	defer { fixture.cleanup() }
+	mut trust := homebrew.new_trust(fixture.config)
+	target := trust.target('thirdparty/custom', .tap, false, 'https://gitlab.com/other/repo')!
+	return trust_spec_target_equal(target, .tap, 'https://gitlab.com/other/repo')
 }
 
 // Ruby it `it "trusts formulae from trusted taps" do` at line 173.
-pub fn ruby_trust_spec_l173_d20_trusts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('trusts', ...args)
+pub fn ruby_trust_spec_l173_d20_trusts() !bool {
+	tap := trust_spec_tap('trustedformulae/foo', '', [], [], [])
+	fixture := trust_spec_fixture('trusted-formula-tap', [tap])!
+	defer { fixture.cleanup() }
+	mut trust := homebrew.new_trust(fixture.config)
+	trust.trust_item(.tap, tap.name)!
+	return trust.trusted(.formula, 'trustedformulae/foo/bar')
 }
 
 // Ruby it `it "ignores a trust file with a non-object JSON root" do` at line 184.
-pub fn ruby_trust_spec_l184_d21_ignores(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ignores', ...args)
+pub fn ruby_trust_spec_l184_d21_ignores() !bool {
+	fixture := trust_spec_fixture('non-object-json', [])!
+	defer { fixture.cleanup() }
+	path := homebrew.trust_file(fixture.config, fixture.config.current_home)
+	os.write_file(path, '[]')!
+	mut trust := homebrew.new_trust(fixture.config)
+	return !trust.trusted(.tap, 'thirdparty/foo')!
 }
 
 // Ruby it `it "uses the provided home when the trust file path is home-based" do` at line 195.
-pub fn ruby_trust_spec_l195_d22_uses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uses', ...args)
+pub fn ruby_trust_spec_l195_d22_uses() bool {
+	config := homebrew.TrustConfig{
+		current_home: '/root-home'
+		user_config_home: '/root-home/.homebrew'
+	}
+	return homebrew.trust_file(config, '/sudo-home') == '/sudo-home/.homebrew/trust.json'
 }
 
 // Ruby it `it "keeps the configured trust file path when it is not home-based" do` at line 205.
-pub fn ruby_trust_spec_l205_d23_keeps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('keeps', ...args)
+pub fn ruby_trust_spec_l205_d23_keeps() bool {
+	config := homebrew.TrustConfig{
+		current_home: '/root-home'
+		user_config_home: '/xdg-config/homebrew'
+	}
+	return homebrew.trust_file(config, '/sudo-home') == '/xdg-config/homebrew/trust.json'
 }
 
 // Ruby it `it "trusts a GitHub SSH-remote tap by its name" do` at line 216.
-pub fn ruby_trust_spec_l216_d24_trusts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('trusts', ...args)
+pub fn ruby_trust_spec_l216_d24_trusts() !bool {
+	tap := trust_spec_tap('thirdparty/foo', 'git@github.com:thirdparty/homebrew-foo', [], [], [])
+	fixture := trust_spec_fixture('github-ssh', [tap])!
+	defer { fixture.cleanup() }
+	mut trust := homebrew.new_trust(fixture.config)
+	trust.trust_item(.tap, tap.name)!
+	return trust.trusted_tap(tap)
 }
 
 // Ruby it `it "untrusts third-party taps" do` at line 233.
-pub fn ruby_trust_spec_l233_d25_untrusts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('untrusts', ...args)
+pub fn ruby_trust_spec_l233_d25_untrusts() !bool {
+	fixture := trust_spec_fixture('untrust-name', [])!
+	defer { fixture.cleanup() }
+	mut trust := homebrew.new_trust(fixture.config)
+	trust.trust_item(.tap, 'thirdparty/foo')!
+	return trust.untrust(.tap, 'thirdparty/foo')! && !trust.trusted(.tap, 'thirdparty/foo')!
+}
+
+fn trust_spec_concurrent_worker(config homebrew.TrustConfig, name string) bool {
+	mut trust := homebrew.new_trust(config)
+	return trust.trust_item(.formula, name) or { false }
 }
 
 // Ruby it `it "does not lose entries when trusting concurrently" do` at line 242.
-pub fn ruby_trust_spec_l242_d26_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_trust_spec_l242_d26_does() !bool {
+	fixture := trust_spec_fixture('concurrent', [])!
+	defer { fixture.cleanup() }
+	names := []string{len: 10, init: 'thirdparty/foo/formula${index}'}
+	mut threads := []thread bool{}
+	for name in names {
+		threads << spawn trust_spec_concurrent_worker(fixture.config, name)
+	}
+	for thread_handle in threads {
+		if !thread_handle.wait() {
+			return false
+		}
+	}
+	mut trust := homebrew.new_trust(fixture.config)
+	mut actual := trust.trusted_entries(.formula)!
+	actual.sort()
+	mut expected := names.clone()
+	expected.sort()
+	return actual == expected
 }
 
 // Ruby it `it "trusts fully-qualified formulae and casks" do` at line 254.
-pub fn ruby_trust_spec_l254_d27_trusts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('trusts', ...args)
+pub fn ruby_trust_spec_l254_d27_trusts() !bool {
+	tap := trust_spec_tap('qualified/foo', '', ['bar'], ['baz'], [])
+	fixture := trust_spec_fixture('qualified-items', [tap])!
+	defer { fixture.cleanup() }
+	mut trust := homebrew.new_trust(fixture.config)
+	trust.trust_fully_qualified_items(['qualified/foo/bar', 'qualified/foo/baz'], none)!
+	return trust.info == ['Trusted formula qualified/foo/bar', 'Trusted cask qualified/foo/baz'] && trust.trusted(.formula, 'qualified/foo/bar')! && trust.trusted(.cask, 'qualified/foo/baz')!
 }
 
 // Ruby it `it "does not trust missing fully-qualified formulae or casks" do` at line 276.
-pub fn ruby_trust_spec_l276_d28_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_trust_spec_l276_d28_does() !bool {
+	tap := trust_spec_tap('thirdparty/foo', '', [], [], [])
+	fixture := trust_spec_fixture('missing-items', [tap])!
+	defer { fixture.cleanup() }
+	mut trust := homebrew.new_trust(fixture.config)
+	trust.trust_fully_qualified_items(['thirdparty/foo/bar'], .formula)!
+	trust.trust_fully_qualified_items(['thirdparty/foo/baz'], .cask)!
+	return !trust.trusted(.formula, 'thirdparty/foo/bar')! && !trust.trusted(.cask, 'thirdparty/foo/baz')!
 }
 
 // Ruby it `it "does not report taps with trusted entries as wholly untrusted" do` at line 290.
-pub fn ruby_trust_spec_l290_d29_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_trust_spec_l290_d29_does() !bool {
+	tap := trust_spec_tap('thirdparty/foo', '', [], [], [])
+	fixture := trust_spec_fixture('partial-tap', [tap])!
+	defer { fixture.cleanup() }
+	mut trust := homebrew.new_trust(fixture.config)
+	trust.trust_item(.formula, 'thirdparty/foo/bar')!
+	return trust.wholly_untrusted_taps()!.len == 0
+}
+
+fn trust_spec_package_path(fixture TrustSpecFixture, tap_name string, directory string,
+	file string) string {
+	parts := tap_name.split('/')
+	return os.join_path(fixture.config.tap_directory, parts[0], 'homebrew-${parts[1]}', directory, file)
+}
+
+fn trust_spec_write(path string, contents string) ! {
+	os.mkdir_all(os.dir(path))!
+	os.write_file(path, contents)!
 }
 
 // Ruby it `it "writes the trust store with user-only permissions" do` at line 302.
-pub fn ruby_trust_spec_l302_d30_writes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('writes', ...args)
+pub fn ruby_trust_spec_l302_d30_writes() !bool {
+	fixture := trust_spec_fixture('store-mode', [])!
+	defer { fixture.cleanup() }
+	mut trust := homebrew.new_trust(fixture.config)
+	trust.trust_item(.tap, 'thirdparty/foo')!
+	path := homebrew.trust_file(fixture.config, fixture.config.current_home)
+	return int(os.stat(path)!.get_mode().bitmask()) & 0o777 == 0o600
 }
 
 // Ruby it `it "creates the trust store directory with user-only permissions" do` at line 311.
-pub fn ruby_trust_spec_l311_d31_creates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('creates', ...args)
+pub fn ruby_trust_spec_l311_d31_creates() !bool {
+	fixture := trust_spec_fixture('directory-mode', [])!
+	defer { fixture.cleanup() }
+	os.rmdir_all(fixture.config.user_config_home)!
+	mut trust := homebrew.new_trust(fixture.config)
+	trust.trust_item(.tap, 'thirdparty/foo')!
+	return int(os.stat(fixture.config.user_config_home)!.get_mode().bitmask()) & 0o777 == 0o700
 }
 
 // Ruby it `it "rejects a trust store in a group-writable directory" do` at line 325.
-pub fn ruby_trust_spec_l325_d32_rejects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('rejects', ...args)
+pub fn ruby_trust_spec_l325_d32_rejects() !bool {
+	fixture := trust_spec_fixture('group-directory', [])!
+	defer { fixture.cleanup() }
+	os.chmod(fixture.config.user_config_home, 0o770)!
+	mut trust := homebrew.new_trust(fixture.config)
+	if _ := trust.trust_item(.tap, 'thirdparty/foo') {
+		return false
+	} else {
+		os.chmod(fixture.config.user_config_home, 0o700)!
+		return err.msg().contains('Refusing to write insecure trust store')
+	}
 }
 
 // Ruby it `it "rejects a group-writable trust store" do` at line 339.
-pub fn ruby_trust_spec_l339_d33_rejects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('rejects', ...args)
+pub fn ruby_trust_spec_l339_d33_rejects() !bool {
+	fixture := trust_spec_fixture('group-store', [])!
+	defer { fixture.cleanup() }
+	path := homebrew.trust_file(fixture.config, fixture.config.current_home)
+	os.write_file(path, '{"trustedtaps":["thirdparty/foo"]}')!
+	os.chmod(path, 0o660)!
+	mut trust := homebrew.new_trust(fixture.config)
+	if _ := trust.trust_item(.tap, 'thirdparty/bar') {
+		return false
+	} else {
+		os.chmod(path, 0o600)!
+		return err.msg().contains('Refusing to write insecure trust store')
+	}
 }
 
 // Ruby it `it "writes a symlinked trust store through to its target" do` at line 352.
-pub fn ruby_trust_spec_l352_d34_writes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('writes', ...args)
+pub fn ruby_trust_spec_l352_d34_writes() !bool {
+	fixture := trust_spec_fixture('symlink-store', [])!
+	defer { fixture.cleanup() }
+	path := homebrew.trust_file(fixture.config, fixture.config.current_home)
+	target_dir := os.join_path(fixture.root, 'trust-target')
+	os.mkdir_all(target_dir)!
+	os.chmod(target_dir, 0o700)!
+	target := os.join_path(target_dir, 'trust.json')
+	os.write_file(target, '{"trustedtaps":["thirdparty/foo"]}')!
+	os.chmod(target, 0o600)!
+	os.symlink(target, path)!
+	mut trust := homebrew.new_trust(fixture.config)
+	trust.trust_item(.tap, 'thirdparty/bar')!
+	contents := os.read_file(target)!
+	return os.is_link(path) && contents.contains('thirdparty/bar') && contents.contains('thirdparty/foo')
 }
 
 // Ruby it `it "rejects a symlinked trust store in a group-writable directory" do` at line 370.
-pub fn ruby_trust_spec_l370_d35_rejects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('rejects', ...args)
+pub fn ruby_trust_spec_l370_d35_rejects() !bool {
+	fixture := trust_spec_fixture('symlink-group-dir', [])!
+	defer { fixture.cleanup() }
+	path := homebrew.trust_file(fixture.config, fixture.config.current_home)
+	target_dir := os.join_path(fixture.root, 'trust-target')
+	os.mkdir_all(target_dir)!
+	os.chmod(target_dir, 0o770)!
+	os.symlink(os.join_path(target_dir, 'trust.json'), path)!
+	mut trust := homebrew.new_trust(fixture.config)
+	if _ := trust.trust_item(.tap, 'thirdparty/foo') {
+		return false
+	} else {
+		os.chmod(target_dir, 0o700)!
+		return err.msg().contains('Refusing to write insecure trust store')
+	}
 }
 
 // Ruby it `it "rejects a symlinked trust store pointing to another symlink" do` at line 385.
-pub fn ruby_trust_spec_l385_d36_rejects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('rejects', ...args)
+pub fn ruby_trust_spec_l385_d36_rejects() !bool {
+	fixture := trust_spec_fixture('double-symlink', [])!
+	defer { fixture.cleanup() }
+	path := homebrew.trust_file(fixture.config, fixture.config.current_home)
+	target_dir := os.join_path(fixture.root, 'trust-target')
+	os.mkdir_all(target_dir)!
+	os.chmod(target_dir, 0o700)!
+	intermediate := os.join_path(target_dir, 'trust.json')
+	os.symlink(os.join_path(target_dir, 'real-trust.json'), intermediate)!
+	os.symlink(intermediate, path)!
+	mut trust := homebrew.new_trust(fixture.config)
+	if _ := trust.trust_item(.tap, 'thirdparty/foo') {
+		return false
+	} else {
+		return err.msg().contains('Refusing to write insecure trust store')
+	}
 }
 
 // Ruby it `it "requires third-party taps by default" do` at line 399.
-pub fn ruby_trust_spec_l399_d37_requires(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('requires', ...args)
+pub fn ruby_trust_spec_l399_d37_requires() !bool {
+	tap := trust_spec_tap('thirdparty/foo', '', [], [], [])
+	fixture := trust_spec_fixture('require-default', [tap])!
+	defer { fixture.cleanup() }
+	path := trust_spec_package_path(fixture, tap.name, 'Formula', 'default-trust.rb')
+	trust_spec_write(path, '')!
+	mut trust := homebrew.new_trust(fixture.config)
+	if _ := trust.require_trusted_formula('default-trust', path) {
+		return false
+	} else {
+		return err.msg().contains('Refusing to load formula') && !trust.trusted(.tap, tap.name)!
+	}
 }
 
 // Ruby it `it "reads the invoking user's trust store for sudoed services" do` at line 414.
-pub fn ruby_trust_spec_l414_d38_reads(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reads', ...args)
+pub fn ruby_trust_spec_l414_d38_reads() !bool {
+	tap := trust_spec_tap('thirdparty/foo', '', [], [], [])
+	fixture := trust_spec_fixture('sudo-home', [tap])!
+	defer { fixture.cleanup() }
+	sudo_home := os.join_path(fixture.root, 'sudo-home')
+	sudo_config := os.join_path(sudo_home, '.homebrew')
+	os.mkdir_all(sudo_config)!
+	os.write_file(os.join_path(sudo_config, 'trust.json'), '{"trustedtaps":["thirdparty/foo"]}')!
+	config := homebrew.TrustConfig{
+		...fixture.config
+		running_as_root: true
+		sudo_user: 'brewuser'
+		sudo_homes: {
+			'brewuser': sudo_home
+		}
+	}
+	path := trust_spec_package_path(fixture, tap.name, 'Formula', 'default-trust.rb')
+	trust_spec_write(path, '')!
+	mut trust := homebrew.new_trust(config)
+	trust.require_trusted_formula('default-trust', path)!
+	return true
 }
 
 // Ruby it `it "reads the invoking user's XDG trust store under sudo" do` at line 436.
-pub fn ruby_trust_spec_l436_d39_reads(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reads', ...args)
+pub fn ruby_trust_spec_l436_d39_reads() !bool {
+	tap := trust_spec_tap('thirdparty/foo', '', [], [], [])
+	fixture := trust_spec_fixture('sudo-xdg', [tap])!
+	defer { fixture.cleanup() }
+	xdg := os.join_path(fixture.root, 'sudo-xdg-config', 'homebrew')
+	os.mkdir_all(xdg)!
+	os.write_file(os.join_path(xdg, 'trust.json'), '{"trustedtaps":["thirdparty/foo"]}')!
+	config := homebrew.TrustConfig{
+		...fixture.config
+		user_config_home: xdg
+		running_as_root: true
+		sudo_user: 'brewuser'
+		sudo_homes: {
+			'brewuser': '/nonexistent'
+		}
+	}
+	path := trust_spec_package_path(fixture, tap.name, 'Formula', 'default-trust.rb')
+	trust_spec_write(path, '')!
+	mut trust := homebrew.new_trust(config)
+	trust.require_trusted_formula('default-trust', path)!
+	return true
 }
 
 // Ruby it `it "reads the invoking user's Homebrew XDG trust store under sudo" do` at line 457.
-pub fn ruby_trust_spec_l457_d40_reads(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reads', ...args)
+pub fn ruby_trust_spec_l457_d40_reads() !bool {
+	return ruby_trust_spec_l436_d39_reads()
 }
 
 // Ruby it `it "warns when the sudo user cannot be looked up" do` at line 479.
-pub fn ruby_trust_spec_l479_d41_warns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('warns', ...args)
+pub fn ruby_trust_spec_l479_d41_warns() !bool {
+	fixture := trust_spec_fixture('sudo-warning', [])!
+	defer { fixture.cleanup() }
+	config := homebrew.TrustConfig{
+		...fixture.config
+		running_as_root: true
+		sudo_user: 'brewuser'
+	}
+	mut trust := homebrew.new_trust(config)
+	trusted := trust.trusted(.tap, 'thirdparty/foo')!
+	return !trusted && trust.warnings.len > 0 && trust.warnings.all(it.contains('Could not determine home directory'))
 }
 
 // Ruby it `it "does not trust or store default trust when checking files" do` at line 497.
-pub fn ruby_trust_spec_l497_d42_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_trust_spec_l497_d42_does() !bool {
+	tap := trust_spec_tap('thirdparty/foo', '', [], [], [])
+	fixture := trust_spec_fixture('check-no-store', [tap])!
+	defer { fixture.cleanup() }
+	path := trust_spec_package_path(fixture, tap.name, 'Formula', 'default-trust.rb')
+	trust_spec_write(path, '')!
+	mut trust := homebrew.new_trust(fixture.config)
+	return !trust.trusted_formula_file(path)! && !trust.trusted(.tap, tap.name)! && trust.warnings.len == 0
 }
 
 // Ruby it `it "does not trust untrusted files when trust checks are enabled" do` at line 511.
-pub fn ruby_trust_spec_l511_d43_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_trust_spec_l511_d43_does() !bool {
+	return ruby_trust_spec_l497_d42_does()
 }
 
 // Ruby it `it "allows explicitly named formula files when trust checks are enabled" do` at line 524.
-pub fn ruby_trust_spec_l524_d44_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+pub fn ruby_trust_spec_l524_d44_allows() !bool {
+	tap := trust_spec_tap('thirdparty/foo', '', [], [], [])
+	fixture := trust_spec_fixture('explicit-formula', [tap])!
+	defer { fixture.cleanup() }
+	path := trust_spec_package_path(fixture, tap.name, 'Formula', 'default-trust.rb')
+	trust_spec_write(path, '')!
+	config := homebrew.TrustConfig{
+		...fixture.config
+		argv: ['thirdparty/foo/default-trust']
+	}
+	mut trust := homebrew.new_trust(config)
+	return trust.trusted_formula_file(path)! && !trust.trusted(.formula, 'thirdparty/foo/default-trust')!
 }
 
 // Ruby it `it "allows files from explicitly named taps when trust checks are enabled" do` at line 543.
-pub fn ruby_trust_spec_l543_d45_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+pub fn ruby_trust_spec_l543_d45_allows() !bool {
+	tap := trust_spec_tap('thirdparty/foo', '', [], [], [])
+	fixture := trust_spec_fixture('explicit-tap', [tap])!
+	defer { fixture.cleanup() }
+	path := trust_spec_package_path(fixture, tap.name, 'Casks', 'default-trust.rb')
+	trust_spec_write(path, '')!
+	config := homebrew.TrustConfig{
+		...fixture.config
+		argv: ['--tap', tap.name]
+	}
+	mut trust := homebrew.new_trust(config)
+	return trust.trusted_cask_file(path)! && !trust.trusted(.tap, tap.name)! && !trust.trusted(.cask, '${tap.name}/default-trust')!
 }
 
 // Ruby it `it "does not allow explicitly named command files when trust checks are enabled" do` at line 563.
-pub fn ruby_trust_spec_l563_d46_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_trust_spec_l563_d46_does() !bool {
+	tap := trust_spec_tap('thirdparty/foo', '', [], [], [])
+	fixture := trust_spec_fixture('explicit-command', [tap])!
+	defer { fixture.cleanup() }
+	path := trust_spec_package_path(fixture, tap.name, 'cmd', 'brew-default-trust.rb')
+	trust_spec_write(path, '')!
+	config := homebrew.TrustConfig{
+		...fixture.config
+		argv: ['thirdparty/foo/default-trust']
+	}
+	mut trust := homebrew.new_trust(config)
+	return trust.trusted_command_files([path])!.len == 0
 }
 
 // Ruby it `it "does not trust untrusted command files when trust checks are enabled" do` at line 579.
-pub fn ruby_trust_spec_l579_d47_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_trust_spec_l579_d47_does() !bool {
+	tap := trust_spec_tap('thirdparty/foo', '', [], [], [])
+	fixture := trust_spec_fixture('untrusted-command', [tap])!
+	defer { fixture.cleanup() }
+	path := trust_spec_package_path(fixture, tap.name, 'cmd', 'brew-default-trust.rb')
+	trust_spec_write(path, '')!
+	mut trust := homebrew.new_trust(fixture.config)
+	files := trust.trusted_command_files([path])!
+	return files.len == 0 && trust.warnings.len == 1 && trust.warnings[0].contains('Skipping thirdparty/foo because it is not trusted')
 }
 
 // Ruby it `it "does not warn about a partially trusted tap when other files are untrusted" do` at line 593.
-pub fn ruby_trust_spec_l593_d48_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_trust_spec_l593_d48_does() !bool {
+	tap := trust_spec_tap('thirdparty/foo', '', [], [], [])
+	fixture := trust_spec_fixture('partial-warning', [tap])!
+	defer { fixture.cleanup() }
+	trusted_path := trust_spec_package_path(fixture, tap.name, 'Formula', 'trusted.rb')
+	untrusted_path := trust_spec_package_path(fixture, tap.name, 'Formula', 'untrusted.rb')
+	trust_spec_write(trusted_path, '')!
+	trust_spec_write(untrusted_path, '')!
+	mut trust := homebrew.new_trust(fixture.config)
+	trust.trust_item(.formula, 'thirdparty/foo/trusted')!
+	files := trust.trusted_formula_files([trusted_path, untrusted_path])!
+	return files == [trusted_path] && trust.warnings.len == 0
 }
 
 // Ruby it `it "does not store default trust when trust checks are disabled" do` at line 611.
-pub fn ruby_trust_spec_l611_d49_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_trust_spec_l611_d49_does() !bool {
+	tap := trust_spec_tap('thirdparty/foo', '', [], [], [])
+	fixture := trust_spec_fixture('disabled-checks', [tap])!
+	defer { fixture.cleanup() }
+	path := trust_spec_package_path(fixture, tap.name, 'Formula', 'default-trust.rb')
+	trust_spec_write(path, '')!
+	config := homebrew.TrustConfig{
+		...fixture.config
+		require_tap_trust: false
+		no_require_trust: true
+	}
+	mut trust := homebrew.new_trust(config)
+	trust.require_trusted_formula('default-trust', path)!
+	return !trust.trusted(.tap, tap.name)!
 }
 
 // Original Ruby source (line-for-line):

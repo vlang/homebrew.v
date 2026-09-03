@@ -4,10 +4,28 @@ import brew_runtime
 
 // Translated from Homebrew/brew `macos_runner_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub struct MacOSRunnerSpec {
+pub:
+	name             string
+	runner           string
+	timeout          int
+	cleanup          bool
+	testing_formulae []string
+}
+
+pub fn macos_runner_spec_to_map(spec MacOSRunnerSpec) map[string]brew_runtime.Value {
+	return {
+		'name':             brew_runtime.string_value(spec.name)
+		'runner':           brew_runtime.string_value(spec.runner)
+		'timeout':          brew_runtime.int_value(i64(spec.timeout))
+		'cleanup':          brew_runtime.bool_value(spec.cleanup)
+		'testing_formulae': brew_runtime.string_value(spec.testing_formulae.join(','))
+	}
+}
 
 // Ruby method `to_h` at line 20.
-pub fn ruby_macos_runner_spec_l20_d1_to_h(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_h', ...args)
+pub fn ruby_macos_runner_spec_l20_d1_to_h(spec MacOSRunnerSpec) map[string]brew_runtime.Value {
+	return macos_runner_spec_to_map(spec)
 }
 
 // Original Ruby source (line-for-line):

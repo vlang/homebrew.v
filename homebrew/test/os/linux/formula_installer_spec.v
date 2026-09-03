@@ -1,28 +1,35 @@
 module linux
 
 import brew_runtime
+import homebrew.extend.os.linux as linux_installer
 
 // Translated from Homebrew/brew `test/os/linux/formula_installer_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:keg) { described_class.new(keg_path) }` at line 8.
 pub fn ruby_formula_installer_spec_l8_d1_keg(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('keg', ...args)
+	path := if args.len > 0 { args[0].as_string() } else { 'keg_path' }
+	return brew_runtime.structured_value('FormulaInstaller', 'FormulaInstaller(${path})', {
+		'keg_path': path
+	})
 }
 
 // Ruby subject `subject(:formula_installer) { described_class.new(Testball.new) }` at line 13.
 pub fn ruby_formula_installer_spec_l13_d2_formula_installer(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_installer', ...args)
+	return brew_runtime.structured_value('FormulaInstaller', 'Testball', {
+		'formula':              'Testball'
+		'installed_on_request': 'true'
+	})
 }
 
 // Ruby it `it "is true by default" do` at line 15.
 pub fn ruby_formula_installer_spec_l15_d3_is(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('is', ...args)
+	return brew_runtime.bool_value(linux_installer.linux_fresh_install(false, true, false))
 }
 
 // Ruby it `it "is false in developer mode" do` at line 20.
 pub fn ruby_formula_installer_spec_l20_d4_is(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('is', ...args)
+	return brew_runtime.bool_value(!linux_installer.linux_fresh_install(true, true, false))
 }
 
 // Original Ruby source (line-for-line):

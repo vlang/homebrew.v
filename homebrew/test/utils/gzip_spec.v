@@ -1,33 +1,130 @@
 module utils
 
-import brew_runtime
+import crypto.sha256
+import homebrew.utils as homebrew_utils
+import os
 
 // Translated from Homebrew/brew `test/utils/gzip_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "uses the explicitly specified mtime, orig_name and output path when passed" do` at line 10.
-pub fn ruby_gzip_spec_l10_d1_uses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uses', ...args)
+pub fn ruby_gzip_spec_l10_d1_uses() !bool {
+	root := os.join_path(os.temp_dir(), 'brew-v-gzip-explicit-${os.getpid()}')
+	os.rmdir_all(root) or {}
+	defer { os.rmdir_all(root) or {} }
+	os.mkdir_all(os.join_path(root, 'subdir'))!
+	input := os.join_path(root, 'somefile')
+	output := os.join_path(root, 'subdir', 'anotherfile.gz')
+	os.write_file(input, 'Hello world')!
+	result := homebrew_utils.gzip_compress_with_options(input,
+		mtime: 12345
+		orig_name: 'someotherfile'
+		output: output
+	)!
+	return result == output && !os.exists(input) && sha256.sum(os.read_bytes(output)!).hex() == 'df509051b519faa8a1143157d2750d1694dc5fe6373e493c0d5c360be3e61516'
 }
 
 // Ruby it `it "uses SOURCE_DATE_EPOCH as mtime when not explicitly specified" do` at line 28.
-pub fn ruby_gzip_spec_l28_d2_uses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uses', ...args)
+pub fn ruby_gzip_spec_l28_d2_uses() !bool {
+	root := os.join_path(os.temp_dir(), 'brew-v-gzip-epoch-${os.getpid()}')
+	os.rmdir_all(root) or {}
+	defer { os.rmdir_all(root) or {} }
+	os.mkdir_all(root)!
+	previous := os.getenv('SOURCE_DATE_EPOCH')
+	os.setenv('SOURCE_DATE_EPOCH', '23456', true)
+	defer {
+		if previous == '' {
+			os.unsetenv('SOURCE_DATE_EPOCH')
+		} else {
+			os.setenv('SOURCE_DATE_EPOCH', previous, true)
+		}
+	}
+	input := os.join_path(root, 'somefile')
+	os.write_file(input, 'Hello world')!
+	result := homebrew_utils.gzip_compress_with_options(input)!
+	return result == '${input}.gz' && sha256.sum(os.read_bytes(result)!).hex() == 'a579be88ec8073391a5753b1df4d87fbf008aaec6b5a03f8f16412e2e01f119a'
 }
 
 // Ruby it `it "creates non-reproducible gz files from input files" do` at line 44.
-pub fn ruby_gzip_spec_l44_d3_creates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('creates', ...args)
+pub fn ruby_gzip_spec_l44_d3_creates() !bool {
+	root := os.join_path(os.temp_dir(), 'brew-v-gzip-system-${os.getpid()}')
+	os.rmdir_all(root) or {}
+	defer { os.rmdir_all(root) or {} }
+	os.mkdir_all(root)!
+	mut files := []string{}
+	for index in 0 .. 3 {
+		path := os.join_path(root, 'somefile${index}')
+		os.write_file(path, '')!
+		files << path
+	}
+	results := homebrew_utils.gzip_compress(files, reproducible: false)!
+	for index, result in results {
+		if result != '${files[index]}.gz' || !os.exists(result) || os.exists(files[index]) {
+			return false
+		}
+	}
+	return true
 }
 
 // Ruby it `it "creates reproducible gz files from input files with explicit mtime" do` at line 57.
-pub fn ruby_gzip_spec_l57_d4_creates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('creates', ...args)
+pub fn ruby_gzip_spec_l57_d4_creates() !bool {
+	root := os.join_path(os.temp_dir(), 'brew-v-gzip-reproducible-${os.getpid()}')
+	os.rmdir_all(root) or {}
+	defer { os.rmdir_all(root) or {} }
+	os.mkdir_all(root)!
+	expected := [
+		'5b45cabc7f0192854365aeccd82036e482e35131ba39fbbc6d0684266eb2e88a',
+		'd422bf4cbede17ae242135d7f32ba5379fbffb288c29cd38b7e5e1a5f89073f8',
+		'1d93a3808e2bd5d8c6371ea1c9b8b538774d6486af260719400fc3a5b7ac8d6f',
+	]
+	mut files := []string{}
+	for index in 0 .. 3 {
+		path := os.join_path(root, 'somefile${index}')
+		os.write_file(path, 'Hello world')!
+		files << path
+	}
+	results := homebrew_utils.gzip_compress(files, mtime: 12345)!
+	for index, result in results {
+		if result != '${files[index]}.gz' || sha256.sum(os.read_bytes(result)!).hex() != expected[index] {
+			return false
+		}
+	}
+	return true
 }
 
 // Ruby it `it "creates reproducible gz files from input files with SOURCE_DATE_EPOCH as mtime" do` at line 77.
-pub fn ruby_gzip_spec_l77_d5_creates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('creates', ...args)
+pub fn ruby_gzip_spec_l77_d5_creates() !bool {
+	root := os.join_path(os.temp_dir(), 'brew-v-gzip-source-date-${os.getpid()}')
+	os.rmdir_all(root) or {}
+	defer { os.rmdir_all(root) or {} }
+	os.mkdir_all(root)!
+	previous := os.getenv('SOURCE_DATE_EPOCH')
+	os.setenv('SOURCE_DATE_EPOCH', '23456', true)
+	defer {
+		if previous == '' {
+			os.unsetenv('SOURCE_DATE_EPOCH')
+		} else {
+			os.setenv('SOURCE_DATE_EPOCH', previous, true)
+		}
+	}
+	expected := [
+		'd5e0cc3259b1eb61d93ee5a30d41aef4a382c1cf2b759719c289f625e27b915c',
+		'068657725bca5f9c2bc62bc6bf679eb63786e92d16cae575dee2fd9787a338f3',
+		'e566e9fdaf9aa2a7c9501f9845fed1b70669bfa679b0de609e3b63f99988784d',
+	]
+	mut files := []string{}
+	for index in 0 .. 3 {
+		path := os.join_path(root, 'somefile${index}')
+		os.write_file(path, 'Hello world')!
+		files << path
+	}
+	results := homebrew_utils.gzip_compress(files)!
+	for index, result in results {
+		if result != '${files[index]}.gz' || sha256.sum(os.read_bytes(result)!).hex() != expected[index] {
+			return false
+		}
+	}
+	return true
 }
 
 // Original Ruby source (line-for-line):

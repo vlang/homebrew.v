@@ -1,43 +1,196 @@
 module dev_cmd
 
 import brew_runtime
+import os
 
 // Translated from Homebrew/brew `test/dev-cmd/generate-advisories-api_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
+pub fn generate_advisories_api_spec_record(id string, formula string, source string,
+	range_state string, schema_version string) map[string]brew_runtime.Value {
+	mut affected := {
+		'package': brew_runtime.map_value({
+			'ecosystem': brew_runtime.string_value('Homebrew')
+			'name':      brew_runtime.string_value(formula)
+		})
+	}
+	if range_state != '' {
+		affected['ecosystem_specific'] = brew_runtime.map_value({
+			'range_state': brew_runtime.string_value(range_state)
+		})
+	}
+	mut record := {
+		'schema_version': brew_runtime.string_value(schema_version)
+		'id':             brew_runtime.string_value(id)
+		'affected':       brew_runtime.array_value([brew_runtime.map_value(affected)])
+	}
+	if source != '' {
+		record['database_specific'] = brew_runtime.map_value({
+			'source': brew_runtime.string_value(source)
+		})
+	}
+	return record
+}
+
+pub fn generate_advisories_api_spec_write_records(directory string,
+	records map[string]brew_runtime.Value) !bool {
+	advisories := os.join_path(directory, 'advisories')
+	os.mkdir_all(advisories)!
+	for filename, body in records {
+		os.write_file(os.join_path(advisories, filename), brew_runtime.json_value_to_string(body))!
+	}
+	return true
+}
+
+fn generate_advisories_api_spec_directory(root string, name string) string {
+	return os.join_path(root, name)
+}
+
+pub fn generate_advisories_api_spec_writes(root string) !bool {
+	database := generate_advisories_api_spec_directory(root, 'writes-database')
+	output := generate_advisories_api_spec_directory(root, 'writes-output')
+	os.mkdir_all(output)!
+	generate_advisories_api_spec_write_records(database, {
+		'z.json': brew_runtime.map_value(generate_advisories_api_spec_record('BREW-foo-CVE-2', 'foo', 'matched', 'fixed', '1.7.3'))
+		'y.json': brew_runtime.map_value(generate_advisories_api_spec_record('BREW-foo-CVE-1', 'foo', 'generated', '', '1.7.3'))
+		'x.json': brew_runtime.map_value(generate_advisories_api_spec_record('BREW-foo-CVE-3', 'foo', 'matched', '', '1.7.3'))
+		'w.json': brew_runtime.map_value(generate_advisories_api_spec_record('BREW-bar-CVE-1', 'bar', 'matched', 'affected', '1.7.3'))
+		'v.json': brew_runtime.map_value(generate_advisories_api_spec_record('BREW-baz-CVE-1', 'baz', 'matched', '', '1.7.3'))
+	})!
+	options := GenerateAdvisoriesApiOptions{
+		repository: database
+		output_directory: output
+	}
+	first := run_generate_advisories_api(options)!
+	first_output := os.read_file(first.output_path)!
+	second := run_generate_advisories_api(options)!
+	second_output := os.read_file(second.output_path)!
+	expected := brew_runtime.map_value({
+		'meta':       brew_runtime.map_value({
+			'count':                brew_runtime.int_value(3)
+			'skipped_uncomparable': brew_runtime.int_value(2)
+			'schema_version':       brew_runtime.string_value('1.7.3')
+		})
+		'advisories': brew_runtime.map_value({
+			'bar': brew_runtime.array_value([
+				brew_runtime.map_value(generate_advisories_api_spec_record('BREW-bar-CVE-1', 'bar', 'matched', 'affected', '1.7.3')),
+			])
+			'foo': brew_runtime.array_value([
+				brew_runtime.map_value(generate_advisories_api_spec_record('BREW-foo-CVE-1', 'foo', 'generated', '', '1.7.3')),
+				brew_runtime.map_value(generate_advisories_api_spec_record('BREW-foo-CVE-2', 'foo', 'matched', 'fixed', '1.7.3')),
+			])
+		})
+	})
+	expected_output := '${brew_runtime.json_value_to_string(expected)}\n'
+	return first_output == expected_output && second_output == expected_output
+}
+
+pub fn generate_advisories_api_spec_missing_directory(root string) !bool {
+	database := generate_advisories_api_spec_directory(root, 'missing-database')
+	output := generate_advisories_api_spec_directory(root, 'missing-output')
+	os.mkdir_all(database)!
+	os.mkdir_all(output)!
+	run_generate_advisories_api(GenerateAdvisoriesApiOptions{
+		repository: database
+		output_directory: output
+	}) or { return err.msg().contains('is not a directory') }
+	return false
+}
+
+pub fn generate_advisories_api_spec_empty_directory(root string) !bool {
+	database := generate_advisories_api_spec_directory(root, 'empty-database')
+	output := generate_advisories_api_spec_directory(root, 'empty-output')
+	os.mkdir_all(os.join_path(database, 'advisories'))!
+	os.mkdir_all(output)!
+	run_generate_advisories_api(GenerateAdvisoriesApiOptions{
+		repository: database
+		output_directory: output
+	}) or { return err.msg().contains('no advisory records found') }
+	return false
+}
+
+pub fn generate_advisories_api_spec_parse_error(root string) !bool {
+	database := generate_advisories_api_spec_directory(root, 'parse-database')
+	output := generate_advisories_api_spec_directory(root, 'parse-output')
+	os.mkdir_all(output)!
+	generate_advisories_api_spec_write_records(database, {
+		'good.json': brew_runtime.map_value(generate_advisories_api_spec_record('BREW-foo-CVE-1', 'foo', '', '', '1.7.3'))
+	})!
+	bad_path := os.join_path(database, 'advisories', 'bad.json')
+	os.write_file(bad_path, '{')!
+	run_generate_advisories_api(GenerateAdvisoriesApiOptions{
+		repository: database
+		output_directory: output
+	}) or {
+		return err.msg().contains(os.join_path('advisories', 'bad.json'))
+	}
+	return false
+}
+
+pub fn generate_advisories_api_spec_mixed_versions(root string) !bool {
+	database := generate_advisories_api_spec_directory(root, 'mixed-database')
+	output := generate_advisories_api_spec_directory(root, 'mixed-output')
+	os.mkdir_all(output)!
+	generate_advisories_api_spec_write_records(database, {
+		'a.json': brew_runtime.map_value(generate_advisories_api_spec_record('a', 'foo', '', '', '1.7.3'))
+		'b.json': brew_runtime.map_value(generate_advisories_api_spec_record('b', 'foo', '', '', '1.8.0'))
+	})!
+	run_generate_advisories_api(GenerateAdvisoriesApiOptions{
+		repository: database
+		output_directory: output
+	}) or {
+		return err.msg().contains('mixed schema_version') && err.msg().contains('1.7.3')
+			&& err.msg().contains('1.8.0')
+	}
+	return false
+}
+
 // Ruby method `record(id, formula, source: nil, range_state: nil, schema_version: "1.7.3")` at line 10.
 pub fn ruby_generate_advisories_api_spec_l10_d1_record(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('record', ...args)
+	if args.len < 2 {
+		return brew_runtime.object_value('ArgumentError', 'id and formula are required')
+	}
+	source := if args.len > 2 { args[2].as_string() } else { '' }
+	range_state := if args.len > 3 { args[3].as_string() } else { '' }
+	schema_version := if args.len > 4 { args[4].as_string() } else { '1.7.3' }
+	return brew_runtime.map_value(generate_advisories_api_spec_record(args[0].as_string(), args[1].as_string(), source, range_state, schema_version))
 }
 
 // Ruby method `write_records(directory, records)` at line 18.
 pub fn ruby_generate_advisories_api_spec_l18_d2_write_records(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('write_records', ...args)
+	if args.len < 2 {
+		return brew_runtime.object_value('ArgumentError', 'directory and records are required')
+	}
+	records := args[1].as_map() or { return brew_runtime.object_value('TypeError', err.msg()) }
+	generate_advisories_api_spec_write_records(args[0].as_string(), records) or {
+		return brew_runtime.object_value('Error', err.msg())
+	}
+	return brew_runtime.map_value(records)
 }
 
 // Ruby it `it "writes grouped, filtered, byte-stable advisory data" do` at line 26.
-pub fn ruby_generate_advisories_api_spec_l26_d3_writes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('writes', ...args)
+pub fn ruby_generate_advisories_api_spec_l26_d3_writes(root string) !bool {
+	return generate_advisories_api_spec_writes(root)
 }
 
 // Ruby it `it "fails when the advisories directory is missing" do` at line 62.
-pub fn ruby_generate_advisories_api_spec_l62_d4_fails(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fails', ...args)
+pub fn ruby_generate_advisories_api_spec_l62_d4_fails(root string) !bool {
+	return generate_advisories_api_spec_missing_directory(root)
 }
 
 // Ruby it `it "fails on an empty advisories directory rather than writing an empty index" do` at line 72.
-pub fn ruby_generate_advisories_api_spec_l72_d5_fails(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fails', ...args)
+pub fn ruby_generate_advisories_api_spec_l72_d5_fails(root string) !bool {
+	return generate_advisories_api_spec_empty_directory(root)
 }
 
 // Ruby it `it "prefixes parse errors with the failing record path" do` at line 84.
-pub fn ruby_generate_advisories_api_spec_l84_d6_prefixes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prefixes', ...args)
+pub fn ruby_generate_advisories_api_spec_l84_d6_prefixes(root string) !bool {
+	return generate_advisories_api_spec_parse_error(root)
 }
 
 // Ruby it `it "fails on mixed schema versions" do` at line 97.
-pub fn ruby_generate_advisories_api_spec_l97_d7_fails(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fails', ...args)
+pub fn ruby_generate_advisories_api_spec_l97_d7_fails(root string) !bool {
+	return generate_advisories_api_spec_mixed_versions(root)
 }
 
 // Original Ruby source (line-for-line):

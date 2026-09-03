@@ -7,162 +7,333 @@ import brew_runtime
 
 // Ruby method `initialize(errors)` at line 11.
 pub fn ruby_exceptions_l11_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	errors := if args.len > 0 {
+		args[0].as_array() or { []brew_runtime.Value{} }
+	} else {
+		[]brew_runtime.Value{}
+	}
+	return cask_exception_value(CaskException{ kind: .multiple, errors: errors.map(it.as_string()) })
 }
 
 // Ruby method `to_s` at line 18.
 pub fn ruby_exceptions_l18_d2_to_s(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_s', ...args)
+	return brew_runtime.string_value(cask_exception_message(cask_exception_from_args(args, .multiple)))
 }
 
 // Ruby attr_reader `attr_reader :token` at line 29.
 pub fn ruby_exceptions_l29_d3_token(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('token', ...args)
+	return brew_runtime.string_value(cask_exception_from_args(args, .not_installed).token)
 }
 
 // Ruby attr_reader `attr_reader :reason` at line 32.
 pub fn ruby_exceptions_l32_d4_reason(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reason', ...args)
+	return brew_runtime.string_value(cask_exception_from_args(args, .unavailable).reason)
 }
 
 // Ruby method `initialize(token, reason = nil)` at line 35.
 pub fn ruby_exceptions_l35_d5_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	return cask_exception_value(CaskException{ token: (args[0] or { brew_runtime.string_value('') }).as_string(), reason: (args[1] or { brew_runtime.string_value('') }).as_string() })
 }
 
 // Ruby method `to_s` at line 46.
 pub fn ruby_exceptions_l46_d6_to_s(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_s', ...args)
+	return brew_runtime.string_value(cask_exception_message(cask_exception_from_args(args, .not_installed)))
 }
 
 // Ruby attr_reader `attr_reader :message` at line 54.
 pub fn ruby_exceptions_l54_d7_message(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('message', ...args)
+	return brew_runtime.string_value(cask_exception_from_args(args, .cannot_install).detail)
 }
 
 // Ruby method `initialize(token, message)` at line 57.
 pub fn ruby_exceptions_l57_d8_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	return cask_exception_value(CaskException{ kind: .cannot_install, token: (args[0] or { brew_runtime.string_value('') }).as_string(), detail: (args[1] or { brew_runtime.string_value('') }).as_string() })
 }
 
 // Ruby method `to_s` at line 63.
 pub fn ruby_exceptions_l63_d9_to_s(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_s', ...args)
+	return brew_runtime.string_value(cask_exception_message(cask_exception_from_args(args, .cannot_install)))
 }
 
 // Ruby attr_reader `attr_reader :conflicting_cask` at line 71.
 pub fn ruby_exceptions_l71_d10_conflicting_cask(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('conflicting_cask', ...args)
+	return brew_runtime.string_value(cask_exception_from_args(args, .conflict).conflicting_cask)
 }
 
 // Ruby method `initialize(token, conflicting_cask)` at line 74.
 pub fn ruby_exceptions_l74_d11_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	return cask_exception_value(CaskException{ kind: .conflict, token: (args[0] or { brew_runtime.string_value('') }).as_string(), conflicting_cask: (args[1] or { brew_runtime.string_value('') }).as_string() })
 }
 
 // Ruby method `to_s` at line 80.
 pub fn ruby_exceptions_l80_d12_to_s(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_s', ...args)
+	return brew_runtime.string_value(cask_exception_message(cask_exception_from_args(args, .conflict)))
 }
 
 // Ruby method `to_s` at line 88.
 pub fn ruby_exceptions_l88_d13_to_s(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_s', ...args)
+	return brew_runtime.string_value(cask_exception_message(cask_exception_from_args(args, .unavailable)))
 }
 
 // Ruby method `to_s` at line 96.
 pub fn ruby_exceptions_l96_d14_to_s(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_s', ...args)
+	return brew_runtime.string_value(cask_exception_message(cask_exception_from_args(args, .unreadable)))
 }
 
 // Ruby attr_reader `attr_reader :tap` at line 104.
 pub fn ruby_exceptions_l104_d15_tap(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tap', ...args)
+	return brew_runtime.string_value(cask_exception_from_args(args, .tap_unavailable).tap)
 }
 
 // Ruby method `initialize(tap, token)` at line 107.
 pub fn ruby_exceptions_l107_d16_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	tap := (args[0] or { brew_runtime.string_value('') }).as_string()
+	return cask_exception_value(CaskException{ kind: .tap_unavailable, tap: tap, tap_installed: args.len > 2 && args[2].bool_data, token: '${tap}/${(args[1] or { brew_runtime.string_value('') }).as_string()}' })
 }
 
 // Ruby method `to_s` at line 113.
 pub fn ruby_exceptions_l113_d17_to_s(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_s', ...args)
+	return brew_runtime.string_value(cask_exception_message(cask_exception_from_args(args, .tap_unavailable)))
 }
 
 // Ruby attr_reader `attr_reader :token` at line 126.
 pub fn ruby_exceptions_l126_d18_token(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('token', ...args)
+	return brew_runtime.string_value(cask_exception_from_args(args, .ambiguity).token)
 }
 
 // Ruby attr_reader `attr_reader :loaders` at line 129.
 pub fn ruby_exceptions_l129_d19_loaders(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('loaders', ...args)
+	return brew_runtime.string_array_value(cask_exception_from_args(args, .ambiguity).loaders)
 }
 
 // Ruby method `initialize(token, loaders)` at line 132.
 pub fn ruby_exceptions_l132_d20_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	loaders := (args[1] or { brew_runtime.string_array_value([]) }).as_string_array() or { []string{} }
+	return cask_exception_value(CaskException{ kind: .ambiguity, token: (args[0] or { brew_runtime.string_value('') }).as_string(), loaders: loaders })
 }
 
 // Ruby method `to_s` at line 151.
 pub fn ruby_exceptions_l151_d21_to_s(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_s', ...args)
+	return brew_runtime.string_value(cask_exception_message(cask_exception_from_args(args, .already_created)))
 }
 
 // Ruby method `to_s` at line 159.
 pub fn ruby_exceptions_l159_d22_to_s(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_s', ...args)
+	return brew_runtime.string_value(cask_exception_message(cask_exception_from_args(args, .cyclic)))
 }
 
 // Ruby method `to_s` at line 167.
 pub fn ruby_exceptions_l167_d23_to_s(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_s', ...args)
+	return brew_runtime.string_value(cask_exception_message(cask_exception_from_args(args, .self_referencing)))
 }
 
 // Ruby method `to_s` at line 175.
 pub fn ruby_exceptions_l175_d24_to_s(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_s', ...args)
+	return brew_runtime.string_value(cask_exception_message(CaskException{ kind: .unspecified }))
 }
 
 // Ruby method `to_s` at line 183.
 pub fn ruby_exceptions_l183_d25_to_s(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_s', ...args)
+	return brew_runtime.string_value(cask_exception_message(cask_exception_from_args(args, .invalid)))
 }
 
 // Ruby method `initialize(token, header_token)` at line 191.
 pub fn ruby_exceptions_l191_d26_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	token := (args[0] or { brew_runtime.string_value('') }).as_string()
+	header := (args[1] or { brew_runtime.string_value('') }).as_string()
+	return cask_exception_value(CaskException{ kind: .invalid, token: token, reason: "Token '${header}' in header line does not match the file name." })
 }
 
 // Ruby attr_reader `attr_reader :path` at line 199.
 pub fn ruby_exceptions_l199_d27_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('path', ...args)
+	return brew_runtime.object_value('Pathname', cask_exception_from_args(args, .quarantine).path)
 }
 
 // Ruby attr_reader `attr_reader :reason` at line 202.
 pub fn ruby_exceptions_l202_d28_reason(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reason', ...args)
+	return brew_runtime.string_value(cask_exception_from_args(args, .quarantine).reason)
 }
 
 // Ruby method `initialize(path, reason)` at line 205.
 pub fn ruby_exceptions_l205_d29_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	return cask_exception_value(CaskException{ kind: .quarantine, path: (args[0] or { brew_runtime.string_value('') }).as_string(), reason: (args[1] or { brew_runtime.string_value('') }).as_string() })
 }
 
 // Ruby method `to_s` at line 213.
 pub fn ruby_exceptions_l213_d30_to_s(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_s', ...args)
+	return brew_runtime.string_value(cask_exception_message(cask_exception_from_args(args, .quarantine)))
 }
 
 // Ruby method `to_s` at line 229.
 pub fn ruby_exceptions_l229_d31_to_s(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_s', ...args)
+	return brew_runtime.string_value(cask_exception_message(cask_exception_from_args(args, .quarantine_propagation)))
 }
 
 // Ruby method `to_s` at line 245.
 pub fn ruby_exceptions_l245_d32_to_s(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_s', ...args)
+	return brew_runtime.string_value(cask_exception_message(cask_exception_from_args(args, .quarantine_release)))
+}
+
+pub enum CaskExceptionKind {
+	multiple
+	not_installed
+	cannot_install
+	conflict
+	unavailable
+	unreadable
+	tap_unavailable
+	ambiguity
+	already_created
+	cyclic
+	self_referencing
+	unspecified
+	invalid
+	quarantine
+	quarantine_propagation
+	quarantine_release
+}
+
+pub struct CaskException {
+pub:
+	kind             CaskExceptionKind
+	token            string
+	reason           string
+	detail           string
+	conflicting_cask string
+	tap              string
+	tap_installed    bool
+	loaders          []string
+	errors           []string
+	path             string
+}
+
+pub fn cask_exception_message(exception CaskException) string {
+	return match exception.kind {
+		.multiple { 'Problems with multiple casks:\n${exception.errors.join('\n')}\n' }
+		.not_installed { "Cask '${exception.token}' is not installed." }
+		.cannot_install { "Cask '${exception.token}' has been ${exception.detail}" }
+		.conflict { "Cask '${exception.token}' conflicts with '${exception.conflicting_cask}'." }
+		.unavailable {
+			"Cask '${exception.token}' is unavailable${if exception.reason == '' {
+				'.'
+			} else {
+				': ' + exception.reason
+			}}"
+		}
+		.unreadable {
+			"Cask '${exception.token}' is unreadable${if exception.reason == '' {
+				'.'
+			} else {
+				': ' + exception.reason
+			}}"
+		}
+		.tap_unavailable {
+			mut message := "Cask '${exception.token}' is unavailable."
+			if !exception.tap_installed {
+				message += '\nThis command requires the tap ${exception.tap}.\nIf you trust this tap, tap it explicitly and then try again:\n  brew tap ${exception.tap}'
+			}
+			message
+		}
+		.ambiguity {
+			mut casks := exception.loaders.map('${it}/${exception.token}')
+			casks.sort()
+			list := casks.map('\n       * ${it}').join('')
+			example := casks[0] or { exception.token }
+			'Cask ${exception.token} exists in multiple taps:${list}\n\nPlease use the fully-qualified name (e.g. ${example}) to refer to a specific Cask.\n'
+		}
+		.already_created {
+			"Cask '${exception.token}' already exists. Run `brew edit --cask ${exception.token}` to edit it."
+		}
+		.cyclic {
+			"Cask '${exception.token}' includes cyclic dependencies on other Casks${if exception.reason == '' {
+				'.'
+			} else {
+				': ' + exception.reason
+			}}"
+		}
+		.self_referencing { "Cask '${exception.token}' depends on itself." }
+		.unspecified { 'This command requires a Cask token.' }
+		.invalid {
+			"Cask '${exception.token}' definition is invalid${if exception.reason == '' {
+				'.'
+			} else {
+				': ' + exception.reason
+			}}"
+		}
+		.quarantine {
+			cask_quarantine_message('Failed to quarantine ${exception.path}.', exception.reason)
+		}
+		.quarantine_propagation {
+			cask_quarantine_message('Failed to quarantine one or more files within ${exception.path}.', exception.reason)
+		}
+		.quarantine_release {
+			cask_quarantine_message('Failed to release ${exception.path} from quarantine.', exception.reason)
+		}
+	}
+}
+
+fn cask_quarantine_message(prefix string, reason string) string {
+	if reason == '' {
+		return prefix
+	}
+	return "${prefix} Here's the reason:\n${reason}${if reason.ends_with('\n') { '' } else { '\n' }}"
+}
+
+fn cask_exception_from_args(args []brew_runtime.Value, default_kind CaskExceptionKind) CaskException {
+	value := args[0] or { return CaskException{ kind: default_kind } }
+	if value.type_name != 'Hash' {
+		return CaskException{ kind: default_kind, token: value.as_string() }
+	}
+	values := value.map_data.clone()
+	return CaskException{
+		kind: default_kind
+		token: (values['token'] or { brew_runtime.string_value('') }).as_string()
+		reason: (values['reason'] or { brew_runtime.string_value('') }).as_string()
+		detail: (values['message'] or { brew_runtime.string_value('') }).as_string()
+		conflicting_cask: (values['conflicting_cask'] or { brew_runtime.string_value('') }).as_string()
+		tap: (values['tap'] or { brew_runtime.string_value('') }).as_string()
+		tap_installed: (values['tap_installed'] or { brew_runtime.bool_value(false) }).bool_data
+		loaders: (values['loaders'] or { brew_runtime.string_array_value([]) }).as_string_array() or { []string{} }
+		errors: (values['errors'] or { brew_runtime.string_array_value([]) }).as_string_array() or { []string{} }
+		path: (values['path'] or { brew_runtime.string_value('') }).as_string()
+	}
+}
+
+fn cask_exception_value(exception CaskException) brew_runtime.Value {
+	return brew_runtime.map_value({
+		'kind':             brew_runtime.string_value(exception.kind.str())
+		'token':            brew_runtime.string_value(exception.token)
+		'reason':           brew_runtime.string_value(exception.reason)
+		'message':          brew_runtime.string_value(exception.detail)
+		'conflicting_cask': brew_runtime.string_value(exception.conflicting_cask)
+		'tap':              brew_runtime.string_value(exception.tap)
+		'tap_installed':    brew_runtime.bool_value(exception.tap_installed)
+		'loaders':          brew_runtime.string_array_value(exception.loaders)
+		'errors':           brew_runtime.string_array_value(exception.errors)
+		'path':             brew_runtime.string_value(exception.path)
+	})
+}
+
+fn cask_exception_kind(name string, fallback CaskExceptionKind) CaskExceptionKind {
+	return match name {
+		'multiple' { .multiple }
+		'not_installed' { .not_installed }
+		'cannot_install' { .cannot_install }
+		'conflict' { .conflict }
+		'unavailable' { .unavailable }
+		'unreadable' { .unreadable }
+		'tap_unavailable' { .tap_unavailable }
+		'ambiguity' { .ambiguity }
+		'already_created' { .already_created }
+		'cyclic' { .cyclic }
+		'self_referencing' { .self_referencing }
+		'unspecified' { .unspecified }
+		'invalid' { .invalid }
+		'quarantine' { .quarantine }
+		'quarantine_propagation' { .quarantine_propagation }
+		'quarantine_release' { .quarantine_release }
+		else { fallback }
+	}
 }
 
 // Original Ruby source (line-for-line):

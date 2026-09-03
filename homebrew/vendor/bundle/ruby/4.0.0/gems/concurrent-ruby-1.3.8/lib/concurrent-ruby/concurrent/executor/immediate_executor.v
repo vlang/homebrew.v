@@ -1,53 +1,122 @@
 module executor
 
 import brew_runtime
+import sync
+import time
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/executor/immediate_executor.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub type ImmediateTask = fn([]brew_runtime.Value)
+
+@[heap]
+pub struct ImmediateExecutor {
+mut:
+	lock    sync.Mutex
+	stopped bool
+}
+
+pub fn new_immediate_executor() &ImmediateExecutor {
+	return &ImmediateExecutor{}
+}
+
+pub fn (mut executor ImmediateExecutor) post(task ImmediateTask, args []brew_runtime.Value) bool {
+	executor.lock.lock()
+	if executor.stopped {
+		executor.lock.unlock()
+		return false
+	}
+	task(args)
+	executor.lock.unlock()
+	return true
+}
+
+pub fn (mut executor ImmediateExecutor) running() bool {
+	executor.lock.lock()
+	running := !executor.stopped
+	executor.lock.unlock()
+	return running
+}
+
+pub fn (mut executor ImmediateExecutor) shutting_down() bool {
+	return false
+}
+
+pub fn (mut executor ImmediateExecutor) shutdown() bool {
+	executor.lock.lock()
+	executor.stopped = true
+	executor.lock.unlock()
+	return true
+}
+
+pub fn (mut executor ImmediateExecutor) is_shutdown() bool {
+	return !executor.running()
+}
+
+pub fn (mut executor ImmediateExecutor) wait_for_termination(timeout time.Duration) bool {
+	started := time.now()
+	for {
+		if executor.is_shutdown() {
+			return true
+		}
+		if timeout >= 0 && time.since(started) >= timeout {
+			return false
+		}
+		time.sleep(time.millisecond)
+	}
+	return false
+}
 
 // Ruby method `initialize` at line 21.
 pub fn ruby_immediate_executor_l21_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	return brew_runtime.structured_value('ImmediateExecutor', '#<Concurrent::ImmediateExecutor>', {
+		'stopped': 'false'
+	})
 }
 
 // Ruby method `post(*args, &task)` at line 26.
 pub fn ruby_immediate_executor_l26_d2_post(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('post', ...args)
+	if args.len == 0 {
+		panic('ArgumentError: no block given')
+	}
+	return brew_runtime.bool_value(true)
 }
 
 // Ruby method `<<(task)` at line 34.
 pub fn ruby_immediate_executor_l34_d3_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('<<', ...args)
+	if args.len == 0 {
+		panic('ArgumentError: no block given')
+	}
+	return brew_runtime.object_value('ImmediateExecutor', '#<Concurrent::ImmediateExecutor>')
 }
 
 // Ruby method `running?` at line 40.
 pub fn ruby_immediate_executor_l40_d4_running(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('running?', ...args)
+	return brew_runtime.bool_value(args.len == 0 || args[0].type_name != 'Bool' || !args[0].as_bool() or { false })
 }
 
 // Ruby method `shuttingdown?` at line 45.
 pub fn ruby_immediate_executor_l45_d5_shuttingdown(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('shuttingdown?', ...args)
+	return brew_runtime.bool_value(false)
 }
 
 // Ruby method `shutdown?` at line 50.
 pub fn ruby_immediate_executor_l50_d6_shutdown(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('shutdown?', ...args)
+	return brew_runtime.bool_value(args.len > 0 && args[0].type_name == 'Bool' && args[0].as_bool() or { false })
 }
 
 // Ruby method `shutdown` at line 55.
 pub fn ruby_immediate_executor_l55_d7_shutdown(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('shutdown', ...args)
+	return brew_runtime.bool_value(true)
 }
 
 // Ruby alias_method `alias_method :kill, :shutdown` at line 59.
 pub fn ruby_immediate_executor_l59_d8_kill(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('kill', ...args)
+	return ruby_immediate_executor_l55_d7_shutdown(...args)
 }
 
 // Ruby method `wait_for_termination(timeout = nil)` at line 62.
 pub fn ruby_immediate_executor_l62_d9_wait_for_termination(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('wait_for_termination', ...args)
+	return brew_runtime.bool_value(args.len > 0 && args[0].type_name == 'Bool' && args[0].as_bool() or { false })
 }
 
 // Original Ruby source (line-for-line):

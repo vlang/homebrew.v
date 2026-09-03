@@ -1,138 +1,409 @@
 module test
 
 import brew_runtime
+import homebrew
+import json2
+import os
 
 // Translated from Homebrew/brew `test/migrator_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+struct MigratorSpecFixture {
+	root           string
+	prefix         string
+	cellar         string
+	old_keg_record string
+	new_keg_record string
+	old_pin        string
+	formula        homebrew.MigratorFormulaInfo
+	config         homebrew.MigratorConfig
+pub mut:
+	migrator homebrew.Migrator
+}
+
+fn migrator_spec_path_value(path string, type_name string) brew_runtime.Value {
+	return brew_runtime.Value{
+		type_name: type_name
+		repr: path
+		map_data: {
+			'path': brew_runtime.string_value(path)
+		}
+	}
+}
+
+fn migrator_spec_formula_value(formula homebrew.MigratorFormulaInfo) brew_runtime.Value {
+	return brew_runtime.Value{
+		type_name: 'Formula'
+		repr: formula.name
+		map_data: {
+			'name':     brew_runtime.string_value(formula.name)
+			'tap':      brew_runtime.string_value(formula.tap)
+			'path':     brew_runtime.string_value(formula.path)
+			'rack':     brew_runtime.string_value(formula.rack)
+			'oldnames': brew_runtime.string_array_value(formula.oldnames)
+			'keg_only': brew_runtime.bool_value(formula.keg_only)
+			'outdated': brew_runtime.bool_value(formula.outdated)
+		}
+	}
+}
+
+fn migrator_spec_config_value(config homebrew.MigratorConfig) brew_runtime.Value {
+	return brew_runtime.Value{
+		type_name: 'Migrator::Config'
+		map_data: {
+			'cellar':      brew_runtime.string_value(config.cellar)
+			'prefix':      brew_runtime.string_value(config.prefix)
+			'pinned_kegs': brew_runtime.string_value(config.pinned_kegs)
+			'linked_kegs': brew_runtime.string_value(config.linked_kegs)
+			'locks_dir':   brew_runtime.string_value(config.locks_dir)
+			'force':       brew_runtime.bool_value(config.force)
+		}
+	}
+}
+
+fn migrator_spec_setup(label string) !MigratorSpecFixture {
+	root := os.join_path(os.temp_dir(), 'brew-v-migrator-${os.getpid()}-${label}')
+	if os.exists(root) {
+		os.rmdir_all(root)!
+	}
+	prefix := os.join_path(root, 'prefix')
+	cellar := os.join_path(prefix, 'Cellar')
+	old_keg_record := os.join_path(cellar, 'oldname', '0.1')
+	new_keg_record := os.join_path(cellar, 'newname', '0.1')
+	old_pin := os.join_path(prefix, 'var', 'homebrew', 'pinned', 'oldname')
+	os.mkdir_all(os.join_path(old_keg_record, 'bin'))!
+	os.write_file(os.join_path(old_keg_record, 'bin', 'inside'), '')!
+	os.write_file(os.join_path(old_keg_record, 'bin', 'bindir'), '')!
+	mut tab := homebrew.new_tab(homebrew.TabConfig{
+		tabfile: os.join_path(old_keg_record, homebrew.tab_filename)
+		source: {
+			'path': json2.Any('/oldname')
+		}
+	})
+	tab.write()!
+	keg := homebrew.new_keg_with_paths(old_keg_record, cellar, prefix)!
+	keg.link(false, true)!
+	keg.optlink(false, true)!
+	os.mkdir_all(os.dir(old_pin))!
+	os.symlink('../../../Cellar/oldname/0.1', old_pin)!
+	formula := homebrew.MigratorFormulaInfo{
+		name: 'newname'
+		path: os.join_path(root, 'Formula', 'newname.rb')
+		rack: os.join_path(cellar, 'newname')
+		oldnames: ['oldname']
+	}
+	config := homebrew.MigratorConfig{
+		cellar: cellar
+		prefix: prefix
+		pinned_kegs: os.dir(old_pin)
+		linked_kegs: os.join_path(prefix, 'var', 'homebrew', 'linked')
+		locks_dir: os.join_path(root, 'locks')
+	}
+	migrator := homebrew.new_migrator(formula, 'oldname', config)!
+	return MigratorSpecFixture{
+		root: root
+		prefix: prefix
+		cellar: cellar
+		old_keg_record: old_keg_record
+		new_keg_record: new_keg_record
+		old_pin: old_pin
+		formula: formula
+		config: config
+		migrator: migrator
+	}
+}
+
+fn (fixture MigratorSpecFixture) cleanup() {
+	os.rmdir_all(fixture.root) or {}
+}
+
+fn migrator_spec_tab(path string, source_path string, tap string) ! {
+	mut source := {
+		'path': json2.Any(source_path)
+	}
+	if tap != '' {
+		source['tap'] = json2.Any(tap)
+	}
+	mut tab := homebrew.new_tab(homebrew.TabConfig{
+		tabfile: os.join_path(path, homebrew.tab_filename)
+		source: source
+	})
+	tab.write()!
+}
+
+fn migrator_spec_bool(result bool) brew_runtime.Value {
+	return brew_runtime.bool_value(result)
+}
+
+fn migrator_spec_backup_restored(fixture MigratorSpecFixture) bool {
+	keg := homebrew.new_keg_with_paths(fixture.old_keg_record, fixture.cellar, fixture.prefix) or { return false }
+	return os.is_dir(os.dir(fixture.old_keg_record)) && migrator_spec_children(os.dir(fixture.old_keg_record)).len > 0 && os.exists(os.join_path(fixture.prefix, 'var', 'homebrew', 'linked', 'oldname')) && os.exists(os.join_path(fixture.prefix, 'opt', 'oldname')) && os.is_link(fixture.old_pin) && keg.linked()
+}
+
+fn migrator_spec_children(path string) []string {
+	return os.ls(path) or { [] }
+}
 
 // Ruby subject `subject(:migrator) { described_class.new(new_formula, old_formula.name) }` at line 10.
 pub fn ruby_migrator_spec_l10_d1_migrator(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('migrator', ...args)
+	_ = args
+	fixture := migrator_spec_setup('subject') or { return brew_runtime.Value{ type_name: 'Error', repr: err.msg() } }
+	defer { fixture.cleanup() }
+	return homebrew.migrator_value(fixture.migrator)
 }
 
 // Ruby let `let(:new_formula) { Testball.new("newname") }` at line 12.
 pub fn ruby_migrator_spec_l12_d2_new_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('new_formula', ...args)
+	_ = args
+	return migrator_spec_formula_value(homebrew.MigratorFormulaInfo{ name: 'newname' })
 }
 
 // Ruby let `let(:old_formula) { Testball.new("oldname") }` at line 13.
 pub fn ruby_migrator_spec_l13_d3_old_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('old_formula', ...args)
+	_ = args
+	return migrator_spec_formula_value(homebrew.MigratorFormulaInfo{ name: 'oldname' })
 }
 
 // Ruby let `let(:new_keg_record) { HOMEBREW_CELLAR/"newname/0.1" }` at line 14.
 pub fn ruby_migrator_spec_l14_d4_new_keg_record(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('new_keg_record', ...args)
+	_ = args
+	return migrator_spec_path_value('Cellar/newname/0.1', 'Pathname')
 }
 
 // Ruby let `let(:old_keg_record) { HOMEBREW_CELLAR/"oldname/0.1" }` at line 15.
 pub fn ruby_migrator_spec_l15_d5_old_keg_record(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('old_keg_record', ...args)
+	_ = args
+	return migrator_spec_path_value('Cellar/oldname/0.1', 'Pathname')
 }
 
 // Ruby let `let(:old_tab) { Tab.empty }` at line 16.
 pub fn ruby_migrator_spec_l16_d6_old_tab(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('old_tab', ...args)
+	_ = args
+	return homebrew.tab_boundary_value(homebrew.new_tab(homebrew.TabConfig{}))
 }
 
 // Ruby let `let(:keg) { Keg.new(old_keg_record) }` at line 17.
 pub fn ruby_migrator_spec_l17_d7_keg(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('keg', ...args)
+	_ = args
+	return migrator_spec_path_value('Cellar/oldname/0.1', 'Keg')
 }
 
 // Ruby let `let(:old_pin) { HOMEBREW_PINNED_KEGS/"oldname" }` at line 18.
 pub fn ruby_migrator_spec_l18_d8_old_pin(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('old_pin', ...args)
+	_ = args
+	return migrator_spec_path_value('var/homebrew/pinned/oldname', 'Pathname')
 }
 
 // Ruby it `it "raises an error if there is no old path" do` at line 59.
 pub fn ruby_migrator_spec_l59_d9_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+	_ = args
+	root := os.join_path(os.temp_dir(), 'brew-v-migrator-${os.getpid()}-no-old')
+	os.rmdir_all(root) or {}
+	config := homebrew.MigratorConfig{ cellar: os.join_path(root, 'Cellar') }
+	homebrew.new_migrator(homebrew.MigratorFormulaInfo{ name: 'newname' }, 'oldname', config) or {
+		return migrator_spec_bool(err.msg().contains("oldname doesn't exist"))
+	}
+	return migrator_spec_bool(false)
 }
 
 // Ruby it `it "raises an error if the Taps differ" do` at line 65.
 pub fn ruby_migrator_spec_l65_d10_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+	_ = args
+	fixture := migrator_spec_setup('different-taps') or { return migrator_spec_bool(false) }
+	defer { fixture.cleanup() }
+	migrator_spec_tab(fixture.old_keg_record, '/oldname', 'homebrew/core') or { return migrator_spec_bool(false) }
+	formula := homebrew.MigratorFormulaInfo{ name: 'newname', tap: 'example/tools', rack: fixture.new_keg_record }
+	homebrew.new_migrator(formula, 'oldname', fixture.config) or {
+		return migrator_spec_bool(err.msg().contains('installed from homebrew/core'))
+	}
+	return migrator_spec_bool(false)
 }
 
 // Ruby specify `specify "#move_to_new_directory" do` at line 79.
 pub fn ruby_migrator_spec_l79_d11_move_to_new_directory(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#move_to_new_directory', ...args)
+	_ = args
+	mut fixture := migrator_spec_setup('move') or { return migrator_spec_bool(false) }
+	defer { fixture.cleanup() }
+	keg := homebrew.new_keg_with_paths(fixture.old_keg_record, fixture.cellar, fixture.prefix) or { return migrator_spec_bool(false) }
+	keg.unlink(false) or { return migrator_spec_bool(false) }
+	fixture.migrator.move_to_new_directory() or { return migrator_spec_bool(false) }
+	return migrator_spec_bool(os.is_dir(os.join_path(fixture.new_keg_record, 'bin')) && os.is_file(os.join_path(fixture.new_keg_record, 'bin', 'inside')) && !os.is_dir(fixture.old_keg_record))
 }
 
 // Ruby specify `specify "#backup_oldname_cellar" do` at line 90.
 pub fn ruby_migrator_spec_l90_d12_backup_oldname_cellar(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#backup_oldname_cellar', ...args)
+	_ = args
+	mut fixture := migrator_spec_setup('backup-cellar') or { return migrator_spec_bool(false) }
+	defer { fixture.cleanup() }
+	os.rmdir_all(os.dir(fixture.old_keg_record)) or { return migrator_spec_bool(false) }
+	os.mkdir_all(os.join_path(fixture.new_keg_record, 'bin')) or { return migrator_spec_bool(false) }
+	fixture.migrator.backup_oldname_cellar() or { return migrator_spec_bool(false) }
+	return migrator_spec_bool(os.is_dir(os.join_path(fixture.old_keg_record, 'bin')))
 }
 
 // Ruby specify `specify "#repin" do` at line 100.
 pub fn ruby_migrator_spec_l100_d13_repin(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#repin', ...args)
+	_ = args
+	mut fixture := migrator_spec_setup('repin') or { return migrator_spec_bool(false) }
+	defer { fixture.cleanup() }
+	os.mkdir_all(os.join_path(fixture.new_keg_record, 'bin')) or { return migrator_spec_bool(false) }
+	fixture.migrator.repin() or { return migrator_spec_bool(false) }
+	return migrator_spec_bool(os.is_link(fixture.migrator.new_pin_record) && os.real_path(fixture.migrator.new_pin_record) == os.real_path(fixture.new_keg_record) && !os.exists(fixture.old_pin))
 }
 
 // Ruby specify `specify "#unlink_oldname" do` at line 111.
 pub fn ruby_migrator_spec_l111_d14_unlink_oldname(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#unlink_oldname', ...args)
+	_ = args
+	mut fixture := migrator_spec_setup('unlink-old') or { return migrator_spec_bool(false) }
+	defer { fixture.cleanup() }
+	fixture.migrator.unlink_oldname() or { return migrator_spec_bool(false) }
+	return migrator_spec_bool(!os.exists(os.join_path(fixture.prefix, 'var', 'homebrew', 'linked', 'oldname')) && !os.exists(os.join_path(fixture.prefix, 'bin', 'inside')))
 }
 
 // Ruby specify `specify "#link_newname" do` at line 121.
 pub fn ruby_migrator_spec_l121_d15_link_newname(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#link_newname', ...args)
+	_ = args
+	mut fixture := migrator_spec_setup('link-new') or { return migrator_spec_bool(false) }
+	defer { fixture.cleanup() }
+	old_keg := homebrew.new_keg_with_paths(fixture.old_keg_record, fixture.cellar, fixture.prefix) or { return migrator_spec_bool(false) }
+	old_keg.unlink(false) or { return migrator_spec_bool(false) }
+	old_keg.uninstall() or { return migrator_spec_bool(false) }
+	os.mkdir_all(os.join_path(fixture.new_keg_record, 'bin')) or { return migrator_spec_bool(false) }
+	os.write_file(os.join_path(fixture.new_keg_record, 'bin', 'inside'), '') or { return migrator_spec_bool(false) }
+	fixture.migrator.link_newname() or { return migrator_spec_bool(false) }
+	new_keg := homebrew.new_keg_with_paths(fixture.new_keg_record, fixture.cellar, fixture.prefix) or { return migrator_spec_bool(false) }
+	return migrator_spec_bool(new_keg.linked() && new_keg.optlinked())
 }
 
 // Ruby specify `specify "#link_oldname_opt" do` at line 136.
 pub fn ruby_migrator_spec_l136_d16_link_oldname_opt(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#link_oldname_opt', ...args)
+	_ = args
+	mut fixture := migrator_spec_setup('link-old-opt') or { return migrator_spec_bool(false) }
+	defer { fixture.cleanup() }
+	os.mkdir_all(fixture.new_keg_record) or { return migrator_spec_bool(false) }
+	fixture.migrator.link_oldname_opt() or { return migrator_spec_bool(false) }
+	old_opt := os.join_path(fixture.prefix, 'opt', 'oldname')
+	return migrator_spec_bool(os.is_link(old_opt) && os.real_path(old_opt) == os.real_path(fixture.new_keg_record))
 }
 
 // Ruby specify `specify "#link_oldname_cellar" do` at line 142.
 pub fn ruby_migrator_spec_l142_d17_link_oldname_cellar(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#link_oldname_cellar', ...args)
+	_ = args
+	mut fixture := migrator_spec_setup('link-old-cellar') or { return migrator_spec_bool(false) }
+	defer { fixture.cleanup() }
+	os.mkdir_all(os.join_path(fixture.new_keg_record, 'bin')) or { return migrator_spec_bool(false) }
+	fixture.migrator.link_oldname_cellar() or { return migrator_spec_bool(false) }
+	return migrator_spec_bool(os.is_link(os.dir(fixture.old_keg_record)) && os.real_path(os.dir(fixture.old_keg_record)) == os.real_path(os.dir(fixture.new_keg_record)))
 }
 
 // Ruby specify `specify "#update_tabs" do` at line 150.
 pub fn ruby_migrator_spec_l150_d18_update_tabs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#update_tabs', ...args)
+	_ = args
+	mut fixture := migrator_spec_setup('update-tabs') or { return migrator_spec_bool(false) }
+	defer { fixture.cleanup() }
+	os.mkdir_all(fixture.new_keg_record) or { return migrator_spec_bool(false) }
+	migrator_spec_tab(fixture.new_keg_record, '/path/that/must/be/changed/by/update_tabs', '') or {
+		return migrator_spec_bool(false)
+	}
+	fixture.migrator.update_tabs() or { return migrator_spec_bool(false) }
+	tab := homebrew.tab_for_keg(fixture.new_keg_record) or { return migrator_spec_bool(false) }
+	return migrator_spec_bool((tab.source['path'] or { json2.Any('') }).str() == fixture.formula.path)
 }
 
 // Ruby specify `specify "#migrate" do` at line 160.
 pub fn ruby_migrator_spec_l160_d19_migrate(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#migrate', ...args)
+	_ = args
+	mut fixture := migrator_spec_setup('migrate') or { return migrator_spec_bool(false) }
+	defer { fixture.cleanup() }
+	fixture.migrator.migrate() or { return migrator_spec_bool(false) }
+	new_keg := homebrew.new_keg_with_paths(fixture.new_keg_record, fixture.cellar, fixture.prefix) or { return migrator_spec_bool(false) }
+	old_rack := os.dir(fixture.old_keg_record)
+	old_opt := os.join_path(fixture.prefix, 'opt', 'oldname')
+	return migrator_spec_bool(os.is_dir(fixture.new_keg_record) && os.is_link(old_rack) && new_keg.linked() && os.real_path(old_opt) == os.real_path(fixture.new_keg_record) && os.is_link(fixture.migrator.new_pin_record))
 }
 
 // Ruby specify `specify "#unlinik_oldname_opt" do` at line 179.
 pub fn ruby_migrator_spec_l179_d20_unlinik_oldname_opt(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#unlinik_oldname_opt', ...args)
+	_ = args
+	mut fixture := migrator_spec_setup('unlink-old-opt') or { return migrator_spec_bool(false) }
+	defer { fixture.cleanup() }
+	os.mkdir_all(fixture.new_keg_record) or { return migrator_spec_bool(false) }
+	old_opt := os.join_path(fixture.prefix, 'opt', 'oldname')
+	if os.is_link(old_opt) { os.rm(old_opt) or { return migrator_spec_bool(false) } }
+	os.symlink('../Cellar/newname/0.1', old_opt) or { return migrator_spec_bool(false) }
+	fixture.migrator.unlink_oldname_opt() or { return migrator_spec_bool(false) }
+	return migrator_spec_bool(!os.is_link(old_opt))
 }
 
 // Ruby specify `specify "#unlink_oldname_cellar" do` at line 188.
 pub fn ruby_migrator_spec_l188_d21_unlink_oldname_cellar(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#unlink_oldname_cellar', ...args)
+	_ = args
+	mut fixture := migrator_spec_setup('unlink-old-cellar') or { return migrator_spec_bool(false) }
+	defer { fixture.cleanup() }
+	old_keg := homebrew.new_keg_with_paths(fixture.old_keg_record, fixture.cellar, fixture.prefix) or { return migrator_spec_bool(false) }
+	old_keg.unlink(false) or { return migrator_spec_bool(false) }
+	old_keg.uninstall() or { return migrator_spec_bool(false) }
+	os.mkdir_all(fixture.new_keg_record) or { return migrator_spec_bool(false) }
+	os.symlink('newname', os.dir(fixture.old_keg_record)) or { return migrator_spec_bool(false) }
+	fixture.migrator.unlink_oldname_cellar() or { return migrator_spec_bool(false) }
+	return migrator_spec_bool(!os.is_link(os.dir(fixture.old_keg_record)))
 }
 
 // Ruby specify `specify "#backup_oldname_cellar after uninstall" do` at line 197.
 pub fn ruby_migrator_spec_l197_d22_backup_oldname_cellar(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#backup_oldname_cellar', ...args)
+	_ = args
+	mut fixture := migrator_spec_setup('backup-after-uninstall') or { return migrator_spec_bool(false) }
+	defer { fixture.cleanup() }
+	old_keg := homebrew.new_keg_with_paths(fixture.old_keg_record, fixture.cellar, fixture.prefix) or { return migrator_spec_bool(false) }
+	old_keg.unlink(false) or { return migrator_spec_bool(false) }
+	os.mv(os.dir(fixture.old_keg_record), os.dir(fixture.new_keg_record)) or { return migrator_spec_bool(false) }
+	fixture.migrator.backup_oldname_cellar() or { return migrator_spec_bool(false) }
+	return migrator_spec_bool(os.is_dir(fixture.old_keg_record))
 }
 
 // Ruby specify `specify "#backup_old_tabs" do` at line 205.
 pub fn ruby_migrator_spec_l205_d23_backup_old_tabs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#backup_old_tabs', ...args)
+	_ = args
+	mut fixture := migrator_spec_setup('backup-tabs') or { return migrator_spec_bool(false) }
+	defer { fixture.cleanup() }
+	tabfile := os.join_path(fixture.old_keg_record, homebrew.tab_filename)
+	os.rm(tabfile) or { return migrator_spec_bool(false) }
+	fixture.migrator.backup_old_tabs() or { return migrator_spec_bool(false) }
+	tab := homebrew.tab_for_keg(fixture.old_keg_record) or { return migrator_spec_bool(false) }
+	return migrator_spec_bool((tab.source['path'] or { json2.Any('') }).str() == '/oldname')
 }
 
 // Ruby it `it "backs up the old name" do` at line 218.
 pub fn ruby_migrator_spec_l218_d24_backs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('backs', ...args)
+	_ = args
+	mut fixture := migrator_spec_setup('backup-existing') or { return migrator_spec_bool(false) }
+	defer { fixture.cleanup() }
+	fixture.migrator.backup_oldname() or { return migrator_spec_bool(false) }
+	return migrator_spec_bool(migrator_spec_backup_restored(fixture))
 }
 
 // Ruby it `it "backs up the old name" do` at line 230.
 pub fn ruby_migrator_spec_l230_d25_backs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('backs', ...args)
+	_ = args
+	mut fixture := migrator_spec_setup('backup-removed') or { return migrator_spec_bool(false) }
+	defer { fixture.cleanup() }
+	old_keg := homebrew.new_keg_with_paths(fixture.old_keg_record, fixture.cellar, fixture.prefix) or { return migrator_spec_bool(false) }
+	old_keg.unlink(false) or { return migrator_spec_bool(false) }
+	os.mv(os.dir(fixture.old_keg_record), os.dir(fixture.new_keg_record)) or { return migrator_spec_bool(false) }
+	fixture.migrator.backup_oldname() or { return migrator_spec_bool(false) }
+	return migrator_spec_bool(migrator_spec_backup_restored(fixture))
 }
 
 // Ruby it `it "backs up the old name" do` at line 245.
 pub fn ruby_migrator_spec_l245_d26_backs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('backs', ...args)
+	_ = args
+	mut fixture := migrator_spec_setup('backup-linked') or { return migrator_spec_bool(false) }
+	defer { fixture.cleanup() }
+	old_keg := homebrew.new_keg_with_paths(fixture.old_keg_record, fixture.cellar, fixture.prefix) or { return migrator_spec_bool(false) }
+	old_keg.unlink(false) or { return migrator_spec_bool(false) }
+	os.mv(os.dir(fixture.old_keg_record), os.dir(fixture.new_keg_record)) or { return migrator_spec_bool(false) }
+	os.symlink('newname', os.dir(fixture.old_keg_record)) or { return migrator_spec_bool(false) }
+	fixture.migrator.backup_oldname() or { return migrator_spec_bool(false) }
+	return migrator_spec_bool(migrator_spec_backup_restored(fixture))
 }
 
 // Original Ruby source (line-for-line):

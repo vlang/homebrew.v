@@ -1,43 +1,50 @@
 module github
 
 import brew_runtime
+import homebrew.utils.github as actions
 
 // Translated from Homebrew/brew `test/utils/github/actions_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby let `let(:message) { "lorem ipsum" }` at line 7.
 pub fn ruby_actions_spec_l7_d1_message(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('message', ...args)
+	return brew_runtime.string_value('lorem ipsum')
 }
 
 // Ruby it `it "fails when the type is wrong" do` at line 10.
 pub fn ruby_actions_spec_l10_d2_fails(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fails', ...args)
+	value := actions.ruby_actions_l65_d5_initialize(brew_runtime.object_value('Symbol', 'fatal'), ruby_actions_spec_l7_d1_message(), brew_runtime.string_value('file.txt'))
+	return brew_runtime.bool_value(value.type_name == 'ArgumentError')
 }
 
 // Ruby it `it "escapes newlines" do` at line 18.
 pub fn ruby_actions_spec_l18_d3_escapes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('escapes', ...args)
+	annotation := actions.ruby_actions_l65_d5_initialize(brew_runtime.object_value('Symbol', 'warning'), brew_runtime.string_value('lorem\nipsum\n'), brew_runtime.string_value('file.txt'))
+	return brew_runtime.bool_value(actions.ruby_actions_l81_d6_to_s(annotation).as_string() == '::warning file=file.txt::lorem%0Aipsum%0A')
 }
 
 // Ruby it `it "allows specifying the file" do` at line 27.
 pub fn ruby_actions_spec_l27_d4_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+	annotation := actions.ruby_actions_l65_d5_initialize(brew_runtime.object_value('Symbol', 'warning'), ruby_actions_spec_l7_d1_message(), brew_runtime.string_value('file.txt'))
+	return brew_runtime.bool_value(actions.ruby_actions_l81_d6_to_s(annotation).as_string() == '::warning file=file.txt::lorem ipsum')
 }
 
 // Ruby it `it "allows specifying the title" do` at line 33.
 pub fn ruby_actions_spec_l33_d5_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+	annotation := actions.ruby_actions_l65_d5_initialize(brew_runtime.object_value('Symbol', 'warning'), ruby_actions_spec_l7_d1_message(), brew_runtime.string_value('file.txt'), brew_runtime.string_value('foo'))
+	return brew_runtime.bool_value(actions.ruby_actions_l81_d6_to_s(annotation).as_string() == '::warning file=file.txt,title=foo::lorem ipsum')
 }
 
 // Ruby it `it "allows specifying the file and line" do` at line 39.
 pub fn ruby_actions_spec_l39_d6_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+	annotation := actions.ruby_actions_l65_d5_initialize(brew_runtime.object_value('Symbol', 'error'), ruby_actions_spec_l7_d1_message(), brew_runtime.string_value('file.txt'), brew_runtime.object_value('NilClass', 'nil'), brew_runtime.int_value(3))
+	return brew_runtime.bool_value(actions.ruby_actions_l81_d6_to_s(annotation).as_string() == '::error file=file.txt,line=3::lorem ipsum')
 }
 
 // Ruby it `it "allows specifying the file, line and column" do` at line 45.
 pub fn ruby_actions_spec_l45_d7_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+	annotation := actions.ruby_actions_l65_d5_initialize(brew_runtime.object_value('Symbol', 'error'), ruby_actions_spec_l7_d1_message(), brew_runtime.string_value('file.txt'), brew_runtime.object_value('NilClass', 'nil'), brew_runtime.int_value(3), brew_runtime.object_value('NilClass', 'nil'), brew_runtime.int_value(18))
+	return brew_runtime.bool_value(actions.ruby_actions_l81_d6_to_s(annotation).as_string() == '::error file=file.txt,line=3,col=18::lorem ipsum')
 }
 
 // Original Ruby source (line-for-line):

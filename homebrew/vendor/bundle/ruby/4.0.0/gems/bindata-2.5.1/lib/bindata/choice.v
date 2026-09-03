@@ -4,85 +4,389 @@ import brew_runtime
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/bindata-2.5.1/lib/bindata/choice.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub type ChoiceSelectionFn = fn() brew_runtime.Value
+
+struct ChoiceEntry {
+mut:
+	key          brew_runtime.Value
+	prototype    brew_runtime.Value
+	instance     brew_runtime.Value
+	has_instance bool
+}
+
+@[heap]
+pub struct ChoiceObject {
+mut:
+	base                   &BaseObject
+	entries                []ChoiceEntry
+	selection_value        brew_runtime.Value
+	selection_callback     ChoiceSelectionFn = unsafe { nil }
+	has_selection_callback bool
+	last_selection         brew_runtime.Value
+	has_last_selection     bool
+	copy_on_change         bool
+}
+
+fn choice_nil_value() brew_runtime.Value {
+	return brew_runtime.object_value('NilClass', 'nil')
+}
+
+fn choice_entries(value brew_runtime.Value) []ChoiceEntry {
+	mut entries := []ChoiceEntry{}
+	if value.type_name == 'BinData::SanitizedChoices' {
+		choices := sanitized_choices_from_value(value)
+		for entry in choices.entries {
+			entries << ChoiceEntry{ key: entry.key, prototype: entry.prototype, instance: choice_nil_value() }
+		}
+		if choices.has_default {
+			entries << ChoiceEntry{
+				key: brew_runtime.object_value('Symbol', ':default')
+				prototype: choices.default_prototype
+				instance: choice_nil_value()
+			}
+		}
+		return entries
+	}
+	if value.type_name == 'Array' {
+		for index, item in value.as_array() or { panic(err) } {
+			if item.type_name != 'NilClass' {
+				entries << ChoiceEntry{ key: brew_runtime.int_value(index), prototype: item, instance: choice_nil_value() }
+			}
+		}
+		return entries
+	}
+	for key, item in value.map_data {
+		entries << ChoiceEntry{
+			key: if key == 'default' {
+				brew_runtime.object_value('Symbol', ':default')} else {
+				brew_runtime.string_value(key)}
+			prototype: item
+			instance: choice_nil_value()
+		}
+	}
+	return entries
+}
+
+pub fn new_bindata_choice(choices brew_runtime.Value, selection brew_runtime.Value, copy_on_change bool) &ChoiceObject {
+	return &ChoiceObject{
+		base: new_base_object('BinData::Choice', {
+			'choices':        choices
+			'selection':      selection
+			'copy_on_change': brew_runtime.bool_value(copy_on_change)
+		})
+		entries: choice_entries(choices)
+		selection_value: selection
+		last_selection: choice_nil_value()
+		copy_on_change: copy_on_change
+	}
+}
+
+pub fn (mut object ChoiceObject) set_selection_callback(callback ChoiceSelectionFn) {
+	object.selection_callback = callback
+	object.has_selection_callback = true
+}
+
+pub fn (mut object ChoiceObject) set_selection(selection brew_runtime.Value) {
+	object.selection_value = selection
+}
+
+fn choice_object_value(object &ChoiceObject) brew_runtime.Value {
+	return brew_runtime.Value{
+		type_name: 'BinData::Choice'
+		repr: 'BinData::Choice'
+		map_data: object.base.parameters
+		attributes: {
+			'choice_object_address': u64(voidptr(object)).str()
+		}
+	}
+}
+
+pub fn choice_boundary_value(object &ChoiceObject) brew_runtime.Value {
+	return choice_object_value(object)
+}
+
+fn choice_object_from_value(value brew_runtime.Value) &ChoiceObject {
+	if address := value.attributes['choice_object_address'] {
+		return unsafe { &ChoiceObject(voidptr(address.u64())) }
+	}
+	choices := value.map_data['choices'] or { brew_runtime.map_value({}) }
+	selection := value.map_data['selection'] or { choice_nil_value() }
+	mut base := base_object_from_value(value)
+	return &ChoiceObject{
+		base: base
+		entries: choice_entries(choices)
+		selection_value: selection
+		last_selection: choice_nil_value()
+		copy_on_change: (value.map_data['copy_on_change'] or { brew_runtime.bool_value(false) }).bool_data
+	}
+}
+
+fn choice_selection(object &ChoiceObject) !brew_runtime.Value {
+	selection := if object.has_selection_callback {
+		object.selection_callback()
+	} else {
+		object.selection_value
+	}
+	if selection.type_name == 'NilClass' {
+		return error(':selection returned nil for BinData::Choice')
+	}
+	return selection
+}
+
+fn choice_entry_index(object &ChoiceObject, selection brew_runtime.Value) int {
+	mut default_index := -1
+	for index, entry in object.entries {
+		if entry.key.type_name == 'Symbol' && entry.key.as_string().trim_left(':') == 'default' {
+			default_index = index
+		} else if values_equal(entry.key, selection) {
+			return index
+		}
+	}
+	return default_index
+}
+
+fn choice_instantiate(prototype brew_runtime.Value, parent brew_runtime.Value) brew_runtime.Value {
+	if prototype.type_name == 'BinData::SanitizedPrototype' {
+		mut actual := sanitized_prototype_from_value(prototype)
+		return actual.instantiate(choice_nil_value(), false, parent, true)
+	}
+	if sanitize_is_base_instance(prototype) {
+		return ruby_base_l97_d10_new(prototype, choice_nil_value(), parent)
+	}
+	return prototype
+}
+
+fn choice_assign_value(mut value brew_runtime.Value, assigned brew_runtime.Value) brew_runtime.Value {
+	if 'base_object_address' in value.attributes {
+		mut base := base_object_from_value(value)
+		base.snapshot_value = assigned
+		base.assigned_value = assigned
+		base.has_assignment = true
+		base.clear = false
+		return base_object_value(base)
+	}
+	value = assigned
+	return value
+}
+
+fn choice_snapshot(value brew_runtime.Value) brew_runtime.Value {
+	if 'base_object_address' in value.attributes {
+		return base_object_from_value(value).snapshot()
+	}
+	return value
+}
+
+fn (mut object ChoiceObject) current_choice() !brew_runtime.Value {
+	selection := choice_selection(object)!
+	index := choice_entry_index(object, selection)
+	if index < 0 {
+		return error("selection '${selection.repr}' does not exist in :choices for BinData::Choice")
+	}
+	if !object.entries[index].has_instance {
+		object.entries[index].instance = choice_instantiate(object.entries[index].prototype, choice_object_value(object))
+		object.entries[index].has_instance = true
+	}
+	if object.copy_on_change {
+		if object.has_last_selection && !values_equal(selection, object.last_selection) {
+			previous_index := choice_entry_index(object, object.last_selection)
+			if previous_index >= 0 && object.entries[previous_index].has_instance {
+				previous := choice_snapshot(object.entries[previous_index].instance)
+				object.entries[index].instance = choice_assign_value(mut object.entries[index].instance, previous)
+			}
+		}
+		object.last_selection = selection
+		object.has_last_selection = true
+	}
+	return object.entries[index].instance
+}
+
+fn choice_delegate(mut object ChoiceObject, method string, args []brew_runtime.Value) brew_runtime.Value {
+	mut current := object.current_choice() or { panic(err) }
+	return match method.trim_left(':') {
+		'clear?' {
+			brew_runtime.bool_value(if 'base_object_address' in current.attributes {
+				base_object_from_value(current).is_clear()
+			} else {
+				false
+			})
+		}
+		'assign' {
+			if args.len == 0 { panic('Choice#assign requires value') }
+			selection := choice_selection(object) or { panic(err) }
+			index := choice_entry_index(object, selection)
+			object.entries[index].instance = choice_assign_value(mut current, args[0])
+			args[0]
+		}
+		'snapshot' { choice_snapshot(current) }
+		'do_num_bytes' {
+			brew_runtime.int_value((current.attributes['do_num_bytes'] or { current.as_string().len.str() }).i64())
+		}
+		'do_read', 'do_write' { current }
+		else { panic('undefined method `${method}` for current choice') }
+	}
+}
+
+fn choice_keyed_array(value brew_runtime.Value) brew_runtime.Value {
+	mut result := []brew_runtime.Value{}
+	for index, item in value.as_array() or { panic(err) } {
+		if item.type_name != 'NilClass' {
+			result << brew_runtime.array_value([brew_runtime.int_value(index), item])
+		}
+	}
+	return brew_runtime.array_value(result)
+}
 
 // Ruby method `initialize_shared_instance` at line 69.
 pub fn ruby_choice_l69_d1_initialize_shared_instance(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize_shared_instance', ...args)
+	if args.len == 0 { panic('Choice#initialize_shared_instance requires receiver') }
+	return args[0]
 }
 
 // Ruby method `initialize_instance` at line 74.
 pub fn ruby_choice_l74_d2_initialize_instance(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize_instance', ...args)
+	if args.len == 0 { panic('Choice#initialize_instance requires receiver') }
+	mut object := choice_object_from_value(args[0])
+	object.entries = choice_entries(object.base.parameters['choices'] or { brew_runtime.map_value({}) })
+	object.has_last_selection = false
+	return choice_nil_value()
 }
 
 // Ruby method `selection` at line 80.
 pub fn ruby_choice_l80_d3_selection(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('selection', ...args)
+	return choice_selection(choice_object_from_value(args[0])) or { panic(err) }
 }
 
 // Ruby method `respond_to?(symbol, include_all = false) # :nodoc:` at line 89.
 pub fn ruby_choice_l89_d4_respond_to(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('respond_to?', ...args)
+	if args.len < 2 { panic('Choice#respond_to? requires symbol') }
+	mut object := choice_object_from_value(args[0])
+	current := object.current_choice() or { panic(err) }
+	name := args[1].as_string().trim_left(':')
+	return brew_runtime.bool_value(name in ['clear?', 'assign', 'snapshot', 'do_read', 'do_write',
+		'do_num_bytes'] || name in (current.attributes['method_names'] or { '' }).split(','))
 }
 
 // Ruby method `method_missing(symbol, *args, &block) # :nodoc:` at line 93.
 pub fn ruby_choice_l93_d5_method_missing(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('method_missing', ...args)
+	if args.len < 2 { panic('Choice#method_missing requires symbol') }
+	mut object := choice_object_from_value(args[0])
+	return choice_delegate(mut object, args[1].as_string(), args[2..])
 }
 
 // Ruby method `#{m}(*args)` at line 99.
 pub fn ruby_choice_l99_d6_m(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#{m}', ...args)
+	if args.len < 2 { panic('Choice delegated method requires method name') }
+	mut object := choice_object_from_value(args[0])
+	return choice_delegate(mut object, args[1].as_string(), args[2..])
 }
 
 // Ruby method `current_choice` at line 108.
 pub fn ruby_choice_l108_d7_current_choice(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('current_choice', ...args)
+	mut object := choice_object_from_value(args[0])
+	return object.current_choice() or { panic(err) }
 }
 
 // Ruby method `instantiate_choice(selection)` at line 113.
 pub fn ruby_choice_l113_d8_instantiate_choice(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('instantiate_choice', ...args)
+	if args.len < 2 { panic('instantiate_choice requires selection') }
+	object := choice_object_from_value(args[0])
+	index := choice_entry_index(object, args[1])
+	if index < 0 { panic("selection '${args[1].repr}' does not exist in :choices for BinData::Choice") }
+	return choice_instantiate(object.entries[index].prototype, args[0])
 }
 
 // Ruby method `sanitize_parameters!(obj_class, params) # :nodoc:` at line 125.
 pub fn ruby_choice_l125_d9_sanitize_parameters(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sanitize_parameters!', ...args)
+	if args.len < 2 { panic('ChoiceArgProcessor#sanitize_parameters! requires class and params') }
+	object_class := args[args.len - 2]
+	params := args.last()
+	if params.type_name == 'BinData::SanitizedParameters' {
+		mut parameters := sanitized_parameters_from_value(params)
+		for key, value in object_class.map_data {
+			parameters.values[key] = value
+		}
+		parameters.sanitize_choices('choices', fn (value brew_runtime.Value) !brew_runtime.Value {
+			return value
+		}) or { panic(err) }
+		return sanitized_parameters_boundary_value(parameters)
+	}
+	mut values := params.as_map() or { panic(err) }
+	for key, value in object_class.map_data {
+		values[key] = value
+	}
+	choices := values['choices'] or { panic("parameter 'choices' must be specified") }
+	values['choices'] = sanitized_choices_boundary_value(new_sanitized_choices(choices, map[string]brew_runtime.Value{}) or { panic(err) })
+	return brew_runtime.map_value(values)
 }
 
 // Ruby method `choices_as_hash(choices)` at line 138.
 pub fn ruby_choice_l138_d10_choices_as_hash(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('choices_as_hash', ...args)
+	if args.len == 0 { panic('choices_as_hash requires choices') }
+	value := args.last()
+	return if value.type_name == 'Array' { choice_keyed_array(value) } else { value }
 }
 
 // Ruby method `key_array_by_index(array)` at line 146.
 pub fn ruby_choice_l146_d11_key_array_by_index(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('key_array_by_index', ...args)
+	if args.len == 0 { panic('key_array_by_index requires array') }
+	return choice_keyed_array(args.last())
 }
 
 // Ruby method `ensure_valid_keys(choices)` at line 154.
 pub fn ruby_choice_l154_d12_ensure_valid_keys(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ensure_valid_keys', ...args)
+	if args.len == 0 { panic('ensure_valid_keys requires choices') }
+	for entry in raw_choice_entries(args.last()) {
+		if entry.key.type_name == 'NilClass' { panic(':choices hash may not have nil key') }
+		if entry.key.type_name == 'Symbol' && entry.key.as_string().trim_left(':') != 'default' {
+			panic(':choices hash may not have symbols for keys')
+		}
+	}
+	return args.last()
 }
 
 // Ruby method `current_choice` at line 166.
 pub fn ruby_choice_l166_d13_current_choice(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('current_choice', ...args)
+	mut object := choice_object_from_value(args[0])
+	return object.current_choice() or { panic(err) }
 }
 
 // Ruby method `copy_previous_value(obj)` at line 172.
 pub fn ruby_choice_l172_d14_copy_previous_value(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('copy_previous_value', ...args)
+	if args.len < 2 { panic('copy_previous_value requires object') }
+	mut object := choice_object_from_value(args[0])
+	selection := choice_selection(object) or { panic(err) }
+	if object.has_last_selection && !values_equal(selection, object.last_selection) {
+		previous_index := choice_entry_index(object, object.last_selection)
+		if previous_index >= 0 && object.entries[previous_index].has_instance {
+			mut target := args[1]
+			return choice_assign_value(mut target, choice_snapshot(object.entries[previous_index].instance))
+		}
+	}
+	object.last_selection = selection
+	object.has_last_selection = true
+	return args[1]
 }
 
 // Ruby method `get_previous_choice(selection)` at line 179.
 pub fn ruby_choice_l179_d15_get_previous_choice(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('get_previous_choice', ...args)
+	if args.len < 2 { panic('get_previous_choice requires selection') }
+	object := choice_object_from_value(args[0])
+	if object.has_last_selection && !values_equal(args[1], object.last_selection) {
+		index := choice_entry_index(object, object.last_selection)
+		if index >= 0 && object.entries[index].has_instance {
+			return object.entries[index].instance
+		}
+	}
+	return choice_nil_value()
 }
 
 // Ruby method `remember_current_selection(selection)` at line 185.
 pub fn ruby_choice_l185_d16_remember_current_selection(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('remember_current_selection', ...args)
+	if args.len < 2 { panic('remember_current_selection requires selection') }
+	mut object := choice_object_from_value(args[0])
+	object.last_selection = args[1]
+	object.has_last_selection = true
+	return args[1]
 }
 
 // Original Ruby source (line-for-line):

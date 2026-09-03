@@ -1,143 +1,396 @@
 module vulns
 
-import brew_runtime
+import homebrew.vulns as cpan_core
+import os
+import x.json2
 
 // Translated from Homebrew/brew `test/vulns/cpan_sec_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+fn cpan_sec_spec_fixture_contents() string {
+	return '{"meta":{"commit":"abc123","epoch":1784142497},"dists":{"DBI":{"advisories":[{"id":"CPANSA-DBI-2020-01","cves":["CVE-2020-14393"],"affected_versions":["<1.643"],"fixed_versions":[">=1.643"],"severity":"high","description":"Buffer overflow in DBI.xs.\\n","references":["https://metacpan.org/changes/distribution/DBI"],"reported":"2020-09-16"},{"id":"CPANSA-DBI-2014-01","cves":["CVE-2014-10402","CVE-2014-10401"],"affected_versions":">=0.64,<1.632","fixed_versions":[">=1.632"]}]},"Image-ExifTool":{"advisories":[{"id":"CPANSA-Image-ExifTool-2021-01","cves":["CVE-2021-22204"],"affected_versions":["<12.24"],"fixed_versions":[">=12.24"]}]}}}'
+}
+
+fn cpan_sec_spec_database() !cpan_core.CpanSecDatabase {
+	return cpan_core.parse_cpan_sec_database(cpan_sec_spec_fixture_contents())
+}
+
+fn cpan_sec_spec_advisory(affected []string, fixed []string) cpan_core.CpanSecAdvisory {
+	return cpan_core.CpanSecAdvisory{
+		id: 'CPANSA-X'
+		affected_versions: affected.clone()
+		fixed_versions: fixed.clone()
+	}
+}
+
+fn cpan_sec_spec_read(path string) !string {
+	return os.read_file(path)
+}
+
+fn cpan_sec_spec_write(path string, contents string) ! {
+	os.write_file(path, contents)!
+}
+
+fn cpan_sec_spec_rename(source string, destination string) ! {
+	os.rename(source, destination)!
+}
+
+fn cpan_sec_spec_remove(path string) ! {
+	if os.exists(path) {
+		os.rm(path)!
+	}
+}
+
+fn cpan_sec_spec_mkdir(path string) ! {
+	os.mkdir_all(path)!
+}
+
+fn cpan_sec_spec_exists(path string) bool {
+	return os.exists(path)
+}
+
+fn cpan_sec_spec_fresh_mtime(path string) !i64 {
+	if !os.exists(path) {
+		return error('missing cache')
+	}
+	return 100_000
+}
+
+fn cpan_sec_spec_stale_mtime(path string) !i64 {
+	if !os.exists(path) {
+		return error('missing cache')
+	}
+	return 0
+}
+
+fn cpan_sec_spec_fetch_fixture(url string) !string {
+	if url != cpan_core.cpan_sec_data_url {
+		return error('unexpected CPANSA URL')
+	}
+	return cpan_sec_spec_fixture_contents()
+}
+
+fn cpan_sec_spec_fetch_failure(url string) !string {
+	return error('download failed for ${url}')
+}
+
+fn cpan_sec_spec_fetch_invalid(url string) !string {
+	if url == '' {
+		return error('missing URL')
+	}
+	return 'not json'
+}
+
+fn cpan_sec_spec_now() i64 {
+	return 100_000
+}
+
+fn cpan_sec_spec_warn(message string) {
+	path := os.getenv('BREW_V_CPAN_SEC_WARNING_FILE')
+	if path != '' {
+		os.write_file(path, message) or { panic(err) }
+	}
+}
+
+fn cpan_sec_spec_io(fetch cpan_core.CpanSecFetch,
+	mtime cpan_core.CpanSecModifiedTime) cpan_core.CpanSecIo {
+	return cpan_core.CpanSecIo{
+		read_file: cpan_sec_spec_read
+		write_file: cpan_sec_spec_write
+		rename_file: cpan_sec_spec_rename
+		remove_file: cpan_sec_spec_remove
+		make_directory: cpan_sec_spec_mkdir
+		path_exists: cpan_sec_spec_exists
+		modified_time: mtime
+		fetch: fetch
+		now: cpan_sec_spec_now
+		warn: cpan_sec_spec_warn
+	}
+}
+
+fn cpan_sec_spec_temp(name string) string {
+	path := os.join_path(os.temp_dir(), 'brew-v-cpan-sec-${os.getpid()}-${name}')
+	if os.exists(path) {
+		os.rmdir_all(path) or { panic(err) }
+	}
+	os.mkdir_all(path) or { panic(err) }
+	return path
+}
+
+fn cpan_sec_spec_cleanup(path string) {
+	if os.exists(path) {
+		os.rmdir_all(path) or { panic(err) }
+	}
+}
 
 // Ruby let `let(:fixture) { TEST_FIXTURE_DIR/"vulns/cpansa.json" }` at line 7.
-pub fn ruby_cpan_sec_spec_l7_d1_fixture(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fixture', ...args)
+pub fn ruby_cpan_sec_spec_l7_d1_fixture() string {
+	return 'vulns/cpansa.json'
 }
 
 // Ruby let `let(:cpansa) { described_class.from_file(fixture) }` at line 8.
-pub fn ruby_cpan_sec_spec_l8_d2_cpansa(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cpansa', ...args)
+pub fn ruby_cpan_sec_spec_l8_d2_cpansa() !cpan_core.CpanSecDatabase {
+	return cpan_sec_spec_database()
 }
 
 // Ruby it `it "raises Error on unparseable JSON" do` at line 11.
-pub fn ruby_cpan_sec_spec_l11_d3_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+pub fn ruby_cpan_sec_spec_l11_d3_raises() bool {
+	cache := cpan_sec_spec_temp('unparseable')
+	path := os.join_path(cache, cpan_core.cpan_sec_cache_filename)
+	os.write_file(path, 'not json') or {
+		cpan_sec_spec_cleanup(cache)
+		return false
+	}
+	if _ := cpan_core.cpan_sec_from_file(path, cpan_sec_spec_read) {
+		cpan_sec_spec_cleanup(cache)
+		return false
+	} else {
+		result := err.msg().contains('Failed to parse cpansa.json at ${path}')
+		cpan_sec_spec_cleanup(cache)
+		return result
+	}
 }
 
 // Ruby it `it "raises Error when the dists key is missing" do` at line 22.
-pub fn ruby_cpan_sec_spec_l22_d4_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+pub fn ruby_cpan_sec_spec_l22_d4_raises() bool {
+	if _ := cpan_core.new_cpan_sec_database(json2.Any({
+		'meta': json2.Any(map[string]json2.Any{})
+	})) {
+		return false
+	} else {
+		return err.msg().contains("missing 'dists' key")
+	}
 }
 
 // Ruby it `it "raises Error when the top-level value is not a JSON object" do` at line 27.
-pub fn ruby_cpan_sec_spec_l27_d5_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+pub fn ruby_cpan_sec_spec_l27_d5_raises() bool {
+	mut rejected := 0
+	if _ := cpan_core.new_cpan_sec_database(json2.Any([]json2.Any{})) {
+	} else {
+		if err.msg().contains('not a JSON object') {
+			rejected++
+		}
+	}
+	if _ := cpan_core.new_cpan_sec_database(json2.Any(json2.null)) {
+	} else {
+		if err.msg().contains('not a JSON object') {
+			rejected++
+		}
+	}
+	return rejected == 2
 }
 
 // Ruby it `it "treats a null or absent meta as an empty hash" do` at line 32.
-pub fn ruby_cpan_sec_spec_l32_d6_treats(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('treats', ...args)
+pub fn ruby_cpan_sec_spec_l32_d6_treats() !bool {
+	with_null := cpan_core.new_cpan_sec_database(json2.Any({
+		'dists': json2.Any(map[string]json2.Any{})
+		'meta':  json2.Any(json2.null)
+	}))!
+	absent := cpan_core.new_cpan_sec_database(json2.Any({
+		'dists': json2.Any(map[string]json2.Any{})
+	}))!
+	return with_null.meta().len == 0 && absent.meta().len == 0
 }
 
 // Ruby it `it "returns the upstream build metadata" do` at line 39.
-pub fn ruby_cpan_sec_spec_l39_d7_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_cpan_sec_spec_l39_d7_returns() !bool {
+	meta := cpan_sec_spec_database()!.meta()
+	return meta['commit']!.str() == 'abc123' && meta['epoch']!.i64() == 1_784_142_497
 }
 
 // Ruby it `it "lists all distribution names" do` at line 45.
-pub fn ruby_cpan_sec_spec_l45_d8_lists(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('lists', ...args)
+pub fn ruby_cpan_sec_spec_l45_d8_lists() !bool {
+	return cpan_sec_spec_database()!.distributions() == ['DBI', 'Image-ExifTool']
 }
 
 // Ruby it `it "returns Advisory structs with all fields populated" do` at line 51.
-pub fn ruby_cpan_sec_spec_l51_d9_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_cpan_sec_spec_l51_d9_returns() !bool {
+	first := cpan_sec_spec_database()!.advisories_for('DBI')[0]
+	return first.id == 'CPANSA-DBI-2020-01' && first.cves == ['CVE-2020-14393'] && first.affected_versions == [
+		'<1.643',
+	] && first.fixed_versions == ['>=1.643'] && first.severity or { '' } == 'high' && first.description or { '' } == 'Buffer overflow in DBI.xs.\n' && first.references == [
+		'https://metacpan.org/changes/distribution/DBI',
+	] && first.reported or { '' } == '2020-09-16'
 }
 
 // Ruby it `it "coerces cves and affected_versions to string arrays and defaults absent optional fields" do` at line 65.
-pub fn ruby_cpan_sec_spec_l65_d10_coerces(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('coerces', ...args)
+pub fn ruby_cpan_sec_spec_l65_d10_coerces() !bool {
+	second := cpan_sec_spec_database()!.advisories_for('DBI')[1]
+	return second.id == 'CPANSA-DBI-2014-01' && second.cves == ['CVE-2014-10402', 'CVE-2014-10401'] && second.affected_versions == [
+		'>=0.64,<1.632',
+	] && second.description == none && second.references.len == 0
 }
 
 // Ruby it `it "returns all advisories for a distribution in file order" do` at line 74.
-pub fn ruby_cpan_sec_spec_l74_d11_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_cpan_sec_spec_l74_d11_returns() !bool {
+	return cpan_sec_spec_database()!.advisories_for('DBI').map(it.id) == [
+		'CPANSA-DBI-2020-01',
+		'CPANSA-DBI-2014-01',
+	]
 }
 
 // Ruby it `it "returns an empty array for an unknown distribution" do` at line 79.
-pub fn ruby_cpan_sec_spec_l79_d12_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_cpan_sec_spec_l79_d12_returns() !bool {
+	return cpan_sec_spec_database()!.advisories_for('No-Such-Dist').len == 0
 }
 
 // Ruby it `it "returns frozen advisories" do` at line 83.
-pub fn ruby_cpan_sec_spec_l83_d13_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_cpan_sec_spec_l83_d13_returns() !bool {
+	advisory := cpan_sec_spec_database()!.advisories_for('Image-ExifTool')[0]
+	// Immutable struct fields and cloned result arrays are V's frozen equivalent.
+	return advisory.id == 'CPANSA-Image-ExifTool-2021-01'
 }
 
 // Ruby method `adv(affected:, fixed:)` at line 89.
-pub fn ruby_cpan_sec_spec_l89_d14_adv(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('adv', ...args)
+pub fn ruby_cpan_sec_spec_l89_d14_adv(affected []string,
+	fixed []string) cpan_core.CpanSecAdvisory {
+	return cpan_sec_spec_advisory(affected, fixed)
 }
 
 // Ruby it `it "reports affected with fixed_in when the version is inside a single-bound constraint" do` at line 94.
-pub fn ruby_cpan_sec_spec_l94_d15_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_cpan_sec_spec_l94_d15_reports() !bool {
+	status := cpan_core.cpan_sec_range_status(cpan_sec_spec_advisory(['<12.24'], [
+		'>=12.24',
+	]), '12.00')!
+	return status.affected() && status.fixed_in or { '' } == '12.24'
 }
 
 // Ruby it `it "reports not-affected with fixed_in when the version is at or past the fix" do` at line 99.
-pub fn ruby_cpan_sec_spec_l99_d16_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_cpan_sec_spec_l99_d16_reports() !bool {
+	status := cpan_core.cpan_sec_range_status(cpan_sec_spec_advisory(['<12.24'], [
+		'>=12.24',
+	]), '13.55')!
+	return !status.affected() && status.fixed() && status.fixed_in or { '' } == '12.24'
 }
 
 // Ruby it `it "evaluates comma-joined AND terms" do` at line 104.
-pub fn ruby_cpan_sec_spec_l104_d17_evaluates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('evaluates', ...args)
+pub fn ruby_cpan_sec_spec_l104_d17_evaluates() !bool {
+	inside := cpan_core.cpan_sec_range_status(cpan_sec_spec_advisory(['>=0.64,<1.632'], [
+		'>=1.632',
+	]), '1.5')!
+	below := cpan_core.cpan_sec_range_status(cpan_sec_spec_advisory(['>=0.64,<1.632'], []string{}), '0.5')!
+	return inside.affected() && !below.affected()
 }
 
 // Ruby it `it "treats multiple array entries as OR" do` at line 111.
-pub fn ruby_cpan_sec_spec_l111_d18_treats(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('treats', ...args)
+pub fn ruby_cpan_sec_spec_l111_d18_treats() !bool {
+	advisory := cpan_sec_spec_advisory(['<1.0', '>=2.0,<2.5'], ['>=1.0,<2.0', '>=2.5'])
+	first := cpan_core.cpan_sec_range_status(advisory, '0.9')!
+	second := cpan_core.cpan_sec_range_status(advisory, '2.1')!
+	gap := cpan_core.cpan_sec_range_status(advisory, '1.5')!
+	return first.affected() && second.affected() && second.fixed_in or { '' } == '2.5' && !gap.affected()
 }
 
 // Ruby it `it "treats a bare version term as equality and an empty affected_versions as always affected" do` at line 118.
-pub fn ruby_cpan_sec_spec_l118_d19_treats(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('treats', ...args)
+pub fn ruby_cpan_sec_spec_l118_d19_treats() !bool {
+	equality := cpan_sec_spec_advisory(['1.0'], []string{})
+	always := cpan_sec_spec_advisory([]string{}, []string{})
+	return cpan_core.cpan_sec_range_status(equality, '1.0')!.affected() && !cpan_core.cpan_sec_range_status(equality, '1.1')!.affected() && cpan_core.cpan_sec_range_status(always, '1.0')!.affected()
 }
 
 // Ruby it `it "does not report a version in the gap between affected and a strict >fix as :fixed" do` at line 124.
-pub fn ruby_cpan_sec_spec_l124_d20_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_cpan_sec_spec_l124_d20_does() !bool {
+	advisory := cpan_sec_spec_advisory(['<1.0'], ['>1.0'])
+	gap := cpan_core.cpan_sec_range_status(advisory, '1.0')!
+	fixed := cpan_core.cpan_sec_range_status(advisory, '1.1')!
+	return gap.state == .not_applicable && fixed.state == .fixed
 }
 
 // Ruby it `it "reports affected with no fixed_in when there is no fixed_versions" do` at line 130.
-pub fn ruby_cpan_sec_spec_l130_d21_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_cpan_sec_spec_l130_d21_reports() !bool {
+	status := cpan_core.cpan_sec_range_status(cpan_sec_spec_advisory(['<12.24'], []string{}), '12.00')!
+	return status.affected() && status.fixed_in == none
 }
 
 // Ruby it `it "reads a fresh cache file without downloading" do` at line 137.
-pub fn ruby_cpan_sec_spec_l137_d22_reads(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reads', ...args)
+pub fn ruby_cpan_sec_spec_l137_d22_reads() !bool {
+	cache := cpan_sec_spec_temp('fresh')
+	cache_file := os.join_path(cache, cpan_core.cpan_sec_cache_filename)
+	os.write_file(cache_file, cpan_sec_spec_fixture_contents())!
+	loaded := cpan_core.load_cpan_sec(cache, 86_400, cpan_sec_spec_io(cpan_sec_spec_fetch_failure, cpan_sec_spec_fresh_mtime))!
+	result := 'DBI' in loaded.distributions()
+	cpan_sec_spec_cleanup(cache)
+	return result
 }
 
 // Ruby it `it "downloads to a temp file and atomically replaces a stale cache" do` at line 147.
-pub fn ruby_cpan_sec_spec_l147_d23_downloads(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('downloads', ...args)
+pub fn ruby_cpan_sec_spec_l147_d23_downloads() !bool {
+	cache := cpan_sec_spec_temp('stale-replace')
+	cache_file := os.join_path(cache, cpan_core.cpan_sec_cache_filename)
+	os.write_file(cache_file, '{"dists":{}}')!
+	loaded := cpan_core.load_cpan_sec(cache, 86_400, cpan_sec_spec_io(cpan_sec_spec_fetch_fixture, cpan_sec_spec_stale_mtime))!
+	mut children := os.ls(cache)!
+	children.sort()
+	result := 'DBI' in loaded.distributions() && os.read_file(cache_file)! == cpan_sec_spec_fixture_contents() && children == [
+		cpan_core.cpan_sec_cache_filename,
+	]
+	cpan_sec_spec_cleanup(cache)
+	return result
 }
 
 // Ruby it `it "downloads when the cache file is absent" do` at line 163.
-pub fn ruby_cpan_sec_spec_l163_d24_downloads(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('downloads', ...args)
+pub fn ruby_cpan_sec_spec_l163_d24_downloads() !bool {
+	cache := cpan_sec_spec_temp('absent-download')
+	loaded := cpan_core.load_cpan_sec(cache, 86_400, cpan_sec_spec_io(cpan_sec_spec_fetch_fixture, cpan_sec_spec_stale_mtime))!
+	result := loaded.advisories_for('Image-ExifTool').len == 1
+	cpan_sec_spec_cleanup(cache)
+	return result
 }
 
 // Ruby it `it "falls back to a stale cache when the download fails, leaving it intact" do` at line 173.
-pub fn ruby_cpan_sec_spec_l173_d25_falls(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('falls', ...args)
+pub fn ruby_cpan_sec_spec_l173_d25_falls() !bool {
+	cache := cpan_sec_spec_temp('stale-failure')
+	cache_file := os.join_path(cache, cpan_core.cpan_sec_cache_filename)
+	warning_file := '${cache}-warning'
+	if os.exists(warning_file) {
+		os.rm(warning_file)!
+	}
+	os.setenv('BREW_V_CPAN_SEC_WARNING_FILE', warning_file, true)
+	original := cpan_sec_spec_fixture_contents()
+	os.write_file(cache_file, original)!
+	loaded := cpan_core.load_cpan_sec(cache, 86_400, cpan_sec_spec_io(cpan_sec_spec_fetch_failure, cpan_sec_spec_stale_mtime))!
+	os.unsetenv('BREW_V_CPAN_SEC_WARNING_FILE')
+	warning := os.read_file(warning_file)!
+	result := 'DBI' in loaded.distributions() && os.read_file(cache_file)! == original && warning.contains('Failed to refresh cpansa.json') && warning.contains('using cached copy from 0.')
+	cpan_sec_spec_cleanup(cache)
+	os.rm(warning_file)!
+	return result
 }
 
 // Ruby it `it "falls back to a stale cache when the fetched file is invalid, leaving it intact" do` at line 190.
-pub fn ruby_cpan_sec_spec_l190_d26_falls(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('falls', ...args)
+pub fn ruby_cpan_sec_spec_l190_d26_falls() !bool {
+	cache := cpan_sec_spec_temp('stale-invalid')
+	cache_file := os.join_path(cache, cpan_core.cpan_sec_cache_filename)
+	warning_file := '${cache}-warning'
+	if os.exists(warning_file) {
+		os.rm(warning_file)!
+	}
+	os.setenv('BREW_V_CPAN_SEC_WARNING_FILE', warning_file, true)
+	original := cpan_sec_spec_fixture_contents()
+	os.write_file(cache_file, original)!
+	loaded := cpan_core.load_cpan_sec(cache, 86_400, cpan_sec_spec_io(cpan_sec_spec_fetch_invalid, cpan_sec_spec_stale_mtime))!
+	os.unsetenv('BREW_V_CPAN_SEC_WARNING_FILE')
+	mut children := os.ls(cache)!
+	children.sort()
+	warning := os.read_file(warning_file)!
+	result := 'DBI' in loaded.distributions() && os.read_file(cache_file)! == original && warning.contains('Failed to refresh cpansa.json') && warning.contains('using cached copy from 0.') && children == [
+		cpan_core.cpan_sec_cache_filename,
+	]
+	cpan_sec_spec_cleanup(cache)
+	os.rm(warning_file)!
+	return result
 }
 
 // Ruby it `it "raises when the download fails and no cache exists" do` at line 207.
-pub fn ruby_cpan_sec_spec_l207_d27_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+pub fn ruby_cpan_sec_spec_l207_d27_raises() bool {
+	cache := cpan_sec_spec_temp('absent-failure')
+	if _ := cpan_core.load_cpan_sec(cache, 86_400, cpan_sec_spec_io(cpan_sec_spec_fetch_failure, cpan_sec_spec_stale_mtime)) {
+		cpan_sec_spec_cleanup(cache)
+		return false
+	} else {
+		result := err.msg().contains('download failed')
+		cpan_sec_spec_cleanup(cache)
+		return result
+	}
 }
 
 // Original Ruby source (line-for-line):

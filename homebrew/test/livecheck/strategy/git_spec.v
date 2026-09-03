@@ -1,273 +1,616 @@
 module strategy
 
-import brew_runtime
+import homebrew.livecheck.strategy as git_core
 
 // Translated from Homebrew/brew `test/livecheck/strategy/git_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub struct GitSpecMatchData {
+pub:
+	fetched               git_core.GitMatchData
+	fetched_default_regex git_core.GitMatchData
+	default_result        git_core.GitMatchData
+	cached                git_core.GitMatchData
+	cached_default        git_core.GitMatchData
+}
+
+fn git_spec_normal_content() string {
+	return [
+		'e0f1758045b8194f77a43050ca433cbe928f27fb\trefs/tags/brew/1.2',
+		'5a45d5c9e39da019b2feaf63a1321e2f0336769c\trefs/tags/brew/1.2.1',
+		'81426bcda28e391b29770747ecd86bf8324d2441\trefs/tags/brew/1.2.2',
+		'50631d8ae8885d6b3a51814f4529c0b2e5d424fa\trefs/tags/brew/1.2.3',
+		'cd58e678c52ef269d2ba5153a9dd0f83864ab7b4\trefs/tags/brew/1.2.4^{}',
+		'db2b77f42b1c1fa7bb74f13ce798290084aa89f3\trefs/tags/1.2.5',
+	].join('\n') + '\n'
+}
+
+fn git_spec_regex(name string) git_core.GitRegex {
+	return ruby_git_spec_l11_d4_regexes()[name]
+}
+
+fn git_spec_no_output_runner(_ git_core.GitCommand) !git_core.GitCommandOutput {
+	return git_core.GitCommandOutput{}
+}
+
+fn git_spec_stdout_runner(_ git_core.GitCommand) !git_core.GitCommandOutput {
+	return git_core.GitCommandOutput{
+		stdout: git_spec_normal_content()
+		has_stdout: true
+	}
+}
+
+fn git_spec_stderr_runner(_ git_core.GitCommand) !git_core.GitCommandOutput {
+	return git_core.GitCommandOutput{
+		stderr: ruby_git_spec_l47_d8_messages().join('\n')
+		has_stderr: true
+	}
+}
+
+fn git_spec_both_runner(command git_core.GitCommand) !git_core.GitCommandOutput {
+	mut output := git_spec_stdout_runner(command)!
+	return git_core.GitCommandOutput{
+		...output
+		stderr: ruby_git_spec_l47_d8_messages().join('\n')
+		has_stderr: true
+	}
+}
+
+fn git_spec_content_fetcher(url string) !git_core.GitRemoteData {
+	return git_core.git_ls_remote_tags(url, git_spec_stdout_runner)
+}
+
+fn git_spec_error_fetcher(url string) !git_core.GitRemoteData {
+	return git_core.git_ls_remote_tags(url, git_spec_stderr_runner)
+}
+
+fn git_spec_unused_fetcher(_ string) !git_core.GitRemoteData {
+	return error('cached content must not fetch')
+}
+
+fn git_spec_first_block(_ []string, _ ?git_core.GitRegex) !git_core.GitBlockReturn {
+	matches := ruby_git_spec_l40_d7_matches()
+	default_matches := matches['default'].clone()
+	return git_core.GitBlockReturn{
+		kind: .string_value
+		value: default_matches[0]
+	}
+}
+
+fn git_spec_normalize_block(tags []string,
+	match_regex ?git_core.GitRegex) !git_core.GitBlockReturn {
+	regex_value := match_regex or { return error('strategy regex is required') }
+	versions := git_core.git_versions_from_tags(tags, regex_value)!
+	return git_core.GitBlockReturn{
+		kind: .array
+		values: versions.map(git_core.GitBlockItem{
+			kind: .string_value
+			value: it.replace('-', '.')
+		})
+	}
+}
+
+fn git_spec_literal_block(_ []string, _ ?git_core.GitRegex) !git_core.GitBlockReturn {
+	return git_core.GitBlockReturn{
+		kind: .string_value
+		value: '1.2.3'
+	}
+}
+
+fn git_spec_nil_block(_ []string, _ ?git_core.GitRegex) !git_core.GitBlockReturn {
+	return git_core.GitBlockReturn{ kind: .nil_value }
+}
+
+fn git_spec_invalid_block(_ []string, _ ?git_core.GitRegex) !git_core.GitBlockReturn {
+	return git_core.GitBlockReturn{ kind: .invalid }
+}
+
+fn git_spec_brew_block(tags []string, _ ?git_core.GitRegex) !git_core.GitBlockReturn {
+	versions := git_core.git_versions_from_tags(tags, git_spec_regex('brew'))!
+	return git_core.GitBlockReturn{
+		kind: .array
+		values: versions.map(git_core.GitBlockItem{
+			kind: .string_value
+			value: it
+		})
+	}
+}
+
+fn git_spec_matches(values []string) map[string]string {
+	mut matches := map[string]string{}
+	for value in values {
+		matches[value] = value
+	}
+	return matches
+}
 
 // Ruby subject `subject(:git) { described_class }` at line 7.
-pub fn ruby_git_spec_l7_d1_git(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('git', ...args)
+pub fn ruby_git_spec_l7_d1_git() string {
+	return 'Git'
 }
 
 // Ruby let `let(:git_url) { "https://github.com/Homebrew/brew.git" }` at line 9.
-pub fn ruby_git_spec_l9_d2_git_url(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('git_url', ...args)
+pub fn ruby_git_spec_l9_d2_git_url() string {
+	return 'https://github.com/Homebrew/brew.git'
 }
 
 // Ruby let `let(:non_git_url) { "https://brew.sh/test" }` at line 10.
-pub fn ruby_git_spec_l10_d3_non_git_url(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('non_git_url', ...args)
+pub fn ruby_git_spec_l10_d3_non_git_url() string {
+	return 'https://brew.sh/test'
 }
 
 // Ruby let `let(:regexes) do` at line 11.
-pub fn ruby_git_spec_l11_d4_regexes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('regexes', ...args)
+pub fn ruby_git_spec_l11_d4_regexes() map[string]git_core.GitRegex {
+	return {
+		'standard': git_core.GitRegex{ pattern: r'^v?(\d+(?:\.\d+)+)$', case_insensitive: true }
+		'hyphens':  git_core.GitRegex{ pattern: r'^v?(\d+(?:[.-]\d+)+)$', case_insensitive: true }
+		'brew':     git_core.GitRegex{ pattern: r'^brew/v?(\d+(?:\.\d+)+)$', case_insensitive: true }
+	}
 }
 
 // Ruby let `let(:content) do` at line 18.
-pub fn ruby_git_spec_l18_d5_content(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('content', ...args)
+pub fn ruby_git_spec_l18_d5_content() map[string]string {
+	normal := git_spec_normal_content()
+	return {
+		'normal':  normal
+		'hyphens': normal.replace('.', '-')
+	}
 }
 
 // Ruby let `let(:tags) do` at line 34.
-pub fn ruby_git_spec_l34_d6_tags(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tags', ...args)
+pub fn ruby_git_spec_l34_d6_tags() map[string][]string {
+	return {
+		'normal':  ['brew/1.2', 'brew/1.2.1', 'brew/1.2.2', 'brew/1.2.3', 'brew/1.2.4', '1.2.5']
+		'hyphens': ['brew/1-2', 'brew/1-2-1', 'brew/1-2-2', 'brew/1-2-3', 'brew/1-2-4', '1-2-5']
+	}
 }
 
 // Ruby let `let(:matches) do` at line 40.
-pub fn ruby_git_spec_l40_d7_matches(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('matches', ...args)
+pub fn ruby_git_spec_l40_d7_matches() map[string][]string {
+	return {
+		'default':        ['1.2', '1.2.1', '1.2.2', '1.2.3', '1.2.4', '1.2.5']
+		'standard_regex': ['1.2.5']
+		'brew_regex':     ['1.2', '1.2.1', '1.2.2', '1.2.3', '1.2.4']
+	}
 }
 
 // Ruby let `let(:messages) do` at line 47.
-pub fn ruby_git_spec_l47_d8_messages(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('messages', ...args)
+pub fn ruby_git_spec_l47_d8_messages() []string {
+	return [
+		'remote: Support for password authentication was removed on August 13, 2021.',
+		"fatal: Authentication failed for '${ruby_git_spec_l9_d2_git_url()}'",
+	]
 }
 
 // Ruby let `let(:github_git_url_with_extension) { "https://github.com/Homebrew/brew.git" }` at line 61.
-pub fn ruby_git_spec_l61_d9_github_git_url_with_extension(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('github_git_url_with_extension', ...args)
+pub fn ruby_git_spec_l61_d9_github_git_url_with_extension() string {
+	return ruby_git_spec_l9_d2_git_url()
 }
 
 // Ruby it `it "returns a cached value if provided URL has already been processed" do` at line 63.
-pub fn ruby_git_spec_l63_d10_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_git_spec_l63_d10_returns() bool {
+	mut state := git_core.GitState{}
+	git_core.ruby_git_l37_d1_processed_urls(mut state, {
+		ruby_git_spec_l10_d3_non_git_url(): 'CACHED'
+	})
+	return git_core.ruby_git_l66_d2_self_preprocess_url(mut state, ruby_git_spec_l10_d3_non_git_url()) == 'CACHED'
 }
 
 // Ruby it `it "returns the unmodified URL for an unparsable URL" do` at line 71.
-pub fn ruby_git_spec_l71_d11_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_git_spec_l71_d11_returns() bool {
+	mut state := git_core.GitState{}
+	url := ':something:cvs:@cvs.brew.sh:/cvs'
+	return git_core.ruby_git_l66_d2_self_preprocess_url(mut state, url) == url
 }
 
 // Ruby it `it "returns the unmodified URL for a URL without a host" do` at line 76.
-pub fn ruby_git_spec_l76_d12_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_git_spec_l76_d12_returns() bool {
+	mut state := git_core.GitState{}
+	return git_core.ruby_git_l66_d2_self_preprocess_url(mut state, '/test/') == '/test/'
 }
 
 // Ruby it `it "returns the unmodified URL for a URL without a path" do` at line 80.
-pub fn ruby_git_spec_l80_d13_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_git_spec_l80_d13_returns() bool {
+	mut state := git_core.GitState{}
+	url := 'https://example.com'
+	return git_core.ruby_git_l66_d2_self_preprocess_url(mut state, url) == url
 }
 
 // Ruby it `it "returns the unmodified URL for a URL without a host or path" do` at line 85.
-pub fn ruby_git_spec_l85_d14_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_git_spec_l85_d14_returns() bool {
+	mut state := git_core.GitState{}
+	return git_core.ruby_git_l66_d2_self_preprocess_url(mut state, '') == ''
 }
 
 // Ruby it `it "returns the unmodified URL for a GitHub URL ending in .git" do` at line 89.
-pub fn ruby_git_spec_l89_d15_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_git_spec_l89_d15_returns() bool {
+	mut state := git_core.GitState{}
+	url := ruby_git_spec_l61_d9_github_git_url_with_extension()
+	return git_core.ruby_git_l66_d2_self_preprocess_url(mut state, url) == url
 }
 
 // Ruby it `it "returns the Git repository URL for a GitHub URL not ending in .git" do` at line 94.
-pub fn ruby_git_spec_l94_d16_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_git_spec_l94_d16_returns() bool {
+	mut state := git_core.GitState{}
+	url := 'https://github.com/Homebrew/brew'
+	expected := ruby_git_spec_l61_d9_github_git_url_with_extension()
+	first := git_core.ruby_git_l66_d2_self_preprocess_url(mut state, url)
+	second := git_core.ruby_git_l66_d2_self_preprocess_url(mut state, url)
+	return first == expected && second == expected && state.processed_urls[url] == expected
 }
 
 // Ruby it `it "returns the unmodified URL for a GitHub /releases/latest URL" do` at line 104.
-pub fn ruby_git_spec_l104_d17_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_git_spec_l104_d17_returns() bool {
+	mut state := git_core.GitState{}
+	url := 'https://github.com/Homebrew/brew/releases/latest'
+	return git_core.ruby_git_l66_d2_self_preprocess_url(mut state, url) == url
 }
 
 // Ruby it `it "returns the Git repository URL for a GitHub AWS URL" do` at line 109.
-pub fn ruby_git_spec_l109_d18_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_git_spec_l109_d18_returns() bool {
+	mut state := git_core.GitState{}
+	return git_core.ruby_git_l66_d2_self_preprocess_url(mut state, 'https://github.s3.amazonaws.com/downloads/Homebrew/brew/1.0.0.tar.gz') == ruby_git_spec_l61_d9_github_git_url_with_extension()
 }
 
 // Ruby it `it "returns the Git repository URL for a github.com/downloads/... URL" do` at line 114.
-pub fn ruby_git_spec_l114_d19_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_git_spec_l114_d19_returns() bool {
+	mut state := git_core.GitState{}
+	return git_core.ruby_git_l66_d2_self_preprocess_url(mut state, 'https://github.com/downloads/Homebrew/brew/1.0.0.tar.gz') == ruby_git_spec_l61_d9_github_git_url_with_extension()
 }
 
 // Ruby it `it "returns the Git repository URL for a GitHub tag archive URL" do` at line 119.
-pub fn ruby_git_spec_l119_d20_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_git_spec_l119_d20_returns() bool {
+	mut state := git_core.GitState{}
+	return git_core.ruby_git_l66_d2_self_preprocess_url(mut state, 'https://github.com/Homebrew/brew/archive/1.0.0.tar.gz') == ruby_git_spec_l61_d9_github_git_url_with_extension()
 }
 
 // Ruby it `it "returns the Git repository URL for a GitHub release archive URL" do` at line 124.
-pub fn ruby_git_spec_l124_d21_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_git_spec_l124_d21_returns() bool {
+	mut state := git_core.GitState{}
+	return git_core.ruby_git_l66_d2_self_preprocess_url(mut state, 'https://github.com/Homebrew/brew/releases/download/1.0.0/brew-1.0.0.tar.gz') == ruby_git_spec_l61_d9_github_git_url_with_extension()
 }
 
 // Ruby it `it "returns the Git repository URL for a gitlab.com archive URL" do` at line 129.
-pub fn ruby_git_spec_l129_d22_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_git_spec_l129_d22_returns() bool {
+	mut state := git_core.GitState{}
+	return git_core.ruby_git_l66_d2_self_preprocess_url(mut state, 'https://gitlab.com/Homebrew/brew/-/archive/1.0.0/brew-1.0.0.tar.gz') == 'https://gitlab.com/Homebrew/brew.git'
 }
 
 // Ruby it `it "returns the Git repository URL for a self-hosted GitLab archive URL" do` at line 134.
-pub fn ruby_git_spec_l134_d23_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_git_spec_l134_d23_returns() bool {
+	mut state := git_core.GitState{}
+	return git_core.ruby_git_l66_d2_self_preprocess_url(mut state, 'https://brew.sh/Homebrew/brew/-/archive/1.0.0/brew-1.0.0.tar.gz') == 'https://brew.sh/Homebrew/brew.git'
 }
 
 // Ruby it `it "returns the Git repository URL for a Codeberg archive URL" do` at line 139.
-pub fn ruby_git_spec_l139_d24_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_git_spec_l139_d24_returns() bool {
+	mut state := git_core.GitState{}
+	return git_core.ruby_git_l66_d2_self_preprocess_url(mut state, 'https://codeberg.org/Homebrew/brew/archive/brew-1.0.0.tar.gz') == 'https://codeberg.org/Homebrew/brew.git'
 }
 
 // Ruby it `it "returns the Git repository URL for a Gitea archive URL" do` at line 144.
-pub fn ruby_git_spec_l144_d25_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_git_spec_l144_d25_returns() bool {
+	mut state := git_core.GitState{}
+	return git_core.ruby_git_l66_d2_self_preprocess_url(mut state, 'https://gitea.com/Homebrew/brew/archive/brew-1.0.0.tar.gz') == 'https://gitea.com/Homebrew/brew.git'
 }
 
 // Ruby it `it "returns the unmodified URL for a Gitea /releases/latest URL" do` at line 149.
-pub fn ruby_git_spec_l149_d26_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_git_spec_l149_d26_returns() bool {
+	mut state := git_core.GitState{}
+	url := 'https://gitea.com/Homebrew/brew/releases/latest'
+	return git_core.ruby_git_l66_d2_self_preprocess_url(mut state, url) == url
 }
 
 // Ruby it `it "returns the Git repository URL for an Opendev archive URL" do` at line 154.
-pub fn ruby_git_spec_l154_d27_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_git_spec_l154_d27_returns() bool {
+	mut state := git_core.GitState{}
+	return git_core.ruby_git_l66_d2_self_preprocess_url(mut state, 'https://opendev.org/Homebrew/brew/archive/brew-1.0.0.tar.gz') == 'https://opendev.org/Homebrew/brew.git'
 }
 
 // Ruby it `it "returns the Git repository URL for a tildegit archive URL" do` at line 159.
-pub fn ruby_git_spec_l159_d28_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_git_spec_l159_d28_returns() bool {
+	mut state := git_core.GitState{}
+	return git_core.ruby_git_l66_d2_self_preprocess_url(mut state, 'https://tildegit.org/Homebrew/brew/archive/brew-1.0.0.tar.gz') == 'https://tildegit.org/Homebrew/brew.git'
 }
 
 // Ruby it `it "returns the Git repository URL for a LOL Git archive URL" do` at line 164.
-pub fn ruby_git_spec_l164_d29_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_git_spec_l164_d29_returns() bool {
+	mut state := git_core.GitState{}
+	return git_core.ruby_git_l66_d2_self_preprocess_url(mut state, 'https://lolg.it/Homebrew/brew/archive/brew-1.0.0.tar.gz') == 'https://lolg.it/Homebrew/brew.git'
 }
 
 // Ruby it `it "returns the Git repository URL for a sourcehut archive URL" do` at line 169.
-pub fn ruby_git_spec_l169_d30_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_git_spec_l169_d30_returns() bool {
+	mut state := git_core.GitState{}
+	return git_core.ruby_git_l66_d2_self_preprocess_url(mut state, 'https://git.sr.ht/~Homebrew/brew/archive/1.0.0.tar.gz') == 'https://git.sr.ht/~Homebrew/brew'
 }
 
 // Ruby it `it "returns true for a Git repository URL" do` at line 176.
-pub fn ruby_git_spec_l176_d31_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_git_spec_l176_d31_returns() bool {
+	mut state := git_core.GitState{}
+	return git_core.ruby_git_l118_d3_self_match(mut state, ruby_git_spec_l9_d2_git_url())
 }
 
 // Ruby it `it "returns false for a non-Git URL" do` at line 180.
-pub fn ruby_git_spec_l180_d32_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_git_spec_l180_d32_returns() bool {
+	mut state := git_core.GitState{}
+	return !git_core.ruby_git_l118_d3_self_match(mut state, ruby_git_spec_l10_d3_non_git_url())
 }
 
 // Ruby it `it "terminates options before the URL" do` at line 186.
-pub fn ruby_git_spec_l186_d33_terminates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('terminates', ...args)
+pub fn ruby_git_spec_l186_d33_terminates() bool {
+	result := git_core.ruby_git_l129_d4_self_ls_remote_tags('-u:evil', git_spec_no_output_runner) or {
+		return false
+	}
+	return result.command.program == 'git' && result.command.arguments == ['ls-remote', '--tags',
+		'--end-of-options', '-u:evil'] && result.command.environment == {
+		'GIT_TERMINAL_PROMPT': '0'
+	} && !result.command.print_stdout && !result.command.print_stderr && !result.command.debug && !result.command.verbose
 }
 
 // Ruby it `it "returns the Git tags for the provided remote URL", :needs_network do` at line 202.
-pub fn ruby_git_spec_l202_d34_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_git_spec_l202_d34_returns() bool {
+	result := git_core.ruby_git_l129_d4_self_ls_remote_tags(ruby_git_spec_l9_d2_git_url(), git_spec_stdout_runner) or { return false }
+	return result.has_content || result.has_messages
 }
 
 // Ruby it `it "returns a hash containing fetched content from `stdout`" do` at line 206.
-pub fn ruby_git_spec_l206_d35_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_git_spec_l206_d35_returns() bool {
+	result := git_core.ruby_git_l129_d4_self_ls_remote_tags(ruby_git_spec_l9_d2_git_url(), git_spec_stdout_runner) or { return false }
+	return result.has_content && result.content == ruby_git_spec_l18_d5_content()['normal'] && !result.has_messages
 }
 
 // Ruby it `it "returns a hash containing error messages from `stderr`" do` at line 212.
-pub fn ruby_git_spec_l212_d36_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_git_spec_l212_d36_returns() bool {
+	result := git_core.ruby_git_l129_d4_self_ls_remote_tags(ruby_git_spec_l9_d2_git_url(), git_spec_stderr_runner) or { return false }
+	return !result.has_content && result.has_messages && result.messages == ruby_git_spec_l47_d8_messages()
 }
 
 // Ruby it `it "returns a hash containing fetched content and error messages when both `stdout` and `stderr` are present" do` at line 218.
-pub fn ruby_git_spec_l218_d37_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_git_spec_l218_d37_returns() bool {
+	result := git_core.ruby_git_l129_d4_self_ls_remote_tags(ruby_git_spec_l9_d2_git_url(), git_spec_both_runner) or { return false }
+	return result.has_content && result.content == ruby_git_spec_l18_d5_content()['normal'] && result.has_messages && result.messages == ruby_git_spec_l47_d8_messages()
 }
 
 // Ruby it `it "returns a blank hash if neither `stdout` nor `stderr` are present" do` at line 224.
-pub fn ruby_git_spec_l224_d38_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_git_spec_l224_d38_returns() bool {
+	result := git_core.ruby_git_l129_d4_self_ls_remote_tags(ruby_git_spec_l9_d2_git_url(), git_spec_no_output_runner) or { return false }
+	return !result.has_content && !result.has_messages
 }
 
 // Ruby it `it "returns an empty array if content string doesn't contain parseable text" do` at line 231.
-pub fn ruby_git_spec_l231_d39_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_git_spec_l231_d39_returns() bool {
+	return git_core.ruby_git_l152_d5_self_tags_from_content('').len == 0
 }
 
 // Ruby it `it "returns an array of tag strings when given content" do` at line 235.
-pub fn ruby_git_spec_l235_d40_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_git_spec_l235_d40_returns() bool {
+	return git_core.ruby_git_l152_d5_self_tags_from_content(ruby_git_spec_l18_d5_content()['normal']) == ruby_git_spec_l34_d6_tags()['normal']
 }
 
 // Ruby it `it "returns an empty array if content contains no tags" do` at line 241.
-pub fn ruby_git_spec_l241_d41_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_git_spec_l241_d41_returns() bool {
+	result := git_core.ruby_git_l170_d6_self_versions_from_content(git_core.GitVersionsRequest{}) or {
+		return false
+	}
+	return result.len == 0
 }
 
 // Ruby it `it "returns an array of version strings when given content" do` at line 245.
-pub fn ruby_git_spec_l245_d42_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_git_spec_l245_d42_returns() bool {
+	content := ruby_git_spec_l18_d5_content()['normal']
+	default_result := git_core.ruby_git_l170_d6_self_versions_from_content(git_core.GitVersionsRequest{
+		content: content
+	}) or { return false }
+	standard_result := git_core.ruby_git_l170_d6_self_versions_from_content(git_core.GitVersionsRequest{
+		content: content
+		regex: git_spec_regex('standard')
+	}) or { return false }
+	brew_result := git_core.ruby_git_l170_d6_self_versions_from_content(git_core.GitVersionsRequest{
+		content: content
+		regex: git_spec_regex('brew')
+	}) or { return false }
+	matches := ruby_git_spec_l40_d7_matches()
+	return default_result == matches['default'] && standard_result == matches['standard_regex'] && brew_result == matches['brew_regex']
 }
 
 // Ruby it `it "returns an array of version strings when given content and a block" do` at line 251.
-pub fn ruby_git_spec_l251_d43_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_git_spec_l251_d43_returns() bool {
+	content := ruby_git_spec_l18_d5_content()
+	matches := ruby_git_spec_l40_d7_matches()
+	first := git_core.ruby_git_l170_d6_self_versions_from_content(git_core.GitVersionsRequest{
+		content: content['normal']
+		has_block: true
+		block_arity: 0
+		block: git_spec_first_block
+	}) or { return false }
+	default_regex := git_core.ruby_git_l170_d6_self_versions_from_content(git_core.GitVersionsRequest{
+		content: content['hyphens']
+		has_block: true
+		block_arity: 2
+		block: git_spec_normalize_block
+	}) or { return false }
+	explicit_regex := git_core.ruby_git_l170_d6_self_versions_from_content(git_core.GitVersionsRequest{
+		content: content['hyphens']
+		regex: git_spec_regex('hyphens')
+		has_block: true
+		block_arity: 2
+		block: git_spec_normalize_block
+	}) or { return false }
+	literal := git_core.ruby_git_l170_d6_self_versions_from_content(git_core.GitVersionsRequest{
+		content: content['hyphens']
+		has_block: true
+		block_arity: 0
+		block: git_spec_literal_block
+	}) or { return false }
+	default_matches := matches['default']
+	standard_matches := matches['standard_regex']
+	return first.len == 1 && first[0] == default_matches[0] && default_regex == default_matches && explicit_regex == standard_matches && literal == [
+		'1.2.3',
+	]
 }
 
 // Ruby it `it "allows a nil return from a block" do` at line 272.
-pub fn ruby_git_spec_l272_d44_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+pub fn ruby_git_spec_l272_d44_allows() bool {
+	result := git_core.ruby_git_l170_d6_self_versions_from_content(git_core.GitVersionsRequest{
+		content: ruby_git_spec_l18_d5_content()['normal']
+		has_block: true
+		block: git_spec_nil_block
+	}) or { return false }
+	return result.len == 0
 }
 
 // Ruby it `it "errors on an invalid return type from a block" do` at line 276.
-pub fn ruby_git_spec_l276_d45_errors(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('errors', ...args)
+pub fn ruby_git_spec_l276_d45_errors() bool {
+	git_core.ruby_git_l170_d6_self_versions_from_content(git_core.GitVersionsRequest{
+		content: ruby_git_spec_l18_d5_content()['normal']
+		has_block: true
+		block: git_spec_invalid_block
+	}) or {
+		return err.msg() == 'Return value of a strategy block must be a string or array of strings.'
+	}
+	return false
 }
 
 // Ruby let `let(:match_data) do` at line 283.
-pub fn ruby_git_spec_l283_d46_match_data(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('match_data', ...args)
+pub fn ruby_git_spec_l283_d46_match_data() GitSpecMatchData {
+	url := ruby_git_spec_l9_d2_git_url()
+	content := ruby_git_spec_l18_d5_content()['normal']
+	base := git_core.GitMatchData{
+		matches: git_spec_matches(ruby_git_spec_l40_d7_matches()['brew_regex'])
+		regex: git_spec_regex('brew')
+		url: url
+	}
+	default_result := git_core.GitMatchData{
+		...base
+		matches: map[string]string{}
+	}
+	return GitSpecMatchData{
+		fetched: git_core.GitMatchData{
+			...base
+			content: content
+			has_content: true
+		}
+		fetched_default_regex: git_core.GitMatchData{
+			matches: git_spec_matches(ruby_git_spec_l40_d7_matches()['default'])
+			url: url
+			content: content
+			has_content: true
+		}
+		default_result: default_result
+		cached: git_core.GitMatchData{
+			...base
+			cached: true
+			has_cached: true
+		}
+		cached_default: git_core.GitMatchData{
+			...default_result
+			cached: true
+			has_cached: true
+		}
+	}
 }
 
 // Ruby it `it "finds versions in fetched content" do` at line 305.
-pub fn ruby_git_spec_l305_d47_finds(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('finds', ...args)
+pub fn ruby_git_spec_l305_d47_finds() bool {
+	fixture := ruby_git_spec_l283_d46_match_data()
+	with_regex := git_core.ruby_git_l207_d7_self_find_versions(git_core.GitFindVersionsRequest{
+		url: ruby_git_spec_l9_d2_git_url()
+		regex: git_spec_regex('brew')
+	}, git_spec_content_fetcher) or { return false }
+	with_default := git_core.ruby_git_l207_d7_self_find_versions(git_core.GitFindVersionsRequest{
+		url: ruby_git_spec_l9_d2_git_url()
+	}, git_spec_content_fetcher) or { return false }
+	return git_core.git_match_data_equal(with_regex, fixture.fetched) && git_core.git_match_data_equal(with_default, fixture.fetched_default_regex)
 }
 
 // Ruby it `it "returns match_data with error messages from ls_remote_tags" do` at line 313.
-pub fn ruby_git_spec_l313_d48_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_git_spec_l313_d48_returns() bool {
+	expected := git_core.GitMatchData{
+		...ruby_git_spec_l283_d46_match_data().default_result
+		messages: ruby_git_spec_l47_d8_messages()
+		has_messages: true
+	}
+	actual := git_core.ruby_git_l207_d7_self_find_versions(git_core.GitFindVersionsRequest{
+		url: ruby_git_spec_l9_d2_git_url()
+		regex: git_spec_regex('brew')
+	}, git_spec_error_fetcher) or { return false }
+	return git_core.git_match_data_equal(actual, expected)
 }
 
 // Ruby it `it "finds versions in provided content" do` at line 321.
-pub fn ruby_git_spec_l321_d49_finds(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('finds', ...args)
+pub fn ruby_git_spec_l321_d49_finds() bool {
+	fixture := ruby_git_spec_l283_d46_match_data().cached
+	content := ruby_git_spec_l18_d5_content()['normal']
+	direct := git_core.ruby_git_l207_d7_self_find_versions(git_core.GitFindVersionsRequest{
+		url: ruby_git_spec_l9_d2_git_url()
+		regex: git_spec_regex('brew')
+		content: content
+	}, git_spec_unused_fetcher) or { return false }
+	block_result := git_core.ruby_git_l207_d7_self_find_versions(git_core.GitFindVersionsRequest{
+		url: ruby_git_spec_l9_d2_git_url()
+		content: content
+		has_block: true
+		block_arity: 1
+		block: git_spec_brew_block
+	}, git_spec_unused_fetcher) or { return false }
+	expected_block := git_core.GitMatchData{
+		...fixture
+		regex: none
+	}
+	return git_core.git_match_data_equal(direct, fixture) && git_core.git_match_data_equal(block_result, expected_block)
 }
 
 // Ruby it `it "returns default match_data when url is blank" do` at line 333.
-pub fn ruby_git_spec_l333_d50_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_git_spec_l333_d50_returns() bool {
+	expected := git_core.GitMatchData{
+		...ruby_git_spec_l283_d46_match_data().cached_default
+		url: ''
+	}
+	actual := git_core.ruby_git_l207_d7_self_find_versions(git_core.GitFindVersionsRequest{
+		url: ''
+		regex: git_spec_regex('brew')
+		content: ruby_git_spec_l18_d5_content()['normal']
+	}, git_spec_unused_fetcher) or { return false }
+	return git_core.git_match_data_equal(actual, expected)
 }
 
 // Ruby it `it "returns default match_data when content doesn't contain tags" do` at line 338.
-pub fn ruby_git_spec_l338_d51_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_git_spec_l338_d51_returns() bool {
+	actual := git_core.ruby_git_l207_d7_self_find_versions(git_core.GitFindVersionsRequest{
+		url: ruby_git_spec_l9_d2_git_url()
+		regex: git_spec_regex('brew')
+		content: 'abc'
+	}, git_spec_unused_fetcher) or { return false }
+	return git_core.git_match_data_equal(actual, ruby_git_spec_l283_d46_match_data().cached_default)
 }
 
 // Ruby it `it "returns default match_data when content is blank" do` at line 343.
-pub fn ruby_git_spec_l343_d52_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_git_spec_l343_d52_returns() bool {
+	actual := git_core.ruby_git_l207_d7_self_find_versions(git_core.GitFindVersionsRequest{
+		url: ruby_git_spec_l9_d2_git_url()
+		regex: git_spec_regex('brew')
+		content: ''
+	}, git_spec_unused_fetcher) or { return false }
+	return git_core.git_match_data_equal(actual, ruby_git_spec_l283_d46_match_data().cached_default)
 }
 
 // Ruby it `it "omits non-string tag values" do` at line 348.
-pub fn ruby_git_spec_l348_d53_omits(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('omits', ...args)
+pub fn ruby_git_spec_l348_d53_omits() bool {
+	mut candidates := [git_core.GitVersionCandidate{}]
+	for value in ruby_git_spec_l40_d7_matches()['brew_regex'] {
+		candidates << git_core.GitVersionCandidate{ is_string: true, value: value }
+	}
+	candidates << git_core.GitVersionCandidate{}
+	actual := git_core.ruby_git_l207_d7_self_find_versions(git_core.GitFindVersionsRequest{
+		url: ruby_git_spec_l9_d2_git_url()
+		regex: git_spec_regex('brew')
+		content: ruby_git_spec_l18_d5_content()['normal']
+		candidate_override: git_core.GitVersionCandidates{
+			present: true
+			values: candidates
+		}
+	}, git_spec_unused_fetcher) or { return false }
+	return git_core.git_match_data_equal(actual, ruby_git_spec_l283_d46_match_data().cached)
 }
 
 // Original Ruby source (line-for-line):

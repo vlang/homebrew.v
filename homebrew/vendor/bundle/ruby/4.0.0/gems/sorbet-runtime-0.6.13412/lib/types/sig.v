@@ -4,30 +4,121 @@ import brew_runtime
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/sorbet-runtime-0.6.13412/lib/types/sig.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub enum SigHookKind {
+	noop
+	prepend_method_hooks
+	extend_object_method_hooks
+	include_singleton_method_hooks
+}
+
+pub struct SigHookPlan {
+pub:
+	kind   SigHookKind
+	target brew_runtime.Value
+}
+
+pub struct SigDeclaration {
+pub:
+	owner    brew_runtime.Value
+	location brew_runtime.Value
+	argument brew_runtime.Value
+	block    brew_runtime.Value
+	final_   bool
+}
+
+pub fn sig_included_plan(other brew_runtime.Value) SigHookPlan {
+	return SigHookPlan{
+		kind: if other.type_name == 'Module' && other.as_string() == 'Module' {
+			SigHookKind.prepend_method_hooks} else {
+			SigHookKind.noop}
+		target: other
+	}
+}
+
+pub fn sig_extended_plan(other brew_runtime.Value) SigHookPlan {
+	if other.type_name == 'T::Private::Methods::TOP_SELF' || other.attribute('top_self') or {
+		'false'} == 'true' {
+		return SigHookPlan{
+			kind: SigHookKind.extend_object_method_hooks
+			target: brew_runtime.object_value('Class', 'Object')
+		}
+	}
+	is_singleton := other.attribute('singleton_class') or { 'false' } == 'true'
+	return SigHookPlan{
+		kind: if other.type_name in ['Class', 'Module'] && is_singleton {
+			SigHookKind.include_singleton_method_hooks} else {
+			SigHookKind.noop}
+		target: other
+	}
+}
+
+pub fn declare_sig(owner brew_runtime.Value, location brew_runtime.Value, argument brew_runtime.Value,
+	block brew_runtime.Value) !SigDeclaration {
+	if argument.type_name != 'NilClass' && !(argument.type_name == 'Symbol' && argument.as_string() == ':final') {
+		return error('Invalid argument to `sig`: ${argument.as_string()}')
+	}
+	return SigDeclaration{
+		owner: owner
+		location: location
+		argument: argument
+		block: block
+		final_: argument.type_name == 'Symbol' && argument.as_string() == ':final'
+	}
+}
+
+fn sig_nil_value() brew_runtime.Value {
+	return brew_runtime.object_value('NilClass', 'nil')
+}
+
+fn sig_argument(args []brew_runtime.Value) brew_runtime.Value {
+	return if args.len > 1 { args[1] } else { sig_nil_value() }
+}
+
+fn sig_block(args []brew_runtime.Value) brew_runtime.Value {
+	return if args.len > 2 { args[2] } else { sig_nil_value() }
+}
+
+fn sig_location(args []brew_runtime.Value) brew_runtime.Value {
+	return if args.len > 3 { args[3] } else { sig_nil_value() }
+}
 
 // Ruby method `self.included(other)` at line 10.
 pub fn ruby_sig_l10_d1_self_included(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.included', ...args)
+	if args.len == 0 {
+		return sig_nil_value()
+	}
+	plan := sig_included_plan(args[0])
+	return if plan.kind == .prepend_method_hooks { plan.target } else { sig_nil_value() }
 }
 
 // Ruby method `self.extended(other)` at line 24.
 pub fn ruby_sig_l24_d2_self_extended(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.extended', ...args)
+	if args.len == 0 {
+		return sig_nil_value()
+	}
+	plan := sig_extended_plan(args[0])
+	return if plan.kind == .include_singleton_method_hooks { plan.target } else { sig_nil_value() }
 }
 
 // Ruby method `self.sig(arg0=nil, &blk); end` at line 81.
 pub fn ruby_sig_l81_d3_self_sig(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.sig', ...args)
+	return sig_nil_value()
 }
 
 // Ruby method `self.sig(arg0=nil, &blk); end # rubocop:disable Lint/DuplicateMethods` at line 89.
 pub fn ruby_sig_l89_d4_self_sig(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.sig', ...args)
+	return sig_nil_value()
 }
 
 // Ruby method `sig(arg0=nil, &blk)` at line 98.
 pub fn ruby_sig_l98_d5_sig(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sig', ...args)
+	if args.len == 0 {
+		panic('T::Sig#sig requires a receiver')
+	}
+	_ = declare_sig(args[0], sig_location(args), sig_argument(args), sig_block(args)) or {
+		panic(err.msg())
+	}
+	return sig_nil_value()
 }
 
 // Original Ruby source (line-for-line):

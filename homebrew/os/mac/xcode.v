@@ -1,188 +1,583 @@
 module mac
 
 import brew_runtime
+import os
+
+const xcode_default_bundle_path = '/Applications/Xcode.app'
+const xcode_developer_download_url = 'https://developer.apple.com/download/all/'
+const clt_package_path = '/Library/Developer/CommandLineTools'
+
+pub struct XcodeSdk {
+pub:
+	version string
+	path    string
+}
+
+fn xcode_strip_patch(version string) string {
+	parts := version.split('.')
+	if parts.len == 0 {
+		return version
+	}
+	if parts[0].int() >= 11 {
+		return parts[0]
+	}
+	return if parts.len > 1 { parts[..2].join('.') } else { version }
+}
+
+fn xcode_version_parts(version string) []int {
+	mut numeric := version
+	for separator in [' ', '-', 'b'] {
+		numeric = numeric.all_before(separator)
+	}
+	return numeric.split('.').map(it.int())
+}
+
+fn xcode_compare_versions(left string, right string) int {
+	left_parts := xcode_version_parts(left)
+	right_parts := xcode_version_parts(right)
+	max_len := if left_parts.len > right_parts.len { left_parts.len } else { right_parts.len }
+	for index in 0 .. max_len {
+		left_value := if index < left_parts.len { left_parts[index] } else { 0 }
+		right_value := if index < right_parts.len { right_parts[index] } else { 0 }
+		if left_value != right_value {
+			return if left_value < right_value { -1 } else { 1 }
+		}
+	}
+	return 0
+}
+
+pub fn xcode_latest_version(macos string, prerelease bool) !string {
+	stripped := xcode_strip_patch(macos)
+	return match stripped {
+		'26', '15' { '26.3' }
+		'14' { '16.2' }
+		'13' { '15.2' }
+		'12' { '14.2' }
+		'11' { '13.2.1' }
+		'10.15' { '12.4' }
+		else {
+			if !prerelease {
+				return error("macOS '${stripped}' is invalid")
+			}
+			'${stripped}.0'
+		}
+	}
+}
+
+pub fn xcode_minimum_version(macos string) string {
+	return match xcode_strip_patch(macos) {
+		'15' { '16.0' }
+		'14' { '15.0' }
+		'13' { '14.1' }
+		'12' { '13.1' }
+		'11' { '12.2' }
+		'10.15' { '11.0' }
+		else { '${xcode_strip_patch(macos)}.0' }
+	}
+}
+
+pub fn xcode_below_minimum(installed bool, version string, macos string) bool {
+	return installed && xcode_compare_versions(version, xcode_minimum_version(macos)) < 0
+}
+
+pub fn xcode_latest_sdk_version(full_version string, latest_sdk_version string) bool {
+	return xcode_compare_versions(full_version, latest_sdk_version) >= 0
+}
+
+pub fn xcode_needs_clt_installed(latest_sdk bool, clt_installed bool) bool {
+	return !latest_sdk && !clt_installed
+}
+
+pub fn xcode_outdated(installed bool, version string, macos string, prerelease bool) !bool {
+	return installed && xcode_compare_versions(version, xcode_latest_version(macos, prerelease)!) < 0
+}
+
+pub fn xcode_prefix(active_developer_dir string, clt_path string, bundle_path string,
+	active_directory_exists bool) string {
+	if active_developer_dir == '' || active_developer_dir == clt_path || !active_directory_exists {
+		return if bundle_path == '' {
+			''
+		} else {
+			os.norm_path(os.join_path(bundle_path, 'Contents/Developer'))
+		}
+	}
+	return os.norm_path(active_developer_dir)
+}
+
+pub fn xcode_toolchain_path(prefix string) string {
+	return os.join_path(prefix, 'Toolchains/XcodeDefault.xctoolchain')
+}
+
+pub fn xcode_bundle_path(default_exists bool, located_path string) string {
+	return if default_exists { xcode_default_bundle_path } else { located_path }
+}
+
+pub fn xcode_sdk(sdks []XcodeSdk, version string) ?XcodeSdk {
+	if version == '' {
+		return if sdks.len > 0 { sdks[0] } else { none }
+	}
+	for sdk in sdks {
+		if sdk.version == version {
+			return sdk
+		}
+	}
+	return none
+}
+
+pub fn xcode_installation_instructions(prerelease bool) string {
+	return if prerelease {
+		'Xcode can be installed from:\n  ${xcode_developer_download_url}\n'
+	} else {
+		'Xcode can be installed from the App Store.\n'
+	}
+}
+
+pub fn xcode_update_instructions(prerelease bool) string {
+	return if prerelease {
+		'Xcode can be updated from:\n  ${xcode_developer_download_url}\n'
+	} else {
+		'Xcode can be updated from the App Store.\n'
+	}
+}
+
+pub fn xcode_detect_version(installed bool, clt_installed bool, plist_contents string,
+	xcodebuild_outputs []string, clang_version string) string {
+	if !installed && !clt_installed {
+		return ''
+	}
+	if installed {
+		key := '<key>CFBundleShortVersionString</key>'
+		if plist_contents.contains(key) {
+			rest := plist_contents.all_after(key)
+			value := rest.all_after('<string>').all_before('</string>').trim_space()
+			if value != '' {
+				return value
+			}
+		}
+		for output in xcodebuild_outputs {
+			for line in output.split_into_lines() {
+				if line.starts_with('Xcode ') {
+					candidate := line.all_after('Xcode ').fields()[0]
+					if candidate != '' {
+						return candidate
+					}
+				}
+			}
+		}
+	}
+	return xcode_version_from_clang(clang_version)
+}
+
+pub fn xcode_version_from_clang(version string) string {
+	if version == '' || version == 'NULL' {
+		return 'dunno'
+	}
+	return match version {
+		'11.0.0' { '11.3.1' }
+		'11.0.3' { '11.7' }
+		'12.0.0' { '12.4' }
+		'12.0.5' { '12.5.1' }
+		'13.0.0' { '13.2.1' }
+		'13.1.6' { '13.4.1' }
+		'14.0.0' { '14.2' }
+		'14.0.3' { '14.3.1' }
+		'15.0.0' { '15.4' }
+		'16.0.0' { '16.2' }
+		else { '26.3' }
+	}
+}
+
+pub fn clt_installation_instructions(prerelease bool, minimum_version string) string {
+	return if prerelease {
+		'Install the Command Line Tools for Xcode ${minimum_version.all_before('.')} from:\n  ${xcode_developer_download_url}\n'
+	} else {
+		'Install the Command Line Tools:\n  xcode-select --install\n'
+	}
+}
+
+pub fn clt_reinstall_instructions(reason string, latest_xcode string) string {
+	return "If that doesn't ${reason}, run:\n  sudo rm -rf ${clt_package_path}\n  sudo xcode-select --install\n\nAlternatively, manually download them from:\n  ${xcode_developer_download_url}.\nYou should download the Command Line Tools for Xcode ${latest_xcode}.\n"
+}
+
+pub fn clt_update_instructions(macos string, reinstall string) string {
+	location := if xcode_compare_versions(macos, '13') >= 0 {
+		'System Settings'
+	} else {
+		'System Preferences'
+	}
+	return 'Update them from Software Update in ${location}.\n\n${reinstall}\n'
+}
+
+pub fn clt_latest_clang_version(macos string) string {
+	return match xcode_strip_patch(macos) {
+		'27' { '2100.3.20.102' }
+		'26', '15' { '1700.6.4.2' }
+		'14' { '1600.0.26.6' }
+		'13' { '1500.1.0.2.5' }
+		'12' { '1400.0.29.202' }
+		'11' { '1300.0.29.30' }
+		else { '1200.0.32.29' }
+	}
+}
+
+pub fn clt_minimum_version(macos string) string {
+	return match xcode_strip_patch(macos) {
+		'15' { '16.0.0' }
+		'14' { '15.0.0' }
+		'13' { '14.0.0' }
+		'12' { '13.0.0' }
+		'11' { '12.5.0' }
+		'10.15' { '11.0.0' }
+		else { '${xcode_strip_patch(macos)}.0.0' }
+	}
+}
+
+pub fn clt_detect_clang_version(output string) string {
+	marker := 'clang-'
+	if !output.contains(marker) {
+		return ''
+	}
+	mut candidate := output.all_after(marker).fields()[0]
+	for index, character in candidate {
+		if !(character.is_digit() || character == `.`) {
+			candidate = candidate[..index]
+			break
+		}
+	}
+	return candidate.trim_right('.')
+}
+
+pub fn clt_version_from_clang(output string) string {
+	raw := clt_detect_clang_version(output)
+	if raw == '' {
+		return ''
+	}
+	major := raw.all_before('.')
+	if major.len < 3 {
+		return ''
+	}
+	clang := '${major[..major.len - 2].int()}.${major[major.len - 2..major.len - 1]}.${major[major.len - 1..]}'
+	return xcode_version_from_clang(clang)
+}
+
+pub fn clt_detect_version(clang_exists bool, pkgutil_output string, clang_output string) string {
+	if clang_exists {
+		for line in pkgutil_output.split_into_lines() {
+			if line.starts_with('version: ') {
+				return line.all_after('version: ').trim_space()
+			}
+		}
+	}
+	return clt_version_from_clang(clang_output)
+}
+
+fn xcode_value(value string) brew_runtime.Value {
+	return if value == '' {
+		brew_runtime.object_value('NilClass', 'nil')
+	} else {
+		brew_runtime.structured_value('Version', value, {
+			'version': value
+		})
+	}
+}
 
 // Translated from Homebrew/brew `os/mac/xcode.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `self.latest_version(macos: MacOS.version)` at line 17.
 pub fn ruby_xcode_l17_d1_self_latest_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.latest_version', ...args)
+	macos := if args.len > 0 { args[0].as_string() } else { '15' }
+	prerelease := args.len > 1 && args[1].bool_data
+	return brew_runtime.string_value(xcode_latest_version(macos, prerelease) or { panic(err) })
 }
 
 // Ruby method `self.minimum_version` at line 39.
 pub fn ruby_xcode_l39_d2_self_minimum_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.minimum_version', ...args)
+	return brew_runtime.string_value(xcode_minimum_version(if args.len > 0 {
+		args[0].as_string()
+	} else {
+		'15'
+	}))
 }
 
 // Ruby method `self.below_minimum_version?` at line 54.
 pub fn ruby_xcode_l54_d3_self_below_minimum_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.below_minimum_version?', ...args)
+	return brew_runtime.bool_value(xcode_below_minimum(args.len > 0 && args[0].bool_data, if args.len > 1 {
+		args[1].as_string()
+	} else {
+		''
+	}, if args.len > 2 { args[2].as_string() } else { '15' }))
 }
 
 // Ruby method `self.latest_sdk_version?` at line 61.
 pub fn ruby_xcode_l61_d4_self_latest_sdk_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.latest_sdk_version?', ...args)
+	return brew_runtime.bool_value(xcode_latest_sdk_version(if args.len > 0 {
+		args[0].as_string()
+	} else {
+		''
+	}, if args.len > 1 { args[1].as_string() } else { '' }))
 }
 
 // Ruby method `self.needs_clt_installed?` at line 66.
 pub fn ruby_xcode_l66_d5_self_needs_clt_installed(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.needs_clt_installed?', ...args)
+	return brew_runtime.bool_value(xcode_needs_clt_installed(args.len > 0 && args[0].bool_data, args.len > 1 && args[1].bool_data))
 }
 
 // Ruby method `self.outdated?` at line 73.
 pub fn ruby_xcode_l73_d6_self_outdated(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.outdated?', ...args)
+	return brew_runtime.bool_value(xcode_outdated(args.len > 0 && args[0].bool_data, if args.len > 1 {
+		args[1].as_string()
+	} else {
+		''
+	}, if args.len > 2 { args[2].as_string() } else { '15' }, args.len > 3 && args[3].bool_data) or {
+		panic(err)
+	})
 }
 
 // Ruby method `self.without_clt?` at line 80.
 pub fn ruby_xcode_l80_d7_self_without_clt(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.without_clt?', ...args)
+	return brew_runtime.bool_value(!(args.len > 0 && args[0].bool_data))
 }
 
 // Ruby method `self.prefix` at line 87.
 pub fn ruby_xcode_l87_d8_self_prefix(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.prefix', ...args)
+	prefix := xcode_prefix(if args.len > 0 { args[0].as_string() } else { '' }, clt_package_path, if args.len > 1 {
+		args[1].as_string()
+	} else {
+		''
+	}, args.len > 2 && args[2].bool_data)
+	return if prefix == '' {
+		brew_runtime.object_value('NilClass', 'nil')
+	} else {
+		brew_runtime.string_value(prefix)
+	}
 }
 
 // Ruby method `self.toolchain_path` at line 102.
 pub fn ruby_xcode_l102_d9_self_toolchain_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.toolchain_path', ...args)
+	return brew_runtime.string_value(xcode_toolchain_path(if args.len > 0 {
+		args[0].as_string()
+	} else {
+		''
+	}))
 }
 
 // Ruby method `self.bundle_path` at line 107.
 pub fn ruby_xcode_l107_d10_self_bundle_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.bundle_path', ...args)
+	path := xcode_bundle_path(args.len > 0 && args[0].bool_data, if args.len > 1 {
+		args[1].as_string()
+	} else {
+		''
+	})
+	return if path == '' {
+		brew_runtime.object_value('NilClass', 'nil')
+	} else {
+		brew_runtime.string_value(path)
+	}
 }
 
 // Ruby method `self.installed?` at line 118.
 pub fn ruby_xcode_l118_d11_self_installed(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.installed?', ...args)
+	return brew_runtime.bool_value(args.len > 0 && args[0].type_name != 'NilClass' && args[0].as_string() != '')
 }
 
 // Ruby method `self.sdk_locator` at line 123.
 pub fn ruby_xcode_l123_d12_self_sdk_locator(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.sdk_locator', ...args)
+	return brew_runtime.object_value('OS::Mac::XcodeSDKLocator', 'XcodeSDKLocator')
 }
 
 // Ruby method `self.sdk(version = nil)` at line 128.
 pub fn ruby_xcode_l128_d13_self_sdk(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.sdk', ...args)
+	if args.len == 0 || args[0].type_name == 'NilClass' {
+		return brew_runtime.object_value('NilClass', 'nil')
+	}
+	return brew_runtime.structured_value('OS::Mac::SDK', args[0].as_string(), {
+		'version': args[0].as_string()
+		'path':    if args.len > 1 { args[1].as_string() } else { '' }
+	})
 }
 
 // Ruby method `self.sdk_path(version = nil)` at line 133.
 pub fn ruby_xcode_l133_d14_self_sdk_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.sdk_path', ...args)
+	if args.len == 0 || args[0].type_name == 'NilClass' {
+		return brew_runtime.object_value('NilClass', 'nil')
+	}
+	return brew_runtime.string_value(args[0].attributes['path'] or { args[0].as_string() })
 }
 
 // Ruby method `self.installation_instructions` at line 138.
 pub fn ruby_xcode_l138_d15_self_installation_instructions(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.installation_instructions', ...args)
+	return brew_runtime.string_value(xcode_installation_instructions(args.len > 0 && args[0].bool_data))
 }
 
 // Ruby method `self.update_instructions` at line 152.
 pub fn ruby_xcode_l152_d16_self_update_instructions(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.update_instructions', ...args)
+	return brew_runtime.string_value(xcode_update_instructions(args.len > 0 && args[0].bool_data))
 }
 
 // Ruby method `self.version` at line 169.
 pub fn ruby_xcode_l169_d17_self_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.version', ...args)
+	return xcode_value(if args.len > 0 { args[0].as_string() } else { '' })
 }
 
 // Ruby method `self.detect_version` at line 181.
 pub fn ruby_xcode_l181_d18_self_detect_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.detect_version', ...args)
+	options := if args.len > 0 { args[0].map_data.clone() } else { map[string]brew_runtime.Value{} }
+	outputs := (options['xcodebuild_outputs'] or { brew_runtime.string_array_value([]) }).as_array() or {
+		[]
+	}.map(it.as_string())
+	version := xcode_detect_version((options['installed'] or { brew_runtime.bool_value(false) }).bool_data, (options['clt_installed'] or { brew_runtime.bool_value(false) }).bool_data, (options['plist'] or { brew_runtime.string_value('') }).as_string(), outputs, (options['clang_version'] or { brew_runtime.string_value('') }).as_string())
+	return if version == '' {
+		brew_runtime.object_value('NilClass', 'nil')
+	} else {
+		brew_runtime.string_value(version)
+	}
 }
 
 // Ruby method `self.detect_version_from_clang_version(version = ::DevelopmentTools.clang_version)` at line 214.
 pub fn ruby_xcode_l214_d19_self_detect_version_from_clang_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.detect_version_from_clang_version', ...args)
+	return brew_runtime.string_value(xcode_version_from_clang(if args.len > 0 {
+		args[0].as_string()
+	} else {
+		''
+	}))
 }
 
 // Ruby method `self.default_prefix?` at line 237.
 pub fn ruby_xcode_l237_d20_self_default_prefix(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.default_prefix?', ...args)
+	return brew_runtime.bool_value(args.len > 0 && os.norm_path(args[0].as_string()) == '/Applications/Xcode.app/Contents/Developer')
 }
 
 // Ruby method `self.installed?` at line 251.
 pub fn ruby_xcode_l251_d21_self_installed(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.installed?', ...args)
+	return brew_runtime.bool_value(args.len > 0 && args[0].as_string() !in ['', 'NULL'])
 }
 
 // Ruby method `self.sdk_locator` at line 256.
 pub fn ruby_xcode_l256_d22_self_sdk_locator(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.sdk_locator', ...args)
+	return brew_runtime.object_value('OS::Mac::CLTSDKLocator', 'CLTSDKLocator')
 }
 
 // Ruby method `self.sdk(version = nil)` at line 261.
 pub fn ruby_xcode_l261_d23_self_sdk(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.sdk', ...args)
+	return ruby_xcode_l128_d13_self_sdk(...args)
 }
 
 // Ruby method `self.sdk_path(version = nil)` at line 266.
 pub fn ruby_xcode_l266_d24_self_sdk_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.sdk_path', ...args)
+	return ruby_xcode_l133_d14_self_sdk_path(...args)
 }
 
 // Ruby method `self.installation_instructions` at line 271.
 pub fn ruby_xcode_l271_d25_self_installation_instructions(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.installation_instructions', ...args)
+	prerelease := args.len > 0 && args[0].bool_data
+	minimum := if args.len > 1 { args[1].as_string() } else { '16.0.0' }
+	return brew_runtime.string_value(clt_installation_instructions(prerelease, minimum))
 }
 
 // Ruby method `self.reinstall_instructions(reason: "resolve your issues")` at line 286.
 pub fn ruby_xcode_l286_d26_self_reinstall_instructions(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.reinstall_instructions', ...args)
+	reason := if args.len > 0 { args[0].as_string() } else { 'resolve your issues' }
+	latest := if args.len > 1 { args[1].as_string() } else { '26.3' }
+	return brew_runtime.string_value(clt_reinstall_instructions(reason, latest))
 }
 
 // Ruby method `self.update_instructions` at line 299.
 pub fn ruby_xcode_l299_d27_self_update_instructions(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.update_instructions', ...args)
+	macos := if args.len > 0 { args[0].as_string() } else { '15' }
+	reinstall := if args.len > 1 {
+		args[1].as_string()
+	} else {
+		clt_reinstall_instructions('show you any updates', '26.3')
+	}
+	return brew_runtime.string_value(clt_update_instructions(macos, reinstall))
 }
 
 // Ruby method `self.installation_then_reinstall_instructions` at line 314.
 pub fn ruby_xcode_l314_d28_self_installation_then_reinstall_instructions(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.installation_then_reinstall_instructions', ...args)
+	installation := if args.len > 0 {
+		args[0].as_string()
+	} else {
+		clt_installation_instructions(false, '16.0.0')
+	}
+	reinstall := if args.len > 1 {
+		args[1].as_string()
+	} else {
+		clt_reinstall_instructions('resolve your issues', '26.3')
+	}
+	return brew_runtime.string_value('${installation}\n${reinstall}\n')
 }
 
 // Ruby method `self.latest_clang_version` at line 324.
 pub fn ruby_xcode_l324_d29_self_latest_clang_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.latest_clang_version', ...args)
+	return brew_runtime.string_value(clt_latest_clang_version(if args.len > 0 {
+		args[0].as_string()
+	} else {
+		'15'
+	}))
 }
 
 // Ruby method `self.minimum_version` at line 340.
 pub fn ruby_xcode_l340_d30_self_minimum_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.minimum_version', ...args)
+	return brew_runtime.string_value(clt_minimum_version(if args.len > 0 {
+		args[0].as_string()
+	} else {
+		'15'
+	}))
 }
 
 // Ruby method `self.below_minimum_version?` at line 355.
 pub fn ruby_xcode_l355_d31_self_below_minimum_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.below_minimum_version?', ...args)
+	installed := args.len > 0 && args[0].bool_data
+	version := if args.len > 1 { args[1].as_string() } else { '' }
+	macos := if args.len > 2 { args[2].as_string() } else { '15' }
+	return brew_runtime.bool_value(installed && xcode_compare_versions(version, clt_minimum_version(macos)) < 0)
 }
 
 // Ruby method `self.outdated?` at line 362.
 pub fn ruby_xcode_l362_d32_self_outdated(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.outdated?', ...args)
+	detected := if args.len > 0 { args[0].as_string() } else { '' }
+	latest := if args.len > 1 { args[1].as_string() } else { '' }
+	return brew_runtime.bool_value(detected != '' && xcode_compare_versions(detected, latest) < 0)
 }
 
 // Ruby method `self.detect_clang_version` at line 370.
 pub fn ruby_xcode_l370_d33_self_detect_clang_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.detect_clang_version', ...args)
+	version := clt_detect_clang_version(if args.len > 0 { args[0].as_string() } else { '' })
+	return if version == '' {
+		brew_runtime.object_value('NilClass', 'nil')
+	} else {
+		brew_runtime.string_value(version)
+	}
 }
 
 // Ruby method `self.detect_version_from_clang_version` at line 376.
 pub fn ruby_xcode_l376_d34_self_detect_version_from_clang_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.detect_version_from_clang_version', ...args)
+	version := clt_version_from_clang(if args.len > 0 { args[0].as_string() } else { '' })
+	return if version == '' {
+		brew_runtime.object_value('NilClass', 'nil')
+	} else {
+		brew_runtime.string_value(version)
+	}
 }
 
 // Ruby method `self.version` at line 389.
 pub fn ruby_xcode_l389_d35_self_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.version', ...args)
+	return xcode_value(if args.len > 0 { args[0].as_string() } else { '' })
 }
 
 // Ruby method `self.detect_version` at line 398.
 pub fn ruby_xcode_l398_d36_self_detect_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.detect_version', ...args)
+	version := clt_detect_version(args.len > 0 && args[0].bool_data, if args.len > 1 {
+		args[1].as_string()
+	} else {
+		''
+	}, if args.len > 2 { args[2].as_string() } else { '' })
+	return if version == '' {
+		brew_runtime.object_value('NilClass', 'nil')
+	} else {
+		brew_runtime.string_value(version)
+	}
 }
 
 // Original Ruby source (line-for-line):

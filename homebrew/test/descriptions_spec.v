@@ -1,73 +1,127 @@
 module test
 
-import brew_runtime
+import homebrew
 
 // Translated from Homebrew/brew `test/descriptions_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:descriptions) { described_class.new(descriptions_hash) }` at line 7.
-pub fn ruby_descriptions_spec_l7_d1_descriptions(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('descriptions', ...args)
+pub fn ruby_descriptions_spec_l7_d1_descriptions() homebrew.Descriptions {
+	return homebrew.new_descriptions(ruby_descriptions_spec_l9_d2_descriptions_hash(), {})
 }
 
 // Ruby let `let(:descriptions_hash) { {} }` at line 9.
-pub fn ruby_descriptions_spec_l9_d2_descriptions_hash(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('descriptions_hash', ...args)
+pub fn ruby_descriptions_spec_l9_d2_descriptions_hash() map[string]homebrew.DescriptionValue {
+	return map[string]homebrew.DescriptionValue{}
 }
 
 // Ruby it `it "can print description for a core Formula" do` at line 11.
-pub fn ruby_descriptions_spec_l11_d3_can(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('can', ...args)
+pub fn ruby_descriptions_spec_l11_d3_can() bool {
+	descriptions := homebrew.new_descriptions({
+		'homebrew/core/foo': homebrew.description_formula('Core foo')
+	}, {})
+	return descriptions.print_output(false) == 'foo: Core foo\n'
 }
 
 // Ruby it `it "can print description for an external Formula" do` at line 16.
-pub fn ruby_descriptions_spec_l16_d4_can(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('can', ...args)
+pub fn ruby_descriptions_spec_l16_d4_can() bool {
+	descriptions := homebrew.new_descriptions({
+		'somedev/external/foo': homebrew.description_formula('External foo')
+	}, {})
+	return descriptions.print_output(false) == 'foo: External foo\n'
 }
 
 // Ruby it `it "can print descriptions for duplicate Formulae" do` at line 21.
-pub fn ruby_descriptions_spec_l21_d5_can(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('can', ...args)
+pub fn ruby_descriptions_spec_l21_d5_can() bool {
+	descriptions := homebrew.new_descriptions({
+		'homebrew/core/foo':    homebrew.description_formula('Core foo')
+		'somedev/external/foo': homebrew.description_formula('External foo')
+	}, {})
+	return descriptions.print_output(false) == 'homebrew/core/foo: Core foo\nsomedev/external/foo: External foo\n'
 }
 
 // Ruby it `it "can print descriptions for duplicate core and external Formulae" do` at line 33.
-pub fn ruby_descriptions_spec_l33_d6_can(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('can', ...args)
+pub fn ruby_descriptions_spec_l33_d6_can() bool {
+	descriptions := homebrew.new_descriptions({
+		'homebrew/core/foo':     homebrew.description_formula('Core foo')
+		'somedev/external/foo':  homebrew.description_formula('External foo')
+		'otherdev/external/foo': homebrew.description_formula('Other external foo')
+	}, {})
+	return descriptions.print_output(false) == 'homebrew/core/foo: Core foo\notherdev/external/foo: Other external foo\nsomedev/external/foo: External foo\n'
 }
 
 // Ruby it `it "can print description for a cask" do` at line 47.
-pub fn ruby_descriptions_spec_l47_d7_can(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('can', ...args)
+pub fn ruby_descriptions_spec_l47_d7_can() bool {
+	descriptions := homebrew.new_descriptions({
+		'homebrew/cask/foo': homebrew.description_cask('Foo', 'Cask foo')
+	}, {})
+	return descriptions.print_output(false) == 'foo: (Foo) Cask foo\n'
 }
 
 // Ruby it `it "skips formulae without a description" do` at line 52.
-pub fn ruby_descriptions_spec_l52_d8_skips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skips', ...args)
+pub fn ruby_descriptions_spec_l52_d8_skips() bool {
+	descriptions := homebrew.new_descriptions({
+		'homebrew/core/foo': homebrew.description_formula(none)
+	}, {})
+	return descriptions.print_output(false) == ''
 }
 
 // Ruby it `it "skips casks without a description" do` at line 58.
-pub fn ruby_descriptions_spec_l58_d9_skips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skips', ...args)
+pub fn ruby_descriptions_spec_l58_d9_skips() bool {
+	descriptions := homebrew.new_descriptions({
+		'homebrew/cask/foo': homebrew.description_cask('Foo', none)
+	}, {})
+	return descriptions.print_output(false) == ''
 }
 
 // Ruby it `it "prints casks without a description when requested" do` at line 64.
-pub fn ruby_descriptions_spec_l64_d10_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+pub fn ruby_descriptions_spec_l64_d10_prints() bool {
+	descriptions := homebrew.new_descriptions({
+		'homebrew/cask/foo': homebrew.description_cask('Foo', none)
+	}, {})
+	return descriptions.print_output(true) == 'foo: (Foo) [no description]\n'
 }
 
 // Ruby it `it "prints casks with an incomplete description" do` at line 70.
-pub fn ruby_descriptions_spec_l70_d11_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+pub fn ruby_descriptions_spec_l70_d11_prints() bool {
+	descriptions := homebrew.new_descriptions({
+		'homebrew/cask/foo': homebrew.description_cask('Foo', none)
+	}, {})
+	return descriptions.print_output(true) == 'foo: (Foo) [no description]\n'
 }
 
 // Ruby it `it "prints trailing status for interactive formula descriptions" do` at line 76.
-pub fn ruby_descriptions_spec_l76_d12_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+pub fn ruby_descriptions_spec_l76_d12_prints() bool {
+	descriptions := homebrew.new_descriptions_with_state({
+		'homebrew/core/foo': homebrew.description_formula('Core foo')
+	}, {}, [
+		homebrew.DescriptionInstalledItem{
+			name: 'foo'
+			full_name: 'homebrew/core/foo'
+		},
+	], [], {
+		'homebrew/core/foo': homebrew.DescriptionStatus{}
+	}, true, true)
+	output := descriptions.print_output(false)
+	return output.contains('foo') && output.contains('(installed)') && output.ends_with(': Core foo\n')
 }
 
 // Ruby it `it "uses installed and deprecation metadata without loading formulae" do` at line 89.
-pub fn ruby_descriptions_spec_l89_d13_uses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uses', ...args)
+pub fn ruby_descriptions_spec_l89_d13_uses() bool {
+	descriptions := homebrew.new_descriptions_with_state({
+		'homebrew/core/foo': homebrew.description_formula('Core foo')
+	}, {
+		'homebrew/core/foo': homebrew.DescriptionStatus{
+			deprecated: true
+		}
+	}, [
+		homebrew.DescriptionInstalledItem{
+			name: 'foo'
+			full_name: 'homebrew/core/foo'
+		},
+	], [], {}, true, true)
+	output := descriptions.print_output(false)
+	return output.contains('(installed)') && output.contains('(deprecated)')
 }
 
 // Original Ruby source (line-for-line):

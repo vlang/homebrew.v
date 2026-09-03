@@ -7,7 +7,16 @@ import brew_runtime
 
 // Ruby method `use_system_ruby?` at line 8.
 pub fn ruby_cleanup_l8_d1_use_system_ruby(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('use_system_ruby?', ...args)
+	if args.len < 3 {
+		return brew_runtime.bool_value(false)
+	}
+	return brew_runtime.bool_value(use_system_ruby(args[0].as_bool() or { false }, args[1].as_bool() or {
+		false
+	}, args[2].as_bool() or { false }))
+}
+
+pub fn use_system_ruby(force_vendor_ruby bool, developer bool, ruby_from_path_present bool) bool {
+	return !force_vendor_ruby && developer && ruby_from_path_present
 }
 
 // Original Ruby source (line-for-line):

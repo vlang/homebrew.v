@@ -1,273 +1,411 @@
 module test
 
-import brew_runtime
+import homebrew
+
+fn requirement_spec_class() homebrew.RequirementClass {
+	return homebrew.anonymous_requirement_class('requirement-spec-anonymous')
+}
+
+fn requirement_spec_true(_ homebrew.Requirement) homebrew.RequirementResult {
+	return homebrew.bool_requirement_result(true)
+}
+
+fn requirement_spec_false(_ homebrew.Requirement) homebrew.RequirementResult {
+	return homebrew.bool_requirement_result(false)
+}
+
+fn requirement_spec_path(_ homebrew.Requirement) homebrew.RequirementResult {
+	return homebrew.path_requirement_result('/foo/bar/baz')
+}
+
+fn requirement_spec_prefix_bin(_ homebrew.Requirement) homebrew.RequirementResult {
+	return homebrew.path_requirement_result('/opt/homebrew/bin/foo')
+}
+
+fn requirement_spec_prefix_sbin(_ homebrew.Requirement) homebrew.RequirementResult {
+	return homebrew.path_requirement_result('/opt/homebrew/sbin/foo')
+}
+
+fn requirement_spec_which_sh(_ homebrew.Requirement) homebrew.RequirementResult {
+	path := homebrew.requirement_which('sh', ['/bin', '/usr/bin']) or {
+		return homebrew.nil_requirement_result()
+	}
+	return homebrew.path_requirement_result(path)
+}
+
+fn requirement_spec_execution() homebrew.RequirementExecution {
+	return homebrew.RequirementExecution{
+		environment: {
+			'PATH': '/usr/bin:/bin'
+		}
+		prefix: '/opt/homebrew'
+		cellar: '/opt/homebrew/Cellar'
+		original_paths: ['/bin', '/usr/bin']
+	}
+}
+
+fn requirement_spec_block_class(identity string, build_env bool,
+	block homebrew.RequirementSatisfyBlock) homebrew.RequirementClass {
+	mut class := homebrew.anonymous_requirement_class(identity)
+	class.satisfy(homebrew.RequirementSatisfierInitialization{
+		options_are_hash: true
+		has_build_env: true
+		build_env: build_env
+		has_proc: true
+		proc: block
+	})
+	return class
+}
+
+fn requirement_spec_default_block_class(identity string,
+	block homebrew.RequirementSatisfyBlock) homebrew.RequirementClass {
+	mut class := homebrew.anonymous_requirement_class(identity)
+	class.satisfy(homebrew.RequirementSatisfierInitialization{
+		options_are_hash: true
+		has_proc: true
+		proc: block
+	})
+	return class
+}
+
+fn requirement_spec_fixed_class(identity string, value bool) homebrew.RequirementClass {
+	mut class := homebrew.anonymous_requirement_class(identity)
+	class.satisfy(homebrew.RequirementSatisfierInitialization{
+		fixed_value: homebrew.bool_requirement_result(value)
+	})
+	return class
+}
 
 // Translated from Homebrew/brew `test/requirement_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby alias_matcher `alias_matcher :be_a_build_requirement, :be_a_build` at line 8.
-pub fn ruby_requirement_spec_l8_d1_be_a_build_requirement(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('be_a_build_requirement', ...args)
+pub fn ruby_requirement_spec_l8_d1_be_a_build_requirement(requirement homebrew.Requirement) bool {
+	return requirement.build()
 }
 
 // Ruby subject `subject(:requirement) { klass.new }` at line 10.
-pub fn ruby_requirement_spec_l10_d2_requirement(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('requirement', ...args)
+pub fn ruby_requirement_spec_l10_d2_requirement() !homebrew.Requirement {
+	return homebrew.new_requirement(requirement_spec_class(), [])
 }
 
 // Ruby let `let(:klass) { Class.new(described_class) }` at line 12.
-pub fn ruby_requirement_spec_l12_d3_klass(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('klass', ...args)
+pub fn ruby_requirement_spec_l12_d3_klass() homebrew.RequirementClass {
+	return requirement_spec_class()
 }
 
 // Ruby it `it "raises an error when instantiated" do` at line 15.
-pub fn ruby_requirement_spec_l15_d4_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+pub fn ruby_requirement_spec_l15_d4_raises() bool {
+	if _ := homebrew.new_requirement(homebrew.base_requirement_class(), []) {
+		return false
+	} else {
+		return err.msg() == 'Requirement is declared as abstract; it cannot be instantiated'
+	}
 }
 
 // Ruby subject `subject(:req) { klass.new(tags) }` at line 22.
-pub fn ruby_requirement_spec_l22_d5_req(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('req', ...args)
+pub fn ruby_requirement_spec_l22_d5_req(tags []homebrew.RequirementTag) !homebrew.Requirement {
+	return homebrew.new_requirement(requirement_spec_class(), tags)
 }
 
 // Ruby let `let(:tags) { ["bar"] }` at line 25.
-pub fn ruby_requirement_spec_l25_d6_tags(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tags', ...args)
+pub fn ruby_requirement_spec_l25_d6_tags() []homebrew.RequirementTag {
+	return [homebrew.string_requirement_tag('bar')]
 }
 
 // Ruby it `it(:tags) { expect(req.tags).to eq(tags) }` at line 27.
-pub fn ruby_requirement_spec_l27_d7_tags(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tags', ...args)
+pub fn ruby_requirement_spec_l27_d7_tags() !bool {
+	tags := ruby_requirement_spec_l25_d6_tags()
+	return homebrew.requirement_tags_match(ruby_requirement_spec_l22_d5_req(tags)!.tags, tags)
 }
 
 // Ruby let `let(:tags) { ["bar", "baz"] }` at line 31.
-pub fn ruby_requirement_spec_l31_d8_tags(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tags', ...args)
+pub fn ruby_requirement_spec_l31_d8_tags() []homebrew.RequirementTag {
+	return [homebrew.string_requirement_tag('bar'), homebrew.string_requirement_tag('baz')]
 }
 
 // Ruby it `it(:tags) { expect(req.tags).to eq(tags) }` at line 33.
-pub fn ruby_requirement_spec_l33_d9_tags(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tags', ...args)
+pub fn ruby_requirement_spec_l33_d9_tags() !bool {
+	tags := ruby_requirement_spec_l31_d8_tags()
+	return homebrew.requirement_tags_match(ruby_requirement_spec_l22_d5_req(tags)!.tags, tags)
 }
 
 // Ruby let `let(:tags) { [:build] }` at line 37.
-pub fn ruby_requirement_spec_l37_d10_tags(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tags', ...args)
+pub fn ruby_requirement_spec_l37_d10_tags() []homebrew.RequirementTag {
+	return [homebrew.symbol_requirement_tag('build')]
 }
 
 // Ruby it `it(:tags) { expect(req.tags).to eq(tags) }` at line 39.
-pub fn ruby_requirement_spec_l39_d11_tags(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tags', ...args)
+pub fn ruby_requirement_spec_l39_d11_tags() !bool {
+	tags := ruby_requirement_spec_l37_d10_tags()
+	return homebrew.requirement_tags_match(ruby_requirement_spec_l22_d5_req(tags)!.tags, tags)
 }
 
 // Ruby let `let(:tags) { [:build, "bar"] }` at line 43.
-pub fn ruby_requirement_spec_l43_d12_tags(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tags', ...args)
+pub fn ruby_requirement_spec_l43_d12_tags() []homebrew.RequirementTag {
+	return [homebrew.symbol_requirement_tag('build'), homebrew.string_requirement_tag('bar')]
 }
 
 // Ruby it `it(:tags) { expect(req.tags).to eq(tags) }` at line 45.
-pub fn ruby_requirement_spec_l45_d13_tags(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tags', ...args)
+pub fn ruby_requirement_spec_l45_d13_tags() !bool {
+	tags := ruby_requirement_spec_l43_d12_tags()
+	return homebrew.requirement_tags_match(ruby_requirement_spec_l22_d5_req(tags)!.tags, tags)
 }
 
 // Ruby let `let(:klass) do` at line 51.
-pub fn ruby_requirement_spec_l51_d14_klass(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('klass', ...args)
+pub fn ruby_requirement_spec_l51_d14_klass() homebrew.RequirementClass {
+	mut class := requirement_spec_class()
+	class.fatal_dsl(true)
+	return class
 }
 
 // Ruby it `it { is_expected.to be_fatal }` at line 57.
-pub fn ruby_requirement_spec_l57_d15_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('{', ...args)
+pub fn ruby_requirement_spec_l57_d15_anonymous() !bool {
+	return homebrew.new_requirement(ruby_requirement_spec_l51_d14_klass(), [])!.fatal()
 }
 
 // Ruby it `it { is_expected.not_to be_fatal }` at line 61.
-pub fn ruby_requirement_spec_l61_d16_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('{', ...args)
+pub fn ruby_requirement_spec_l61_d16_anonymous() !bool {
+	return !ruby_requirement_spec_l10_d2_requirement()!.fatal()
 }
 
 // Ruby let `let(:klass) do` at line 67.
-pub fn ruby_requirement_spec_l67_d17_klass(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('klass', ...args)
+pub fn ruby_requirement_spec_l67_d17_klass() homebrew.RequirementClass {
+	return requirement_spec_block_class('satisfy-block-true', false, requirement_spec_true)
 }
 
 // Ruby it `it { is_expected.to be_satisfied }` at line 75.
-pub fn ruby_requirement_spec_l75_d18_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('{', ...args)
+pub fn ruby_requirement_spec_l75_d18_anonymous() !bool {
+	mut requirement := homebrew.new_requirement(ruby_requirement_spec_l67_d17_klass(), [])!
+	mut execution := requirement_spec_execution()
+	return requirement.satisfied(mut execution, homebrew.RequirementEvaluationOptions{})
 }
 
 // Ruby let `let(:klass) do` at line 79.
-pub fn ruby_requirement_spec_l79_d19_klass(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('klass', ...args)
+pub fn ruby_requirement_spec_l79_d19_klass() homebrew.RequirementClass {
+	return requirement_spec_block_class('satisfy-block-false', false, requirement_spec_false)
 }
 
 // Ruby it `it { is_expected.not_to be_satisfied }` at line 87.
-pub fn ruby_requirement_spec_l87_d20_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('{', ...args)
+pub fn ruby_requirement_spec_l87_d20_anonymous() !bool {
+	mut requirement := homebrew.new_requirement(ruby_requirement_spec_l79_d19_klass(), [])!
+	mut execution := requirement_spec_execution()
+	return !requirement.satisfied(mut execution, homebrew.RequirementEvaluationOptions{})
 }
 
 // Ruby let `let(:klass) do` at line 91.
-pub fn ruby_requirement_spec_l91_d21_klass(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('klass', ...args)
+pub fn ruby_requirement_spec_l91_d21_klass() homebrew.RequirementClass {
+	return requirement_spec_fixed_class('satisfy-fixed-true', true)
 }
 
 // Ruby it `it { is_expected.to be_satisfied }` at line 97.
-pub fn ruby_requirement_spec_l97_d22_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('{', ...args)
+pub fn ruby_requirement_spec_l97_d22_anonymous() !bool {
+	mut requirement := homebrew.new_requirement(ruby_requirement_spec_l91_d21_klass(), [])!
+	mut execution := requirement_spec_execution()
+	return requirement.satisfied(mut execution, homebrew.RequirementEvaluationOptions{})
 }
 
 // Ruby let `let(:klass) do` at line 101.
-pub fn ruby_requirement_spec_l101_d23_klass(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('klass', ...args)
+pub fn ruby_requirement_spec_l101_d23_klass() homebrew.RequirementClass {
+	return requirement_spec_fixed_class('satisfy-fixed-false', false)
 }
 
 // Ruby it `it { is_expected.not_to be_satisfied }` at line 107.
-pub fn ruby_requirement_spec_l107_d24_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('{', ...args)
+pub fn ruby_requirement_spec_l107_d24_anonymous() !bool {
+	mut requirement := homebrew.new_requirement(ruby_requirement_spec_l101_d23_klass(), [])!
+	mut execution := requirement_spec_execution()
+	return !requirement.satisfied(mut execution, homebrew.RequirementEvaluationOptions{})
 }
 
 // Ruby let `let(:klass) do` at line 111.
-pub fn ruby_requirement_spec_l111_d25_klass(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('klass', ...args)
+pub fn ruby_requirement_spec_l111_d25_klass() homebrew.RequirementClass {
+	return requirement_spec_default_block_class('satisfy-default-build-environment', requirement_spec_true)
 }
 
 // Ruby it `it "sets up build environment" do` at line 119.
-pub fn ruby_requirement_spec_l119_d26_sets(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sets', ...args)
+pub fn ruby_requirement_spec_l119_d26_sets() !bool {
+	mut requirement := homebrew.new_requirement(ruby_requirement_spec_l111_d25_klass(), [])!
+	mut execution := requirement_spec_execution()
+	requirement.satisfied(mut execution, homebrew.RequirementEvaluationOptions{})
+	return execution.build_environment_calls == 1
 }
 
 // Ruby let `let(:klass) do` at line 126.
-pub fn ruby_requirement_spec_l126_d27_klass(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('klass', ...args)
+pub fn ruby_requirement_spec_l126_d27_klass() homebrew.RequirementClass {
+	return requirement_spec_block_class('satisfy-no-build-environment', false, requirement_spec_true)
 }
 
 // Ruby it `it "skips setting up build environment" do` at line 134.
-pub fn ruby_requirement_spec_l134_d28_skips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skips', ...args)
+pub fn ruby_requirement_spec_l134_d28_skips() !bool {
+	mut requirement := homebrew.new_requirement(ruby_requirement_spec_l126_d27_klass(), [])!
+	mut execution := requirement_spec_execution()
+	requirement.satisfied(mut execution, homebrew.RequirementEvaluationOptions{})
+	return execution.build_environment_calls == 0
 }
 
 // Ruby let `let(:klass) do` at line 141.
-pub fn ruby_requirement_spec_l141_d29_klass(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('klass', ...args)
+pub fn ruby_requirement_spec_l141_d29_klass() homebrew.RequirementClass {
+	return requirement_spec_default_block_class('satisfy-path', requirement_spec_path)
 }
 
 // Ruby it `it "infers path from` at line 149.
-pub fn ruby_requirement_spec_l149_d30_infers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('infers', ...args)
+pub fn ruby_requirement_spec_l149_d30_infers() !bool {
+	mut requirement := homebrew.new_requirement(ruby_requirement_spec_l141_d29_klass(), [])!
+	mut execution := requirement_spec_execution()
+	requirement.satisfied(mut execution, homebrew.RequirementEvaluationOptions{})
+	requirement.modify_build_environment(mut execution, homebrew.RequirementEvaluationOptions{})
+	return execution.prepended_paths == ['/foo/bar']
 }
 
 // Ruby let `let(:klass) do` at line 159.
-pub fn ruby_requirement_spec_l159_d31_klass(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('klass', ...args)
+pub fn ruby_requirement_spec_l159_d31_klass() homebrew.RequirementClass {
+	return requirement_spec_default_block_class('satisfy-prefix-bin', requirement_spec_prefix_bin)
 }
 
 // Ruby it `it "does not prepend the parent to PATH" do` at line 167.
-pub fn ruby_requirement_spec_l167_d32_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_requirement_spec_l167_d32_does() !bool {
+	mut requirement := homebrew.new_requirement(ruby_requirement_spec_l159_d31_klass(), [])!
+	mut execution := requirement_spec_execution()
+	requirement.satisfied(mut execution, homebrew.RequirementEvaluationOptions{})
+	requirement.modify_build_environment(mut execution, homebrew.RequirementEvaluationOptions{})
+	return execution.prepended_paths.len == 0
 }
 
 // Ruby let `let(:klass) do` at line 177.
-pub fn ruby_requirement_spec_l177_d33_klass(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('klass', ...args)
+pub fn ruby_requirement_spec_l177_d33_klass() homebrew.RequirementClass {
+	return requirement_spec_default_block_class('satisfy-prefix-sbin', requirement_spec_prefix_sbin)
 }
 
 // Ruby it `it "does not prepend the parent to PATH" do` at line 185.
-pub fn ruby_requirement_spec_l185_d34_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_requirement_spec_l185_d34_does() !bool {
+	mut requirement := homebrew.new_requirement(ruby_requirement_spec_l177_d33_klass(), [])!
+	mut execution := requirement_spec_execution()
+	requirement.satisfied(mut execution, homebrew.RequirementEvaluationOptions{})
+	requirement.modify_build_environment(mut execution, homebrew.RequirementEvaluationOptions{})
+	return execution.prepended_paths.len == 0
 }
 
 // Ruby let `let(:klass) do` at line 195.
-pub fn ruby_requirement_spec_l195_d35_klass(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('klass', ...args)
+pub fn ruby_requirement_spec_l195_d35_klass() homebrew.RequirementClass {
+	return requirement_spec_block_class('satisfy-which-sh', false, requirement_spec_which_sh)
 }
 
 // Ruby it `it "does not raise an error" do` at line 203.
-pub fn ruby_requirement_spec_l203_d36_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_requirement_spec_l203_d36_does() !bool {
+	mut requirement := homebrew.new_requirement(ruby_requirement_spec_l195_d35_klass(), [])!
+	mut execution := requirement_spec_execution()
+	requirement.satisfied(mut execution, homebrew.RequirementEvaluationOptions{})
+	return true
 }
 
 // Ruby subject `subject { klass.new([:build]) }` at line 211.
-pub fn ruby_requirement_spec_l211_d37_subject_dynamic(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('subject_dynamic', ...args)
+pub fn ruby_requirement_spec_l211_d37_subject_dynamic() !homebrew.Requirement {
+	return homebrew.new_requirement(requirement_spec_class(), [
+		homebrew.symbol_requirement_tag('build'),
+	])
 }
 
 // Ruby it `it { is_expected.to be_a_build_requirement }` at line 213.
-pub fn ruby_requirement_spec_l213_d38_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('{', ...args)
+pub fn ruby_requirement_spec_l213_d38_anonymous() !bool {
+	return ruby_requirement_spec_l211_d37_subject_dynamic()!.build()
 }
 
 // Ruby it `it { is_expected.not_to be_a_build_requirement }` at line 217.
-pub fn ruby_requirement_spec_l217_d39_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('{', ...args)
+pub fn ruby_requirement_spec_l217_d39_anonymous() !bool {
+	return !ruby_requirement_spec_l10_d2_requirement()!.build()
 }
 
 // Ruby let `let(:const) { :FooRequirement }` at line 222.
-pub fn ruby_requirement_spec_l222_d40_const(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('const', ...args)
+pub fn ruby_requirement_spec_l222_d40_const() string {
+	return 'FooRequirement'
 }
 
 // Ruby let `let(:klass) { self.class.const_get(const) }` at line 225.
-pub fn ruby_requirement_spec_l225_d41_klass(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('klass', ...args)
+pub fn ruby_requirement_spec_l225_d41_klass() homebrew.RequirementClass {
+	return homebrew.new_requirement_class(ruby_requirement_spec_l222_d40_const())
 }
 
 // Ruby it `it(:name) { expect(requirement.name).to eq("foo") }` at line 232.
-pub fn ruby_requirement_spec_l232_d42_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('name', ...args)
+pub fn ruby_requirement_spec_l232_d42_name() !bool {
+	return homebrew.new_requirement(ruby_requirement_spec_l225_d41_klass(), [])!.name == 'foo'
 }
 
 // Ruby it `it(:option_names) { expect(requirement.option_names).to eq(["foo"]) }` at line 233.
-pub fn ruby_requirement_spec_l233_d43_option_names(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('option_names', ...args)
+pub fn ruby_requirement_spec_l233_d43_option_names() !bool {
+	return homebrew.new_requirement(ruby_requirement_spec_l225_d41_klass(), [])!.option_names() == [
+		'foo',
+	]
 }
 
 // Ruby let `let(:klass) { Class.new(described_class) }` at line 238.
-pub fn ruby_requirement_spec_l238_d44_klass(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('klass', ...args)
+pub fn ruby_requirement_spec_l238_d44_klass() homebrew.RequirementClass {
+	return requirement_spec_class()
 }
 
 // Ruby it `it "returns nil" do` at line 240.
-pub fn ruby_requirement_spec_l240_d45_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_requirement_spec_l240_d45_returns() !bool {
+	mut requirement := homebrew.new_requirement(ruby_requirement_spec_l238_d44_klass(), [])!
+	mut execution := requirement_spec_execution()
+	requirement.modify_build_environment(mut execution, homebrew.RequirementEvaluationOptions{})
+	return true
 }
 
 // Ruby subject `subject(:requirement) { klass.new }` at line 247.
-pub fn ruby_requirement_spec_l247_d46_requirement(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('requirement', ...args)
+pub fn ruby_requirement_spec_l247_d46_requirement() !homebrew.Requirement {
+	return homebrew.new_requirement(requirement_spec_class(), [])
 }
 
 // Ruby it `it "returns true if the names and tags are equal" do` at line 249.
-pub fn ruby_requirement_spec_l249_d47_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_requirement_spec_l249_d47_returns() !bool {
+	requirement := ruby_requirement_spec_l247_d46_requirement()!
+	other := homebrew.new_requirement(requirement_spec_class(), [])!
+	return requirement.equals(other) && requirement.equals(other)
 }
 
 // Ruby it `it "returns false if names differ" do` at line 256.
-pub fn ruby_requirement_spec_l256_d48_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_requirement_spec_l256_d48_returns() !bool {
+	requirement := ruby_requirement_spec_l247_d46_requirement()!
+	mut other := homebrew.new_requirement(requirement_spec_class(), [])!
+	other.name = 'foo'
+	return !requirement.equals(other) && !requirement.equals(other)
 }
 
 // Ruby it `it "returns false if tags differ" do` at line 263.
-pub fn ruby_requirement_spec_l263_d49_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_requirement_spec_l263_d49_returns() !bool {
+	requirement := ruby_requirement_spec_l247_d46_requirement()!
+	other := homebrew.new_requirement(requirement_spec_class(), [
+		homebrew.symbol_requirement_tag('optional'),
+	])!
+	return !requirement.equals(other) && !requirement.equals(other)
 }
 
 // Ruby subject `subject(:requirement) { klass.new }` at line 272.
-pub fn ruby_requirement_spec_l272_d50_requirement(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('requirement', ...args)
+pub fn ruby_requirement_spec_l272_d50_requirement() !homebrew.Requirement {
+	return homebrew.new_requirement(requirement_spec_class(), [])
 }
 
 // Ruby it `it "is equal if names and tags are equal" do` at line 274.
-pub fn ruby_requirement_spec_l274_d51_is(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('is', ...args)
+pub fn ruby_requirement_spec_l274_d51_is() !bool {
+	requirement := ruby_requirement_spec_l272_d50_requirement()!
+	other := homebrew.new_requirement(requirement_spec_class(), [])!
+	return requirement.hash_value() == other.hash_value()
 }
 
 // Ruby it `it "differs if names differ" do` at line 279.
-pub fn ruby_requirement_spec_l279_d52_differs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('differs', ...args)
+pub fn ruby_requirement_spec_l279_d52_differs() !bool {
+	requirement := ruby_requirement_spec_l272_d50_requirement()!
+	mut other := homebrew.new_requirement(requirement_spec_class(), [])!
+	other.name = 'foo'
+	return requirement.hash_value() != other.hash_value()
 }
 
 // Ruby it `it "differs if tags differ" do` at line 285.
-pub fn ruby_requirement_spec_l285_d53_differs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('differs', ...args)
+pub fn ruby_requirement_spec_l285_d53_differs() !bool {
+	requirement := ruby_requirement_spec_l272_d50_requirement()!
+	other := homebrew.new_requirement(requirement_spec_class(), [
+		homebrew.symbol_requirement_tag('optional'),
+	])!
+	return requirement.hash_value() != other.hash_value()
 }
 
 // Original Ruby source (line-for-line):

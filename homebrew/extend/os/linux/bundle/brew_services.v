@@ -7,7 +7,19 @@ import brew_runtime
 
 // Ruby method `started_services_without_daemon_manager` at line 10.
 pub fn ruby_brew_services_l10_d1_started_services_without_daemon_manager(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('started_services_without_daemon_manager', ...args)
+	return brew_runtime.string_array_value(started_services_without_daemon_manager().services)
+}
+
+pub struct StartedServicesResult {
+pub:
+	services []string
+	warning  string
+}
+
+pub fn started_services_without_daemon_manager() StartedServicesResult {
+	return StartedServicesResult{
+		warning: 'Skipping `brew services list` due to missing systemctl'
+	}
 }
 
 // Original Ruby source (line-for-line):

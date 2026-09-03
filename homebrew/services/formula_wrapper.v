@@ -1,233 +1,622 @@
 module services
 
-import brew_runtime
+import os
+import strconv
 
 // Translated from Homebrew/brew `services/formula_wrapper.rb`.
-// The original source is retained below until every stub has a typed V body.
+// The retained Ruby source follows these source-shaped typed boundaries.
+pub const missing_daemon_manager_exception_message = 'Invalid usage: `brew services` is supported only on macOS or Linux (with systemd)!'
+
+pub enum FormulaWrapperDaemonManager {
+	launchctl
+	systemctl
+	unavailable
+}
+
+pub enum FormulaWrapperStatusType {
+	launchctl_list
+	launchctl_print
+	systemctl
+}
+
+pub enum FormulaWrapperServiceFileType {
+	any
+	root
+	user
+}
+
+pub enum FormulaWrapperStatusSymbol {
+	started
+	none
+	scheduled
+	stopped
+	error
+	unknown
+	other
+}
+
+pub struct FormulaWrapperService {
+pub mut:
+	requires_root  bool
+	timed          bool
+	keep_alive     bool
+	path_dirs      []string
+	command        []string
+	manual_command string
+	working_dir    ?string
+	root_dir       ?string
+	log_path       ?string
+	error_log_path ?string
+	interval       ?int
+	cron           map[string]string
+	plist_contents string
+	systemd_unit   string
+}
+
+pub struct FormulaWrapperFormula {
+pub mut:
+	name                  string
+	plist_name            string
+	service_name          string
+	launchd_service_path  string
+	systemd_service_path  string
+	systemd_timer_path    string
+	any_version_installed bool
+	has_service           bool
+	service               FormulaWrapperService
+}
+
+pub struct FormulaWrapperSystem {
+pub mut:
+	manager                    FormulaWrapperDaemonManager
+	root                       bool
+	boot_path                  string
+	user_path                  string
+	user                       string
+	launchctl_status           StatusOutputSuccessType
+	systemctl_status_output    string
+	systemctl_child_status_set bool
+	systemctl_child_status_ok  bool
+	systemctl_quiet_run_result bool
+}
+
+pub struct StatusOutputSuccessType {
+pub:
+	output  string
+	success bool
+	type_   FormulaWrapperStatusType
+}
+
+pub struct FormulaWrapperHash {
+pub:
+	name         string
+	service_name string
+	running      bool
+	loaded       bool
+	schedulable  bool
+	pid          ?int
+	exit_code    ?int
+	user         ?string
+	status       FormulaWrapperStatusSymbol
+	file         string
+	registered   bool
+	loaded_file  ?string
+pub mut:
+	has_service_details bool
+	command             string
+	working_dir         ?string
+	root_dir            ?string
+	log_path            ?string
+	error_log_path      ?string
+	interval            ?int
+	has_cron            bool
+	cron                map[string]string
+}
+
+pub struct FormulaWrapper {
+pub:
+	formula FormulaWrapperFormula
+	system  FormulaWrapperSystem
+pub mut:
+	has_status_cache                  bool
+	status_cache                      StatusOutputSuccessType
+	last_quiet_run_target             string
+	has_service_file_present_override bool
+	service_file_present_override     bool
+}
+
+pub interface FormulaWrapperFormulary {
+	factory(name string) !FormulaWrapperFormula
+}
+
+fn basename(path string) string {
+	return os.base(path)
+}
+
+fn formula_name_from_path_or_label(path_or_label string) ?string {
+	candidate := path_or_label
+	start := if index := candidate.last_index('homebrew.mxcl.') {
+		index + 'homebrew.mxcl.'.len
+	} else if index := candidate.last_index('homebrew.') {
+		index + 'homebrew.'.len
+	} else {
+		return none
+	}
+	name := candidate[start..]
+	if name == '' || !name.bytes().all((it >= `a` && it <= `z`) || (it >= `A` && it <= `Z`) || (it >= `0` && it <= `9`) || it in [
+		`_`,
+		`+`,
+		`-`,
+		`.`,
+		`@`,
+	]) {
+		return none
+	}
+	return name
+}
+
+pub fn new_formula_wrapper(formula FormulaWrapperFormula, system FormulaWrapperSystem) !FormulaWrapper {
+	if system.manager == .unavailable {
+		return error(missing_daemon_manager_exception_message)
+	}
+	return FormulaWrapper{ formula: formula, system: system }
+}
+
+fn digits_after(output string, prefix string) ?int {
+	index := output.index(prefix) or { return none }
+	mut end := index + prefix.len
+	for end < output.len && output[end] >= `0` && output[end] <= `9` {
+		end++
+	}
+	if end == index + prefix.len {
+		return none
+	}
+	return strconv.atoi(output[index + prefix.len..end]) or { none }
+}
+
+fn integer_match(output string, prefix string, terminator string, allow_empty bool) ?int {
+	index := output.index(prefix) or { return none }
+	start := index + prefix.len
+	mut end := start
+	for end < output.len && output[end] >= `0` && output[end] <= `9` {
+		end++
+	}
+	if end == start && !allow_empty {
+		return none
+	}
+	if !output[end..].starts_with(terminator) {
+		return none
+	}
+	return if end == start { 0 } else { strconv.atoi(output[start..end]) or { none } }
+}
+
+fn ruby_chomp(value string) string {
+	if value.ends_with('\r\n') {
+		return value[..value.len - 2]
+	}
+	if value.ends_with('\n') || value.ends_with('\r') {
+		return value[..value.len - 1]
+	}
+	return value
+}
+
+fn loaded_file_from_output(output string, status_type FormulaWrapperStatusType) ?string {
+	match status_type {
+		.launchctl_list {
+			return none
+		}
+		.launchctl_print {
+			index := output.index('path = ') or { return none }
+			return output[index + 7..].all_before('\n')
+		}
+		.systemctl {
+			loaded := output.index('Loaded: ') or { return none }
+			open := output.index_after('(', loaded + 8) or { return none }
+			semi := output.index_after(';', open + 1) or { return none }
+			return output[open + 1..semi]
+		}
+	}
+}
+
+fn plist_username(contents string) ?string {
+	key := contents.index('<key>UserName</key>') or { return none }
+	open := contents.index_after('<string>', key + 19) or { return none }
+	close := contents.index_after('</string>', open + 8) or { return none }
+	value := contents[open + 8..close].trim_space()
+	return if value == '' { none } else { value }
+}
 
 // Ruby attr_reader `attr_reader :formula` at line 15.
-pub fn ruby_formula_wrapper_l15_d1_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula', ...args)
+pub fn ruby_formula_wrapper_l15_d1_formula(wrapper &FormulaWrapper) FormulaWrapperFormula {
+	return wrapper.formula
 }
 
 // Ruby method `self.from(path_or_label)` at line 19.
-pub fn ruby_formula_wrapper_l19_d2_self_from(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.from', ...args)
+pub fn ruby_formula_wrapper_l19_d2_self_from(path_or_label string, formulary FormulaWrapperFormulary,
+	system FormulaWrapperSystem) ?FormulaWrapper {
+	name := formula_name_from_path_or_label(path_or_label) or { return none }
+	formula := formulary.factory(name) or { return none }
+	return new_formula_wrapper(formula, system) or { none }
 }
 
 // Ruby method `initialize(formula)` at line 31.
-pub fn ruby_formula_wrapper_l31_d3_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+pub fn ruby_formula_wrapper_l31_d3_initialize(formula FormulaWrapperFormula,
+	system FormulaWrapperSystem) !FormulaWrapper {
+	return new_formula_wrapper(formula, system)
 }
 
 // Ruby method `name` at line 42.
-pub fn ruby_formula_wrapper_l42_d4_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('name', ...args)
+pub fn ruby_formula_wrapper_l42_d4_name(wrapper &FormulaWrapper) string {
+	return wrapper.formula.name
 }
 
 // Ruby method `service?` at line 48.
-pub fn ruby_formula_wrapper_l48_d5_service(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('service?', ...args)
+pub fn ruby_formula_wrapper_l48_d5_service(wrapper &FormulaWrapper) bool {
+	return wrapper.formula.has_service
 }
 
 // Ruby method `timed?` at line 54.
-pub fn ruby_formula_wrapper_l54_d6_timed(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('timed?', ...args)
+pub fn ruby_formula_wrapper_l54_d6_timed(wrapper &FormulaWrapper) bool {
+	return wrapper.formula.has_service && wrapper.formula.service.timed
 }
 
 // Ruby method `keep_alive?` at line 63.
-pub fn ruby_formula_wrapper_l63_d7_keep_alive(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('keep_alive?', ...args)
+pub fn ruby_formula_wrapper_l63_d7_keep_alive(wrapper &FormulaWrapper) bool {
+	return wrapper.formula.has_service && wrapper.formula.service.keep_alive
 }
 
 // Ruby method `path_dirs` at line 71.
-pub fn ruby_formula_wrapper_l71_d8_path_dirs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('path_dirs', ...args)
+pub fn ruby_formula_wrapper_l71_d8_path_dirs(wrapper &FormulaWrapper) []string {
+	return if wrapper.formula.has_service {
+		wrapper.formula.service.path_dirs.clone()
+	} else {
+		[]string{}
+	}
 }
 
 // Ruby method `service_name` at line 80.
-pub fn ruby_formula_wrapper_l80_d9_service_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('service_name', ...args)
+pub fn ruby_formula_wrapper_l80_d9_service_name(wrapper &FormulaWrapper) string {
+	return if wrapper.system.manager == .launchctl {
+		wrapper.formula.plist_name
+	} else {
+		wrapper.formula.service_name
+	}
 }
 
 // Ruby method `service_file` at line 92.
-pub fn ruby_formula_wrapper_l92_d10_service_file(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('service_file', ...args)
+pub fn ruby_formula_wrapper_l92_d10_service_file(wrapper &FormulaWrapper) string {
+	return if wrapper.system.manager == .launchctl {
+		wrapper.formula.launchd_service_path
+	} else {
+		wrapper.formula.systemd_service_path
+	}
 }
 
 // Ruby method `timer_file` at line 103.
-pub fn ruby_formula_wrapper_l103_d11_timer_file(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('timer_file', ...args)
+pub fn ruby_formula_wrapper_l103_d11_timer_file(wrapper &FormulaWrapper) string {
+	return wrapper.formula.systemd_timer_path
 }
 
 // Ruby method `timer_name` at line 108.
-pub fn ruby_formula_wrapper_l108_d12_timer_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('timer_name', ...args)
+pub fn ruby_formula_wrapper_l108_d12_timer_name(wrapper &FormulaWrapper) string {
+	return basename(ruby_formula_wrapper_l103_d11_timer_file(wrapper))
 }
 
 // Ruby method `timer_dest` at line 113.
-pub fn ruby_formula_wrapper_l113_d13_timer_dest(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('timer_dest', ...args)
+pub fn ruby_formula_wrapper_l113_d13_timer_dest(wrapper &FormulaWrapper) string {
+	return os.join_path(ruby_formula_wrapper_l131_d15_dest_dir(wrapper), ruby_formula_wrapper_l108_d12_timer_name(wrapper))
 }
 
 // Ruby method `service_startup?` at line 119.
-pub fn ruby_formula_wrapper_l119_d14_service_startup(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('service_startup?', ...args)
+pub fn ruby_formula_wrapper_l119_d14_service_startup(wrapper &FormulaWrapper) bool {
+	return wrapper.formula.has_service && wrapper.formula.service.requires_root
 }
 
 // Ruby method `dest_dir` at line 131.
-pub fn ruby_formula_wrapper_l131_d15_dest_dir(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dest_dir', ...args)
+pub fn ruby_formula_wrapper_l131_d15_dest_dir(wrapper &FormulaWrapper) string {
+	return if wrapper.system.root { wrapper.system.boot_path } else { wrapper.system.user_path }
 }
 
 // Ruby method `dest` at line 137.
-pub fn ruby_formula_wrapper_l137_d16_dest(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dest', ...args)
+pub fn ruby_formula_wrapper_l137_d16_dest(wrapper &FormulaWrapper) string {
+	return os.join_path(ruby_formula_wrapper_l131_d15_dest_dir(wrapper), basename(ruby_formula_wrapper_l92_d10_service_file(wrapper)))
 }
 
 // Ruby method `installed?` at line 143.
-pub fn ruby_formula_wrapper_l143_d17_installed(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('installed?', ...args)
+pub fn ruby_formula_wrapper_l143_d17_installed(wrapper &FormulaWrapper) bool {
+	return wrapper.formula.any_version_installed
 }
 
 // Ruby method `reset_cache!` at line 148.
-pub fn ruby_formula_wrapper_l148_d18_reset_cache(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reset_cache!', ...args)
+pub fn ruby_formula_wrapper_l148_d18_reset_cache(mut wrapper FormulaWrapper) {
+	wrapper.has_status_cache = false
 }
 
 // Ruby method `loaded?(cached: false)` at line 154.
-pub fn ruby_formula_wrapper_l154_d19_loaded(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('loaded?', ...args)
+pub fn ruby_formula_wrapper_l154_d19_loaded(mut wrapper FormulaWrapper, cached bool) bool {
+	if wrapper.system.manager == .launchctl {
+		if !cached {
+			ruby_formula_wrapper_l148_d18_reset_cache(mut wrapper)
+		}
+		return ruby_formula_wrapper_l312_d33_status_success(mut wrapper)
+	}
+	wrapper.last_quiet_run_target = if ruby_formula_wrapper_l54_d6_timed(&wrapper) {
+		ruby_formula_wrapper_l108_d12_timer_name(&wrapper)
+	} else {
+		basename(ruby_formula_wrapper_l92_d10_service_file(&wrapper))
+	}
+	return wrapper.system.systemctl_quiet_run_result
 }
 
 // Ruby method `service_file_present?(type: nil)` at line 166.
-pub fn ruby_formula_wrapper_l166_d20_service_file_present(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('service_file_present?', ...args)
+pub fn ruby_formula_wrapper_l166_d20_service_file_present(wrapper &FormulaWrapper,
+	type_ FormulaWrapperServiceFileType) bool {
+	if wrapper.has_service_file_present_override {
+		return wrapper.service_file_present_override
+	}
+	return match type_ {
+		.root { ruby_formula_wrapper_l373_d39_boot_path_service_file_present(wrapper) }
+		.user { ruby_formula_wrapper_l381_d40_user_path_service_file_present(wrapper) }
+		.any {
+			ruby_formula_wrapper_l373_d39_boot_path_service_file_present(wrapper) || ruby_formula_wrapper_l381_d40_user_path_service_file_present(wrapper)
+		}
+	}
 }
 
 // Ruby method `owner` at line 178.
-pub fn ruby_formula_wrapper_l178_d21_owner(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('owner', ...args)
+pub fn ruby_formula_wrapper_l178_d21_owner(wrapper &FormulaWrapper) ?string {
+	if wrapper.system.manager == .launchctl {
+		destination := ruby_formula_wrapper_l137_d16_dest(wrapper)
+		if os.exists(destination) {
+			contents := os.read_file(destination) or { '' }
+			if username := plist_username(contents) {
+				return username
+			}
+		}
+	}
+	if ruby_formula_wrapper_l373_d39_boot_path_service_file_present(wrapper) {
+		return 'root'
+	}
+	if ruby_formula_wrapper_l381_d40_user_path_service_file_present(wrapper) {
+		return wrapper.system.user
+	}
+	return none
 }
 
 // Ruby method `pid?` at line 198.
-pub fn ruby_formula_wrapper_l198_d22_pid(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('pid?', ...args)
+pub fn ruby_formula_wrapper_l198_d22_pid(mut wrapper FormulaWrapper) bool {
+	return formula_wrapper_pid_present_value(ruby_formula_wrapper_l216_d25_pid(mut wrapper))
+}
+
+pub fn formula_wrapper_pid_present_value(pid ?int) bool {
+	value := pid or { return false }
+	return value > 0
 }
 
 // Ruby method `error?` at line 203.
-pub fn ruby_formula_wrapper_l203_d23_error(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('error?', ...args)
+pub fn ruby_formula_wrapper_l203_d23_error(mut wrapper FormulaWrapper) bool {
+	return formula_wrapper_error_values(ruby_formula_wrapper_l216_d25_pid(mut wrapper), ruby_formula_wrapper_l222_d26_exit_code(mut wrapper))
+}
+
+pub fn formula_wrapper_error_values(pid ?int, exit_code ?int) bool {
+	if formula_wrapper_pid_present_value(pid) {
+		return false
+	}
+	value := exit_code or { return false }
+	return value != 0
 }
 
 // Ruby method `unknown_status?` at line 210.
-pub fn ruby_formula_wrapper_l210_d24_unknown_status(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('unknown_status?', ...args)
+pub fn ruby_formula_wrapper_l210_d24_unknown_status(mut wrapper FormulaWrapper) bool {
+	return ruby_formula_wrapper_l307_d32_status_output(mut wrapper).trim_space() == '' && !ruby_formula_wrapper_l198_d22_pid(mut wrapper)
 }
 
 // Ruby method `pid` at line 216.
-pub fn ruby_formula_wrapper_l216_d25_pid(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('pid', ...args)
+pub fn ruby_formula_wrapper_l216_d25_pid(mut wrapper FormulaWrapper) ?int {
+	output := ruby_formula_wrapper_l307_d32_status_output(mut wrapper)
+	type_ := ruby_formula_wrapper_l317_d34_status_type(mut wrapper)
+	return match type_ {
+		.launchctl_list { integer_match(output, '"PID" = ', ';', true) }
+		.launchctl_print { digits_after(output, 'pid = ') }
+		.systemctl {
+			index := output.index('Main PID: ') or { return none }
+			start := index + 'Main PID: '.len
+			mut end := start
+			for end < output.len && output[end] >= `0` && output[end] <= `9` {
+				end++
+			}
+			if end + 2 > output.len || !output[end..].starts_with(' (') || output[end + 2..].starts_with('code=') {
+				return none
+			}
+			if end == start { 0 } else { strconv.atoi(output[start..end]) or { none } }
+		}
+	}
 }
 
 // Ruby method `exit_code` at line 222.
-pub fn ruby_formula_wrapper_l222_d26_exit_code(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('exit_code', ...args)
+pub fn ruby_formula_wrapper_l222_d26_exit_code(mut wrapper FormulaWrapper) ?int {
+	output := ruby_formula_wrapper_l307_d32_status_output(mut wrapper)
+	return match ruby_formula_wrapper_l317_d34_status_type(mut wrapper) {
+		.launchctl_list { integer_match(output, '"LastExitStatus" = ', ';', true) }
+		.launchctl_print { digits_after(output, 'last exit code = ') }
+		.systemctl { integer_match(output, '(code=exited, status=', ')', true) }
+	}
 }
 
 // Ruby method `loaded_file` at line 227.
-pub fn ruby_formula_wrapper_l227_d27_loaded_file(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('loaded_file', ...args)
+pub fn ruby_formula_wrapper_l227_d27_loaded_file(mut wrapper FormulaWrapper) ?string {
+	return loaded_file_from_output(ruby_formula_wrapper_l307_d32_status_output(mut wrapper), ruby_formula_wrapper_l317_d34_status_type(mut wrapper))
 }
 
 // Ruby method `to_hash` at line 232.
-pub fn ruby_formula_wrapper_l232_d28_to_hash(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_hash', ...args)
+pub fn ruby_formula_wrapper_l232_d28_to_hash(mut wrapper FormulaWrapper) FormulaWrapperHash {
+	registered := ruby_formula_wrapper_l166_d20_service_file_present(&wrapper, .any)
+	mut result := FormulaWrapperHash{
+		name: ruby_formula_wrapper_l42_d4_name(&wrapper)
+		service_name: ruby_formula_wrapper_l80_d9_service_name(&wrapper)
+		running: ruby_formula_wrapper_l198_d22_pid(mut wrapper)
+		loaded: ruby_formula_wrapper_l154_d19_loaded(mut wrapper, true)
+		schedulable: ruby_formula_wrapper_l54_d6_timed(&wrapper)
+		pid: ruby_formula_wrapper_l216_d25_pid(mut wrapper)
+		exit_code: ruby_formula_wrapper_l222_d26_exit_code(mut wrapper)
+		user: ruby_formula_wrapper_l178_d21_owner(&wrapper)
+		status: ruby_formula_wrapper_l322_d35_status_symbol(mut wrapper)
+		file: if registered {
+			ruby_formula_wrapper_l137_d16_dest(&wrapper)} else {
+			ruby_formula_wrapper_l92_d10_service_file(&wrapper)}
+		registered: registered
+		loaded_file: ruby_formula_wrapper_l227_d27_loaded_file(mut wrapper)
+	}
+	if !wrapper.formula.has_service || wrapper.formula.service.command.len == 0 {
+		return result
+	}
+	service := wrapper.formula.service
+	result.has_service_details = true
+	result.command = service.manual_command
+	result.working_dir = service.working_dir
+	result.root_dir = service.root_dir
+	result.log_path = service.log_path
+	result.error_log_path = service.error_log_path
+	result.interval = service.interval
+	result.has_cron = service.cron.len > 0
+	result.cron = service.cron.clone()
+	return result
 }
 
 // Ruby method `service_contents` at line 270.
-pub fn ruby_formula_wrapper_l270_d29_service_contents(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('service_contents', ...args)
+pub fn ruby_formula_wrapper_l270_d29_service_contents(wrapper &FormulaWrapper) !string {
+	if !wrapper.formula.has_service || wrapper.formula.service.command.len == 0 {
+		return os.read_file(ruby_formula_wrapper_l92_d10_service_file(wrapper))
+	}
+	return if wrapper.system.manager == .launchctl {
+		wrapper.formula.service.plist_contents
+	} else {
+		wrapper.formula.service.systemd_unit
+	}
 }
 
 // Ruby method `load_service` at line 286.
-pub fn ruby_formula_wrapper_l286_d30_load_service(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('load_service', ...args)
+pub fn ruby_formula_wrapper_l286_d30_load_service(wrapper &FormulaWrapper) FormulaWrapperService {
+	return wrapper.formula.service
 }
 
 // Ruby method `status_output_success_type` at line 293.
-pub fn ruby_formula_wrapper_l293_d31_status_output_success_type(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('status_output_success_type', ...args)
+pub fn ruby_formula_wrapper_l293_d31_status_output_success_type(mut wrapper FormulaWrapper) StatusOutputSuccessType {
+	if wrapper.has_status_cache {
+		return wrapper.status_cache
+	}
+	wrapper.status_cache = if wrapper.system.manager == .launchctl {
+		wrapper.system.launchctl_status
+	} else {
+		output := ruby_chomp(wrapper.system.systemctl_status_output)
+		StatusOutputSuccessType{
+			output: output
+			success: wrapper.system.systemctl_child_status_set && wrapper.system.systemctl_child_status_ok && output.trim_space() != ''
+			type_: .systemctl
+		}
+	}
+	wrapper.has_status_cache = true
+	return wrapper.status_cache
 }
 
 // Ruby method `status_output` at line 307.
-pub fn ruby_formula_wrapper_l307_d32_status_output(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('status_output', ...args)
+pub fn ruby_formula_wrapper_l307_d32_status_output(mut wrapper FormulaWrapper) string {
+	return ruby_formula_wrapper_l293_d31_status_output_success_type(mut wrapper).output
 }
 
 // Ruby method `status_success` at line 312.
-pub fn ruby_formula_wrapper_l312_d33_status_success(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('status_success', ...args)
+pub fn ruby_formula_wrapper_l312_d33_status_success(mut wrapper FormulaWrapper) bool {
+	return ruby_formula_wrapper_l293_d31_status_output_success_type(mut wrapper).success
 }
 
 // Ruby method `status_type` at line 317.
-pub fn ruby_formula_wrapper_l317_d34_status_type(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('status_type', ...args)
+pub fn ruby_formula_wrapper_l317_d34_status_type(mut wrapper FormulaWrapper) FormulaWrapperStatusType {
+	return ruby_formula_wrapper_l293_d31_status_output_success_type(mut wrapper).type_
 }
 
 // Ruby method `status_symbol` at line 322.
-pub fn ruby_formula_wrapper_l322_d35_status_symbol(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('status_symbol', ...args)
+pub fn ruby_formula_wrapper_l322_d35_status_symbol(mut wrapper FormulaWrapper) FormulaWrapperStatusSymbol {
+	if ruby_formula_wrapper_l198_d22_pid(mut wrapper) {
+		return .started
+	}
+	if !ruby_formula_wrapper_l154_d19_loaded(mut wrapper, true) {
+		return .none
+	}
+	if exit_code := ruby_formula_wrapper_l222_d26_exit_code(mut wrapper) {
+		if exit_code == 0 {
+			return if ruby_formula_wrapper_l54_d6_timed(&wrapper) { .scheduled } else { .stopped }
+		}
+	}
+	if ruby_formula_wrapper_l203_d23_error(mut wrapper) {
+		return .error
+	}
+	if ruby_formula_wrapper_l210_d24_unknown_status(mut wrapper) {
+		return .unknown
+	}
+	return .other
 }
 
 // Ruby method `exit_code_regex(status_type)` at line 343.
-pub fn ruby_formula_wrapper_l343_d36_exit_code_regex(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('exit_code_regex', ...args)
+pub fn ruby_formula_wrapper_l343_d36_exit_code_regex(status_type FormulaWrapperStatusType) string {
+	return match status_type {
+		.launchctl_list { '"LastExitStatus" = ([0-9]*);' }
+		.launchctl_print { 'last exit code = ([0-9]+)' }
+		.systemctl { '\\(code=exited, status=([0-9]*)\\)|\\(dead\\)' }
+	}
 }
 
 // Ruby method `pid_regex(status_type)` at line 353.
-pub fn ruby_formula_wrapper_l353_d37_pid_regex(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('pid_regex', ...args)
+pub fn ruby_formula_wrapper_l353_d37_pid_regex(status_type FormulaWrapperStatusType) string {
+	return match status_type {
+		.launchctl_list { '"PID" = ([0-9]*);' }
+		.launchctl_print { 'pid = ([0-9]+)' }
+		.systemctl { 'Main PID: ([0-9]*) \\((?!code=)' }
+	}
 }
 
 // Ruby method `loaded_file_regex(status_type)` at line 363.
-pub fn ruby_formula_wrapper_l363_d38_loaded_file_regex(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('loaded_file_regex', ...args)
+pub fn ruby_formula_wrapper_l363_d38_loaded_file_regex(status_type FormulaWrapperStatusType) string {
+	return match status_type {
+		.launchctl_list { '' }
+		.launchctl_print { 'path = (.*)' }
+		.systemctl { 'Loaded: .*? \\((.*);' }
+	}
 }
 
 // Ruby method `boot_path_service_file_present?` at line 373.
-pub fn ruby_formula_wrapper_l373_d39_boot_path_service_file_present(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('boot_path_service_file_present?', ...args)
+pub fn ruby_formula_wrapper_l373_d39_boot_path_service_file_present(wrapper &FormulaWrapper) bool {
+	return wrapper.system.boot_path != '' && os.exists(os.join_path(wrapper.system.boot_path, basename(ruby_formula_wrapper_l92_d10_service_file(wrapper))))
 }
 
 // Ruby method `user_path_service_file_present?` at line 381.
-pub fn ruby_formula_wrapper_l381_d40_user_path_service_file_present(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('user_path_service_file_present?', ...args)
+pub fn ruby_formula_wrapper_l381_d40_user_path_service_file_present(wrapper &FormulaWrapper) bool {
+	return wrapper.system.user_path != '' && os.exists(os.join_path(wrapper.system.user_path, basename(ruby_formula_wrapper_l92_d10_service_file(wrapper))))
 }
 
 // Ruby method `self.path_or_label_regex` at line 389.
-pub fn ruby_formula_wrapper_l389_d41_self_path_or_label_regex(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.path_or_label_regex', ...args)
+pub fn ruby_formula_wrapper_l389_d41_self_path_or_label_regex() string {
+	return r'homebrew(?>\.mxcl)?\.([\w+-.@]+)(\.plist|\.service)?\z'
 }
 
 // Ruby attr_reader `attr_reader :output` at line 395.
-pub fn ruby_formula_wrapper_l395_d42_output(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('output', ...args)
+pub fn ruby_formula_wrapper_l395_d42_output(status StatusOutputSuccessType) string {
+	return status.output
 }
 
 // Ruby attr_reader `attr_reader :success` at line 398.
-pub fn ruby_formula_wrapper_l398_d43_success(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('success', ...args)
+pub fn ruby_formula_wrapper_l398_d43_success(status StatusOutputSuccessType) bool {
+	return status.success
 }
 
 // Ruby attr_reader `attr_reader :type` at line 401.
-pub fn ruby_formula_wrapper_l401_d44_type(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('type', ...args)
+pub fn ruby_formula_wrapper_l401_d44_type(status StatusOutputSuccessType) FormulaWrapperStatusType {
+	return status.type_
 }
 
 // Ruby method `initialize(output, success, type)` at line 404.
-pub fn ruby_formula_wrapper_l404_d45_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+pub fn ruby_formula_wrapper_l404_d45_initialize(output string, success bool,
+	type_ FormulaWrapperStatusType) StatusOutputSuccessType {
+	return StatusOutputSuccessType{ output: output, success: success, type_: type_ }
 }
 
 // Original Ruby source (line-for-line):

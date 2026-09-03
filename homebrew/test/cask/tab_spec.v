@@ -1,178 +1,446 @@
 module cask
 
-import brew_runtime
+import homebrew
+import homebrew.cask as cask_core
+import json2
+import os
+import time
 
 // Translated from Homebrew/brew `test/cask/tab_spec.rb`.
-// The original source is retained below until every stub has a typed V body.
+pub struct CaskTabSpecFormula {
+pub:
+	url string
+}
+
+fn cask_tab_spec_environment(now i64) cask_core.CaskTabEnvironment {
+	return cask_core.CaskTabEnvironment{
+		homebrew_version: '4.3.7'
+		now: now
+		arch: 'arm64'
+		built_on: {
+			'os':         json2.Any('Macintosh')
+			'os_version': json2.Any('macOS 14')
+		}
+	}
+}
+
+fn cask_tab_spec_dependency(kind cask_core.CaskTabDependencyKind, full_name string,
+	version string) cask_core.CaskTabDependency {
+	return cask_core.CaskTabDependency{
+		kind: kind
+		full_name: full_name
+		version: version
+	}
+}
+
+fn cask_tab_spec_string_array(values []string) json2.Any {
+	return json2.Any(values.map(json2.Any(it)))
+}
+
+fn cask_tab_spec_app_artifact(name string) json2.Any {
+	return json2.Any({
+		'app': cask_tab_spec_string_array([name])
+	})
+}
+
+fn cask_tab_spec_zap_artifact(path string) json2.Any {
+	return json2.Any({
+		'zap': json2.Any([json2.Any({
+			'trash': json2.Any(path)
+		})])
+	})
+}
+
+fn cask_tab_spec_map_string(values map[string]json2.Any, key string) string {
+	value := values[key] or { return '' }
+	return value.str()
+}
+
+fn cask_tab_spec_cask(name string, root string) cask_core.CaskTabCask {
+	mut cask := cask_core.CaskTabCask{
+		metadata_main_container_path: os.join_path(root, 'Caskroom', name, '1.2.3')
+		sourcefile_path: os.join_path(root, 'homebrew-cask', 'Casks', '${name}.rb')
+		tap_name: 'homebrew/cask'
+		version: '1.2.3'
+	}
+	match name {
+		'with-depends-on-cask' {
+			cask = cask_core.CaskTabCask{
+				...cask
+				dependency_graph: [
+					cask_tab_spec_dependency(.cask, 'local-transmission-zip', '2.61'),
+				]
+				declared_casks: ['local-transmission-zip']
+			}
+		}
+		'with-depends-on-everything' {
+			cask = cask_core.CaskTabCask{
+				...cask
+				dependency_graph: [
+					cask_tab_spec_dependency(.cask, 'local-caffeine', '1.2.3'),
+					cask_tab_spec_dependency(.cask, 'with-depends-on-cask', '1.2.3'),
+					cask_tab_spec_dependency(.cask, 'local-transmission-zip', '2.61'),
+					cask_core.CaskTabDependency{
+						kind: .formula
+						full_name: 'unar'
+						version: '1.2'
+						revision: 0
+						has_revision: true
+						pkg_version: '1.2'
+					},
+				]
+				declared_casks: ['local-caffeine', 'with-depends-on-cask']
+				declared_formulae: ['unar']
+			}
+		}
+		'local-caffeine' {
+			cask = cask_core.CaskTabCask{
+				...cask
+				uninstall_artifacts: [
+					cask_tab_spec_app_artifact('Caffeine.app'),
+					cask_tab_spec_zap_artifact(os.join_path(root, 'cask', 'caffeine', 'org.example.caffeine.plist')),
+				]
+			}
+		}
+		else {}
+	}
+	return cask
+}
+
+fn cask_tab_spec_runtime() cask_core.CaskTabRuntimeDependencies {
+	return cask_core.CaskTabRuntimeDependencies{
+		present: true
+		casks: [homebrew.RuntimeDependencyReceipt{
+			full_name: 'bar'
+			version: '2.0'
+			declared_directly: false
+			has_declared_directly: true
+		}]
+	}
+}
+
+fn cask_tab_spec_subject(install_time i64, root string) cask_core.CaskTab {
+	return cask_core.ruby_tab_l22_d5_initialize(cask_core.CaskTabConfig{
+		base: homebrew.TabConfig{
+			homebrew_version: '4.3.7'
+			has_homebrew_version: true
+			loaded_from_api: false
+			has_loaded_from_api: true
+			loaded_from_internal_api: false
+			has_loaded_from_internal_api: true
+			installed_on_request: true
+			has_installed_on_request: true
+			time: install_time
+			has_time: true
+			arch: 'arm64'
+			has_arch: true
+			source: {
+				'path':         json2.Any(os.join_path(root, 'homebrew-cask'))
+				'tap':          json2.Any('homebrew/cask')
+				'tap_git_head': json2.Any('8b79aa759500f0ffdf65a23e12950cbe3bf8fe17')
+				'version':      json2.Any('1.2.3')
+			}
+			built_on: {
+				'os': json2.Any('Macintosh')
+			}
+			has_built_on: true
+		}
+		uninstall_flight_blocks: cask_core.CaskTabOptionalBool{
+			present: true
+			value: true
+		}
+		uninstall_artifacts: cask_core.CaskTabArtifacts{
+			present: true
+			values: [cask_tab_spec_app_artifact('Foo.app')]
+		}
+		runtime_dependencies: cask_tab_spec_runtime()
+	})
+}
+
+fn cask_tab_spec_receipt_content() string {
+	cask_dep := json2.Any({
+		'full_name':         json2.Any('bar')
+		'version':           json2.Any('2.0')
+		'declared_directly': json2.Any(true)
+	})
+	formula_dep := json2.Any({
+		'full_name':         json2.Any('baz')
+		'version':           json2.Any('3.0')
+		'revision':          json2.Any(0)
+		'pkg_version':       json2.Any('3.0')
+		'declared_directly': json2.Any(true)
+	})
+	return json2.encode(json2.Any({
+		'homebrew_version':         json2.Any('4.3.7')
+		'loaded_from_api':          json2.Any(false)
+		'loaded_from_internal_api': json2.Any(false)
+		'uninstall_flight_blocks':  json2.Any(true)
+		'installed_on_request':     json2.Any(true)
+		'time':                     json2.Any(i64(1_719_289_256))
+		'runtime_dependencies':     json2.Any({
+			'cask':    json2.Any([cask_dep])
+			'formula': json2.Any([formula_dep])
+			'macos':   json2.Any({
+				'>=': cask_tab_spec_string_array(['12'])
+			})
+		})
+		'source':                   json2.Any({
+			'path':         json2.Any('/opt/homebrew/Library/Taps/homebrew/homebrew-cask/Casks/f/foo.rb')
+			'tap':          json2.Any('homebrew/cask')
+			'tap_git_head': json2.Any('8b79aa759500f0ffdf65a23e12950cbe3bf8fe17')
+			'version':      json2.Any('1.2.3')
+		})
+		'arch':                     json2.Any('arm64')
+		'uninstall_artifacts':      json2.Any([cask_tab_spec_app_artifact('Foo.app')])
+		'built_on':                 json2.Any({
+			'os':             json2.Any('Macintosh')
+			'os_version':     json2.Any('macOS 14')
+			'cpu_family':     json2.Any('arm_firestorm_icestorm')
+			'xcode':          json2.Any('15.4')
+			'clt':            json2.Any('15.3.0.0.1.1708646388')
+			'preferred_perl': json2.Any('5.34')
+		})
+	}),
+		prettify: true
+	)
+}
+
+fn cask_tab_spec_parsed(tab cask_core.CaskTab, path string) bool {
+	version := cask_core.ruby_tab_l104_d10_version(tab) or { return false }
+	return !tab.base.loaded_from_api && !tab.base.loaded_from_internal_api && tab.uninstall_flight_blocks && tab.base.installed_on_request && tab.base.time == 1_719_289_256 && cask_tab_spec_map_string(tab.base.source, 'path') == '/opt/homebrew/Library/Taps/homebrew/homebrew-cask/Casks/f/foo.rb' && version == '1.2.3' && tab.base.tap_name() == 'homebrew/cask' && tab.base.tabfile == path && tab.runtime_dependencies.casks.len == 1 && tab.runtime_dependencies.formulae.len == 1 && 'macos' in tab.runtime_dependencies.other
+}
 
 // Ruby subject `subject(:tab) do` at line 7.
-pub fn ruby_tab_spec_l7_d1_tab(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tab', ...args)
+pub fn ruby_tab_spec_l7_d1_tab(install_time i64, root string) cask_core.CaskTab {
+	return cask_tab_spec_subject(install_time, root)
 }
 
 // Ruby let `let(:time) { Time.now.to_i }` at line 30.
-pub fn ruby_tab_spec_l30_d2_time(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('time', ...args)
+pub fn ruby_tab_spec_l30_d2_time() i64 {
+	return time.now().unix()
 }
 
 // Ruby let `let(:f) do` at line 31.
-pub fn ruby_tab_spec_l31_d3_f(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f', ...args)
+pub fn ruby_tab_spec_l31_d3_f() CaskTabSpecFormula {
+	return CaskTabSpecFormula{ url: 'foo-1.0' }
 }
 
 // Ruby matcher `matcher :be_installed_on_request do` at line 38.
-pub fn ruby_tab_spec_l38_d4_be_installed_on_request(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('be_installed_on_request', ...args)
+pub fn ruby_tab_spec_l38_d4_be_installed_on_request(tab cask_core.CaskTab) bool {
+	return tab.base.installed_on_request
 }
 
 // Ruby matcher `matcher :be_loaded_from_api do` at line 44.
-pub fn ruby_tab_spec_l44_d5_be_loaded_from_api(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('be_loaded_from_api', ...args)
+pub fn ruby_tab_spec_l44_d5_be_loaded_from_api(tab cask_core.CaskTab) bool {
+	return tab.base.loaded_from_api
 }
 
 // Ruby matcher `matcher :be_loaded_from_internal_api do` at line 50.
-pub fn ruby_tab_spec_l50_d6_be_loaded_from_internal_api(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('be_loaded_from_internal_api', ...args)
+pub fn ruby_tab_spec_l50_d6_be_loaded_from_internal_api(tab cask_core.CaskTab) bool {
+	return tab.base.loaded_from_internal_api
 }
 
 // Ruby matcher `matcher :have_uninstall_flight_blocks do` at line 56.
-pub fn ruby_tab_spec_l56_d7_have_uninstall_flight_blocks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('have_uninstall_flight_blocks', ...args)
+pub fn ruby_tab_spec_l56_d7_have_uninstall_flight_blocks(tab cask_core.CaskTab) bool {
+	return tab.uninstall_flight_blocks
 }
 
 // Ruby specify `specify "defaults" do` at line 62.
-pub fn ruby_tab_spec_l62_d8_defaults(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('defaults', ...args)
+pub fn ruby_tab_spec_l62_d8_defaults() bool {
+	tab := cask_core.ruby_tab_l66_d8_self_empty(cask_tab_spec_environment(0))
+	return tab.base.homebrew_version == '4.3.7' && !tab.base.installed_on_request && !tab.base.loaded_from_api && !tab.base.loaded_from_internal_api && !tab.uninstall_flight_blocks && tab.base.tap_name() == '' && !tab.base.has_time && !tab.runtime_dependencies.present && (tab.base.source['path'] or { json2.null }) is json2.Null
 }
 
 // Ruby specify `specify "#runtime_dependencies" do` at line 78.
-pub fn ruby_tab_spec_l78_d9_runtime_dependencies(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#runtime_dependencies', ...args)
+pub fn ruby_tab_spec_l78_d9_runtime_dependencies() bool {
+	mut tab := cask_core.ruby_tab_l22_d5_initialize(cask_core.CaskTabConfig{})
+	if tab.runtime_dependencies.present {
+		return false
+	}
+	tab.runtime_dependencies = cask_core.CaskTabRuntimeDependencies{ present: true }
+	if !tab.runtime_dependencies.present {
+		return false
+	}
+	tab.runtime_dependencies = cask_tab_spec_runtime()
+	return tab.runtime_dependencies.present
 }
 
 // Ruby specify `specify "with no dependencies" do` at line 92.
-pub fn ruby_tab_spec_l92_d10_with(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('with', ...args)
+pub fn ruby_tab_spec_l92_d10_with(root string) bool {
+	result := cask_core.ruby_tab_l76_d9_self_runtime_deps_hash(cask_tab_spec_cask('local-transmission', root))
+	return result.present && result.casks.len == 0 && result.formulae.len == 0
 }
 
 // Ruby specify `specify "with cask dependencies" do` at line 98.
-pub fn ruby_tab_spec_l98_d11_with(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('with', ...args)
+pub fn ruby_tab_spec_l98_d11_with(root string) bool {
+	result := cask_core.ruby_tab_l76_d9_self_runtime_deps_hash(cask_tab_spec_cask('with-depends-on-cask', root))
+	return result.casks.len == 1 && result.casks[0].full_name == 'local-transmission-zip' && result.casks[0].version == '2.61' && result.casks[0].declared_directly
 }
 
 // Ruby it `it "ignores macos symbol dependencies" do` at line 109.
-pub fn ruby_tab_spec_l109_d12_ignores(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ignores', ...args)
+pub fn ruby_tab_spec_l109_d12_ignores(root string) bool {
+	result := cask_core.ruby_tab_l76_d9_self_runtime_deps_hash(cask_tab_spec_cask('with-depends-on-macos-symbol', root))
+	return result.casks.len == 0 && result.formulae.len == 0
 }
 
 // Ruby it `it "ignores macos array dependencies" do` at line 115.
-pub fn ruby_tab_spec_l115_d13_ignores(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ignores', ...args)
+pub fn ruby_tab_spec_l115_d13_ignores(root string) bool {
+	result := cask_core.ruby_tab_l76_d9_self_runtime_deps_hash(cask_tab_spec_cask('with-depends-on-macos-array', root))
+	return result.casks.len == 0 && result.formulae.len == 0
 }
 
 // Ruby it `it "ignores arch dependencies" do` at line 121.
-pub fn ruby_tab_spec_l121_d14_ignores(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ignores', ...args)
+pub fn ruby_tab_spec_l121_d14_ignores(root string) bool {
+	result := cask_core.ruby_tab_l76_d9_self_runtime_deps_hash(cask_tab_spec_cask('with-depends-on-arch', root))
+	return result.casks.len == 0 && result.formulae.len == 0
 }
 
 // Ruby specify `specify "with all types of dependencies" do` at line 127.
-pub fn ruby_tab_spec_l127_d15_with(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('with', ...args)
+pub fn ruby_tab_spec_l127_d15_with(root string) bool {
+	result := cask_core.ruby_tab_l76_d9_self_runtime_deps_hash(cask_tab_spec_cask('with-depends-on-everything', root))
+	return result.casks.map(it.full_name) == ['local-caffeine', 'with-depends-on-cask',
+		'local-transmission-zip'] && result.casks.map(it.declared_directly) == [true, true, false] && result.formulae.len == 1 && result.formulae[0].full_name == 'unar' && result.formulae[0].version == '1.2' && result.formulae[0].revision == 0 && result.formulae[0].pkg_version == '1.2' && result.formulae[0].declared_directly
 }
 
 // Ruby specify `specify "other attributes" do` at line 154.
-pub fn ruby_tab_spec_l154_d16_other(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('other', ...args)
+pub fn ruby_tab_spec_l154_d16_other(install_time i64, root string) bool {
+	tab := cask_tab_spec_subject(install_time, root)
+	return tab.base.tap_name() == 'homebrew/cask' && tab.base.time == install_time && !tab.base.loaded_from_api && !tab.base.loaded_from_internal_api && tab.uninstall_flight_blocks && tab.base.installed_on_request
 }
 
 // Ruby it `it "parses a cask Tab from a file" do` at line 164.
-pub fn ruby_tab_spec_l164_d17_parses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('parses', ...args)
+pub fn ruby_tab_spec_l164_d17_parses(path string) bool {
+	tab := cask_core.cask_tab_from_file(path, cask_tab_spec_environment(0)) or { return false }
+	return cask_tab_spec_parsed(tab, path)
 }
 
 // Ruby it `it "parses a cask Tab from a file" do` at line 205.
-pub fn ruby_tab_spec_l205_d18_parses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('parses', ...args)
+pub fn ruby_tab_spec_l205_d18_parses(path string, content string) bool {
+	tab := cask_core.cask_tab_from_json(content, path) or { return false }
+	return cask_tab_spec_parsed(tab, path)
 }
 
 // Ruby it `it "raises a parse exception message including the Tab filename" do` at line 245.
-pub fn ruby_tab_spec_l245_d19_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+pub fn ruby_tab_spec_l245_d19_raises() bool {
+	mut message := ''
+	cask_core.cask_tab_from_json("''", 'cask_receipt.json') or { message = err.msg() }
+	return message.contains('receipt.json:')
 }
 
 // Ruby it `it "creates a cask Tab" do` at line 254.
-pub fn ruby_tab_spec_l254_d20_creates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('creates', ...args)
+pub fn ruby_tab_spec_l254_d20_creates(root string) bool {
+	cask := cask_tab_spec_cask('local-caffeine', root)
+	tab := cask_core.ruby_tab_l31_d6_self_create(cask, cask_tab_spec_environment(1))
+	version := cask_core.ruby_tab_l104_d10_version(tab) or { return false }
+	return !tab.base.loaded_from_api && !tab.base.loaded_from_internal_api && !tab.uninstall_flight_blocks && !tab.base.installed_on_request && cask_tab_spec_map_string(tab.base.source, 'path') == cask.sourcefile_path && tab.base.tap_name() == 'homebrew/cask' && version == '1.2.3' && tab.runtime_dependencies.present && tab.runtime_dependencies.casks.len == 0 && json2.encode(json2.Any(tab.uninstall_artifact_items)) == json2.encode(json2.Any(cask.uninstall_artifacts))
 }
 
 // Ruby let `let(:cask) { Cask::CaskLoader.load("local-transmission") }` at line 278.
-pub fn ruby_tab_spec_l278_d21_cask(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask', ...args)
+pub fn ruby_tab_spec_l278_d21_cask(root string) cask_core.CaskTabCask {
+	return cask_tab_spec_cask('local-transmission', root)
 }
 
 // Ruby let `let(:cask_tab_path) { cask.metadata_main_container_path/AbstractTab::FILENAME }` at line 279.
-pub fn ruby_tab_spec_l279_d22_cask_tab_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask_tab_path', ...args)
+pub fn ruby_tab_spec_l279_d22_cask_tab_path(root string) string {
+	return os.join_path(cask_tab_spec_cask('local-transmission', root).metadata_main_container_path, homebrew.tab_filename)
 }
 
 // Ruby let `let(:cask_tab_content) { (TEST_FIXTURE_DIR/"cask_receipt.json").read }` at line 280.
-pub fn ruby_tab_spec_l280_d23_cask_tab_content(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask_tab_content', ...args)
+pub fn ruby_tab_spec_l280_d23_cask_tab_content() string {
+	return cask_tab_spec_receipt_content()
 }
 
 // Ruby it `it "creates a Tab for a given cask" do` at line 282.
-pub fn ruby_tab_spec_l282_d24_creates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('creates', ...args)
+pub fn ruby_tab_spec_l282_d24_creates(root string) bool {
+	cask := cask_tab_spec_cask('local-transmission', root)
+	tab := cask_core.ruby_tab_l48_d7_self_for_cask(cask, cask_tab_spec_environment(0)) or {
+		return false
+	}
+	return cask_tab_spec_map_string(tab.base.source, 'path') == cask.sourcefile_path
 }
 
 // Ruby it `it "creates a Tab for a given cask with existing Tab" do` at line 287.
-pub fn ruby_tab_spec_l287_d25_creates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('creates', ...args)
+pub fn ruby_tab_spec_l287_d25_creates(root string) bool {
+	cask := cask_tab_spec_cask('local-transmission', root)
+	path := ruby_tab_spec_l279_d22_cask_tab_path(root)
+	os.mkdir_all(os.dir(path)) or { return false }
+	os.write_file(path, cask_tab_spec_receipt_content()) or { return false }
+	tab := cask_core.ruby_tab_l48_d7_self_for_cask(cask, cask_tab_spec_environment(0)) or {
+		return false
+	}
+	return tab.base.tabfile == path
 }
 
 // Ruby it `it "can create a Tab for a non-existent cask" do` at line 295.
-pub fn ruby_tab_spec_l295_d26_can(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('can', ...args)
+pub fn ruby_tab_spec_l295_d26_can(root string) bool {
+	cask := cask_tab_spec_cask('local-transmission', root)
+	os.mkdir_all(cask.metadata_main_container_path) or { return false }
+	tab := cask_core.ruby_tab_l48_d7_self_for_cask(cask, cask_tab_spec_environment(0)) or {
+		return false
+	}
+	return tab.base.tabfile == ''
 }
 
 // Ruby specify `specify "#to_json" do` at line 303.
-pub fn ruby_tab_spec_l303_d27_to_json(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#to_json', ...args)
+pub fn ruby_tab_spec_l303_d27_to_json(install_time i64, root string) bool {
+	tab := cask_tab_spec_subject(install_time, root)
+	parsed := cask_core.cask_tab_from_json(cask_core.ruby_tab_l109_d11_to_json(tab), 'receipt.json') or { return false }
+	version := cask_core.ruby_tab_l104_d10_version(tab) or { return false }
+	parsed_version := cask_core.ruby_tab_l104_d10_version(parsed) or { return false }
+	return parsed.base.homebrew_version == tab.base.homebrew_version && parsed.base.loaded_from_api == tab.base.loaded_from_api && parsed.base.loaded_from_internal_api == tab.base.loaded_from_internal_api && parsed.uninstall_flight_blocks == tab.uninstall_flight_blocks && parsed.base.installed_on_request == tab.base.installed_on_request && parsed.base.time == tab.base.time && cask_core.cask_tab_runtime_equal(parsed.runtime_dependencies, tab.runtime_dependencies) && cask_tab_spec_map_string(parsed.base.source, 'path') == cask_tab_spec_map_string(tab.base.source, 'path') && parsed.base.tap_name() == tab.base.tap_name() && cask_tab_spec_map_string(parsed.base.source, 'tap_git_head') == cask_tab_spec_map_string(tab.base.source, 'tap_git_head') && parsed_version == version && parsed.base.arch == tab.base.arch && json2.encode(json2.Any(parsed.uninstall_artifact_items)) == json2.encode(json2.Any(tab.uninstall_artifact_items)) && cask_tab_spec_map_string(parsed.base.built_on, 'os') == cask_tab_spec_map_string(tab.base.built_on, 'os')
 }
 
 // Ruby let `let(:time_string) { Time.at(1_720_189_863).strftime("%Y-%m-%d at %H:%M:%S") }` at line 323.
-pub fn ruby_tab_spec_l323_d28_time_string(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('time_string', ...args)
+pub fn ruby_tab_spec_l323_d28_time_string() string {
+	return time.unix(1_720_189_863).local().strftime('%Y-%m-%d at %H:%M:%S')
 }
 
 // Ruby it `it "returns install information for a Tab with a time that was loaded from the API" do` at line 325.
-pub fn ruby_tab_spec_l325_d29_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_tab_spec_l325_d29_returns() bool {
+	tab := cask_core.ruby_tab_l22_d5_initialize(cask_core.CaskTabConfig{
+		base: homebrew.TabConfig{ loaded_from_api: true, has_loaded_from_api: true, time: 1_720_189_863, has_time: true }
+	})
+	return cask_core.ruby_tab_l128_d12_to_s(tab) == 'Installed using the formulae.brew.sh API on ${ruby_tab_spec_l323_d28_time_string()}'
 }
 
 // Ruby it `it "returns install information for a Tab with a time that was loaded from the internal API" do` at line 334.
-pub fn ruby_tab_spec_l334_d30_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_tab_spec_l334_d30_returns() bool {
+	tab := cask_core.ruby_tab_l22_d5_initialize(cask_core.CaskTabConfig{
+		base: homebrew.TabConfig{ loaded_from_api: true, has_loaded_from_api: true, loaded_from_internal_api: true, has_loaded_from_internal_api: true, time: 1_720_189_863, has_time: true }
+	})
+	return cask_core.ruby_tab_l128_d12_to_s(tab) == 'Installed using the internal formulae.brew.sh API on ${ruby_tab_spec_l323_d28_time_string()}'
 }
 
 // Ruby it `it "returns install information for a Tab with a time that was not loaded from the API" do` at line 344.
-pub fn ruby_tab_spec_l344_d31_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_tab_spec_l344_d31_returns() bool {
+	tab := cask_core.ruby_tab_l22_d5_initialize(cask_core.CaskTabConfig{
+		base: homebrew.TabConfig{ loaded_from_api: false, has_loaded_from_api: true, time: 1_720_189_863, has_time: true }
+	})
+	return cask_core.ruby_tab_l128_d12_to_s(tab) == 'Installed on ${ruby_tab_spec_l323_d28_time_string()}'
 }
 
 // Ruby it `it "returns install information for a Tab without a time that was loaded from the API" do` at line 353.
-pub fn ruby_tab_spec_l353_d32_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_tab_spec_l353_d32_returns() bool {
+	tab := cask_core.ruby_tab_l22_d5_initialize(cask_core.CaskTabConfig{
+		base: homebrew.TabConfig{ loaded_from_api: true, has_loaded_from_api: true }
+	})
+	return cask_core.ruby_tab_l128_d12_to_s(tab) == 'Installed using the formulae.brew.sh API'
 }
 
 // Ruby it `it "returns install information for a Tab without a time that was loaded from the internal API" do` at line 362.
-pub fn ruby_tab_spec_l362_d33_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_tab_spec_l362_d33_returns() bool {
+	tab := cask_core.ruby_tab_l22_d5_initialize(cask_core.CaskTabConfig{
+		base: homebrew.TabConfig{ loaded_from_api: true, has_loaded_from_api: true, loaded_from_internal_api: true, has_loaded_from_internal_api: true }
+	})
+	return cask_core.ruby_tab_l128_d12_to_s(tab) == 'Installed using the internal formulae.brew.sh API'
 }
 
 // Ruby it `it "returns install information for a Tab without a time that was not loaded from the API" do` at line 372.
-pub fn ruby_tab_spec_l372_d34_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_tab_spec_l372_d34_returns() bool {
+	tab := cask_core.ruby_tab_l22_d5_initialize(cask_core.CaskTabConfig{
+		base: homebrew.TabConfig{ loaded_from_api: false, has_loaded_from_api: true }
+	})
+	return cask_core.ruby_tab_l128_d12_to_s(tab) == 'Installed'
 }
 
 // Original Ruby source (line-for-line):

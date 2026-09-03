@@ -1,13 +1,25 @@
 module cmd
 
-import brew_runtime
-
 // Translated from Homebrew/brew `cmd/formulae.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub struct FormulaListing {
+pub:
+	full_name string
+	name      string
+}
+
+pub fn formula_lines(formulae []FormulaListing) []string {
+	mut lines := []string{cap: formulae.len * 2}
+	for formula in formulae {
+		lines << formula.full_name
+		lines << formula.name
+	}
+	return sorted_distinct_strings(lines)
+}
 
 // Ruby method `run` at line 15.
-pub fn ruby_formulae_l15_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('run', ...args)
+pub fn ruby_formulae_l15_d1_run(formulae []FormulaListing) []string {
+	return formula_lines(formulae)
 }
 
 // Original Ruby source (line-for-line):

@@ -1,38 +1,111 @@
 module test
 
 import brew_runtime
+import homebrew
 
 // Translated from Homebrew/brew `test/install_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby specify `specify "::perform_preinstall_checks runs non-fatal preinstall diagnostics" do` at line 10.
 pub fn ruby_install_spec_l10_d1_perform_preinstall_checks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('::perform_preinstall_checks', ...args)
+	_ = args
+	result := homebrew.perform_preinstall_checks(homebrew.InstallPreinstallContext{}) or {
+		return brew_runtime.bool_value(false)
+	}
+	return brew_runtime.bool_value(result.diagnostics == [
+		homebrew.InstallDiagnosticCall{
+			kind: .supported_configuration_checks
+		},
+		homebrew.InstallDiagnosticCall{
+			kind: .preinstall_checks
+		},
+		homebrew.InstallDiagnosticCall{
+			kind: .fatal_preinstall_checks
+			fatal: true
+		},
+	])
 }
 
 // Ruby it `it "skips formulae whose fetch steps raise and continues with the rest" do` at line 29.
 pub fn ruby_install_spec_l29_d2_skips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skips', ...args)
+	_ = args
+	result := homebrew.fetch_formulae([
+		homebrew.FormulaInstallCandidate{
+			name: 'good-bottle'
+			full_name: 'good-bottle'
+		},
+		homebrew.FormulaInstallCandidate{
+			name: 'bad-bottle'
+			full_name: 'bad-bottle'
+			enqueue_fetch_error: 'unexpected failure'
+		},
+	], homebrew.InstallFormulaFetchOptions{})
+	return brew_runtime.bool_value(result.candidates.map(it.name) == ['good-bottle'] && result.errors == [
+		'bad-bottle: unexpected failure',
+	] && result.shutdown)
 }
 
 // Ruby it `it "skips the formula whose download failed and keeps the rest" do` at line 52.
 pub fn ruby_install_spec_l52_d3_skips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skips', ...args)
+	_ = args
+	result := homebrew.reject_failed_downloads([
+		homebrew.FormulaInstallCandidate{
+			name: 'bad-bottle'
+		},
+		homebrew.FormulaInstallCandidate{
+			name: 'good-bottle'
+		},
+	], ['bad-bottle'])
+	return brew_runtime.bool_value(result.map(it.name) == ['good-bottle'])
 }
 
 // Ruby it `it "skips a formula whose install raises and continues with the rest" do` at line 72.
 pub fn ruby_install_spec_l72_d4_skips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skips', ...args)
+	_ = args
+	result := homebrew.install_formulae([
+		homebrew.FormulaInstallCandidate{
+			name: 'bad-bottle'
+			full_name: 'bad-bottle'
+			install_error: 'gzip decompression failed'
+		},
+		homebrew.FormulaInstallCandidate{
+			name: 'good-bottle'
+			full_name: 'good-bottle'
+		},
+	], homebrew.InstallFormulaBatchOptions{})
+	return brew_runtime.bool_value(result.installed == ['good-bottle'] && result.cleaned == [
+		'good-bottle',
+	] && result.errors == ['bad-bottle: gzip decompression failed'])
 }
 
 // Ruby it `it "skips casks whose enqueue raises and continues with the rest" do` at line 92.
 pub fn ruby_install_spec_l92_d5_skips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skips', ...args)
+	_ = args
+	result := homebrew.enqueue_cask_installers([
+		homebrew.CaskInstallCandidate{
+			full_name: 'bad-cask'
+			enqueue_error: 'bad URI (is not URI?): "https://example.com/bad -cask.dmg"'
+		},
+		homebrew.CaskInstallCandidate{
+			full_name: 'good-cask'
+		},
+	])
+	return brew_runtime.bool_value(result.enqueued == ['good-cask'] && result.errors.len == 1 && result.errors[0].starts_with('bad-cask: bad URI'))
 }
 
 // Ruby it `it "splits fresh installs and upgrades under separate headers" do` at line 112.
 pub fn ruby_install_spec_l112_d6_splits(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('splits', ...args)
+	_ = args
+	output := homebrew.dry_run_dependencies_plan('testball', [
+		homebrew.InstallDependencyPlan{
+			name: 'fresh-dep'
+		},
+		homebrew.InstallDependencyPlan{
+			name: 'installed-dep'
+			installed: true
+		},
+	], [])
+	return brew_runtime.bool_value(output == '==> Would install 1 dependency for testball:\nfresh-dep\n==> Would upgrade 1 dependency for testball:\ninstalled-dep\n')
 }
 
 // Original Ruby source (line-for-line):

@@ -1,13 +1,37 @@
 module cmd
 
-import brew_runtime
-
 // Translated from Homebrew/brew `cmd/casks.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub struct CaskListing {
+pub:
+	full_name string
+	token     string
+}
+
+fn sorted_distinct_strings(values []string) []string {
+	mut sorted := values.clone()
+	sorted.sort()
+	mut unique := []string{cap: sorted.len}
+	for value in sorted {
+		if unique.len == 0 || unique.last() != value {
+			unique << value
+		}
+	}
+	return unique
+}
+
+pub fn cask_lines(casks []CaskListing) []string {
+	mut lines := []string{cap: casks.len * 2}
+	for cask in casks {
+		lines << cask.full_name
+		lines << cask.token
+	}
+	return sorted_distinct_strings(lines)
+}
 
 // Ruby method `run` at line 15.
-pub fn ruby_casks_l15_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('run', ...args)
+pub fn ruby_casks_l15_d1_run(casks []CaskListing) []string {
+	return cask_lines(casks)
 }
 
 // Original Ruby source (line-for-line):

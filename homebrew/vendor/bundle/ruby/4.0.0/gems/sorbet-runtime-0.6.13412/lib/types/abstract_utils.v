@@ -4,25 +4,124 @@ import brew_runtime
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/sorbet-runtime-0.6.13412/lib/types/abstract_utils.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub struct AbstractMethodInfo {
+pub:
+	name        string
+	owner       string
+	mode        string
+	actual_mode string
+	visibility  string
+}
+
+pub struct AbstractModuleInfo {
+pub:
+	name          string
+	abstract_type string
+	ancestors     [][]AbstractMethodInfo
+}
+
+pub fn abstract_module(info AbstractModuleInfo) bool {
+	return info.abstract_type != ''
+}
+
+pub fn abstract_method(method AbstractMethodInfo) bool {
+	return method.mode.trim_string_left(':') == 'abstract'
+}
+
+pub fn declared_abstract_methods(info AbstractModuleInfo) []AbstractMethodInfo {
+	mut methods := []AbstractMethodInfo{}
+	for ancestor_methods in info.ancestors {
+		// The Ruby traversal combines private methods before public/protected
+		// instance methods for every ancestor.
+		for visibility in ['private', 'public', 'protected'] {
+			for method in ancestor_methods {
+				if method.visibility == visibility && abstract_method(method) {
+					methods << method
+				}
+			}
+		}
+	}
+	return methods
+}
+
+pub fn unresolved_abstract_methods(info AbstractModuleInfo) []AbstractMethodInfo {
+	return declared_abstract_methods(info).filter(it.actual_mode.trim_string_left(':') == 'abstract')
+}
+
+fn abstract_method_from_value(value brew_runtime.Value) AbstractMethodInfo {
+	return AbstractMethodInfo{
+		name: value.attribute('name') or { value.as_string() }
+		owner: value.attribute('owner') or { '' }
+		mode: value.attribute('mode') or { '' }
+		actual_mode: value.attribute('actual_mode') or { value.attribute('mode') or { '' } }
+		visibility: value.attribute('visibility') or { 'public' }
+	}
+}
+
+fn abstract_method_value(method AbstractMethodInfo) brew_runtime.Value {
+	return brew_runtime.structured_value('UnboundMethod', method.name, {
+		'name':        method.name
+		'owner':       method.owner
+		'mode':        method.mode
+		'actual_mode': method.actual_mode
+		'visibility':  method.visibility
+	})
+}
+
+fn abstract_module_from_value(value brew_runtime.Value) AbstractModuleInfo {
+	mut ancestors := [][]AbstractMethodInfo{}
+	ancestor_values := value.map_data['ancestors'] or { brew_runtime.array_value([]) }
+	for ancestor in ancestor_values.as_array() or { []brew_runtime.Value{} } {
+		mut methods := []AbstractMethodInfo{}
+		for method in ancestor.as_array() or { []brew_runtime.Value{} } {
+			methods << abstract_method_from_value(method)
+		}
+		ancestors << methods
+	}
+	if ancestors.len == 0 && value.array_data.len > 0 {
+		ancestors << value.array_data.map(abstract_method_from_value(it))
+	}
+	return AbstractModuleInfo{
+		name: value.as_string()
+		abstract_type: value.attribute('abstract_type') or { '' }
+		ancestors: ancestors
+	}
+}
+
+fn abstract_methods_value(methods []AbstractMethodInfo) brew_runtime.Value {
+	return brew_runtime.array_value(methods.map(abstract_method_value(it)))
+}
 
 // Ruby method `self.abstract_module?(mod)` at line 14.
 pub fn ruby_abstract_utils_l14_d1_self_abstract_module(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.abstract_module?', ...args)
+	if args.len == 0 {
+		return brew_runtime.bool_value(false)
+	}
+	return brew_runtime.bool_value(abstract_module(abstract_module_from_value(args[0])))
 }
 
 // Ruby method `self.abstract_method?(method)` at line 18.
 pub fn ruby_abstract_utils_l18_d2_self_abstract_method(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.abstract_method?', ...args)
+	if args.len == 0 {
+		return brew_runtime.bool_value(false)
+	}
+	return brew_runtime.bool_value(abstract_method(abstract_method_from_value(args[0])))
 }
 
 // Ruby method `self.abstract_methods_for(mod)` at line 25.
 pub fn ruby_abstract_utils_l25_d3_self_abstract_methods_for(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.abstract_methods_for', ...args)
+	if args.len == 0 {
+		return brew_runtime.array_value([])
+	}
+	return abstract_methods_value(unresolved_abstract_methods(abstract_module_from_value(args[0])))
 }
 
 // Ruby method `self.declared_abstract_methods_for(mod)` at line 39.
 pub fn ruby_abstract_utils_l39_d4_self_declared_abstract_methods_for(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.declared_abstract_methods_for', ...args)
+	if args.len == 0 {
+		return brew_runtime.array_value([])
+	}
+	return abstract_methods_value(declared_abstract_methods(abstract_module_from_value(args[0])))
 }
 
 // Original Ruby source (line-for-line):

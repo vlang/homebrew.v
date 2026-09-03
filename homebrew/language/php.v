@@ -1,18 +1,80 @@
 module language
 
 import brew_runtime
+import homebrew.utils
 
 // Translated from Homebrew/brew `language/php.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `php_shebang_rewrite_info(php_path)` at line 27.
 pub fn ruby_php_l27_d1_php_shebang_rewrite_info(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('php_shebang_rewrite_info', ...args)
+	if args.len == 0 {
+		return brew_runtime.object_value('ArgumentError', 'PHP path is required')
+	}
+	info := php_shebang_rewrite_info(args[0].as_string()) or {
+		return brew_runtime.object_value('ArgumentError', err.msg())
+	}
+	return utils.rewrite_info_value(info)
 }
 
 // Ruby method `detected_php_shebang(formula = T.cast(self, Formula))` at line 36.
 pub fn ruby_php_l36_d2_detected_php_shebang(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('detected_php_shebang', ...args)
+	dependencies := if args.len > 0 {
+		php_dependencies_from_value(args[0])
+	} else {
+		[]PhpDependency{}
+	}
+	prefix := if args.len > 1 { args[1].as_string() } else { '/opt/homebrew' }
+	info := detected_php_shebang(dependencies, prefix) or {
+		return brew_runtime.object_value('ShebangDetectionError', err.msg())
+	}
+	return utils.rewrite_info_value(info)
+}
+
+pub struct PhpDependency {
+pub:
+	name     string
+	required bool = true
+}
+
+pub fn php_shebang_rewrite_info(php_path string) !utils.RewriteInfo {
+	if php_path.trim_space() == '' {
+		return error('PHP path is required')
+	}
+	return utils.new_shebang_rewrite_info(r'^#! ?(?:/usr/bin/(?:env )?)?php( |$)', '#! /usr/bin/env php '.len, '${php_path}\\1')
+}
+
+pub fn detected_php_shebang(dependencies []PhpDependency, prefix string) !utils.RewriteInfo {
+	php_dependencies := dependencies.filter(it.required && (it.name == 'php' || it.name.starts_with('php@')))
+	if php_dependencies.len == 0 {
+		return error('Cannot detect PHP shebang: formula does not depend on PHP.')
+	}
+	if php_dependencies.len > 1 {
+		return error('Cannot detect PHP shebang: formula has multiple PHP dependencies.')
+	}
+	php_path := '${prefix.trim_right('/')}/opt/${php_dependencies[0].name}/bin/php'
+	return php_shebang_rewrite_info(php_path)
+}
+
+fn php_dependency_from_value(value brew_runtime.Value) PhpDependency {
+	if value.type_name == 'String' {
+		return PhpDependency{ name: value.as_string() }
+	}
+	return PhpDependency{
+		name: value.attribute('name') or { value.as_string() }
+		required: (value.attribute('required') or { 'true' }) == 'true'
+	}
+}
+
+fn php_dependencies_from_value(value brew_runtime.Value) []PhpDependency {
+	values := if value.type_name == 'Array' {
+		value.as_array() or { [] }
+	} else {
+		[
+			value,
+		]
+	}
+	return values.map(php_dependency_from_value(it))
 }
 
 // Original Ruby source (line-for-line):

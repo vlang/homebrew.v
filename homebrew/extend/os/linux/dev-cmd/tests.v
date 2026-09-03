@@ -1,23 +1,55 @@
 module dev_cmd
 
-import brew_runtime
+import homebrew.dev_tests
 
 // Translated from Homebrew/brew `extend/os/linux/dev-cmd/tests.rb`.
-// The original source is retained below until every stub has a typed V body.
+pub struct LinuxDevTestsEnvironment {
+pub:
+	sandbox_linux     bool
+	sandbox_available bool
+	github_actions    bool
+	failure_reason    string = 'The Linux sandbox is unavailable.'
+}
+
+pub fn linux_dev_tests_check_test_environment(environment LinuxDevTestsEnvironment) !bool {
+	return dev_tests.check_linux_environment(dev_tests.LinuxEnvironment{
+		sandbox_linux: environment.sandbox_linux
+		sandbox_available: environment.sandbox_available
+		github_actions: environment.github_actions
+		failure_reason: environment.failure_reason
+	})
+}
+
+pub fn linux_dev_tests_non_macos_bundle_args(bundle_args []string, ci bool,
+	online bool) []string {
+	mut result := bundle_args.clone()
+	if ci {
+		result << ['--tag', '~needs_homebrew_core']
+	}
+	if !online {
+		result << ['--tag', '~needs_svnadmin', '--tag', '~needs_svn']
+	}
+	result << ['--tag', '~needs_macos', '--tag', '~cask']
+	return result
+}
+
+pub fn linux_dev_tests_non_macos_files(files []string) []string {
+	return files.filter(!(it.starts_with('test/os/mac/') || it == 'test/os/mac_spec.rb' || it.starts_with('test/cask/') || it == 'test/cask_spec.rb'))
+}
 
 // Ruby method `check_test_environment!` at line 15.
-pub fn ruby_tests_l15_d1_check_test_environment(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('check_test_environment!', ...args)
+pub fn ruby_tests_l15_d1_check_test_environment(environment LinuxDevTestsEnvironment) !bool {
+	return linux_dev_tests_check_test_environment(environment)
 }
 
 // Ruby method `os_bundle_args(bundle_args)` at line 28.
-pub fn ruby_tests_l28_d2_os_bundle_args(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('os_bundle_args', ...args)
+pub fn ruby_tests_l28_d2_os_bundle_args(bundle_args []string, ci bool, online bool) []string {
+	return linux_dev_tests_non_macos_bundle_args(bundle_args, ci, online)
 }
 
 // Ruby method `os_files(files)` at line 33.
-pub fn ruby_tests_l33_d3_os_files(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('os_files', ...args)
+pub fn ruby_tests_l33_d3_os_files(files []string) []string {
+	return linux_dev_tests_non_macos_files(files)
 }
 
 // Original Ruby source (line-for-line):

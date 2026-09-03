@@ -1,413 +1,1750 @@
 module macho
 
 import brew_runtime
+import encoding.binary
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/ruby-macho-6.0.0/lib/macho/load_commands.rb`.
-// The original source is retained below until every stub has a typed V body.
+// The original source is retained below for source-level parity auditing.
+pub const lc_req_dyld = u32(0x8000_0000)
+pub const dylib_use_marker = u32(0x1a74_1800)
+pub const max_section_alignment = 15
+
+pub enum LoadCommandKind {
+	load_command
+	uuid
+	segment
+	segment64
+	dylib
+	dylib_use
+	dylinker
+	prebound_dylib
+	thread
+	routines
+	routines64
+	sub_framework
+	sub_umbrella
+	sub_client
+	sub_library
+	symtab
+	dysymtab
+	twolevel_hints
+	prebind_cksum
+	rpath
+	target_triple
+	linkedit_data
+	encryption_info
+	encryption_info64
+	version_min
+	build_version
+	dyld_info
+	linker_option
+	entry_point
+	source_version
+	symseg
+	ident
+	fvmfile
+	fvmlib
+	note
+	fileset_entry
+}
+
+@[heap]
+pub struct LoadCommandRecord {
+pub mut:
+	kind           LoadCommandKind
+	cmd            u32
+	cmdsize        u32
+	has_view       bool
+	raw_data       []u8
+	view_offset    int
+	endianness     string = 'little'
+	file_alignment int = 4
+	numbers        map[string]i64
+	strings        map[string]LoadCommandLCStr
+	uuid           []u8
+	sections       []LoadCommandSection
+	hints          []TwolevelHint
+	tools          []BuildTool
+	file_segments  []&LoadCommandRecord
+}
+
+pub struct LoadCommandView {
+pub:
+	raw_data   []u8
+	offset     int
+	endianness string = 'little'
+	alignment  int = 4
+	segments   []&LoadCommandRecord
+}
+
+pub struct LoadCommandLCStr {
+pub:
+	value  string
+	offset int
+}
+
+pub struct SerializationContext {
+pub:
+	endianness string
+	alignment  int
+}
+
+pub struct LoadCommandSection {
+pub:
+	is_64     bool
+	sectname  string
+	segname   string
+	addr      u64
+	size      u64
+	offset    u32
+	align     u32
+	reloff    u32
+	nreloc    u32
+	flags     u32
+	reserved1 u32
+	reserved2 u32
+	reserved3 u32
+}
+
+pub struct TwolevelHint {
+pub:
+	isub_image u32
+	itoc       u32
+}
+
+pub struct TwolevelHintsTable {
+pub:
+	hints []TwolevelHint
+}
+
+pub struct BuildTool {
+pub:
+	tool    u32
+	version u32
+}
+
+pub struct BuildToolEntries {
+pub:
+	tools []BuildTool
+}
+
+pub struct CodeSigningSuperBlob {
+pub:
+	data []u8
+}
+
+pub fn new_load_command(kind LoadCommandKind, cmd u32) &LoadCommandRecord {
+	return &LoadCommandRecord{
+		kind: kind
+		cmd: cmd
+		numbers: map[string]i64{}
+		strings: map[string]LoadCommandLCStr{}
+	}
+}
+
+pub fn new_load_command_view(raw_data []u8, offset int, endianness string, alignment int) &LoadCommandView {
+	return &LoadCommandView{
+		raw_data: raw_data.clone()
+		offset: offset
+		endianness: normalize_lc_endianness(endianness)
+		alignment: alignment
+	}
+}
+
+fn normalize_lc_symbol(value string) string {
+	return value.trim_string_left(':')
+}
+
+fn normalize_lc_endianness(value string) string {
+	return if normalize_lc_symbol(value) == 'big' { 'big' } else { 'little' }
+}
+
+fn load_command_name(cmd u32) ?string {
+	return match cmd {
+		0x1 { 'LC_SEGMENT' }
+		0x2 { 'LC_SYMTAB' }
+		0x3 { 'LC_SYMSEG' }
+		0x4 { 'LC_THREAD' }
+		0x5 { 'LC_UNIXTHREAD' }
+		0x6 { 'LC_LOADFVMLIB' }
+		0x7 { 'LC_IDFVMLIB' }
+		0x8 { 'LC_IDENT' }
+		0x9 { 'LC_FVMFILE' }
+		0xa { 'LC_PREPAGE' }
+		0xb { 'LC_DYSYMTAB' }
+		0xc { 'LC_LOAD_DYLIB' }
+		0xd { 'LC_ID_DYLIB' }
+		0xe { 'LC_LOAD_DYLINKER' }
+		0xf { 'LC_ID_DYLINKER' }
+		0x10 { 'LC_PREBOUND_DYLIB' }
+		0x11 { 'LC_ROUTINES' }
+		0x12 { 'LC_SUB_FRAMEWORK' }
+		0x13 { 'LC_SUB_UMBRELLA' }
+		0x14 { 'LC_SUB_CLIENT' }
+		0x15 { 'LC_SUB_LIBRARY' }
+		0x16 { 'LC_TWOLEVEL_HINTS' }
+		0x17 { 'LC_PREBIND_CKSUM' }
+		lc_req_dyld | 0x18 { 'LC_LOAD_WEAK_DYLIB' }
+		0x19 { 'LC_SEGMENT_64' }
+		0x1a { 'LC_ROUTINES_64' }
+		0x1b { 'LC_UUID' }
+		lc_req_dyld | 0x1c { 'LC_RPATH' }
+		0x1d { 'LC_CODE_SIGNATURE' }
+		0x1e { 'LC_SEGMENT_SPLIT_INFO' }
+		lc_req_dyld | 0x1f { 'LC_REEXPORT_DYLIB' }
+		0x20 { 'LC_LAZY_LOAD_DYLIB' }
+		0x21 { 'LC_ENCRYPTION_INFO' }
+		0x22 { 'LC_DYLD_INFO' }
+		lc_req_dyld | 0x22 { 'LC_DYLD_INFO_ONLY' }
+		lc_req_dyld | 0x23 { 'LC_LOAD_UPWARD_DYLIB' }
+		0x24 { 'LC_VERSION_MIN_MACOSX' }
+		0x25 { 'LC_VERSION_MIN_IPHONEOS' }
+		0x26 { 'LC_FUNCTION_STARTS' }
+		0x27 { 'LC_DYLD_ENVIRONMENT' }
+		lc_req_dyld | 0x28 { 'LC_MAIN' }
+		0x29 { 'LC_DATA_IN_CODE' }
+		0x2a { 'LC_SOURCE_VERSION' }
+		0x2b { 'LC_DYLIB_CODE_SIGN_DRS' }
+		0x2c { 'LC_ENCRYPTION_INFO_64' }
+		0x2d { 'LC_LINKER_OPTION' }
+		0x2e { 'LC_LINKER_OPTIMIZATION_HINT' }
+		0x2f { 'LC_VERSION_MIN_TVOS' }
+		0x30 { 'LC_VERSION_MIN_WATCHOS' }
+		0x31 { 'LC_NOTE' }
+		0x32 { 'LC_BUILD_VERSION' }
+		lc_req_dyld | 0x33 { 'LC_DYLD_EXPORTS_TRIE' }
+		lc_req_dyld | 0x34 { 'LC_DYLD_CHAINED_FIXUPS' }
+		lc_req_dyld | 0x35 { 'LC_FILESET_ENTRY' }
+		0x36 { 'LC_ATOM_INFO' }
+		0x37 { 'LC_FUNCTION_VARIANTS' }
+		0x38 { 'LC_FUNCTION_VARIANT_FIXUPS' }
+		0x39 { 'LC_TARGET_TRIPLE' }
+		0x3a { 'LC_LAZY_LOAD_DYLIB_INFO' }
+		else { none }
+	}
+}
+
+fn load_command_constant(name string) ?u32 {
+	needle := normalize_lc_symbol(name)
+	for cmd in [u32(0x1), 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf,
+		0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, lc_req_dyld | 0x18, 0x19, 0x1a, 0x1b,
+		lc_req_dyld | 0x1c, 0x1d, 0x1e, lc_req_dyld | 0x1f, 0x20, 0x21, 0x22, lc_req_dyld | 0x22,
+		lc_req_dyld | 0x23, 0x24, 0x25, 0x26, 0x27, lc_req_dyld | 0x28, 0x29, 0x2a, 0x2b, 0x2c,
+		0x2d, 0x2e, 0x2f, 0x30, 0x31, 0x32, lc_req_dyld | 0x33, lc_req_dyld | 0x34,
+		lc_req_dyld | 0x35, 0x36, 0x37, 0x38, 0x39, 0x3a] {
+		if (load_command_name(cmd) or { '' }) == needle {
+			return cmd
+		}
+	}
+	return none
+}
+
+fn is_dylib_load_command(name string) bool {
+	return normalize_lc_symbol(name) in ['LC_LOAD_DYLIB', 'LC_LOAD_WEAK_DYLIB', 'LC_REEXPORT_DYLIB',
+		'LC_LAZY_LOAD_DYLIB', 'LC_LOAD_UPWARD_DYLIB']
+}
+
+fn is_creatable_load_command(name string) bool {
+	normalized := normalize_lc_symbol(name)
+	return is_dylib_load_command(normalized) || normalized in ['LC_ID_DYLIB', 'LC_RPATH',
+		'LC_LOAD_DYLINKER', 'LC_CODE_SIGNATURE']
+}
+
+fn load_command_kind_for(cmd u32, name_offset u32, timestamp u32) LoadCommandKind {
+	return match cmd {
+		0x1 { LoadCommandKind.segment }
+		0x2 { LoadCommandKind.symtab }
+		0x3 { LoadCommandKind.symseg }
+		0x4, 0x5 { LoadCommandKind.thread }
+		0x6, 0x7 { LoadCommandKind.fvmlib }
+		0x8 { LoadCommandKind.ident }
+		0x9 { LoadCommandKind.fvmfile }
+		0xb { LoadCommandKind.dysymtab }
+		0xc, lc_req_dyld | 0x18 {
+			if timestamp == dylib_use_marker && name_offset == 28 {
+				LoadCommandKind.dylib_use
+			} else {
+				LoadCommandKind.dylib
+			}
+		}
+		0xd, lc_req_dyld | 0x1f, 0x20, lc_req_dyld | 0x23 { LoadCommandKind.dylib }
+		0xe, 0xf, 0x27 { LoadCommandKind.dylinker }
+		0x10 { LoadCommandKind.prebound_dylib }
+		0x11 { LoadCommandKind.routines }
+		0x12 { LoadCommandKind.sub_framework }
+		0x13 { LoadCommandKind.sub_umbrella }
+		0x14 { LoadCommandKind.sub_client }
+		0x15 { LoadCommandKind.sub_library }
+		0x16 { LoadCommandKind.twolevel_hints }
+		0x17 { LoadCommandKind.prebind_cksum }
+		0x19 { LoadCommandKind.segment64 }
+		0x1a { LoadCommandKind.routines64 }
+		0x1b { LoadCommandKind.uuid }
+		lc_req_dyld | 0x1c { LoadCommandKind.rpath }
+		0x1d, 0x1e, 0x26, 0x29, 0x2b, 0x2e, lc_req_dyld | 0x33, lc_req_dyld | 0x34, 0x36, 0x37, 0x38, 0x3a {
+			LoadCommandKind.linkedit_data
+		}
+		0x21 { LoadCommandKind.encryption_info }
+		0x22, lc_req_dyld | 0x22 { LoadCommandKind.dyld_info }
+		0x24, 0x25, 0x2f, 0x30 { LoadCommandKind.version_min }
+		lc_req_dyld | 0x28 { LoadCommandKind.entry_point }
+		0x2a { LoadCommandKind.source_version }
+		0x2c { LoadCommandKind.encryption_info64 }
+		0x2d { LoadCommandKind.linker_option }
+		0x31 { LoadCommandKind.note }
+		0x32 { LoadCommandKind.build_version }
+		lc_req_dyld | 0x35 { LoadCommandKind.fileset_entry }
+		0x39 { LoadCommandKind.target_triple }
+		else { LoadCommandKind.load_command }
+	}
+}
+
+pub fn (command &LoadCommandRecord) type_symbol() ?string {
+	return load_command_name(command.cmd)
+}
+
+pub fn (command &LoadCommandRecord) serializable() bool {
+	return is_creatable_load_command(command.type_symbol() or { return false })
+}
+
+pub fn (command &LoadCommandRecord) source_offset() !int {
+	if !command.has_view {
+		return error('viewless load command has no source offset')
+	}
+	return command.view_offset
+}
+
+pub fn (value LoadCommandLCStr) str() string {
+	return value.value
+}
+
+pub fn (value LoadCommandLCStr) int() int {
+	return value.offset
+}
+
+pub fn (value LoadCommandLCStr) to_h() brew_runtime.Value {
+	return brew_runtime.map_value({
+		'string': brew_runtime.string_value(value.value)
+		'offset': brew_runtime.int_value(value.offset)
+	})
+}
+
+pub fn new_load_command_lcstr(command &LoadCommandRecord, value brew_runtime.Value) !LoadCommandLCStr {
+	if !command.has_view {
+		return LoadCommandLCStr{ value: value.as_string() }
+	}
+	offset := int(value.as_int()!)
+	return load_command_lcstr_from_offset(command, offset)
+}
+
+fn load_command_lcstr_from_offset(command &LoadCommandRecord, offset int) !LoadCommandLCStr {
+	fixed_size := load_command_bytesize(command.kind)
+	if offset < fixed_size || offset >= int(command.cmdsize) {
+		return error('Load command ${command.type_symbol() or { '' }} at offset ${command.view_offset} contains a malformed string')
+	}
+	start := command.view_offset + offset
+	end := command.view_offset + int(command.cmdsize)
+	if start < 0 || end > command.raw_data.len || start >= end {
+		return error('Load command ${command.type_symbol() or { '' }} at offset ${command.view_offset} contains a malformed string')
+	}
+	mut null_index := -1
+	for index in start .. end {
+		if command.raw_data[index] == 0 {
+			null_index = index
+			break
+		}
+	}
+	if null_index < 0 {
+		return error('Load command ${command.type_symbol() or { '' }} at offset ${command.view_offset} contains a malformed string')
+	}
+	return LoadCommandLCStr{
+		value: command.raw_data[start..null_index].bytestr()
+		offset: offset
+	}
+}
+
+pub fn new_serialization_context(endianness string, alignment int) SerializationContext {
+	return SerializationContext{
+		endianness: normalize_lc_endianness(endianness)
+		alignment: alignment
+	}
+}
+
+fn get_lc_u32(data []u8, offset int, endianness string) !u32 {
+	if offset < 0 || offset + 4 > data.len {
+		return error('File is too short to contain a 32-bit load command field')
+	}
+	return if endianness == 'big' {
+		binary.big_endian_u32_at(data, offset)
+	} else {
+		binary.little_endian_u32_at(data, offset)
+	}
+}
+
+fn get_lc_u64(data []u8, offset int, endianness string) !u64 {
+	if offset < 0 || offset + 8 > data.len {
+		return error('File is too short to contain a 64-bit load command field')
+	}
+	return if endianness == 'big' {
+		binary.big_endian_u64_at(data, offset)
+	} else {
+		binary.little_endian_u64_at(data, offset)
+	}
+}
+
+fn put_lc_u32(mut data []u8, offset int, value u32, endianness string) {
+	if endianness == 'big' {
+		binary.big_endian_put_u32_at(mut data, value, offset)
+	} else {
+		binary.little_endian_put_u32_at(mut data, value, offset)
+	}
+}
+
+fn put_lc_u64(mut data []u8, offset int, value u64, endianness string) {
+	if endianness == 'big' {
+		binary.big_endian_put_u64_at(mut data, value, offset)
+	} else {
+		binary.little_endian_put_u64_at(mut data, value, offset)
+	}
+}
+
+fn padded_lc_string_payload(fixed_size int, alignment int, value string) []u8 {
+	mut bytes := value.bytes()
+	bytes << u8(0)
+	effective_alignment := if alignment > 0 { alignment } else { 1 }
+	for (fixed_size + bytes.len) % effective_alignment != 0 {
+		bytes << u8(0)
+	}
+	return bytes
+}
+
+fn load_command_bytesize(kind LoadCommandKind) int {
+	return match kind {
+		.load_command, .thread, .ident { 8 }
+		.uuid { 24 }
+		.segment { 56 }
+		.segment64 { 72 }
+		.dylib { 24 }
+		.dylib_use { 28 }
+		.dylinker, .sub_framework, .sub_umbrella, .sub_client, .sub_library, .prebind_cksum, .rpath, .target_triple, .linker_option {
+			12
+		}
+		.prebound_dylib, .encryption_info, .fvmlib { 20 }
+		.routines { 40 }
+		.routines64 { 72 }
+		.symtab, .encryption_info64, .build_version, .entry_point { 24 }
+		.dysymtab { 80 }
+		.twolevel_hints, .linkedit_data, .version_min, .source_version, .symseg, .fvmfile {
+			16
+		}
+		.dyld_info { 48 }
+		.note { 40 }
+		.fileset_entry { 32 }
+	}
+}
+
+fn read_fixed_lc_string(data []u8, offset int, size int) string {
+	mut end := offset
+	for end < offset + size && end < data.len && data[end] != 0 {
+		end++
+	}
+	return if offset >= 0 && offset <= end && end <= data.len {
+		data[offset..end].bytestr()
+	} else {
+		''
+	}
+}
+
+fn parse_load_command_section(command &LoadCommandRecord, offset int, is_64 bool) !LoadCommandSection {
+	endian := command.endianness
+	if is_64 {
+		return LoadCommandSection{
+			is_64: true
+			sectname: read_fixed_lc_string(command.raw_data, offset, 16)
+			segname: read_fixed_lc_string(command.raw_data, offset + 16, 16)
+			addr: get_lc_u64(command.raw_data, offset + 32, endian)!
+			size: get_lc_u64(command.raw_data, offset + 40, endian)!
+			offset: get_lc_u32(command.raw_data, offset + 48, endian)!
+			align: get_lc_u32(command.raw_data, offset + 52, endian)!
+			reloff: get_lc_u32(command.raw_data, offset + 56, endian)!
+			nreloc: get_lc_u32(command.raw_data, offset + 60, endian)!
+			flags: get_lc_u32(command.raw_data, offset + 64, endian)!
+			reserved1: get_lc_u32(command.raw_data, offset + 68, endian)!
+			reserved2: get_lc_u32(command.raw_data, offset + 72, endian)!
+			reserved3: get_lc_u32(command.raw_data, offset + 76, endian)!
+		}
+	}
+	return LoadCommandSection{
+		sectname: read_fixed_lc_string(command.raw_data, offset, 16)
+		segname: read_fixed_lc_string(command.raw_data, offset + 16, 16)
+		addr: get_lc_u32(command.raw_data, offset + 32, endian)!
+		size: get_lc_u32(command.raw_data, offset + 36, endian)!
+		offset: get_lc_u32(command.raw_data, offset + 40, endian)!
+		align: get_lc_u32(command.raw_data, offset + 44, endian)!
+		reloff: get_lc_u32(command.raw_data, offset + 48, endian)!
+		nreloc: get_lc_u32(command.raw_data, offset + 52, endian)!
+		flags: get_lc_u32(command.raw_data, offset + 56, endian)!
+		reserved1: get_lc_u32(command.raw_data, offset + 60, endian)!
+		reserved2: get_lc_u32(command.raw_data, offset + 64, endian)!
+	}
+}
+
+pub fn (section LoadCommandSection) to_h() brew_runtime.Value {
+	mut values := {
+		'sectname':  brew_runtime.string_value(section.sectname)
+		'segname':   brew_runtime.string_value(section.segname)
+		'addr':      brew_runtime.int_value(i64(section.addr))
+		'size':      brew_runtime.int_value(i64(section.size))
+		'offset':    brew_runtime.int_value(section.offset)
+		'align':     brew_runtime.int_value(section.align)
+		'reloff':    brew_runtime.int_value(section.reloff)
+		'nreloc':    brew_runtime.int_value(section.nreloc)
+		'flags':     brew_runtime.int_value(section.flags)
+		'reserved1': brew_runtime.int_value(section.reserved1)
+		'reserved2': brew_runtime.int_value(section.reserved2)
+	}
+	if section.is_64 {
+		values['reserved3'] = brew_runtime.int_value(section.reserved3)
+	}
+	return brew_runtime.map_value(values)
+}
+
+fn load_command_number(command &LoadCommandRecord, name string) i64 {
+	return command.numbers[name] or { 0 }
+}
+
+fn set_lc_u32(mut command LoadCommandRecord, name string, offset int) ! {
+	command.numbers[name] = i64(get_lc_u32(command.raw_data, command.view_offset + offset, command.endianness)!)
+}
+
+fn set_lc_u64(mut command LoadCommandRecord, name string, offset int) ! {
+	command.numbers[name] = i64(get_lc_u64(command.raw_data, command.view_offset + offset, command.endianness)!)
+}
+
+fn set_lc_string(mut command LoadCommandRecord, name string, field_offset int) ! {
+	offset := int(get_lc_u32(command.raw_data, command.view_offset + field_offset, command.endianness)!)
+	command.strings[name] = load_command_lcstr_from_offset(command, offset)!
+}
+
+pub fn new_load_command_from_bin(kind LoadCommandKind, view &LoadCommandView) !&LoadCommandRecord {
+	endian := normalize_lc_endianness(view.endianness)
+	cmd := get_lc_u32(view.raw_data, view.offset, endian)!
+	cmdsize := get_lc_u32(view.raw_data, view.offset + 4, endian)!
+	if cmdsize < 8 || view.offset < 0 || view.offset + int(cmdsize) > view.raw_data.len {
+		return error('Invalid Mach-O load command size: ${cmdsize}')
+	}
+	name_offset := if cmdsize >= 12 {
+		get_lc_u32(view.raw_data, view.offset + 8, endian)!
+	} else {
+		u32(0)
+	}
+	timestamp := if cmdsize >= 16 {
+		get_lc_u32(view.raw_data, view.offset + 12, endian)!
+	} else {
+		u32(0)
+	}
+	actual_kind := if kind == .load_command {
+		load_command_kind_for(cmd, name_offset, timestamp)
+	} else {
+		kind
+	}
+	mut command := &LoadCommandRecord{
+		kind: actual_kind
+		cmd: cmd
+		cmdsize: cmdsize
+		has_view: true
+		raw_data: view.raw_data.clone()
+		view_offset: view.offset
+		endianness: endian
+		file_alignment: view.alignment
+		numbers: map[string]i64{}
+		strings: map[string]LoadCommandLCStr{}
+		file_segments: view.segments.clone()
+	}
+	base := view.offset
+	match actual_kind {
+		.uuid {
+			if base + 24 > view.raw_data.len {
+				return error('File is too short to contain LC_UUID')
+			}
+			command.uuid = view.raw_data[base + 8..base + 24].clone()
+		}
+		.segment, .segment64 {
+			command.strings['segname'] = LoadCommandLCStr{ value: read_fixed_lc_string(view.raw_data, base + 8, 16) }
+			is_64 := actual_kind == .segment64
+			if is_64 {
+				for name, offset in {
+					'vmaddr':   24
+					'vmsize':   32
+					'fileoff':  40
+					'filesize': 48
+				} {
+					set_lc_u64(mut command, name, offset)!
+				}
+				for name, offset in {
+					'maxprot':  56
+					'initprot': 60
+					'nsects':   64
+					'flags':    68
+				} {
+					set_lc_u32(mut command, name, offset)!
+				}
+			} else {
+				for name, offset in {
+					'vmaddr':   24
+					'vmsize':   28
+					'fileoff':  32
+					'filesize': 36
+					'maxprot':  40
+					'initprot': 44
+					'nsects':   48
+					'flags':    52
+				} {
+					set_lc_u32(mut command, name, offset)!
+				}
+			}
+			section_size := if is_64 { 80 } else { 68 }
+			section_start := base + load_command_bytesize(actual_kind)
+			for index in 0 .. int(load_command_number(command, 'nsects')) {
+				command.sections << parse_load_command_section(command, section_start + index * section_size, is_64)!
+			}
+		}
+		.dylib, .dylib_use {
+			set_lc_string(mut command, 'name', 8)!
+			for name, offset in {
+				'timestamp':             12
+				'current_version':       16
+				'compatibility_version': 20
+			} {
+				set_lc_u32(mut command, name, offset)!
+			}
+			if actual_kind == .dylib_use { set_lc_u32(mut command, 'flags', 24)! }
+		}
+		.dylinker { set_lc_string(mut command, 'name', 8)! }
+		.prebound_dylib {
+			set_lc_string(mut command, 'name', 8)!
+			set_lc_u32(mut command, 'nmodules', 12)!
+			set_lc_u32(mut command, 'linked_modules', 16)!
+		}
+		.routines, .routines64 {
+			names := ['init_address', 'init_module', 'reserved1', 'reserved2', 'reserved3',
+				'reserved4', 'reserved5', 'reserved6']
+			width := if actual_kind == .routines64 { 8 } else { 4 }
+			for index, name in names {
+				if width == 8 {
+					set_lc_u64(mut command, name, 8 + index * width)!
+				} else {
+					set_lc_u32(mut command, name, 8 + index * width)!
+				}
+			}
+		}
+		.sub_framework { set_lc_string(mut command, 'umbrella', 8)! }
+		.sub_umbrella { set_lc_string(mut command, 'sub_umbrella', 8)! }
+		.sub_client { set_lc_string(mut command, 'sub_client', 8)! }
+		.sub_library { set_lc_string(mut command, 'sub_library', 8)! }
+		.symtab {
+			for name, offset in {
+				'symoff':  8
+				'nsyms':   12
+				'stroff':  16
+				'strsize': 20
+			} {
+				set_lc_u32(mut command, name, offset)!
+			}
+		}
+		.dysymtab {
+			names := ['ilocalsym', 'nlocalsym', 'iextdefsym', 'nextdefsym', 'iundefsym', 'nundefsym',
+				'tocoff', 'ntoc', 'modtaboff', 'nmodtab', 'extrefsymoff', 'nextrefsyms',
+				'indirectsymoff', 'nindirectsyms', 'extreloff', 'nextrel', 'locreloff', 'nlocrel']
+			for index, name in names {
+				set_lc_u32(mut command, name, 8 + index * 4)!
+			}
+		}
+		.twolevel_hints {
+			set_lc_u32(mut command, 'htoffset', 8)!
+			set_lc_u32(mut command, 'nhints', 12)!
+			command.hints = new_twolevel_hints_table(view, int(load_command_number(command, 'htoffset')), int(load_command_number(command, 'nhints')))!.hints
+		}
+		.prebind_cksum { set_lc_u32(mut command, 'cksum', 8)! }
+		.rpath { set_lc_string(mut command, 'path', 8)! }
+		.target_triple { set_lc_string(mut command, 'triple', 8)! }
+		.linkedit_data {
+			set_lc_u32(mut command, 'dataoff', 8)!
+			set_lc_u32(mut command, 'datasize', 12)!
+		}
+		.encryption_info, .encryption_info64 {
+			for name, offset in {
+				'cryptoff':  8
+				'cryptsize': 12
+				'cryptid':   16
+			} {
+				set_lc_u32(mut command, name, offset)!
+			}
+			if actual_kind == .encryption_info64 { set_lc_u32(mut command, 'pad', 20)! }
+		}
+		.version_min {
+			set_lc_u32(mut command, 'version', 8)!
+			set_lc_u32(mut command, 'sdk', 12)!
+		}
+		.build_version {
+			for name, offset in {
+				'platform': 8
+				'minos':    12
+				'sdk':      16
+				'ntools':   20
+			} {
+				set_lc_u32(mut command, name, offset)!
+			}
+			command.tools = new_build_tool_entries(view, int(load_command_number(command, 'ntools')))!.tools
+		}
+		.dyld_info {
+			names := ['rebase_off', 'rebase_size', 'bind_off', 'bind_size', 'weak_bind_off',
+				'weak_bind_size', 'lazy_bind_off', 'lazy_bind_size', 'export_off', 'export_size']
+			for index, name in names {
+				set_lc_u32(mut command, name, 8 + index * 4)!
+			}
+		}
+		.linker_option { set_lc_u32(mut command, 'count', 8)! }
+		.entry_point {
+			set_lc_u64(mut command, 'entryoff', 8)!
+			set_lc_u64(mut command, 'stacksize', 16)!
+		}
+		.source_version { set_lc_u64(mut command, 'version', 8)! }
+		.symseg {
+			set_lc_u32(mut command, 'offset', 8)!
+			set_lc_u32(mut command, 'size', 12)!
+		}
+		.fvmfile {
+			set_lc_string(mut command, 'name', 8)!
+			set_lc_u32(mut command, 'header_addr', 12)!
+		}
+		.fvmlib {
+			set_lc_string(mut command, 'name', 8)!
+			set_lc_u32(mut command, 'minor_version', 12)!
+			set_lc_u32(mut command, 'header_addr', 16)!
+		}
+		.note {
+			command.strings['data_owner'] = LoadCommandLCStr{ value: read_fixed_lc_string(view.raw_data, base + 8, 16) }
+			set_lc_u64(mut command, 'offset', 24)!
+			set_lc_u64(mut command, 'size', 32)!
+		}
+		.fileset_entry {
+			set_lc_u64(mut command, 'vmaddr', 8)!
+			set_lc_u64(mut command, 'fileoff', 16)!
+			set_lc_string(mut command, 'entry_id', 24)!
+			set_lc_u32(mut command, 'reserved', 28)!
+		}
+		else {}
+	}
+	return command
+}
+
+pub fn create_load_command(command_symbol string, args []brew_runtime.Value) !&LoadCommandRecord {
+	name := normalize_lc_symbol(command_symbol)
+	if !is_creatable_load_command(name) {
+		return error('Load commands of type ${name} cannot be created manually')
+	}
+	cmd := load_command_constant(name) or { return error('Unrecognized Mach-O load command: ${name}') }
+	mut required := 0
+	mut kind := LoadCommandKind.load_command
+	if name == 'LC_RPATH' {
+		kind, required = .rpath, 1
+	} else if name == 'LC_LOAD_DYLINKER' {
+		kind, required = .dylinker, 1
+	} else if name == 'LC_CODE_SIGNATURE' {
+		kind, required = .linkedit_data, 2
+	} else {
+		kind, required = .dylib, 4
+		if name in ['LC_LOAD_DYLIB', 'LC_LOAD_WEAK_DYLIB'] && args.len > 4 && u32(args[1].as_int()!) == dylib_use_marker {
+			kind, required = .dylib_use, 5
+		}
+	}
+	if args.len < required {
+		return error('Expected ${required} arguments for ${name} creation, got ${args.len}')
+	}
+	mut command := new_load_command(kind, cmd)
+	match kind {
+		.rpath {
+			command.strings['path'] = LoadCommandLCStr{ value: args[0].as_string() }
+		}
+		.dylinker {
+			command.strings['name'] = LoadCommandLCStr{ value: args[0].as_string() }
+		}
+		.linkedit_data {
+			command.numbers['dataoff'] = args[0].as_int()!
+			command.numbers['datasize'] = args[1].as_int()!
+		}
+		.dylib, .dylib_use {
+			command.strings['name'] = LoadCommandLCStr{ value: args[0].as_string() }
+			command.numbers['timestamp'] = args[1].as_int()!
+			command.numbers['current_version'] = args[2].as_int()!
+			command.numbers['compatibility_version'] = args[3].as_int()!
+			if kind == .dylib_use {
+				command.numbers['flags'] = args[4].as_int()!
+			}
+		}
+		else {}
+	}
+	return command
+}
+
+pub fn (command &LoadCommandRecord) flag(flag string) bool {
+	name := normalize_lc_symbol(flag)
+	if command.kind == .dylib_use {
+		value := match name {
+			'DYLIB_USE_WEAK_LINK' { u32(0x1) }
+			'DYLIB_USE_REEXPORT' { u32(0x2) }
+			'DYLIB_USE_UPWARD' { u32(0x4) }
+			'DYLIB_USE_DELAYED_INIT' { u32(0x8) }
+			else {
+				return false
+			}
+		}
+		return u32(load_command_number(command, 'flags')) & value == value
+	}
+	if command.kind == .dylib {
+		return match command.type_symbol() or { '' } {
+			'LC_LOAD_WEAK_DYLIB' { name == 'DYLIB_USE_WEAK_LINK' }
+			'LC_REEXPORT_DYLIB' { name == 'DYLIB_USE_REEXPORT' }
+			'LC_LOAD_UPWARD_DYLIB' { name == 'DYLIB_USE_UPWARD' }
+			else { false }
+		}
+	}
+	if command.kind in [.segment, .segment64] {
+		value := match name {
+			'SG_HIGHVM' { u32(0x1) }
+			'SG_FVMLIB' { u32(0x2) }
+			'SG_NORELOC' { u32(0x4) }
+			'SG_PROTECTED_VERSION_1' { u32(0x8) }
+			'SG_READ_ONLY' { u32(0x10) }
+			else {
+				return false
+			}
+		}
+		return u32(load_command_number(command, 'flags')) & value == value
+	}
+	return false
+}
+
+pub fn (command &LoadCommandRecord) guess_align() int {
+	vmaddr := u64(load_command_number(command, 'vmaddr'))
+	if vmaddr == 0 {
+		return max_section_alignment
+	}
+	mut align := 0
+	mut segment_alignment := u64(1)
+	for segment_alignment & vmaddr == 0 {
+		segment_alignment <<= 1
+		align++
+	}
+	if align < 2 {
+		return 2
+	}
+	if align > max_section_alignment {
+		return max_section_alignment
+	}
+	return align
+}
+
+pub fn (command &LoadCommandRecord) uuid_string() string {
+	if command.uuid.len != 16 {
+		return ''
+	}
+	mut hexes := []string{cap: 16}
+	for elem in command.uuid {
+		hexes << '${elem:02x}'
+	}
+	return hexes[0..4].join('') + '-' + hexes[4..6].join('') + '-' + hexes[6..8].join('') + '-' + hexes[8..10].join('') + '-' + hexes[10..16].join('')
+}
+
+pub fn packed_version_string(value u32) string {
+	return '${value >> 16}.${(value >> 8) & 0xff}.${value & 0xff}'
+}
+
+pub fn packed_source_version_string(value u64) string {
+	return '${value >> 40}.${(value >> 30) & 0x3ff}.${(value >> 20) & 0x3ff}.${(value >> 10) & 0x3ff}.${value & 0x3ff}'
+}
+
+pub fn new_twolevel_hint(blob u32) TwolevelHint {
+	return TwolevelHint{ isub_image: blob >> 24, itoc: blob & 0x00ff_ffff }
+}
+
+pub fn (hint TwolevelHint) to_h() brew_runtime.Value {
+	return brew_runtime.map_value({
+		'isub_image': brew_runtime.int_value(hint.isub_image)
+		'itoc':       brew_runtime.int_value(hint.itoc)
+	})
+}
+
+pub fn new_twolevel_hints_table(view &LoadCommandView, table_offset int, count int) !TwolevelHintsTable {
+	mut hints := []TwolevelHint{cap: count}
+	for index in 0 .. count {
+		blob := get_lc_u32(view.raw_data, table_offset + index * 4, normalize_lc_endianness(view.endianness))!
+		hints << new_twolevel_hint(blob)
+	}
+	return TwolevelHintsTable{ hints: hints }
+}
+
+pub fn (tool BuildTool) to_h() brew_runtime.Value {
+	return brew_runtime.map_value({
+		'tool':    brew_runtime.int_value(tool.tool)
+		'version': brew_runtime.int_value(tool.version)
+	})
+}
+
+pub fn new_build_tool_entries(view &LoadCommandView, count int) !BuildToolEntries {
+	mut tools := []BuildTool{cap: count}
+	for index in 0 .. count {
+		offset := view.offset + 24 + index * 8
+		tools << BuildTool{
+			tool: get_lc_u32(view.raw_data, offset, normalize_lc_endianness(view.endianness))!
+			version: get_lc_u32(view.raw_data, offset + 4, normalize_lc_endianness(view.endianness))!
+		}
+	}
+	return BuildToolEntries{ tools: tools }
+}
+
+pub fn (command &LoadCommandRecord) serialize(context SerializationContext) ![]u8 {
+	if !command.serializable() {
+		return error('Load commands of type ${command.type_symbol() or { '' }} cannot be serialized')
+	}
+	endian := normalize_lc_endianness(context.endianness)
+	fixed_size := load_command_bytesize(command.kind)
+	mut bytes := []u8{}
+	match command.kind {
+		.dylib, .dylib_use, .dylinker, .rpath {
+			key := if command.kind == .rpath { 'path' } else { 'name' }
+			text := (command.strings[key] or { LoadCommandLCStr{} }).value
+			payload := padded_lc_string_payload(fixed_size, context.alignment, text)
+			bytes = []u8{len: fixed_size + payload.len}
+			put_lc_u32(mut bytes, 0, command.cmd, endian)
+			put_lc_u32(mut bytes, 4, u32(bytes.len), endian)
+			put_lc_u32(mut bytes, 8, u32(fixed_size), endian)
+			if command.kind in [.dylib, .dylib_use] {
+				put_lc_u32(mut bytes, 12, u32(load_command_number(command, 'timestamp')), endian)
+				put_lc_u32(mut bytes, 16, u32(load_command_number(command, 'current_version')), endian)
+				put_lc_u32(mut bytes, 20, u32(load_command_number(command, 'compatibility_version')), endian)
+				if command.kind == .dylib_use {
+					put_lc_u32(mut bytes, 24, u32(load_command_number(command, 'flags')), endian)
+				}
+			}
+			copy(mut bytes[fixed_size..], payload)
+		}
+		.linkedit_data {
+			bytes = []u8{len: 16}
+			put_lc_u32(mut bytes, 0, command.cmd, endian)
+			put_lc_u32(mut bytes, 4, 16, endian)
+			put_lc_u32(mut bytes, 8, u32(load_command_number(command, 'dataoff')), endian)
+			put_lc_u32(mut bytes, 12, u32(load_command_number(command, 'datasize')), endian)
+		}
+		else {
+			bytes = []u8{len: 8}
+			put_lc_u32(mut bytes, 0, command.cmd, endian)
+			put_lc_u32(mut bytes, 4, u32(fixed_size), endian)
+		}
+	}
+	return bytes
+}
+
+pub fn (command &LoadCommandRecord) superblob() !CodeSigningSuperBlob {
+	if command.type_symbol() or { '' } != 'LC_CODE_SIGNATURE' {
+		return error('${command.type_symbol() or { '' }} does not contain a code signature')
+	}
+	offset := int(load_command_number(command, 'dataoff'))
+	size := int(load_command_number(command, 'datasize'))
+	if offset < 0 || size < 0 || offset + size > command.raw_data.len {
+		return error('code signature range lies outside the Mach-O data')
+	}
+	return CodeSigningSuperBlob{ data: command.raw_data[offset..offset + size].clone() }
+}
+
+pub fn (command &LoadCommandRecord) matching_segment() ?&LoadCommandRecord {
+	fileoff := load_command_number(command, 'fileoff')
+	for segment in command.file_segments {
+		if segment.kind == .segment64 && load_command_number(segment, 'fileoff') == fileoff {
+			return segment
+		}
+	}
+	return none
+}
+
+fn lc_view_to_h(command &LoadCommandRecord) brew_runtime.Value {
+	if !command.has_view {
+		return brew_runtime.object_value('NilClass', 'nil')
+	}
+	return brew_runtime.map_value({
+		'offset':     brew_runtime.int_value(command.view_offset)
+		'endianness': brew_runtime.string_value(command.endianness)
+		'size':       brew_runtime.int_value(command.raw_data.len)
+	})
+}
+
+fn add_lc_number(mut values map[string]brew_runtime.Value, command &LoadCommandRecord, name string) {
+	values[name] = brew_runtime.int_value(load_command_number(command, name))
+}
+
+fn add_lc_string(mut values map[string]brew_runtime.Value, command &LoadCommandRecord, name string, nested bool) {
+	value := command.strings[name] or { LoadCommandLCStr{} }
+	values[name] = if nested { value.to_h() } else { brew_runtime.string_value(value.value) }
+}
+
+fn load_command_structure_format(kind LoadCommandKind) string {
+	return match kind {
+		.load_command, .thread, .ident { 'L=L=' }
+		.uuid { 'L=L=C16' }
+		.segment { 'L=L=a16L=L=L=L=l=l=L=L=' }
+		.segment64 { 'L=L=a16Q=Q=Q=Q=l=l=L=L=' }
+		.dylib { 'L=L=L=L=L=L=' }
+		.dylib_use { 'L=L=L=L=L=L=L=' }
+		.dylinker, .sub_framework, .sub_umbrella, .sub_client, .sub_library, .rpath, .target_triple {
+			'L=L=L='
+		}
+		.prebound_dylib { 'L=L=L=L=L=' }
+		.routines { 'L=L=L=L=L=L=L=L=L=L=' }
+		.routines64 { 'L=L=Q=Q=Q=Q=Q=Q=Q=Q=' }
+		.symtab { 'L=L=L=L=L=L=' }
+		.dysymtab { 'L=L=' + 'L='.repeat(18) }
+		.twolevel_hints { 'L=L=L=L=' }
+		.prebind_cksum, .linker_option { 'L=L=L=' }
+		.linkedit_data, .version_min, .symseg, .fvmfile { 'L=L=L=L=' }
+		.encryption_info { 'L=L=L=L=L=' }
+		.encryption_info64, .build_version { 'L=L=L=L=L=L=' }
+		.dyld_info { 'L=L=' + 'L='.repeat(10) }
+		.entry_point { 'L=L=Q=Q=' }
+		.source_version { 'L=L=Q=' }
+		.fvmlib { 'L=L=L=L=L=' }
+		.note { 'L=L=a16Q=Q=' }
+		.fileset_entry { 'L=L=Q=Q=L=L=' }
+	}
+}
+
+pub fn (command &LoadCommandRecord) to_h() brew_runtime.Value {
+	mut values := {
+		'view':      lc_view_to_h(command)
+		'cmd':       brew_runtime.int_value(command.cmd)
+		'cmdsize':   brew_runtime.int_value(command.cmdsize)
+		'type':      if symbol := command.type_symbol() {
+			brew_runtime.string_value(symbol)
+		} else {
+			brew_runtime.object_value('NilClass', 'nil')
+		}
+		'structure': brew_runtime.map_value({
+			'format':   brew_runtime.string_value(load_command_structure_format(command.kind))
+			'bytesize': brew_runtime.int_value(load_command_bytesize(command.kind))
+		})
+	}
+	match command.kind {
+		.uuid {
+			values['uuid'] = brew_runtime.array_value(command.uuid.map(brew_runtime.int_value(it)))
+			values['uuid_string'] = brew_runtime.string_value(command.uuid_string())
+		}
+		.segment, .segment64 {
+			add_lc_string(mut values, command, 'segname', false)
+			for name in ['vmaddr', 'vmsize', 'fileoff', 'filesize', 'maxprot', 'initprot', 'nsects',
+				'flags'] {
+				add_lc_number(mut values, command, name)
+			}
+			values['sections'] = brew_runtime.array_value(command.sections.map(it.to_h()))
+		}
+		.dylib, .dylib_use {
+			add_lc_string(mut values, command, 'name', true)
+			for name in ['timestamp', 'current_version', 'compatibility_version'] {
+				add_lc_number(mut values, command, name)
+			}
+			if command.kind == .dylib_use { add_lc_number(mut values, command, 'flags') }
+		}
+		.dylinker { add_lc_string(mut values, command, 'name', true) }
+		.prebound_dylib {
+			add_lc_string(mut values, command, 'name', true)
+			for name in ['nmodules', 'linked_modules'] {
+				add_lc_number(mut values, command, name)
+			}
+		}
+		.routines, .routines64 {
+			for name in ['init_address', 'init_module', 'reserved1', 'reserved2', 'reserved3',
+				'reserved4', 'reserved5', 'reserved6'] {
+				add_lc_number(mut values, command, name)
+			}
+		}
+		.sub_framework { add_lc_string(mut values, command, 'umbrella', true) }
+		.sub_umbrella { add_lc_string(mut values, command, 'sub_umbrella', true) }
+		.sub_client { add_lc_string(mut values, command, 'sub_client', true) }
+		.sub_library { add_lc_string(mut values, command, 'sub_library', true) }
+		.symtab {
+			for name in ['symoff', 'nsyms', 'stroff', 'strsize'] {
+				add_lc_number(mut values, command, name)
+			}
+		}
+		.dysymtab {
+			for name in ['ilocalsym', 'nlocalsym', 'iextdefsym', 'nextdefsym', 'iundefsym',
+				'nundefsym', 'tocoff', 'ntoc', 'modtaboff', 'nmodtab', 'extrefsymoff', 'nextrefsyms',
+				'indirectsymoff', 'nindirectsyms', 'extreloff', 'nextrel', 'locreloff', 'nlocrel'] {
+				add_lc_number(mut values, command, name)
+			}
+		}
+		.twolevel_hints {
+			add_lc_number(mut values, command, 'htoffset')
+			add_lc_number(mut values, command, 'nhints')
+			values['table'] = brew_runtime.array_value(command.hints.map(it.to_h()))
+		}
+		.prebind_cksum { add_lc_number(mut values, command, 'cksum') }
+		.rpath { add_lc_string(mut values, command, 'path', true) }
+		.target_triple { add_lc_string(mut values, command, 'triple', true) }
+		.linkedit_data {
+			add_lc_number(mut values, command, 'dataoff')
+			add_lc_number(mut values, command, 'datasize')
+		}
+		.encryption_info, .encryption_info64 {
+			for name in ['cryptoff', 'cryptsize', 'cryptid'] {
+				add_lc_number(mut values, command, name)
+			}
+			if command.kind == .encryption_info64 { add_lc_number(mut values, command, 'pad') }
+		}
+		.version_min {
+			add_lc_number(mut values, command, 'version')
+			values['version_string'] = brew_runtime.string_value(packed_version_string(u32(load_command_number(command, 'version'))))
+			add_lc_number(mut values, command, 'sdk')
+			values['sdk_string'] = brew_runtime.string_value(packed_version_string(u32(load_command_number(command, 'sdk'))))
+		}
+		.build_version {
+			add_lc_number(mut values, command, 'platform')
+			add_lc_number(mut values, command, 'minos')
+			values['minos_string'] = brew_runtime.string_value(packed_version_string(u32(load_command_number(command, 'minos'))))
+			add_lc_number(mut values, command, 'sdk')
+			values['sdk_string'] = brew_runtime.string_value(packed_version_string(u32(load_command_number(command, 'sdk'))))
+			values['tool_entries'] = brew_runtime.array_value(command.tools.map(it.to_h()))
+		}
+		.dyld_info {
+			for name in ['rebase_off', 'rebase_size', 'bind_off', 'bind_size', 'weak_bind_off',
+				'weak_bind_size', 'lazy_bind_off', 'lazy_bind_size', 'export_off', 'export_size'] {
+				add_lc_number(mut values, command, name)
+			}
+		}
+		.linker_option { add_lc_number(mut values, command, 'count') }
+		.entry_point {
+			add_lc_number(mut values, command, 'entryoff')
+			add_lc_number(mut values, command, 'stacksize')
+		}
+		.source_version {
+			add_lc_number(mut values, command, 'version')
+			values['version_string'] = brew_runtime.string_value(packed_source_version_string(u64(load_command_number(command, 'version'))))
+		}
+		.symseg {
+			add_lc_number(mut values, command, 'offset')
+			add_lc_number(mut values, command, 'size')
+		}
+		.fvmfile {
+			add_lc_string(mut values, command, 'name', true)
+			add_lc_number(mut values, command, 'header_addr')
+		}
+		.fvmlib {
+			add_lc_string(mut values, command, 'name', true)
+			add_lc_number(mut values, command, 'minor_version')
+			add_lc_number(mut values, command, 'header_addr')
+		}
+		.note {
+			add_lc_string(mut values, command, 'data_owner', false)
+			add_lc_number(mut values, command, 'offset')
+			add_lc_number(mut values, command, 'size')
+		}
+		.fileset_entry {
+			add_lc_number(mut values, command, 'vmaddr')
+			add_lc_number(mut values, command, 'fileoff')
+			add_lc_string(mut values, command, 'entry_id', false)
+			add_lc_number(mut values, command, 'reserved')
+		}
+		else {}
+	}
+	return brew_runtime.map_value(values)
+}
+
+fn load_command_boundary(command &LoadCommandRecord) brew_runtime.Value {
+	return brew_runtime.structured_value('MachO::LoadCommands::${command.kind}', command.type_symbol() or { '' }, {
+		'load_command_address': u64(voidptr(command)).str()
+	})
+}
+
+fn load_command_from_args(args []brew_runtime.Value) &LoadCommandRecord {
+	if args.len == 0 { panic('load command method requires a receiver') }
+	address := (args[0].attribute('load_command_address') or { panic('${args[0].type_name} has no translated load command state') }).u64()
+	return unsafe { &LoadCommandRecord(voidptr(address)) }
+}
+
+fn lcstr_boundary(value &LoadCommandLCStr) brew_runtime.Value {
+	return brew_runtime.structured_value('MachO::LoadCommands::LoadCommand::LCStr', value.value, {
+		'load_command_lcstr_offset': value.offset.str()
+	})
+}
+
+fn context_boundary(context &SerializationContext) brew_runtime.Value {
+	return brew_runtime.structured_value('MachO::LoadCommands::SerializationContext', context.endianness, {
+		'load_command_context_address': u64(voidptr(context)).str()
+	})
+}
+
+fn context_from_value(value brew_runtime.Value) &SerializationContext {
+	address := (value.attribute('load_command_context_address') or { panic('${value.type_name} has no translated serialization context') }).u64()
+	return unsafe { &SerializationContext(voidptr(address)) }
+}
+
+fn view_boundary(view &LoadCommandView, kind LoadCommandKind) brew_runtime.Value {
+	return brew_runtime.structured_value('MachO::LoadCommands::View', '#<MachO::View>', {
+		'load_command_view_address': u64(voidptr(view)).str()
+		'load_command_kind':         kind.str()
+	})
+}
+
+fn view_from_value(value brew_runtime.Value) &LoadCommandView {
+	address := (value.attribute('load_command_view_address') or { panic('${value.type_name} has no translated load command view') }).u64()
+	return unsafe { &LoadCommandView(voidptr(address)) }
+}
+
+fn kind_from_value(value brew_runtime.Value) LoadCommandKind {
+	name := value.attribute('load_command_kind') or { return .load_command }
+	return match name {
+		'uuid' { .uuid }
+		'segment' { .segment }
+		'segment64' { .segment64 }
+		'dylib' { .dylib }
+		'dylib_use' { .dylib_use }
+		'dylinker' { .dylinker }
+		'prebound_dylib' { .prebound_dylib }
+		'thread' { .thread }
+		'routines' { .routines }
+		'routines64' { .routines64 }
+		'sub_framework' { .sub_framework }
+		'sub_umbrella' { .sub_umbrella }
+		'sub_client' { .sub_client }
+		'sub_library' { .sub_library }
+		'symtab' { .symtab }
+		'dysymtab' { .dysymtab }
+		'twolevel_hints' { .twolevel_hints }
+		'prebind_cksum' { .prebind_cksum }
+		'rpath' { .rpath }
+		'target_triple' { .target_triple }
+		'linkedit_data' { .linkedit_data }
+		'encryption_info' { .encryption_info }
+		'encryption_info64' { .encryption_info64 }
+		'version_min' { .version_min }
+		'build_version' { .build_version }
+		'dyld_info' { .dyld_info }
+		'linker_option' { .linker_option }
+		'entry_point' { .entry_point }
+		'source_version' { .source_version }
+		'symseg' { .symseg }
+		'ident' { .ident }
+		'fvmfile' { .fvmfile }
+		'fvmlib' { .fvmlib }
+		'note' { .note }
+		'fileset_entry' { .fileset_entry }
+		else { .load_command }
+	}
+}
+
+fn hints_table_boundary(table &TwolevelHintsTable) brew_runtime.Value {
+	return brew_runtime.structured_value('MachO::LoadCommands::TwolevelHintsTable', '#<TwolevelHintsTable>', {
+		'load_command_hints_address': u64(voidptr(table)).str()
+	})
+}
+
+fn hints_table_from_args(args []brew_runtime.Value) &TwolevelHintsTable {
+	if args.len == 0 { panic('TwolevelHintsTable method requires a receiver') }
+	return unsafe { &TwolevelHintsTable(voidptr((args[0].attribute('load_command_hints_address') or { panic(err) }).u64())) }
+}
+
+fn hint_boundary(hint &TwolevelHint) brew_runtime.Value {
+	return brew_runtime.structured_value('MachO::LoadCommands::TwolevelHint', '#<TwolevelHint>', {
+		'load_command_hint_address': u64(voidptr(hint)).str()
+	})
+}
+
+fn hint_from_args(args []brew_runtime.Value) &TwolevelHint {
+	if args.len == 0 { panic('TwolevelHint method requires a receiver') }
+	return unsafe { &TwolevelHint(voidptr((args[0].attribute('load_command_hint_address') or { panic(err) }).u64())) }
+}
+
+fn tools_boundary(entries &BuildToolEntries) brew_runtime.Value {
+	return brew_runtime.structured_value('MachO::LoadCommands::ToolEntries', '#<ToolEntries>', {
+		'load_command_tools_address': u64(voidptr(entries)).str()
+	})
+}
+
+fn tools_from_args(args []brew_runtime.Value) &BuildToolEntries {
+	if args.len == 0 { panic('ToolEntries method requires a receiver') }
+	return unsafe { &BuildToolEntries(voidptr((args[0].attribute('load_command_tools_address') or { panic(err) }).u64())) }
+}
+
+fn tool_boundary(tool &BuildTool) brew_runtime.Value {
+	return brew_runtime.structured_value('MachO::LoadCommands::Tool', '#<Tool>', {
+		'load_command_tool_address': u64(voidptr(tool)).str()
+	})
+}
+
+fn tool_from_args(args []brew_runtime.Value) &BuildTool {
+	if args.len == 0 { panic('Tool method requires a receiver') }
+	return unsafe { &BuildTool(voidptr((args[0].attribute('load_command_tool_address') or { panic(err) }).u64())) }
+}
 
 // Ruby method `self.new_from_bin(view)` at line 240.
 pub fn ruby_load_commands_l240_d1_self_new_from_bin(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.new_from_bin', ...args)
+	if args.len == 0 { panic('LoadCommand.new_from_bin requires a view') }
+	return load_command_boundary(new_load_command_from_bin(kind_from_value(args[0]), view_from_value(args[0])) or { panic(err) })
 }
 
 // Ruby method `self.create(cmd_sym, *args)` at line 250.
 pub fn ruby_load_commands_l250_d2_self_create(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.create', ...args)
+	if args.len == 0 { panic('LoadCommand.create requires a command symbol') }
+	return load_command_boundary(create_load_command(args[0].as_string(), args[1..]) or { panic(err) })
 }
 
 // Ruby method `serializable?` at line 272.
 pub fn ruby_load_commands_l272_d3_serializable(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('serializable?', ...args)
+	return brew_runtime.bool_value(load_command_from_args(args).serializable())
 }
 
 // Ruby method `serialize(context)` at line 281.
 pub fn ruby_load_commands_l281_d4_serialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('serialize', ...args)
+	if args.len < 2 { panic('LoadCommand#serialize requires a context') }
+	return brew_runtime.string_value(load_command_from_args(args).serialize(*context_from_value(args[1])) or { panic(err) }.bytestr())
 }
 
 // Ruby method `offset` at line 290.
 pub fn ruby_load_commands_l290_d5_offset(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('offset', ...args)
+	return brew_runtime.int_value(load_command_from_args(args).source_offset() or { panic(err) })
 }
 
 // Ruby method `type` at line 296.
 pub fn ruby_load_commands_l296_d6_type(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('type', ...args)
+	return if symbol := load_command_from_args(args).type_symbol() {
+		brew_runtime.string_value(symbol)
+	} else {
+		brew_runtime.object_value('NilClass', 'nil')
+	}
 }
 
 // Ruby alias `alias to_sym type` at line 300.
 pub fn ruby_load_commands_l300_d7_to_sym(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_sym', ...args)
+	return ruby_load_commands_l296_d6_type(...args)
 }
 
 // Ruby method `to_s` at line 304.
 pub fn ruby_load_commands_l304_d8_to_s(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_s', ...args)
+	return brew_runtime.string_value(load_command_from_args(args).type_symbol() or { '' })
 }
 
 // Ruby method `to_h` at line 310.
 pub fn ruby_load_commands_l310_d9_to_h(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_h', ...args)
+	return load_command_from_args(args).to_h()
 }
 
 // Ruby method `initialize(lc, lc_str)` at line 332.
 pub fn ruby_load_commands_l332_d10_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	if args.len < 2 { panic('LCStr#initialize requires a load command and string or offset') }
+	value := new_load_command_lcstr(load_command_from_args(args[..1]), args[1]) or { panic(err) }
+	return brew_runtime.structured_value('MachO::LoadCommands::LoadCommand::LCStr', value.value, {
+		'load_command_lcstr_offset': value.offset.str()
+	})
 }
 
 // Ruby method `to_s` at line 353.
 pub fn ruby_load_commands_l353_d11_to_s(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_s', ...args)
+	if args.len == 0 { panic('LCStr#to_s requires a receiver') }
+	return brew_runtime.string_value(args[0].as_string())
 }
 
 // Ruby method `to_i` at line 359.
 pub fn ruby_load_commands_l359_d12_to_i(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_i', ...args)
+	if args.len == 0 { panic('LCStr#to_i requires a receiver') }
+	return brew_runtime.int_value((args[0].attribute('load_command_lcstr_offset') or { panic(err) }).int())
 }
 
 // Ruby method `to_h` at line 364.
 pub fn ruby_load_commands_l364_d13_to_h(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_h', ...args)
+	if args.len == 0 { panic('LCStr#to_h requires a receiver') }
+	return brew_runtime.map_value({
+		'string': brew_runtime.string_value(args[0].as_string())
+		'offset': brew_runtime.int_value((args[0].attribute('load_command_lcstr_offset') or { panic(err) }).int())
+	})
 }
 
 // Ruby attr_reader `attr_reader :endianness` at line 376.
 pub fn ruby_load_commands_l376_d14_endianness(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('endianness', ...args)
+	return brew_runtime.string_value(context_from_value(args[0]).endianness)
 }
 
 // Ruby attr_reader `attr_reader :alignment` at line 380.
 pub fn ruby_load_commands_l380_d15_alignment(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('alignment', ...args)
+	return brew_runtime.int_value(context_from_value(args[0]).alignment)
 }
 
 // Ruby method `self.context_for(macho)` at line 385.
 pub fn ruby_load_commands_l385_d16_self_context_for(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.context_for', ...args)
+	if args.len == 0 { panic('SerializationContext.context_for requires a Mach-O') }
+	if args[0].attributes['load_command_context_address'] or { '' } != '' {
+		old := context_from_value(args[0])
+		context := &SerializationContext{ endianness: old.endianness, alignment: old.alignment }
+		return context_boundary(context)
+	}
+	endianness := args[0].attribute('endianness') or { panic('Mach-O has no endianness') }
+	alignment := (args[0].attribute('alignment') or { panic('Mach-O has no alignment') }).int()
+	context := &SerializationContext{ endianness: normalize_lc_endianness(endianness), alignment: alignment }
+	return context_boundary(context)
 }
 
 // Ruby method `initialize(endianness, alignment)` at line 392.
 pub fn ruby_load_commands_l392_d17_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	if args.len < 2 { panic('SerializationContext#initialize requires endianness and alignment') }
+	context := &SerializationContext{
+		endianness: normalize_lc_endianness(args[0].as_string())
+		alignment: int(args[1].as_int() or { panic(err) })
+	}
+	return context_boundary(context)
 }
 
 // Ruby method `uuid_string` at line 407.
 pub fn ruby_load_commands_l407_d18_uuid_string(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uuid_string', ...args)
+	return brew_runtime.string_value(load_command_from_args(args).uuid_string())
 }
 
 // Ruby method `to_s` at line 418.
 pub fn ruby_load_commands_l418_d19_to_s(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_s', ...args)
+	return brew_runtime.string_value(load_command_from_args(args).uuid_string())
 }
 
 // Ruby method `to_h` at line 423.
 pub fn ruby_load_commands_l423_d20_to_h(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_h', ...args)
+	return load_command_from_args(args).to_h()
 }
 
 // Ruby method `sections` at line 464.
 pub fn ruby_load_commands_l464_d21_sections(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sections', ...args)
+	return brew_runtime.array_value(load_command_from_args(args).sections.map(it.to_h()))
 }
 
 // Ruby method `flag?(flag)` at line 485.
 pub fn ruby_load_commands_l485_d22_flag(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('flag?', ...args)
+	if args.len < 2 { panic('SegmentCommand#flag? requires a flag') }
+	return brew_runtime.bool_value(load_command_from_args(args).flag(args[1].as_string()))
 }
 
 // Ruby method `guess_align` at line 496.
 pub fn ruby_load_commands_l496_d23_guess_align(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('guess_align', ...args)
+	return brew_runtime.int_value(load_command_from_args(args).guess_align())
 }
 
 // Ruby method `to_h` at line 514.
 pub fn ruby_load_commands_l514_d24_to_h(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_h', ...args)
+	return load_command_from_args(args).to_h()
 }
 
 // Ruby method `flag?(flag)` at line 567.
 pub fn ruby_load_commands_l567_d25_flag(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('flag?', ...args)
+	if args.len < 2 { panic('DylibCommand#flag? requires a flag') }
+	return brew_runtime.bool_value(load_command_from_args(args).flag(args[1].as_string()))
 }
 
 // Ruby method `serialize(context)` at line 584.
 pub fn ruby_load_commands_l584_d26_serialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('serialize', ...args)
+	if args.len < 2 { panic('DylibCommand#serialize requires a context') }
+	return brew_runtime.string_value(load_command_from_args(args).serialize(*context_from_value(args[1])) or { panic(err) }.bytestr())
 }
 
 // Ruby method `to_h` at line 595.
 pub fn ruby_load_commands_l595_d27_to_h(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_h', ...args)
+	return load_command_from_args(args).to_h()
 }
 
 // Ruby alias `alias marker timestamp` at line 611.
 pub fn ruby_load_commands_l611_d28_marker(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('marker', ...args)
+	return brew_runtime.int_value(load_command_number(load_command_from_args(args), 'timestamp'))
 }
 
 // Ruby method `self.new_from_bin(view)` at line 619.
 pub fn ruby_load_commands_l619_d29_self_new_from_bin(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.new_from_bin', ...args)
+	if args.len == 0 { panic('DylibUseCommand.new_from_bin requires a view') }
+	return load_command_boundary(new_load_command_from_bin(.load_command, view_from_value(args[0])) or { panic(err) })
 }
 
 // Ruby method `flag?(flag)` at line 634.
 pub fn ruby_load_commands_l634_d30_flag(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('flag?', ...args)
+	if args.len < 2 { panic('DylibUseCommand#flag? requires a flag') }
+	return brew_runtime.bool_value(load_command_from_args(args).flag(args[1].as_string()))
 }
 
 // Ruby method `serialize(context)` at line 646.
 pub fn ruby_load_commands_l646_d31_serialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('serialize', ...args)
+	if args.len < 2 { panic('DylibUseCommand#serialize requires a context') }
+	return brew_runtime.string_value(load_command_from_args(args).serialize(*context_from_value(args[1])) or { panic(err) }.bytestr())
 }
 
 // Ruby method `to_h` at line 657.
 pub fn ruby_load_commands_l657_d32_to_h(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_h', ...args)
+	return load_command_from_args(args).to_h()
 }
 
 // Ruby method `serialize(context)` at line 676.
 pub fn ruby_load_commands_l676_d33_serialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('serialize', ...args)
+	if args.len < 2 { panic('DylinkerCommand#serialize requires a context') }
+	return brew_runtime.string_value(load_command_from_args(args).serialize(*context_from_value(args[1])) or { panic(err) }.bytestr())
 }
 
 // Ruby method `to_h` at line 686.
 pub fn ruby_load_commands_l686_d34_to_h(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_h', ...args)
+	return load_command_from_args(args).to_h()
 }
 
 // Ruby method `to_h` at line 707.
 pub fn ruby_load_commands_l707_d35_to_h(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_h', ...args)
+	return load_command_from_args(args).to_h()
 }
 
 // Ruby method `to_h` at line 752.
 pub fn ruby_load_commands_l752_d36_to_h(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_h', ...args)
+	return load_command_from_args(args).to_h()
 }
 
 // Ruby method `to_h` at line 803.
 pub fn ruby_load_commands_l803_d37_to_h(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_h', ...args)
+	return load_command_from_args(args).to_h()
 }
 
 // Ruby method `to_h` at line 817.
 pub fn ruby_load_commands_l817_d38_to_h(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_h', ...args)
+	return load_command_from_args(args).to_h()
 }
 
 // Ruby method `to_h` at line 831.
 pub fn ruby_load_commands_l831_d39_to_h(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_h', ...args)
+	return load_command_from_args(args).to_h()
 }
 
 // Ruby method `to_h` at line 845.
 pub fn ruby_load_commands_l845_d40_to_h(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_h', ...args)
+	return load_command_from_args(args).to_h()
 }
 
 // Ruby method `to_h` at line 868.
 pub fn ruby_load_commands_l868_d41_to_h(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_h', ...args)
+	return load_command_from_args(args).to_h()
 }
 
 // Ruby method `to_h` at line 936.
 pub fn ruby_load_commands_l936_d42_to_h(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_h', ...args)
+	return load_command_from_args(args).to_h()
 }
 
 // Ruby method `to_h` at line 974.
 pub fn ruby_load_commands_l974_d43_to_h(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_h', ...args)
+	return load_command_from_args(args).to_h()
 }
 
 // Ruby attr_reader `attr_reader :hints` at line 986.
 pub fn ruby_load_commands_l986_d44_hints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('hints', ...args)
+	return brew_runtime.array_value(hints_table_from_args(args).hints.map(it.to_h()))
 }
 
 // Ruby method `initialize(view, htoffset, nhints)` at line 992.
 pub fn ruby_load_commands_l992_d45_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	if args.len < 3 { panic('TwolevelHintsTable#initialize requires view, offset, and count') }
+	table := new_twolevel_hints_table(view_from_value(args[0]), int(args[1].as_int() or { panic(err) }), int(args[2].as_int() or { panic(err) })) or { panic(err) }
+	state := &TwolevelHintsTable{ hints: table.hints.clone() }
+	return hints_table_boundary(state)
 }
 
 // Ruby attr_reader `attr_reader :isub_image` at line 1003.
 pub fn ruby_load_commands_l1003_d46_isub_image(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('isub_image', ...args)
+	return brew_runtime.int_value(hint_from_args(args).isub_image)
 }
 
 // Ruby attr_reader `attr_reader :itoc` at line 1006.
 pub fn ruby_load_commands_l1006_d47_itoc(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('itoc', ...args)
+	return brew_runtime.int_value(hint_from_args(args).itoc)
 }
 
 // Ruby method `initialize(blob)` at line 1010.
 pub fn ruby_load_commands_l1010_d48_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	if args.len == 0 { panic('TwolevelHint#initialize requires a blob') }
+	hint := new_twolevel_hint(u32(args[0].as_int() or { panic(err) }))
+	state := &TwolevelHint{ isub_image: hint.isub_image, itoc: hint.itoc }
+	return hint_boundary(state)
 }
 
 // Ruby method `to_h` at line 1016.
 pub fn ruby_load_commands_l1016_d49_to_h(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_h', ...args)
+	return hint_from_args(args).to_h()
 }
 
 // Ruby method `to_h` at line 1033.
 pub fn ruby_load_commands_l1033_d50_to_h(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_h', ...args)
+	return load_command_from_args(args).to_h()
 }
 
 // Ruby method `serialize(context)` at line 1050.
 pub fn ruby_load_commands_l1050_d51_serialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('serialize', ...args)
+	if args.len < 2 { panic('RpathCommand#serialize requires a context') }
+	return brew_runtime.string_value(load_command_from_args(args).serialize(*context_from_value(args[1])) or { panic(err) }.bytestr())
 }
 
 // Ruby method `to_h` at line 1060.
 pub fn ruby_load_commands_l1060_d52_to_h(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_h', ...args)
+	return load_command_from_args(args).to_h()
 }
 
 // Ruby method `to_h` at line 1074.
 pub fn ruby_load_commands_l1074_d53_to_h(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_h', ...args)
+	return load_command_from_args(args).to_h()
 }
 
 // Ruby method `serialize(context)` at line 1097.
 pub fn ruby_load_commands_l1097_d54_serialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('serialize', ...args)
+	if args.len < 2 { panic('LinkeditDataCommand#serialize requires a context') }
+	return brew_runtime.string_value(load_command_from_args(args).serialize(*context_from_value(args[1])) or { panic(err) }.bytestr())
 }
 
 // Ruby method `superblob` at line 1107.
 pub fn ruby_load_commands_l1107_d55_superblob(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('superblob', ...args)
+	blob := load_command_from_args(args).superblob() or { panic(err) }
+	return brew_runtime.object_value('MachO::CodeSigning::SuperBlob', blob.data.bytestr())
 }
 
 // Ruby method `to_h` at line 1114.
 pub fn ruby_load_commands_l1114_d56_to_h(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_h', ...args)
+	return load_command_from_args(args).to_h()
 }
 
 // Ruby method `to_h` at line 1135.
 pub fn ruby_load_commands_l1135_d57_to_h(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_h', ...args)
+	return load_command_from_args(args).to_h()
 }
 
 // Ruby method `to_h` at line 1151.
 pub fn ruby_load_commands_l1151_d58_to_h(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_h', ...args)
+	return load_command_from_args(args).to_h()
 }
 
 // Ruby method `version_string` at line 1170.
 pub fn ruby_load_commands_l1170_d59_version_string(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('version_string', ...args)
+	return brew_runtime.string_value(packed_version_string(u32(load_command_number(load_command_from_args(args), 'version'))))
 }
 
 // Ruby method `sdk_string` at line 1181.
 pub fn ruby_load_commands_l1181_d60_sdk_string(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sdk_string', ...args)
+	return brew_runtime.string_value(packed_version_string(u32(load_command_number(load_command_from_args(args), 'sdk'))))
 }
 
 // Ruby method `to_h` at line 1191.
 pub fn ruby_load_commands_l1191_d61_to_h(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_h', ...args)
+	return load_command_from_args(args).to_h()
 }
 
 // Ruby method `minos_string` at line 1219.
 pub fn ruby_load_commands_l1219_d62_minos_string(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('minos_string', ...args)
+	return brew_runtime.string_value(packed_version_string(u32(load_command_number(load_command_from_args(args), 'minos'))))
 }
 
 // Ruby method `sdk_string` at line 1230.
 pub fn ruby_load_commands_l1230_d63_sdk_string(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sdk_string', ...args)
+	return brew_runtime.string_value(packed_version_string(u32(load_command_number(load_command_from_args(args), 'sdk'))))
 }
 
 // Ruby method `to_h` at line 1240.
 pub fn ruby_load_commands_l1240_d64_to_h(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_h', ...args)
+	return load_command_from_args(args).to_h()
 }
 
 // Ruby attr_reader `attr_reader :tools` at line 1255.
 pub fn ruby_load_commands_l1255_d65_tools(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tools', ...args)
+	return brew_runtime.array_value(tools_from_args(args).tools.map(it.to_h()))
 }
 
 // Ruby method `initialize(view, ntools)` at line 1260.
 pub fn ruby_load_commands_l1260_d66_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	if args.len < 2 { panic('ToolEntries#initialize requires view and count') }
+	entries := new_build_tool_entries(view_from_value(args[0]), int(args[1].as_int() or { panic(err) })) or { panic(err) }
+	state := &BuildToolEntries{ tools: entries.tools.clone() }
+	return tools_boundary(state)
 }
 
 // Ruby attr_reader `attr_reader :tool` at line 1271.
 pub fn ruby_load_commands_l1271_d67_tool(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tool', ...args)
+	return brew_runtime.int_value(tool_from_args(args).tool)
 }
 
 // Ruby attr_reader `attr_reader :version` at line 1274.
 pub fn ruby_load_commands_l1274_d68_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('version', ...args)
+	return brew_runtime.int_value(tool_from_args(args).version)
 }
 
 // Ruby method `initialize(tool, version)` at line 1279.
 pub fn ruby_load_commands_l1279_d69_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	if args.len < 2 { panic('Tool#initialize requires tool and version') }
+	tool := BuildTool{ tool: u32(args[0].as_int() or { panic(err) }), version: u32(args[1].as_int() or { panic(err) }) }
+	state := &BuildTool{ tool: tool.tool, version: tool.version }
+	return tool_boundary(state)
 }
 
 // Ruby method `to_h` at line 1285.
 pub fn ruby_load_commands_l1285_d70_to_h(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_h', ...args)
+	return tool_from_args(args).to_h()
 }
 
 // Ruby method `to_h` at line 1330.
 pub fn ruby_load_commands_l1330_d71_to_h(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_h', ...args)
+	return load_command_from_args(args).to_h()
 }
 
 // Ruby method `to_h` at line 1353.
 pub fn ruby_load_commands_l1353_d72_to_h(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_h', ...args)
+	return load_command_from_args(args).to_h()
 }
 
 // Ruby method `to_h` at line 1369.
 pub fn ruby_load_commands_l1369_d73_to_h(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_h', ...args)
+	return load_command_from_args(args).to_h()
 }
 
 // Ruby method `version_string` at line 1385.
 pub fn ruby_load_commands_l1385_d74_version_string(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('version_string', ...args)
+	return brew_runtime.string_value(packed_source_version_string(u64(load_command_number(load_command_from_args(args), 'version'))))
 }
 
 // Ruby method `to_h` at line 1396.
 pub fn ruby_load_commands_l1396_d75_to_h(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_h', ...args)
+	return load_command_from_args(args).to_h()
 }
 
 // Ruby method `to_h` at line 1414.
 pub fn ruby_load_commands_l1414_d76_to_h(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_h', ...args)
+	return load_command_from_args(args).to_h()
 }
 
 // Ruby method `to_h` at line 1438.
 pub fn ruby_load_commands_l1438_d77_to_h(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_h', ...args)
+	return load_command_from_args(args).to_h()
 }
 
 // Ruby method `to_h` at line 1459.
 pub fn ruby_load_commands_l1459_d78_to_h(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_h', ...args)
+	return load_command_from_args(args).to_h()
 }
 
 // Ruby method `to_h` at line 1481.
 pub fn ruby_load_commands_l1481_d79_to_h(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_h', ...args)
+	return load_command_from_args(args).to_h()
 }
 
 // Ruby method `to_h` at line 1507.
 pub fn ruby_load_commands_l1507_d80_to_h(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_h', ...args)
+	return load_command_from_args(args).to_h()
 }
 
 // Ruby method `segment` at line 1517.
 pub fn ruby_load_commands_l1517_d81_segment(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('segment', ...args)
+	return if segment := load_command_from_args(args).matching_segment() {
+		load_command_boundary(segment)
+	} else {
+		brew_runtime.object_value('NilClass', 'nil')
+	}
 }
 
 // Original Ruby source (line-for-line):

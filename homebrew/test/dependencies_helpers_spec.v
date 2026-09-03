@@ -1,13 +1,57 @@
 module test
 
 import brew_runtime
+import homebrew
+import homebrew.api
 
 // Translated from Homebrew/brew `test/dependencies_helpers_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby specify `specify "#dependents" do` at line 7.
 pub fn ruby_dependencies_helpers_spec_l7_d1_dependents(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#dependents', ...args)
+	_ = args
+	foo := homebrew.new_formula(homebrew.FormulaConfig{
+		reference: api.PackageReference{
+			kind: .formula
+			name: 'foo'
+			full_name: 'foo'
+			stable_version: '1.0'
+			source_url: 'foo'
+		}
+	}) or { return brew_runtime.bool_value(false) }
+	bar := homebrew.new_formula(homebrew.FormulaConfig{
+		reference: api.PackageReference{
+			kind: .formula
+			name: 'bar'
+			full_name: 'bar'
+			stable_version: '1.0'
+			source_url: 'bar-url'
+		}
+	}) or { return brew_runtime.bool_value(false) }
+	inputs := [
+		homebrew.formula_dependent_input(foo),
+		homebrew.cask_dependent_input(homebrew.CaskDependentCask{
+			token: 'foo_cask'
+			full_name: 'foo_cask'
+		}, homebrew.CaskDependentGraph{}),
+		homebrew.formula_dependent_input(bar),
+		homebrew.cask_dependent_input(homebrew.CaskDependentCask{
+			token: 'bar-cask'
+			full_name: 'bar-cask'
+		}, homebrew.CaskDependentGraph{}),
+	]
+	dependents := homebrew.dependents(inputs) or { return brew_runtime.bool_value(false) }
+	methods := ['name', 'full_name', 'runtime_dependencies', 'deps', 'requirements',
+		'recursive_dependencies', 'recursive_requirements', 'any_version_installed?']
+	if dependents.len != 4 || dependents.map(it.name()) != ['foo', 'foo_cask', 'bar', 'bar-cask'] {
+		return brew_runtime.bool_value(false)
+	}
+	for dependent in dependents {
+		if !methods.all(dependent.responds_to(it)) {
+			return brew_runtime.bool_value(false)
+		}
+	}
+	return brew_runtime.bool_value(true)
 }
 
 // Original Ruby source (line-for-line):

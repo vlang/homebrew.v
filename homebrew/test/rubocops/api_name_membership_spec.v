@@ -1,23 +1,28 @@
 module rubocops
 
-import brew_runtime
+import homebrew.rubocops as api_membership_core
 
 // Translated from Homebrew/brew `test/rubocops/api_name_membership_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "registers an offense and corrects when scanning `formula_names` with `include?`" do` at line 7.
-pub fn ruby_api_name_membership_spec_l7_d1_registers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('registers', ...args)
+pub fn ruby_api_name_membership_spec_l7_d1_registers() bool {
+	source := 'Homebrew::API.formula_names.include?(name)'
+	matches := api_membership_core.audit_api_name_memberships(source)
+	return matches.len == 1 && matches[0].predicate == 'formula_name?' && api_membership_core.correct_api_name_memberships(source) == 'Homebrew::API.formula_name?(name)'
 }
 
 // Ruby it `it "registers an offense and corrects when scanning `cask_tokens` with `exclude?`" do` at line 18.
-pub fn ruby_api_name_membership_spec_l18_d2_registers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('registers', ...args)
+pub fn ruby_api_name_membership_spec_l18_d2_registers() bool {
+	source := 'Homebrew::API.cask_tokens.exclude?(token)'
+	matches := api_membership_core.audit_api_name_memberships(source)
+	return matches.len == 1 && matches[0].predicate == 'cask_token?' && api_membership_core.correct_api_name_memberships(source) == '!Homebrew::API.cask_token?(token)'
 }
 
 // Ruby it `it "does not register an offense for membership checks on other receivers" do` at line 29.
-pub fn ruby_api_name_membership_spec_l29_d3_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_api_name_membership_spec_l29_d3_does() bool {
+	source := 'tap.formula_names.include?(name)\nformula_names.include?(name)\nHomebrew::API.formula_aliases.exclude?(name)'
+	return api_membership_core.audit_api_name_memberships(source).len == 0
 }
 
 // Original Ruby source (line-for-line):

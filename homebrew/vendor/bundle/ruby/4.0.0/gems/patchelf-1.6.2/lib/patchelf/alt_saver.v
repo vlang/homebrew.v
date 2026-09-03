@@ -1,353 +1,2108 @@
 module patchelf
 
 import brew_runtime
+import os
+
+const alt_dt_null = i64(0)
+const alt_dt_strtab = i64(5)
+const alt_dt_symtab = i64(6)
+const alt_dt_strsz = i64(10)
+const alt_dt_rpath = i64(15)
+const alt_dt_jmprel = i64(23)
+const alt_dt_runpath = i64(29)
+const alt_dt_hash = i64(4)
+const alt_dt_rel = i64(17)
+const alt_dt_rela = i64(7)
+const alt_dt_gnu_hash = i64(0x6ffffef5)
+const alt_dt_versym = i64(0x6ffffff0)
+const alt_dt_verneed = i64(0x6ffffffe)
+const alt_dt_mips_xhash = i64(0x70000036)
+const alt_dt_mips_rld_map_rel = i64(0x70000035)
+const alt_et_exec = u16(2)
+const alt_et_dyn = u16(3)
+const alt_em_mips = u16(8)
+const alt_pt_load = u32(1)
+const alt_pt_dynamic = u32(2)
+const alt_pt_interp = u32(3)
+const alt_pt_note = u32(4)
+const alt_pt_phdr = u32(6)
+const alt_pt_mips_abiflags = u32(0x70000003)
+const alt_pt_gnu_property = u32(0x6474e553)
+const alt_pf_r = u32(4)
+const alt_pf_w = u32(2)
+const alt_sht_progbits = u32(1)
+const alt_sht_symtab = u32(2)
+const alt_sht_nobits = u32(8)
+const alt_sht_rel = u32(9)
+const alt_sht_dynsym = u32(11)
+const alt_sht_note = u32(7)
+const alt_sht_rela = u32(4)
+const alt_stt_section = u64(3)
+const alt_shn_loreserve = u16(0xff00)
+
+pub enum AltEndian {
+	little
+	big
+}
+
+pub struct AltElfHeader {
+pub mut:
+	e_type      u16
+	e_machine   u16
+	e_entry     u64
+	e_phoff     u64
+	e_shoff     u64
+	e_flags     u32
+	e_ehsize    u16
+	e_phentsize u16
+	e_phnum     u16
+	e_shentsize u16
+	e_shnum     u16
+	e_shstrndx  u16
+}
+
+pub struct AltSectionHeader {
+pub mut:
+	sh_name      u32
+	sh_type      u32
+	sh_flags     u64
+	sh_addr      u64
+	sh_offset    u64
+	sh_size      u64
+	sh_link      u32
+	sh_info      u32
+	sh_addralign u64
+	sh_entsize   u64
+}
+
+pub struct AltSection {
+pub:
+	name string
+pub mut:
+	header AltSectionHeader
+}
+
+pub struct AltProgramHeader {
+pub mut:
+	p_type   u32
+	p_offset u64
+	p_vaddr  u64
+	p_paddr  u64
+	p_filesz u64
+	p_memsz  u64
+	p_flags  u32
+	p_align  u64
+}
+
+pub struct AltSegment {
+pub mut:
+	header AltProgramHeader
+}
+
+pub struct AltDynamicTag {
+pub mut:
+	d_tag  i64
+	d_val  u64
+	offset int
+}
+
+pub struct AltRunpathTag {
+pub mut:
+	offset int
+	header AltDynamicTag
+}
+
+pub struct AltSymbolMeta {
+pub:
+	num_bytes int
+	code      string
+	st_info   int
+	st_shndx  int
+	st_value  int
+}
+
+pub struct AltSectionReferences {
+pub:
+	linkage map[string]string
+	info    map[string]string
+}
+
+pub type AltBufferOperation = fn(mut []u8, int) !
+
+pub struct AltSaver {
+pub:
+	in_file   string
+	out_file  string
+	endian    AltEndian
+	elf_class int
+pub mut:
+	set                 map[string]brew_runtime.Value
+	buffer              []u8
+	ehdr                AltElfHeader
+	segments            []AltSegment
+	sections            []AltSection
+	original_sections   []AltSection
+	section_idx_by_name map[string]int
+	replaced_sections   map[string][]u8
+	section_alignment   int
+}
+
+fn alt_nil_value() brew_runtime.Value {
+	return brew_runtime.object_value('NilClass', 'nil')
+}
+
+fn alt_alignup(value u64, alignment u64) u64 {
+	if alignment == 0 || value & (alignment - 1) == 0 {
+		return value
+	}
+	return value - (value & (alignment - 1)) + alignment
+}
+
+fn alt_page_size_for(machine u16) int {
+	return if machine in [u16(2), 8, 20, 21, 183, 191, 258] { 0x10000 } else { 0x1000 }
+}
+
+fn alt_check(data []u8, offset int, size int, kind string) ! {
+	if offset < 0 || size < 0 || offset > data.len || size > data.len - offset {
+		return error('truncated ${kind} at offset ${offset}')
+	}
+}
+
+fn alt_read_uint(data []u8, offset int, size int, endian AltEndian) !u64 {
+	alt_check(data, offset, size, 'ELF integer')!
+	mut result := u64(0)
+	if endian == .little {
+		for index in 0 .. size {
+			result |= u64(data[offset + index]) << u32(index * 8)
+		}
+	} else {
+		for index in 0 .. size {
+			result = (result << 8) | u64(data[offset + index])
+		}
+	}
+	return result
+}
+
+fn alt_write_uint(mut data []u8, offset int, size int, endian AltEndian, value u64) ! {
+	alt_check(data, offset, size, 'ELF integer')!
+	for index in 0 .. size {
+		source_index := if endian == .little { index } else { size - index - 1 }
+		data[offset + index] = u8((value >> u32(source_index * 8)) & 0xff)
+	}
+}
+
+fn alt_cstring(data []u8, offset int) !string {
+	if offset < 0 || offset >= data.len {
+		return error('string offset ${offset} is outside the ELF')
+	}
+	mut finish := offset
+	for finish < data.len && data[finish] != 0 {
+		finish++
+	}
+	return data[offset..finish].bytestr()
+}
+
+fn alt_parse_header(data []u8, elf_class int, endian AltEndian) !AltElfHeader {
+	size := if elf_class == 32 { 52 } else { 64 }
+	alt_check(data, 0, size, 'ELF header')!
+	value_size := if elf_class == 32 { 4 } else { 8 }
+	phoff_pos := 24 + value_size
+	shoff_pos := phoff_pos + value_size
+	flags_pos := shoff_pos + value_size
+	return AltElfHeader{
+		e_type: u16(alt_read_uint(data, 16, 2, endian)!)
+		e_machine: u16(alt_read_uint(data, 18, 2, endian)!)
+		e_entry: alt_read_uint(data, 24, value_size, endian)!
+		e_phoff: alt_read_uint(data, phoff_pos, value_size, endian)!
+		e_shoff: alt_read_uint(data, shoff_pos, value_size, endian)!
+		e_flags: u32(alt_read_uint(data, flags_pos, 4, endian)!)
+		e_ehsize: u16(alt_read_uint(data, flags_pos + 4, 2, endian)!)
+		e_phentsize: u16(alt_read_uint(data, flags_pos + 6, 2, endian)!)
+		e_phnum: u16(alt_read_uint(data, flags_pos + 8, 2, endian)!)
+		e_shentsize: u16(alt_read_uint(data, flags_pos + 10, 2, endian)!)
+		e_shnum: u16(alt_read_uint(data, flags_pos + 12, 2, endian)!)
+		e_shstrndx: u16(alt_read_uint(data, flags_pos + 14, 2, endian)!)
+	}
+}
+
+fn alt_parse_section_header(data []u8, offset int, elf_class int, endian AltEndian) !AltSectionHeader {
+	size := if elf_class == 32 { 40 } else { 64 }
+	alt_check(data, offset, size, 'ELF section header')!
+	value_size := if elf_class == 32 { 4 } else { 8 }
+	mut cursor := offset + 8
+	sh_flags := alt_read_uint(data, cursor, value_size, endian)!
+	cursor += value_size
+	sh_addr := alt_read_uint(data, cursor, value_size, endian)!
+	cursor += value_size
+	sh_offset := alt_read_uint(data, cursor, value_size, endian)!
+	cursor += value_size
+	sh_size := alt_read_uint(data, cursor, value_size, endian)!
+	cursor += value_size
+	sh_link := u32(alt_read_uint(data, cursor, 4, endian)!)
+	sh_info := u32(alt_read_uint(data, cursor + 4, 4, endian)!)
+	cursor += 8
+	sh_addralign := alt_read_uint(data, cursor, value_size, endian)!
+	cursor += value_size
+	return AltSectionHeader{
+		sh_name: u32(alt_read_uint(data, offset, 4, endian)!)
+		sh_type: u32(alt_read_uint(data, offset + 4, 4, endian)!)
+		sh_flags: sh_flags
+		sh_addr: sh_addr
+		sh_offset: sh_offset
+		sh_size: sh_size
+		sh_link: sh_link
+		sh_info: sh_info
+		sh_addralign: sh_addralign
+		sh_entsize: alt_read_uint(data, cursor, value_size, endian)!
+	}
+}
+
+fn alt_parse_program_header(data []u8, offset int, elf_class int, endian AltEndian) !AltProgramHeader {
+	size := if elf_class == 32 { 32 } else { 56 }
+	alt_check(data, offset, size, 'ELF program header')!
+	if elf_class == 32 {
+		return AltProgramHeader{
+			p_type: u32(alt_read_uint(data, offset, 4, endian)!)
+			p_offset: alt_read_uint(data, offset + 4, 4, endian)!
+			p_vaddr: alt_read_uint(data, offset + 8, 4, endian)!
+			p_paddr: alt_read_uint(data, offset + 12, 4, endian)!
+			p_filesz: alt_read_uint(data, offset + 16, 4, endian)!
+			p_memsz: alt_read_uint(data, offset + 20, 4, endian)!
+			p_flags: u32(alt_read_uint(data, offset + 24, 4, endian)!)
+			p_align: alt_read_uint(data, offset + 28, 4, endian)!
+		}
+	}
+	return AltProgramHeader{
+		p_type: u32(alt_read_uint(data, offset, 4, endian)!)
+		p_flags: u32(alt_read_uint(data, offset + 4, 4, endian)!)
+		p_offset: alt_read_uint(data, offset + 8, 8, endian)!
+		p_vaddr: alt_read_uint(data, offset + 16, 8, endian)!
+		p_paddr: alt_read_uint(data, offset + 24, 8, endian)!
+		p_filesz: alt_read_uint(data, offset + 32, 8, endian)!
+		p_memsz: alt_read_uint(data, offset + 40, 8, endian)!
+		p_align: alt_read_uint(data, offset + 48, 8, endian)!
+	}
+}
+
+fn alt_copy_sections(sections []AltSection) []AltSection {
+	return sections.map(AltSection{ name: it.name, header: it.header })
+}
+
+pub fn new_alt_saver_from_bytes(in_file string, out_file string, set map[string]brew_runtime.Value,
+	data []u8) !&AltSaver {
+	if data.len < 6 || data[..4] != [u8(0x7f), `E`, `L`, `F`] {
+		return error('invalid ELF magic')
+	}
+	elf_class := match data[4] {
+		1 { 32 }
+		2 { 64 }
+		else {
+			return error('invalid ELF class ${data[4]}')
+		}
+	}
+	endian := match data[5] {
+		1 { AltEndian.little }
+		2 { AltEndian.big }
+		else {
+			return error('invalid ELF endian ${data[5]}')
+		}
+	}
+	ehdr := alt_parse_header(data, elf_class, endian)!
+	mut headers := []AltSectionHeader{cap: int(ehdr.e_shnum)}
+	for index in 0 .. int(ehdr.e_shnum) {
+		headers << alt_parse_section_header(data, int(ehdr.e_shoff) + index * int(ehdr.e_shentsize), elf_class, endian)!
+	}
+	mut sections := []AltSection{cap: headers.len}
+	mut strtab := []u8{}
+	if int(ehdr.e_shstrndx) < headers.len {
+		str_header := headers[int(ehdr.e_shstrndx)]
+		alt_check(data, int(str_header.sh_offset), int(str_header.sh_size), 'section string table')!
+		strtab = data[int(str_header.sh_offset)..int(str_header.sh_offset + str_header.sh_size)].clone()
+	}
+	for header in headers {
+		name := alt_cstring(strtab, int(header.sh_name)) or { '' }
+		sections << AltSection{ name: name, header: header }
+	}
+	mut segments := []AltSegment{cap: int(ehdr.e_phnum)}
+	for index in 0 .. int(ehdr.e_phnum) {
+		segments << AltSegment{
+			header: alt_parse_program_header(data, int(ehdr.e_phoff) + index * int(ehdr.e_phentsize), elf_class, endian)!
+		}
+	}
+	mut saver := &AltSaver{
+		in_file: in_file
+		out_file: out_file
+		endian: endian
+		elf_class: elf_class
+		set: set.clone()
+		buffer: data.clone()
+		ehdr: ehdr
+		segments: segments
+		sections: sections
+		original_sections: alt_copy_sections(sections)
+		section_idx_by_name: map[string]int{}
+		replaced_sections: map[string][]u8{}
+		section_alignment: if elf_class == 32 { 4 } else { 8 }
+	}
+	saver.update_section_idx()
+	return saver
+}
+
+pub fn new_alt_saver(in_file string, out_file string, set map[string]brew_runtime.Value) !&AltSaver {
+	return new_alt_saver_from_bytes(in_file, out_file, set, os.read_bytes(in_file)!)
+}
+
+pub fn alt_fill(fill_byte u8, nbytes int) ![]u8 {
+	if nbytes < 0 {
+		return error('negative fill size')
+	}
+	mut result := []u8{len: nbytes}
+	mut pending := nbytes
+	mut position := 0
+	at_once := 0x1000
+	for pending >= at_once {
+		for index in 0 .. at_once {
+			result[position + index] = fill_byte
+		}
+		position += at_once
+		pending -= at_once
+	}
+	for index in 0 .. pending {
+		result[position + index] = fill_byte
+	}
+	return result
+}
+
+pub fn (saver &AltSaver) buf_cstr(offset int) !string {
+	return alt_cstring(saver.buffer, offset)
+}
+
+pub fn (mut saver AltSaver) buf_move(dst int, src int, count int) ! {
+	alt_check(saver.buffer, src, count, 'source buffer range')!
+	alt_check(saver.buffer, dst, count, 'destination buffer range')!
+	copy := saver.buffer[src..src + count].clone()
+	for index, byte in copy {
+		saver.buffer[dst + index] = byte
+	}
+}
+
+pub fn (mut saver AltSaver) with_buf_at(position int, operation AltBufferOperation) ! {
+	if position < 0 || position > saver.buffer.len {
+		return error('buffer position outside stream')
+	}
+	operation(mut saver.buffer, position)!
+}
+
+pub fn (saver &AltSaver) find_section_idx(name string) ?int {
+	if index := saver.section_idx_by_name[name] {
+		return index
+	}
+	return none
+}
+
+pub fn (saver &AltSaver) find_section(name string) ?AltSection {
+	index := saver.find_section_idx(name) or { return none }
+	return saver.sections[index]
+}
+
+pub fn (mut saver AltSaver) update_section_idx() {
+	saver.section_idx_by_name.clear()
+	for index, section in saver.sections {
+		saver.section_idx_by_name[section.name] = index
+	}
+}
+
+pub fn (mut saver AltSaver) buf_grow(new_size int) ! {
+	if new_size <= saver.buffer.len {
+		return
+	}
+	if new_size < 0 {
+		return error('negative buffer size')
+	}
+	saver.buffer << []u8{len: new_size - saver.buffer.len}
+}
+
+pub fn (saver &AltSaver) dynamic_tags() ![]AltDynamicTag {
+	section := saver.find_section('.dynamic') or { return []AltDynamicTag{} }
+	if section.header.sh_type == alt_sht_nobits {
+		return []AltDynamicTag{}
+	}
+	entry_size := if saver.elf_class == 32 { 8 } else { 16 }
+	mut result := []AltDynamicTag{}
+	mut offset := int(section.header.sh_offset)
+	end := offset + int(section.header.sh_size)
+	for offset + entry_size <= end && offset + entry_size <= saver.buffer.len {
+		d_tag_bits := alt_read_uint(saver.buffer, offset, entry_size / 2, saver.endian)!
+		d_tag := if saver.elf_class == 32 { i64(i32(u32(d_tag_bits))) } else { i64(d_tag_bits) }
+		d_val := alt_read_uint(saver.buffer, offset + entry_size / 2, entry_size / 2, saver.endian)!
+		if d_tag == alt_dt_null {
+			break
+		}
+		result << AltDynamicTag{ d_tag: d_tag, d_val: d_val, offset: offset }
+		offset += entry_size
+	}
+	return result
+}
+
+fn (mut saver AltSaver) write_dynamic_tag(tag AltDynamicTag) ! {
+	entry_size := if saver.elf_class == 32 { 8 } else { 16 }
+	alt_write_uint(mut saver.buffer, tag.offset, entry_size / 2, saver.endian, u64(tag.d_tag))!
+	alt_write_uint(mut saver.buffer, tag.offset + entry_size / 2, entry_size / 2, saver.endian, tag.d_val)!
+}
+
+pub fn (saver &AltSaver) collect_runpath_tags() !map[string]AltRunpathTag {
+	mut result := map[string]AltRunpathTag{}
+	for tag in saver.dynamic_tags()! {
+		kind := if tag.d_tag == alt_dt_rpath {
+			'rpath'
+		} else if tag.d_tag == alt_dt_runpath {
+			'runpath'
+		} else {
+			continue
+		}
+		result[kind] = AltRunpathTag{ offset: tag.offset, header: tag }
+	}
+	return result
+}
+
+pub fn (mut saver AltSaver) resolve_rpath_tag_conflict(mut tags map[string]AltRunpathTag,
+	force_rpath bool) !map[string]AltRunpathTag {
+	update := if !force_rpath && 'rpath' in tags && 'runpath' !in tags {
+		'runpath'
+	} else if force_rpath && 'runpath' in tags {
+		'rpath'
+	} else {
+		return tags
+	}
+	deleted := if update == 'rpath' { 'runpath' } else { 'rpath' }
+	mut replacement := tags[deleted]
+	replacement.header.d_tag = if update == 'rpath' { alt_dt_rpath } else { alt_dt_runpath }
+	saver.write_dynamic_tag(replacement.header)!
+	tags[update] = replacement
+	tags.delete(deleted)
+	return tags
+}
+
+pub fn (mut saver AltSaver) replace_section(name string, size int) ![]u8 {
+	if size < 0 {
+		return error('negative replacement size')
+	}
+	mut data := if existing := saver.replaced_sections[name] {
+		existing.clone()
+	} else {
+		section := saver.find_section(name) or { return error('section `${name}` not found') }
+		alt_check(saver.buffer, int(section.header.sh_offset), int(section.header.sh_size), name)!
+		saver.buffer[int(section.header.sh_offset)..int(section.header.sh_offset + section.header.sh_size)].clone()
+	}
+	if data.len < size {
+		data << []u8{len: size - data.len}
+	} else if data.len > size {
+		data = data[..size].clone()
+		data << u8(0)
+	}
+	saver.replaced_sections[name] = data.clone()
+	return data
+}
+
+pub fn (mut saver AltSaver) modify_interpreter() {
+	if value := saver.set['interpreter'] {
+		mut replacement := value.as_string().bytes()
+		replacement << u8(0)
+		saver.replaced_sections['.interp'] = replacement
+	}
+}
+
+pub fn (mut saver AltSaver) modify_needed() {
+	panic('NotImplementedError: modify_needed')
+}
+
+pub fn (mut saver AltSaver) modify_soname() {
+	if saver.ehdr.e_type == alt_et_dyn {
+		panic('NotImplementedError: modify_soname')
+	}
+}
+
+pub fn (mut saver AltSaver) modify_rpath_helper(new_rpath string, force_rpath bool) ! {
+	dynstr := saver.find_section('.dynstr') or { return error('section `.dynstr` not found') }
+	mut tags := saver.collect_runpath_tags()!
+	tags = saver.resolve_rpath_tag_conflict(mut tags, force_rpath)!
+	mut old_rpath := ''
+	mut rpath_offset := -1
+	if 'runpath' in tags {
+		rpath_offset = int(dynstr.header.sh_offset + tags['runpath'].header.d_val)
+	} else if 'rpath' in tags {
+		rpath_offset = int(dynstr.header.sh_offset + tags['rpath'].header.d_val)
+	}
+	if rpath_offset >= 0 {
+		old_rpath = saver.buf_cstr(rpath_offset)!
+	}
+	if old_rpath == new_rpath {
+		return
+	}
+	if rpath_offset >= 0 {
+		for index in 0 .. old_rpath.len {
+			saver.buffer[rpath_offset + index] = `X`
+		}
+	}
+	if rpath_offset >= 0 && new_rpath.len <= old_rpath.len {
+		for index, byte in new_rpath.bytes() {
+			saver.buffer[rpath_offset + index] = byte
+		}
+		saver.buffer[rpath_offset + new_rpath.len] = 0
+		return
+	}
+	mut replacement := saver.replace_section('.dynstr', int(dynstr.header.sh_size) + new_rpath.len + 1)!
+	new_index := int(dynstr.header.sh_size)
+	for index, byte in new_rpath.bytes() {
+		replacement[new_index + index] = byte
+	}
+	replacement[new_index + new_rpath.len] = 0
+	saver.replaced_sections['.dynstr'] = replacement
+	for _, item in tags {
+		mut tag := item.header
+		tag.d_val = u64(new_index)
+		saver.write_dynamic_tag(tag)!
+	}
+	if tags.len == 0 {
+		saver.add_dt_rpath(if force_rpath { alt_dt_rpath } else { alt_dt_runpath }, u64(new_index))!
+	}
+}
+
+pub fn (mut saver AltSaver) modify_rpath() ! {
+	saver.modify_rpath_helper((saver.set['rpath'] or { return }).as_string(), true)!
+}
+
+pub fn (mut saver AltSaver) modify_runpath() ! {
+	saver.modify_rpath_helper((saver.set['runpath'] or { return }).as_string(), false)!
+}
+
+pub fn (mut saver AltSaver) add_segment(header AltProgramHeader) {
+	saver.segments << AltSegment{ header: header }
+	saver.ehdr.e_phnum++
+}
+
+pub fn (mut saver AltSaver) add_dt_rpath(d_tag i64, d_val u64) ! {
+	tags := saver.dynamic_tags()!
+	if tags.len == 0 {
+		return error('no dynamic tags')
+	}
+	entry_size := if saver.elf_class == 32 { 8 } else { 16 }
+	dynamic := saver.find_section('.dynamic') or { return error('section `.dynamic` not found') }
+	mut replacement := saver.replace_section('.dynamic', int(dynamic.header.sh_size) + entry_size)!
+	replacement_size := (tags.len + 1) * entry_size
+	copy := replacement[..replacement_size].clone()
+	for index, byte in copy {
+		replacement[entry_size + index] = byte
+	}
+	alt_write_uint(mut replacement, 0, entry_size / 2, saver.endian, u64(d_tag))!
+	alt_write_uint(mut replacement, entry_size / 2, entry_size / 2, saver.endian, d_val)!
+	saver.replaced_sections['.dynamic'] = replacement
+}
+
+pub fn (saver &AltSaver) new_section_idx(old_index int) !int {
+	if old_index == 0 || old_index >= int(alt_shn_loreserve) {
+		return -1
+	}
+	if old_index < 0 || old_index >= saver.original_sections.len {
+		return error('old section index ${old_index} does not exist')
+	}
+	return saver.find_section_idx(saver.original_sections[old_index].name) or { -1 }
+}
+
+pub fn (saver &AltSaver) page_size() int {
+	return alt_page_size_for(saver.ehdr.e_machine)
+}
+
+fn (mut saver AltSaver) write_header() ! {
+	value_size := if saver.elf_class == 32 { 4 } else { 8 }
+	phoff_pos := 24 + value_size
+	shoff_pos := phoff_pos + value_size
+	flags_pos := shoff_pos + value_size
+	alt_write_uint(mut saver.buffer, 16, 2, saver.endian, saver.ehdr.e_type)!
+	alt_write_uint(mut saver.buffer, 18, 2, saver.endian, saver.ehdr.e_machine)!
+	alt_write_uint(mut saver.buffer, 24, value_size, saver.endian, saver.ehdr.e_entry)!
+	alt_write_uint(mut saver.buffer, phoff_pos, value_size, saver.endian, saver.ehdr.e_phoff)!
+	alt_write_uint(mut saver.buffer, shoff_pos, value_size, saver.endian, saver.ehdr.e_shoff)!
+	alt_write_uint(mut saver.buffer, flags_pos, 4, saver.endian, saver.ehdr.e_flags)!
+	alt_write_uint(mut saver.buffer, flags_pos + 4, 2, saver.endian, saver.ehdr.e_ehsize)!
+	alt_write_uint(mut saver.buffer, flags_pos + 6, 2, saver.endian, saver.ehdr.e_phentsize)!
+	alt_write_uint(mut saver.buffer, flags_pos + 8, 2, saver.endian, saver.ehdr.e_phnum)!
+	alt_write_uint(mut saver.buffer, flags_pos + 10, 2, saver.endian, saver.ehdr.e_shentsize)!
+	alt_write_uint(mut saver.buffer, flags_pos + 12, 2, saver.endian, saver.ehdr.e_shnum)!
+	alt_write_uint(mut saver.buffer, flags_pos + 14, 2, saver.endian, saver.ehdr.e_shstrndx)!
+}
+
+fn (mut saver AltSaver) write_program_header(offset int, header AltProgramHeader) ! {
+	if saver.elf_class == 32 {
+		for position, value in [u64(header.p_type), header.p_offset, header.p_vaddr, header.p_paddr,
+			header.p_filesz, header.p_memsz, u64(header.p_flags), header.p_align] {
+			alt_write_uint(mut saver.buffer, offset + position * 4, 4, saver.endian, value)!
+		}
+		return
+	}
+	alt_write_uint(mut saver.buffer, offset, 4, saver.endian, header.p_type)!
+	alt_write_uint(mut saver.buffer, offset + 4, 4, saver.endian, header.p_flags)!
+	for position, value in [header.p_offset, header.p_vaddr, header.p_paddr, header.p_filesz,
+		header.p_memsz, header.p_align] {
+		alt_write_uint(mut saver.buffer, offset + 8 + position * 8, 8, saver.endian, value)!
+	}
+}
+
+fn (mut saver AltSaver) write_section_header(offset int, header AltSectionHeader) ! {
+	alt_write_uint(mut saver.buffer, offset, 4, saver.endian, header.sh_name)!
+	alt_write_uint(mut saver.buffer, offset + 4, 4, saver.endian, header.sh_type)!
+	value_size := if saver.elf_class == 32 { 4 } else { 8 }
+	mut cursor := offset + 8
+	for value in [header.sh_flags, header.sh_addr, header.sh_offset, header.sh_size] {
+		alt_write_uint(mut saver.buffer, cursor, value_size, saver.endian, value)!
+		cursor += value_size
+	}
+	alt_write_uint(mut saver.buffer, cursor, 4, saver.endian, header.sh_link)!
+	alt_write_uint(mut saver.buffer, cursor + 4, 4, saver.endian, header.sh_info)!
+	cursor += 8
+	alt_write_uint(mut saver.buffer, cursor, value_size, saver.endian, header.sh_addralign)!
+	alt_write_uint(mut saver.buffer, cursor + value_size, value_size, saver.endian, header.sh_entsize)!
+}
+
+pub fn (mut saver AltSaver) sort_phdrs() {
+	saver.segments.sort_with_compare(fn (left &AltSegment, right &AltSegment) int {
+		if right.header.p_type == alt_pt_phdr {
+			return 1
+		}
+		if left.header.p_type == alt_pt_phdr {
+			return -1
+		}
+		return if left.header.p_paddr < right.header.p_paddr {
+			-1
+		} else if left.header.p_paddr > right.header.p_paddr { 1 } else { 0 }
+	})
+}
+
+pub fn (mut saver AltSaver) write_phdrs_to_buf() ! {
+	saver.sort_phdrs()
+	saver.buf_grow(int(saver.ehdr.e_phoff) + saver.segments.len * int(saver.ehdr.e_phentsize))!
+	for index, segment in saver.segments {
+		saver.write_program_header(int(saver.ehdr.e_phoff) + index * int(saver.ehdr.e_phentsize), segment.header)!
+	}
+}
+
+pub fn (saver &AltSaver) meta_sym_pack() AltSymbolMeta {
+	if saver.elf_class == 32 {
+		return AltSymbolMeta{
+			num_bytes: 16
+			code: if saver.endian == .little {
+				'VVVCCv'} else {
+				'NNNCCn'}
+			st_info: 3
+			st_shndx: 5
+			st_value: 1
+		}
+	}
+	return AltSymbolMeta{
+		num_bytes: 24
+		code: if saver.endian == .little {
+			'VCCvQ<Q<'} else {
+			'NCCnQ>Q>'}
+		st_info: 1
+		st_shndx: 3
+		st_value: 4
+	}
+}
+
+pub fn (saver &AltSaver) symbols(header AltSectionHeader) ![][]u64 {
+	if header.sh_type !in [alt_sht_symtab, alt_sht_dynsym] {
+		return [][]u64{}
+	}
+	meta := saver.meta_sym_pack()
+	mut result := [][]u64{}
+	for entry in 0 .. int(header.sh_size) / meta.num_bytes {
+		offset := int(header.sh_offset) + entry * meta.num_bytes
+		if saver.elf_class == 32 {
+			result << [alt_read_uint(saver.buffer, offset, 4, saver.endian)!,
+				alt_read_uint(saver.buffer, offset + 4, 4, saver.endian)!,
+				alt_read_uint(saver.buffer, offset + 8, 4, saver.endian)!,
+				alt_read_uint(saver.buffer, offset + 12, 1, saver.endian)!,
+				alt_read_uint(saver.buffer, offset + 13, 1, saver.endian)!,
+				alt_read_uint(saver.buffer, offset + 14, 2, saver.endian)!]
+		} else {
+			result << [alt_read_uint(saver.buffer, offset, 4, saver.endian)!,
+				alt_read_uint(saver.buffer, offset + 4, 1, saver.endian)!,
+				alt_read_uint(saver.buffer, offset + 5, 1, saver.endian)!,
+				alt_read_uint(saver.buffer, offset + 6, 2, saver.endian)!,
+				alt_read_uint(saver.buffer, offset + 8, 8, saver.endian)!,
+				alt_read_uint(saver.buffer, offset + 16, 8, saver.endian)!]
+		}
+	}
+	return result
+}
+
+fn (mut saver AltSaver) write_symbol(header AltSectionHeader, entry int, values []u64) ! {
+	meta := saver.meta_sym_pack()
+	offset := int(header.sh_offset) + entry * meta.num_bytes
+	sizes := if saver.elf_class == 32 { [4, 4, 4, 1, 1, 2] } else { [4, 1, 1, 2, 8, 8] }
+	mut cursor := offset
+	for index, size in sizes {
+		alt_write_uint(mut saver.buffer, cursor, size, saver.endian, values[index])!
+		cursor += size
+	}
+}
+
+pub fn (saver &AltSaver) collect_section_to_section_refs() AltSectionReferences {
+	mut linkage := map[string]string{}
+	mut info := map[string]string{}
+	for section in saver.sections {
+		header := section.header
+		if header.sh_link != 0 && int(header.sh_link) < saver.sections.len {
+			linkage[section.name] = saver.sections[int(header.sh_link)].name
+		}
+		if header.sh_info != 0 && header.sh_type in [alt_sht_rel, alt_sht_rela] && int(header.sh_info) < saver.sections.len {
+			info[section.name] = saver.sections[int(header.sh_info)].name
+		}
+	}
+	return AltSectionReferences{ linkage: linkage, info: info }
+}
+
+pub fn (mut saver AltSaver) restore_section_to_section_refs(refs AltSectionReferences) {
+	for mut section in saver.sections {
+		if section.header.sh_link != 0 {
+			if target := refs.linkage[section.name] {
+				section.header.sh_link = u32(saver.find_section_idx(target) or { 0 })
+			}
+		}
+		if section.header.sh_info != 0 && section.header.sh_type in [alt_sht_rel, alt_sht_rela] {
+			if target := refs.info[section.name] {
+				section.header.sh_info = u32(saver.find_section_idx(target) or { 0 })
+			}
+		}
+	}
+}
+
+pub fn (mut saver AltSaver) sort_shdrs() {
+	if saver.sections.len == 0 {
+		return
+	}
+	refs := saver.collect_section_to_section_refs()
+	shstr_offset := saver.sections[int(saver.ehdr.e_shstrndx)].header.sh_offset
+	saver.sections.sort_with_compare(fn (left &AltSection, right &AltSection) int {
+		return if left.header.sh_offset < right.header.sh_offset {
+			-1
+		} else if left.header.sh_offset > right.header.sh_offset { 1 } else { 0 }
+	})
+	saver.update_section_idx()
+	saver.restore_section_to_section_refs(refs)
+	for index, section in saver.sections {
+		if section.header.sh_offset == shstr_offset {
+			saver.ehdr.e_shstrndx = u16(index)
+		}
+	}
+}
+
+pub fn (saver &AltSaver) jmprel_section_name() !string {
+	for name in ['.rel.plt', '.rela.plt', '.rela.IA_64.pltoff'] {
+		if saver.find_section_idx(name) != none {
+			return name
+		}
+	}
+	return error('cannot find section corresponding to DT_JMPREL')
+}
+
+pub fn (saver &AltSaver) dyn_tag_to_section_name(tag i64) !string {
+	return match tag {
+		alt_dt_strtab, alt_dt_strsz { '.dynstr' }
+		alt_dt_symtab { '.dynsym' }
+		alt_dt_hash { '.hash' }
+		alt_dt_gnu_hash {
+			if saver.find_section_idx('.gnu.hash') != none { '.gnu.hash' } else { '' }
+		}
+		alt_dt_mips_xhash {
+			if saver.ehdr.e_machine == alt_em_mips { '.MIPS.xhash' } else { '' }
+		}
+		alt_dt_jmprel { saver.jmprel_section_name()! }
+		alt_dt_rel {
+			if saver.find_section_idx('.rel.dyn') != none {
+				'.rel.dyn'
+			} else if saver.find_section_idx('.rel.got') != none { '.rel.got' } else { '' }
+		}
+		alt_dt_rela {
+			if saver.find_section_idx('.rela.dyn') != none { '.rela.dyn' } else { '' }
+		}
+		alt_dt_verneed { '.gnu.version_r' }
+		alt_dt_versym { '.gnu.version' }
+		else { '' }
+	}
+}
+
+pub fn (saver &AltSaver) dyn_tag_to_shdr(tag i64) !AltSectionHeader {
+	name := saver.dyn_tag_to_section_name(tag)!
+	if name == '' {
+		return error('dynamic tag has no corresponding section')
+	}
+	section := saver.find_section(name) or { return error('section `${name}` not found') }
+	return section.header
+}
+
+pub fn (mut saver AltSaver) sync_dyn_tags() ! {
+	tags := saver.dynamic_tags()!
+	mut table_offset := -1
+	for original in tags {
+		mut tag := original
+		if table_offset < 0 {
+			table_offset = tag.offset
+		}
+		if tag.d_tag == alt_dt_mips_rld_map_rel {
+			if rld_map := saver.find_section('.rld_map') {
+				dynamic := saver.find_section('.dynamic') or { return error('section `.dynamic` not found') }
+				tag.d_val = rld_map.header.sh_addr - u64(tag.offset - table_offset) - dynamic.header.sh_addr
+			} else {
+				tag.d_val = 0
+			}
+		} else {
+			header := saver.dyn_tag_to_shdr(tag.d_tag) or { continue }
+			tag.d_val = if tag.d_tag == alt_dt_strsz { header.sh_size } else { header.sh_addr }
+		}
+		saver.write_dynamic_tag(tag)!
+	}
+}
+
+pub fn (mut saver AltSaver) write_shdrs_to_buf() ! {
+	if int(saver.ehdr.e_shnum) != saver.sections.len {
+		return error('ehdr.e_shnum != sections count')
+	}
+	saver.sort_shdrs()
+	saver.buf_grow(int(saver.ehdr.e_shoff) + saver.sections.len * int(saver.ehdr.e_shentsize))!
+	for index, section in saver.sections {
+		saver.write_section_header(int(saver.ehdr.e_shoff) + index * int(saver.ehdr.e_shentsize), section.header)!
+	}
+	saver.sync_dyn_tags()!
+}
+
+pub fn (mut saver AltSaver) rewrite_headers(phdr_address u64) ! {
+	for mut segment in saver.segments {
+		if segment.header.p_type == alt_pt_phdr {
+			segment.header.p_offset = saver.ehdr.e_phoff
+			segment.header.p_vaddr = phdr_address
+			segment.header.p_paddr = phdr_address
+			segment.header.p_filesz = u64(saver.ehdr.e_phentsize) * u64(saver.segments.len)
+			segment.header.p_memsz = segment.header.p_filesz
+			break
+		}
+	}
+	saver.write_phdrs_to_buf()!
+	saver.write_shdrs_to_buf()!
+	meta := saver.meta_sym_pack()
+	for section in saver.sections {
+		mut symbols := saver.symbols(section.header)!
+		for entry, mut symbol in symbols {
+			old_index := int(symbol[meta.st_shndx])
+			new_index := saver.new_section_idx(old_index) or { continue }
+			if new_index < 0 {
+				continue
+			}
+			symbol[meta.st_shndx] = u64(new_index)
+			if symbol[meta.st_info] & 0xf == alt_stt_section {
+				symbol[meta.st_value] = saver.sections[new_index].header.sh_addr
+			}
+			saver.write_symbol(section.header, entry, symbol)!
+		}
+	}
+}
+
+pub fn (saver &AltSaver) replaced_section_indices() ![]int {
+	mut indices := []int{}
+	mut last_replaced := 0
+	for index, section in saver.sections {
+		if section.name in saver.replaced_sections {
+			last_replaced = index
+			indices << index
+		}
+	}
+	if last_replaced == 0 {
+		return error('last_replaced = 0')
+	}
+	if last_replaced + 1 >= saver.sections.len {
+		return error('last_replaced + 1 >= sections size')
+	}
+	return indices
+}
+
+pub fn (mut saver AltSaver) start_replacement_shdr() !AltSectionHeader {
+	indices := saver.replaced_section_indices()!
+	last := indices[indices.len - 1]
+	mut result := saver.sections[last + 1].header
+	mut previous_name := ''
+	for index in 1 .. last + 1 {
+		section := saver.sections[index]
+		if (section.header.sh_type == alt_sht_progbits && section.name != '.interp') || previous_name == '.dynstr' {
+			result = section.header
+			break
+		} else if section.name !in saver.replaced_sections {
+			saver.replace_section(section.name, int(section.header.sh_size))!
+		}
+		previous_name = section.name
+	}
+	return result
+}
+
+pub fn (mut saver AltSaver) copy_shdrs_to_eof() ! {
+	new_offset := saver.buffer.len
+	sh_size := int(saver.ehdr.e_shoff) + int(saver.ehdr.e_shnum) * int(saver.ehdr.e_shentsize)
+	saver.buf_grow(saver.buffer.len + sh_size)!
+	saver.ehdr.e_shoff = u64(new_offset)
+	if int(saver.ehdr.e_shnum) != saver.sections.len {
+		return error('ehdr.e_shnum != sections size')
+	}
+	for index in 1 .. saver.sections.len {
+		saver.write_section_header(int(saver.ehdr.e_shoff) + index * int(saver.ehdr.e_shentsize), saver.sections[index].header)!
+	}
+}
+
+pub fn (mut saver AltSaver) overwrite_replaced_sections() ! {
+	for name, _ in saver.replaced_sections {
+		section := saver.find_section(name) or { continue }
+		if section.header.sh_type == alt_sht_nobits {
+			continue
+		}
+		alt_check(saver.buffer, int(section.header.sh_offset), int(section.header.sh_size), name)!
+		for index in 0 .. int(section.header.sh_size) {
+			saver.buffer[int(section.header.sh_offset) + index] = `X`
+		}
+	}
+}
+
+pub fn (saver &AltSaver) find_or_create_section_header(name string) AltSectionHeader {
+	return (saver.find_section(name) or { return AltSectionHeader{} }).header
+}
+
+pub fn (saver &AltSaver) phdr_indices_by_type(kind u32) []int {
+	mut result := []int{}
+	for index, segment in saver.segments {
+		if segment.header.p_type == kind {
+			result << index
+		}
+	}
+	return result
+}
+
+pub fn sync_sec_to_seg(header AltSectionHeader, mut program AltProgramHeader) {
+	program.p_offset = header.sh_offset
+	program.p_vaddr = header.sh_addr
+	program.p_paddr = header.sh_addr
+	program.p_filesz = header.sh_size
+	program.p_memsz = header.sh_size
+}
+
+pub fn (mut saver AltSaver) section_sync_correspondence_segment(name string,
+	header AltSectionHeader) {
+	kind := match name {
+		'.interp' { alt_pt_interp }
+		'.dynamic' { alt_pt_dynamic }
+		'.MIPS.abiflags' { alt_pt_mips_abiflags }
+		'.note.gnu.property' { alt_pt_gnu_property }
+		else {
+			return
+		}
+	}
+	for index in saver.phdr_indices_by_type(kind) {
+		sync_sec_to_seg(header, mut saver.segments[index].header)
+	}
+}
+
+pub fn section_bounds_within_segment(section_start u64, section_end u64, program_start u64,
+	program_end u64) bool {
+	return (section_start >= program_start && section_start < program_end) || (section_end > program_start && section_end <= program_end)
+}
+
+pub fn (mut saver AltSaver) sync_note_segment(original_offset u64, original_size u64,
+	header AltSectionHeader) ! {
+	if header.sh_type != alt_sht_note {
+		return
+	}
+	for index in saver.phdr_indices_by_type(alt_pt_note) {
+		program := saver.segments[index].header
+		section_end := original_offset + original_size
+		program_end := program.p_offset + program.p_filesz
+		if !section_bounds_within_segment(original_offset, section_end, program.p_offset, program_end) {
+			continue
+		}
+		if program.p_offset != original_offset || program_end != section_end {
+			return error('unsupported overlap of SHT_NOTE and PT_NOTE')
+		}
+		sync_sec_to_seg(header, mut saver.segments[index].header)
+	}
+}
+
+pub fn (saver &AltSaver) write_section_alignment(mut header AltSectionHeader) {
+	if header.sh_type == alt_sht_note && header.sh_addralign <= u64(saver.section_alignment) {
+		return
+	}
+	header.sh_addralign = u64(saver.section_alignment)
+}
+
+pub fn (mut saver AltSaver) write_replaced_sections(initial_offset int, start_address u64,
+	start_offset int) !int {
+	saver.overwrite_replaced_sections()!
+	mut names := saver.replaced_sections.keys()
+	names.sort()
+	mut current := initial_offset
+	for name in names {
+		data := saver.replaced_sections[name]
+		saver.buf_grow(current + data.len)!
+		for index, byte in data {
+			saver.buffer[current + index] = byte
+		}
+		mut header := saver.find_or_create_section_header(name)
+		original_offset := header.sh_offset
+		original_size := header.sh_size
+		header.sh_offset = u64(current)
+		header.sh_addr = start_address + u64(current - start_offset)
+		header.sh_size = u64(data.len)
+		saver.write_section_alignment(mut header)
+		if index := saver.find_section_idx(name) {
+			saver.sections[index].header = header
+		}
+		saver.section_sync_correspondence_segment(name, header)
+		saver.sync_note_segment(original_offset, original_size, header)!
+		current += int(alt_alignup(u64(data.len), u64(saver.section_alignment)))
+	}
+	saver.replaced_sections.clear()
+	return current
+}
+
+pub fn (saver &AltSaver) sections_at_aligned_offset(offset u64) []AltSection {
+	mut result := []AltSection{}
+	for section in saver.sections {
+		if section.header.sh_offset == alt_alignup(offset, section.header.sh_addralign) {
+			result << section
+		}
+	}
+	return result
+}
+
+pub fn (mut saver AltSaver) normalize_note_segment_at(program_index int) ![]AltProgramHeader {
+	mut program := saver.segments[program_index].header
+	start_offset := program.p_offset
+	mut current := start_offset
+	end_offset := start_offset + program.p_filesz
+	mut created := []AltProgramHeader{}
+	for current < end_offset {
+		mut found := ?AltSection(none)
+		for section in saver.sections_at_aligned_offset(current) {
+			if section.header.sh_type == alt_sht_note {
+				found = section
+				break
+			}
+		}
+		section := found or { return error('cannot normalize PT_NOTE segment: non-contiguous SHT_NOTE sections') }
+		size := section.header.sh_size
+		current = section.header.sh_offset
+		if size == 0 || current + size > end_offset {
+			return error('cannot normalize PT_NOTE segment: partially mapped SHT_NOTE section')
+		}
+		mut new_program := program
+		new_program.p_offset = current
+		new_program.p_vaddr = program.p_vaddr + current - start_offset
+		new_program.p_paddr = program.p_paddr + current - start_offset
+		new_program.p_filesz = size
+		new_program.p_memsz = size
+		if current == start_offset {
+			program = new_program
+			saver.segments[program_index].header = new_program
+		} else {
+			created << new_program
+		}
+		current += size
+	}
+	return created
+}
+
+pub fn (mut saver AltSaver) normalize_note_segments() ! {
+	mut has_replaced_note := false
+	for name, _ in saver.replaced_sections {
+		if section := saver.find_section(name) {
+			if section.header.sh_type == alt_sht_note {
+				has_replaced_note = true
+				break
+			}
+		}
+	}
+	if !has_replaced_note {
+		return
+	}
+	indices := saver.phdr_indices_by_type(alt_pt_note)
+	mut created := []AltProgramHeader{}
+	for index in indices {
+		program := saver.segments[index].header
+		if saver.sections.all(it.header.sh_offset < program.p_offset || it.header.sh_offset >= program.p_offset + program.p_filesz) {
+			continue
+		}
+		created << saver.normalize_note_segment_at(index)!
+	}
+	for program in created {
+		saver.add_segment(program)
+	}
+}
+
+pub fn (mut saver AltSaver) shift_sections(shift u64, start_offset u64) {
+	if saver.ehdr.e_shoff >= start_offset {
+		saver.ehdr.e_shoff += shift
+	}
+	for index in 1 .. saver.sections.len {
+		if saver.sections[index].header.sh_offset >= start_offset {
+			saver.sections[index].header.sh_offset += shift
+		}
+	}
+}
+
+pub fn (saver &AltSaver) shift_segment_offset(mut program AltProgramHeader, shift u64) {
+	program.p_offset += shift
+	if program.p_align != 0 && (program.p_vaddr - program.p_offset) % program.p_align != 0 {
+		program.p_align = u64(saver.page_size())
+	}
+}
+
+pub fn shift_segment_virtual_address(mut program AltProgramHeader, shift u64) {
+	if program.p_paddr > shift {
+		program.p_paddr -= shift
+	}
+	if program.p_vaddr > shift {
+		program.p_vaddr -= shift
+	}
+}
+
+pub fn (mut saver AltSaver) shift_segments(shift u64, start_offset u64) !(int, u64) {
+	mut split_index := -1
+	mut split_shift := u64(0)
+	for index, mut segment in saver.segments {
+		mut start := segment.header.p_offset
+		if start <= start_offset && start_offset < start + segment.header.p_filesz && segment.header.p_type == alt_pt_load {
+			if split_index != -1 {
+				return error('PT_LOAD segments overlapped, unable to shift segments')
+			}
+			split_index = index
+			split_shift = start_offset - start
+			segment.header.p_offset = start_offset
+			segment.header.p_memsz -= split_shift
+			segment.header.p_filesz -= split_shift
+			segment.header.p_paddr += split_shift
+			segment.header.p_vaddr += split_shift
+			start = start_offset
+		}
+		if start >= start_offset {
+			saver.shift_segment_offset(mut segment.header, shift)
+		} else {
+			shift_segment_virtual_address(mut segment.header, shift)
+		}
+	}
+	if split_index == -1 {
+		return error('No PT_LOAD found covers offset 0x${start_offset.hex()}')
+	}
+	return split_index, split_shift
+}
+
+pub fn (mut saver AltSaver) shift_file(extra_pages int, start_offset int, extra_bytes int) ! {
+	if start_offset < int(saver.ehdr.e_ehsize) {
+		return error('start_offset(${start_offset}) < ehdr.num_bytes')
+	}
+	old_size := saver.buffer.len
+	if old_size <= start_offset {
+		return error('old size <= start_offset(${start_offset})')
+	}
+	shift := extra_pages * saver.page_size()
+	saver.buf_grow(old_size + shift)!
+	saver.buf_move(start_offset + shift, start_offset, old_size - start_offset)!
+	for index in 0 .. shift {
+		saver.buffer[start_offset + index] = 0
+	}
+	saver.ehdr.e_phoff = u64(saver.ehdr.e_ehsize)
+	saver.shift_sections(u64(shift), u64(start_offset))
+	split_index, split_shift := saver.shift_segments(u64(shift), u64(start_offset))!
+	split := saver.segments[split_index].header
+	saver.add_segment(AltProgramHeader{
+		p_type: alt_pt_load
+		p_offset: split.p_offset - split_shift - u64(shift)
+		p_vaddr: split.p_vaddr - split_shift - u64(shift)
+		p_paddr: split.p_paddr - split_shift - u64(shift)
+		p_filesz: split_shift + u64(extra_bytes)
+		p_memsz: split_shift + u64(extra_bytes)
+		p_flags: alt_pf_r | alt_pf_w
+		p_align: u64(saver.page_size())
+	})
+}
+
+pub fn (mut saver AltSaver) replace_sections_in_the_way_of_phdr() ! {
+	note_count := saver.sections.filter(it.header.sh_type == alt_sht_note).len
+	if saver.segments.len == 0 {
+		return error('no program headers')
+	}
+	pht_size := int(saver.ehdr.e_ehsize) + (saver.segments.len + note_count + 1) * int(saver.ehdr.e_phentsize)
+	for index, section in saver.sections {
+		if index == 0 || section.name in saver.replaced_sections {
+			continue
+		}
+		if section.header.sh_offset > u64(pht_size) {
+			break
+		}
+		saver.replace_section(section.name, int(section.header.sh_size))!
+	}
+}
+
+fn (saver &AltSaver) replacement_space() int {
+	mut result := 0
+	for _, data in saver.replaced_sections {
+		result += int(alt_alignup(u64(data.len), u64(saver.section_alignment)))
+	}
+	return result
+}
+
+pub fn (mut saver AltSaver) rewrite_sections_library() ! {
+	mut start_page := u64(0)
+	mut first_page := u64(0)
+	for segment in saver.segments {
+		program := segment.header
+		this_page := alt_alignup(program.p_vaddr + program.p_memsz, u64(saver.page_size()))
+		if this_page > start_page {
+			start_page = this_page
+		}
+		if program.p_type == alt_pt_phdr {
+			first_page = program.p_vaddr - program.p_offset
+		}
+	}
+	saver.replace_sections_in_the_way_of_phdr()!
+	needed_space := saver.replacement_space()
+	start_offset := int(alt_alignup(u64(saver.buffer.len), u64(saver.page_size())))
+	saver.buf_grow(start_offset + needed_space)!
+	if u64(start_offset) > start_page && saver.segments.any(it.header.p_type == alt_pt_interp) {
+		start_page = u64(start_offset)
+	}
+	saver.ehdr.e_phoff = u64(saver.ehdr.e_ehsize)
+	saver.add_segment(AltProgramHeader{
+		p_type: alt_pt_load
+		p_offset: u64(start_offset)
+		p_vaddr: start_page
+		p_paddr: start_page
+		p_filesz: u64(needed_space)
+		p_memsz: u64(needed_space)
+		p_flags: alt_pf_r | alt_pf_w
+		p_align: u64(saver.page_size())
+	})
+	saver.normalize_note_segments()!
+	current := saver.write_replaced_sections(start_offset, start_page, start_offset)!
+	if current != start_offset + needed_space {
+		return error('current offset != start_offset + needed_space')
+	}
+	saver.rewrite_headers(first_page + saver.ehdr.e_phoff)!
+}
+
+pub fn (mut saver AltSaver) rewrite_sections_executable() ! {
+	saver.sort_shdrs()
+	header := saver.start_replacement_shdr()!
+	mut start_offset := int(header.sh_offset)
+	start_address := int(header.sh_addr)
+	mut first_page := start_address - start_offset
+	if start_address % saver.page_size() != start_offset % saver.page_size() {
+		return error('start_addr != start_offset (mod PAGE_SIZE)')
+	}
+	if saver.ehdr.e_shoff < u64(start_offset) {
+		saver.copy_shdrs_to_eof()!
+	}
+	saver.normalize_note_segments()!
+	if saver.segments.len == 0 {
+		return error('no program headers')
+	}
+	mut needed_space := int(saver.ehdr.e_ehsize) + saver.segments.len * int(saver.ehdr.e_phentsize) + saver.replacement_space()
+	if needed_space > start_offset {
+		needed_space += int(saver.ehdr.e_phentsize)
+		extra_bytes := needed_space - start_offset
+		needed_pages := int(alt_alignup(u64(extra_bytes), u64(saver.page_size()))) / saver.page_size()
+		if needed_pages * saver.page_size() > first_page {
+			return error('virtual address space underrun')
+		}
+		saver.shift_file(needed_pages, start_offset, extra_bytes)!
+		first_page -= needed_pages * saver.page_size()
+		start_offset += needed_pages * saver.page_size()
+	}
+	mut current := int(saver.ehdr.e_ehsize) + saver.segments.len * int(saver.ehdr.e_phentsize)
+	for index in current .. start_offset {
+		saver.buffer[index] = 0
+	}
+	current = saver.write_replaced_sections(current, u64(first_page), 0)!
+	if current != needed_space {
+		return error('current offset(${current}) != needed_space(${needed_space})')
+	}
+	saver.rewrite_headers(u64(first_page) + saver.ehdr.e_phoff)!
+}
+
+pub fn (mut saver AltSaver) rewrite_sections() ! {
+	if saver.replaced_sections.len == 0 {
+		return
+	}
+	match saver.ehdr.e_type {
+		alt_et_dyn { saver.rewrite_sections_library()! }
+		alt_et_exec { saver.rewrite_sections_executable()! }
+		else {
+			return error('unknown ELF type')
+		}
+	}
+}
+
+pub fn (mut saver AltSaver) patch_out() ! {
+	saver.write_header()!
+	os.write_file_array(saver.out_file, saver.buffer)!
+}
+
+fn alt_value_truthy(value brew_runtime.Value) bool {
+	return value.type_name != 'NilClass' && !(value.type_name == 'Bool' && !value.bool_data)
+}
+
+pub fn (mut saver AltSaver) save() ! {
+	for method, value in saver.set {
+		if !alt_value_truthy(value) {
+			continue
+		}
+		match method.trim_left(':') {
+			'interpreter' { saver.modify_interpreter() }
+			'needed' { saver.modify_needed() }
+			'rpath' { saver.modify_rpath()! }
+			'runpath' { saver.modify_runpath()! }
+			'soname' { saver.modify_soname() }
+			else {
+				return error('unknown AltSaver modification `${method}`')
+			}
+		}
+	}
+	saver.rewrite_sections()!
+	if saver.in_file != saver.out_file && os.exists(saver.in_file) {
+		os.cp(saver.in_file, saver.out_file)!
+	}
+	saver.patch_out()!
+	if saver.in_file != '' && os.exists(saver.in_file) {
+		metadata := os.stat(saver.in_file)!
+		os.chmod(saver.out_file, int(metadata.mode))!
+	}
+}
+
+fn alt_header_value(header AltElfHeader) brew_runtime.Value {
+	return brew_runtime.structured_value('ELFTools::Structs::ELF_Ehdr', 'ELF_Ehdr', {
+		'e_type':     header.e_type.str()
+		'e_machine':  header.e_machine.str()
+		'e_entry':    header.e_entry.str()
+		'e_phoff':    header.e_phoff.str()
+		'e_shoff':    header.e_shoff.str()
+		'e_phnum':    header.e_phnum.str()
+		'e_shnum':    header.e_shnum.str()
+		'e_shstrndx': header.e_shstrndx.str()
+	})
+}
+
+fn alt_section_header_value(header AltSectionHeader) brew_runtime.Value {
+	return brew_runtime.structured_value('ELFTools::Structs::ELF_Shdr', 'ELF_Shdr', {
+		'sh_name':      header.sh_name.str()
+		'sh_type':      header.sh_type.str()
+		'sh_flags':     header.sh_flags.str()
+		'sh_addr':      header.sh_addr.str()
+		'sh_offset':    header.sh_offset.str()
+		'sh_size':      header.sh_size.str()
+		'sh_link':      header.sh_link.str()
+		'sh_info':      header.sh_info.str()
+		'sh_addralign': header.sh_addralign.str()
+		'sh_entsize':   header.sh_entsize.str()
+	})
+}
+
+fn alt_section_value(section AltSection) brew_runtime.Value {
+	mut attributes := alt_section_header_value(section.header).attributes.clone()
+	attributes['name'] = section.name
+	return brew_runtime.structured_value('ELFTools::Sections::Section', section.name, attributes)
+}
+
+fn alt_program_header_value(header AltProgramHeader) brew_runtime.Value {
+	return brew_runtime.structured_value('ELFTools::Structs::ELF_Phdr', 'ELF_Phdr', {
+		'p_type':   header.p_type.str()
+		'p_offset': header.p_offset.str()
+		'p_vaddr':  header.p_vaddr.str()
+		'p_paddr':  header.p_paddr.str()
+		'p_filesz': header.p_filesz.str()
+		'p_memsz':  header.p_memsz.str()
+		'p_flags':  header.p_flags.str()
+		'p_align':  header.p_align.str()
+	})
+}
+
+fn alt_dynamic_tag_value(tag AltDynamicTag) brew_runtime.Value {
+	return brew_runtime.structured_value('ELFTools::Structs::ELF_Dyn', 'ELF_Dyn', {
+		'd_tag':  tag.d_tag.str()
+		'd_val':  tag.d_val.str()
+		'offset': tag.offset.str()
+	})
+}
+
+fn alt_section_header_from_value(value brew_runtime.Value) AltSectionHeader {
+	return AltSectionHeader{
+		sh_name: u32((value.attribute('sh_name') or { '0' }).u64())
+		sh_type: u32((value.attribute('sh_type') or { '0' }).u64())
+		sh_flags: (value.attribute('sh_flags') or { '0' }).u64()
+		sh_addr: (value.attribute('sh_addr') or { '0' }).u64()
+		sh_offset: (value.attribute('sh_offset') or { '0' }).u64()
+		sh_size: (value.attribute('sh_size') or { '0' }).u64()
+		sh_link: u32((value.attribute('sh_link') or { '0' }).u64())
+		sh_info: u32((value.attribute('sh_info') or { '0' }).u64())
+		sh_addralign: (value.attribute('sh_addralign') or { '0' }).u64()
+		sh_entsize: (value.attribute('sh_entsize') or { '0' }).u64()
+	}
+}
+
+fn alt_program_header_from_value(value brew_runtime.Value) AltProgramHeader {
+	return AltProgramHeader{
+		p_type: u32((value.attribute('p_type') or { '0' }).u64())
+		p_offset: (value.attribute('p_offset') or { '0' }).u64()
+		p_vaddr: (value.attribute('p_vaddr') or { '0' }).u64()
+		p_paddr: (value.attribute('p_paddr') or { '0' }).u64()
+		p_filesz: (value.attribute('p_filesz') or { '0' }).u64()
+		p_memsz: (value.attribute('p_memsz') or { '0' }).u64()
+		p_flags: u32((value.attribute('p_flags') or { '0' }).u64())
+		p_align: (value.attribute('p_align') or { '0' }).u64()
+	}
+}
+
+fn alt_saver_value(saver &AltSaver) brew_runtime.Value {
+	return brew_runtime.structured_value('PatchELF::AltSaver', 'AltSaver(${saver.in_file})', {
+		'alt_saver_address': u64(voidptr(saver)).str()
+		'in_file':           saver.in_file
+		'out_file':          saver.out_file
+	})
+}
+
+fn alt_saver_from_args(args []brew_runtime.Value) &AltSaver {
+	if args.len == 0 {
+		panic('AltSaver method requires a receiver')
+	}
+	address := args[0].attribute('alt_saver_address') or { panic('invalid AltSaver receiver') }
+	return unsafe { &AltSaver(voidptr(address.u64())) }
+}
+
+fn alt_runpath_tags_value(tags map[string]AltRunpathTag) brew_runtime.Value {
+	mut result := map[string]brew_runtime.Value{}
+	for name, item in tags {
+		result[name] = brew_runtime.structured_value('Hash', name, {
+			'offset': item.offset.str()
+			'd_tag':  item.header.d_tag.str()
+			'd_val':  item.header.d_val.str()
+		})
+	}
+	return brew_runtime.map_value(result)
+}
+
+fn alt_runpath_tags_from_value(value brew_runtime.Value) map[string]AltRunpathTag {
+	mut result := map[string]AltRunpathTag{}
+	for name, item in value.map_data {
+		offset := (item.attribute('offset') or { '0' }).int()
+		result[name] = AltRunpathTag{
+			offset: offset
+			header: AltDynamicTag{
+				d_tag: (item.attribute('d_tag') or { '0' }).i64()
+				d_val: (item.attribute('d_val') or { '0' }).u64()
+				offset: offset
+			}
+		}
+	}
+	return result
+}
+
+fn alt_require(args []brew_runtime.Value, count int, name string) {
+	if args.len < count {
+		panic('${name} requires ${count} argument(s), including receiver')
+	}
+}
+
+fn alt_sections_value(sections []AltSection) brew_runtime.Value {
+	return brew_runtime.array_value(sections.map(alt_section_value(it)))
+}
+
+fn alt_programs_value(programs []AltProgramHeader) brew_runtime.Value {
+	return brew_runtime.array_value(programs.map(alt_program_header_value(it)))
+}
+
+fn alt_refs_value(refs AltSectionReferences) brew_runtime.Value {
+	mut linkage := map[string]brew_runtime.Value{}
+	mut info := map[string]brew_runtime.Value{}
+	for name, target in refs.linkage {
+		linkage[name] = brew_runtime.string_value(target)
+	}
+	for name, target in refs.info {
+		info[name] = brew_runtime.string_value(target)
+	}
+	return brew_runtime.map_value({
+		'linkage': brew_runtime.map_value(linkage)
+		'info':    brew_runtime.map_value(info)
+	})
+}
+
+fn alt_refs_from_value(value brew_runtime.Value) AltSectionReferences {
+	mut linkage := map[string]string{}
+	mut info := map[string]string{}
+	if nested := value.map_data['linkage'] {
+		for name, target in nested.map_data {
+			linkage[name] = target.as_string()
+		}
+	}
+	if nested := value.map_data['info'] {
+		for name, target in nested.map_data {
+			info[name] = target.as_string()
+		}
+	}
+	return AltSectionReferences{ linkage: linkage, info: info }
+}
+
+fn alt_set_from_value(value brew_runtime.Value) map[string]brew_runtime.Value {
+	if value.type_name != 'Hash' {
+		return map[string]brew_runtime.Value{}
+	}
+	return value.map_data.clone()
+}
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/patchelf-1.6.2/lib/patchelf/alt_saver.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `fill(char, nbytes)` at line 24.
 pub fn ruby_alt_saver_l24_d1_fill(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fill', ...args)
+	alt_require(args, 2, 'fill')
+	character := args[args.len - 2].as_string()
+	if character.len == 0 {
+		panic('fill requires a non-empty character')
+	}
+	count := int(args[args.len - 1].as_int() or { panic(err) })
+	return brew_runtime.string_value((alt_fill(character.bytes()[0], count) or { panic(err) }).bytestr())
 }
 
 // Ruby attr_reader `attr_reader :in_file` at line 48.
 pub fn ruby_alt_saver_l48_d2_in_file(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('in_file', ...args)
+	return brew_runtime.string_value(alt_saver_from_args(args).in_file)
 }
 
 // Ruby attr_reader `attr_reader :out_file` at line 49.
 pub fn ruby_alt_saver_l49_d3_out_file(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('out_file', ...args)
+	return brew_runtime.string_value(alt_saver_from_args(args).out_file)
 }
 
 // Ruby method `initialize(in_file, out_file, set)` at line 56.
 pub fn ruby_alt_saver_l56_d4_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	alt_require(args, 3, 'AltSaver#initialize')
+	saver := new_alt_saver(args[0].as_string(), args[1].as_string(), alt_set_from_value(args[2])) or {
+		panic(err)
+	}
+	return alt_saver_value(saver)
 }
 
 // Ruby method `save!` at line 90.
 pub fn ruby_alt_saver_l90_d5_save(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('save!', ...args)
+	mut saver := alt_saver_from_args(args)
+	saver.save() or { panic(err) }
+	return alt_nil_value()
 }
 
 // Ruby attr_reader `attr_reader :ehdr, :endian, :elf_class` at line 102.
 pub fn ruby_alt_saver_l102_d6_ehdr(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ehdr', ...args)
+	return alt_header_value(alt_saver_from_args(args).ehdr)
 }
 
 // Ruby attr_reader `attr_reader :ehdr, :endian, :elf_class` at line 102.
 pub fn ruby_alt_saver_l102_d7_endian(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('endian', ...args)
+	return brew_runtime.string_value(alt_saver_from_args(args).endian.str())
 }
 
 // Ruby attr_reader `attr_reader :ehdr, :endian, :elf_class` at line 102.
 pub fn ruby_alt_saver_l102_d8_elf_class(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('elf_class', ...args)
+	return brew_runtime.int_value(alt_saver_from_args(args).elf_class)
 }
 
 // Ruby method `old_sections` at line 104.
 pub fn ruby_alt_saver_l104_d9_old_sections(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('old_sections', ...args)
+	return alt_sections_value(alt_saver_from_args(args).original_sections)
 }
 
 // Ruby method `buf_cstr(off)` at line 108.
 pub fn ruby_alt_saver_l108_d10_buf_cstr(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('buf_cstr', ...args)
+	alt_require(args, 2, 'buf_cstr')
+	saver := alt_saver_from_args(args)
+	return brew_runtime.string_value(saver.buf_cstr(int(args[1].as_int() or { panic(err) })) or {
+		panic(err)
+	})
 }
 
 // Ruby method `buf_move!(dst_idx, src_idx, n_bytes)` at line 121.
 pub fn ruby_alt_saver_l121_d11_buf_move(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('buf_move!', ...args)
+	alt_require(args, 4, 'buf_move!')
+	mut saver := alt_saver_from_args(args)
+	saver.buf_move(int(args[1].as_int() or { panic(err) }), int(args[2].as_int() or { panic(err) }), int(args[3].as_int() or { panic(err) })) or { panic(err) }
+	return alt_nil_value()
 }
 
 // Ruby method `dynstr` at line 129.
 pub fn ruby_alt_saver_l129_d12_dynstr(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dynstr', ...args)
+	saver := alt_saver_from_args(args)
+	return alt_section_value(saver.find_section('.dynstr') or { return alt_nil_value() })
 }
 
 // Ruby method `each_dynamic_tags` at line 136.
 pub fn ruby_alt_saver_l136_d13_each_dynamic_tags(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('each_dynamic_tags', ...args)
+	saver := alt_saver_from_args(args)
+	return brew_runtime.array_value((saver.dynamic_tags() or { panic(err) }).map(brew_runtime.array_value([
+		alt_dynamic_tag_value(it),
+		brew_runtime.int_value(it.offset),
+	])))
 }
 
 // Ruby method `find_section(sec_name)` at line 159.
 pub fn ruby_alt_saver_l159_d14_find_section(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('find_section', ...args)
+	alt_require(args, 2, 'find_section')
+	saver := alt_saver_from_args(args)
+	return alt_section_value(saver.find_section(args[1].as_string()) or { return alt_nil_value() })
 }
 
 // Ruby method `find_section_idx(sec_name)` at line 166.
 pub fn ruby_alt_saver_l166_d15_find_section_idx(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('find_section_idx', ...args)
+	alt_require(args, 2, 'find_section_idx')
+	saver := alt_saver_from_args(args)
+	return brew_runtime.int_value(saver.find_section_idx(args[1].as_string()) or {
+		return alt_nil_value()
+	})
 }
 
 // Ruby method `buf_grow!(newsz)` at line 170.
 pub fn ruby_alt_saver_l170_d16_buf_grow(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('buf_grow!', ...args)
+	alt_require(args, 2, 'buf_grow!')
+	mut saver := alt_saver_from_args(args)
+	saver.buf_grow(int(args[1].as_int() or { panic(err) })) or { panic(err) }
+	return alt_nil_value()
 }
 
 // Ruby method `modify_interpreter` at line 177.
 pub fn ruby_alt_saver_l177_d17_modify_interpreter(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('modify_interpreter', ...args)
+	mut saver := alt_saver_from_args(args)
+	saver.modify_interpreter()
+	return alt_nil_value()
 }
 
 // Ruby method `modify_needed` at line 181.
 pub fn ruby_alt_saver_l181_d18_modify_needed(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('modify_needed', ...args)
+	mut saver := alt_saver_from_args(args)
+	saver.modify_needed()
+	return alt_nil_value()
 }
 
 // Ruby method `modify_rpath` at line 187.
 pub fn ruby_alt_saver_l187_d19_modify_rpath(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('modify_rpath', ...args)
+	mut saver := alt_saver_from_args(args)
+	saver.modify_rpath() or { panic(err) }
+	return alt_nil_value()
 }
 
 // Ruby method `modify_runpath` at line 192.
 pub fn ruby_alt_saver_l192_d20_modify_runpath(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('modify_runpath', ...args)
+	mut saver := alt_saver_from_args(args)
+	saver.modify_runpath() or { panic(err) }
+	return alt_nil_value()
 }
 
 // Ruby method `collect_runpath_tags` at line 196.
 pub fn ruby_alt_saver_l196_d21_collect_runpath_tags(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('collect_runpath_tags', ...args)
+	saver := alt_saver_from_args(args)
+	return alt_runpath_tags_value(saver.collect_runpath_tags() or { panic(err) })
 }
 
 // Ruby method `resolve_rpath_tag_conflict(dyn_tags, force_rpath: false)` at line 216.
 pub fn ruby_alt_saver_l216_d22_resolve_rpath_tag_conflict(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('resolve_rpath_tag_conflict', ...args)
+	alt_require(args, 2, 'resolve_rpath_tag_conflict')
+	mut saver := alt_saver_from_args(args)
+	force := if args.len > 2 { args[2].as_bool() or { false } } else { false }
+	mut tags := alt_runpath_tags_from_value(args[1])
+	return alt_runpath_tags_value(saver.resolve_rpath_tag_conflict(mut tags, force) or { panic(err) })
 }
 
 // Ruby method `modify_rpath_helper(new_rpath, force_rpath: false)` at line 235.
 pub fn ruby_alt_saver_l235_d23_modify_rpath_helper(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('modify_rpath_helper', ...args)
+	alt_require(args, 2, 'modify_rpath_helper')
+	mut saver := alt_saver_from_args(args)
+	force := if args.len > 2 { args[2].as_bool() or { false } } else { false }
+	saver.modify_rpath_helper(args[1].as_string(), force) or { panic(err) }
+	return alt_nil_value()
 }
 
 // Ruby method `modify_soname` at line 275.
 pub fn ruby_alt_saver_l275_d24_modify_soname(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('modify_soname', ...args)
+	mut saver := alt_saver_from_args(args)
+	saver.modify_soname()
+	return alt_nil_value()
 }
 
 // Ruby method `add_segment!(**phdr_vals)` at line 282.
 pub fn ruby_alt_saver_l282_d25_add_segment(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('add_segment!', ...args)
+	alt_require(args, 2, 'add_segment!')
+	mut saver := alt_saver_from_args(args)
+	saver.add_segment(alt_program_header_from_value(args[1]))
+	return alt_nil_value()
 }
 
 // Ruby method `add_dt_rpath!(d_tag: nil, d_val: nil)` at line 291.
 pub fn ruby_alt_saver_l291_d26_add_dt_rpath(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('add_dt_rpath!', ...args)
+	alt_require(args, 3, 'add_dt_rpath!')
+	mut saver := alt_saver_from_args(args)
+	saver.add_dt_rpath(args[1].as_int() or { panic(err) }, u64(args[2].as_int() or { panic(err) })) or {
+		panic(err)
+	}
+	return alt_nil_value()
 }
 
 // Ruby method `new_section_idx(old_shndx)` at line 329.
 pub fn ruby_alt_saver_l329_d27_new_section_idx(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('new_section_idx', ...args)
+	alt_require(args, 2, 'new_section_idx')
+	saver := alt_saver_from_args(args)
+	index := saver.new_section_idx(int(args[1].as_int() or { panic(err) })) or { panic(err) }
+	return if index < 0 { alt_nil_value() } else { brew_runtime.int_value(index) }
 }
 
 // Ruby method `page_size` at line 341.
 pub fn ruby_alt_saver_l341_d28_page_size(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('page_size', ...args)
+	return brew_runtime.int_value(alt_saver_from_args(args).page_size())
 }
 
 // Ruby method `patch_out` at line 345.
 pub fn ruby_alt_saver_l345_d29_patch_out(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('patch_out', ...args)
+	mut saver := alt_saver_from_args(args)
+	saver.patch_out() or { panic(err) }
+	return alt_nil_value()
 }
 
 // Ruby method `replace_section(section_name, size)` at line 355.
 pub fn ruby_alt_saver_l355_d30_replace_section(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('replace_section', ...args)
+	alt_require(args, 3, 'replace_section')
+	mut saver := alt_saver_from_args(args)
+	return brew_runtime.string_value((saver.replace_section(args[1].as_string(), int(args[2].as_int() or { panic(err) })) or { panic(err) }).bytestr())
 }
 
 // Ruby method `write_phdrs_to_buf!` at line 375.
 pub fn ruby_alt_saver_l375_d31_write_phdrs_to_buf(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('write_phdrs_to_buf!', ...args)
+	mut saver := alt_saver_from_args(args)
+	saver.write_phdrs_to_buf() or { panic(err) }
+	return alt_nil_value()
 }
 
 // Ruby method `write_shdrs_to_buf!` at line 382.
 pub fn ruby_alt_saver_l382_d32_write_shdrs_to_buf(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('write_shdrs_to_buf!', ...args)
+	mut saver := alt_saver_from_args(args)
+	saver.write_shdrs_to_buf() or { panic(err) }
+	return alt_nil_value()
 }
 
 // Ruby method `meta_sym_pack` at line 393.
 pub fn ruby_alt_saver_l393_d33_meta_sym_pack(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('meta_sym_pack', ...args)
+	meta := alt_saver_from_args(args).meta_sym_pack()
+	return brew_runtime.map_value({
+		'num_bytes': brew_runtime.int_value(meta.num_bytes)
+		'code':      brew_runtime.string_value(meta.code)
+		'st_info':   brew_runtime.int_value(meta.st_info)
+		'st_shndx':  brew_runtime.int_value(meta.st_shndx)
+		'st_value':  brew_runtime.int_value(meta.st_value)
+	})
 }
 
 // Ruby method `each_symbol(shdr)` at line 419.
 pub fn ruby_alt_saver_l419_d34_each_symbol(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('each_symbol', ...args)
+	alt_require(args, 2, 'each_symbol')
+	saver := alt_saver_from_args(args)
+	symbols := saver.symbols(alt_section_header_from_value(args[1])) or { panic(err) }
+	mut values := []brew_runtime.Value{}
+	for entry, symbol in symbols {
+		values << brew_runtime.array_value([
+			brew_runtime.array_value(symbol.map(brew_runtime.int_value(i64(it)))),
+			brew_runtime.int_value(entry),
+		])
+	}
+	return brew_runtime.array_value(values)
 }
 
 // Ruby method `rewrite_headers(phdr_address)` at line 438.
 pub fn ruby_alt_saver_l438_d35_rewrite_headers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('rewrite_headers', ...args)
+	alt_require(args, 2, 'rewrite_headers')
+	mut saver := alt_saver_from_args(args)
+	saver.rewrite_headers(u64(args[1].as_int() or { panic(err) })) or { panic(err) }
+	return alt_nil_value()
 }
 
 // Ruby method `rewrite_sections` at line 472.
 pub fn ruby_alt_saver_l472_d36_rewrite_sections(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('rewrite_sections', ...args)
+	mut saver := alt_saver_from_args(args)
+	saver.rewrite_sections() or { panic(err) }
+	return alt_nil_value()
 }
 
 // Ruby method `replaced_section_indices` at line 485.
 pub fn ruby_alt_saver_l485_d37_replaced_section_indices(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('replaced_section_indices', ...args)
+	saver := alt_saver_from_args(args)
+	return brew_runtime.array_value((saver.replaced_section_indices() or { panic(err) }).map(brew_runtime.int_value(it)))
 }
 
 // Ruby method `start_replacement_shdr` at line 499.
 pub fn ruby_alt_saver_l499_d38_start_replacement_shdr(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('start_replacement_shdr', ...args)
+	mut saver := alt_saver_from_args(args)
+	return alt_section_header_value(saver.start_replacement_shdr() or { panic(err) })
 }
 
 // Ruby method `copy_shdrs_to_eof` at line 520.
 pub fn ruby_alt_saver_l520_d39_copy_shdrs_to_eof(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('copy_shdrs_to_eof', ...args)
+	mut saver := alt_saver_from_args(args)
+	saver.copy_shdrs_to_eof() or { panic(err) }
+	return alt_nil_value()
 }
 
 // Ruby method `rewrite_sections_executable` at line 537.
 pub fn ruby_alt_saver_l537_d40_rewrite_sections_executable(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('rewrite_sections_executable', ...args)
+	mut saver := alt_saver_from_args(args)
+	saver.rewrite_sections_executable() or { panic(err) }
+	return alt_nil_value()
 }
 
 // Ruby method `replace_sections_in_the_way_of_phdr!` at line 588.
 pub fn ruby_alt_saver_l588_d41_replace_sections_in_the_way_of_phdr(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('replace_sections_in_the_way_of_phdr!', ...args)
+	mut saver := alt_saver_from_args(args)
+	saver.replace_sections_in_the_way_of_phdr() or { panic(err) }
+	return alt_nil_value()
 }
 
 // Ruby method `rewrite_sections_library` at line 602.
 pub fn ruby_alt_saver_l602_d42_rewrite_sections_library(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('rewrite_sections_library', ...args)
+	mut saver := alt_saver_from_args(args)
+	saver.rewrite_sections_library() or { panic(err) }
+	return alt_nil_value()
 }
 
 // Ruby method `normalize_note_segments` at line 649.
 pub fn ruby_alt_saver_l649_d43_normalize_note_segments(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('normalize_note_segments', ...args)
+	mut saver := alt_saver_from_args(args)
+	saver.normalize_note_segments() or { panic(err) }
+	return alt_nil_value()
 }
 
 // Ruby method `normalize_note_segment(phdr)` at line 668.
 pub fn ruby_alt_saver_l668_d44_normalize_note_segment(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('normalize_note_segment', ...args)
+	alt_require(args, 2, 'normalize_note_segment')
+	mut saver := alt_saver_from_args(args)
+	target := alt_program_header_from_value(args[1])
+	mut index := -1
+	for candidate, segment in saver.segments {
+		if segment.header.p_type == target.p_type && segment.header.p_offset == target.p_offset {
+			index = candidate
+			break
+		}
+	}
+	if index < 0 {
+		panic('program header not found')
+	}
+	return alt_programs_value(saver.normalize_note_segment_at(index) or { panic(err) })
 }
 
 // Ruby method `sections_at_aligned_offset(offset)` at line 705.
 pub fn ruby_alt_saver_l705_d45_sections_at_aligned_offset(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sections_at_aligned_offset', ...args)
+	alt_require(args, 2, 'sections_at_aligned_offset')
+	saver := alt_saver_from_args(args)
+	return alt_sections_value(saver.sections_at_aligned_offset(u64(args[1].as_int() or { panic(err) })))
 }
 
 // Ruby method `shift_sections(shift, start_offset)` at line 718.
 pub fn ruby_alt_saver_l718_d46_shift_sections(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('shift_sections', ...args)
+	alt_require(args, 3, 'shift_sections')
+	mut saver := alt_saver_from_args(args)
+	saver.shift_sections(u64(args[1].as_int() or { panic(err) }), u64(args[2].as_int() or { panic(err) }))
+	return alt_nil_value()
 }
 
 // Ruby method `shift_segment_offset(phdr, shift)` at line 731.
 pub fn ruby_alt_saver_l731_d47_shift_segment_offset(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('shift_segment_offset', ...args)
+	alt_require(args, 3, 'shift_segment_offset')
+	saver := alt_saver_from_args(args)
+	mut header := alt_program_header_from_value(args[1])
+	saver.shift_segment_offset(mut header, u64(args[2].as_int() or { panic(err) }))
+	return alt_program_header_value(header)
 }
 
 // Ruby method `shift_segment_virtual_address(phdr, shift)` at line 736.
 pub fn ruby_alt_saver_l736_d48_shift_segment_virtual_address(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('shift_segment_virtual_address', ...args)
+	alt_require(args, 3, 'shift_segment_virtual_address')
+	mut header := alt_program_header_from_value(args[1])
+	shift_segment_virtual_address(mut header, u64(args[2].as_int() or { panic(err) }))
+	return alt_program_header_value(header)
 }
 
 // Ruby method `shift_segments(shift, start_offset)` at line 741.
 pub fn ruby_alt_saver_l741_d49_shift_segments(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('shift_segments', ...args)
+	alt_require(args, 3, 'shift_segments')
+	mut saver := alt_saver_from_args(args)
+	index, shift := saver.shift_segments(u64(args[1].as_int() or { panic(err) }), u64(args[2].as_int() or { panic(err) })) or { panic(err) }
+	return brew_runtime.array_value([brew_runtime.int_value(index),
+		brew_runtime.int_value(i64(shift))])
 }
 
 // Ruby method `shift_file(extra_pages, start_offset, extra_bytes)` at line 776.
 pub fn ruby_alt_saver_l776_d50_shift_file(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('shift_file', ...args)
+	alt_require(args, 4, 'shift_file')
+	mut saver := alt_saver_from_args(args)
+	saver.shift_file(int(args[1].as_int() or { panic(err) }), int(args[2].as_int() or { panic(err) }), int(args[3].as_int() or { panic(err) })) or { panic(err) }
+	return alt_nil_value()
 }
 
 // Ruby method `sort_phdrs!` at line 806.
 pub fn ruby_alt_saver_l806_d51_sort_phdrs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sort_phdrs!', ...args)
+	mut saver := alt_saver_from_args(args)
+	saver.sort_phdrs()
+	return alt_programs_value(saver.segments.map(it.header))
 }
 
 // Ruby method `collect_section_to_section_refs` at line 818.
 pub fn ruby_alt_saver_l818_d52_collect_section_to_section_refs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('collect_section_to_section_refs', ...args)
+	return alt_refs_value(alt_saver_from_args(args).collect_section_to_section_refs())
 }
 
 // Ruby method `restore_section_to_section_refs!(collected)` at line 830.
 pub fn ruby_alt_saver_l830_d53_restore_section_to_section_refs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('restore_section_to_section_refs!', ...args)
+	alt_require(args, 2, 'restore_section_to_section_refs!')
+	mut saver := alt_saver_from_args(args)
+	saver.restore_section_to_section_refs(alt_refs_from_value(args[1]))
+	return alt_nil_value()
 }
 
 // Ruby method `sort_shdrs!` at line 840.
 pub fn ruby_alt_saver_l840_d54_sort_shdrs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sort_shdrs!', ...args)
+	mut saver := alt_saver_from_args(args)
+	saver.sort_shdrs()
+	return alt_sections_value(saver.sections)
 }
 
 // Ruby method `jmprel_section_name` at line 853.
 pub fn ruby_alt_saver_l853_d55_jmprel_section_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('jmprel_section_name', ...args)
+	return brew_runtime.string_value(alt_saver_from_args(args).jmprel_section_name() or { panic(err) })
 }
 
 // Ruby method `dyn_tag_to_section_name(d_tag)` at line 863.
 pub fn ruby_alt_saver_l863_d56_dyn_tag_to_section_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dyn_tag_to_section_name', ...args)
+	alt_require(args, 2, 'dyn_tag_to_section_name')
+	name := alt_saver_from_args(args).dyn_tag_to_section_name(args[1].as_int() or { panic(err) }) or {
+		panic(err)
+	}
+	return if name == '' { alt_nil_value() } else { brew_runtime.string_value(name) }
 }
 
 // Ruby method `dyn_tag_to_shdr(d_tag)` at line 897.
 pub fn ruby_alt_saver_l897_d57_dyn_tag_to_shdr(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dyn_tag_to_shdr', ...args)
+	alt_require(args, 2, 'dyn_tag_to_shdr')
+	header := alt_saver_from_args(args).dyn_tag_to_shdr(args[1].as_int() or { panic(err) }) or {
+		return alt_nil_value()
+	}
+	return alt_section_header_value(header)
 }
 
 // Ruby method `sync_dyn_tags!` at line 905.
 pub fn ruby_alt_saver_l905_d58_sync_dyn_tags(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sync_dyn_tags!', ...args)
+	mut saver := alt_saver_from_args(args)
+	saver.sync_dyn_tags() or { panic(err) }
+	return alt_nil_value()
 }
 
 // Ruby method `update_section_idx!` at line 931.
 pub fn ruby_alt_saver_l931_d59_update_section_idx(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('update_section_idx!', ...args)
+	mut saver := alt_saver_from_args(args)
+	saver.update_section_idx()
+	return alt_nil_value()
 }
 
 // Ruby method `with_buf_at(pos)` at line 935.
 pub fn ruby_alt_saver_l935_d60_with_buf_at(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('with_buf_at', ...args)
+	alt_require(args, 2, 'with_buf_at')
+	saver := alt_saver_from_args(args)
+	position := int(args[1].as_int() or { panic(err) })
+	if position < 0 || position > saver.buffer.len {
+		panic('buffer position outside stream')
+	}
+	// A generic boundary has no callable block value. Ruby returns nil when no block is given.
+	return alt_nil_value()
 }
 
 // Ruby method `sync_sec_to_seg(shdr, phdr)` at line 947.
 pub fn ruby_alt_saver_l947_d61_sync_sec_to_seg(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sync_sec_to_seg', ...args)
+	alt_require(args, 3, 'sync_sec_to_seg')
+	mut program := alt_program_header_from_value(args[2])
+	sync_sec_to_seg(alt_section_header_from_value(args[1]), mut program)
+	return alt_program_header_value(program)
 }
 
 // Ruby method `phdrs_by_type(seg_type)` at line 953.
 pub fn ruby_alt_saver_l953_d62_phdrs_by_type(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('phdrs_by_type', ...args)
+	alt_require(args, 2, 'phdrs_by_type')
+	saver := alt_saver_from_args(args)
+	kind := u32(args[1].as_int() or { panic(err) })
+	mut values := []brew_runtime.Value{}
+	for index in saver.phdr_indices_by_type(kind) {
+		values << brew_runtime.array_value([
+			alt_program_header_value(saver.segments[index].header),
+			brew_runtime.int_value(index),
+		])
+	}
+	return brew_runtime.array_value(values)
 }
 
 // Ruby method `find_or_create_section_header(rsec_name)` at line 966.
 pub fn ruby_alt_saver_l966_d63_find_or_create_section_header(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('find_or_create_section_header', ...args)
+	alt_require(args, 2, 'find_or_create_section_header')
+	return alt_section_header_value(alt_saver_from_args(args).find_or_create_section_header(args[1].as_string()))
 }
 
 // Ruby method `overwrite_replaced_sections` at line 972.
 pub fn ruby_alt_saver_l972_d64_overwrite_replaced_sections(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('overwrite_replaced_sections', ...args)
+	mut saver := alt_saver_from_args(args)
+	saver.overwrite_replaced_sections() or { panic(err) }
+	return alt_nil_value()
 }
 
 // Ruby method `write_section_alignment(shdr)` at line 985.
 pub fn ruby_alt_saver_l985_d65_write_section_alignment(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('write_section_alignment', ...args)
+	alt_require(args, 2, 'write_section_alignment')
+	saver := alt_saver_from_args(args)
+	mut header := alt_section_header_from_value(args[1])
+	saver.write_section_alignment(mut header)
+	return alt_section_header_value(header)
 }
 
 // Ruby method `section_bounds_within_segment?(s_start, s_end, p_start, p_end)` at line 991.
 pub fn ruby_alt_saver_l991_d66_section_bounds_within_segment(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('section_bounds_within_segment?', ...args)
+	alt_require(args, 5, 'section_bounds_within_segment?')
+	return brew_runtime.bool_value(section_bounds_within_segment(u64(args[1].as_int() or { panic(err) }), u64(args[2].as_int() or { panic(err) }), u64(args[3].as_int() or { panic(err) }), u64(args[4].as_int() or { panic(err) })))
 }
 
 // Ruby method `section_sync_correspondence_segment(sec_name, shdr)` at line 998.
 pub fn ruby_alt_saver_l998_d67_section_sync_correspondence_segment(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('section_sync_correspondence_segment', ...args)
+	alt_require(args, 3, 'section_sync_correspondence_segment')
+	mut saver := alt_saver_from_args(args)
+	saver.section_sync_correspondence_segment(args[1].as_string(), alt_section_header_from_value(args[2]))
+	return alt_nil_value()
 }
 
 // Ruby method `sync_note_segment(orig_sh_offset, orig_sh_size, shdr)` at line 1021.
 pub fn ruby_alt_saver_l1021_d68_sync_note_segment(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sync_note_segment', ...args)
+	alt_require(args, 4, 'sync_note_segment')
+	mut saver := alt_saver_from_args(args)
+	saver.sync_note_segment(u64(args[1].as_int() or { panic(err) }), u64(args[2].as_int() or { panic(err) }), alt_section_header_from_value(args[3])) or {
+		panic(err)
+	}
+	return alt_nil_value()
 }
 
 // Ruby method `write_replaced_sections(cur_off, start_addr, start_offset)` at line 1040.
 pub fn ruby_alt_saver_l1040_d69_write_replaced_sections(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('write_replaced_sections', ...args)
+	alt_require(args, 4, 'write_replaced_sections')
+	mut saver := alt_saver_from_args(args)
+	current := saver.write_replaced_sections(int(args[1].as_int() or { panic(err) }), u64(args[2].as_int() or { panic(err) }), int(args[3].as_int() or { panic(err) })) or {
+		panic(err)
+	}
+	return brew_runtime.int_value(current)
 }
 
 // Original Ruby source (line-for-line):

@@ -1,18 +1,60 @@
 module cask
 
 import brew_runtime
+import homebrew.cask as brew_cask
 
 // Translated from Homebrew/brew `sorbet/tapioca/compilers/cask/config.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub struct CaskConfigCompilerMethod {
+pub:
+	name         string
+	return_type  string
+	class_method bool
+}
+
+pub fn cask_config_compiler_methods() []CaskConfigCompilerMethod {
+	mut keys := brew_cask.cask_config_defaults().keys()
+	if 'appimagedir' !in keys {
+		keys << 'appimagedir'
+	}
+	keys.sort()
+	return keys.map(CaskConfigCompilerMethod{
+		name: it
+		return_type: if it == 'languages' {
+			'T::Array[String]'
+		} else if it.ends_with('?') {
+			'T::Boolean'
+		} else {
+			'String'
+		}
+		class_method: false
+	})
+}
+
+fn cask_config_compiler_decoration_value() brew_runtime.Value {
+	return brew_runtime.map_value({
+		'constant_name': brew_runtime.string_value('Cask::Config')
+		'kind':          brew_runtime.string_value('class')
+		'methods':       brew_runtime.array_value(cask_config_compiler_methods().map(brew_runtime.map_value({
+			'name':         brew_runtime.string_value(it.name)
+			'return_type':  brew_runtime.string_value(it.return_type)
+			'class_method': brew_runtime.bool_value(it.class_method)
+		})))
+	})
+}
 
 // Ruby method `self.gather_constants = [Cask::Config]` at line 18.
 pub fn ruby_config_l18_d1_self_gather_constants(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.gather_constants', ...args)
+	_ = args
+	return brew_runtime.array_value([
+		brew_runtime.object_value('Module', 'Cask::Config'),
+	])
 }
 
 // Ruby method `decorate` at line 21.
 pub fn ruby_config_l21_d2_decorate(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('decorate', ...args)
+	_ = args
+	return cask_config_compiler_decoration_value()
 }
 
 // Original Ruby source (line-for-line):

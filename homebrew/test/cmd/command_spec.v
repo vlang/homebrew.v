@@ -1,13 +1,16 @@
 module cmd
 
-import brew_runtime
+import homebrew.cmd as brew_cmd
 
 // Translated from Homebrew/brew `test/cmd/command_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "returns the file for a given command", :integration_test do` at line 10.
-pub fn ruby_command_spec_l10_d1_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_command_spec_l10_d1_returns(library_path string) bool {
+	paths := brew_cmd.command_paths(['info'], fn [library_path] (name string) ?string {
+		return '${library_path}/cmd/${name}.rb'
+	}) or { return false }
+	return paths == ['${library_path}/cmd/info.rb']
 }
 
 // Original Ruby source (line-for-line):

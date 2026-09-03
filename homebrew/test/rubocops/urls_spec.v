@@ -1,53 +1,274 @@
 module rubocops
 
 import brew_runtime
+import homebrew.rubocops as urls_core
 
 // Translated from Homebrew/brew `test/rubocops/urls_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+struct UrlsSpecCase {
+	url     string
+	message string
+	tap     string
+}
+
+fn urls_spec_cases() []UrlsSpecCase {
+	return [
+		UrlsSpecCase{
+			url: 'https://ftp.gnu.org/lightning/lightning-2.1.0.tar.gz'
+			message: 'https://ftp.gnu.org/lightning/lightning-2.1.0.tar.gz should be: https://ftpmirror.gnu.org/gnu/lightning/lightning-2.1.0.tar.gz'
+		},
+		UrlsSpecCase{
+			url: 'https://fossies.org/linux/privat/monit-5.23.0.tar.gz'
+			message: 'Please don\'t use "fossies.org" in the `url` (using as a mirror is fine)'
+		},
+		UrlsSpecCase{
+			url: 'http://tools.ietf.org/tools/rfcmarkup/rfcmarkup-1.119.tgz'
+			message: 'Please use https:// for http://tools.ietf.org/tools/rfcmarkup/rfcmarkup-1.119.tgz'
+		},
+		UrlsSpecCase{
+			url: 'https://apache.org/dyn/closer.cgi?path=/apr/apr-1.7.0.tar.bz2'
+			message: 'https://apache.org/dyn/closer.cgi?path=/apr/apr-1.7.0.tar.bz2 should be: https://www.apache.org/dyn/closer.lua?path=apr/apr-1.7.0.tar.bz2'
+		},
+		UrlsSpecCase{
+			url: 'http://search.mcpan.org/CPAN/authors/id/Z/ZE/ZEFRAM/Perl4-CoreLibs-0.003.tar.gz'
+			message: 'http://search.mcpan.org/CPAN/authors/id/Z/ZE/ZEFRAM/Perl4-CoreLibs-0.003.tar.gz should be: https://cpan.metacpan.org/authors/id/Z/ZE/ZEFRAM/Perl4-CoreLibs-0.003.tar.gz'
+		},
+		UrlsSpecCase{
+			url: 'http://ftp.gnome.org/pub/GNOME/binaries/mac/banshee/banshee-2.macosx.intel.dmg'
+			message: 'http://ftp.gnome.org/pub/GNOME/binaries/mac/banshee/banshee-2.macosx.intel.dmg should be: https://download.gnome.org/binaries/mac/banshee/banshee-2.macosx.intel.dmg'
+		},
+		UrlsSpecCase{
+			url: 'git://anonscm.debian.org/users/foo/foostrap.git'
+			message: 'git://anonscm.debian.org/users/foo/foostrap.git should be: https://anonscm.debian.org/git/users/foo/foostrap.git'
+		},
+		UrlsSpecCase{
+			url: 'ftp://ftp.mirrorservice.org/foo-1.tar.gz'
+			message: 'Please use https:// for ftp://ftp.mirrorservice.org/foo-1.tar.gz'
+		},
+		UrlsSpecCase{
+			url: 'ftp://ftp.cpan.org/pub/CPAN/foo-1.tar.gz'
+			message: 'ftp://ftp.cpan.org/pub/CPAN/foo-1.tar.gz should be: http://search.cpan.org/CPAN/foo-1.tar.gz'
+		},
+		UrlsSpecCase{
+			url: 'http://sourceforge.net/projects/something/files/Something-1.2.3.dmg'
+			message: 'Use "https://downloads.sourceforge.net" to get geolocation (`url` is http://sourceforge.net/projects/something/files/Something-1.2.3.dmg).'
+		},
+		UrlsSpecCase{
+			url: 'https://downloads.sourceforge.net/project/foo/download'
+			message: 'Don\'t use "/download" in SourceForge URLs (`url` is https://downloads.sourceforge.net/project/foo/download).'
+		},
+		UrlsSpecCase{
+			url: 'https://sourceforge.net/project/foo'
+			message: 'Use "https://downloads.sourceforge.net" to get geolocation (`url` is https://sourceforge.net/project/foo).'
+		},
+		UrlsSpecCase{
+			url: 'http://prdownloads.sourceforge.net/foo/foo-1.tar.gz'
+			message: 'Don\'t use "prdownloads" in SourceForge URLs (`url` is http://prdownloads.sourceforge.net/foo/foo-1.tar.gz).'
+		},
+		UrlsSpecCase{
+			url: 'http://foo.dl.sourceforge.net/sourceforge/foozip/foozip_1.0.tar.bz2'
+			message: 'Don\'t use specific "dl" mirrors in SourceForge URLs (`url` is http://foo.dl.sourceforge.net/sourceforge/foozip/foozip_1.0.tar.bz2).'
+		},
+		UrlsSpecCase{
+			url: 'http://downloads.sourceforge.net/project/foo/foo/2/foo-2.zip'
+			message: 'Please use https:// for http://downloads.sourceforge.net/project/foo/foo/2/foo-2.zip'
+		},
+		UrlsSpecCase{
+			url: 'http://http.debian.net/debian/dists/foo/'
+			message: 'Please use a secure mirror for Debian URLs.\nWe recommend:\n  https://deb.debian.org/debian/dists/foo/\n'
+		},
+		UrlsSpecCase{
+			url: 'https://mirrors.kernel.org/debian/pool/main/n/nc6/foo.tar.gz'
+			message: 'Please use https://deb.debian.org/debian/ for https://mirrors.kernel.org/debian/pool/main/n/nc6/foo.tar.gz'
+		},
+		UrlsSpecCase{
+			url: 'https://mirrors.ocf.berkeley.edu/debian/pool/main/m/mkcue/foo.tar.gz'
+			message: 'Please use https://deb.debian.org/debian/ for https://mirrors.ocf.berkeley.edu/debian/pool/main/m/mkcue/foo.tar.gz'
+		},
+		UrlsSpecCase{
+			url: 'https://mirrorservice.org/sites/ftp.debian.org/debian/pool/main/n/netris/foo.tar.gz'
+			message: 'Please use https://deb.debian.org/debian/ for https://mirrorservice.org/sites/ftp.debian.org/debian/pool/main/n/netris/foo.tar.gz'
+		},
+		UrlsSpecCase{
+			url: 'https://www.mirrorservice.org/sites/ftp.debian.org/debian/pool/main/n/netris/foo.tar.gz'
+			message: 'Please use https://deb.debian.org/debian/ for https://www.mirrorservice.org/sites/ftp.debian.org/debian/pool/main/n/netris/foo.tar.gz'
+		},
+		UrlsSpecCase{
+			url: 'http://foo.googlecode.com/files/foo-1.0.zip'
+			message: 'Please use https:// for http://foo.googlecode.com/files/foo-1.0.zip'
+		},
+		UrlsSpecCase{
+			url: 'git://github.com/foo.git'
+			message: 'Please use https:// for git://github.com/foo.git'
+		},
+		UrlsSpecCase{
+			url: 'git://gitorious.org/foo/foo5'
+			message: 'Please use https:// for git://gitorious.org/foo/foo5'
+		},
+		UrlsSpecCase{
+			url: 'http://github.com/foo/foo5.git'
+			message: 'Please use https:// for http://github.com/foo/foo5.git'
+		},
+		UrlsSpecCase{
+			url: 'https://github.com/foo/foobar/archive/main.zip'
+			message: 'Use versioned rather than branch tarballs for stable checksums.'
+		},
+		UrlsSpecCase{
+			url: 'https://github.com/foo/bar/tarball/v1.2.3'
+			message: 'Use /archive/ URLs for GitHub tarballs (`url` is https://github.com/foo/bar/tarball/v1.2.3).'
+		},
+		UrlsSpecCase{
+			url: 'https://codeload.github.com/foo/bar/tar.gz/v0.1.1'
+			message: 'Use GitHub archive URLs:\n  https://github.com/foo/bar/archive/v0.1.1.tar.gz\nRather than codeload:\n  https://codeload.github.com/foo/bar/tar.gz/v0.1.1\n'
+		},
+		UrlsSpecCase{
+			url: 'https://central.maven.org/maven2/com/bar/foo/1.1/foo-1.1.jar'
+			message: 'https://central.maven.org/maven2/com/bar/foo/1.1/foo-1.1.jar should be: https://search.maven.org/remotecontent?filepath=com/bar/foo/1.1/foo-1.1.jar'
+		},
+		UrlsSpecCase{
+			url: 'https://brew.sh/example-darwin.x86_64.tar.gz'
+			message: 'https://brew.sh/example-darwin.x86_64.tar.gz looks like a binary package, not a source archive; homebrew/core is source-only.'
+			tap: 'homebrew-core'
+		},
+		UrlsSpecCase{
+			url: 'https://brew.sh/example-darwin.amd64.tar.gz'
+			message: 'https://brew.sh/example-darwin.amd64.tar.gz looks like a binary package, not a source archive; homebrew/core is source-only.'
+			tap: 'homebrew-core'
+		},
+		UrlsSpecCase{
+			url: 'https://github.com/foo/bar/archive/refs/tags/darwin.tar.gz'
+			message: 'https://github.com/foo/bar/archive/refs/tags/darwin.tar.gz looks like a binary package, not a source archive; homebrew/core is source-only.'
+			tap: 'homebrew-core'
+		},
+		UrlsSpecCase{
+			url: 'cvs://brew.sh/foo/bar'
+			message: 'Use of the "cvs://" scheme is deprecated, pass `using: :cvs` instead'
+		},
+		UrlsSpecCase{
+			url: 'bzr://brew.sh/foo/bar'
+			message: 'Use of the "bzr://" scheme is deprecated, pass `using: :bzr` instead'
+		},
+		UrlsSpecCase{
+			url: 'hg://brew.sh/foo/bar'
+			message: 'Use of the "hg://" scheme is deprecated, pass `using: :hg` instead'
+		},
+		UrlsSpecCase{
+			url: 'fossil://brew.sh/foo/bar'
+			message: 'Use of the "fossil://" scheme is deprecated, pass `using: :fossil` instead'
+		},
+		UrlsSpecCase{
+			url: 'svn+http://brew.sh/foo/bar'
+			message: 'Use of the "svn+http://" scheme is deprecated, pass `using: :svn` instead'
+		},
+		UrlsSpecCase{
+			url: 'https://🫠.sh/foo/bar'
+			message: 'Please use the ASCII (Punycode-encoded host, URL-encoded path and query) version of https://🫠.sh/foo/bar.'
+		},
+		UrlsSpecCase{
+			url: 'https://ßreｗ.sh/foo/bar'
+			message: 'Please use the ASCII (Punycode-encoded host, URL-encoded path and query) version of https://ßreｗ.sh/foo/bar.'
+		},
+	]
+}
+
+fn urls_spec_source(url string) string {
+	return 'class Foo < Formula\n  desc "foo"\n  url "${url}"\nend'
+}
 
 // Ruby subject `subject(:cop) { described_class.new }` at line 7.
 pub fn ruby_urls_spec_l7_d1_cop(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cop', ...args)
+	return brew_runtime.object_value('RuboCop::Cop::FormulaAudit::Urls', 'FormulaAudit/Urls')
 }
 
 // Ruby let `let(:offense_list) do` at line 9.
 pub fn ruby_urls_spec_l9_d2_offense_list(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('offense_list', ...args)
+	return brew_runtime.array_value(urls_spec_cases().map(brew_runtime.structured_value('Hash', it.url, {
+		'url':         it.url
+		'msg':         it.message
+		'col':         '2'
+		'formula_tap': it.tap
+	})))
 }
 
 // Ruby it `it "reports all offenses in `offense_list`" do` at line 200.
 pub fn ruby_urls_spec_l200_d3_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	for item in urls_spec_cases() {
+		analysis := urls_core.audit_formula_urls(urls_core.FormulaUrlsContext{
+			source: urls_spec_source(item.url)
+			formula_tap: item.tap
+			formula_name: 'foo'
+		})
+		if !analysis.offenses.any(it.message == item.message) {
+			return brew_runtime.bool_value(false)
+		}
+	}
+	return brew_runtime.bool_value(true)
 }
 
 // Ruby it `it "reports an offense for GitHub repositories with git:// prefix" do` at line 228.
 pub fn ruby_urls_spec_l228_d4_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	source := 'class Foo < Formula\n  desc "foo"\n  url "https://foo.com"\n\n  stable do\n    url "git://github.com/foo.git",\n        :tag => "v1.0.1",\n        :revision => "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"\n    version "1.0.1"\n  end\nend'
+	offenses := urls_core.audit_formula_urls(urls_core.FormulaUrlsContext{ source: source }).offenses
+	return brew_runtime.bool_value(offenses.len == 1 && offenses[0].message == 'Please use https:// for git://github.com/foo.git')
 }
 
 // Ruby it `it "reports an offense if `url` is the same as `mirror`" do` at line 245.
 pub fn ruby_urls_spec_l245_d5_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	url := 'https://ftpmirror.fnu.org/foo/foo-1.0.tar.gz'
+	source := 'class Foo < Formula\n  desc "foo"\n  url "${url}"\n  mirror "${url}"\nend'
+	offenses := urls_core.audit_formula_urls(urls_core.FormulaUrlsContext{ source: source }).offenses
+	return brew_runtime.bool_value(offenses.len == 1 && offenses[0].kind == 'duplicate_mirror' && offenses[0].message == 'URL should not be duplicated as a mirror: ${url}')
 }
 
 // Ruby it `it "does not report offenses that are skipped for `livecheck` block URLs" do` at line 256.
 pub fn ruby_urls_spec_l256_d6_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	source := 'class Foo < Formula\n  desc "foo"\n  url "https://brew.sh/test-0.0.1.tgz"\n  livecheck do\n    url "https://sourceforge.net/projects/homebrew/rss?path=/brew"\n  end\n  resource "foo" do\n    url "https://brew.sh/foo-1.0.tar.gz"\n    livecheck do\n      url "https://sourceforge.net/projects/homebrew/rss?path=/resource"\n    end\n  end\n  resource "livecheck-url-symbol" do\n    url "https://brew.sh/livecheck-url-no-argument-1.0.tar.gz"\n    livecheck do\n      url :url\n    end\n  end\n  resource "livecheck-no-url" do\n    url "https://brew.sh/livecheck-no-url-1.0.tar.gz"\n    livecheck do\n      skip "No version information available"\n    end\n  end\n  resource "livecheck-url-no-arg" do\n    url "https://brew.sh/livecheck-url-no-arg-1.0.tar.gz"\n    livecheck do\n      url\n    end\n  end\nend'
+	return brew_runtime.bool_value(urls_core.audit_formula_urls(urls_core.FormulaUrlsContext{
+		source: source
+	}).offenses.len == 0)
 }
 
 // Ruby it `it "does not report an offense based on the username or repo name of a GitHub URL" do` at line 312.
 pub fn ruby_urls_spec_l312_d7_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	source := urls_spec_source('https://github.com/scriptingosx/cool-darwin-app/archive/refs/tags/v0.1.1.tar.gz')
+	return brew_runtime.bool_value(urls_core.audit_formula_urls(urls_core.FormulaUrlsContext{
+		source: source
+		formula_tap: 'homebrew-core'
+		formula_name: 'foo'
+	}).offenses.len == 0)
 }
 
 // Ruby let `let(:expected_url) { "https://www.apache.org/dyn/closer.lua?path=apr/apr-1.7.6.tar.bz2" }` at line 325.
 pub fn ruby_urls_spec_l325_d8_expected_url(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('expected_url', ...args)
+	return brew_runtime.string_value('https://www.apache.org/dyn/closer.lua?path=apr/apr-1.7.6.tar.bz2')
 }
 
 // Ruby it `it "registers an offense and corrects" do` at line 328.
 pub fn ruby_urls_spec_l328_d9_registers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('registers', ...args)
+	expected := ruby_urls_spec_l325_d8_expected_url().as_string()
+	mut urls := [
+		'https://dist.apache.org/repos/dist/release/apr/apr-1.7.6.tar.bz2',
+		'https://dlcdn.apache.org/apr/apr-1.7.6.tar.bz2',
+		'https://downloads.apache.org/apr/apr-1.7.6.tar.bz2',
+		'https://www.apache.org/dyn/closer.cgi?path=/apr/apr-1.7.6.tar.bz2',
+		'https://www.apache.org/dyn/mirrors.cgi?path=apr/apr-1.7.6.tar.bz2',
+		'https://www.apache.org/dyn/mirrors.cgi?filename=/apr/apr-1.7.6.tar.bz2',
+		'https://www.apache.org/dyn/mirrors/mirrors.cgi?action=download&filename=apr/apr-1.7.6.tar.bz2',
+	]
+	if args.len > 0 {
+		urls = [args[0].as_string()]
+	}
+	for url in urls {
+		source := urls_spec_source(url)
+		analysis := urls_core.audit_formula_urls(urls_core.FormulaUrlsContext{ source: source })
+		if analysis.offenses.len != 1 {
+			return brew_runtime.bool_value(false)
+		}
+		if analysis.offenses[0].message != '${url} should be: ${expected}' || analysis.corrected != urls_spec_source(expected) {
+			return brew_runtime.bool_value(false)
+		}
+	}
+	return brew_runtime.bool_value(true)
 }
 
 // Original Ruby source (line-for-line):

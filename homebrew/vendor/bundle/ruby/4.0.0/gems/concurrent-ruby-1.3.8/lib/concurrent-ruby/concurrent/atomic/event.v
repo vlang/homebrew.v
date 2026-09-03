@@ -1,48 +1,195 @@
 module atomic
 
 import brew_runtime
+import sync
+import time
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/atomic/event.rb`.
 // The original source is retained below until every stub has a typed V body.
+@[heap]
+struct EventState {
+	mutex     &sync.Mutex
+	condition &sync.Cond
+mut:
+	set       bool
+	iteration u64
+}
+
+@[heap]
+pub struct Event {
+mut:
+	state &EventState
+}
+
+pub fn new_event() &Event {
+	mutex := sync.new_mutex()
+	return &Event{
+		state: &EventState{
+			mutex: mutex
+			condition: sync.new_cond(mutex)
+		}
+	}
+}
+
+pub fn (mut event Event) is_set() bool {
+	event.state.mutex.lock()
+	defer {
+		event.state.mutex.unlock()
+	}
+	return event.state.set
+}
+
+fn (mut event Event) set_locked() bool {
+	if !event.state.set {
+		event.state.set = true
+		event.state.condition.broadcast()
+	}
+	return true
+}
+
+pub fn (mut event Event) set() bool {
+	event.state.mutex.lock()
+	defer {
+		event.state.mutex.unlock()
+	}
+	return event.set_locked()
+}
+
+pub fn (mut event Event) try_set() bool {
+	event.state.mutex.lock()
+	defer {
+		event.state.mutex.unlock()
+	}
+	if event.state.set {
+		return false
+	}
+	return event.set_locked()
+}
+
+pub fn (mut event Event) reset() bool {
+	event.state.mutex.lock()
+	defer {
+		event.state.mutex.unlock()
+	}
+	if event.state.set {
+		event.state.set = false
+		event.state.iteration++
+	}
+	return true
+}
+
+pub fn (mut event Event) wait(timeout ?time.Duration) bool {
+	event.state.mutex.lock()
+	defer {
+		event.state.mutex.unlock()
+	}
+	if event.state.set {
+		return true
+	}
+	iteration := event.state.iteration
+	if duration := timeout {
+		deadline := time.sys_mono_now() + u64(if duration > 0 { duration } else { 0 })
+		for iteration == event.state.iteration && !event.state.set {
+			now := time.sys_mono_now()
+			if now >= deadline {
+				return false
+			}
+			remaining := deadline - now
+			sleep_for := if remaining < u64(time.millisecond) {
+				time.Duration(remaining)
+			} else {
+				time.millisecond
+			}
+			event.state.mutex.unlock()
+			time.sleep(sleep_for)
+			event.state.mutex.lock()
+		}
+		return event.state.set || iteration < event.state.iteration
+	}
+	for iteration == event.state.iteration && !event.state.set {
+		event.state.condition.wait()
+	}
+	return true
+}
+
+pub fn (mut event Event) ns_initialize() {
+	event.state.mutex.lock()
+	event.state.set = false
+	event.state.iteration = 0
+	event.state.mutex.unlock()
+}
+
+fn event_boundary_new() brew_runtime.Value {
+	event := new_event()
+	return brew_runtime.structured_value('Concurrent::Event', '#<Concurrent::Event>', {
+		'event_address': u64(voidptr(event)).str()
+	})
+}
+
+fn event_boundary_receiver(args []brew_runtime.Value) &Event {
+	if args.len == 0 {
+		panic('Event method requires a receiver')
+	}
+	address := (args[0].attribute('event_address') or {
+		panic('${args[0].type_name} has no translated Event state')
+	}).u64()
+	return unsafe { &Event(voidptr(address)) }
+}
+
+fn event_boundary_timeout(args []brew_runtime.Value, index int) ?time.Duration {
+	if index >= args.len || args[index].type_name == 'NilClass' {
+		return none
+	}
+	seconds := args[index].as_float() or { panic(err) }
+	return time.Duration(seconds * f64(time.second))
+}
 
 // Ruby method `initialize` at line 40.
 pub fn ruby_event_l40_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	return event_boundary_new()
 }
 
 // Ruby method `set?` at line 48.
 pub fn ruby_event_l48_d2_set(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('set?', ...args)
+	mut event := event_boundary_receiver(args)
+	return brew_runtime.bool_value(event.is_set())
 }
 
 // Ruby method `set` at line 56.
 pub fn ruby_event_l56_d3_set(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('set', ...args)
+	mut event := event_boundary_receiver(args)
+	return brew_runtime.bool_value(event.set())
 }
 
 // Ruby method `try?` at line 60.
 pub fn ruby_event_l60_d4_try(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('try?', ...args)
+	mut event := event_boundary_receiver(args)
+	return brew_runtime.bool_value(event.try_set())
 }
 
 // Ruby method `reset` at line 68.
 pub fn ruby_event_l68_d5_reset(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reset', ...args)
+	mut event := event_boundary_receiver(args)
+	return brew_runtime.bool_value(event.reset())
 }
 
 // Ruby method `wait(timeout = nil)` at line 83.
 pub fn ruby_event_l83_d6_wait(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('wait', ...args)
+	mut event := event_boundary_receiver(args)
+	return brew_runtime.bool_value(event.wait(event_boundary_timeout(args, 1)))
 }
 
 // Ruby method `ns_set` at line 96.
 pub fn ruby_event_l96_d7_ns_set(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ns_set', ...args)
+	mut event := event_boundary_receiver(args)
+	return brew_runtime.bool_value(event.set())
 }
 
 // Ruby method `ns_initialize` at line 104.
 pub fn ruby_event_l104_d8_ns_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ns_initialize', ...args)
+	mut event := event_boundary_receiver(args)
+	event.ns_initialize()
+	return args[0]
 }
 
 // Original Ruby source (line-for-line):

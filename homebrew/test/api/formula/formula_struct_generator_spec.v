@@ -1,73 +1,356 @@
 module formula
 
 import brew_runtime
+import homebrew.api
+import homebrew.api.formula as generator
 
 // Translated from Homebrew/brew `test/api/formula/formula_struct_generator_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+fn formula_struct_generator_spec_string_array(values []string) brew_runtime.Value {
+	return brew_runtime.array_value(values.map(brew_runtime.string_value(it)))
+}
+
+fn formula_struct_generator_spec_symbol(value string) brew_runtime.Value {
+	return brew_runtime.object_value('Symbol', value)
+}
+
+fn formula_struct_generator_spec_values_equal(left []brew_runtime.Value,
+	right []brew_runtime.Value) bool {
+	if left.len != right.len {
+		return false
+	}
+	for index, value in left {
+		if !api.api_struct_value_equal(value, right[index]) {
+			return false
+		}
+	}
+	return true
+}
+
+fn formula_struct_generator_spec_maps_equal(left map[string]brew_runtime.Value,
+	right map[string]brew_runtime.Value) bool {
+	return api.api_struct_value_equal(brew_runtime.map_value(left), brew_runtime.map_value(right))
+}
+
+fn formula_struct_generator_spec_pairs_equal(left []api.ApiStructArgPair,
+	right []api.ApiStructArgPair) bool {
+	if left.len != right.len {
+		return false
+	}
+	for index, pair in left {
+		if !api.api_struct_value_equal(pair.first, right[index].first) || !api.api_struct_value_equal(pair.second, right[index].second) {
+			return false
+		}
+	}
+	return true
+}
+
+fn formula_struct_generator_spec_options() generator.FormulaStructGeneratorOptions {
+	return generator.FormulaStructGeneratorOptions{
+		bottle_tag: 'arm64_sonoma'
+		paths: api.ApiStructPaths{
+			prefix: '/opt/homebrew'
+			cellar: '/opt/homebrew/Cellar'
+			home: '/Users/brew'
+		}
+		no_autobump_reasons: ['incompatible_version_format', 'bumped_by_upstream', 'extract_plist',
+			'latest_version', 'requires_manual_review']
+	}
+}
+
+fn formula_struct_generator_spec_base_hash() map[string]brew_runtime.Value {
+	return {
+		'desc':                 brew_runtime.string_value('Test formula')
+		'homepage':             brew_runtime.string_value('https://example.com')
+		'license':              brew_runtime.string_value('MIT')
+		'ruby_source_checksum': brew_runtime.map_value({
+			'sha256': brew_runtime.string_value('abc123')
+		})
+		'versions':             brew_runtime.map_value({
+			'stable': brew_runtime.string_value('1.0.0')
+		})
+		'urls':                 brew_runtime.map_value({
+			'stable': brew_runtime.map_value({
+				'url': brew_runtime.string_value('https://example.com/foo-1.0.tar.gz')
+			})
+		})
+	}
+}
 
 // Ruby let `let(:raw_dependency_hash) do` at line 7.
-pub fn ruby_formula_struct_generator_spec_l7_d1_raw_dependency_hash(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raw_dependency_hash', ...args)
+pub fn ruby_formula_struct_generator_spec_l7_d1_raw_dependency_hash() map[string]brew_runtime.Value {
+	return {
+		'dependencies':           brew_runtime.array_value([
+			brew_runtime.string_value('foo'),
+			brew_runtime.map_value({
+				'bar': brew_runtime.string_value('build')
+			}),
+			brew_runtime.map_value({
+				'baz': formula_struct_generator_spec_string_array(['build', 'test'])
+			}),
+		])
+		'uses_from_macos':        brew_runtime.array_value([
+			brew_runtime.string_value('abc'),
+			brew_runtime.map_value({
+				'def': brew_runtime.string_value('build')
+			}),
+			brew_runtime.map_value({
+				'ghi': formula_struct_generator_spec_string_array(['build', 'test'])
+			}),
+			brew_runtime.string_value('jkl'),
+		])
+		'uses_from_macos_bounds': brew_runtime.array_value([
+			brew_runtime.map_value({}),
+			brew_runtime.map_value({
+				'since': brew_runtime.string_value('catalina')
+			}),
+			brew_runtime.map_value({}),
+			brew_runtime.map_value({
+				'since': brew_runtime.string_value('catalina')
+			}),
+		])
+	}
 }
 
 // Ruby let `let(:symbolized_dependency_hash) do` at line 29.
-pub fn ruby_formula_struct_generator_spec_l29_d2_symbolized_dependency_hash(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('symbolized_dependency_hash', ...args)
+pub fn ruby_formula_struct_generator_spec_l29_d2_symbolized_dependency_hash() map[string]brew_runtime.Value {
+	return {
+		'dependencies':           brew_runtime.array_value([
+			brew_runtime.string_value('foo'),
+			brew_runtime.map_value({
+				'bar': formula_struct_generator_spec_symbol('build')
+			}),
+			brew_runtime.map_value({
+				'baz': brew_runtime.array_value([
+					formula_struct_generator_spec_symbol('build'),
+					formula_struct_generator_spec_symbol('test'),
+				])
+			}),
+		])
+		'uses_from_macos':        brew_runtime.array_value([
+			brew_runtime.string_value('abc'),
+			brew_runtime.map_value({
+				'def': formula_struct_generator_spec_symbol('build')
+			}),
+			brew_runtime.map_value({
+				'ghi': brew_runtime.array_value([
+					formula_struct_generator_spec_symbol('build'),
+					formula_struct_generator_spec_symbol('test'),
+				])
+			}),
+			brew_runtime.string_value('jkl'),
+		])
+		'uses_from_macos_bounds': brew_runtime.array_value([
+			brew_runtime.map_value({}),
+			brew_runtime.map_value({
+				'since': formula_struct_generator_spec_symbol('catalina')
+			}),
+			brew_runtime.map_value({}),
+			brew_runtime.map_value({
+				'since': formula_struct_generator_spec_symbol('catalina')
+			}),
+		])
+	}
 }
 
 // Ruby let `let(:dependency_args) do` at line 51.
-pub fn ruby_formula_struct_generator_spec_l51_d3_dependency_args(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dependency_args', ...args)
+pub fn ruby_formula_struct_generator_spec_l51_d3_dependency_args() []brew_runtime.Value {
+	dependencies := ruby_formula_struct_generator_spec_l29_d2_symbolized_dependency_hash()['dependencies'] or {
+		return []brew_runtime.Value{}
+	}
+	return dependencies.as_array() or { []brew_runtime.Value{} }
 }
 
 // Ruby let `let(:uses_from_macos_args) do` at line 59.
-pub fn ruby_formula_struct_generator_spec_l59_d4_uses_from_macos_args(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uses_from_macos_args', ...args)
+pub fn ruby_formula_struct_generator_spec_l59_d4_uses_from_macos_args() []api.ApiStructArgPair {
+	return [
+		api.ApiStructArgPair{
+			first: brew_runtime.string_value('abc')
+			second: brew_runtime.map_value({})
+		},
+		api.ApiStructArgPair{
+			first: brew_runtime.map_value({
+				'def':   formula_struct_generator_spec_symbol('build')
+				'since': formula_struct_generator_spec_symbol('catalina')
+			})
+			second: brew_runtime.map_value({})
+		},
+		api.ApiStructArgPair{
+			first: brew_runtime.map_value({
+				'ghi': brew_runtime.array_value([
+					formula_struct_generator_spec_symbol('build'),
+					formula_struct_generator_spec_symbol('test'),
+				])
+			})
+			second: brew_runtime.map_value({})
+		},
+		api.ApiStructArgPair{
+			first: brew_runtime.string_value('jkl')
+			second: brew_runtime.map_value({
+				'since': formula_struct_generator_spec_symbol('catalina')
+			})
+		},
+	]
 }
 
 // Ruby let `let(:requirements_array) do` at line 68.
-pub fn ruby_formula_struct_generator_spec_l68_d5_requirements_array(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('requirements_array', ...args)
+pub fn ruby_formula_struct_generator_spec_l68_d5_requirements_array() []brew_runtime.Value {
+	return [
+		brew_runtime.map_value({
+			'name':  brew_runtime.string_value('linux')
+			'specs': formula_struct_generator_spec_string_array(['head'])
+		}),
+		brew_runtime.map_value({
+			'name':  brew_runtime.string_value('codesign')
+			'specs': formula_struct_generator_spec_string_array(['stable', 'head'])
+		}),
+		brew_runtime.map_value({
+			'name':    brew_runtime.string_value('arch')
+			'version': brew_runtime.string_value('arm64')
+			'specs':   formula_struct_generator_spec_string_array(['stable', 'head'])
+		}),
+		brew_runtime.map_value({
+			'name':    brew_runtime.string_value('macos')
+			'version': brew_runtime.string_value('14')
+			'specs':   formula_struct_generator_spec_string_array(['stable'])
+		}),
+		brew_runtime.map_value({
+			'name':     brew_runtime.string_value('maximum_macos')
+			'version':  brew_runtime.string_value('13')
+			'specs':    formula_struct_generator_spec_string_array(['stable', 'head'])
+			'contexts': formula_struct_generator_spec_string_array(['build'])
+		}),
+		brew_runtime.map_value({
+			'name':  brew_runtime.string_value('xcode')
+			'specs': formula_struct_generator_spec_string_array(['stable', 'head'])
+		}),
+		brew_runtime.map_value({
+			'name':     brew_runtime.string_value('xcode')
+			'version':  brew_runtime.string_value('11.2')
+			'specs':    formula_struct_generator_spec_string_array(['stable', 'head'])
+			'contexts': formula_struct_generator_spec_string_array(['build', 'test'])
+		}),
+	]
 }
 
 // Ruby let `let(:stable_requirements_args) do` at line 80.
-pub fn ruby_formula_struct_generator_spec_l80_d6_stable_requirements_args(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('stable_requirements_args', ...args)
+pub fn ruby_formula_struct_generator_spec_l80_d6_stable_requirements_args() []brew_runtime.Value {
+	return [
+		brew_runtime.map_value({
+			'arch': brew_runtime.array_value([
+				formula_struct_generator_spec_symbol('arm64'),
+			])
+		}),
+		brew_runtime.map_value({
+			'macos': brew_runtime.array_value([
+				formula_struct_generator_spec_symbol('sonoma'),
+			])
+		}),
+		brew_runtime.map_value({
+			'maximum_macos': brew_runtime.array_value([
+				formula_struct_generator_spec_symbol('ventura'),
+				formula_struct_generator_spec_symbol('build'),
+			])
+		}),
+		formula_struct_generator_spec_symbol('xcode'),
+		brew_runtime.map_value({
+			'xcode': brew_runtime.array_value([
+				brew_runtime.string_value('11.2'),
+				formula_struct_generator_spec_symbol('build'),
+				formula_struct_generator_spec_symbol('test'),
+			])
+		}),
+	]
 }
 
 // Ruby let `let(:head_requirements_args) do` at line 90.
-pub fn ruby_formula_struct_generator_spec_l90_d7_head_requirements_args(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('head_requirements_args', ...args)
+pub fn ruby_formula_struct_generator_spec_l90_d7_head_requirements_args() []brew_runtime.Value {
+	return [
+		formula_struct_generator_spec_symbol('linux'),
+		brew_runtime.map_value({
+			'arch': brew_runtime.array_value([
+				formula_struct_generator_spec_symbol('arm64'),
+			])
+		}),
+		brew_runtime.map_value({
+			'maximum_macos': brew_runtime.array_value([
+				formula_struct_generator_spec_symbol('ventura'),
+				formula_struct_generator_spec_symbol('build'),
+			])
+		}),
+		formula_struct_generator_spec_symbol('xcode'),
+		brew_runtime.map_value({
+			'xcode': brew_runtime.array_value([
+				brew_runtime.string_value('11.2'),
+				formula_struct_generator_spec_symbol('build'),
+				formula_struct_generator_spec_symbol('test'),
+			])
+		}),
+	]
 }
 
 // Ruby specify `specify "::process_dependencies_and_requirements", :aggregate_failures do` at line 100.
-pub fn ruby_formula_struct_generator_spec_l100_d8_process_dependencies_and_requirements(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('::process_dependencies_and_requirements', ...args)
+pub fn ruby_formula_struct_generator_spec_l100_d8_process_dependencies_and_requirements() bool {
+	raw := ruby_formula_struct_generator_spec_l7_d1_raw_dependency_hash()
+	requirements := ruby_formula_struct_generator_spec_l68_d5_requirements_array()
+	dependency_args := ruby_formula_struct_generator_spec_l51_d3_dependency_args()
+	uses_from_macos_args := ruby_formula_struct_generator_spec_l59_d4_uses_from_macos_args()
+	stable_requirements := ruby_formula_struct_generator_spec_l80_d6_stable_requirements_args()
+	head_requirements := ruby_formula_struct_generator_spec_l90_d7_head_requirements_args()
+	stable := generator.ruby_formula_struct_generator_l203_d2_process_dependencies_and_requirements(raw, requirements, 'stable')
+	head := generator.ruby_formula_struct_generator_l203_d2_process_dependencies_and_requirements(raw, requirements, 'head')
+	head_without_requirements := generator.ruby_formula_struct_generator_l203_d2_process_dependencies_and_requirements(raw, none, 'head')
+	stable_without_dependencies := generator.ruby_formula_struct_generator_l203_d2_process_dependencies_and_requirements(none, requirements, 'stable')
+	head_without_dependencies := generator.ruby_formula_struct_generator_l203_d2_process_dependencies_and_requirements(none, requirements, 'head')
+	empty := generator.ruby_formula_struct_generator_l203_d2_process_dependencies_and_requirements(none, none, 'stable')
+	mut expected_stable := dependency_args.clone()
+	expected_stable << stable_requirements
+	mut expected_head := dependency_args.clone()
+	expected_head << head_requirements
+	return formula_struct_generator_spec_values_equal(stable.dependencies, expected_stable) && formula_struct_generator_spec_pairs_equal(stable.uses_from_macos, uses_from_macos_args) && formula_struct_generator_spec_values_equal(head.dependencies, expected_head) && formula_struct_generator_spec_pairs_equal(head.uses_from_macos, uses_from_macos_args) && formula_struct_generator_spec_values_equal(head_without_requirements.dependencies, dependency_args) && formula_struct_generator_spec_pairs_equal(head_without_requirements.uses_from_macos, uses_from_macos_args) && formula_struct_generator_spec_values_equal(stable_without_dependencies.dependencies, stable_requirements) && stable_without_dependencies.uses_from_macos.len == 0 && formula_struct_generator_spec_values_equal(head_without_dependencies.dependencies, head_requirements) && head_without_dependencies.uses_from_macos.len == 0 && empty.dependencies.len == 0 && empty.uses_from_macos.len == 0
 }
 
 // Ruby specify `specify "::generate_formula_struct_hash falls back to stable deps when head_dependencies is absent" do` at line 138.
-pub fn ruby_formula_struct_generator_spec_l138_d9_generate_formula_struct_hash(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('::generate_formula_struct_hash', ...args)
+pub fn ruby_formula_struct_generator_spec_l138_d9_generate_formula_struct_hash() bool {
+	mut hash := formula_struct_generator_spec_base_hash()
+	hash['dependencies'] = formula_struct_generator_spec_string_array(['foo'])
+	hash['recommended_dependencies'] = brew_runtime.array_value([])
+	hash['optional_dependencies'] = brew_runtime.array_value([])
+	hash['uses_from_macos'] = brew_runtime.array_value([])
+	hash['uses_from_macos_bounds'] = brew_runtime.array_value([])
+	formula := generator.ruby_formula_struct_generator_l43_d1_generate_formula_struct_hash(hash, formula_struct_generator_spec_options()) or { return false }
+	return formula.head_dependencies.len > 0 && formula_struct_generator_spec_values_equal(formula.head_dependencies, formula.stable_dependencies)
 }
 
 // Ruby specify `specify "::generate_formula_struct_hash preserves stable patches" do` at line 159.
-pub fn ruby_formula_struct_generator_spec_l159_d10_generate_formula_struct_hash(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('::generate_formula_struct_hash', ...args)
+pub fn ruby_formula_struct_generator_spec_l159_d10_generate_formula_struct_hash() bool {
+	mut hash := formula_struct_generator_spec_base_hash()
+	patches := [brew_runtime.map_value({
+		'strip':  brew_runtime.string_value('p1')
+		'url':    brew_runtime.string_value('https://example.com/foo.patch')
+		'sha256': brew_runtime.string_value('def456')
+	})]
+	hash['patches'] = brew_runtime.array_value(patches)
+	formula := generator.ruby_formula_struct_generator_l43_d1_generate_formula_struct_hash(hash, formula_struct_generator_spec_options()) or { return false }
+	return formula_struct_generator_spec_values_equal(formula.stable_patches, patches)
 }
 
 // Ruby specify `specify "::symbolize_dependency_hash" do` at line 179.
-pub fn ruby_formula_struct_generator_spec_l179_d11_symbolize_dependency_hash(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('::symbolize_dependency_hash', ...args)
+pub fn ruby_formula_struct_generator_spec_l179_d11_symbolize_dependency_hash() bool {
+	output := generator.ruby_formula_struct_generator_l223_d3_symbolize_dependency_hash(ruby_formula_struct_generator_spec_l7_d1_raw_dependency_hash())
+	return formula_struct_generator_spec_maps_equal(output, ruby_formula_struct_generator_spec_l29_d2_symbolized_dependency_hash())
 }
 
 // Ruby specify `specify "::process_dependencies" do` at line 184.
-pub fn ruby_formula_struct_generator_spec_l184_d12_process_dependencies(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('::process_dependencies', ...args)
+pub fn ruby_formula_struct_generator_spec_l184_d12_process_dependencies() bool {
+	output := generator.ruby_formula_struct_generator_l251_d4_process_dependencies(ruby_formula_struct_generator_spec_l29_d2_symbolized_dependency_hash())
+	return formula_struct_generator_spec_values_equal(output, ruby_formula_struct_generator_spec_l51_d3_dependency_args())
 }
 
 // Ruby specify `specify "::process_uses_from_macos" do` at line 189.
-pub fn ruby_formula_struct_generator_spec_l189_d13_process_uses_from_macos(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('::process_uses_from_macos', ...args)
+pub fn ruby_formula_struct_generator_spec_l189_d13_process_uses_from_macos() bool {
+	output := generator.ruby_formula_struct_generator_l299_d6_process_uses_from_macos(ruby_formula_struct_generator_spec_l29_d2_symbolized_dependency_hash())
+	return formula_struct_generator_spec_pairs_equal(output, ruby_formula_struct_generator_spec_l59_d4_uses_from_macos_args())
 }
 
 // Original Ruby source (line-for-line):

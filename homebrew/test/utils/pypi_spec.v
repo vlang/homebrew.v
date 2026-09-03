@@ -1,228 +1,439 @@
 module utils
 
-import brew_runtime
+import homebrew.utils as pypi
 
 // Translated from Homebrew/brew `test/utils/pypi_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+const pypi_spec_package_url = 'https://files.pythonhosted.org/packages/b0/3f/2e1dad67eb172b6443b5eb37eb885a054a55cfd733393071499514140282/snakemake-5.29.0.tar.gz'
+const pypi_spec_old_package_url = 'https://files.pythonhosted.org/packages/6f/c4/da52bfdd6168ea46a0fe2b7c983b6c34c377a8733ec177cc00b197a96a9f/snakemake-5.28.0.tar.gz'
+const pypi_spec_non_package_url = 'https://github.com/pypa/pip-audit/releases/download/v2.5.6/v2.5.6.tar.gz'
+const pypi_spec_package_checksum = '47417307d08ecb0707b3b29effc933bd63d8c8e3ab15509c62b685b7614c6568'
+const pypi_spec_old_package_checksum = '2367ce91baf7f8fa7738d33aff9670ffdf5410bbac49aeb209f73b45a3425046'
+
+fn pypi_spec_metadata(name string, version string, url string, checksum string) string {
+	return '{"info":{"name":"${name}","version":"${version}"},"urls":[{"packagetype":"sdist","filename":"${name}-${version}.tar.gz","url":"${url}","digests":{"sha256":"${checksum}"}}]}'
+}
+
+fn pypi_spec_fetch(url string) !string {
+	if url.contains('/5.28.0/') {
+		return pypi_spec_metadata('snakemake', '5.28.0', pypi_spec_old_package_url, pypi_spec_old_package_checksum)
+	}
+	if url.contains('/5.29.0/') || url == 'https://pypi.org/pypi/snakemake/json' {
+		return pypi_spec_metadata('snakemake', '5.29.0', pypi_spec_package_url, pypi_spec_package_checksum)
+	}
+	return error('release not found')
+}
+
+fn pypi_spec_package(specification string) &pypi.PypiPackage {
+	return pypi.new_pypi_package(specification, false, 'python')
+}
+
+fn pypi_spec_url_package(url string) &pypi.PypiPackage {
+	return pypi.new_pypi_package(url, true, 'python')
+}
+
+fn pypi_spec_compare(mut left pypi.PypiPackage, mut right pypi.PypiPackage) !int {
+	left_name := left.name()!
+	right_name := right.name()!
+	return if left_name < right_name {
+		-1
+	} else if left_name > right_name { 1 } else { 0 }
+}
+
+fn pypi_spec_livecheck_formula_contents() string {
+	return 'class Foo < Formula\n  url "https://files.pythonhosted.org/packages/foo-1.0.tar.gz"\n  sha256 "${'a'.repeat(64)}"\n\n  resource "bar" do\n    url "https://files.pythonhosted.org/packages/bar-0.9.tar.gz"\n    sha256 "${'b'.repeat(64)}"\n  end\n\n  resource "aws-lambda-rie" do\n    url "https://github.com/aws/aws-lambda-runtime-interface-emulator/archive/refs/tags/v1.0.tar.gz"\n    sha256 "${'c'.repeat(64)}"\n\n    livecheck do\n      url "https://github.com/aws/aws-lambda-runtime-interface-emulator/releases"\n      regex(/^v?(\\d+(?:\\.\\d+)+)\$/i)\n    end\n  end\n\n  def install\n    bin.install "foo"\n  end\nend\n'
+}
+
+fn pypi_spec_formula_contents() string {
+	return 'class Foo < Formula\n  url "https://files.pythonhosted.org/packages/foo-1.0.tar.gz"\n  sha256 "${'a'.repeat(64)}"\n\n  resource "bar" do\n    url "https://files.pythonhosted.org/packages/bar-0.9.tar.gz"\n    sha256 "${'b'.repeat(64)}"\n  end\n\n  def install\n    bin.install "foo"\n  end\nend\n'
+}
+
+fn pypi_spec_result(spec int) !bool {
+	match spec {
+		15 {
+			mut plain := pypi_spec_package('foo')
+			mut extra := pypi_spec_package('foo[bar,baz]')
+			mut versioned := pypi_spec_package('foo[bar,baz]==1.2.3')
+			mut from_url := pypi_spec_url_package(pypi_spec_package_url)
+			return plain.name()! == 'foo' && extra.name()! == 'foo' && extra.extras()! == [
+				'bar',
+				'baz',
+			] && versioned.extras()! == ['bar', 'baz'] && versioned.version()! == '1.2.3' && from_url.name()! == 'snakemake' && from_url.version()! == '5.29.0'
+		}
+		16 {
+			mut package := pypi_spec_package('snakemake==5.28.0')
+			if package.version()! != '5.28.0' {
+				return false
+			}
+			package.set_version('5.29.0')!
+			return package.version()! == '5.29.0'
+		}
+		17 {
+			mut package := pypi_spec_url_package(pypi_spec_old_package_url)
+			if package.version()! != '5.28.0' {
+				return false
+			}
+			package.set_version('5.29.0')!
+			return package.version()! == '5.29.0'
+		}
+		18 {
+			mut package := pypi_spec_url_package(pypi_spec_non_package_url)
+			if _ := package.set_version('1.2.3') {
+				return false
+			} else {
+				return err.msg().contains("can't update version for non-PyPI packages")
+			}
+		}
+		19 {
+			return pypi_spec_package('snakemake').valid() && pypi_spec_url_package(pypi_spec_package_url).valid() && !pypi_spec_url_package(pypi_spec_non_package_url).valid()
+		}
+		20 {
+			mut package := pypi_spec_package('snakemake')
+			mut with_extra := pypi_spec_package('snakemake[foo]')
+			mut with_version := pypi_spec_package('snakemake==5.28.0')
+			mut from_url := pypi_spec_url_package(pypi_spec_package_url)
+			latest := package.pypi_info(none, false, pypi_spec_fetch)!
+			extra := with_extra.pypi_info(none, false, pypi_spec_fetch)!
+			old := with_version.pypi_info(none, false, pypi_spec_fetch)!
+			url := from_url.pypi_info(none, false, pypi_spec_fetch)!
+			return latest.found && extra.found && old.found && url.found && latest.info.name == 'snakemake' && extra.info.name == 'snakemake' && old.info.download_url == pypi_spec_old_package_url && old.info.checksum == pypi_spec_old_package_checksum && url.info.download_url == pypi_spec_package_url && url.info.checksum == pypi_spec_package_checksum
+		}
+		21, 22 {
+			mut package := if spec == 21 {
+				pypi_spec_package('snakemake')
+			} else {
+				pypi_spec_package('snakemake==5.28.0')
+			}
+			lookup := package.pypi_info('5.29.0', false, pypi_spec_fetch)!
+			return lookup.found && lookup.info.download_url == pypi_spec_package_url && lookup.info.checksum == pypi_spec_package_checksum
+		}
+		23 {
+			mut package := pypi_spec_package('snakemake[foo]==5.28.0')
+			lookup := package.pypi_info(none, false, pypi_spec_fetch)!
+			return lookup.found && lookup.info.download_url == pypi_spec_old_package_url && lookup.info.checksum == pypi_spec_old_package_checksum
+		}
+		24 {
+			mut package := pypi_spec_url_package(pypi_spec_package_url)
+			lookup := package.pypi_info('5.28.0', false, pypi_spec_fetch)!
+			return lookup.found && lookup.info.download_url == pypi_spec_old_package_url && lookup.info.checksum == pypi_spec_old_package_checksum
+		}
+		25 {
+			mut plain := pypi_spec_package('snakemake')
+			mut versioned := pypi_spec_package('snakemake==5.28.0')
+			mut extra := pypi_spec_package('snakemake[foo]')
+			mut extra_version := pypi_spec_package('snakemake[foo]==5.28.0')
+			mut from_url := pypi_spec_url_package(pypi_spec_package_url)
+			return plain.string()! == 'snakemake' && versioned.string()! == 'snakemake==5.28.0' && extra.string()! == 'snakemake[foo]' && extra_version.string()! == 'snakemake[foo]==5.28.0' && from_url.string()! == 'snakemake==5.29.0'
+		}
+		26, 27, 28, 29 {
+			mut left := if spec == 28 {
+				pypi_spec_package('snakemake==5.28.0')
+			} else {
+				pypi_spec_package('snakemake')
+			}
+			mut right := match spec {
+				26 { pypi_spec_package('virtualenv==20.2.0') }
+				27 { pypi_spec_package('snakemake==5.28.0') }
+				28 { pypi_spec_package('snakemake==5.29.0') }
+				else { pypi_spec_package('SNAKEMAKE') }
+			}
+			same := left.same_package(mut right)!
+			return if spec == 26 { !same } else { same }
+		}
+		30, 31, 32 {
+			mut left := if spec == 32 {
+				pypi_spec_package('virtualenv==20.2.0')
+			} else {
+				pypi_spec_package('snakemake')
+			}
+			mut right := if spec == 30 {
+				pypi_spec_package('virtualenv==20.2.0')
+			} else {
+				pypi_spec_package('snakemake==5.28.0')
+			}
+			return pypi_spec_compare(mut left, mut right)! == spec - 31
+		}
+		33 {
+			mut packages := [pypi_spec_package('snakemake')]
+			plan := pypi.build_pip_report_plan(mut packages, 'python', false, none)!
+			return plan.requirements == ['snakemake'] && plan.command[0] == '/opt/homebrew/opt/python/libexec/bin/python' && plan.command.contains('--uploaded-prior-to=P1D') && plan.command.last() == 'snakemake'
+		}
+		34, 35 {
+			specification := if spec == 35 { 'snakemake[foo]==5.29.0' } else { 'snakemake==5.29.0' }
+			mut main := pypi_spec_package(specification)
+			_ = main.pypi_info(none, false, pypi_spec_fetch)!
+			mut packages := [main]
+			if spec == 34 {
+				packages << pypi_spec_package('pyyaml==6.0')
+			}
+			plan := pypi.build_pip_report_plan(mut packages, 'python', false, main)!
+			expected := if spec == 35 {
+				'snakemake[foo] @ ${pypi_spec_package_url}'
+			} else {
+				pypi_spec_package_url
+			}
+			return plan.requirements[0] == expected && (spec == 35 || plan.requirements[1] == 'pyyaml==6.0')
+		}
+		36 {
+			mut main := pypi_spec_package('snakemake==5.29.0')
+			mut packages := [main]
+			plan := pypi.build_pip_report_plan(mut packages, 'python', false, main)!
+			return plan.requirements == ['snakemake==5.29.0']
+		}
+		37 {
+			contents := pypi_spec_livecheck_formula_contents()
+			blocks := pypi.pypi_resource_blocks_from_formula(contents)
+			return blocks.len == 2 && blocks['bar'].contains('bar-0.9.tar.gz') && blocks['aws-lambda-rie'].contains('livecheck do') && contents.contains('def install\n    bin.install "foo"')
+		}
+		38 {
+			return pypi_spec_livecheck_formula_contents().contains('def install\n    bin.install "foo"')
+		}
+		39, 41 {
+			return pypi_spec_formula_contents().contains('def install\n    bin.install "foo"')
+		}
+		40 {
+			mut main := pypi_spec_package('foo==1.0')
+			mut packages := [main, pypi_spec_package('bar==1.0')]
+			plan := pypi.build_pip_report_plan(mut packages, 'python', false, main)!
+			return main.name()! == 'foo' && plan.requirements[0] == 'foo==1.0'
+		}
+		42 {
+			mut package := pypi_spec_url_package(pypi_spec_old_package_url)
+			lookup := package.pypi_info('5.29.0', false, pypi_spec_fetch)!
+			return lookup.found && lookup.info.download_url == pypi_spec_package_url
+		}
+		43 {
+			mut package := pypi_spec_url_package(pypi_spec_old_package_url)
+			return !(package.pypi_info('0.0.0', false, pypi_spec_fetch)!).found
+		}
+		44 {
+			mut package := pypi_spec_url_package(pypi_spec_non_package_url)
+			return !(package.pypi_info('1.1', false, pypi_spec_fetch)!).found
+		}
+		else {
+			return error('unknown PyPI spec ${spec}')
+		}
+	}
+}
 
 // Ruby let `let(:pypi_package_url) do` at line 8.
-pub fn ruby_pypi_spec_l8_d1_pypi_package_url(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('pypi_package_url', ...args)
+pub fn ruby_pypi_spec_l8_d1_pypi_package_url() string {
+	return pypi_spec_package_url
 }
 
 // Ruby let `let(:old_pypi_package_url) do` at line 12.
-pub fn ruby_pypi_spec_l12_d2_old_pypi_package_url(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('old_pypi_package_url', ...args)
+pub fn ruby_pypi_spec_l12_d2_old_pypi_package_url() string {
+	return pypi_spec_old_package_url
 }
 
 // Ruby let `let(:non_pypi_package_url) do` at line 16.
-pub fn ruby_pypi_spec_l16_d3_non_pypi_package_url(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('non_pypi_package_url', ...args)
+pub fn ruby_pypi_spec_l16_d3_non_pypi_package_url() string {
+	return pypi_spec_non_package_url
 }
 
 // Ruby let `let(:package_checksum) { "47417307d08ecb0707b3b29effc933bd63d8c8e3ab15509c62b685b7614c6568" }` at line 21.
-pub fn ruby_pypi_spec_l21_d4_package_checksum(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('package_checksum', ...args)
+pub fn ruby_pypi_spec_l21_d4_package_checksum() string {
+	return pypi_spec_package_checksum
 }
 
 // Ruby let `let(:old_package_checksum) { "2367ce91baf7f8fa7738d33aff9670ffdf5410bbac49aeb209f73b45a3425046" }` at line 22.
-pub fn ruby_pypi_spec_l22_d5_old_package_checksum(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('old_package_checksum', ...args)
+pub fn ruby_pypi_spec_l22_d5_old_package_checksum() string {
+	return pypi_spec_old_package_checksum
 }
 
 // Ruby let `let(:package) { described_class.new("snakemake") }` at line 24.
-pub fn ruby_pypi_spec_l24_d6_package(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('package', ...args)
+pub fn ruby_pypi_spec_l24_d6_package() &pypi.PypiPackage {
+	return pypi_spec_package('snakemake')
 }
 
 // Ruby let `let(:package_with_version) { described_class.new("snakemake==5.28.0") }` at line 25.
-pub fn ruby_pypi_spec_l25_d7_package_with_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('package_with_version', ...args)
+pub fn ruby_pypi_spec_l25_d7_package_with_version() &pypi.PypiPackage {
+	return pypi_spec_package('snakemake==5.28.0')
 }
 
 // Ruby let `let(:package_with_different_version) { described_class.new("snakemake==5.29.0") }` at line 26.
-pub fn ruby_pypi_spec_l26_d8_package_with_different_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('package_with_different_version', ...args)
+pub fn ruby_pypi_spec_l26_d8_package_with_different_version() &pypi.PypiPackage {
+	return pypi_spec_package('snakemake==5.29.0')
 }
 
 // Ruby let `let(:package_with_extra) { described_class.new("snakemake[foo]") }` at line 27.
-pub fn ruby_pypi_spec_l27_d9_package_with_extra(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('package_with_extra', ...args)
+pub fn ruby_pypi_spec_l27_d9_package_with_extra() &pypi.PypiPackage {
+	return pypi_spec_package('snakemake[foo]')
 }
 
 // Ruby let `let(:package_with_extra_and_version) { described_class.new("snakemake[foo]==5.28.0") }` at line 28.
-pub fn ruby_pypi_spec_l28_d10_package_with_extra_and_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('package_with_extra_and_version', ...args)
+pub fn ruby_pypi_spec_l28_d10_package_with_extra_and_version() &pypi.PypiPackage {
+	return pypi_spec_package('snakemake[foo]==5.28.0')
 }
 
 // Ruby let `let(:package_with_different_capitalization) { described_class.new("SNAKEMAKE") }` at line 29.
-pub fn ruby_pypi_spec_l29_d11_package_with_different_capitalization(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('package_with_different_capitalization', ...args)
+pub fn ruby_pypi_spec_l29_d11_package_with_different_capitalization() &pypi.PypiPackage {
+	return pypi_spec_package('SNAKEMAKE')
 }
 
 // Ruby let `let(:package_from_pypi_url) { described_class.new(pypi_package_url, is_url: true) }` at line 30.
-pub fn ruby_pypi_spec_l30_d12_package_from_pypi_url(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('package_from_pypi_url', ...args)
+pub fn ruby_pypi_spec_l30_d12_package_from_pypi_url() &pypi.PypiPackage {
+	return pypi_spec_url_package(pypi_spec_package_url)
 }
 
 // Ruby let `let(:package_from_non_pypi_url) { described_class.new(non_pypi_package_url, is_url: true) }` at line 31.
-pub fn ruby_pypi_spec_l31_d13_package_from_non_pypi_url(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('package_from_non_pypi_url', ...args)
+pub fn ruby_pypi_spec_l31_d13_package_from_non_pypi_url() &pypi.PypiPackage {
+	return pypi_spec_url_package(pypi_spec_non_package_url)
 }
 
 // Ruby let `let(:other_package) { described_class.new("virtualenv==20.2.0") }` at line 32.
-pub fn ruby_pypi_spec_l32_d14_other_package(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('other_package', ...args)
+pub fn ruby_pypi_spec_l32_d14_other_package() &pypi.PypiPackage {
+	return pypi_spec_package('virtualenv==20.2.0')
 }
 
 // Ruby specify `specify do` at line 35.
-pub fn ruby_pypi_spec_l35_d15_do(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('do', ...args)
+pub fn ruby_pypi_spec_l35_d15_do() !bool {
+	return pypi_spec_result(15)
 }
 
 // Ruby it `it "sets for package names" do` at line 52.
-pub fn ruby_pypi_spec_l52_d16_sets(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sets', ...args)
+pub fn ruby_pypi_spec_l52_d16_sets() !bool {
+	return pypi_spec_result(16)
 }
 
 // Ruby it `it "sets for PyPI package URLs" do` at line 60.
-pub fn ruby_pypi_spec_l60_d17_sets(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sets', ...args)
+pub fn ruby_pypi_spec_l60_d17_sets() !bool {
+	return pypi_spec_result(17)
 }
 
 // Ruby it `it "fails for non-PYPI package URLs" do` at line 68.
-pub fn ruby_pypi_spec_l68_d18_fails(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fails', ...args)
+pub fn ruby_pypi_spec_l68_d18_fails() !bool {
+	return pypi_spec_result(18)
 }
 
 // Ruby specify `specify do` at line 76.
-pub fn ruby_pypi_spec_l76_d19_do(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('do', ...args)
+pub fn ruby_pypi_spec_l76_d19_do() !bool {
+	return pypi_spec_result(19)
 }
 
 // Ruby specify `specify do` at line 84.
-pub fn ruby_pypi_spec_l84_d20_do(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('do', ...args)
+pub fn ruby_pypi_spec_l84_d20_do() !bool {
+	return pypi_spec_result(20)
 }
 
 // Ruby it `it "gets pypi info from a package name and specified version" do` at line 92.
-pub fn ruby_pypi_spec_l92_d21_gets(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('gets', ...args)
+pub fn ruby_pypi_spec_l92_d21_gets() !bool {
+	return pypi_spec_result(21)
 }
 
 // Ruby it `it "gets pypi info from a package name with overridden version" do` at line 97.
-pub fn ruby_pypi_spec_l97_d22_gets(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('gets', ...args)
+pub fn ruby_pypi_spec_l97_d22_gets() !bool {
+	return pypi_spec_result(22)
 }
 
 // Ruby it `it "gets pypi info from a package name, extras and version" do` at line 102.
-pub fn ruby_pypi_spec_l102_d23_gets(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('gets', ...args)
+pub fn ruby_pypi_spec_l102_d23_gets() !bool {
+	return pypi_spec_result(23)
 }
 
 // Ruby it `it "gets pypi info from a url with overridden version" do` at line 107.
-pub fn ruby_pypi_spec_l107_d24_gets(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('gets', ...args)
+pub fn ruby_pypi_spec_l107_d24_gets() !bool {
+	return pypi_spec_result(24)
 }
 
 // Ruby specify `specify do` at line 114.
-pub fn ruby_pypi_spec_l114_d25_do(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('do', ...args)
+pub fn ruby_pypi_spec_l114_d25_do() !bool {
+	return pypi_spec_result(25)
 }
 
 // Ruby it `it "returns false for different packages" do` at line 124.
-pub fn ruby_pypi_spec_l124_d26_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_pypi_spec_l124_d26_returns() !bool {
+	return pypi_spec_result(26)
 }
 
 // Ruby it `it "returns true for the same package" do` at line 128.
-pub fn ruby_pypi_spec_l128_d27_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_pypi_spec_l128_d27_returns() !bool {
+	return pypi_spec_result(27)
 }
 
 // Ruby it `it "returns true for the same package with different versions" do` at line 132.
-pub fn ruby_pypi_spec_l132_d28_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_pypi_spec_l132_d28_returns() !bool {
+	return pypi_spec_result(28)
 }
 
 // Ruby it `it "returns true for the same package with different capitalization" do` at line 136.
-pub fn ruby_pypi_spec_l136_d29_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_pypi_spec_l136_d29_returns() !bool {
+	return pypi_spec_result(29)
 }
 
 // Ruby it `it "returns -1" do` at line 142.
-pub fn ruby_pypi_spec_l142_d30_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_pypi_spec_l142_d30_returns() !bool {
+	return pypi_spec_result(30)
 }
 
 // Ruby it `it "returns 0" do` at line 146.
-pub fn ruby_pypi_spec_l146_d31_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_pypi_spec_l146_d31_returns() !bool {
+	return pypi_spec_result(31)
 }
 
 // Ruby it `it "returns 1" do` at line 150.
-pub fn ruby_pypi_spec_l150_d32_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_pypi_spec_l150_d32_returns() !bool {
+	return pypi_spec_result(32)
 }
 
 // Ruby it `it "filters packages uploaded within the last day" do` at line 157.
-pub fn ruby_pypi_spec_l157_d33_filters(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('filters', ...args)
+pub fn ruby_pypi_spec_l157_d33_filters() !bool {
+	return pypi_spec_result(33)
 }
 
 // Ruby it `it "passes the ignored-cooldown package to pip by its direct URL" do` at line 170.
-pub fn ruby_pypi_spec_l170_d34_passes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('passes', ...args)
+pub fn ruby_pypi_spec_l170_d34_passes() !bool {
+	return pypi_spec_result(34)
 }
 
 // Ruby it `it "preserves extras on the ignored-cooldown package's direct URL" do` at line 189.
-pub fn ruby_pypi_spec_l189_d35_preserves(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('preserves', ...args)
+pub fn ruby_pypi_spec_l189_d35_preserves() !bool {
+	return pypi_spec_result(35)
 }
 
 // Ruby it `it "keeps the ignored-cooldown package cooled when its sdist URL is unavailable" do` at line 207.
-pub fn ruby_pypi_spec_l207_d36_keeps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('keeps', ...args)
+pub fn ruby_pypi_spec_l207_d36_keeps() !bool {
+	return pypi_spec_result(36)
 }
 
 // Ruby it `it "keeps resources with livecheck blocks" do` at line 226.
-pub fn ruby_pypi_spec_l226_d37_keeps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('keeps', ...args)
+pub fn ruby_pypi_spec_l226_d37_keeps() !bool {
+	return pypi_spec_result(37)
 }
 
 // Ruby method `install` at line 251.
-pub fn ruby_pypi_spec_l251_d38_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+pub fn ruby_pypi_spec_l251_d38_install() bool {
+	return pypi_spec_livecheck_formula_contents().contains('def install\n    bin.install "foo"')
 }
 
 // Ruby method `install` at line 283.
-pub fn ruby_pypi_spec_l283_d39_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+pub fn ruby_pypi_spec_l283_d39_install() bool {
+	return pypi_spec_formula_contents().contains('def install\n    bin.install "foo"')
 }
 
 // Ruby it `it "exempts the main package from the cooldown when requested" do` at line 290.
-pub fn ruby_pypi_spec_l290_d40_exempts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('exempts', ...args)
+pub fn ruby_pypi_spec_l290_d40_exempts() !bool {
+	return pypi_spec_result(40)
 }
 
 // Ruby method `install` at line 302.
-pub fn ruby_pypi_spec_l302_d41_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+pub fn ruby_pypi_spec_l302_d41_install() bool {
+	return pypi_spec_formula_contents().contains('def install\n    bin.install "foo"')
 }
 
 // Ruby it `it "updates url to new version" do` at line 329.
-pub fn ruby_pypi_spec_l329_d42_updates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('updates', ...args)
+pub fn ruby_pypi_spec_l329_d42_updates() !bool {
+	return pypi_spec_result(42)
 }
 
 // Ruby it `it "returns nil for invalid versions" do` at line 333.
-pub fn ruby_pypi_spec_l333_d43_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_pypi_spec_l333_d43_returns() !bool {
+	return pypi_spec_result(43)
 }
 
 // Ruby it `it "returns nil for non-pypi urls" do` at line 337.
-pub fn ruby_pypi_spec_l337_d44_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_pypi_spec_l337_d44_returns() !bool {
+	return pypi_spec_result(44)
 }
 
 // Original Ruby source (line-for-line):

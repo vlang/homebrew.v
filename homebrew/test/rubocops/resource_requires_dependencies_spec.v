@@ -1,83 +1,122 @@
 module rubocops
 
 import brew_runtime
+import homebrew.rubocops as resource_dependencies_core
 
 // Translated from Homebrew/brew `test/rubocops/resource_requires_dependencies_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:cop) { described_class.new }` at line 7.
 pub fn ruby_resource_requires_dependencies_spec_l7_d1_cop(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cop', ...args)
+	return brew_runtime.object_value('RuboCop::Cop::FormulaAudit::ResourceRequiresDependencies', 'FormulaAudit/ResourceRequiresDependencies')
+}
+
+fn resource_requires_dependencies_spec_single_problem(source string, resource string, dependency_kind string, required_dependencies []string) bool {
+	problems := resource_dependencies_core.audit_resource_requires_dependencies(source)
+	if problems.len != 1 {
+		return false
+	}
+	problem := problems[0]
+	return problem.resource == resource && problem.dependency_kind == dependency_kind && problem.required_dependencies == required_dependencies
 }
 
 // Ruby it `it "does not report offenses" do` at line 10.
-pub fn ruby_resource_requires_dependencies_spec_l10_d2_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_resource_requires_dependencies_spec_l10_d2_does() bool {
+	source := 'class Foo < Formula\n  url "https://brew.sh/foo-1.0.tgz"\n  homepage "https://brew.sh"\n  uses_from_macos "libxml2"\nend'
+	return resource_dependencies_core.audit_resource_requires_dependencies(source).len == 0
 }
 
 // Ruby it `it "does not report offenses" do` at line 23.
-pub fn ruby_resource_requires_dependencies_spec_l23_d3_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_resource_requires_dependencies_spec_l23_d3_does() bool {
+	source := 'class Foo < Formula\n  uses_from_macos "libxml2"\n  resource "not-bcrypt" do\n    url "blah"\n  end\nend'
+	return resource_dependencies_core.audit_resource_requires_dependencies(source).len == 0
 }
 
 // Ruby it `it "does not report offenses if the dependencies are present" do` at line 41.
-pub fn ruby_resource_requires_dependencies_spec_l41_d4_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_resource_requires_dependencies_spec_l41_d4_does() bool {
+	source := 'class Foo < Formula\n  depends_on "pkgconf" => :build\n  depends_on "rust" => :build\n  resource "bcrypt" do\n    url "blah"\n  end\nend'
+	return resource_dependencies_core.audit_resource_requires_dependencies(source).len == 0
 }
 
 // Ruby it `it "reports offenses if missing a dependency" do` at line 58.
-pub fn ruby_resource_requires_dependencies_spec_l58_d5_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_resource_requires_dependencies_spec_l58_d5_reports() bool {
+	source := 'class Foo < Formula\n  depends_on "pkgconf" => :build\n  resource "bcrypt" do\n    url "blah"\n  end\nend'
+	return resource_requires_dependencies_spec_single_problem(source, 'bcrypt', 'depends_on', [
+		'pkgconf',
+		'rust',
+	])
 }
 
 // Ruby it `it "does not report offenses" do` at line 77.
-pub fn ruby_resource_requires_dependencies_spec_l77_d6_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_resource_requires_dependencies_spec_l77_d6_does() bool {
+	source := 'class Foo < Formula\n  uses_from_macos "libxml2"\n  resource "not-lxml" do\n    url "blah"\n  end\nend'
+	return resource_dependencies_core.audit_resource_requires_dependencies(source).len == 0
 }
 
 // Ruby it `it "does not report offenses if the dependencies are present" do` at line 95.
-pub fn ruby_resource_requires_dependencies_spec_l95_d7_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_resource_requires_dependencies_spec_l95_d7_does() bool {
+	source := 'class Foo < Formula\n  uses_from_macos "libxml2"\n  uses_from_macos "libxslt"\n  resource "lxml" do\n    url "blah"\n  end\nend'
+	return resource_dependencies_core.audit_resource_requires_dependencies(source).len == 0
 }
 
 // Ruby it `it "reports offenses if missing a dependency" do` at line 112.
-pub fn ruby_resource_requires_dependencies_spec_l112_d8_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_resource_requires_dependencies_spec_l112_d8_reports() bool {
+	source := 'class Foo < Formula\n  uses_from_macos "libsomethingelse"\n  uses_from_macos "not_libxml2"\n  resource "lxml" do\n    url "blah"\n  end\nend'
+	return resource_requires_dependencies_spec_single_problem(source, 'lxml', 'uses_from_macos', [
+		'libxml2',
+		'libxslt',
+	])
 }
 
 // Ruby it `it "does not report offenses" do` at line 132.
-pub fn ruby_resource_requires_dependencies_spec_l132_d9_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_resource_requires_dependencies_spec_l132_d9_does() bool {
+	source := 'class Foo < Formula\n  uses_from_macos "libxml2"\n  resource "not-pynacl" do\n    url "blah"\n  end\nend'
+	return resource_dependencies_core.audit_resource_requires_dependencies(source).len == 0
 }
 
 // Ruby it `it "does not report offenses if the dependencies are present" do` at line 150.
-pub fn ruby_resource_requires_dependencies_spec_l150_d10_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_resource_requires_dependencies_spec_l150_d10_does() bool {
+	source := 'class Foo < Formula\n  depends_on "libsodium"\n  resource "pynacl" do\n    url "blah"\n  end\nend'
+	return resource_dependencies_core.audit_resource_requires_dependencies(source).len == 0
 }
 
 // Ruby it `it "reports offenses if missing a dependency" do` at line 166.
-pub fn ruby_resource_requires_dependencies_spec_l166_d11_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_resource_requires_dependencies_spec_l166_d11_reports() bool {
+	source := 'class Foo < Formula\n  depends_on "not_libsodium"\n  resource "pynacl" do\n    url "blah"\n  end\nend'
+	return resource_requires_dependencies_spec_single_problem(source, 'pynacl', 'depends_on', [
+		'libsodium',
+	])
 }
 
 // Ruby it `it "does not report offenses" do` at line 185.
-pub fn ruby_resource_requires_dependencies_spec_l185_d12_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_resource_requires_dependencies_spec_l185_d12_does() bool {
+	source := 'class Foo < Formula\n  uses_from_macos "libxml2"\n  resource "not-pyyaml" do\n    url "blah"\n  end\nend'
+	return resource_dependencies_core.audit_resource_requires_dependencies(source).len == 0
 }
 
 // Ruby it `it "does not report offenses if the dependencies are present" do` at line 203.
-pub fn ruby_resource_requires_dependencies_spec_l203_d13_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_resource_requires_dependencies_spec_l203_d13_does() bool {
+	source := 'class Foo < Formula\n  depends_on "libyaml"\n  resource "pyyaml" do\n    url "blah"\n  end\nend'
+	return resource_dependencies_core.audit_resource_requires_dependencies(source).len == 0
 }
 
 // Ruby it `it "reports offenses if missing a dependency" do` at line 219.
-pub fn ruby_resource_requires_dependencies_spec_l219_d14_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_resource_requires_dependencies_spec_l219_d14_reports() bool {
+	source := 'class Foo < Formula\n  depends_on "not_libyaml"\n  resource "pyyaml" do\n    url "blah"\n  end\nend'
+	return resource_requires_dependencies_spec_single_problem(source, 'pyyaml', 'depends_on', [
+		'libyaml',
+	])
 }
 
 // Ruby it `it "reports offenses for each resource that is missing a dependency" do` at line 238.
-pub fn ruby_resource_requires_dependencies_spec_l238_d15_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_resource_requires_dependencies_spec_l238_d15_reports() bool {
+	source := 'class Foo < Formula\n  uses_from_macos "one"\n  uses_from_macos "two"\n  depends_on "three"\n  resource "lxml" do\n  end\n  resource "pynacl" do\n  end\n  resource "pyyaml" do\n  end\nend'
+	problems := resource_dependencies_core.audit_resource_requires_dependencies(source)
+	return problems.map(it.resource) == ['lxml', 'pynacl', 'pyyaml'] && problems.map(it.dependency_kind) == [
+		'uses_from_macos',
+		'depends_on',
+		'depends_on',
+	]
 }
 
 // Original Ruby source (line-for-line):

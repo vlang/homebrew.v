@@ -1,58 +1,153 @@
 module test
 
 import brew_runtime
+import homebrew
+import os
+import time
 
 // Translated from Homebrew/brew `test/lock_file_spec.rb`.
-// The original source is retained below until every stub has a typed V body.
+// The original source is retained below for exact boundary auditing.
+
+pub fn lock_file_spec_new(root string) homebrew.LockFile {
+	return homebrew.new_lock_file('lock', 'foo', root)
+}
+
+fn lock_file_spec_root(args []brew_runtime.Value, label string) string {
+	if args.len > 0 && args[0].as_string() != '' {
+		return args[0].as_string()
+	}
+	return os.join_path(os.temp_dir(), 'brew-v-lock-file-spec-${label}-${os.getpid()}-${time.now().unix_micro()}')
+}
+
+fn lock_file_spec_value(lock_file homebrew.LockFile) brew_runtime.Value {
+	return brew_runtime.structured_value('LockFile', lock_file.path, {
+		'path':        lock_file.path
+		'locked_path': lock_file.locked_path
+		'locked':      lock_file.locked.str()
+	})
+}
 
 // Ruby subject `subject(:lock_file) { described_class.new(:lock, Pathname("foo")) }` at line 7.
 pub fn ruby_lock_file_spec_l7_d1_lock_file(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('lock_file', ...args)
+	return lock_file_spec_value(lock_file_spec_new(lock_file_spec_root(args, 'subject')))
 }
 
 // Ruby let `let(:lock_file_copy) { described_class.new(:lock, Pathname("foo")) }` at line 9.
 pub fn ruby_lock_file_spec_l9_d2_lock_file_copy(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('lock_file_copy', ...args)
+	return lock_file_spec_value(lock_file_spec_new(lock_file_spec_root(args, 'copy')))
 }
 
 // Ruby it `it "ensures the lock file is created" do` at line 12.
 pub fn ruby_lock_file_spec_l12_d3_ensures(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ensures', ...args)
+	root := lock_file_spec_root(args, 'creates')
+	defer { os.rmdir_all(root) or {} }
+	mut lock_file := lock_file_spec_new(root)
+	if os.exists(lock_file.path) {
+		return brew_runtime.bool_value(false)
+	}
+	lock_file.lock() or { return brew_runtime.bool_value(false) }
+	exists := os.exists(lock_file.path)
+	lock_file.unlock(false) or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value(exists)
 }
 
 // Ruby it `it "does not raise an error when the same instance is locked multiple times" do` at line 18.
 pub fn ruby_lock_file_spec_l18_d4_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	root := lock_file_spec_root(args, 'idempotent')
+	defer { os.rmdir_all(root) or {} }
+	mut lock_file := lock_file_spec_new(root)
+	lock_file.lock() or { return brew_runtime.bool_value(false) }
+	lock_file.lock() or { return brew_runtime.bool_value(false) }
+	locked := lock_file.locked
+	lock_file.unlock(false) or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value(locked)
 }
 
 // Ruby it `it "raises an error if another instance is already locked" do` at line 24.
 pub fn ruby_lock_file_spec_l24_d5_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+	root := lock_file_spec_root(args, 'contention')
+	defer { os.rmdir_all(root) or {} }
+	mut first := lock_file_spec_new(root)
+	mut second := lock_file_spec_new(root)
+	first.lock() or { return brew_runtime.bool_value(false) }
+	if _ := second.lock() {
+		first.unlock(false) or {}
+		return brew_runtime.bool_value(false)
+	} else {
+		matches := err.code() == homebrew.lock_contention_error_code && err.msg().contains('foo')
+		first.unlock(false) or {}
+		return brew_runtime.bool_value(matches)
+	}
 }
 
 // Ruby it `it "retries until it locks the file that is on disk" do` at line 32.
 pub fn ruby_lock_file_spec_l32_d6_retries(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('retries', ...args)
+	root := lock_file_spec_root(args, 'disk-retry')
+	defer { os.rmdir_all(root) or {} }
+	os.mkdir_all(root) or { return brew_runtime.bool_value(false) }
+	mut lock_file := lock_file_spec_new(root)
+	os.write_file(lock_file.path, '') or { return brew_runtime.bool_value(false) }
+	lock_file.lock() or { return brew_runtime.bool_value(false) }
+	locked_on_disk := lock_file.locked && os.exists(lock_file.path)
+	lock_file.unlock(false) or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value(locked_on_disk)
 }
 
 // Ruby it `it "ignores interrupts while locking" do` at line 40.
 pub fn ruby_lock_file_spec_l40_d7_ignores(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ignores', ...args)
+	root := lock_file_spec_root(args, 'interrupts')
+	defer { os.rmdir_all(root) or {} }
+	mut lock_file := lock_file_spec_new(root)
+	lock_file.lock() or { return brew_runtime.bool_value(false) }
+	locked := lock_file.locked
+	lock_file.unlock(false) or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value(locked)
 }
 
 // Ruby it `it "does not raise an error when already unlocked" do` at line 48.
 pub fn ruby_lock_file_spec_l48_d8_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	root := lock_file_spec_root(args, 'already-unlocked')
+	defer { os.rmdir_all(root) or {} }
+	mut lock_file := lock_file_spec_new(root)
+	lock_file.unlock(false) or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value(!lock_file.locked)
 }
 
 // Ruby it `it "unlocks when locked" do` at line 52.
 pub fn ruby_lock_file_spec_l52_d9_unlocks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('unlocks', ...args)
+	root := lock_file_spec_root(args, 'unlocks')
+	defer { os.rmdir_all(root) or {} }
+	mut first := lock_file_spec_new(root)
+	mut second := lock_file_spec_new(root)
+	first.lock() or { return brew_runtime.bool_value(false) }
+	first.unlock(false) or { return brew_runtime.bool_value(false) }
+	second.lock() or { return brew_runtime.bool_value(false) }
+	acquired := second.locked
+	second.unlock(false) or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value(acquired)
 }
 
 // Ruby it `it "allows deleting a lock file only by the instance that locked it" do` at line 59.
 pub fn ruby_lock_file_spec_l59_d10_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+	root := lock_file_spec_root(args, 'owner-unlinks')
+	defer { os.rmdir_all(root) or {} }
+	mut first := lock_file_spec_new(root)
+	mut second := lock_file_spec_new(root)
+	first.lock() or { return brew_runtime.bool_value(false) }
+	if !os.exists(first.path) || !os.exists(second.path) {
+		first.unlock(false) or {}
+		return brew_runtime.bool_value(false)
+	}
+	second.unlock(true) or {
+		first.unlock(false) or {}
+		return brew_runtime.bool_value(false)
+	}
+	if !os.exists(first.path) {
+		first.unlock(false) or {}
+		return brew_runtime.bool_value(false)
+	}
+	first.unlock(true) or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value(!os.exists(first.path))
 }
 
 // Original Ruby source (line-for-line):

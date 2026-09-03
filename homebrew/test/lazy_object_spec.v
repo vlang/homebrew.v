@@ -1,33 +1,49 @@
 module test
 
 import brew_runtime
+import homebrew
 
 // Translated from Homebrew/brew `test/lazy_object_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "does not evaluate the block" do` at line 8.
-pub fn ruby_lazy_object_spec_l8_d1_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_lazy_object_spec_l8_d1_does() bool {
+	object := homebrew.ruby_lazy_object_l9_d1_initialize(lazy_integer_factory)
+	return !object.evaluated() && object.evaluation_count() == 0
 }
 
 // Ruby it `it "evaluates the block" do` at line 16.
-pub fn ruby_lazy_object_spec_l16_d2_evaluates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('evaluates', ...args)
+pub fn ruby_lazy_object_spec_l16_d2_evaluates() bool {
+	mut object := homebrew.ruby_lazy_object_l9_d1_initialize(lazy_integer_factory)
+	return homebrew.ruby_lazy_object_l47_d6_to_s(mut object) or { return false } == '42'
 }
 
 // Ruby it `it "delegates to the underlying object" do` at line 22.
-pub fn ruby_lazy_object_spec_l22_d3_delegates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('delegates', ...args)
+pub fn ruby_lazy_object_spec_l22_d3_delegates() bool {
+	mut object := homebrew.ruby_lazy_object_l9_d1_initialize(lazy_false_factory)
+	return homebrew.lazy_object_not(mut object) or { return false }
 }
 
 // Ruby it `it "delegates to the underlying object" do` at line 28.
-pub fn ruby_lazy_object_spec_l28_d4_delegates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('delegates', ...args)
+pub fn ruby_lazy_object_spec_l28_d4_delegates() bool {
+	mut object := homebrew.ruby_lazy_object_l9_d1_initialize(lazy_integer_factory)
+	return !(homebrew.lazy_object_equals(mut object, brew_runtime.int_value(13)) or {
+		return false
+	})
 }
 
 // Ruby it `it "delegates to the underlying object" do` at line 34.
-pub fn ruby_lazy_object_spec_l34_d5_delegates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('delegates', ...args)
+pub fn ruby_lazy_object_spec_l34_d5_delegates() bool {
+	mut object := homebrew.ruby_lazy_object_l9_d1_initialize(lazy_integer_factory)
+	return homebrew.lazy_object_equals(mut object, brew_runtime.int_value(42)) or { return false }
+}
+
+fn lazy_integer_factory() !brew_runtime.Value {
+	return brew_runtime.int_value(42)
+}
+
+fn lazy_false_factory() !brew_runtime.Value {
+	return brew_runtime.bool_value(false)
 }
 
 // Original Ruby source (line-for-line):

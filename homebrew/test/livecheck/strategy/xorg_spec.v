@@ -1,83 +1,219 @@
 module strategy
 
 import brew_runtime
+import homebrew.livecheck
+import homebrew.livecheck.strategy as xorg_core
+import homebrew.utils
 
 // Translated from Homebrew/brew `test/livecheck/strategy/xorg_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub struct XorgSpecMatchData {
+pub:
+	fetched        xorg_core.PageMatchData
+	cached         xorg_core.PageMatchData
+	cached_default xorg_core.PageMatchData
+}
+
+fn xorg_spec_content() string {
+	return '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">\n<html><body><table>\n<a href="abc-1.2.2.tar.xz">abc-1.2.2.tar.xz</a>\n<a href="abc-1.2.2.tar.xz.sha1">abc-1.2.2.tar.xz.sha1</a>\n<a href="abc-1.2.3.tar.xz">abc-1.2.3.tar.xz</a>\n<a href="abc-1.2.3.tar.xz.sha1">abc-1.2.3.tar.xz.sha1</a>\n</table></body></html>\n'
+}
+
+fn xorg_spec_scan_block(page string,
+	provided ?xorg_core.PageMatchRegex) !livecheck.StrategyBlockValue {
+	match_regex := provided or { return livecheck.StrategyBlockValue{ kind: .nil_value } }
+	versions := xorg_core.page_match_scan(page, match_regex)!
+	return livecheck.StrategyBlockValue{
+		kind: .array
+		values: versions.map(livecheck.StrategyBlockItem{
+			kind: .string_value
+			value: it
+		})
+	}
+}
+
+fn xorg_spec_fetched(_ livecheck.StrategyCurlRequest) !utils.CurlCommandResult {
+	return utils.CurlCommandResult{
+		stdout: 'HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n${xorg_spec_content()}'
+		exit_status: 0
+	}
+}
+
+fn xorg_spec_unused_fetcher(_ livecheck.StrategyCurlRequest) !utils.CurlCommandResult {
+	return error('cached X.Org content unexpectedly fetched')
+}
+
+fn xorg_spec_regex_equal(left ?xorg_core.PageMatchRegex,
+	right ?xorg_core.PageMatchRegex) bool {
+	left_value := left or { xorg_core.PageMatchRegex{} }
+	right_value := right or { xorg_core.PageMatchRegex{} }
+	return left_value == right_value
+}
+
+fn xorg_spec_match_data_equal(left xorg_core.PageMatchData,
+	right xorg_core.PageMatchData) bool {
+	return left.matches == right.matches && xorg_spec_regex_equal(left.regex, right.regex) && left.url == right.url && left.cached == right.cached && left.has_cached == right.has_cached && left.content == right.content && left.has_content == right.has_content && left.final_url == right.final_url && left.has_final_url == right.has_final_url && left.messages == right.messages && left.has_messages == right.has_messages
+}
 
 // Ruby subject `subject(:xorg) { described_class }` at line 7.
-pub fn ruby_xorg_spec_l7_d1_xorg(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('xorg', ...args)
+pub fn ruby_xorg_spec_l7_d1_xorg() brew_runtime.Value {
+	return brew_runtime.object_value('Class', 'Homebrew::Livecheck::Strategy::Xorg')
 }
 
 // Ruby let `let(:xorg_urls) do` at line 9.
-pub fn ruby_xorg_spec_l9_d2_xorg_urls(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('xorg_urls', ...args)
+pub fn ruby_xorg_spec_l9_d2_xorg_urls() map[string]string {
+	return {
+		'app':         'https://www.x.org/archive/individual/app/abc-1.2.3.tar.bz2'
+		'font':        'https://www.x.org/archive/individual/font/abc-1.2.3.tar.bz2'
+		'lib':         'https://www.x.org/archive/individual/lib/libabc-1.2.3.tar.bz2'
+		'ftp_lib':     'https://ftp.x.org/archive/individual/lib/libabc-1.2.3.tar.bz2'
+		'pub_doc':     'https://www.x.org/pub/individual/doc/abc-1.2.3.tar.bz2'
+		'freedesktop': 'https://xorg.freedesktop.org/archive/individual/util/abc-1.2.3.tar.xz'
+		'mesa':        'https://archive.mesa3d.org/mesa-1.2.3.tar.xz'
+	}
 }
 
 // Ruby let `let(:non_xorg_url) { "https://brew.sh/test" }` at line 20.
-pub fn ruby_xorg_spec_l20_d3_non_xorg_url(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('non_xorg_url', ...args)
+pub fn ruby_xorg_spec_l20_d3_non_xorg_url() string {
+	return 'https://brew.sh/test'
 }
 
 // Ruby let `let(:generated) do` at line 21.
-pub fn ruby_xorg_spec_l21_d4_generated(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('generated', ...args)
+pub fn ruby_xorg_spec_l21_d4_generated() map[string]xorg_core.XorgInputValues {
+	mut generated := map[string]xorg_core.XorgInputValues{}
+	for key, url in ruby_xorg_spec_l9_d2_xorg_urls() {
+		generated[key] = xorg_core.xorg_generate_input_values(url)
+	}
+	return generated
 }
 
 // Ruby let `let(:content) do` at line 53.
-pub fn ruby_xorg_spec_l53_d5_content(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('content', ...args)
+pub fn ruby_xorg_spec_l53_d5_content() string {
+	return xorg_spec_content()
 }
 
 // Ruby let `let(:matches) { ["1.2.2", "1.2.3"] }` at line 117.
-pub fn ruby_xorg_spec_l117_d6_matches(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('matches', ...args)
+pub fn ruby_xorg_spec_l117_d6_matches() []string {
+	return ['1.2.2', '1.2.3']
 }
 
 // Ruby it `it "returns true for an X.Org URL" do` at line 120.
-pub fn ruby_xorg_spec_l120_d7_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_xorg_spec_l120_d7_returns() bool {
+	for url in ruby_xorg_spec_l9_d2_xorg_urls().values() {
+		if !xorg_core.xorg_matches_url(url) {
+			return false
+		}
+	}
+	return true
 }
 
 // Ruby it `it "returns false for a non-X.Org URL" do` at line 130.
-pub fn ruby_xorg_spec_l130_d8_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_xorg_spec_l130_d8_returns() bool {
+	return !xorg_core.xorg_matches_url(ruby_xorg_spec_l20_d3_non_xorg_url())
 }
 
 // Ruby it `it "returns a hash containing url and regex for an X.org URL" do` at line 136.
-pub fn ruby_xorg_spec_l136_d9_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_xorg_spec_l136_d9_returns() bool {
+	generated := ruby_xorg_spec_l21_d4_generated()
+	for key, url in ruby_xorg_spec_l9_d2_xorg_urls() {
+		if xorg_core.xorg_generate_input_values(url) != generated[key] {
+			return false
+		}
+	}
+	return generated['pub_doc'].url == 'https://www.x.org/archive/individual/doc/'
 }
 
 // Ruby it `it "returns an empty hash for a non-X.org URL" do` at line 146.
-pub fn ruby_xorg_spec_l146_d10_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_xorg_spec_l146_d10_returns() bool {
+	return !xorg_core.xorg_generate_input_values(ruby_xorg_spec_l20_d3_non_xorg_url()).present
 }
 
 // Ruby let `let(:match_data) do` at line 152.
-pub fn ruby_xorg_spec_l152_d11_match_data(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('match_data', ...args)
+pub fn ruby_xorg_spec_l152_d11_match_data() XorgSpecMatchData {
+	generated := ruby_xorg_spec_l21_d4_generated()['app']
+	base := xorg_core.PageMatchData{
+		matches: {
+			'1.2.2': '1.2.2'
+			'1.2.3': '1.2.3'
+		}
+		regex: generated.regex
+		url: generated.url
+	}
+	return XorgSpecMatchData{
+		fetched: xorg_core.PageMatchData{
+			...base
+			content: xorg_spec_content()
+			has_content: true
+		}
+		cached: xorg_core.PageMatchData{
+			...base
+			cached: true
+			has_cached: true
+		}
+		cached_default: xorg_core.PageMatchData{
+			...base
+			matches: map[string]string{}
+			cached: true
+			has_cached: true
+		}
+	}
 }
 
 // Ruby it `it "finds versions in fetched content" do` at line 168.
-pub fn ruby_xorg_spec_l168_d12_finds(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('finds', ...args)
+pub fn ruby_xorg_spec_l168_d12_finds() bool {
+	mut cache := xorg_core.XorgPageCache{
+		page_data: map[string]string{}
+	}
+	actual := xorg_core.xorg_find_versions(mut cache, xorg_core.XorgFindRequest{
+		url: ruby_xorg_spec_l9_d2_xorg_urls()['app']
+	}, xorg_spec_fetched) or { return false }
+	return xorg_spec_match_data_equal(actual, ruby_xorg_spec_l152_d11_match_data().fetched) && cache.page_data[ruby_xorg_spec_l21_d4_generated()['app'].url] == xorg_spec_content()
 }
 
 // Ruby it `it "finds versions in cached content" do` at line 174.
-pub fn ruby_xorg_spec_l174_d13_finds(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('finds', ...args)
+pub fn ruby_xorg_spec_l174_d13_finds() bool {
+	generated := ruby_xorg_spec_l21_d4_generated()['app']
+	mut cache := xorg_core.XorgPageCache{
+		page_data: {
+			generated.url: xorg_spec_content()
+		}
+	}
+	actual := xorg_core.xorg_find_versions(mut cache, xorg_core.XorgFindRequest{
+		url: ruby_xorg_spec_l9_d2_xorg_urls()['app']
+	}, xorg_spec_unused_fetcher) or { return false }
+	return xorg_spec_match_data_equal(actual, ruby_xorg_spec_l152_d11_match_data().cached)
 }
 
 // Ruby it `it "finds versions in provided content" do` at line 179.
-pub fn ruby_xorg_spec_l179_d14_finds(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('finds', ...args)
+pub fn ruby_xorg_spec_l179_d14_finds() bool {
+	mut cache := xorg_core.XorgPageCache{
+		page_data: map[string]string{}
+	}
+	request := xorg_core.XorgFindRequest{
+		url: ruby_xorg_spec_l9_d2_xorg_urls()['app']
+		content: xorg_spec_content()
+	}
+	plain := xorg_core.xorg_find_versions(mut cache, request, xorg_spec_unused_fetcher) or {
+		return false
+	}
+	with_block := xorg_core.xorg_find_versions(mut cache, xorg_core.XorgFindRequest{
+		...request
+		has_block: true
+		block: xorg_spec_scan_block
+	}, xorg_spec_unused_fetcher) or { return false }
+	expected := ruby_xorg_spec_l152_d11_match_data().cached
+	return xorg_spec_match_data_equal(plain, expected) && xorg_spec_match_data_equal(with_block, expected)
 }
 
 // Ruby it `it "returns default match_data when content is blank" do` at line 190.
-pub fn ruby_xorg_spec_l190_d15_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_xorg_spec_l190_d15_returns() bool {
+	mut cache := xorg_core.XorgPageCache{
+		page_data: map[string]string{}
+	}
+	actual := xorg_core.xorg_find_versions(mut cache, xorg_core.XorgFindRequest{
+		url: ruby_xorg_spec_l9_d2_xorg_urls()['app']
+		content: ''
+	}, xorg_spec_unused_fetcher) or { return false }
+	return xorg_spec_match_data_equal(actual, ruby_xorg_spec_l152_d11_match_data().cached_default)
 }
 
 // Original Ruby source (line-for-line):

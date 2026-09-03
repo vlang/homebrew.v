@@ -1,133 +1,385 @@
 module test
 
 import brew_runtime
+import homebrew
+import homebrew.api
+import os
+import time
 
 // Translated from Homebrew/brew `test/cleaner_spec.rb`.
-// The original source is retained below until every stub has a typed V body.
+// Each example uses its own temporary formula prefix and runs the translated
+// Cleaner against real files, directories, permissions, and symlinks.
+fn cleaner_spec_root(line int) string {
+	return os.join_path(os.temp_dir(), 'brew-v-cleaner-spec-${os.getpid()}-${line}-${time.now().unix_nano()}')
+}
+
+fn cleaner_spec_formula(root string, skip_paths []string) homebrew.Formula {
+	return homebrew.new_formula(homebrew.FormulaConfig{
+		reference: api.PackageReference{
+			kind: .formula
+			name: 'cleaner_test'
+			full_name: 'cleaner_test'
+			tap: 'homebrew/core'
+			stable_version: '1.0'
+			source_url: 'foo-1.0'
+			core_tap: true
+		}
+		prefix: root
+		cellar: os.join_path(root, 'Cellar')
+		skip_clean_paths: skip_paths.clone()
+	}) or { panic(err) }
+}
+
+fn cleaner_spec_write(path string, contents string) ! {
+	os.mkdir_all(os.dir(path))!
+	os.write_file(path, contents)!
+}
+
+fn cleaner_spec_write_bytes(path string, contents []u8) ! {
+	os.mkdir_all(os.dir(path))!
+	os.write_file_array(path, contents)!
+}
+
+fn cleaner_spec_mode(path string) int {
+	return int(os.stat(path) or { return -1 }.get_mode().bitmask()) & 0o777
+}
+
+fn cleaner_spec_mach_o(file_type u8) []u8 {
+	return [u8(0xfe), 0xed, 0xfa, 0xcf, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, file_type]
+}
+
+fn cleaner_spec_elf() []u8 {
+	return [u8(0x7f), `E`, `L`, `F`, 0, 0, 0, 0]
+}
+
+fn cleaner_spec_case(line int) bool {
+	root := cleaner_spec_root(line)
+	os.mkdir_all(root) or { return false }
+	defer {
+		if os.exists(root) {
+			os.rmdir_all(root) or {}
+		}
+	}
+	skip_paths := match line {
+		222, 231 { ['bin'] }
+		242 { ['symlink'] }
+		253 { ['c'] }
+		268 { ['a'] }
+		283 { [':la'] }
+		296 { ['lib/subdir'] }
+		308 { ['bin/a'] }
+		else { []string{} }
+	}
+	formula := cleaner_spec_formula(root, skip_paths)
+	prefix := formula.prefix()
+	os.mkdir_all(prefix) or { return false }
+	mut cleaner := homebrew.new_cleaner(formula)
+	match line {
+		24 {
+			bin := os.join_path(prefix, 'bin')
+			lib := os.join_path(prefix, 'lib')
+			os.mkdir_all(bin) or { return false }
+			os.mkdir_all(lib) or { return false }
+			$if macos {
+				cleaner_spec_write_bytes(os.join_path(bin, 'a.out'), cleaner_spec_mach_o(2)) or { return false }
+				for name in ['fat.dylib', 'x86_64.dylib', 'i386.dylib'] {
+					cleaner_spec_write_bytes(os.join_path(lib, name), cleaner_spec_mach_o(6)) or { return false }
+				}
+			} $else $if linux {
+				cleaner_spec_write_bytes(os.join_path(bin, 'hello'), cleaner_spec_elf()) or { return false }
+				cleaner_spec_write_bytes(os.join_path(lib, 'libhello.so.0'), cleaner_spec_elf()) or { return false }
+			}
+			cleaner.clean() or { return false }
+			$if macos {
+				return cleaner_spec_mode(os.join_path(bin, 'a.out')) == 0o555 && cleaner_spec_mode(os.join_path(lib, 'fat.dylib')) == 0o444 && cleaner_spec_mode(os.join_path(lib, 'x86_64.dylib')) == 0o444 && cleaner_spec_mode(os.join_path(lib, 'i386.dylib')) == 0o444
+			} $else $if linux {
+				return cleaner_spec_mode(os.join_path(bin, 'hello')) == 0o555 && cleaner_spec_mode(os.join_path(lib, 'libhello.so.0')) == 0o555
+			} $else {
+				return true
+			}
+		}
+		49 {
+			cleaner.clean() or { return false }
+			return !os.is_dir(prefix)
+		}
+		54 {
+			bin := os.join_path(prefix, 'bin')
+			subdir := os.join_path(bin, 'subdir')
+			os.mkdir_all(subdir) or { return false }
+			cleaner.clean() or { return false }
+			return !os.is_dir(bin) && !os.is_dir(subdir)
+		}
+		64, 78 {
+			directory := os.join_path(prefix, 'b')
+			symlink := os.join_path(prefix, if line == 64 { 'a' } else { 'c' })
+			os.mkdir_all(directory) or { return false }
+			os.symlink(os.base(directory), symlink) or { return false }
+			cleaner.clean() or { return false }
+			return !os.exists(directory) && !os.is_link(symlink) && !os.exists(symlink)
+		}
+		92 {
+			symlink := os.join_path(prefix, 'symlink')
+			os.symlink('target', symlink) or { return false }
+			cleaner.clean() or { return false }
+			return !os.is_link(symlink)
+		}
+		101, 112, 123, 134 {
+			file := match line {
+				101 { os.join_path(prefix, 'lib', 'foo.la') }
+				112 {
+					os.join_path(prefix, 'lib', 'perl5', 'darwin-thread-multi-2level', 'perllocal.pod')
+				}
+				123 {
+					os.join_path(prefix, 'lib', 'perl5', 'darwin-thread-multi-2level', 'auto', 'test', '.packlist')
+				}
+				else { os.join_path(prefix, 'lib', 'charset.alias') }
+			}
+			cleaner_spec_write(file, '') or { return false }
+			cleaner.clean() or { return false }
+			return !os.exists(file)
+		}
+		145 {
+			info := os.join_path(prefix, 'share', 'info')
+			file := os.join_path(info, 'dir')
+			arch_file := os.join_path(info, 'i686-elf', 'dir')
+			name_file := os.join_path(info, formula.name(), 'dir')
+			for path in [file, arch_file, name_file] {
+				cleaner_spec_write(path, '') or { return false }
+			}
+			cleaner.clean() or { return false }
+			return !os.exists(file) && !os.exists(arch_file) && os.exists(name_file)
+		}
+		165, 183 {
+			directory := os.join_path(prefix, 'lib', 'python3.12', 'site-packages', 'test.dist-info')
+			basename := if line == 165 { 'direct_url.json' } else { 'RECORD' }
+			file := os.join_path(directory, basename)
+			unrelated_file := os.join_path(directory, 'METADATA')
+			unrelated_directory_file := os.join_path(prefix, 'lib', basename)
+			for path in [file, unrelated_file, unrelated_directory_file] {
+				cleaner_spec_write(path, '') or { return false }
+			}
+			cleaner.clean() or { return false }
+			return !os.exists(file) && os.exists(unrelated_file) && os.exists(unrelated_directory_file)
+		}
+		201 {
+			file := os.join_path(prefix, 'lib', 'python3.12', 'site-packages', 'test.dist-info', 'INSTALLER')
+			cleaner_spec_write(file, 'pip\n') or { return false }
+			cleaner.clean() or { return false }
+			return os.read_file(file) or { return false } == 'brew\n'
+		}
+		222 {
+			bin := os.join_path(prefix, 'bin')
+			os.mkdir_all(bin) or { return false }
+			cleaner.clean() or { return false }
+			return os.is_dir(bin)
+		}
+		231 {
+			bin := os.join_path(prefix, 'bin')
+			subdir := os.join_path(bin, 'subdir')
+			os.mkdir_all(subdir) or { return false }
+			cleaner.clean() or { return false }
+			return os.is_dir(bin) && os.is_dir(subdir)
+		}
+		242 {
+			symlink := os.join_path(prefix, 'symlink')
+			os.symlink('target', symlink) or { return false }
+			cleaner.clean() or { return false }
+			return os.is_link(symlink)
+		}
+		253, 268 {
+			directory := os.join_path(prefix, 'b')
+			symlink := os.join_path(prefix, if line == 253 { 'c' } else { 'a' })
+			os.mkdir_all(directory) or { return false }
+			os.symlink(os.base(directory), symlink) or { return false }
+			cleaner.clean() or { return false }
+			return !os.exists(directory) && os.is_link(symlink) && !os.exists(symlink)
+		}
+		283 {
+			file := os.join_path(prefix, 'lib', 'foo.la')
+			cleaner_spec_write(file, '') or { return false }
+			cleaner.clean() or { return false }
+			return os.exists(file)
+		}
+		296 {
+			directory := os.join_path(prefix, 'lib', 'subdir')
+			os.mkdir_all(directory) or { return false }
+			cleaner.clean() or { return false }
+			return os.is_dir(directory)
+		}
+		308 {
+			directory_one := os.join_path(prefix, 'bin', 'a')
+			directory_two := os.join_path(prefix, 'lib', 'bin', 'a')
+			os.mkdir_all(directory_one) or { return false }
+			os.mkdir_all(directory_two) or { return false }
+			cleaner.clean() or { return false }
+			return os.exists(directory_one) && !os.exists(directory_two)
+		}
+		else {
+			return false
+		}
+	}
+}
+
+fn cleaner_spec_bool(value bool) brew_runtime.Value {
+	return brew_runtime.bool_value(value)
+}
 
 // Ruby subject `subject(:cleaner) { described_class.new(f) }` at line 11.
 pub fn ruby_cleaner_spec_l11_d1_cleaner(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cleaner', ...args)
+	_ = args
+	formula := cleaner_spec_formula(cleaner_spec_root(11), []string{})
+	return homebrew.ruby_cleaner_l22_d1_initialize(homebrew.formula_boundary_value(formula))
 }
 
 // Ruby let `let(:f) do` at line 13.
 pub fn ruby_cleaner_spec_l13_d2_f(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f', ...args)
+	_ = args
+	return homebrew.formula_boundary_value(cleaner_spec_formula(cleaner_spec_root(13), []string{}))
 }
 
 // Ruby it `it "cleans files" do` at line 24.
 pub fn ruby_cleaner_spec_l24_d3_cleans(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cleans', ...args)
+	_ = args
+	return cleaner_spec_bool(cleaner_spec_case(24))
 }
 
 // Ruby it `it "prunes the prefix if it is empty" do` at line 49.
 pub fn ruby_cleaner_spec_l49_d4_prunes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prunes', ...args)
+	_ = args
+	return cleaner_spec_bool(cleaner_spec_case(49))
 }
 
 // Ruby it `it "prunes empty directories" do` at line 54.
 pub fn ruby_cleaner_spec_l54_d5_prunes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prunes', ...args)
+	_ = args
+	return cleaner_spec_bool(cleaner_spec_case(54))
 }
 
 // Ruby it `it "removes a symlink when its target was pruned before" do` at line 64.
 pub fn ruby_cleaner_spec_l64_d6_removes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('removes', ...args)
+	_ = args
+	return cleaner_spec_bool(cleaner_spec_case(64))
 }
 
 // Ruby it `it "removes symlinks pointing to an empty directory" do` at line 78.
 pub fn ruby_cleaner_spec_l78_d7_removes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('removes', ...args)
+	_ = args
+	return cleaner_spec_bool(cleaner_spec_case(78))
 }
 
 // Ruby it `it "removes broken symlinks" do` at line 92.
 pub fn ruby_cleaner_spec_l92_d8_removes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('removes', ...args)
+	_ = args
+	return cleaner_spec_bool(cleaner_spec_case(92))
 }
 
 // Ruby it `it "removes '.la' files" do` at line 101.
 pub fn ruby_cleaner_spec_l101_d9_removes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('removes', ...args)
+	_ = args
+	return cleaner_spec_bool(cleaner_spec_case(101))
 }
 
 // Ruby it `it "removes 'perllocal' files" do` at line 112.
 pub fn ruby_cleaner_spec_l112_d10_removes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('removes', ...args)
+	_ = args
+	return cleaner_spec_bool(cleaner_spec_case(112))
 }
 
 // Ruby it `it "removes '.packlist' files" do` at line 123.
 pub fn ruby_cleaner_spec_l123_d11_removes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('removes', ...args)
+	_ = args
+	return cleaner_spec_bool(cleaner_spec_case(123))
 }
 
 // Ruby it `it "removes 'charset.alias' files" do` at line 134.
 pub fn ruby_cleaner_spec_l134_d12_removes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('removes', ...args)
+	_ = args
+	return cleaner_spec_bool(cleaner_spec_case(134))
 }
 
 // Ruby it `it "removes 'info/**/dir' files except for 'info/<name>/dir'" do` at line 145.
 pub fn ruby_cleaner_spec_l145_d13_removes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('removes', ...args)
+	_ = args
+	return cleaner_spec_bool(cleaner_spec_case(145))
 }
 
 // Ruby it `it "removes '*.dist-info/direct_url.json' files" do` at line 165.
 pub fn ruby_cleaner_spec_l165_d14_removes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('removes', ...args)
+	_ = args
+	return cleaner_spec_bool(cleaner_spec_case(165))
 }
 
 // Ruby it `it "removes '*.dist-info/RECORD' files" do` at line 183.
 pub fn ruby_cleaner_spec_l183_d15_removes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('removes', ...args)
+	_ = args
+	return cleaner_spec_bool(cleaner_spec_case(183))
 }
 
 // Ruby it `it "modifies '*.dist-info/INSTALLER' files" do` at line 201.
 pub fn ruby_cleaner_spec_l201_d16_modifies(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('modifies', ...args)
+	_ = args
+	return cleaner_spec_bool(cleaner_spec_case(201))
 }
 
 // Ruby method `stub_formula_skip_clean(skip_paths)` at line 213.
 pub fn ruby_cleaner_spec_l213_d17_stub_formula_skip_clean(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('stub_formula_skip_clean', ...args)
+	mut paths := []string{}
+	if args.len > 0 {
+		if values := args[0].as_string_array() {
+			paths = values.clone()
+		} else {
+			paths = [args[0].as_string()]
+		}
+	}
+	return homebrew.formula_boundary_value(cleaner_spec_formula(cleaner_spec_root(213), paths))
 }
 
 // Ruby it `it "adds paths that should be skipped" do` at line 222.
 pub fn ruby_cleaner_spec_l222_d18_adds(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('adds', ...args)
+	_ = args
+	return cleaner_spec_bool(cleaner_spec_case(222))
 }
 
 // Ruby it `it "also skips empty sub-directories under the added paths" do` at line 231.
 pub fn ruby_cleaner_spec_l231_d19_also(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('also', ...args)
+	_ = args
+	return cleaner_spec_bool(cleaner_spec_case(231))
 }
 
 // Ruby it `it "allows skipping broken symlinks" do` at line 242.
 pub fn ruby_cleaner_spec_l242_d20_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+	_ = args
+	return cleaner_spec_bool(cleaner_spec_case(242))
 }
 
 // Ruby it `it "allows skipping symlinks pointing to an empty directory" do` at line 253.
 pub fn ruby_cleaner_spec_l253_d21_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+	_ = args
+	return cleaner_spec_bool(cleaner_spec_case(253))
 }
 
 // Ruby it `it "allows skipping symlinks whose target was pruned before" do` at line 268.
 pub fn ruby_cleaner_spec_l268_d22_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+	_ = args
+	return cleaner_spec_bool(cleaner_spec_case(268))
 }
 
 // Ruby it `it "allows skipping '.la' files" do` at line 283.
 pub fn ruby_cleaner_spec_l283_d23_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+	_ = args
+	return cleaner_spec_bool(cleaner_spec_case(283))
 }
 
 // Ruby it `it "allows skipping sub-directories" do` at line 296.
 pub fn ruby_cleaner_spec_l296_d24_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+	_ = args
+	return cleaner_spec_bool(cleaner_spec_case(296))
 }
 
 // Ruby it `it "allows skipping paths relative to prefix" do` at line 308.
 pub fn ruby_cleaner_spec_l308_d25_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+	_ = args
+	return cleaner_spec_bool(cleaner_spec_case(308))
 }
 
 // Original Ruby source (line-for-line):

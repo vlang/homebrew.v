@@ -1,193 +1,323 @@
 module test
 
-import brew_runtime
+import crypto.sha256
+import homebrew
+import homebrew.download_strategy
+import json2
+import os
 
 // Translated from Homebrew/brew `test/resource_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:resource) { described_class.new("test") }` at line 10.
-pub fn ruby_resource_spec_l10_d1_resource(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('resource', ...args)
+pub fn ruby_resource_spec_l10_d1_resource() homebrew.Resource {
+	return homebrew.new_resource('test')
 }
 
 // Ruby let `let(:livecheck_resource) do` at line 12.
-pub fn ruby_resource_spec_l12_d2_livecheck_resource(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('livecheck_resource', ...args)
+pub fn ruby_resource_spec_l12_d2_livecheck_resource() homebrew.Resource {
+	mut resource := homebrew.new_resource('')
+	resource.set_url('https://brew.sh/foo-1.0.tar.gz', map[string]string{}) or {}
+	resource.sha256(resource_spec_checksum())
+	resource.set_livecheck(homebrew.LivecheckSpec{
+		url: 'https://brew.sh/test/releases'
+		regex: r'foo[._-]v?(\d+(?:\.\d+)+)\.t'
+	})
+	return resource
 }
 
 // Ruby it `it "sets the URL" do` at line 25.
-pub fn ruby_resource_spec_l25_d3_sets(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sets', ...args)
+pub fn ruby_resource_spec_l25_d3_sets() bool {
+	mut resource := ruby_resource_spec_l10_d1_resource()
+	resource.set_url('foo', map[string]string{}) or { return false }
+	return resource.url() or { '' } == 'foo'
 }
 
 // Ruby it `it "can set the URL with specifications" do` at line 30.
-pub fn ruby_resource_spec_l30_d4_can(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('can', ...args)
+pub fn ruby_resource_spec_l30_d4_can() bool {
+	mut resource := ruby_resource_spec_l10_d1_resource()
+	resource.set_url('foo', {
+		'branch': 'master'
+	}) or { return false }
+	return resource.url() or { '' } == 'foo' && resource.specs() == {
+		'branch': 'master'
+	}
 }
 
 // Ruby it `it "can set the URL with a custom download strategy class" do` at line 36.
-pub fn ruby_resource_spec_l36_d5_can(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('can', ...args)
+pub fn ruby_resource_spec_l36_d5_can() bool {
+	mut resource := ruby_resource_spec_l10_d1_resource()
+	resource.set_url('foo', map[string]string{}) or { return false }
+	resource.set_download_strategy(download_strategy.DownloadStrategy.curl_post)
+	return resource.download_strategy() or { return false } == .curl_post
 }
 
 // Ruby it `it "can set the URL with specifications and a custom download strategy class" do` at line 43.
-pub fn ruby_resource_spec_l43_d6_can(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('can', ...args)
+pub fn ruby_resource_spec_l43_d6_can() bool {
+	mut resource := ruby_resource_spec_l10_d1_resource()
+	resource.set_url('foo', {
+		'branch': 'master'
+	}) or { return false }
+	resource.set_download_strategy(download_strategy.DownloadStrategy.curl_post)
+	return resource.specs() == {
+		'branch': 'master'
+	} && (resource.download_strategy() or { return false }) == .curl_post
 }
 
 // Ruby it `it "can set the URL with a custom download strategy symbol" do` at line 51.
-pub fn ruby_resource_spec_l51_d7_can(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('can', ...args)
+pub fn ruby_resource_spec_l51_d7_can() bool {
+	mut resource := ruby_resource_spec_l10_d1_resource()
+	resource.set_url('foo', {
+		'using': 'git'
+	}) or { return false }
+	return resource.url() or { '' } == 'foo' && (resource.download_strategy() or { return false }) == .git
 }
 
 // Ruby it `it "raises an error if the download strategy class is unknown" do` at line 57.
-pub fn ruby_resource_spec_l57_d8_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+pub fn ruby_resource_spec_l57_d8_raises() bool {
+	mut resource := ruby_resource_spec_l10_d1_resource()
+	resource.set_url('foo', {
+		'using': 'unknown'
+	}) or { return true }
+	return false
 }
 
 // Ruby it `it "does not mutate the specifications hash" do` at line 61.
-pub fn ruby_resource_spec_l61_d9_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_resource_spec_l61_d9_does() bool {
+	specs := {
+		'using':  'git'
+		'branch': 'master'
+	}
+	mut resource := ruby_resource_spec_l10_d1_resource()
+	resource.set_url('foo', specs) or { return false }
+	return resource.specs() == {
+		'branch': 'master'
+	} && resource.using() or { '' } == 'git' && specs == {
+		'using':  'git'
+		'branch': 'master'
+	}
 }
 
 // Ruby specify `specify "when `livecheck` block is set" do` at line 71.
-pub fn ruby_resource_spec_l71_d10_when(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('when', ...args)
+pub fn ruby_resource_spec_l71_d10_when() bool {
+	resource := ruby_resource_spec_l12_d2_livecheck_resource()
+	return resource.livecheck_value.url == 'https://brew.sh/test/releases' && resource.livecheck_value.regex == r'foo[._-]v?(\d+(?:\.\d+)+)\.t'
 }
 
 // Ruby specify `specify do` at line 78.
-pub fn ruby_resource_spec_l78_d11_do(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('do', ...args)
+pub fn ruby_resource_spec_l78_d11_do() bool {
+	return !ruby_resource_spec_l10_d1_resource().livecheck_defined_value && ruby_resource_spec_l12_d2_livecheck_resource().livecheck_defined_value
 }
 
 // Ruby it `it "sets the version" do` at line 85.
-pub fn ruby_resource_spec_l85_d12_sets(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sets', ...args)
+pub fn ruby_resource_spec_l85_d12_sets() bool {
+	mut resource := ruby_resource_spec_l10_d1_resource()
+	version := resource.set_version('1.0') or { return false }
+	return version.to_s() == '1.0' && !version.detected_from_url()
 }
 
 // Ruby it `it "can detect the version from a URL" do` at line 91.
-pub fn ruby_resource_spec_l91_d13_can(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('can', ...args)
+pub fn ruby_resource_spec_l91_d13_can() bool {
+	mut resource := ruby_resource_spec_l10_d1_resource()
+	resource.set_url('https://brew.sh/foo-1.0.tar.gz', map[string]string{}) or { return false }
+	version := resource.version() or { return false }
+	return version.to_s() == '1.0' && version.detected_from_url()
 }
 
 // Ruby it `it "can set the version with a scheme" do` at line 97.
-pub fn ruby_resource_spec_l97_d14_can(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('can', ...args)
+pub fn ruby_resource_spec_l97_d14_can() bool {
+	mut resource := ruby_resource_spec_l10_d1_resource()
+	version := resource.set_version('1.0') or { return false }
+	return version.to_s() == '1.0' && resource.has_version
 }
 
 // Ruby it `it "can set the version from a tag" do` at line 104.
-pub fn ruby_resource_spec_l104_d15_can(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('can', ...args)
+pub fn ruby_resource_spec_l104_d15_can() bool {
+	mut resource := ruby_resource_spec_l10_d1_resource()
+	resource.set_url('https://brew.sh/foo-1.0.tar.gz', {
+		'tag': 'v1.0.2'
+	}) or { return false }
+	version := resource.version() or { return false }
+	return version.to_s() == '1.0.2' && version.detected_from_url()
 }
 
 // Ruby it `it "returns nil if unset" do` at line 110.
-pub fn ruby_resource_spec_l110_d16_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_resource_spec_l110_d16_returns() bool {
+	return ruby_resource_spec_l10_d1_resource().version() == none
 }
 
 // Ruby it `it "is empty by defaults" do` at line 116.
-pub fn ruby_resource_spec_l116_d17_is(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('is', ...args)
+pub fn ruby_resource_spec_l116_d17_is() bool {
+	return ruby_resource_spec_l10_d1_resource().mirrors.len == 0
 }
 
 // Ruby it `it "returns an array of mirrors added with` at line 120.
-pub fn ruby_resource_spec_l120_d18_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_resource_spec_l120_d18_returns() bool {
+	mut resource := ruby_resource_spec_l10_d1_resource()
+	resource.mirror('foo')
+	return resource.mirror('bar') == ['foo', 'bar']
 }
 
 // Ruby it `it "returns nil if unset" do` at line 128.
-pub fn ruby_resource_spec_l128_d19_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_resource_spec_l128_d19_returns() bool {
+	return !ruby_resource_spec_l10_d1_resource().has_checksum
 }
 
 // Ruby it `it "returns the checksum set with` at line 132.
-pub fn ruby_resource_spec_l132_d20_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_resource_spec_l132_d20_returns() bool {
+	mut resource := ruby_resource_spec_l10_d1_resource()
+	return resource.sha256(resource_spec_checksum()).hexdigest == resource_spec_checksum()
 }
 
 // Ruby it `it "returns the download strategy" do` at line 139.
-pub fn ruby_resource_spec_l139_d21_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_resource_spec_l139_d21_returns() bool {
+	mut resource := ruby_resource_spec_l10_d1_resource()
+	resource.set_url('foo', map[string]string{}) or { return false }
+	return (resource.download_strategy() or { return false }) == .curl
 }
 
 // Ruby let `let(:url) do` at line 149.
-pub fn ruby_resource_spec_l149_d22_url(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('url', ...args)
+pub fn ruby_resource_spec_l149_d22_url() string {
+	return 'https://example.com/foo.tar.gz?private_token={{HOMEBREW_DEFERRED_ENV:HOMEBREW_PRIVATE_TOKEN}}'
 }
 
 // Ruby let `let(:headers) do` at line 155.
-pub fn ruby_resource_spec_l155_d23_headers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('headers', ...args)
+pub fn ruby_resource_spec_l155_d23_headers() map[string]string {
+	return {
+		'accept-ranges':  'bytes'
+		'content-length': '37182'
+	}
 }
 
 // Ruby it `it "expands deferred environment placeholders while downloading" do` at line 173.
-pub fn ruby_resource_spec_l173_d24_expands(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('expands', ...args)
+pub fn ruby_resource_spec_l173_d24_expands() bool {
+	os.setenv('HOMEBREW_PRIVATE_TOKEN', 'glpat-secret', true)
+	defer { os.unsetenv('HOMEBREW_PRIVATE_TOKEN') }
+	mut resource := ruby_resource_spec_l10_d1_resource()
+	resource.set_url(ruby_resource_spec_l149_d22_url(), map[string]string{}) or { return false }
+	mut downloader := resource.downloader() or { return false }
+	return downloader.expand_deferred_environment_args([
+		ruby_resource_spec_l149_d22_url(),
+	])[0].ends_with('private_token=glpat-secret')
 }
 
 // Ruby it `it "does not expand placeholders for custom curl download strategies" do` at line 188.
-pub fn ruby_resource_spec_l188_d25_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_resource_spec_l188_d25_does() bool {
+	strategy := download_strategy.new_curl_download_strategy(ruby_resource_spec_l149_d22_url(), 'test', '1.0', download_strategy.DownloadMeta{})
+	return strategy.expand_deferred_environment_args([
+		ruby_resource_spec_l149_d22_url(),
+	]) == [ruby_resource_spec_l149_d22_url()]
 }
 
 // Ruby let `let(:last_modified) { Time.utc(2026, 5, 6, 13, 43, 5) }` at line 209.
-pub fn ruby_resource_spec_l209_d26_last_modified(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('last_modified', ...args)
+pub fn ruby_resource_spec_l209_d26_last_modified() i64 {
+	return 1_778_077_785
 }
 
 // Ruby let `let(:tarball) { TEST_FIXTURE_DIR/"tarballs/testball-0.1.tbz" }` at line 210.
-pub fn ruby_resource_spec_l210_d27_tarball(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tarball', ...args)
+pub fn ruby_resource_spec_l210_d27_tarball() string {
+	return 'test/fixtures/tarballs/testball-0.1.tbz'
 }
 
 // Ruby let `let(:url) { "https://files.pythonhosted.org/packages/ab/cd/efg/testball-0.1.tbz" }` at line 211.
-pub fn ruby_resource_spec_l211_d28_url(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('url', ...args)
+pub fn ruby_resource_spec_l211_d28_url() string {
+	return 'https://files.pythonhosted.org/packages/ab/cd/efg/testball-0.1.tbz'
 }
 
 // Ruby it `it "records the PyPI last modified time when staged files are older" do` at line 227.
-pub fn ruby_resource_spec_l227_d29_records(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('records', ...args)
+pub fn ruby_resource_spec_l227_d29_records() bool {
+	resource := homebrew.Resource{
+		...ruby_resource_spec_l10_d1_resource()
+		source_modified_time: ruby_resource_spec_l209_d26_last_modified()
+		has_source_modified_time: true
+	}
+	return resource.source_modified_time == ruby_resource_spec_l209_d26_last_modified()
 }
 
 // Ruby let `let(:owner) { described_class.new("test-owner") }` at line 235.
-pub fn ruby_resource_spec_l235_d30_owner(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('owner', ...args)
+pub fn ruby_resource_spec_l235_d30_owner() homebrew.Resource {
+	return homebrew.new_resource('test-owner')
 }
 
 // Ruby it `it "sets the owner" do` at line 237.
-pub fn ruby_resource_spec_l237_d31_sets(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sets', ...args)
+pub fn ruby_resource_spec_l237_d31_sets() bool {
+	mut resource := ruby_resource_spec_l10_d1_resource()
+	resource.set_owner(ruby_resource_spec_l235_d30_owner().name)
+	return resource.has_owner && resource.owner_name == 'test-owner'
 }
 
 // Ruby it `it "sets its owner to be the patches' owner" do` at line 242.
-pub fn ruby_resource_spec_l242_d32_sets(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sets', ...args)
+pub fn ruby_resource_spec_l242_d32_sets() bool {
+	mut resource := ruby_resource_spec_l10_d1_resource()
+	resource.add_patch('p1', 'file:///my.patch')
+	resource.set_owner(ruby_resource_spec_l235_d30_owner().name)
+	return resource.patches.len == 1 && resource.patches[0].owner_name == 'test-owner'
 }
 
 // Ruby it `it "adds a patch" do` at line 255.
-pub fn ruby_resource_spec_l255_d33_adds(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('adds', ...args)
+pub fn ruby_resource_spec_l255_d33_adds() bool {
+	mut resource := ruby_resource_spec_l10_d1_resource()
+	patches := resource.add_patch('p1', 'DATA')
+	return patches.len == 1 && patches[0].strip == 'p1'
 }
 
 // Ruby it `it "returns the current platform supplement from an all bottle manifest" do` at line 264.
-pub fn ruby_resource_spec_l264_d34_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_resource_spec_l264_d34_returns() bool {
+	mut manifest := homebrew.new_bottle_manifest_resource(homebrew.BottleDescriptor{
+		name: 'testball'
+		version: '1.0'
+		checksum: resource_spec_checksum()
+		tag: 'arm64_sonoma'
+	})
+	manifest.set_manifest_annotations({
+		'sh.brew.sbom.supplement': '{"tags":{"arm64_sonoma":{"packages":[{"SPDXID":"SPDXRef-current"}]},"other":{"packages":[{"SPDXID":"SPDXRef-other"}]}}}'
+	})
+	supplement := manifest.sbom_supplement('arm64_sonoma') or { return false }
+	packages := supplement['packages'] or { return false }
+	first := packages.as_array()[0].as_map()
+	return (first['SPDXID'] or { json2.Any('') }).str() == 'SPDXRef-current'
 }
 
 // Ruby specify `specify "#verify_download_integrity skips files already verified in this process" do` at line 304.
-pub fn ruby_resource_spec_l304_d35_verify_download_integrity(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#verify_download_integrity', ...args)
+pub fn ruby_resource_spec_l304_d35_verify_download_integrity() bool {
+	path := resource_spec_temp_file('verified', 'content') or { return false }
+	defer { os.rm(path) or {} }
+	digest := homebrew.new_checksum(sha256.sum256('content'.bytes()).hex())
+	mut cache := homebrew.DownloadableVerificationCache{
+		verified: map[string]bool{}
+	}
+	first := homebrew.ruby_downloadable_l34_d2_verify(mut cache, path, digest) or { return false }
+	second := homebrew.ruby_downloadable_l34_d2_verify(mut cache, path, digest) or { return false }
+	return !first.skipped && second.skipped
 }
 
 // Ruby specify `specify "#verify_download_integrity_missing" do` at line 319.
-pub fn ruby_resource_spec_l319_d36_verify_download_integrity_missing(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#verify_download_integrity_missing', ...args)
+pub fn ruby_resource_spec_l319_d36_verify_download_integrity_missing() bool {
+	path := resource_spec_temp_file('missing', 'content') or { return false }
+	defer { os.rm(path) or {} }
+	mut resource := ruby_resource_spec_l10_d1_resource()
+	resource.verify_download_integrity(path) or { return false }
+	return resource.phase == .verifying
 }
 
 // Ruby specify `specify "#verify_download_integrity_mismatch" do` at line 329.
-pub fn ruby_resource_spec_l329_d37_verify_download_integrity_mismatch(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#verify_download_integrity_mismatch', ...args)
+pub fn ruby_resource_spec_l329_d37_verify_download_integrity_mismatch() bool {
+	path := resource_spec_temp_file('mismatch', 'content') or { return false }
+	defer { os.rm(path) or {} }
+	mut resource := ruby_resource_spec_l10_d1_resource()
+	resource.sha256(resource_spec_checksum())
+	resource.verify_download_integrity(path) or { return err.msg().contains('SHA-256 mismatch') }
+	return false
+}
+
+fn resource_spec_checksum() string {
+	return '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef'
+}
+
+fn resource_spec_temp_file(label string, contents string) !string {
+	path := os.join_path(os.temp_dir(), 'brew-v-resource-${label}-${os.getpid()}')
+	os.write_file(path, contents)!
+	return path
 }
 
 // Original Ruby source (line-for-line):

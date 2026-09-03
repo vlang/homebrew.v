@@ -1,73 +1,107 @@
 module test
 
 import brew_runtime
+import homebrew
 
 // Translated from Homebrew/brew `test/messages_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby let `let(:messages) { described_class.new }` at line 8.
 pub fn ruby_messages_spec_l8_d1_messages(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('messages', ...args)
+	messages := homebrew.new_messages()
+	return brew_runtime.structured_value('Messages', 'Messages', {
+		'caveats':       messages.caveats.len.str()
+		'package_count': messages.package_count.str()
+		'install_times': messages.install_times.len.str()
+	})
 }
 
 // Ruby let `let(:test_formula) do` at line 9.
 pub fn ruby_messages_spec_l9_d2_test_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('test_formula', ...args)
+	return brew_runtime.structured_value('Formula', 'foo', {
+		'name': 'foo'
+		'url':  'https://brew.sh/foo-0.1.tgz'
+	})
 }
 
 // Ruby let `let(:elapsed_time) { 1.1 }` at line 15.
 pub fn ruby_messages_spec_l15_d3_elapsed_time(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('elapsed_time', ...args)
+	return brew_runtime.float_value(1.1)
 }
 
 // Ruby it `it "adds a caveat" do` at line 18.
 pub fn ruby_messages_spec_l18_d4_adds(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('adds', ...args)
+	mut messages := homebrew.new_messages()
+	before := messages.caveats.len
+	messages.record_caveats('foo', 'Zsh completions were installed')
+	return brew_runtime.bool_value(messages.caveats.len == before + 1)
 }
 
 // Ruby it `it "increases the package count" do` at line 26.
 pub fn ruby_messages_spec_l26_d5_increases(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('increases', ...args)
+	mut messages := homebrew.new_messages()
+	before := messages.package_count
+	messages.package_installed('foo', 1.1)
+	return brew_runtime.bool_value(messages.package_count == before + 1)
 }
 
 // Ruby it `it "adds to install_times" do` at line 32.
 pub fn ruby_messages_spec_l32_d6_adds(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('adds', ...args)
+	mut messages := homebrew.new_messages()
+	before := messages.install_times.len
+	messages.package_installed('foo', 1.1)
+	return brew_runtime.bool_value(messages.install_times.len == before + 1)
 }
 
 // Ruby it `it "doesn't print caveat details" do` at line 46.
 pub fn ruby_messages_spec_l46_d7_doesn(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('doesn', ...args)
+	mut messages := homebrew.new_messages()
+	messages.record_caveats('foo', 'Zsh completions were installed')
+	messages.package_installed('foo', 1.1)
+	return brew_runtime.bool_value(messages.display_messages(false, false) == '')
 }
 
 // Ruby it `it "doesn't print caveat details" do` at line 56.
 pub fn ruby_messages_spec_l56_d8_doesn(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('doesn', ...args)
+	mut messages := homebrew.new_messages()
+	messages.package_installed('foo', 1.1)
+	return brew_runtime.bool_value(messages.display_messages(false, false) == '')
 }
 
 // Ruby let `let(:test_formula2) do` at line 62.
 pub fn ruby_messages_spec_l62_d9_test_formula2(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('test_formula2', ...args)
+	return brew_runtime.structured_value('Formula', 'bar', {
+		'name': 'bar'
+		'url':  'https://brew.sh/bar-0.1.tgz'
+	})
 }
 
 // Ruby it `it "prints caveat details" do` at line 75.
 pub fn ruby_messages_spec_l75_d10_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+	mut messages := homebrew.new_messages()
+	messages.record_caveats('foo', 'Zsh completions were installed')
+	messages.package_installed('foo', 1.1)
+	messages.package_installed('bar', 1.1)
+	return brew_runtime.bool_value(messages.display_messages(false, false) == '==> Caveats\n==> foo\nZsh completions were installed')
 }
 
 // Ruby it `it "doesn't print anything" do` at line 88.
 pub fn ruby_messages_spec_l88_d11_doesn(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('doesn', ...args)
+	messages := homebrew.new_messages()
+	return brew_runtime.bool_value(messages.display_messages(false, true) == '')
 }
 
 // Ruby it `it "prints installation times" do` at line 98.
 pub fn ruby_messages_spec_l98_d12_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+	mut messages := homebrew.new_messages()
+	messages.package_installed('foo', 1.1)
+	return brew_runtime.bool_value(messages.display_messages(false, true) == '==> Installation times\nfoo                       1.100 s')
 }
 
 // Ruby it `it "doesn't print installation times" do` at line 110.
 pub fn ruby_messages_spec_l110_d13_doesn(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('doesn', ...args)
+	messages := homebrew.new_messages()
+	return brew_runtime.bool_value(messages.display_messages(false, false) == '')
 }
 
 // Original Ruby source (line-for-line):

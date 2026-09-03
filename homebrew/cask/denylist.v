@@ -7,7 +7,28 @@ import brew_runtime
 
 // Ruby method `self.reason(name)` at line 8.
 pub fn ruby_denylist_l8_d1_self_reason(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.reason', ...args)
+	if args.len == 0 {
+		return brew_runtime.object_value('Nil', '')
+	}
+	return if reason := denylist_reason(args[0].as_string()) {
+		brew_runtime.string_value(reason)
+	} else {
+		brew_runtime.object_value('Nil', '')
+	}
+}
+
+// denylist_reason returns Homebrew's source-defined reason for casks that are
+// not accepted in official taps.
+pub fn denylist_reason(name string) ?string {
+	if name.starts_with('adobe-after') || name.starts_with('adobe-illustrator')
+		|| name.starts_with('adobe-indesign') || name.starts_with('adobe-photoshop')
+		|| name.starts_with('adobe-premiere') {
+		return 'Adobe casks were removed because they are too difficult to maintain.'
+	}
+	if name == 'pharo' {
+		return 'Pharo developers maintain their own tap.'
+	}
+	return none
 }
 
 // Original Ruby source (line-for-line):

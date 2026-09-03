@@ -7,7 +7,13 @@ import brew_runtime
 
 // Ruby method `duplicable? = true` at line 30.
 pub fn ruby_duplicable_l30_d1_duplicable(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('duplicable?', ...args)
+	return brew_runtime.bool_value(true)
+}
+
+// is_duplicable reports the default Object#duplicable? result. Callers carrying
+// reflection objects use one of the non-duplicable type names below.
+pub fn is_duplicable(value brew_runtime.Value) bool {
+	return value.type_name !in ['Method', 'UnboundMethod', 'Singleton']
 }
 
 // Original Ruby source (line-for-line):

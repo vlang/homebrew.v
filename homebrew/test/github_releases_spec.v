@@ -1,18 +1,74 @@
 module test
 
-import brew_runtime
+import homebrew
 
 // Translated from Homebrew/brew `test/github_releases_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "reports progress when uploading many bottles" do` at line 8.
-pub fn ruby_github_releases_spec_l8_d1_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_github_releases_spec_l8_d1_reports() bool {
+	events := homebrew.upload_github_bottles(github_release_fixture(3, 2), github_release_test_callbacks()) or { return false }
+	return events.map(it.message) == [
+		'Uploaded foo-arm64.bottle.tar.gz from foo-arm64.local.bottle.tar.gz',
+		'Uploaded foo-x86_64.bottle.tar.gz from foo-x86_64.local.bottle.tar.gz',
+		'Upload progress: 1 formula(e) uploaded, 2 remaining',
+		'Uploaded bar-arm64.bottle.tar.gz from bar-arm64.local.bottle.tar.gz',
+		'Uploaded bar-x86_64.bottle.tar.gz from bar-x86_64.local.bottle.tar.gz',
+		'Upload progress: 2 formula(e) uploaded, 1 remaining',
+		'Uploaded baz-arm64.bottle.tar.gz from baz-arm64.local.bottle.tar.gz',
+		'Uploaded baz-x86_64.bottle.tar.gz from baz-x86_64.local.bottle.tar.gz',
+		'Upload progress: 3 formula(e) uploaded, 0 remaining',
+	]
 }
 
 // Ruby it `it "does not report progress when uploading fewer than three bottles" do` at line 49.
-pub fn ruby_github_releases_spec_l49_d2_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_github_releases_spec_l49_d2_does() bool {
+	events := homebrew.upload_github_bottles(github_release_fixture(2, 1), github_release_test_callbacks()) or { return false }
+	return events.all(it.kind == .upload) && events.len == 2
+}
+
+fn github_release_test_get(_ string, _ string, _ string) !homebrew.GitHubReleaseLookup {
+	return homebrew.GitHubReleaseLookup{
+		found: true
+		id: 123
+	}
+}
+
+fn github_release_test_create(_ string, _ string, _ string) !i64 {
+	return 123
+}
+
+fn github_release_test_upload(_ string, _ string, _ i64, _ string, _ string) ! {}
+
+fn github_release_test_callbacks() homebrew.GitHubReleaseCallbacks {
+	return homebrew.GitHubReleaseCallbacks{
+		get_release: github_release_test_get
+		create_release: github_release_test_create
+		upload_asset: github_release_test_upload
+	}
+}
+
+fn github_release_fixture(count int, assets_per_formula int) []homebrew.GitHubBottleUpload {
+	names := ['foo', 'bar', 'baz']
+	mut bottles := []homebrew.GitHubBottleUpload{}
+	for name in names[..count] {
+		mut assets := [homebrew.GitHubBottleAsset{
+			remote_file: '${name}-arm64.bottle.tar.gz'
+			local_file: '${name}-arm64.local.bottle.tar.gz'
+		}]
+		if assets_per_formula > 1 {
+			assets << homebrew.GitHubBottleAsset{
+				remote_file: '${name}-x86_64.bottle.tar.gz'
+				local_file: '${name}-x86_64.local.bottle.tar.gz'
+			}
+		}
+		bottles << homebrew.GitHubBottleUpload{
+			formula_name: name
+			root_url: 'https://github.com/homebrew/homebrew-core/releases/download/test'
+			assets: assets
+		}
+	}
+	return bottles
 }
 
 // Original Ruby source (line-for-line):

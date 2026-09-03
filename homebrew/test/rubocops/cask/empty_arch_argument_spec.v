@@ -1,38 +1,54 @@
 module cask
 
-import brew_runtime
+import homebrew.rubocops.cask as empty_arch_core
 
 // Translated from Homebrew/brew `test/rubocops/cask/empty_arch_argument_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "reports an offense when a trailing `arch` argument is an empty string" do` at line 7.
-pub fn ruby_empty_arch_argument_spec_l7_d1_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_empty_arch_argument_spec_l7_d1_reports() bool {
+	source := 'cask "foo" do\n  arch arm: "-arm64", intel: ""\nend'
+	expected := 'cask "foo" do\n  arch arm: "-arm64"\nend'
+	offenses := empty_arch_core.audit_empty_arch_arguments(source)
+	return offenses.len == 1 && offenses[0].key == 'intel' && empty_arch_core.correct_empty_arch_arguments(source) == expected
 }
 
 // Ruby it `it "reports an offense when a leading `arch` argument is an empty string" do` at line 22.
-pub fn ruby_empty_arch_argument_spec_l22_d2_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_empty_arch_argument_spec_l22_d2_reports() bool {
+	source := 'cask "foo" do\n  arch arm: "", intel: "intel"\nend'
+	expected := 'cask "foo" do\n  arch intel: "intel"\nend'
+	offenses := empty_arch_core.audit_empty_arch_arguments(source)
+	return offenses.len == 1 && offenses[0].key == 'arm' && empty_arch_core.correct_empty_arch_arguments(source) == expected
 }
 
 // Ruby it `it "reports an offense when every `arch` argument is an empty string" do` at line 37.
-pub fn ruby_empty_arch_argument_spec_l37_d3_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_empty_arch_argument_spec_l37_d3_reports() bool {
+	source := 'cask "foo" do\n  arch arm: "", intel: ""\n  url "https://example.com/foo.zip"\nend'
+	expected := 'cask "foo" do\n  url "https://example.com/foo.zip"\nend'
+	offenses := empty_arch_core.audit_empty_arch_arguments(source)
+	return offenses.len == 1 && offenses[0].whole_line && empty_arch_core.correct_empty_arch_arguments(source) == expected
 }
 
 // Ruby it `it "reports an offense when the only `arch` argument is an empty string" do` at line 53.
-pub fn ruby_empty_arch_argument_spec_l53_d4_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_empty_arch_argument_spec_l53_d4_reports() bool {
+	source := 'cask "foo" do\n  arch arm: ""\n  url "https://example.com/foo.zip"\nend'
+	expected := 'cask "foo" do\n  url "https://example.com/foo.zip"\nend'
+	offenses := empty_arch_core.audit_empty_arch_arguments(source)
+	return offenses.len == 1 && offenses[0].whole_line && empty_arch_core.correct_empty_arch_arguments(source) == expected
 }
 
 // Ruby it `it "reports an offense without crashing when an `arch` argument key is not a literal" do` at line 69.
-pub fn ruby_empty_arch_argument_spec_l69_d5_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_empty_arch_argument_spec_l69_d5_reports() bool {
+	source := 'cask "foo" do\n  arch arm: "-arm64", some_method => ""\nend'
+	expected := 'cask "foo" do\n  arch arm: "-arm64"\nend'
+	offenses := empty_arch_core.audit_empty_arch_arguments(source)
+	return offenses.len == 1 && offenses[0].key == 'some_method' && empty_arch_core.correct_empty_arch_arguments(source) == expected
 }
 
 // Ruby it `it "reports no offenses when no `arch` argument is an empty string" do` at line 84.
-pub fn ruby_empty_arch_argument_spec_l84_d6_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_empty_arch_argument_spec_l84_d6_reports() bool {
+	source := 'cask "foo" do\n  arch arm: "-arm64", intel: "-intel"\nend'
+	return empty_arch_core.audit_empty_arch_arguments(source).len == 0
 }
 
 // Original Ruby source (line-for-line):

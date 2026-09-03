@@ -1,43 +1,227 @@
 module concurrent
 
 import brew_runtime
+import sync
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/dataflow.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub type DataflowTask = fn([]brew_runtime.Value) !brew_runtime.Value
+
+@[heap]
+pub struct DependencyCounter {
+	mutex &sync.Mutex
+mut:
+	count  int
+	future &Future
+}
+
+@[heap]
+struct DataflowContext {
+	inputs []&IVar
+	task   DataflowTask @[required]
+	strict bool
+}
+
+pub fn new_dependency_counter(count int, future &Future) &DependencyCounter {
+	return &DependencyCounter{
+		mutex: sync.new_mutex()
+		count: count
+		future: future
+	}
+}
+
+pub fn (mut counter DependencyCounter) update() {
+	counter.mutex.lock()
+	counter.count--
+	ready := counter.count == 0
+	counter.mutex.unlock()
+	if ready {
+		mut future := counter.future
+		future.execute()
+	}
+}
+
+fn dataflow_context_value(context &DataflowContext) brew_runtime.Value {
+	return brew_runtime.structured_value('Concurrent::DataflowContext', '#<Concurrent::DataflowContext>', {
+		'dataflow_context_address': u64(voidptr(context)).str()
+	})
+}
+
+fn dataflow_context_from_value(value brew_runtime.Value) &DataflowContext {
+	address := (value.attribute('dataflow_context_address') or {
+		panic('${value.type_name} has no translated dataflow state')
+	}).u64()
+	return unsafe { &DataflowContext(voidptr(address)) }
+}
+
+fn execute_dataflow_context(args []brew_runtime.Value) !brew_runtime.Value {
+	if args.len == 0 {
+		return error('dataflow context is missing')
+	}
+	context := dataflow_context_from_value(args[0])
+	mut values := []brew_runtime.Value{cap: context.inputs.len}
+	for input_pointer in context.inputs {
+		mut input := unsafe { input_pointer }
+		if context.strict {
+			values << input.value_or_error(none)!
+		} else {
+			values << input.value(none)
+		}
+	}
+	return context.task(values)!
+}
+
+fn wait_for_dataflow_input(mut counter DependencyCounter, mut input IVar) {
+	input.wait(none)
+	counter.update()
+}
+
+pub fn call_dataflow(mode FutureExecutorMode, inputs []&IVar, task DataflowTask, strict bool) &Future {
+	context := &DataflowContext{
+		inputs: inputs.clone()
+		task: task
+		strict: strict
+	}
+	mut future := new_future_with_mode(execute_dataflow_context, [
+		dataflow_context_value(context),
+	], mode)
+	if inputs.len == 0 {
+		future.execute()
+		return future
+	}
+	mut counter := new_dependency_counter(inputs.len, future)
+	for input_pointer in inputs {
+		mut input := unsafe { input_pointer }
+		spawn wait_for_dataflow_input(mut counter, mut input)
+	}
+	return future
+}
+
+pub fn dataflow(inputs []&IVar, task DataflowTask) &Future {
+	return call_dataflow(.async, inputs, task, false)
+}
+
+pub fn dataflow_with(mode FutureExecutorMode, inputs []&IVar, task DataflowTask) &Future {
+	return call_dataflow(mode, inputs, task, false)
+}
+
+pub fn dataflow_bang(inputs []&IVar, task DataflowTask) &Future {
+	return call_dataflow(.async, inputs, task, true)
+}
+
+pub fn dataflow_with_bang(mode FutureExecutorMode, inputs []&IVar, task DataflowTask) &Future {
+	return call_dataflow(mode, inputs, task, true)
+}
+
+fn dependency_counter_boundary_value(counter &DependencyCounter) brew_runtime.Value {
+	return brew_runtime.structured_value('Concurrent::DependencyCounter', '#<Concurrent::DependencyCounter>', {
+		'dependency_counter_address': u64(voidptr(counter)).str()
+	})
+}
+
+fn dependency_counter_boundary_receiver(args []brew_runtime.Value) &DependencyCounter {
+	if args.len == 0 {
+		panic('DependencyCounter method requires a receiver')
+	}
+	address := (args[0].attribute('dependency_counter_address') or {
+		panic('${args[0].type_name} has no translated DependencyCounter state')
+	}).u64()
+	return unsafe { &DependencyCounter(voidptr(address)) }
+}
+
+fn dataflow_boundary_task(args []brew_runtime.Value) !brew_runtime.Value {
+	if args.len == 0 {
+		return ivar_nil_value()
+	}
+	return args[args.len - 1]
+}
+
+fn dataflow_boundary_input(value brew_runtime.Value) &IVar {
+	if value.type_name == 'Concurrent::Future' {
+		mut future := future_boundary_receiver([value])
+		return future.ivar
+	}
+	return ivar_boundary_receiver([value])
+}
+
+fn dataflow_boundary_mode(value brew_runtime.Value) FutureExecutorMode {
+	return match value.as_string().trim_left(':') {
+		'immediate' { .immediate }
+		'deferred' { .deferred }
+		else { .async }
+	}
+}
+
+fn call_dataflow_boundary(mode FutureExecutorMode, strict bool, args []brew_runtime.Value) brew_runtime.Value {
+	if args.len == 0 {
+		panic('ArgumentError: no block given')
+	}
+	// A boundary Value cannot carry a V closure. The final value is the translated
+	// block result; preceding values retain the exact IVar dependency contract.
+	mut inputs := []&IVar{cap: args.len - 1}
+	for input_value in args[..args.len - 1] {
+		if input_value.type_name !in ['Concurrent::IVar', 'Concurrent::Future'] {
+			panic('ArgumentError: Not all dependencies are IVars.\nDependencies: ${args[..args.len - 1]}')
+		}
+		inputs << dataflow_boundary_input(input_value)
+	}
+	result_value := args[args.len - 1]
+	result_task := fn [result_value] (_ []brew_runtime.Value) !brew_runtime.Value {
+		return result_value
+	}
+	return future_boundary_value(call_dataflow(mode, inputs, result_task, strict))
+}
 
 // Ruby method `initialize(count, &block)` at line 9.
 pub fn ruby_dataflow_l9_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	if args.len < 2 {
+		panic('initialize requires count and a future')
+	}
+	count := int(args[0].as_int() or { panic(err) })
+	mut future := future_boundary_receiver([args[1]])
+	return dependency_counter_boundary_value(new_dependency_counter(count, future))
 }
 
 // Ruby method `update(time, value, reason)` at line 14.
 pub fn ruby_dataflow_l14_d2_update(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('update', ...args)
+	mut counter := dependency_counter_boundary_receiver(args)
+	counter.update()
+	return ivar_nil_value()
 }
 
 // Ruby method `dataflow(*inputs, &block)` at line 34.
 pub fn ruby_dataflow_l34_d3_dataflow(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dataflow', ...args)
+	return call_dataflow_boundary(.async, false, args)
 }
 
 // Ruby method `dataflow_with(executor, *inputs, &block)` at line 39.
 pub fn ruby_dataflow_l39_d4_dataflow_with(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dataflow_with', ...args)
+	if args.len == 0 || args[0].type_name == 'NilClass' {
+		panic('ArgumentError: an executor must be provided')
+	}
+	return call_dataflow_boundary(dataflow_boundary_mode(args[0]), false, args[1..])
 }
 
 // Ruby method `dataflow!(*inputs, &block)` at line 44.
 pub fn ruby_dataflow_l44_d5_dataflow(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dataflow!', ...args)
+	return call_dataflow_boundary(.async, true, args)
 }
 
 // Ruby method `dataflow_with!(executor, *inputs, &block)` at line 49.
 pub fn ruby_dataflow_l49_d6_dataflow_with(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dataflow_with!', ...args)
+	if args.len == 0 || args[0].type_name == 'NilClass' {
+		panic('ArgumentError: an executor must be provided')
+	}
+	return call_dataflow_boundary(dataflow_boundary_mode(args[0]), true, args[1..])
 }
 
 // Ruby method `call_dataflow(method, executor, *inputs, &block)` at line 56.
 pub fn ruby_dataflow_l56_d7_call_dataflow(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('call_dataflow', ...args)
+	if args.len < 2 || args[1].type_name == 'NilClass' {
+		panic('ArgumentError: an executor must be provided')
+	}
+	method := args[0].as_string().trim_left(':')
+	return call_dataflow_boundary(dataflow_boundary_mode(args[1]), method == 'value!', args[2..])
 }
 
 // Original Ruby source (line-for-line):

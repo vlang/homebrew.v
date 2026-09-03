@@ -4,45 +4,166 @@ import brew_runtime
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/sorbet-runtime-0.6.13412/lib/types/props/custom_type.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub type CustomTypePredicate = fn(brew_runtime.Value) bool
+
+pub type CustomTypeSerialize = fn(brew_runtime.Value) !brew_runtime.Value
+
+const custom_type_default_scalar_types = ['NilClass', 'TrueClass', 'FalseClass', 'Integer', 'Float',
+	'String', 'Symbol', 'Time', 'T::Enum']
+
+pub fn custom_type_instance(value brew_runtime.Value, predicate CustomTypePredicate) bool {
+	return predicate(value)
+}
+
+pub fn custom_type_valid(value brew_runtime.Value, predicate CustomTypePredicate) bool {
+	return custom_type_instance(value, predicate)
+}
+
+pub fn custom_type_abstract_serialize(_ brew_runtime.Value) !brew_runtime.Value {
+	return error('CustomType.serialize is abstract')
+}
+
+pub fn custom_type_abstract_deserialize(_ brew_runtime.Value) !brew_runtime.Value {
+	return error('CustomType.deserialize is abstract')
+}
+
+pub fn custom_type_included() ! {
+	return error('Please use "extend", not "include" to attach this module')
+}
+
+fn ruby_class_name(value brew_runtime.Value) string {
+	return match value.type_name {
+		'Bool' {
+			if value.bool_data { 'TrueClass' } else { 'FalseClass' }
+		}
+		else { value.type_name }
+	}
+}
+
+// scalar_type follows the Ruby class and superclass name chain. Included
+// modules are intentionally ignored because Configuration scalar types are
+// class names, not modules.
+pub fn custom_type_scalar_type(value brew_runtime.Value, scalar_types []string) bool {
+	if ruby_class_name(value) in scalar_types {
+		return true
+	}
+	ancestors := value.attribute('class_ancestors') or { '' }
+	for class_name in ancestors.split(',') {
+		if class_name != '' && class_name in scalar_types {
+			return true
+		}
+	}
+	return false
+}
+
+pub fn custom_type_valid_serialization(value brew_runtime.Value, scalar_types []string) bool {
+	if value.type_name == 'Array' {
+		for item in value.array_data {
+			if !custom_type_scalar_type(item, scalar_types) {
+				return false
+			}
+		}
+		return true
+	}
+	return custom_type_scalar_type(value, scalar_types)
+}
+
+pub fn custom_type_checked_serialize(instance brew_runtime.Value, serialize CustomTypeSerialize,
+	scalar_types []string) !brew_runtime.Value {
+	value := serialize(instance)!
+	if !custom_type_valid_serialization(value, scalar_types) {
+		mut message := '${ruby_class_name(instance)} did not serialize to a valid scalar type. It became a: ${ruby_class_name(value)}'
+		if value.type_name == 'Hash' {
+			message += '\nIf you want to store a structured Hash, consider using a T::Struct as your type.'
+		}
+		return error(message)
+	}
+	return value
+}
+
+fn custom_type_boundary_predicate(receiver brew_runtime.Value, value brew_runtime.Value) bool {
+	expected_type := receiver.attribute('expected_type') or { receiver.as_string() }
+	return ruby_class_name(value) == expected_type || expected_type in (value.attribute('class_ancestors') or { '' }).split(',')
+}
+
+fn custom_type_scalar_types_from_args(args []brew_runtime.Value, index int) []string {
+	if args.len > index {
+		return args[index].as_string_array() or { panic(err) }
+	}
+	return custom_type_default_scalar_types.clone()
+}
 
 // Ruby method `instance?(value)` at line 21.
 pub fn ruby_custom_type_l21_d1_instance(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('instance?', ...args)
+	if args.len < 2 {
+		panic('CustomType#instance? requires a value')
+	}
+	return brew_runtime.bool_value(custom_type_boundary_predicate(args[0], args[1]))
 }
 
 // Ruby method `valid?(value)` at line 33.
 pub fn ruby_custom_type_l33_d2_valid(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('valid?', ...args)
+	if args.len < 2 {
+		panic('CustomType#valid? requires a value')
+	}
+	return brew_runtime.bool_value(custom_type_boundary_predicate(args[0], args[1]))
 }
 
 // Ruby method `serialize(instance); end` at line 43.
 pub fn ruby_custom_type_l43_d3_serialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('serialize', ...args)
+	if args.len < 2 {
+		panic('CustomType#serialize requires an instance')
+	}
+	return custom_type_abstract_serialize(args[1]) or { panic(err) }
 }
 
 // Ruby method `deserialize(scalar); end` at line 51.
 pub fn ruby_custom_type_l51_d4_deserialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('deserialize', ...args)
+	if args.len < 2 {
+		panic('CustomType#deserialize requires a scalar')
+	}
+	return custom_type_abstract_deserialize(args[1]) or { panic(err) }
 }
 
 // Ruby method `self.included(_base)` at line 54.
 pub fn ruby_custom_type_l54_d5_self_included(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.included', ...args)
+	custom_type_included() or { panic(err) }
+	return props_nil_value()
 }
 
 // Ruby method `self.scalar_type?(val)` at line 61.
 pub fn ruby_custom_type_l61_d6_self_scalar_type(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.scalar_type?', ...args)
+	if args.len == 0 {
+		panic('CustomType.scalar_type? requires a value')
+	}
+	return brew_runtime.bool_value(custom_type_scalar_type(args[0], custom_type_scalar_types_from_args(args, 1)))
 }
 
 // Ruby method `self.valid_serialization?(val)` at line 84.
 pub fn ruby_custom_type_l84_d7_self_valid_serialization(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.valid_serialization?', ...args)
+	if args.len == 0 {
+		panic('CustomType.valid_serialization? requires a value')
+	}
+	return brew_runtime.bool_value(custom_type_valid_serialization(args[0], custom_type_scalar_types_from_args(args, 1)))
 }
 
 // Ruby method `self.checked_serialize(instance)` at line 102.
 pub fn ruby_custom_type_l102_d8_self_checked_serialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.checked_serialize', ...args)
+	if args.len == 0 {
+		panic('CustomType.checked_serialize requires an instance')
+	}
+	instance := args[0]
+	serialized := instance.map_data['serialized'] or {
+		panic('${ruby_class_name(instance)} has no translated serialize result')
+	}
+	if !custom_type_valid_serialization(serialized, custom_type_scalar_types_from_args(args, 1)) {
+		mut message := '${ruby_class_name(instance)} did not serialize to a valid scalar type. It became a: ${ruby_class_name(serialized)}'
+		if serialized.type_name == 'Hash' {
+			message += '\nIf you want to store a structured Hash, consider using a T::Struct as your type.'
+		}
+		panic(message)
+	}
+	return serialized
 }
 
 // Original Ruby source (line-for-line):

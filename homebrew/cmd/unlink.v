@@ -4,10 +4,75 @@ import brew_runtime
 
 // Translated from Homebrew/brew `cmd/unlink.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub struct UnlinkCommandKeg {
+pub:
+	name string
+	path string
+}
+
+pub struct UnlinkCommandOptions {
+pub:
+	dry_run bool
+	verbose bool
+}
+
+pub struct UnlinkCommandResult {
+pub:
+	output string
+	counts []int
+}
+
+pub type UnlinkCommandAction = fn(UnlinkCommandKeg, UnlinkCommandOptions) !int
+
+pub fn unlink_command(kegs []UnlinkCommandKeg, options UnlinkCommandOptions,
+	action UnlinkCommandAction) !UnlinkCommandResult {
+	mut lines := []string{}
+	mut counts := []int{}
+	for keg in kegs {
+		if options.dry_run {
+			lines << 'Would remove:'
+		}
+		count := action(keg, options)!
+		counts << count
+		if !options.dry_run {
+			mut message := 'Unlinking ${keg.path}... '
+			if options.verbose {
+				message += '\n'
+			}
+			lines << message + '${count} symlinks removed.'
+		}
+	}
+	return UnlinkCommandResult{
+		output: if lines.len == 0 { '' } else { lines.join('\n') + '\n' }
+		counts: counts
+	}
+}
+
+fn unlink_command_count(keg UnlinkCommandKeg, _ UnlinkCommandOptions) !int {
+	return if keg.name == '' { 0 } else { 1 }
+}
 
 // Ruby method `run` at line 24.
 pub fn ruby_unlink_l24_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('run', ...args)
+	kegs := if args.len > 0 {
+		args[0].array_data.map(UnlinkCommandKeg{
+			name: it.attributes['name'] or { it.as_string() }
+			path: it.attributes['path'] or { it.as_string() }
+		})
+	} else {
+		[]UnlinkCommandKeg{}
+	}
+	options := UnlinkCommandOptions{
+		dry_run: if args.len > 1 { args[1].as_bool() or { false } } else { false }
+		verbose: if args.len > 2 { args[2].as_bool() or { false } } else { false }
+	}
+	result := unlink_command(kegs, options, unlink_command_count) or {
+		return brew_runtime.object_value('Error', err.msg())
+	}
+	return brew_runtime.structured_value('UnlinkCommandResult', result.output, {
+		'output': result.output
+		'counts': result.counts.map(it.str()).join(',')
+	})
 }
 
 // Original Ruby source (line-for-line):

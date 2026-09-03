@@ -7,12 +7,40 @@ import brew_runtime
 
 // Ruby method `init` at line 7.
 pub fn ruby_setup_l7_d1_init(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('init', ...args)
+	sections := if args.len > 0 { args[0].as_string_array() or { [] } } else { [] }
+	return brew_runtime.string_array_value(initialize_docstring_html_sections(sections))
 }
 
 // Ruby method `internal` at line 19.
 pub fn ruby_setup_l19_d2_internal(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('internal', ...args)
+	api := if args.len > 0 { args[0].as_string() } else { '' }
+	template := if args.len > 1 { args[1].as_string() } else { 'internal' }
+	return if rendered := render_internal_docstring(api, template) {
+		brew_runtime.string_value(rendered)
+	} else {
+		brew_runtime.object_value('NilClass', '')
+	}
+}
+
+pub fn initialize_docstring_html_sections(sections []string) []string {
+	if sections.len == 0 || 'internal' in sections {
+		return sections.clone()
+	}
+	mut initialized := sections.clone()
+	private_index := initialized.index('private')
+	if private_index >= 0 {
+		initialized.insert(private_index, 'internal')
+	} else {
+		initialized << 'internal'
+	}
+	return initialized
+}
+
+pub fn render_internal_docstring(api string, template string) ?string {
+	if api != 'internal' {
+		return none
+	}
+	return template
 }
 
 // Original Ruby source (line-for-line):

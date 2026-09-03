@@ -1,208 +1,700 @@
 module extend
 
 import brew_runtime
+import crypto.sha256
+import os
 
 // Translated from Homebrew/brew `extend/pathname.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `self.wrap(path) = raise(NotImplementedError)` at line 23.
-pub fn ruby_pathname_l23_d1_self_wrap(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.wrap', ...args)
+pub fn ruby_pathname_l23_d1_self_wrap(path string) !BinaryPath {
+	return binary_pathname_wrap(path)
 }
 
 // Ruby method `self.activate_extensions!` at line 36.
-pub fn ruby_pathname_l36_d2_self_activate_extensions(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.activate_extensions!', ...args)
+pub fn ruby_pathname_l36_d2_self_activate_extensions() {
+	activate_pathname_extensions()
 }
 
 // Ruby method `install(*sources)` at line 49.
-pub fn ruby_pathname_l49_d3_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+pub fn ruby_pathname_l49_d3_install(destination string, sources []PathInstallSource) ! {
+	pathname_install(destination, sources)!
 }
 
 // Ruby method `install_symlink(*sources)` at line 82.
-pub fn ruby_pathname_l82_d4_install_symlink(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install_symlink', ...args)
+pub fn ruby_pathname_l82_d4_install_symlink(destination string, sources []PathInstallSource) ! {
+	pathname_install_symlink(destination, sources)!
 }
 
 // Ruby method `append_lines(content, **open_args)` at line 99.
-pub fn ruby_pathname_l99_d5_append_lines(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('append_lines', ...args)
+pub fn ruby_pathname_l99_d5_append_lines(path string, content string) ! {
+	pathname_append_lines(path, content)!
 }
 
 // Ruby method `atomic_write(content)` at line 111.
-pub fn ruby_pathname_l111_d6_atomic_write(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('atomic_write', ...args)
+pub fn ruby_pathname_l111_d6_atomic_write(path string, content string) ! {
+	pathname_atomic_write(path, content)!
 }
 
 // Ruby method `cp_path_sub(pattern, replacement, &_block)` at line 146.
-pub fn ruby_pathname_l146_d7_cp_path_sub(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cp_path_sub', ...args)
+pub fn ruby_pathname_l146_d7_cp_path_sub(path string, pattern string, replacement string) !string {
+	return pathname_cp_path_sub(path, pattern, replacement)
 }
 
 // Ruby method `extname` at line 168.
-pub fn ruby_pathname_l168_d8_extname(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('extname', ...args)
+pub fn ruby_pathname_l168_d8_extname(path string) string {
+	return pathname_extname(path)
 }
 
 // Ruby method `stem` at line 187.
-pub fn ruby_pathname_l187_d9_stem(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('stem', ...args)
+pub fn ruby_pathname_l187_d9_stem(path string) string {
+	return pathname_stem(path)
 }
 
 // Ruby method `rmdir_if_possible` at line 195.
-pub fn ruby_pathname_l195_d10_rmdir_if_possible(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('rmdir_if_possible', ...args)
+pub fn ruby_pathname_l195_d10_rmdir_if_possible(path string) bool {
+	return pathname_rmdir_if_possible(path)
 }
 
 // Ruby method `version` at line 210.
-pub fn ruby_pathname_l210_d11_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('version', ...args)
+pub fn ruby_pathname_l210_d11_version(path string, parser PathVersionParser) !string {
+	return pathname_version(path, parser)
 }
 
 // Ruby method `text_executable?` at line 216.
-pub fn ruby_pathname_l216_d12_text_executable(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('text_executable?', ...args)
+pub fn ruby_pathname_l216_d12_text_executable(path string) !bool {
+	return pathname_text_executable(path)
 }
 
 // Ruby method `sha256` at line 221.
-pub fn ruby_pathname_l221_d13_sha256(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sha256', ...args)
+pub fn ruby_pathname_l221_d13_sha256(path string) !string {
+	return pathname_sha256(path)
 }
 
 // Ruby method `verify_checksum(expected)` at line 227.
-pub fn ruby_pathname_l227_d14_verify_checksum(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('verify_checksum', ...args)
+pub fn ruby_pathname_l227_d14_verify_checksum(path string, expected ?string) ! {
+	pathname_verify_checksum(path, expected)!
 }
 
 // Ruby alias `alias to_str to_s` at line 234.
-pub fn ruby_pathname_l234_d15_to_str(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_str', ...args)
+pub fn ruby_pathname_l234_d15_to_str(path string) string {
+	return path
 }
 
 // Ruby method `cd(&_block)` at line 244.
-pub fn ruby_pathname_l244_d16_cd(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cd', ...args)
+pub fn ruby_pathname_l244_d16_cd(path string, action PathAction) ! {
+	pathname_cd(path, action)!
 }
 
 // Ruby method `subdirs` at line 252.
-pub fn ruby_pathname_l252_d17_subdirs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('subdirs', ...args)
+pub fn ruby_pathname_l252_d17_subdirs(path string) ![]string {
+	return pathname_subdirs(path)
 }
 
 // Ruby method `resolved_path` at line 257.
-pub fn ruby_pathname_l257_d18_resolved_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('resolved_path', ...args)
+pub fn ruby_pathname_l257_d18_resolved_path(path string) !string {
+	return pathname_resolved_path(path)
 }
 
 // Ruby method `resolved_path_exists?` at line 262.
-pub fn ruby_pathname_l262_d19_resolved_path_exists(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('resolved_path_exists?', ...args)
+pub fn ruby_pathname_l262_d19_resolved_path_exists(path string) !bool {
+	return pathname_resolved_path_exists(path)
 }
 
 // Ruby method `make_relative_symlink(src)` at line 272.
-pub fn ruby_pathname_l272_d20_make_relative_symlink(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('make_relative_symlink', ...args)
+pub fn ruby_pathname_l272_d20_make_relative_symlink(path string, source string) ! {
+	pathname_make_relative_symlink(path, source)!
 }
 
 // Ruby method `ensure_writable(&_block)` at line 278.
-pub fn ruby_pathname_l278_d21_ensure_writable(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ensure_writable', ...args)
+pub fn ruby_pathname_l278_d21_ensure_writable(path string, action PathAction) ! {
+	pathname_ensure_writable(path, action)!
 }
 
 // Ruby method `install_info` at line 290.
-pub fn ruby_pathname_l290_d22_install_info(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install_info', ...args)
+pub fn ruby_pathname_l290_d22_install_info(path string, executable string) !brew_runtime.CommandResult {
+	return pathname_install_info(path, executable, false)
 }
 
 // Ruby method `uninstall_info` at line 295.
-pub fn ruby_pathname_l295_d23_uninstall_info(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uninstall_info', ...args)
+pub fn ruby_pathname_l295_d23_uninstall_info(path string, executable string) !brew_runtime.CommandResult {
+	return pathname_install_info(path, executable, true)
 }
 
 // Ruby method `write_exec_script(*targets)` at line 303.
-pub fn ruby_pathname_l303_d24_write_exec_script(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('write_exec_script', ...args)
+pub fn ruby_pathname_l303_d24_write_exec_script(directory string, targets []string) ! {
+	pathname_write_exec_script(directory, targets)!
 }
 
 // Ruby method `write_env_script(target, args_or_env, env = T.unsafe(nil))` at line 333.
-pub fn ruby_pathname_l333_d25_write_env_script(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('write_env_script', ...args)
+pub fn ruby_pathname_l333_d25_write_env_script(path string, target string, arguments []string, environment []EnvironmentAssignment) ! {
+	pathname_write_env_script(path, target, arguments, environment)!
 }
 
 // Ruby method `env_script_all_files(dst, env)` at line 360.
-pub fn ruby_pathname_l360_d26_env_script_all_files(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('env_script_all_files', ...args)
+pub fn ruby_pathname_l360_d26_env_script_all_files(directory string, destination string, environment []EnvironmentAssignment) ! {
+	pathname_env_script_all_files(directory, destination, environment)!
 }
 
 // Ruby method `write_jar_script(target_jar, script_name, java_opts = "", java_version: nil)` at line 384.
-pub fn ruby_pathname_l384_d27_write_jar_script(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('write_jar_script', ...args)
+pub fn ruby_pathname_l384_d27_write_jar_script(directory string, target_jar string, script_name string, java_options string, java_version string, java_home JavaHomeResolver) !int {
+	return pathname_write_jar_script(directory, target_jar, script_name, java_options, java_version, java_home)
 }
 
 // Ruby method `install_metafiles(from = Pathname.pwd)` at line 394.
-pub fn ruby_pathname_l394_d28_install_metafiles(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install_metafiles', ...args)
+pub fn ruby_pathname_l394_d28_install_metafiles(destination string, source string, predicate MetafilePredicate) ! {
+	pathname_install_metafiles(destination, source, predicate)!
 }
 
 // Ruby method `ds_store?` at line 414.
-pub fn ruby_pathname_l414_d29_ds_store(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ds_store?', ...args)
+pub fn ruby_pathname_l414_d29_ds_store(path string) bool {
+	return pathname_ds_store(path)
 }
 
 // Ruby method `binary_executable?` at line 419.
-pub fn ruby_pathname_l419_d30_binary_executable(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('binary_executable?', ...args)
+pub fn ruby_pathname_l419_d30_binary_executable(path string) bool {
+	_ = path
+	return false
 }
 
 // Ruby method `mach_o_bundle?` at line 424.
-pub fn ruby_pathname_l424_d31_mach_o_bundle(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('mach_o_bundle?', ...args)
+pub fn ruby_pathname_l424_d31_mach_o_bundle(path string) bool {
+	_ = path
+	return false
 }
 
 // Ruby method `dylib?` at line 429.
-pub fn ruby_pathname_l429_d32_dylib(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dylib?', ...args)
+pub fn ruby_pathname_l429_d32_dylib(path string) bool {
+	_ = path
+	return false
 }
 
 // Ruby method `arch_compatible?(_wanted_arch)` at line 434.
-pub fn ruby_pathname_l434_d33_arch_compatible(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('arch_compatible?', ...args)
+pub fn ruby_pathname_l434_d33_arch_compatible(path string, wanted_arch string) bool {
+	_ = path
+	_ = wanted_arch
+	return true
 }
 
 // Ruby method `rpaths` at line 439.
-pub fn ruby_pathname_l439_d34_rpaths(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('rpaths', ...args)
+pub fn ruby_pathname_l439_d34_rpaths(path string) []string {
+	_ = path
+	return []
 }
 
 // Ruby method `magic_number` at line 444.
-pub fn ruby_pathname_l444_d35_magic_number(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('magic_number', ...args)
+pub fn ruby_pathname_l444_d35_magic_number(path string) !string {
+	return pathname_magic_number(path)
 }
 
 // Ruby method `file_type` at line 456.
-pub fn ruby_pathname_l456_d36_file_type(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('file_type', ...args)
+pub fn ruby_pathname_l456_d36_file_type(path string) !string {
+	return pathname_file_type(path)
 }
 
 // Ruby method `zipinfo` at line 463.
-pub fn ruby_pathname_l463_d37_zipinfo(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('zipinfo', ...args)
+pub fn ruby_pathname_l463_d37_zipinfo(path string) ![]string {
+	return pathname_zipinfo(path)
 }
 
 // Ruby method `install_p(src, new_basename, &_block)` at line 479.
-pub fn ruby_pathname_l479_d38_install_p(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install_p', ...args)
+pub fn ruby_pathname_l479_d38_install_p(destination string, source string, new_basename string) ! {
+	pathname_install_p(destination, source, new_basename)!
 }
 
 // Ruby method `install_symlink_p(src, new_basename)` at line 502.
-pub fn ruby_pathname_l502_d39_install_symlink_p(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install_symlink_p', ...args)
+pub fn ruby_pathname_l502_d39_install_symlink_p(destination string, source string, new_basename string) ! {
+	pathname_install_symlink_p(destination, source, new_basename)!
 }
 
 // Ruby method `which_install_info` at line 511.
-pub fn ruby_pathname_l511_d40_which_install_info(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('which_install_info', ...args)
+pub fn ruby_pathname_l511_d40_which_install_info(texinfo_candidate string) ?string {
+	return pathname_which_install_info(texinfo_candidate)
+}
+
+pub enum BinaryPathKind {
+	unknown
+	mach_o
+	elf
+}
+
+pub struct BinaryPath {
+pub:
+	path string
+	kind BinaryPathKind
+}
+
+pub struct PathInstallSource {
+pub:
+	path         string
+	new_basename string
+}
+
+pub struct EnvironmentAssignment {
+pub:
+	key   string
+	value string
+}
+
+pub type BinaryPathResolver = fn(string) !BinaryPath
+
+pub type PathTransform = fn(string, string) !string
+
+pub type PathAction = fn(string) !
+
+pub type PathVersionParser = fn(string) !string
+
+pub type JavaHomeResolver = fn(string) !string
+
+pub type MetafilePredicate = fn(string) bool
+
+pub fn binary_pathname_wrap(path string) !BinaryPath {
+	return error('BinaryPathname.wrap is not implemented for ${path}')
+}
+
+pub fn binary_pathname_wrap_with(path string, resolver BinaryPathResolver) !BinaryPath {
+	return resolver(path)
+}
+
+// V extensions are statically linked, so activation is intentionally a no-op.
+pub fn activate_pathname_extensions() {}
+
+pub fn pathname_install(destination string, sources []PathInstallSource) ! {
+	for source in sources {
+		basename := if source.new_basename != '' {
+			source.new_basename
+		} else {
+			os.base(source.path)
+		}
+		pathname_install_p(destination, source.path, basename)!
+	}
+}
+
+pub fn pathname_install_symlink(destination string, sources []PathInstallSource) ! {
+	for source in sources {
+		basename := if source.new_basename != '' {
+			source.new_basename
+		} else {
+			os.base(source.path)
+		}
+		pathname_install_symlink_p(destination, source.path, basename)!
+	}
+}
+
+pub fn pathname_append_lines(path string, content string) ! {
+	if !os.exists(path) {
+		return error("Cannot append file that doesn't exist: ${path}")
+	}
+	mut file := os.open_append(path)!
+	defer {
+		file.close()
+	}
+	file.write_string(if content.ends_with('\n') { content } else { '${content}\n' })!
+}
+
+pub fn pathname_atomic_write(path string, content string) ! {
+	old_mode := if os.exists(path) { ?int(int(os.stat(path)!.get_mode().bitmask())) } else { none }
+	brew_runtime.atomic_write_file(path, content)!
+	if mode := old_mode {
+		os.chmod(path, mode) or {}
+	}
+}
+
+pub fn pathname_cp_path_sub(path string, pattern string, replacement string) !string {
+	return pathname_cp_path_sub_with(path, pattern, replacement, passthrough_path_transform)
+}
+
+pub fn pathname_cp_path_sub_with(path string, pattern string, replacement string, transform PathTransform) !string {
+	if !os.exists(path) && !os.is_link(path) {
+		return error('${path} does not exist')
+	}
+	mut destination := replace_first(path, pattern, replacement)
+	if path == destination {
+		return error('${path} is the same file as ${destination}')
+	}
+	if os.is_dir(path) {
+		os.mkdir_all(destination)!
+		return destination
+	}
+	os.mkdir_all(os.dir(destination))!
+	destination = transform(path, destination)!
+	os.cp(path, destination)!
+	return destination
+}
+
+fn passthrough_path_transform(source string, destination string) !string {
+	_ = source
+	return destination
+}
+
+fn replace_first(value string, pattern string, replacement string) string {
+	if pattern == '' {
+		return replacement + value
+	}
+	index := value.index(pattern) or { return value }
+	return value[..index] + replacement + value[index + pattern.len..]
+}
+
+pub fn pathname_extname(path string) string {
+	basename := os.base(path)
+	if bottle_extension := pathname_bottle_extension(basename) {
+		return bottle_extension
+	}
+	lower := basename.to_lower()
+	for archive in ['tar', 'cpio', 'pax'] {
+		for compression in ['gz', 'bz2', 'lz', 'xz', 'zst', 'z'] {
+			extension := '.${archive}.${compression}'
+			if lower.ends_with(extension) {
+				return basename[basename.len - extension.len..]
+			}
+		}
+	}
+	if pathname_has_terminal_version_number(basename) && !lower.ends_with('.7z') {
+		return ''
+	}
+	index := basename.last_index('.') or { return '' }
+	if index <= 0 {
+		return ''
+	}
+	return basename[index..]
+}
+
+fn pathname_bottle_extension(basename string) ?string {
+	lower := basename.to_lower()
+	if !lower.ends_with('.tar.gz') {
+		return none
+	}
+	bottle_index := lower.last_index('.bottle.') or { return none }
+	prefix := lower[..bottle_index]
+	tag_index := prefix.last_index('.') or { return none }
+	tag := prefix[tag_index + 1..]
+	if tag == '' || !tag.bytes().all(it.is_alnum() || it == `_`) {
+		return none
+	}
+	after_bottle := lower[bottle_index + '.bottle.'.len..]
+	rebuild := if after_bottle == 'tar.gz' {
+		''
+	} else if after_bottle.ends_with('.tar.gz') {
+		after_bottle[..after_bottle.len - '.tar.gz'.len]
+	} else {
+		return none
+	}
+	if rebuild != '' && !rebuild.bytes().all(it.is_digit()) {
+		return none
+	}
+	return basename[tag_index..]
+}
+
+fn pathname_has_terminal_version_number(basename string) bool {
+	last_dot := basename.last_index('.') or { return false }
+	if last_dot == 0 || last_dot + 1 >= basename.len || !basename[last_dot - 1].is_digit() || !basename[last_dot + 1].is_digit() {
+		return false
+	}
+	return !basename[last_dot + 1..].contains('.')
+}
+
+pub fn pathname_stem(path string) string {
+	basename := os.base(path)
+	extension := pathname_extname(path)
+	return if extension == '' { basename } else { basename[..basename.len - extension.len] }
+}
+
+pub fn pathname_rmdir_if_possible(path string) bool {
+	os.rmdir(path) or {
+		ds_store := os.join_path(path, '.DS_Store')
+		entries := os.ls(path) or { return false }
+		if os.exists(ds_store) && entries.len == 1 {
+			os.rm(ds_store) or { return false }
+			os.rmdir(path) or { return false }
+			return true
+		}
+		return false
+	}
+	return true
+}
+
+pub fn pathname_version(path string, parser PathVersionParser) !string {
+	return parser(os.base(path))
+}
+
+pub fn pathname_text_executable(path string) !bool {
+	mut file := os.open(path)!
+	defer {
+		file.close()
+	}
+	mut buffer := []u8{len: 1024}
+	read := file.read(mut buffer) or { return err }
+	text := buffer[..read].bytestr()
+	if !text.starts_with('#!') {
+		return false
+	}
+	return text[2..].trim_left(' \t\r\n') != ''
+}
+
+pub fn pathname_sha256(path string) !string {
+	return sha256.sum256(os.read_bytes(path)!).hex()
+}
+
+pub fn pathname_verify_checksum(path string, expected ?string) ! {
+	wanted := expected or { return error('ChecksumMissingError') }
+	if wanted.trim_space() == '' {
+		return error('ChecksumMissingError')
+	}
+	actual := pathname_sha256(path)!.to_lower()
+	if actual != wanted.to_lower() {
+		return error('ChecksumMismatchError: ${path}: expected ${wanted.to_lower()}, actual ${actual}')
+	}
+}
+
+pub fn pathname_cd(path string, action PathAction) ! {
+	original := os.getwd()
+	os.chdir(path)!
+	defer {
+		os.chdir(original) or {}
+	}
+	action(path)!
+}
+
+pub fn pathname_subdirs(path string) ![]string {
+	mut directories := []string{}
+	for child in os.ls(path)! {
+		candidate := os.join_path(path, child)
+		if os.is_dir(candidate) {
+			directories << candidate
+		}
+	}
+	return directories
+}
+
+pub fn pathname_resolved_path(path string) !string {
+	if !os.is_link(path) {
+		return path
+	}
+	target := os.readlink(path)!
+	return if os.is_abs_path(target) {
+		target
+	} else {
+		os.norm_path(os.join_path(os.dir(path), target))
+	}
+}
+
+pub fn pathname_resolved_path_exists(path string) !bool {
+	target := os.readlink(path)!
+	if target.contains('\0') {
+		return false
+	}
+	resolved := if os.is_abs_path(target) { target } else { os.join_path(os.dir(path), target) }
+	return os.exists(resolved)
+}
+
+pub fn pathname_make_relative_symlink(path string, source string) ! {
+	os.mkdir_all(os.dir(path))!
+	os.symlink(pathname_relative_path(source, os.dir(path)), path)!
+}
+
+pub fn pathname_ensure_writable(path string, action PathAction) ! {
+	mut saved_mode := ?int(none)
+	if !os.is_writable(path) {
+		mode := int(os.stat(path)!.get_mode().bitmask())
+		saved_mode = mode
+		os.chmod(path, mode | 0o600)!
+	}
+	defer {
+		if mode := saved_mode {
+			os.chmod(path, mode) or {}
+		}
+	}
+	action(path)!
+}
+
+pub fn pathname_install_info(path string, executable string, uninstall bool) !brew_runtime.CommandResult {
+	if executable == '' {
+		return error('install-info is not available')
+	}
+	mut arguments := []string{}
+	if uninstall {
+		arguments << '--delete'
+	}
+	arguments << ['--quiet', path, os.join_path(os.dir(path), 'dir')]
+	return brew_runtime.run_command(executable, arguments)
+}
+
+pub fn pathname_write_exec_script(directory string, targets []string) ! {
+	if targets.len == 0 {
+		return
+	}
+	os.mkdir_all(directory)!
+	for target in targets {
+		os.write_file(os.join_path(directory, os.base(target)), '#!/bin/bash\nexec "${target}" "\$@"\n')!
+	}
+}
+
+pub fn pathname_write_env_script(path string, target string, arguments []string, environment []EnvironmentAssignment) ! {
+	mut env_export := ''
+	for entry in environment {
+		env_export += '${entry.key}="${entry.value}" '
+	}
+	os.mkdir_all(os.dir(path))!
+	os.write_file(path, '#!/bin/bash\n${env_export}exec "${target}" ${arguments.join(' ')} "\$@"\n')!
+	os.chmod(path, 0o555)!
+}
+
+pub fn pathname_env_script_all_files(directory string, destination string, environment []EnvironmentAssignment) ! {
+	os.mkdir_all(destination)!
+	mut children := os.ls(directory)!
+	children.sort()
+	for child in children {
+		file := os.join_path(directory, child)
+		if os.is_dir(file) {
+			continue
+		}
+		new_file := os.join_path(destination, child)
+		if os.exists(new_file) || os.is_link(new_file) {
+			return error('EEXIST: ${new_file}')
+		}
+		pathname_install_p(destination, file, child)!
+		pathname_write_env_script(file, new_file, [], environment)!
+	}
+}
+
+pub fn pathname_write_jar_script(directory string, target_jar string, script_name string, java_options string, java_version string, java_home JavaHomeResolver) !int {
+	os.mkdir_all(directory)!
+	home := java_home(java_version)!
+	content := '#!/bin/bash\nexport JAVA_HOME="${home}"\nexec "\${JAVA_HOME}/bin/java" ${java_options} -jar "${target_jar}" "\$@"\n'
+	os.write_file(os.join_path(directory, script_name), content)!
+	return content.len
+}
+
+pub fn pathname_install_metafiles(destination string, source string, predicate MetafilePredicate) ! {
+	for child in os.ls(source)! {
+		path := os.join_path(source, child)
+		if os.is_dir(path) || os.file_size(path) == 0 || !predicate(child) {
+			continue
+		}
+		filename := pathname_resolved_path(path)!
+		if !os.exists(filename) {
+			continue
+		}
+		os.chmod(filename, 0o644)!
+		pathname_install(destination, [PathInstallSource{
+			path: filename
+		}])!
+	}
+}
+
+pub fn pathname_ds_store(path string) bool {
+	return os.base(path) == '.DS_Store'
+}
+
+pub fn pathname_magic_number(path string) !string {
+	if os.is_dir(path) {
+		return ''
+	}
+	mut file := os.open(path)!
+	defer {
+		file.close()
+	}
+	mut buffer := []u8{len: 262}
+	read := file.read(mut buffer) or { return err }
+	return buffer[..read].bytestr()
+}
+
+pub fn pathname_file_type(path string) !string {
+	executable := brew_runtime.find_executable('file')!
+	result := brew_runtime.run_command(executable, ['-b', path])
+	return result.output.trim_right('\r\n')
+}
+
+pub fn pathname_zipinfo(path string) ![]string {
+	executable := brew_runtime.find_executable('zipinfo')!
+	result := brew_runtime.run_command(executable, ['-1', path])
+	return result.output.split_into_lines()
+}
+
+pub fn pathname_install_p(destination string, source string, new_basename string) ! {
+	pathname_install_p_with(destination, source, new_basename, passthrough_path_transform)!
+}
+
+pub fn pathname_install_p_with(destination string, source string, new_basename string, transform PathTransform) ! {
+	if !os.is_link(source) && !os.exists(source) {
+		return error('ENOENT: ${source}')
+	}
+	mut target := os.join_path(destination, new_basename)
+	target = transform(source, target)!
+	if target == '' {
+		return
+	}
+	os.mkdir_all(destination)!
+	if os.exists(target) || os.is_link(target) {
+		pathname_remove(target)!
+	}
+	os.mv(source, target) or {
+		if os.is_link(source) {
+			mv := brew_runtime.find_executable('mv')!
+			result := brew_runtime.run_command(mv, [source, target])
+			if result.exit_code != 0 {
+				return error(result.output.trim_space())
+			}
+		} else if os.is_dir(source) {
+			os.cp_all(source, target, true)!
+			os.rmdir_all(source)!
+		} else {
+			os.cp(source, target)!
+			os.rm(source)!
+		}
+	}
+}
+
+pub fn pathname_install_symlink_p(destination string, source string, new_basename string) ! {
+	os.mkdir_all(destination)!
+	destination_directory := os.real_path(destination)
+	mut expanded_source := if os.is_abs_path(source) {
+		source
+	} else {
+		os.join_path(destination_directory, source)
+	}
+	if os.exists(os.dir(expanded_source)) {
+		expanded_source = os.join_path(os.real_path(os.dir(expanded_source)), os.base(expanded_source))
+	}
+	target := os.join_path(destination_directory, new_basename)
+	if os.exists(target) || os.is_link(target) {
+		pathname_remove(target)!
+	}
+	os.symlink(pathname_relative_path(expanded_source, destination_directory), target)!
+}
+
+pub fn pathname_which_install_info(texinfo_candidate string) ?string {
+	if os.is_executable('/usr/bin/install-info') {
+		return '/usr/bin/install-info'
+	}
+	if texinfo_candidate != '' && os.is_executable(texinfo_candidate) {
+		return texinfo_candidate
+	}
+	return none
+}
+
+fn pathname_remove(path string) ! {
+	if os.is_dir(path) && !os.is_link(path) {
+		os.rmdir_all(path)!
+	} else {
+		os.rm(path)!
+	}
+}
+
+fn pathname_relative_path(target string, base string) string {
+	target_parts := os.norm_path(os.abs_path(target)).split('/').filter(it != '')
+	base_parts := os.norm_path(os.abs_path(base)).split('/').filter(it != '')
+	mut common := 0
+	for common < target_parts.len && common < base_parts.len && target_parts[common] == base_parts[common] {
+		common++
+	}
+	mut relative := []string{}
+	for _ in common .. base_parts.len {
+		relative << '..'
+	}
+	relative << target_parts[common..]
+	return if relative.len == 0 { '.' } else { relative.join('/') }
 }
 
 // Original Ruby source (line-for-line):

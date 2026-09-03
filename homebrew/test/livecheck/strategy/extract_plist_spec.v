@@ -1,148 +1,448 @@
 module strategy
 
 import brew_runtime
+import homebrew
+import homebrew.cask as cask_core
+import homebrew.livecheck
+import homebrew.livecheck.strategy as extract_plist_core
+import regex
 
 // Translated from Homebrew/brew `test/livecheck/strategy/extract_plist_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+fn extract_plist_spec_bundle(version string) homebrew.BundleVersion {
+	return homebrew.new_bundle_version(none, version) or { panic(err) }
+}
+
+fn extract_plist_spec_items() extract_plist_core.ExtractPlistItems {
+	return extract_plist_core.ExtractPlistItems({
+		'first':  extract_plist_core.ExtractPlistItem{
+			bundle_version: extract_plist_spec_bundle('1.2')
+		}
+		'second': extract_plist_core.ExtractPlistItem{
+			bundle_version: extract_plist_spec_bundle('1.2.3')
+		}
+	})
+}
+
+fn extract_plist_spec_multipart_items() extract_plist_core.ExtractPlistItems {
+	return extract_plist_core.ExtractPlistItems({
+		'first':  extract_plist_core.ExtractPlistItem{
+			bundle_version: extract_plist_spec_bundle('1.2.3-45')
+		}
+		'second': extract_plist_core.ExtractPlistItem{
+			bundle_version: extract_plist_spec_bundle('1.2.3-45-abcdef')
+		}
+	})
+}
+
+fn extract_plist_spec_string_block(items extract_plist_core.ExtractPlistItems,
+	_ ?extract_plist_core.XmlRegex) !livecheck.StrategyBlockValue {
+	version := extract_plist_core.ruby_extract_plist_l39_d1_version(items['first']) or { '' }
+	return livecheck.StrategyBlockValue{
+		kind: .string_value
+		value: version
+	}
+}
+
+fn extract_plist_spec_array_block(items extract_plist_core.ExtractPlistItems,
+	_ ?extract_plist_core.XmlRegex) !livecheck.StrategyBlockValue {
+	mut values := []livecheck.StrategyBlockItem{}
+	for _, item in items {
+		bundle := item.bundle_version or { continue }
+		values << livecheck.StrategyBlockItem{
+			kind: .string_value
+			value: bundle.nice_version()
+		}
+	}
+	return livecheck.StrategyBlockValue{
+		kind: .array
+		values: values
+	}
+}
+
+fn extract_plist_spec_caffeine_block(items extract_plist_core.ExtractPlistItems,
+	_ ?extract_plist_core.XmlRegex) !livecheck.StrategyBlockValue {
+	version := extract_plist_core.ruby_extract_plist_l39_d1_version(items['com.caffeine']) or {
+		return livecheck.StrategyBlockValue{ kind: .nil_value }
+	}
+	return livecheck.StrategyBlockValue{
+		kind: .string_value
+		value: version
+	}
+}
+
+fn extract_plist_spec_multipart_capture(value string,
+	provided ?extract_plist_core.XmlRegex) !string {
+	config := provided or { return '' }
+	mut expression := regex.regex_opt(config.pattern.replace('[._-]', '[-._]'))!
+	if config.case_insensitive {
+		expression.flag |= regex.f_ci
+	}
+	start, _ := expression.find(value)
+	if start < 0 {
+		return ''
+	}
+	mut captures := []string{}
+	for group in 0 .. 3 {
+		capture := expression.get_group_by_id(value, group)
+		if capture != '' {
+			captures << capture
+		}
+	}
+	return captures.join(',')
+}
+
+fn extract_plist_spec_multipart_string_block(items extract_plist_core.ExtractPlistItems,
+	provided ?extract_plist_core.XmlRegex) !livecheck.StrategyBlockValue {
+	item := items['first']
+	version := extract_plist_core.ruby_extract_plist_l39_d1_version(item) or { '' }
+	return livecheck.StrategyBlockValue{
+		kind: .string_value
+		value: extract_plist_spec_multipart_capture(version, provided)!
+	}
+}
+
+fn extract_plist_spec_multipart_array_block(items extract_plist_core.ExtractPlistItems,
+	provided ?extract_plist_core.XmlRegex) !livecheck.StrategyBlockValue {
+	mut values := []livecheck.StrategyBlockItem{}
+	for _, item in items {
+		version := extract_plist_core.ruby_extract_plist_l39_d1_version(item) or { '' }
+		values << livecheck.StrategyBlockItem{
+			kind: .string_value
+			value: extract_plist_spec_multipart_capture(version, provided)!
+		}
+	}
+	return livecheck.StrategyBlockValue{
+		kind: .array
+		values: values
+	}
+}
+
+fn extract_plist_spec_nil_block(_ extract_plist_core.ExtractPlistItems,
+	_ ?extract_plist_core.XmlRegex) !livecheck.StrategyBlockValue {
+	return livecheck.StrategyBlockValue{
+		kind: .nil_value
+	}
+}
+
+fn extract_plist_spec_invalid_block(_ extract_plist_core.ExtractPlistItems,
+	_ ?extract_plist_core.XmlRegex) !livecheck.StrategyBlockValue {
+	return livecheck.StrategyBlockValue{
+		kind: .invalid
+	}
+}
+
+fn extract_plist_spec_cask(artifact_url string) extract_plist_core.ExtractPlistCask {
+	return extract_plist_core.ExtractPlistCask{
+		token: 'livecheck-extract-plist'
+		sourcefile_path: '/fixtures/Casks/livecheck/livecheck-extract-plist.rb'
+		url: cask_core.new_cask_url(artifact_url, {}) or { panic(err) }
+		all_versions: {
+			'com.caffeine': extract_plist_spec_bundle('1.2.3')
+		}
+	}
+}
+
+fn extract_plist_spec_match_data_equal(left extract_plist_core.ExtractPlistMatchData,
+	right extract_plist_core.ExtractPlistMatchData) bool {
+	left_url := left.url or { '' }
+	right_url := right.url or { '' }
+	return left.matches == right.matches && left.regex == right.regex && left_url == right_url && left.cached == right.cached && left.has_cached == right.has_cached && left.content == right.content && left.has_content == right.has_content
+}
+
+fn extract_plist_spec_expected(url ?string, cached bool, has_cached bool, content string,
+	has_content bool, matches map[string]string) extract_plist_core.ExtractPlistMatchData {
+	return extract_plist_core.ExtractPlistMatchData{
+		matches: matches
+		url: url
+		cached: cached
+		has_cached: has_cached
+		content: content
+		has_content: has_content
+	}
+}
 
 // Ruby subject `subject(:extract_plist) { described_class }` at line 8.
-pub fn ruby_extract_plist_spec_l8_d1_extract_plist(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('extract_plist', ...args)
+pub fn ruby_extract_plist_spec_l8_d1_extract_plist() brew_runtime.Value {
+	return brew_runtime.object_value('Class', 'Homebrew::Livecheck::Strategy::ExtractPlist')
 }
 
 // Ruby let `let(:http_url) { "https://brew.sh/blog/" }` at line 10.
-pub fn ruby_extract_plist_spec_l10_d2_http_url(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('http_url', ...args)
+pub fn ruby_extract_plist_spec_l10_d2_http_url() string {
+	return 'https://brew.sh/blog/'
 }
 
 // Ruby let `let(:non_http_url) { "ftp://brew.sh/" }` at line 11.
-pub fn ruby_extract_plist_spec_l11_d3_non_http_url(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('non_http_url', ...args)
+pub fn ruby_extract_plist_spec_l11_d3_non_http_url() string {
+	return 'ftp://brew.sh/'
 }
 
 // Ruby let `let(:items) do` at line 12.
-pub fn ruby_extract_plist_spec_l12_d4_items(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('items', ...args)
+pub fn ruby_extract_plist_spec_l12_d4_items() extract_plist_core.ExtractPlistItems {
+	return extract_plist_spec_items()
 }
 
 // Ruby let `let(:multipart_items) do` at line 22.
-pub fn ruby_extract_plist_spec_l22_d5_multipart_items(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('multipart_items', ...args)
+pub fn ruby_extract_plist_spec_l22_d5_multipart_items() extract_plist_core.ExtractPlistItems {
+	return extract_plist_spec_multipart_items()
 }
 
 // Ruby let `let(:multipart_regex) { /^v?(\d+(?:\.\d+)+)(?:[._-](\d+))?(?:[._-]([0-9a-f]+))?$/i }` at line 32.
-pub fn ruby_extract_plist_spec_l32_d6_multipart_regex(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('multipart_regex', ...args)
+pub fn ruby_extract_plist_spec_l32_d6_multipart_regex() extract_plist_core.XmlRegex {
+	return extract_plist_core.XmlRegex{
+		pattern: r'^v?(\d+(?:\.\d+)+)(?:[._-](\d+))?(?:[._-]([0-9a-f]+))?$'
+		case_insensitive: true
+	}
 }
 
 // Ruby let `let(:versions) { ["1.2", "1.2.3"] }` at line 33.
-pub fn ruby_extract_plist_spec_l33_d7_versions(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('versions', ...args)
+pub fn ruby_extract_plist_spec_l33_d7_versions() []string {
+	return ['1.2', '1.2.3']
 }
 
 // Ruby let `let(:multipart_versions) { ["1.2.3,45", "1.2.3,45,abcdef"] }` at line 34.
-pub fn ruby_extract_plist_spec_l34_d8_multipart_versions(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('multipart_versions', ...args)
+pub fn ruby_extract_plist_spec_l34_d8_multipart_versions() []string {
+	return ['1.2.3,45', '1.2.3,45,abcdef']
 }
 
 // Ruby it `it "returns a hash containing non-nil values" do` at line 38.
-pub fn ruby_extract_plist_spec_l38_d9_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_extract_plist_spec_l38_d9_returns() bool {
+	first := extract_plist_core.extract_plist_item_to_value(extract_plist_spec_items()['first'])
+	empty := extract_plist_core.extract_plist_item_to_value(extract_plist_core.ExtractPlistItem{})
+	bundle := first.map_data['bundle_version'] or { return false }
+	return (bundle.map_data['version'] or { return false }).as_string() == '1.2' && empty.map_data.len == 0
 }
 
 // Ruby it `it "returns true for an HTTP URL" do` at line 48.
-pub fn ruby_extract_plist_spec_l48_d10_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_extract_plist_spec_l48_d10_returns() bool {
+	return extract_plist_core.extract_plist_matches(ruby_extract_plist_spec_l10_d2_http_url())
 }
 
 // Ruby it `it "returns false for a non-HTTP URL" do` at line 52.
-pub fn ruby_extract_plist_spec_l52_d11_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_extract_plist_spec_l52_d11_returns() bool {
+	return !extract_plist_core.extract_plist_matches(ruby_extract_plist_spec_l11_d3_non_http_url())
 }
 
 // Ruby it `it "returns an empty array if Items hash is empty" do` at line 58.
-pub fn ruby_extract_plist_spec_l58_d12_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_extract_plist_spec_l58_d12_returns() bool {
+	versions := extract_plist_core.extract_plist_versions_from_content(extract_plist_core.ExtractPlistVersionsRequest{}) or {
+		return false
+	}
+	return versions.len == 0
 }
 
 // Ruby it `it "returns an array of version strings when given Items" do` at line 62.
-pub fn ruby_extract_plist_spec_l62_d13_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_extract_plist_spec_l62_d13_returns() bool {
+	versions := extract_plist_core.extract_plist_versions_from_content(extract_plist_core.ExtractPlistVersionsRequest{
+		items: extract_plist_spec_items()
+	}) or { return false }
+	return versions == ruby_extract_plist_spec_l33_d7_versions()
 }
 
 // Ruby it `it "returns an array of version strings when given Items and a block" do` at line 66.
-pub fn ruby_extract_plist_spec_l66_d14_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_extract_plist_spec_l66_d14_returns() bool {
+	one := extract_plist_core.extract_plist_versions_from_content(extract_plist_core.ExtractPlistVersionsRequest{
+		items: extract_plist_spec_items()
+		has_block: true
+		block: extract_plist_spec_string_block
+	}) or { return false }
+	all := extract_plist_core.extract_plist_versions_from_content(extract_plist_core.ExtractPlistVersionsRequest{
+		items: extract_plist_spec_items()
+		has_block: true
+		block: extract_plist_spec_array_block
+	}) or { return false }
+	return one == ['1.2'] && all == ruby_extract_plist_spec_l33_d7_versions()
 }
 
 // Ruby it `it "returns an array of version strings when given `Item`s, a regex and a block" do` at line 84.
-pub fn ruby_extract_plist_spec_l84_d15_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_extract_plist_spec_l84_d15_returns() bool {
+	provided_regex := ruby_extract_plist_spec_l32_d6_multipart_regex()
+	one := extract_plist_core.extract_plist_versions_from_content(extract_plist_core.ExtractPlistVersionsRequest{
+		items: extract_plist_spec_multipart_items()
+		regex: provided_regex
+		has_block: true
+		block: extract_plist_spec_multipart_string_block
+	}) or { return false }
+	all := extract_plist_core.extract_plist_versions_from_content(extract_plist_core.ExtractPlistVersionsRequest{
+		items: extract_plist_spec_multipart_items()
+		regex: provided_regex
+		has_block: true
+		block: extract_plist_spec_multipart_array_block
+	}) or { return false }
+	return one == ['1.2.3,45'] && all == ruby_extract_plist_spec_l34_d8_multipart_versions()
 }
 
 // Ruby it `it "allows a nil return from a block" do` at line 108.
-pub fn ruby_extract_plist_spec_l108_d16_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+pub fn ruby_extract_plist_spec_l108_d16_allows() bool {
+	versions := extract_plist_core.extract_plist_versions_from_content(extract_plist_core.ExtractPlistVersionsRequest{
+		items: extract_plist_spec_items()
+		has_block: true
+		block: extract_plist_spec_nil_block
+	}) or { return false }
+	return versions.len == 0
 }
 
 // Ruby it `it "errors on an invalid return type from a block" do` at line 112.
-pub fn ruby_extract_plist_spec_l112_d17_errors(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('errors', ...args)
+pub fn ruby_extract_plist_spec_l112_d17_errors() bool {
+	if _ := extract_plist_core.extract_plist_versions_from_content(extract_plist_core.ExtractPlistVersionsRequest{
+		items: extract_plist_spec_items()
+		has_block: true
+		block: extract_plist_spec_invalid_block
+	}) {
+		return false
+	} else {
+		return err.msg() == 'Return value of a strategy block must be a string or array of strings.'
+	}
 }
 
 // Ruby it `it "returns a cask using the url and supported options from the `livecheck` block" do` at line 119.
-pub fn ruby_extract_plist_spec_l119_d18_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_extract_plist_spec_l119_d18_returns() bool {
+	url := 'https://example.com/livecheck.zip'
+	options := {
+		'cookies':    brew_runtime.map_value({
+			'key': brew_runtime.string_value('value')
+		})
+		'header':     brew_runtime.string_value('Origin: https://example.com')
+		'referer':    brew_runtime.string_value('https://example.com/referer')
+		'user_agent': brew_runtime.object_value('Symbol', 'browser')
+	}
+	returned := extract_plist_core.extract_plist_cask_with_url(extract_plist_spec_cask('https://example.com/artifact.zip'), url, options) or { return false }
+	cookies := (returned.url.options['cookies'] or { return false }).map_data.clone()
+	header_values := (returned.url.options['header'] or { return false }).as_array() or {
+		return false
+	}
+	headers := header_values.map(it.as_string())
+	return returned.url.uri == url && (cookies['key'] or { return false }).as_string() == 'value' && headers == [
+		'Origin: https://example.com',
+	] && (returned.url.options['referer'] or { return false }).as_string() == 'https://example.com/referer' && (returned.url.options['user_agent'] or { return false }).as_string() == 'browser'
 }
 
 // Ruby it `it "errors if the `livecheck` block uses options not supported by `Cask::URL`" do` at line 143.
-pub fn ruby_extract_plist_spec_l143_d19_errors(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('errors', ...args)
+pub fn ruby_extract_plist_spec_l143_d19_errors() bool {
+	cask := extract_plist_spec_cask('https://example.com/artifact.zip')
+	if _ := extract_plist_core.extract_plist_cask_with_url(cask, 'https://example.com/livecheck.zip', {
+		'post_form':  brew_runtime.map_value({
+			'key': brew_runtime.string_value('value')
+		})
+		'user_agent': brew_runtime.object_value('Symbol', 'browser')
+	}) {
+		return false
+	} else {
+		if err.msg() != 'Cask `url` does not support `post_form` option from `livecheck` block' {
+			return false
+		}
+	}
+	if _ := extract_plist_core.extract_plist_cask_with_url(cask, 'https://example.com/livecheck.zip', {
+		'homebrew_curl': brew_runtime.bool_value(true)
+		'post_form':     brew_runtime.map_value({
+			'key': brew_runtime.string_value('value')
+		})
+	}) {
+		return false
+	} else {
+		return err.msg() == 'Cask `url` does not support `homebrew_curl`, `post_form` options from `livecheck` block'
+	}
 }
 
 // Ruby let `let(:cask) { Cask::CaskLoader.load(cask_path("livecheck/livecheck-extract-plist")) }` at line 171.
-pub fn ruby_extract_plist_spec_l171_d20_cask(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask', ...args)
+pub fn ruby_extract_plist_spec_l171_d20_cask() extract_plist_core.ExtractPlistCask {
+	return extract_plist_spec_cask('file:///fixtures/cask/caffeine-with-plist.zip')
 }
 
 // Ruby let `let(:content) { '{"com.caffeine":{"bundle_version":{"version":"1.2.3"}}}' }` at line 172.
-pub fn ruby_extract_plist_spec_l172_d21_content(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('content', ...args)
+pub fn ruby_extract_plist_spec_l172_d21_content() string {
+	return '{"com.caffeine":{"bundle_version":{"version":"1.2.3"}}}'
 }
 
 // Ruby let `let(:match_data) do` at line 173.
-pub fn ruby_extract_plist_spec_l173_d22_match_data(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('match_data', ...args)
+pub fn ruby_extract_plist_spec_l173_d22_match_data() brew_runtime.Value {
+	base_matches := {
+		'1.2.3': '1.2.3'
+	}
+	return brew_runtime.map_value({
+		'uncached':       extract_plist_core.extract_plist_match_data_to_value(extract_plist_spec_expected(none, false, false, ruby_extract_plist_spec_l172_d21_content(), true, base_matches))
+		'cached':         extract_plist_core.extract_plist_match_data_to_value(extract_plist_spec_expected(none, true, true, '', false, base_matches))
+		'cached_default': extract_plist_core.extract_plist_match_data_to_value(extract_plist_spec_expected(none, true, true, '', false, {}))
+	})
 }
 
 // Ruby it `it "raises an error if a regex is provided with no block" do` at line 187.
-pub fn ruby_extract_plist_spec_l187_d23_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+pub fn ruby_extract_plist_spec_l187_d23_raises() bool {
+	if _ := extract_plist_core.extract_plist_find_versions(extract_plist_core.ExtractPlistFindVersionsRequest{
+		cask: ruby_extract_plist_spec_l171_d20_cask()
+		regex: ruby_extract_plist_spec_l32_d6_multipart_regex()
+	}) {
+		return false
+	} else {
+		return err.msg() == 'ExtractPlist only supports a regex when using a `strategy` block'
+	}
 }
 
 // Ruby it `it "finds versions using provided content" do` at line 193.
-pub fn ruby_extract_plist_spec_l193_d24_finds(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('finds', ...args)
+pub fn ruby_extract_plist_spec_l193_d24_finds() bool {
+	cask := ruby_extract_plist_spec_l171_d20_cask()
+	content := ruby_extract_plist_spec_l172_d21_content()
+	expected := extract_plist_spec_expected(none, true, true, '', false, {
+		'1.2.3': '1.2.3'
+	})
+	direct := extract_plist_core.extract_plist_find_versions(extract_plist_core.ExtractPlistFindVersionsRequest{
+		cask: cask
+		content: content
+	}) or { return false }
+	blocked := extract_plist_core.extract_plist_find_versions(extract_plist_core.ExtractPlistFindVersionsRequest{
+		cask: cask
+		content: content
+		has_block: true
+		block: extract_plist_spec_caffeine_block
+	}) or { return false }
+	return extract_plist_spec_match_data_equal(direct, expected) && extract_plist_spec_match_data_equal(blocked, expected)
 }
 
 // Ruby it `it "returns default match_data when provided content is blank" do` at line 204.
-pub fn ruby_extract_plist_spec_l204_d25_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_extract_plist_spec_l204_d25_returns() bool {
+	actual := extract_plist_core.extract_plist_find_versions(extract_plist_core.ExtractPlistFindVersionsRequest{
+		cask: ruby_extract_plist_spec_l171_d20_cask()
+		content: '{}'
+	}) or { return false }
+	return extract_plist_spec_match_data_equal(actual, extract_plist_spec_expected(none, true, true, '', false, {}))
 }
 
 // Ruby it `it "checks the cask using the livecheck URL string", :needs_macos do` at line 209.
-pub fn ruby_extract_plist_spec_l209_d26_checks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('checks', ...args)
+pub fn ruby_extract_plist_spec_l209_d26_checks() bool {
+	cask := extract_plist_spec_cask('file:///fixtures/cask/caffeine-suite.zip')
+	livecheck_url := 'file:///fixtures/cask/caffeine-with-plist.zip'
+	actual := extract_plist_core.extract_plist_find_versions(extract_plist_core.ExtractPlistFindVersionsRequest{
+		cask: cask
+		url: livecheck_url
+	}) or { return false }
+	expected := extract_plist_spec_expected(livecheck_url, false, false, ruby_extract_plist_spec_l172_d21_content(), true, {
+		'1.2.3': '1.2.3'
+	})
+	return extract_plist_spec_match_data_equal(actual, expected)
 }
 
 // Ruby it `it "checks the original cask if the provided URL is the same as the artifact URL", :needs_macos do` at line 218.
-pub fn ruby_extract_plist_spec_l218_d27_checks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('checks', ...args)
+pub fn ruby_extract_plist_spec_l218_d27_checks() bool {
+	cask := ruby_extract_plist_spec_l171_d20_cask()
+	actual := extract_plist_core.extract_plist_find_versions(extract_plist_core.ExtractPlistFindVersionsRequest{
+		cask: cask
+		url: cask.url.uri
+	}) or { return false }
+	expected := extract_plist_spec_expected(cask.url.uri, false, false, ruby_extract_plist_spec_l172_d21_content(), true, {
+		'1.2.3': '1.2.3'
+	})
+	return extract_plist_spec_match_data_equal(actual, expected)
 }
 
 // Ruby it `it "checks the original cask if a URL is not provided", :needs_macos do` at line 225.
-pub fn ruby_extract_plist_spec_l225_d28_checks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('checks', ...args)
+pub fn ruby_extract_plist_spec_l225_d28_checks() bool {
+	actual := extract_plist_core.extract_plist_find_versions(extract_plist_core.ExtractPlistFindVersionsRequest{
+		cask: ruby_extract_plist_spec_l171_d20_cask()
+	}) or { return false }
+	expected := extract_plist_spec_expected(none, false, false, ruby_extract_plist_spec_l172_d21_content(), true, {
+		'1.2.3': '1.2.3'
+	})
+	return extract_plist_spec_match_data_equal(actual, expected)
 }
 
 // Original Ruby source (line-for-line):

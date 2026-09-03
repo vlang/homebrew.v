@@ -1,128 +1,478 @@
 module bundle
 
 import brew_runtime
+import homebrew.bundle.extensions
 
 // Translated from Homebrew/brew `bundle/package_type.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub struct PackageTypeContext {
+pub:
+	definition       extensions.ExtensionDefinition
+	upgrade_formulae []string
+	skipper          BundleSkipper
+}
+
+pub struct PackageTypeEntriesResult {
+pub:
+	entries  []BundleDslEntry
+	warnings []string
+}
+
+pub struct PackageTypeCheckResult {
+pub:
+	errors   []string
+	warnings []string
+}
+
+fn package_type_nil() brew_runtime.Value {
+	return brew_runtime.object_value('NilClass', '')
+}
+
+fn package_type_error(type_name string, message string) brew_runtime.Value {
+	return brew_runtime.structured_value(type_name, message, {
+		'message': message
+	})
+}
+
+pub fn package_type_context_value(context PackageTypeContext) brew_runtime.Value {
+	mut skipped := map[string]brew_runtime.Value{}
+	for entry_type, names in context.skipper.skipped_entries {
+		skipped[entry_type] = brew_runtime.string_array_value(names)
+	}
+	return brew_runtime.map_value({
+		'definition':       extensions.extension_definition_value(context.definition)
+		'upgrade_formulae': brew_runtime.string_array_value(context.upgrade_formulae)
+		'failed_taps':      brew_runtime.string_array_value(context.skipper.failed_taps)
+		'skipped_entries':  brew_runtime.map_value(skipped)
+	})
+}
+
+pub fn package_type_context_from_value(value brew_runtime.Value) PackageTypeContext {
+	fields := value.as_map() or { map[string]brew_runtime.Value{} }
+	mut skipped := map[string][]string{}
+	for entry_type, names in (fields['skipped_entries'] or { brew_runtime.map_value({}) }).as_map() or {
+		map[string]brew_runtime.Value{}
+	} {
+		skipped[entry_type] = names.as_string_array() or { [] }
+	}
+	return PackageTypeContext{
+		definition: extensions.extension_definition_from_value(fields['definition'] or { value })
+		upgrade_formulae: (fields['upgrade_formulae'] or { brew_runtime.string_array_value([]) }).as_string_array() or { [] }
+		skipper: BundleSkipper{
+			failed_taps: (fields['failed_taps'] or { brew_runtime.string_array_value([]) }).as_string_array() or { [] }
+			skipped_entries: skipped
+			initialized: true
+		}
+	}
+}
+
+fn package_type_entry_from_value(value brew_runtime.Value) BundleDslEntry {
+	if value.attributes.len > 0 {
+		return BundleDslEntry{
+			entry_type: value.attributes['type'] or { '' }
+			name: value.attributes['name'] or { value.repr }
+			options: value.map_data.clone()
+		}
+	}
+	fields := value.as_map() or { map[string]brew_runtime.Value{} }
+	return BundleDslEntry{
+		entry_type: (fields['type'] or { brew_runtime.string_value('') }).as_string()
+		name: (fields['name'] or { brew_runtime.string_value(value.repr) }).as_string()
+		options: (fields['options'] or { brew_runtime.map_value({}) }).as_map() or { map[string]brew_runtime.Value{} }
+	}
+}
+
+fn package_type_entries_from_value(value brew_runtime.Value) []BundleDslEntry {
+	return value.as_array() or { [] }.map(package_type_entry_from_value(it))
+}
+
+fn package_type_entries_value(result PackageTypeEntriesResult) brew_runtime.Value {
+	return brew_runtime.Value{
+		type_name: 'Array'
+		array_data: result.entries.map(bundle_dsl_entry_value(it))
+		map_data: {
+			'warnings': brew_runtime.string_array_value(result.warnings)
+		}
+	}
+}
+
+fn package_type_check_value(result PackageTypeCheckResult) brew_runtime.Value {
+	return brew_runtime.Value{
+		type_name: 'Array'
+		array_data: result.errors.map(brew_runtime.string_value(it))
+		map_data: {
+			'warnings': brew_runtime.string_array_value(result.warnings)
+		}
+	}
+}
+
+fn package_type_statuses_from_value(value brew_runtime.Value) map[string]bool {
+	fields := value.as_map() or { map[string]brew_runtime.Value{} }
+	mut statuses := map[string]bool{}
+	for name, status in fields {
+		statuses[name] = status.as_bool() or { false }
+	}
+	return statuses
+}
+
+fn package_type_status(statuses map[string]bool, name string, no_upgrade bool) !bool {
+	if status := statuses['${name}|${no_upgrade}'] {
+		return status
+	}
+	if status := statuses[name] {
+		return status
+	}
+	return error('NotImplementedError')
+}
+
+pub fn package_type_register(mut registry extensions.ExtensionRegistry,
+	definition extensions.ExtensionDefinition) {
+	registry.package_types = registry.package_types.filter(it.class_name != definition.class_name)
+	registry.package_types << definition
+}
+
+pub fn package_type_registered(registry extensions.ExtensionRegistry,
+	type_name string) ?extensions.ExtensionDefinition {
+	requested := type_name.trim_string_left(':')
+	for definition in registry.package_types {
+		if definition.type_name == requested {
+			return definition
+		}
+	}
+	return none
+}
+
+pub fn package_type_dump_order(registry extensions.ExtensionRegistry) []extensions.ExtensionDefinition {
+	mut core := []extensions.ExtensionDefinition{}
+	for type_name in ['tap', 'brew', 'cask'] {
+		if definition := package_type_registered(registry, type_name) {
+			core << definition
+		}
+	}
+	mut ordered := core.clone()
+	for definition in registry.package_types {
+		if !ordered.any(it.class_name == definition.class_name) {
+			ordered << definition
+		}
+	}
+	return ordered
+}
+
+pub fn package_type_failure_reason(context PackageTypeContext, name string,
+	no_upgrade bool) string {
+	reason := if no_upgrade && name !in context.upgrade_formulae {
+		'needs to be installed.'
+	} else {
+		'needs to be installed or updated.'
+	}
+	return '${context.definition.check_label} ${name} ${reason}'
+}
+
+pub fn package_type_checkable_entries(context PackageTypeContext,
+	entries []BundleDslEntry) PackageTypeEntriesResult {
+	mut selected := []BundleDslEntry{}
+	mut warnings := []string{}
+	for entry in entries {
+		if entry.entry_type != context.definition.type_name {
+			continue
+		}
+		full_name := if 'full_name' in entry.options {
+			entry.options['full_name'].as_string()
+		} else {
+			''
+		}
+		id := if 'id' in entry.options { entry.options['id'].as_string() } else { '' }
+		skip_result := context.skipper.skip(BundleSkipEntry{
+			type_name: entry.entry_type
+			name: entry.name
+			full_name: full_name
+			id: id
+		}, false)
+		if skip_result.skipped {
+			if skip_result.warning != '' {
+				warnings << skip_result.warning
+			}
+			continue
+		}
+		selected << entry
+	}
+	return PackageTypeEntriesResult{
+		entries: selected
+		warnings: warnings
+	}
+}
+
+pub fn package_type_format_checkable(context PackageTypeContext,
+	entries []BundleDslEntry) PackageTypeEntriesResult {
+	return package_type_checkable_entries(context, entries)
+}
+
+pub fn package_type_exit_early_check(context PackageTypeContext, packages []string,
+	no_upgrade bool, statuses map[string]bool) !PackageTypeCheckResult {
+	for package in packages {
+		if package_type_status(statuses, package, no_upgrade)! {
+			continue
+		}
+		return PackageTypeCheckResult{
+			errors: [package_type_failure_reason(context, package, no_upgrade)]
+		}
+	}
+	return PackageTypeCheckResult{}
+}
+
+pub fn package_type_full_check(context PackageTypeContext, packages []string, no_upgrade bool,
+	statuses map[string]bool) !PackageTypeCheckResult {
+	mut errors := []string{}
+	for package in packages {
+		if !package_type_status(statuses, package, no_upgrade)! {
+			errors << package_type_failure_reason(context, package, no_upgrade)
+		}
+	}
+	return PackageTypeCheckResult{
+		errors: errors
+	}
+}
+
+pub fn package_type_find_actionable(context PackageTypeContext, entries []BundleDslEntry,
+	exit_on_first_error bool, no_upgrade bool, statuses map[string]bool) !PackageTypeCheckResult {
+	formatted := package_type_format_checkable(context, entries)
+	packages := formatted.entries.map(it.name)
+	mut result := if exit_on_first_error {
+		package_type_exit_early_check(context, packages, no_upgrade, statuses)!
+	} else {
+		package_type_full_check(context, packages, no_upgrade, statuses)!
+	}
+	result = PackageTypeCheckResult{
+		...result
+		warnings: formatted.warnings.clone()
+	}
+	return result
+}
 
 // Ruby method `self.inherited(subclass)` at line 14.
 pub fn ruby_package_type_l14_d1_self_inherited(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.inherited', ...args)
+	if args.len == 0 {
+		return package_type_error('ArgumentError', 'package type subclass is required')
+	}
+	definition := extensions.extension_definition_from_value(args[0])
+	mut registry := if args.len > 1 {
+		extensions.extension_registry_from_value(args[1])
+	} else {
+		extensions.ExtensionRegistry{}
+	}
+	if definition.class_name != 'Homebrew::Bundle::Extension' {
+		package_type_register(mut registry, definition)
+	}
+	return extensions.extension_registry_value(registry)
 }
 
 // Ruby method `self.type; end` at line 22.
 pub fn ruby_package_type_l22_d2_self_type(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.type', ...args)
+	_ = args
+	return package_type_nil()
 }
 
 // Ruby method `self.check_label; end` at line 25.
 pub fn ruby_package_type_l25_d3_self_check_label(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.check_label', ...args)
+	_ = args
+	return package_type_nil()
 }
 
 // Ruby method `self.dump_supported?` at line 28.
 pub fn ruby_package_type_l28_d4_self_dump_supported(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.dump_supported?', ...args)
+	_ = args
+	return brew_runtime.bool_value(true)
 }
 
 // Ruby method `self.install_supported?` at line 33.
 pub fn ruby_package_type_l33_d5_self_install_supported(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.install_supported?', ...args)
+	_ = args
+	return brew_runtime.bool_value(true)
 }
 
 // Ruby method `self.install_verb(_name = "", _options = {})` at line 38.
 pub fn ruby_package_type_l38_d6_self_install_verb(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.install_verb', ...args)
+	_ = args
+	return brew_runtime.string_value('Installing')
 }
 
 // Ruby method `self.fetchable_name(name, options = {}, no_upgrade: false)` at line 49.
 pub fn ruby_package_type_l49_d7_self_fetchable_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.fetchable_name', ...args)
+	_ = args
+	return package_type_nil()
 }
 
 // Ruby method `self.reset!; end` at line 58.
 pub fn ruby_package_type_l58_d8_self_reset(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.reset!', ...args)
+	_ = args
+	return package_type_nil()
 }
 
 // Ruby method `self.preinstall!(name, no_upgrade: false, verbose: false, **options); end` at line 68.
 pub fn ruby_package_type_l68_d9_self_preinstall(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.preinstall!', ...args)
+	_ = args
+	return package_type_nil()
 }
 
 // Ruby method `self.install!(name, preinstall: true, no_upgrade: false, verbose: false, force: false, **options); end` at line 80.
 pub fn ruby_package_type_l80_d10_self_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.install!', ...args)
+	_ = args
+	return package_type_nil()
 }
 
 // Ruby method `self.check(entries, exit_on_first_error: false, no_upgrade: false, verbose: false)` at line 90.
 pub fn ruby_package_type_l90_d11_self_check(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.check', ...args)
+	if args.len < 3 {
+		return package_type_error('ArgumentError', 'context, entries and status collaborator are required')
+	}
+	context := package_type_context_from_value(args[0])
+	entries := package_type_entries_from_value(args[1])
+	statuses := package_type_statuses_from_value(args[2])
+	exit_on_first_error := if args.len > 3 { args[3].as_bool() or { false } } else { false }
+	no_upgrade := if args.len > 4 { args[4].as_bool() or { false } } else { false }
+	result := package_type_find_actionable(context, entries, exit_on_first_error, no_upgrade, statuses) or { return package_type_error('NotImplementedError', err.msg()) }
+	return package_type_check_value(result)
 }
 
 // Ruby method `self.dump; end` at line 95.
 pub fn ruby_package_type_l95_d12_self_dump(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.dump', ...args)
+	_ = args
+	return package_type_nil()
 }
 
 // Ruby method `self.dump_output(describe: false, no_restart: false)` at line 98.
 pub fn ruby_package_type_l98_d13_self_dump_output(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.dump_output', ...args)
+	if args.len == 0 {
+		return package_type_nil()
+	}
+	return args[0]
 }
 
 // Ruby method `exit_early_check(packages, no_upgrade:)` at line 106.
 pub fn ruby_package_type_l106_d14_exit_early_check(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('exit_early_check', ...args)
+	if args.len < 3 {
+		return package_type_error('ArgumentError', 'context, packages and status collaborator are required')
+	}
+	context := package_type_context_from_value(args[0])
+	packages := args[1].as_string_array() or { [] }
+	no_upgrade := if args.len > 3 { args[3].as_bool() or { false } } else { false }
+	result := package_type_exit_early_check(context, packages, no_upgrade, package_type_statuses_from_value(args[2])) or {
+		return package_type_error('NotImplementedError', err.msg())
+	}
+	return package_type_check_value(result)
 }
 
 // Ruby method `failure_reason(name, no_upgrade:)` at line 116.
 pub fn ruby_package_type_l116_d15_failure_reason(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('failure_reason', ...args)
+	if args.len < 2 {
+		return package_type_error('ArgumentError', 'context and package are required')
+	}
+	context := package_type_context_from_value(args[0])
+	no_upgrade := if args.len > 2 { args[2].as_bool() or { false } } else { false }
+	return brew_runtime.string_value(package_type_failure_reason(context, args[1].as_string(), no_upgrade))
 }
 
 // Ruby method `full_check(packages, no_upgrade:)` at line 126.
 pub fn ruby_package_type_l126_d16_full_check(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('full_check', ...args)
+	if args.len < 3 {
+		return package_type_error('ArgumentError', 'context, packages and status collaborator are required')
+	}
+	context := package_type_context_from_value(args[0])
+	packages := args[1].as_string_array() or { [] }
+	no_upgrade := if args.len > 3 { args[3].as_bool() or { false } } else { false }
+	result := package_type_full_check(context, packages, no_upgrade, package_type_statuses_from_value(args[2])) or {
+		return package_type_error('NotImplementedError', err.msg())
+	}
+	return package_type_check_value(result)
 }
 
 // Ruby method `checkable_entries(all_entries)` at line 132.
 pub fn ruby_package_type_l132_d17_checkable_entries(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('checkable_entries', ...args)
+	if args.len < 2 {
+		return package_type_error('ArgumentError', 'context and entries are required')
+	}
+	return package_type_entries_value(package_type_checkable_entries(package_type_context_from_value(args[0]), package_type_entries_from_value(args[1])))
 }
 
 // Ruby method `format_checkable(entries)` at line 143.
 pub fn ruby_package_type_l143_d18_format_checkable(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('format_checkable', ...args)
+	if args.len < 2 {
+		return package_type_error('ArgumentError', 'context and entries are required')
+	}
+	result := package_type_format_checkable(package_type_context_from_value(args[0]), package_type_entries_from_value(args[1]))
+	return brew_runtime.Value{
+		type_name: 'Array'
+		array_data: result.entries.map(brew_runtime.string_value(it.name))
+		map_data: {
+			'warnings': brew_runtime.string_array_value(result.warnings)
+		}
+	}
 }
 
 // Ruby method `installed_and_up_to_date?(_pkg, no_upgrade: false)` at line 148.
 pub fn ruby_package_type_l148_d19_installed_and_up_to_date(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('installed_and_up_to_date?', ...args)
+	_ = args
+	return package_type_error('NotImplementedError', 'NotImplementedError')
 }
 
 // Ruby method `find_actionable(entries, exit_on_first_error: false, no_upgrade: false, verbose: false)` at line 160.
 pub fn ruby_package_type_l160_d20_find_actionable(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('find_actionable', ...args)
+	if args.len < 3 {
+		return package_type_error('ArgumentError', 'context, entries and status collaborator are required')
+	}
+	context := package_type_context_from_value(args[0])
+	entries := package_type_entries_from_value(args[1])
+	statuses := package_type_statuses_from_value(args[2])
+	exit_on_first_error := if args.len > 3 { args[3].as_bool() or { false } } else { false }
+	no_upgrade := if args.len > 4 { args[4].as_bool() or { false } } else { false }
+	result := package_type_find_actionable(context, entries, exit_on_first_error, no_upgrade, statuses) or { return package_type_error('NotImplementedError', err.msg()) }
+	return package_type_check_value(result)
 }
 
 // Ruby method `register_package_type(package_type)` at line 173.
 pub fn ruby_package_type_l173_d21_register_package_type(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('register_package_type', ...args)
+	if args.len == 0 {
+		return package_type_error('ArgumentError', 'package type is required')
+	}
+	mut registry := if args.len > 1 {
+		extensions.extension_registry_from_value(args[1])
+	} else {
+		extensions.ExtensionRegistry{}
+	}
+	package_type_register(mut registry, extensions.extension_definition_from_value(args[0]))
+	return extensions.extension_registry_value(registry)
 }
 
 // Ruby method `package_types` at line 180.
 pub fn ruby_package_type_l180_d22_package_types(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('package_types', ...args)
+	registry := if args.len > 0 {
+		extensions.extension_registry_from_value(args[0])
+	} else {
+		extensions.ExtensionRegistry{}
+	}
+	return extensions.extension_definitions_value(registry.package_types)
 }
 
 // Ruby method `package_type(type)` at line 186.
 pub fn ruby_package_type_l186_d23_package_type(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('package_type', ...args)
+	if args.len < 2 {
+		return package_type_nil()
+	}
+	registry := extensions.extension_registry_from_value(args[0])
+	if definition := package_type_registered(registry, args[1].as_string()) {
+		return extensions.extension_definition_value(definition)
+	}
+	return package_type_nil()
 }
 
 // Ruby method `dump_package_types` at line 192.
 pub fn ruby_package_type_l192_d24_dump_package_types(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dump_package_types', ...args)
+	registry := if args.len > 0 {
+		extensions.extension_registry_from_value(args[0])
+	} else {
+		extensions.ExtensionRegistry{}
+	}
+	return extensions.extension_definitions_value(package_type_dump_order(registry))
 }
 
 // Original Ruby source (line-for-line):

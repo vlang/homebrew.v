@@ -4,90 +4,364 @@ import brew_runtime
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/sorbet-runtime-0.6.13412/lib/types/utils.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub struct NilableTypeInfo {
+pub:
+	is_union_type    bool
+	non_nilable_type brew_runtime.Value
+}
+
+fn utils_nil_value() brew_runtime.Value {
+	return brew_runtime.object_value('NilClass', 'nil')
+}
+
+pub fn coerce_and_check_module_types(value brew_runtime.Value, check_value brew_runtime.Value,
+	check_module_type bool) !brew_runtime.Value {
+	if value.type_name == 'T::Private::Types::TypeAlias' {
+		return value.map_data['aliased_type'] or { return error('TypeAlias has no aliased type') }
+	}
+	if t_is_type(value) {
+		return value
+	}
+	if value.type_name in ['Class', 'Module'] && check_module_type && t_value_is_a(check_value, value.as_string()) {
+		return utils_nil_value()
+	}
+	return t_coerce_type(value)
+}
+
+pub fn check_type_recursive(value brew_runtime.Value, type_value brew_runtime.Value) !brew_runtime.Value {
+	coerced := t_coerce_type(type_value)!
+	if !t_type_valid(coerced, value, true)! {
+		return error('T.check_type_recursive!: Expected type ${t_type_name(coerced)}, got type ${value.type_name}')
+	}
+	return value
+}
+
+pub fn methods_excluding_object(mod brew_runtime.Value) []string {
+	ancestor_values := mod.map_data['ancestors'] or { brew_runtime.array_value([]) }
+	mut methods := []string{}
+	for ancestor in ancestor_values.as_array() or { []brew_runtime.Value{} } {
+		if ancestor.attribute('object_ancestor') or { 'false' } == 'true' {
+			continue
+		}
+		for name in ancestor.attribute('instance_methods') or { '' }.split(',') {
+			clean_name := name.trim_space()
+			if clean_name != '' && clean_name !in methods {
+				methods << clean_name
+			}
+		}
+		for name in ancestor.attribute('private_instance_methods') or { '' }.split(',') {
+			clean_name := name.trim_space()
+			if clean_name != '' && clean_name !in methods {
+				methods << clean_name
+			}
+		}
+	}
+	return methods
+}
+
+pub fn signature_for_method_value(method brew_runtime.Value) brew_runtime.Value {
+	return method.map_data['signature'] or { utils_nil_value() }
+}
+
+pub fn signature_for_instance_method_value(mod brew_runtime.Value,
+	method_name string) brew_runtime.Value {
+	methods := mod.map_data['instance_methods'] or { return utils_nil_value() }
+	method_map := methods.as_map() or { return utils_nil_value() }
+	method := method_map[method_name.trim_string_left(':')] or { return utils_nil_value() }
+	return signature_for_method_value(method)
+}
+
+pub fn resolve_type_alias(type_value brew_runtime.Value) brew_runtime.Value {
+	if type_value.type_name == 'T::Private::Types::TypeAlias' {
+		return type_value.map_data['aliased_type'] or { type_value }
+	}
+	return type_value
+}
+
+fn utils_is_nil_type(type_value brew_runtime.Value) bool {
+	return type_value.type_name == 'T::Types::Simple' && (type_value.attribute('raw_type') or { type_value.as_string() }) == 'NilClass'
+}
+
+pub fn unwrap_nilable_type(type_value brew_runtime.Value) brew_runtime.Value {
+	if type_value.type_name !in ['T::Types::Union', 'T::Private::Types::SimplePairUnion'] {
+		return utils_nil_value()
+	}
+	remaining := type_value.array_data.filter(!utils_is_nil_type(it))
+	if remaining.len == type_value.array_data.len || remaining.len == 0 {
+		return utils_nil_value()
+	}
+	if remaining.len == 1 {
+		return remaining[0]
+	}
+	return t_union_of_types(remaining[0], remaining[1], remaining[2..])
+}
+
+pub fn method_arity(method brew_runtime.Value) int {
+	arity := method.attribute('arity') or { '-1' }.int()
+	if arity != -1 || method.type_name == 'Proc' {
+		return arity
+	}
+	signature := signature_for_method_value(method)
+	if signature.type_name == 'NilClass' {
+		return arity
+	}
+	return signature.attribute('method_arity') or { arity.str() }.int()
+}
+
+pub fn string_truncate_middle(value string, start_len int, end_len int,
+	ellipsis string) !string {
+	if start_len < 0 {
+		return error('start_len must be >= 0')
+	}
+	if end_len < 0 {
+		return error('end_len must be >= 0')
+	}
+	runes := value.runes()
+	if runes.len <= start_len + end_len {
+		return value
+	}
+	mut start_end := start_len - ellipsis.runes().len
+	if start_end < 0 {
+		start_end = runes.len + start_end
+	}
+	if start_end < 0 {
+		start_end = 0
+	}
+	if start_end > runes.len {
+		start_end = runes.len
+	}
+	start_part := runes[..start_end].string()
+	end_part := if end_len == 0 { '' } else { runes[runes.len - end_len..].string() }
+	return '${start_part}${ellipsis}${end_part}'
+}
+
+pub fn lift_deprecated_enum(enum_value brew_runtime.Value) !brew_runtime.Value {
+	if enum_value.type_name != 'T::Types::Enum' {
+		return error('${enum_value.as_string()} is not a T.deprecated_enum')
+	}
+	values := if raw_values := enum_value.map_data['values'] {
+		raw_values.as_array() or { enum_value.array_data.clone() }
+	} else {
+		enum_value.array_data.clone()
+	}
+	mut classes := []string{}
+	for value in values {
+		if value.type_name !in classes {
+			classes << value.type_name
+		}
+	}
+	if classes.len == 0 {
+		return t_untyped_value()
+	}
+	types := classes.map(t_simple_type(brew_runtime.object_value('Class', it)))
+	if types.len == 1 {
+		return types[0]
+	}
+	return t_union_of_types(types[0], types[1], types[2..])
+}
+
+pub fn nilable_type_info(type_value brew_runtime.Value) NilableTypeInfo {
+	if type_value.type_name !in ['T::Types::Union', 'T::Private::Types::SimplePairUnion'] {
+		return NilableTypeInfo{
+			non_nilable_type: utils_nil_value()
+		}
+	}
+	mut underlying := unwrap_nilable_type(type_value)
+	if underlying.type_name == 'T::Types::Simple' {
+		underlying = underlying.map_data['raw_type'] or {
+			brew_runtime.object_value('Class', underlying.attribute('raw_type') or {
+				underlying.as_string()
+			})
+		}
+	}
+	return NilableTypeInfo{
+		is_union_type: true
+		non_nilable_type: underlying
+	}
+}
+
+pub fn underlying_nilable_type(type_value brew_runtime.Value) brew_runtime.Value {
+	if type_value.type_name in ['T::Types::Union', 'T::Private::Types::SimplePairUnion'] {
+		info := nilable_type_info(type_value)
+		if info.non_nilable_type.type_name != 'NilClass' {
+			return info.non_nilable_type
+		}
+		return type_value
+	}
+	if type_value.type_name == 'T::Types::Simple' {
+		return type_value.map_data['raw_type'] or {
+			brew_runtime.object_value('Class', type_value.attribute('raw_type') or {
+				type_value.as_string()
+			})
+		}
+	}
+	return type_value
+}
+
+pub fn union_with_nilclass(type_value brew_runtime.Value) bool {
+	return type_value.type_name in ['T::Types::Union', 'T::Private::Types::SimplePairUnion'] && type_value.array_data.any(utils_is_nil_type(it))
+}
+
+fn nilable_type_info_value(info NilableTypeInfo) brew_runtime.Value {
+	return brew_runtime.Value{
+		type_name: 'T::Utils::Nilable::TypeInfo'
+		repr: '#<struct T::Utils::Nilable::TypeInfo>'
+		map_data: {
+			'is_union_type':    brew_runtime.bool_value(info.is_union_type)
+			'non_nilable_type': info.non_nilable_type
+		}
+	}
+}
 
 // Ruby method `self.coerce_and_check_module_types(val, check_val, check_module_type)` at line 13.
 pub fn ruby_utils_l13_d1_self_coerce_and_check_module_types(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.coerce_and_check_module_types', ...args)
+	if args.len < 3 {
+		panic('Utils.coerce_and_check_module_types requires value, checked value, and module check flag')
+	}
+	return coerce_and_check_module_types(args[0], args[1], args[2].as_bool() or { panic(err.msg()) }) or {
+		panic(err.msg())
+	}
 }
 
 // Ruby method `self.coerce(val)` at line 47.
 pub fn ruby_utils_l47_d2_self_coerce(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.coerce', ...args)
+	if args.len == 0 {
+		panic('Utils.coerce requires a type')
+	}
+	return coerce_and_check_module_types(args[0], utils_nil_value(), false) or { panic(err.msg()) }
 }
 
 // Ruby method `self.check_type_recursive!(value, type)` at line 55.
 pub fn ruby_utils_l55_d3_self_check_type_recursive(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.check_type_recursive!', ...args)
+	if args.len < 2 {
+		panic('Utils.check_type_recursive! requires value and type')
+	}
+	return check_type_recursive(args[0], args[1]) or { panic(err.msg()) }
 }
 
 // Ruby method `self.methods_excluding_object(mod)` at line 62.
 pub fn ruby_utils_l62_d4_self_methods_excluding_object(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.methods_excluding_object', ...args)
+	if args.len == 0 {
+		return brew_runtime.string_array_value([])
+	}
+	return brew_runtime.string_array_value(methods_excluding_object(args[0]))
 }
 
 // Ruby method `self.signature_for_method(method)` at line 75.
 pub fn ruby_utils_l75_d5_self_signature_for_method(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.signature_for_method', ...args)
+	if args.len == 0 {
+		return utils_nil_value()
+	}
+	return signature_for_method_value(args[0])
 }
 
 // Ruby method `self.signature_for_instance_method(mod, method_name)` at line 82.
 pub fn ruby_utils_l82_d6_self_signature_for_instance_method(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.signature_for_instance_method', ...args)
+	if args.len < 2 {
+		return utils_nil_value()
+	}
+	return signature_for_instance_method_value(args[0], args[1].as_string())
 }
 
 // Ruby method `self.wrap_method_with_call_validation_if_needed(mod, method_sig, original_method)` at line 86.
 pub fn ruby_utils_l86_d7_self_wrap_method_with_call_validation_if_needed(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.wrap_method_with_call_validation_if_needed', ...args)
+	if args.len < 3 {
+		panic('Utils.wrap_method_with_call_validation_if_needed requires module, signature, and method')
+	}
+	return brew_runtime.Value{
+		type_name: 'T::Private::Methods::CallValidation::WrapPlan'
+		repr: args[2].as_string()
+		map_data: {
+			'module':          args[0]
+			'signature':       args[1]
+			'original_method': args[2]
+		}
+	}
 }
 
 // Ruby method `self.run_all_sig_blocks(force_type_init: true)` at line 91.
 pub fn ruby_utils_l91_d8_self_run_all_sig_blocks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.run_all_sig_blocks', ...args)
+	force := if args.len > 0 { args[0].as_bool() or { true } } else { true }
+	return brew_runtime.structured_value('T::Private::Methods::RunAllSigBlocks', 'nil', {
+		'force_type_init': force.str()
+	})
 }
 
 // Ruby method `self.resolve_alias(type)` at line 96.
 pub fn ruby_utils_l96_d9_self_resolve_alias(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.resolve_alias', ...args)
+	if args.len == 0 {
+		return utils_nil_value()
+	}
+	return resolve_type_alias(args[0])
 }
 
 // Ruby method `self.unwrap_nilable(type)` at line 107.
 pub fn ruby_utils_l107_d10_self_unwrap_nilable(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.unwrap_nilable', ...args)
+	if args.len == 0 {
+		return utils_nil_value()
+	}
+	return unwrap_nilable_type(args[0])
 }
 
 // Ruby method `self.arity(method)` at line 117.
 pub fn ruby_utils_l117_d11_self_arity(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.arity', ...args)
+	if args.len == 0 {
+		panic('Utils.arity requires a method')
+	}
+	return brew_runtime.int_value(i64(method_arity(args[0])))
 }
 
 // Ruby method `self.string_truncate_middle(str, start_len, end_len, ellipsis='...')` at line 142.
 pub fn ruby_utils_l142_d12_self_string_truncate_middle(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.string_truncate_middle', ...args)
+	if args.len == 0 || args[0].type_name == 'NilClass' {
+		return if args.len == 0 { utils_nil_value() } else { args[0] }
+	}
+	if args.len < 2 || args[1].type_name == 'NilClass' {
+		panic('must provide start_len')
+	}
+	if args.len < 3 || args[2].type_name == 'NilClass' {
+		panic('must provide end_len')
+	}
+	ellipsis := if args.len > 3 { args[3].as_string() } else { '...' }
+	return brew_runtime.string_value(string_truncate_middle(args[0].as_string(), int(args[1].as_int() or { panic(err.msg()) }), int(args[2].as_int() or { panic(err.msg()) }), ellipsis) or { panic(err.msg()) })
 }
 
 // Ruby method `self.lift_enum(enum)` at line 160.
 pub fn ruby_utils_l160_d13_self_lift_enum(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.lift_enum', ...args)
+	if args.len == 0 {
+		panic('Utils.lift_enum requires an enum')
+	}
+	return lift_deprecated_enum(args[0]) or { panic(err.msg()) }
 }
 
 // Ruby method `self.get_type_info(prop_type)` at line 182.
 pub fn ruby_utils_l182_d14_self_get_type_info(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.get_type_info', ...args)
+	if args.len == 0 {
+		return nilable_type_info_value(NilableTypeInfo{ non_nilable_type: utils_nil_value() })
+	}
+	return nilable_type_info_value(nilable_type_info(args[0]))
 }
 
 // Ruby method `self.get_underlying_type(prop_type)` at line 197.
 pub fn ruby_utils_l197_d15_self_get_underlying_type(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.get_underlying_type', ...args)
+	if args.len == 0 {
+		return utils_nil_value()
+	}
+	return underlying_nilable_type(args[0])
 }
 
 // Ruby method `self.get_underlying_type_object(prop_type)` at line 213.
 pub fn ruby_utils_l213_d16_self_get_underlying_type_object(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.get_underlying_type_object', ...args)
+	if args.len == 0 {
+		return utils_nil_value()
+	}
+	unwrapped := unwrap_nilable_type(args[0])
+	return if unwrapped.type_name == 'NilClass' { args[0] } else { unwrapped }
 }
 
 // Ruby method `self.is_union_with_nilclass(prop_type)` at line 217.
 pub fn ruby_utils_l217_d17_self_is_union_with_nilclass(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.is_union_with_nilclass', ...args)
+	return brew_runtime.bool_value(args.len > 0 && union_with_nilclass(args[0]))
 }
 
 // Original Ruby source (line-for-line):

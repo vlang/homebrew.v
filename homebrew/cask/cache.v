@@ -7,7 +7,16 @@ import brew_runtime
 
 // Ruby method `self.path` at line 8.
 pub fn ruby_cache_l8_d1_self_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.path', ...args)
+	root := if args.len > 0 {
+		args[0].as_string()
+	} else {
+		brew_runtime.environment_value('HOMEBREW_CACHE')
+	}
+	return brew_runtime.object_value('Pathname', cask_cache_path(root))
+}
+
+pub fn cask_cache_path(homebrew_cache string) string {
+	return brew_runtime.join_path(homebrew_cache, 'Cask')
 }
 
 // Original Ruby source (line-for-line):

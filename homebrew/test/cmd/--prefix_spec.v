@@ -1,28 +1,60 @@
 module cmd
 
 import brew_runtime
+import homebrew.cmd as production_cmd
 
 // Translated from Homebrew/brew `test/cmd/--prefix_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "prints Homebrew's prefix", :integration_test do` at line 10.
 pub fn ruby_prefix_spec_l10_d1_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+	prefix := if args.len > 0 { args[0].as_string() } else { '/homebrew' }
+	result := production_cmd.run_prefix(production_cmd.PrefixOptions{
+		prefix: prefix
+	}) or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value(result.stdout == '${prefix}\n')
 }
 
 // Ruby it `it "prints the prefix for a Formula" do` at line 17.
 pub fn ruby_prefix_spec_l17_d2_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+	prefix := if args.len > 0 { args[0].as_string() } else { '/homebrew' }
+	result := production_cmd.run_prefix(production_cmd.PrefixOptions{
+		prefix: prefix
+		named: ['testball']
+		formulae: [production_cmd.PrefixFormula{
+			name: 'testball'
+			opt_prefix: '${prefix}/opt/testball'
+		}]
+	}) or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value(result.stdout == '${prefix}/opt/testball\n')
 }
 
 // Ruby it `it "errors if the given Formula doesn't exist" do` at line 27.
 pub fn ruby_prefix_spec_l27_d3_errors(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('errors', ...args)
+	name := if args.len > 0 { args[0].as_string() } else { 'nonexistent' }
+	production_cmd.run_prefix(production_cmd.PrefixOptions{
+		named: [name]
+		resolution_error: name
+	}) or {
+		return brew_runtime.bool_value(err.msg().contains('FormulaUnavailableError') && err.msg().contains(name))
+	}
+	return brew_runtime.bool_value(false)
 }
 
 // Ruby it `it "prints a warning when `--installed` is used and the given Formula is not installed" do` at line 35.
 pub fn ruby_prefix_spec_l35_d4_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+	_ = args
+	production_cmd.run_prefix(production_cmd.PrefixOptions{
+		installed: true
+		named: ['testball']
+		formulae: [production_cmd.PrefixFormula{
+			name: 'testball'
+			opt_prefix: '/homebrew/opt/testball'
+		}]
+	}) or {
+		return brew_runtime.bool_value(err.msg().contains('NotAKegError') && err.msg().contains('testball'))
+	}
+	return brew_runtime.bool_value(false)
 }
 
 // Original Ruby source (line-for-line):

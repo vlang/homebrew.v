@@ -1,13 +1,16 @@
 module ffi
 
-import brew_runtime
+import homebrew.os.mac.ffi as mac_ffi
 
 // Translated from Homebrew/brew `test/os/mac/ffi/objective_c_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "looks up Objective-C classes, selectors and sends messages" do` at line 7.
-pub fn ruby_objective_c_spec_l7_d1_looks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('looks', ...args)
+pub fn ruby_objective_c_spec_l7_d1_looks() bool {
+	file_manager_class := mac_ffi.objective_c_class_get('NSFileManager')
+	selector := mac_ffi.objective_c_selector('defaultManager')
+	file_manager := mac_ffi.objective_c_message_send(file_manager_class, 'defaultManager', []int{}, 1, []mac_ffi.NativePointer{})
+	return !file_manager_class.is_null() && !selector.is_null() && !file_manager.is_null()
 }
 
 // Original Ruby source (line-for-line):

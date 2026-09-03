@@ -4,25 +4,78 @@ import brew_runtime
 
 // Translated from Homebrew/brew `cask/artifact/qlplugin.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub fn reload_quicklook_with_command(runner ArtifactCommandRunner,
+	mut result MovedOperationResult) {
+	run_refresh_command(ArtifactCommand{
+		executable: '/usr/bin/qlmanage'
+		args: ['-r']
+	}, runner, mut result)
+}
+
+pub fn install_qlplugin_with_command(artifact MovedArtifact, options MovedInstallOptions,
+	runner ArtifactCommandRunner) MovedOperationResult {
+	mut result := move_artifact_with_command(artifact, options, runner)
+	if result.success {
+		reload_quicklook_with_command(runner, mut result)
+	}
+	return result
+}
+
+pub fn install_qlplugin(artifact MovedArtifact, options MovedInstallOptions) MovedOperationResult {
+	return install_qlplugin_with_command(artifact, options, default_artifact_command_runner)
+}
+
+pub fn uninstall_qlplugin_with_command(artifact MovedArtifact, options MovedUninstallOptions,
+	runner ArtifactCommandRunner) MovedOperationResult {
+	mut result := move_back_artifact_with_command(artifact, options, runner)
+	if result.success {
+		reload_quicklook_with_command(runner, mut result)
+	}
+	return result
+}
+
+pub fn uninstall_qlplugin(artifact MovedArtifact,
+	options MovedUninstallOptions) MovedOperationResult {
+	return uninstall_qlplugin_with_command(artifact, options, default_artifact_command_runner)
+}
 
 // Ruby method `self.english_name` at line 11.
 pub fn ruby_qlplugin_l11_d1_self_english_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.english_name', ...args)
+	return brew_runtime.string_value('Quick Look Plugin')
 }
 
 // Ruby method `install_phase(adopt: false, auto_updates: false, force: false, verbose: false, predecessor: nil,` at line 28.
 pub fn ruby_qlplugin_l28_d2_install_phase(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install_phase', ...args)
+	artifact := moved_adapter_artifact(args) or {
+		return brew_runtime.object_value('ArgumentError', err.msg())
+	}
+	options := if args.len > 1 {
+		moved_install_options_from_value(args[1])
+	} else {
+		MovedInstallOptions{}
+	}
+	return moved_operation_to_value(install_qlplugin(artifact, options))
 }
 
 // Ruby method `uninstall_phase(skip: false, force: false, adopt: false, verbose: false, successor: nil, upgrade: false,` at line 47.
 pub fn ruby_qlplugin_l47_d3_uninstall_phase(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uninstall_phase', ...args)
+	artifact := moved_adapter_artifact(args) or {
+		return brew_runtime.object_value('ArgumentError', err.msg())
+	}
+	options := if args.len > 1 {
+		moved_uninstall_options_from_value(args[1])
+	} else {
+		MovedUninstallOptions{}
+	}
+	return moved_operation_to_value(uninstall_qlplugin(artifact, options))
 }
 
 // Ruby method `reload_quicklook(command: SystemCommand)` at line 56.
 pub fn ruby_qlplugin_l56_d4_reload_quicklook(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reload_quicklook', ...args)
+	_ = args
+	mut result := MovedOperationResult{}
+	reload_quicklook_with_command(default_artifact_command_runner, mut result)
+	return moved_operation_to_value(result)
 }
 
 // Original Ruby source (line-for-line):

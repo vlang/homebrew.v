@@ -1,28 +1,34 @@
 module cask
 
-import brew_runtime
+import homebrew.rubocops.cask as discontinued_core
 
 // Translated from Homebrew/brew `test/rubocops/cask/discontinued_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "reports no offenses when there is no `caveats` stanza" do` at line 7.
-pub fn ruby_discontinued_spec_l7_d1_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_discontinued_spec_l7_d1_reports() bool {
+	return discontinued_core.audit_cask_discontinued('cask "foo" do\n  url "https://example.com/foo.dmg"\nend', '2026-09-03').len == 0
 }
 
 // Ruby it `it "reports no offenses when there is a `caveats` stanza without `discontinued`" do` at line 15.
-pub fn ruby_discontinued_spec_l15_d2_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_discontinued_spec_l15_d2_reports() bool {
+	source := 'cask "foo" do\n  caveats do\n    files_in_usr_local\n  end\nend'
+	return discontinued_core.audit_cask_discontinued(source, '2026-09-03').len == 0
 }
 
 // Ruby it `it "reports an offense when there is a `caveats` stanza with `discontinued` and other caveats" do` at line 27.
-pub fn ruby_discontinued_spec_l27_d3_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_discontinued_spec_l27_d3_reports() bool {
+	source := 'cask "foo" do\n  caveats do\n    discontinued\n    files_in_usr_local\n  end\nend'
+	offenses := discontinued_core.audit_cask_discontinued(source, '2026-09-03')
+	return offenses.map(it.kind) == ['mixed_caveats'] && offenses[0].replacement == ''
 }
 
 // Ruby it `it "corrects `caveats { discontinued }` to `deprecate!`" do` at line 41.
-pub fn ruby_discontinued_spec_l41_d4_corrects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('corrects', ...args)
+pub fn ruby_discontinued_spec_l41_d4_corrects() bool {
+	source := 'cask "foo" do\n  caveats do\n    discontinued\n  end\nend'
+	expected := 'cask "foo" do\n  deprecate! date: "2026-09-03", because: :discontinued\nend'
+	offenses := discontinued_core.audit_cask_discontinued(source, '2026-09-03')
+	return offenses.map(it.kind) == ['only_discontinued'] && discontinued_core.correct_cask_discontinued(source, '2026-09-03') == expected
 }
 
 // Original Ruby source (line-for-line):

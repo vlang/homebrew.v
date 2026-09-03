@@ -7,12 +7,12 @@ import brew_runtime
 
 // Ruby let `let(:repo) do` at line 7.
 pub fn ruby_mercurial_spec_l7_d1_repo(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('repo', ...args)
+	return brew_runtime.string_value(spec_repository_fixture('mercurial', '.hg', false))
 }
 
 // Ruby let `let(:path) { repo }` at line 12.
 pub fn ruby_mercurial_spec_l12_d2_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('path', ...args)
+	return if args.len > 0 { args[0] } else { ruby_mercurial_spec_l7_d1_repo() }
 }
 
 // Original Ruby source (line-for-line):

@@ -7,12 +7,12 @@ import brew_runtime
 
 // Ruby method `self.english_name` at line 11.
 pub fn ruby_suite_l11_d1_self_english_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.english_name', ...args)
+	return brew_runtime.string_value('App Suite')
 }
 
 // Ruby method `self.dirmethod` at line 16.
 pub fn ruby_suite_l16_d2_self_dirmethod(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.dirmethod', ...args)
+	return brew_runtime.object_value('Symbol', 'appdir')
 }
 
 // Original Ruby source (line-for-line):

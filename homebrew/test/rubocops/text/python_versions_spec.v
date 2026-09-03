@@ -1,168 +1,226 @@
 module text
 
 import brew_runtime
+import homebrew.rubocops as line_cops
 
 // Translated from Homebrew/brew `test/rubocops/text/python_versions_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+fn python_versions_spec_install(reference string) string {
+	return 'def install\n  puts "${reference}"\nend'
+}
+
+fn python_versions_spec_formula(dependencies []string, install_reference string, test_reference string) string {
+	mut lines := ['class Foo < Formula']
+	for dependency in dependencies {
+		lines << '  depends_on ${dependency}'
+	}
+	if dependencies.len > 0 {
+		lines << ''
+	}
+	for line in python_versions_spec_install(install_reference).split_into_lines() {
+		lines << '  ${line}'
+	}
+	if test_reference != '' {
+		lines << ''
+		lines << '  test do'
+		lines << '    puts "${test_reference}"'
+		lines << '  end'
+	}
+	lines << 'end'
+	return lines.join('\n')
+}
+
+fn python_versions_spec_no_offenses(source string) bool {
+	analysis := line_cops.audit_lines_python_versions(line_cops.LinesContext{
+		source: source
+	})
+	return analysis.offenses.len == 0 && analysis.corrected == source
+}
+
+fn python_versions_spec_reports(source string, reference string, fix string, corrected string) bool {
+	analysis := line_cops.audit_lines_python_versions(line_cops.LinesContext{
+		source: source
+	})
+	return analysis.offenses.len == 1 && analysis.offenses[0].message == 'References to `${reference}` should match the specified python dependency (`${fix}`)' && analysis.offenses[0].replacement == '"${fix}"' && analysis.corrected == corrected
+}
 
 // Ruby subject `subject(:cop) { described_class.new }` at line 7.
 pub fn ruby_python_versions_spec_l7_d1_cop(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cop', ...args)
+	return brew_runtime.object_value('RuboCop::Cop::FormulaAudit::PythonVersions', 'PythonVersions')
 }
 
 // Ruby it `it "reports no offenses for Python with no dependency" do` at line 10.
 pub fn ruby_python_versions_spec_l10_d2_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	source := python_versions_spec_formula([], 'python@3.8', '')
+	return brew_runtime.bool_value(python_versions_spec_no_offenses(source))
 }
 
 // Ruby method `install` at line 13.
 pub fn ruby_python_versions_spec_l13_d3_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	return brew_runtime.string_value(python_versions_spec_install('python@3.8'))
 }
 
 // Ruby it `it "reports no offenses for unversioned Python references" do` at line 20.
 pub fn ruby_python_versions_spec_l20_d4_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	source := python_versions_spec_formula(['"python@3.9"'], 'python', '')
+	return brew_runtime.bool_value(python_versions_spec_no_offenses(source))
 }
 
 // Ruby method `install` at line 25.
 pub fn ruby_python_versions_spec_l25_d5_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	return brew_runtime.string_value(python_versions_spec_install('python'))
 }
 
 // Ruby it `it "reports no offenses for Python with no version" do` at line 32.
 pub fn ruby_python_versions_spec_l32_d6_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	source := python_versions_spec_formula(['"python@3.9"'], 'python3', '')
+	return brew_runtime.bool_value(python_versions_spec_no_offenses(source))
 }
 
 // Ruby method `install` at line 37.
 pub fn ruby_python_versions_spec_l37_d7_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	return brew_runtime.string_value(python_versions_spec_install('python3'))
 }
 
 // Ruby it `it "reports no offenses when a Python reference matches its dependency" do` at line 44.
 pub fn ruby_python_versions_spec_l44_d8_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	source := python_versions_spec_formula(['"python@3.9"'], 'python@3.9', '')
+	return brew_runtime.bool_value(python_versions_spec_no_offenses(source))
 }
 
 // Ruby method `install` at line 49.
 pub fn ruby_python_versions_spec_l49_d9_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	return brew_runtime.string_value(python_versions_spec_install('python@3.9'))
 }
 
 // Ruby it `it "reports no offenses when a Python reference matches its dependency without `@`" do` at line 56.
 pub fn ruby_python_versions_spec_l56_d10_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	source := python_versions_spec_formula(['"python@3.9"'], 'python3.9', '')
+	return brew_runtime.bool_value(python_versions_spec_no_offenses(source))
 }
 
 // Ruby method `install` at line 61.
 pub fn ruby_python_versions_spec_l61_d11_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	return brew_runtime.string_value(python_versions_spec_install('python3.9'))
 }
 
 // Ruby it `it "reports no offenses when a Python reference matches its two-digit dependency" do` at line 68.
 pub fn ruby_python_versions_spec_l68_d12_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	source := python_versions_spec_formula(['"python@3.10"'], 'python@3.10', '')
+	return brew_runtime.bool_value(python_versions_spec_no_offenses(source))
 }
 
 // Ruby method `install` at line 73.
 pub fn ruby_python_versions_spec_l73_d13_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	return brew_runtime.string_value(python_versions_spec_install('python@3.10'))
 }
 
 // Ruby it `it "reports no offenses when a Python reference matches its two-digit dependency without `@`" do` at line 80.
 pub fn ruby_python_versions_spec_l80_d14_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	source := python_versions_spec_formula(['"python@3.10"'], 'python3.10', '')
+	return brew_runtime.bool_value(python_versions_spec_no_offenses(source))
 }
 
 // Ruby method `install` at line 85.
 pub fn ruby_python_versions_spec_l85_d15_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	return brew_runtime.string_value(python_versions_spec_install('python3.10'))
 }
 
 // Ruby it `it "reports and corrects Python references with mismatched versions" do` at line 92.
 pub fn ruby_python_versions_spec_l92_d16_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	source := python_versions_spec_formula(['"python@3.9"'], 'python@3.8', '')
+	corrected := python_versions_spec_formula(['"python@3.9"'], 'python@3.9', '')
+	return brew_runtime.bool_value(python_versions_spec_reports(source, 'python@3.8', 'python@3.9', corrected))
 }
 
 // Ruby method `install` at line 97.
 pub fn ruby_python_versions_spec_l97_d17_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	return brew_runtime.string_value(python_versions_spec_install('python@3.8'))
 }
 
 // Ruby method `install` at line 108.
 pub fn ruby_python_versions_spec_l108_d18_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	return brew_runtime.string_value(python_versions_spec_install('python@3.9'))
 }
 
 // Ruby it `it "reports and corrects Python references with mismatched versions without `@`" do` at line 115.
 pub fn ruby_python_versions_spec_l115_d19_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	source := python_versions_spec_formula(['"python@3.9"'], 'python3.8', '')
+	corrected := python_versions_spec_formula(['"python@3.9"'], 'python3.9', '')
+	return brew_runtime.bool_value(python_versions_spec_reports(source, 'python3.8', 'python3.9', corrected))
 }
 
 // Ruby method `install` at line 120.
 pub fn ruby_python_versions_spec_l120_d20_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	return brew_runtime.string_value(python_versions_spec_install('python3.8'))
 }
 
 // Ruby method `install` at line 131.
 pub fn ruby_python_versions_spec_l131_d21_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	return brew_runtime.string_value(python_versions_spec_install('python3.9'))
 }
 
 // Ruby it `it "reports and corrects Python references with mismatched two-digit versions" do` at line 138.
 pub fn ruby_python_versions_spec_l138_d22_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	source := python_versions_spec_formula(['"python@3.11"'], 'python@3.10', '')
+	corrected := python_versions_spec_formula(['"python@3.11"'], 'python@3.11', '')
+	return brew_runtime.bool_value(python_versions_spec_reports(source, 'python@3.10', 'python@3.11', corrected))
 }
 
 // Ruby method `install` at line 143.
 pub fn ruby_python_versions_spec_l143_d23_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	return brew_runtime.string_value(python_versions_spec_install('python@3.10'))
 }
 
 // Ruby method `install` at line 154.
 pub fn ruby_python_versions_spec_l154_d24_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	return brew_runtime.string_value(python_versions_spec_install('python@3.11'))
 }
 
 // Ruby it `it "reports and corrects Python references with mismatched two-digit versions without `@`" do` at line 161.
 pub fn ruby_python_versions_spec_l161_d25_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	source := python_versions_spec_formula(['"python@3.11"'], 'python3.10', '')
+	corrected := python_versions_spec_formula(['"python@3.11"'], 'python3.11', '')
+	return brew_runtime.bool_value(python_versions_spec_reports(source, 'python3.10', 'python3.11', corrected))
 }
 
 // Ruby method `install` at line 166.
 pub fn ruby_python_versions_spec_l166_d26_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	return brew_runtime.string_value(python_versions_spec_install('python3.10'))
 }
 
 // Ruby method `install` at line 177.
 pub fn ruby_python_versions_spec_l177_d27_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	return brew_runtime.string_value(python_versions_spec_install('python3.11'))
 }
 
 // Ruby it `it "reports no offenses for multiple non-runtime Python dependencies" do` at line 184.
 pub fn ruby_python_versions_spec_l184_d28_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	source := python_versions_spec_formula(['"python@3.9" => :build', '"python@3.10" => :test'], 'python3.9', 'python3.10')
+	return brew_runtime.bool_value(python_versions_spec_no_offenses(source))
 }
 
 // Ruby method `install` at line 190.
 pub fn ruby_python_versions_spec_l190_d29_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	return brew_runtime.string_value(python_versions_spec_install('python3.9'))
 }
 
 // Ruby it `it "reports and corrects Python references that mismatch single non-runtime Python dependency" do` at line 201.
 pub fn ruby_python_versions_spec_l201_d30_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	dependencies := ['"python@3.9" => :build']
+	source := python_versions_spec_formula(dependencies, 'python@3.8', '')
+	corrected := python_versions_spec_formula(dependencies, 'python@3.9', '')
+	return brew_runtime.bool_value(python_versions_spec_reports(source, 'python@3.8', 'python@3.9', corrected))
 }
 
 // Ruby method `install` at line 206.
 pub fn ruby_python_versions_spec_l206_d31_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	return brew_runtime.string_value(python_versions_spec_install('python@3.8'))
 }
 
 // Ruby method `install` at line 217.
 pub fn ruby_python_versions_spec_l217_d32_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	return brew_runtime.string_value(python_versions_spec_install('python@3.9'))
 }
 
 // Original Ruby source (line-for-line):

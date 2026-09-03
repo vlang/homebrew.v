@@ -1,48 +1,96 @@
 module utils
 
 import brew_runtime
+import homebrew.utils as svn_utils
 
 // Translated from Homebrew/brew `test/utils/svn_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `svn_result(stdout = "", success:, stderr: "")` at line 7.
 pub fn ruby_svn_spec_l7_d1_svn_result(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('svn_result', ...args)
+	stdout := if args.len > 0 { args[0].as_string() } else { '' }
+	success := if args.len > 1 { args[1].bool_data } else { false }
+	stderr := if args.len > 2 { args[2].as_string() } else { '' }
+	return brew_runtime.map_value({
+		'stdout':  brew_runtime.string_value(stdout)
+		'stderr':  brew_runtime.string_value(stderr)
+		'success': brew_runtime.bool_value(success)
+	})
 }
 
 // Ruby method `clear_version_cache` at line 12.
 pub fn ruby_svn_spec_l12_d2_clear_version_cache(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('clear_version_cache', ...args)
+	mut client := svn_utils.svn_client_with_runner('/shim/svn', svn_spec_present_runner)
+	_ = svn_utils.svn_client_version(mut client)
+	svn_utils.svn_client_clear_version_cache(mut client)
+	return brew_runtime.bool_value((svn_utils.svn_client_version(mut client) or { '' }) == '1.14.5')
 }
 
 // Ruby it `it "returns true when svn version is present" do` at line 23.
 pub fn ruby_svn_spec_l23_d3_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	mut client := svn_utils.svn_client_with_runner('/shim/svn', svn_spec_present_runner)
+	return brew_runtime.bool_value(svn_utils.svn_client_available(mut client))
 }
 
 // Ruby it `it "returns false when svn version is missing" do` at line 28.
 pub fn ruby_svn_spec_l28_d4_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	mut client := svn_utils.svn_client_with_runner('/missing/svn', svn_spec_missing_runner)
+	return brew_runtime.bool_value(!svn_utils.svn_client_available(mut client))
 }
 
 // Ruby it `it "returns svn version or nil" do` at line 35.
 pub fn ruby_svn_spec_l35_d5_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	mut present := svn_utils.svn_client_with_runner('/shim/svn', svn_spec_present_runner)
+	first := (svn_utils.svn_client_version(mut present) or { '' }) == '1.14.5'
+	svn_utils.svn_client_clear_version_cache(mut present)
+	mut missing := svn_utils.svn_client_with_runner('/missing/svn', svn_spec_missing_runner)
+	return brew_runtime.bool_value(first && svn_utils.svn_client_version(mut missing) == none)
 }
 
 // Ruby it `it "returns true when svn is not available" do` at line 52.
 pub fn ruby_svn_spec_l52_d6_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	mut client := svn_utils.svn_client_with_runner('/missing/svn', svn_spec_missing_runner)
+	return brew_runtime.bool_value(svn_utils.svn_client_remote_exists(mut client, 'blah'))
 }
 
 // Ruby it `it "returns false when remote does not exist" do` at line 62.
 pub fn ruby_svn_spec_l62_d7_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	mut client := svn_utils.svn_client_with_runner('/shim/svn', svn_spec_remote_missing_runner)
+	return brew_runtime.bool_value(!svn_utils.svn_client_remote_exists(mut client, 'blah'))
 }
 
 // Ruby it `it "returns true when remote exists", :needs_network, :needs_svn do` at line 70.
 pub fn ruby_svn_spec_l70_d8_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	mut client := svn_utils.svn_client_with_runner('/shim/svn', svn_spec_remote_present_runner)
+	return brew_runtime.bool_value(svn_utils.svn_client_remote_exists(mut client, 'https://svn.code.sf.net/p/ctags/code/trunk'))
+}
+
+fn svn_spec_present_runner(command []string) !svn_utils.SvnCommandResult {
+	if command == ['/shim/svn', '--version'] {
+		return svn_utils.SvnCommandResult{ stdout: 'svn, version 1.14.5\n' }
+	}
+	return svn_utils.SvnCommandResult{}
+}
+
+fn svn_spec_missing_runner(_command []string) !svn_utils.SvnCommandResult {
+	return svn_utils.SvnCommandResult{ exit_code: 1 }
+}
+
+fn svn_spec_remote_missing_runner(command []string) !svn_utils.SvnCommandResult {
+	if '--version' in command {
+		return svn_utils.SvnCommandResult{ stdout: 'svn, version 1.14.5\n' }
+	}
+	return svn_utils.SvnCommandResult{ exit_code: 1 }
+}
+
+fn svn_spec_remote_present_runner(command []string) !svn_utils.SvnCommandResult {
+	if '--version' in command {
+		return svn_utils.SvnCommandResult{ stdout: 'svn, version 1.14.5\n' }
+	}
+	if command == ['svn', 'ls', 'https://svn.code.sf.net/p/ctags/code/trunk', '--depth', 'empty'] {
+		return svn_utils.SvnCommandResult{}
+	}
+	return svn_utils.SvnCommandResult{ exit_code: 1 }
 }
 
 // Original Ruby source (line-for-line):

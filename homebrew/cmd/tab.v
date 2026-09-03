@@ -4,15 +4,167 @@ import brew_runtime
 
 // Translated from Homebrew/brew `cmd/tab.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub enum TabPackageKind {
+	formula
+	cask
+}
+
+pub struct TabPackageState {
+pub:
+	kind                  TabPackageKind
+	name                  string
+	any_version_installed bool
+	tab_exists            bool
+	installed_on_request  bool
+}
+
+pub struct TabUpdateResult {
+pub:
+	package     TabPackageState
+	created_tab bool
+	wrote_tab   bool
+	message     string
+}
+
+pub struct TabCommandResult {
+pub mut:
+	packages []TabPackageState
+	messages []string
+}
+
+fn tab_marking_description(installed_on_request bool) string {
+	return if installed_on_request { 'installed on request' } else { 'not installed on request' }
+}
+
+pub fn update_tab_state(package TabPackageState, installed_on_request bool) !TabUpdateResult {
+	created_tab := package.kind == .cask && !package.tab_exists
+	if package.kind == .formula && !package.tab_exists {
+		return error('Tab file for ${package.name} does not exist.')
+	}
+	marking := tab_marking_description(installed_on_request)
+	if package.installed_on_request == installed_on_request {
+		return TabUpdateResult{
+			package: TabPackageState{
+				...package
+				tab_exists: package.tab_exists || created_tab
+			}
+			created_tab: created_tab
+			wrote_tab: created_tab
+			message: '${package.name} is already marked as ${marking}.'
+		}
+	}
+	return TabUpdateResult{
+		package: TabPackageState{
+			...package
+			tab_exists: true
+			installed_on_request: installed_on_request
+		}
+		created_tab: created_tab
+		wrote_tab: true
+		message: '${package.name} is now marked as ${marking}.'
+	}
+}
+
+fn tab_names_sentence(names []string) string {
+	if names.len <= 1 {
+		return if names.len == 0 { '' } else { names[0] }
+	}
+	if names.len == 2 {
+		return '${names[0]} and ${names[1]}'
+	}
+	return '${names[..names.len - 1].join(', ')}, and ${names.last()}'
+}
+
+pub fn run_tab_command(packages []TabPackageState, marking ?bool) !TabCommandResult {
+	mark_as_requested := marking or { return error('No marking option specified.') }
+	not_installed := packages.filter(!it.any_version_installed).map(it.name)
+	if not_installed.len > 0 {
+		verb := if not_installed.len == 1 { 'is' } else { 'are' }
+		return error('${tab_names_sentence(not_installed)} ${verb} not installed.')
+	}
+	mut result := TabCommandResult{}
+	for package in packages {
+		updated := update_tab_state(package, mark_as_requested)!
+		result.packages << updated.package
+		result.messages << updated.message
+	}
+	return result
+}
+
+pub fn tab_package_value(package TabPackageState) brew_runtime.Value {
+	return brew_runtime.structured_value(if package.kind == .formula { 'Formula' } else { 'Cask' }, package.name, {
+		'kind':                  package.kind.str()
+		'name':                  package.name
+		'any_version_installed': package.any_version_installed.str()
+		'tab_exists':            package.tab_exists.str()
+		'installed_on_request':  package.installed_on_request.str()
+	})
+}
+
+fn tab_package_from_value(value brew_runtime.Value) TabPackageState {
+	return TabPackageState{
+		kind: if (value.attribute('kind') or { value.type_name.to_lower() }) == 'cask' {
+			.cask} else {
+			.formula}
+		name: value.attribute('name') or { value.as_string() }
+		any_version_installed: (value.attribute('any_version_installed') or { 'false' }) == 'true'
+		tab_exists: (value.attribute('tab_exists') or { 'false' }) == 'true'
+		installed_on_request: (value.attribute('installed_on_request') or { 'false' }) == 'true'
+	}
+}
+
+fn tab_command_result_value(result TabCommandResult) brew_runtime.Value {
+	return brew_runtime.Value{
+		type_name: 'TabCommandResult'
+		repr: result.messages.join('\n')
+		map_data: {
+			'packages': brew_runtime.array_value(result.packages.map(tab_package_value(it)))
+			'messages': brew_runtime.string_array_value(result.messages)
+		}
+	}
+}
 
 // Ruby method `run` at line 36.
 pub fn ruby_tab_l36_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('run', ...args)
+	package_values := if args.len > 0 {
+		args[0].as_array() or { []brew_runtime.Value{} }
+	} else {
+		[]brew_runtime.Value{}
+	}
+	marking := if args.len > 1 && args[1].type_name == 'Bool' {
+		?bool(args[1].bool_data)
+	} else {
+		none
+	}
+	result := run_tab_command(package_values.map(tab_package_from_value(it)), marking) or {
+		return brew_runtime.object_value(if err.msg() == 'No marking option specified.' {
+			'UsageError'
+		} else {
+			'RuntimeError'
+		}, err.msg())
+	}
+	return tab_command_result_value(result)
 }
 
 // Ruby method `update_tab(formula_or_cask, installed_on_request:)` at line 61.
 pub fn ruby_tab_l61_d2_update_tab(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('update_tab', ...args)
+	if args.len < 2 {
+		return brew_runtime.object_value('ArgumentError', 'update_tab requires a package and marking')
+	}
+	updated := update_tab_state(tab_package_from_value(args[0]), args[1].as_bool() or { false }) or {
+		return brew_runtime.object_value('ArgumentError', err.msg())
+	}
+	return brew_runtime.Value{
+		type_name: 'TabUpdateResult'
+		repr: updated.message
+		attributes: {
+			'created_tab': updated.created_tab.str()
+			'wrote_tab':   updated.wrote_tab.str()
+		}
+		map_data: {
+			'package': tab_package_value(updated.package)
+		}
+	}
 }
 
 // Original Ruby source (line-for-line):

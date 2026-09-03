@@ -1,58 +1,151 @@
 module cmd
 
-import brew_runtime
+import homebrew
+import os
 
 // Translated from Homebrew/brew `test/cmd/help_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub struct HelpSpecFixture {
+pub:
+	root              string
+	internal_path     string
+	developer_path    string
+	tap_directory     string
+	third_party_ruby  string
+	official_ruby     string
+	self_documenting  string
+	commented_command string
+}
+
+fn help_spec_write_executable(path string, contents string) ! {
+	os.mkdir_all(os.dir(path))!
+	os.write_file(path, contents)!
+	os.chmod(path, 0o755)!
+}
+
+pub fn new_help_spec_fixture(root string) !HelpSpecFixture {
+	internal_path := os.join_path(root, 'internal')
+	developer_path := os.join_path(root, 'developer')
+	tap_directory := os.join_path(root, 'Taps')
+	os.mkdir_all(internal_path)!
+	os.mkdir_all(developer_path)!
+	cat_path := os.join_path(internal_path, 'cat.v')
+	os.write_file(cat_path, 'description "Display the source for a formula."\n')!
+
+	third_party_ruby := os.join_path(tap_directory, 'trusthelp', 'homebrew-foo', 'cmd', 'hello-trust-tap.rb')
+	help_spec_write_executable(third_party_ruby, 'description "A friendly greeter from a tap."\n')!
+	official_ruby := os.join_path(tap_directory, 'homebrew', 'homebrew-test', 'cmd', 'hello-tap.rb')
+	help_spec_write_executable(official_ruby, 'description "An official greeter."\n')!
+	self_documenting := os.join_path(tap_directory, 'homebrew', 'homebrew-test', 'cmd', 'brew-selfdoc')
+	help_spec_write_executable(self_documenting, '#!/bin/bash\necho "Usage: brew selfdoc [options]"\n')!
+	commented_command := os.join_path(tap_directory, 'homebrew', 'homebrew-test', 'cmd', 'brew-commented')
+	help_spec_write_executable(commented_command, '#!/bin/bash\n#:  * `commented`:\n#:    Documented via comments.\necho "the command body should not have run" >&2\nexit 1\n')!
+	return HelpSpecFixture{
+		root: root
+		internal_path: internal_path
+		developer_path: developer_path
+		tap_directory: tap_directory
+		third_party_ruby: third_party_ruby
+		official_ruby: official_ruby
+		self_documenting: self_documenting
+		commented_command: commented_command
+	}
+}
+
+fn help_spec_permit_command(_ string, _ string) ! {}
+
+fn help_spec_reject_third_party(_ string, _ string) ! {
+	return error('Untrusted command from trusthelp/foo')
+}
+
+fn help_spec_context(fixture HelpSpecFixture,
+	trust homebrew.CommandTrustChecker) homebrew.HelpContext {
+	return homebrew.HelpContext{
+		generic_help: 'Usage: brew <command> [options]'
+		locations: homebrew.HelpCommandLocations{
+			internal_path: fixture.internal_path
+			developer_path: fixture.developer_path
+			tap_directory: fixture.tap_directory
+			path_value: ''
+		}
+		style: homebrew.HelpStyle{
+			width: 80
+		}
+		trust: trust
+		parser: homebrew.default_help_parser
+	}
+}
+
+fn help_spec_request(command string) homebrew.HelpRequest {
+	return homebrew.HelpRequest{
+		command: command
+	}
+}
 
 // Ruby it `it "prints help for a documented Ruby command" do` at line 12.
-pub fn ruby_help_spec_l12_d1_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+pub fn ruby_help_spec_l12_d1_prints(fixture HelpSpecFixture) !bool {
+	result := homebrew.help(help_spec_request('cat'), help_spec_context(fixture, help_spec_permit_command))!
+	return result.action == .print_and_exit && result.stream == .stdout && result.status == 0 && result.output.starts_with('Usage: brew cat')
 }
 
 // Ruby it `it "prints the originating tap for an external command from a third-party tap" do` at line 19.
-pub fn ruby_help_spec_l19_d2_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+pub fn ruby_help_spec_l19_d2_prints(fixture HelpSpecFixture) !bool {
+	result := homebrew.help(help_spec_request('hello-trust-tap'), help_spec_context(fixture, help_spec_permit_command))!
+	return result.output.starts_with('From tap: trusthelp/foo\n') && result.status == 0
 }
 
 // Ruby method `run; end` at line 47.
-pub fn ruby_help_spec_l47_d3_run(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('run', ...args)
+pub fn ruby_help_spec_l47_d3_run() bool {
+	return true
 }
 
 // Ruby it `it "requires trust for an external command from a third-party tap" do` at line 65.
-pub fn ruby_help_spec_l65_d4_requires(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('requires', ...args)
+pub fn ruby_help_spec_l65_d4_requires(fixture HelpSpecFixture) !bool {
+	mut rejected := false
+	if _ := homebrew.help(help_spec_request('hello-trust-tap'), help_spec_context(fixture, help_spec_reject_third_party)) {
+		return false
+	} else {
+		rejected = true
+	}
+	trusted := homebrew.help(help_spec_request('hello-trust-tap'), help_spec_context(fixture, help_spec_permit_command))!
+	return rejected && trusted.output.starts_with('From tap: trusthelp/foo\n')
 }
 
 // Ruby method `run; end` at line 91.
-pub fn ruby_help_spec_l91_d5_run(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('run', ...args)
+pub fn ruby_help_spec_l91_d5_run() bool {
+	return true
 }
 
 // Ruby it `it "does not print the originating tap for an external command from an official tap" do` at line 117.
-pub fn ruby_help_spec_l117_d6_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_help_spec_l117_d6_does(fixture HelpSpecFixture) !bool {
+	result := homebrew.help(help_spec_request('hello-tap'), help_spec_context(fixture, help_spec_permit_command))!
+	return !result.output.starts_with('From tap:') && result.output.starts_with('Usage: brew hello-tap')
 }
 
 // Ruby method `run; end` at line 135.
-pub fn ruby_help_spec_l135_d7_run(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('run', ...args)
+pub fn ruby_help_spec_l135_d7_run() bool {
+	return true
 }
 
 // Ruby it `it "runs an external command's own `--help` when it has no `#:` comments" do` at line 146.
-pub fn ruby_help_spec_l146_d8_runs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('runs', ...args)
+pub fn ruby_help_spec_l146_d8_runs(fixture HelpSpecFixture) !bool {
+	result := homebrew.help(help_spec_request('selfdoc'), help_spec_context(fixture, help_spec_permit_command))!
+	return result.action == .resume_execution && result.command.path == fixture.self_documenting
 }
 
 // Ruby it `it "renders `#:` help for an external command rather than running it" do` at line 162.
-pub fn ruby_help_spec_l162_d9_renders(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('renders', ...args)
+pub fn ruby_help_spec_l162_d9_renders(fixture HelpSpecFixture) !bool {
+	result := homebrew.help(help_spec_request('commented'), help_spec_context(fixture, help_spec_permit_command))!
+	return result.action == .print_and_exit && result.output.contains('Documented via comments.') && !result.output.contains('the command body should not have run')
 }
 
 // Ruby it `it "prints help when no argument is given" do` at line 182.
-pub fn ruby_help_spec_l182_d10_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+pub fn ruby_help_spec_l182_d10_prints(fixture HelpSpecFixture) !bool {
+	result := homebrew.help(homebrew.HelpRequest{
+		command: 'cat'
+		usage_error: 'This command requires a formula argument.'
+	}, help_spec_context(fixture, help_spec_permit_command))!
+	return result.stream == .stderr && result.status == 1 && result.output.starts_with('Usage: brew cat') && result.output.contains('\n\nError: This command requires a formula argument.\n')
 }
 
 // Original Ruby source (line-for-line):

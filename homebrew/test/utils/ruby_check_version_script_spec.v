@@ -1,58 +1,71 @@
 module utils
 
 import brew_runtime
+import homebrew.utils as brew_utils
 
 // Translated from Homebrew/brew `test/utils/ruby_check_version_script_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject do` at line 6.
 pub fn ruby_ruby_check_version_script_spec_l6_d1_subject_dynamic(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('subject_dynamic', ...args)
+	running := if args.len > 0 { args[0].as_string() } else { '3.4.5' }
+	required := if args.len > 1 { args[1].as_string() } else { '1.2.3' }
+	developer := if args.len > 2 { args[2].as_bool() or { false } } else { false }
+	use_path := if args.len > 3 { args[3].as_bool() or { false } } else { false }
+	return brew_runtime.bool_value(brew_utils.check_ruby_version(running, required, developer, use_path))
 }
 
 // Ruby let `let(:required_ruby_version) { "1.2.3" }` at line 17.
 pub fn ruby_ruby_check_version_script_spec_l17_d2_required_ruby_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('required_ruby_version', ...args)
+	_ = args
+	return brew_runtime.string_value('1.2.3')
 }
 
 // Ruby let `let(:required_ruby_version) { RUBY_VERSION }` at line 25.
 pub fn ruby_ruby_check_version_script_spec_l25_d3_required_ruby_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('required_ruby_version', ...args)
+	return brew_runtime.string_value(if args.len > 0 { args[0].as_string() } else { '3.4.5' })
 }
 
 // Ruby it `it { is_expected.to be true }` at line 27.
 pub fn ruby_ruby_check_version_script_spec_l27_d4_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('{', ...args)
+	running := if args.len > 0 { args[0].as_string() } else { '3.4.5' }
+	return brew_runtime.bool_value(brew_utils.check_ruby_version(running, running, false, false))
 }
 
 // Ruby let `let(:required_ruby_version) { "2.0.0" }` at line 31.
 pub fn ruby_ruby_check_version_script_spec_l31_d5_required_ruby_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('required_ruby_version', ...args)
+	_ = args
+	return brew_runtime.string_value('2.0.0')
 }
 
 // Ruby it `it { is_expected.to be true }` at line 38.
 pub fn ruby_ruby_check_version_script_spec_l38_d6_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('{', ...args)
+	_ = args
+	return brew_runtime.bool_value(brew_utils.check_ruby_version('3.4.5', '2.0.0', true, true))
 }
 
 // Ruby let `let(:required_ruby_version) { "1.2.3" }` at line 42.
 pub fn ruby_ruby_check_version_script_spec_l42_d7_required_ruby_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('required_ruby_version', ...args)
+	_ = args
+	return brew_runtime.string_value('1.2.3')
 }
 
 // Ruby it `it { is_expected.to be false }` at line 44.
 pub fn ruby_ruby_check_version_script_spec_l44_d8_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('{', ...args)
+	_ = args
+	return brew_runtime.bool_value(!brew_utils.check_ruby_version('3.4.5', '1.2.3', false, false))
 }
 
 // Ruby let `let(:required_ruby_version) { "fish" }` at line 48.
 pub fn ruby_ruby_check_version_script_spec_l48_d9_required_ruby_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('required_ruby_version', ...args)
+	_ = args
+	return brew_runtime.string_value('fish')
 }
 
 // Ruby it `it { is_expected.to be false }` at line 50.
 pub fn ruby_ruby_check_version_script_spec_l50_d10_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('{', ...args)
+	_ = args
+	return brew_runtime.bool_value(!brew_utils.check_ruby_version('3.4.5', 'fish', false, false))
 }
 
 // Original Ruby source (line-for-line):

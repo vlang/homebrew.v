@@ -7,7 +7,17 @@ import brew_runtime
 
 // Ruby method `run` at line 11.
 pub fn ruby_shell_command_l11_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('run', ...args)
+	command_name := if args.len > 0 { args[0].as_string() } else { '' }
+	dev_cmd := if args.len > 1 { args[1].as_bool() or { false } } else { false }
+	panic(shell_command_error(command_name, dev_cmd).msg())
+}
+
+// shell_command_error preserves the deliberate failure used by command classes
+// that only exist so shell completions can discover them.
+pub fn shell_command_error(command_name string, dev_cmd bool) IError {
+	directory := if dev_cmd { 'dev-cmd' } else { 'cmd' }
+	path := '${directory}/${command_name}.sh'
+	return error('This command is just here for completions generation. It\'s actually defined in `${path}` instead.')
 }
 
 // Original Ruby source (line-for-line):

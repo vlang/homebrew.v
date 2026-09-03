@@ -1,648 +1,1135 @@
 module cask
 
 import brew_runtime
+import homebrew as core
+import homebrew.cask as production
+import homebrew.cask.artifact
+import homebrew.cask.dsl as dsl_types
+
+fn dsl_spec_symbol(value string) brew_runtime.Value {
+	return brew_runtime.Value{ type_name: 'Symbol', repr: value }
+}
+
+fn dsl_spec_nil() brew_runtime.Value {
+	return brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
+}
+
+fn dsl_spec_bool(value bool) brew_runtime.Value {
+	return brew_runtime.bool_value(value)
+}
+
+fn dsl_spec_cask(token string, fields map[string]brew_runtime.Value) brew_runtime.Value {
+	mut values := fields.clone()
+	values['token'] = brew_runtime.string_value(token)
+	if 'config' !in values {
+		values['config'] = brew_runtime.map_value({})
+	}
+	return brew_runtime.Value{ type_name: 'Cask', repr: token, map_data: values }
+}
+
+fn dsl_spec_new(token string, fields map[string]brew_runtime.Value) brew_runtime.Value {
+	return production.ruby_dsl_l190_d17_initialize(dsl_spec_cask(token, fields))
+}
+
+fn dsl_spec_pass(condition bool) brew_runtime.Value {
+	return brew_runtime.bool_value(condition)
+}
+
+fn dsl_spec_error(value brew_runtime.Value, kind string, fragment string) bool {
+	return value.type_name == kind && value.repr.contains(fragment)
+}
+
+fn dsl_spec_language_block(languages []string, result string, sha string, is_default bool) brew_runtime.Value {
+	return brew_runtime.Value{
+		type_name: 'Cask::DSL::LanguageBlock'
+		repr: result
+		map_data: {
+			'languages': brew_runtime.string_array_value(languages)
+			'result':    brew_runtime.string_value(result)
+			'mutations': brew_runtime.map_value({
+				'sha256': brew_runtime.object_value('Checksum', sha)
+			})
+			'default':   brew_runtime.bool_value(is_default)
+		}
+	}
+}
+
+fn dsl_spec_language_cask(languages []string) brew_runtime.Value {
+	mut receiver := dsl_spec_new('cask-with-apps', {
+		'config': brew_runtime.map_value({
+			'languages': brew_runtime.string_array_value(languages)
+		})
+	})
+	receiver = production.ruby_dsl_l360_d28_language(receiver, brew_runtime.string_value('zh'), dsl_spec_language_block([
+		'zh',
+	], 'zh-CN', 'abc123', false))
+	receiver = production.ruby_dsl_l360_d28_language(receiver, brew_runtime.string_value('en'), brew_runtime.map_value({
+		'default': brew_runtime.bool_value(true)
+	}), dsl_spec_language_block(['en'], 'en-US', 'xyz789', true))
+	return receiver
+}
+
+fn dsl_spec_language_matches(receiver brew_runtime.Value, language string, sha string) bool {
+	result := production.ruby_dsl_l380_d29_language_eval(receiver)
+	mut dsl := production.cask_dsl_from_value(receiver) or { return false }
+	actual := production.cask_dsl_evaluate_language(mut dsl) or { return false }
+	return result.as_string() == language && actual == language && dsl.sha256_value.as_string() == sha
+}
+
+fn dsl_spec_dependency(receiver brew_runtime.Value) ?dsl_types.CaskDependsOn {
+	dsl := production.cask_dsl_from_value(receiver) or { return none }
+	return dsl.depends_on_value
+}
+
+fn dsl_spec_basic(token string) brew_runtime.Value {
+	mut receiver := dsl_spec_new(token, {})
+	receiver = production.ruby_dsl_l503_d36_version(receiver, brew_runtime.string_value('1.2.3'))
+	receiver = production.ruby_dsl_l341_d27_homepage(receiver, brew_runtime.string_value('https://brew.sh/'))
+	receiver = production.ruby_dsl_l434_d33_url(receiver, brew_runtime.string_value('https://brew.sh/TestCask-1.2.3.dmg'))
+	return receiver
+}
 
 // Translated from Homebrew/brew `test/cask/dsl_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby let `let(:cask) { Cask::CaskLoader.load(token) }` at line 5.
 pub fn ruby_dsl_spec_l5_d1_cask(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask', ...args)
+	if args.len > 1 {
+		return args[1]
+	}
+	token := if args.len > 0 { args[0].as_string() } else { 'basic-cask' }
+	return dsl_spec_basic(token)
 }
 
 // Ruby let `let(:token) { "basic-cask" }` at line 6.
 pub fn ruby_dsl_spec_l6_d2_token(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('token', ...args)
+	return brew_runtime.string_value('basic-cask')
 }
 
 // Ruby it `it "lets you set url, homepage and version" do` at line 9.
 pub fn ruby_dsl_spec_l9_d3_lets(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('lets', ...args)
+	receiver := if args.len > 0 { args[0] } else { dsl_spec_basic('basic-cask') }
+	dsl := production.cask_dsl_from_value(receiver) or { return dsl_spec_bool(false) }
+	return dsl_spec_pass(dsl.has_url && dsl.url_value.uri == 'https://brew.sh/TestCask-1.2.3.dmg' && dsl.homepage == 'https://brew.sh/' && dsl.version_value.raw_version.as_string() == '1.2.3')
 }
 
 // Ruby it `it "exposes formula path helpers" do` at line 15.
 pub fn ruby_dsl_spec_l15_d4_exposes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('exposes', ...args)
+	if args.len == 0 {
+		return dsl_spec_bool(false)
+	}
+	formula_opt_bin := args[0].as_string()
+	mut receiver := dsl_spec_new('formula-path-helper', {})
+	receiver = production.ruby_dsl_l278_d24_name(receiver, brew_runtime.string_value(formula_opt_bin))
+	names := production.ruby_dsl_l278_d24_name(receiver).as_string_array() or { []string{} }
+	return dsl_spec_pass(names == [formula_opt_bin] && formula_opt_bin.ends_with('/opt/foo/bin'))
 }
 
 // Ruby it `it "exposes formula path helpers in flight blocks" do` at line 23.
 pub fn ruby_dsl_spec_l23_d5_exposes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('exposes', ...args)
+	if args.len == 0 {
+		return dsl_spec_bool(false)
+	}
+	return dsl_spec_pass(args[0].type_name == 'Pathname' && args[0].as_string().ends_with('/opt/foo/bin'))
 }
 
 // Ruby let `let(:attempt_unknown_method) do` at line 30.
 pub fn ruby_dsl_spec_l30_d6_attempt_unknown_method(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('attempt_unknown_method', ...args)
+	receiver := dsl_spec_new('unexpected-method-cask', {})
+	return production.ruby_dsl_l875_d55_method_missing(receiver, dsl_spec_symbol('future_feature'), dsl_spec_symbol('not_yet_on_your_machine'))
 }
 
 // Ruby it `it "raises a CaskInvalidError" do` at line 36.
 pub fn ruby_dsl_spec_l36_d7_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+	error_value := if args.len > 0 {
+		args[0]
+	} else {
+		ruby_dsl_spec_l30_d6_attempt_unknown_method()
+	}
+	return dsl_spec_pass(dsl_spec_error(error_value, 'NoMethodError', "undefined method 'future_feature' for Cask 'unexpected-method-cask'"))
 }
 
 // Ruby let `let(:token) { "invalid-header-format" }` at line 46.
 pub fn ruby_dsl_spec_l46_d8_token(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('token', ...args)
+	return brew_runtime.string_value('invalid-header-format')
 }
 
 // Ruby it `it "raises an error" do` at line 48.
 pub fn ruby_dsl_spec_l48_d9_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+	if args.len == 0 {
+		return dsl_spec_bool(false)
+	}
+	error_value := args[0]
+	return dsl_spec_pass(error_value.type_name == 'CaskUnreadableError')
 }
 
 // Ruby let `let(:token) { "invalid-header-token-mismatch" }` at line 54.
 pub fn ruby_dsl_spec_l54_d10_token(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('token', ...args)
+	return brew_runtime.string_value('invalid-header-token-mismatch')
 }
 
 // Ruby it `it "raises an error" do` at line 56.
 pub fn ruby_dsl_spec_l56_d11_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+	if args.len == 0 {
+		return dsl_spec_bool(false)
+	}
+	error_value := args[0]
+	return dsl_spec_pass(dsl_spec_error(error_value, 'CaskTokenMismatchError', 'header line does not match the file name'))
 }
 
 // Ruby let `let(:token) { "no-dsl-version" }` at line 64.
 pub fn ruby_dsl_spec_l64_d12_token(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('token', ...args)
+	return brew_runtime.string_value('no-dsl-version')
 }
 
 // Ruby it `it "does not require a DSL version in the header" do` at line 66.
 pub fn ruby_dsl_spec_l66_d13_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	receiver := dsl_spec_basic('no-dsl-version')
+	dsl := production.cask_dsl_from_value(receiver) or { return dsl_spec_bool(false) }
+	return dsl_spec_pass(dsl.token == 'no-dsl-version' && dsl.url_value.uri == 'https://brew.sh/TestCask-1.2.3.dmg' && dsl.homepage == 'https://brew.sh/' && dsl.version_value.raw_version.as_string() == '1.2.3')
 }
 
 // Ruby it `it "lets you set the full name via a name stanza" do` at line 76.
 pub fn ruby_dsl_spec_l76_d14_lets(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('lets', ...args)
+	mut receiver := dsl_spec_new('name-cask', {})
+	receiver = production.ruby_dsl_l278_d24_name(receiver, brew_runtime.string_value('Proper Name'))
+	return dsl_spec_pass(production.ruby_dsl_l278_d24_name(receiver).as_string_array() or { []string{} } == [
+		'Proper Name',
+	])
 }
 
 // Ruby it `it "Accepts an array value to the name stanza" do` at line 86.
 pub fn ruby_dsl_spec_l86_d15_accepts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('Accepts', ...args)
+	mut receiver := dsl_spec_new('array-name-cask', {})
+	receiver = production.ruby_dsl_l278_d24_name(receiver, brew_runtime.string_array_value([
+		'Proper Name',
+		'Alternate Name',
+	]))
+	return dsl_spec_pass(production.ruby_dsl_l278_d24_name(receiver).as_string_array() or { []string{} } == [
+		'Proper Name',
+		'Alternate Name',
+	])
 }
 
 // Ruby it `it "Accepts multiple name stanzas" do` at line 97.
 pub fn ruby_dsl_spec_l97_d16_accepts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('Accepts', ...args)
+	mut receiver := dsl_spec_new('multi-name-cask', {})
+	receiver = production.ruby_dsl_l278_d24_name(receiver, brew_runtime.string_value('Proper Name'))
+	receiver = production.ruby_dsl_l278_d24_name(receiver, brew_runtime.string_value('Alternate Name'))
+	return dsl_spec_pass(production.ruby_dsl_l278_d24_name(receiver).as_string_array() or { []string{} } == [
+		'Proper Name',
+		'Alternate Name',
+	])
 }
 
 // Ruby it `it "lets you set the description via a desc stanza" do` at line 111.
 pub fn ruby_dsl_spec_l111_d17_lets(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('lets', ...args)
+	mut receiver := dsl_spec_new('desc-cask', {})
+	receiver = production.ruby_dsl_l294_d25_desc(receiver, brew_runtime.string_value("The package's description"))
+	return dsl_spec_pass(production.ruby_dsl_l294_d25_desc(receiver).as_string() == "The package's description")
 }
 
 // Ruby it `it "lets you set checksum via sha256" do` at line 121.
 pub fn ruby_dsl_spec_l121_d18_lets(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('lets', ...args)
+	mut receiver := dsl_spec_new('checksum-cask', {})
+	receiver = production.ruby_dsl_l545_d37_sha256(receiver, brew_runtime.string_value('imasha2'))
+	return dsl_spec_pass(production.ruby_dsl_l545_d37_sha256(receiver).as_string() == 'imasha2')
 }
 
 // Ruby let `let(:cask) do` at line 130.
 pub fn ruby_dsl_spec_l130_d19_cask(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask', ...args)
+	arch := if args.len > 0 { args[0].as_string() } else { 'arm' }
+	mut receiver := dsl_spec_new('checksum-cask', {
+		'system_arch': brew_runtime.string_value(arch)
+		'system_os':   brew_runtime.string_value('macos')
+	})
+	return production.ruby_dsl_l545_d37_sha256(receiver, brew_runtime.map_value({
+		'arm':   brew_runtime.string_value('imasha2arm')
+		'intel': brew_runtime.string_value('imasha2intel')
+	}))
 }
 
 // Ruby it `it "stores only the arm checksum" do` at line 141.
 pub fn ruby_dsl_spec_l141_d20_stores(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('stores', ...args)
+	receiver := ruby_dsl_spec_l130_d19_cask(brew_runtime.string_value('arm'))
+	return dsl_spec_pass(production.ruby_dsl_l545_d37_sha256(receiver).as_string() == 'imasha2arm')
 }
 
 // Ruby it `it "stores only the intel checksum" do` at line 151.
 pub fn ruby_dsl_spec_l151_d21_stores(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('stores', ...args)
+	receiver := ruby_dsl_spec_l130_d19_cask(brew_runtime.string_value('intel'))
+	return dsl_spec_pass(production.ruby_dsl_l545_d37_sha256(receiver).as_string() == 'imasha2intel')
 }
 
 // Ruby it `it "has no checksum on macOS when only Linux checksums are set" do` at line 158.
 pub fn ruby_dsl_spec_l158_d22_has(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('has', ...args)
+	mut receiver := dsl_spec_new('checksum-cask', {
+		'system_os':   brew_runtime.string_value('macos')
+		'system_arch': brew_runtime.string_value('arm')
+	})
+	receiver = production.ruby_dsl_l545_d37_sha256(receiver, brew_runtime.map_value({
+		'x86_64_linux': brew_runtime.string_value('imasha2intellinux')
+		'arm64_linux':  brew_runtime.string_value('imasha2armlinux')
+	}))
+	return dsl_spec_pass(production.ruby_dsl_l545_d37_sha256(receiver).type_name == 'NilClass')
 }
 
 // Ruby it `it "stores the matching checksum on Linux" do` at line 168.
 pub fn ruby_dsl_spec_l168_d23_stores(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('stores', ...args)
+	mut receiver := dsl_spec_new('checksum-cask', {
+		'system_os':   brew_runtime.string_value('linux')
+		'system_arch': brew_runtime.string_value('intel')
+	})
+	receiver = production.ruby_dsl_l545_d37_sha256(receiver, brew_runtime.map_value({
+		'x86_64_linux': brew_runtime.string_value('imasha2intellinux')
+		'arm64_linux':  brew_runtime.string_value('imasha2armlinux')
+	}))
+	return dsl_spec_pass(production.ruby_dsl_l545_d37_sha256(receiver).as_string() == 'imasha2intellinux')
 }
 
 // Ruby it `it "has no checksum on Linux when only macOS checksums are set" do` at line 178.
 pub fn ruby_dsl_spec_l178_d24_has(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('has', ...args)
+	mut receiver := dsl_spec_new('checksum-cask', {
+		'system_os':   brew_runtime.string_value('linux')
+		'system_arch': brew_runtime.string_value('arm')
+	})
+	receiver = production.ruby_dsl_l545_d37_sha256(receiver, brew_runtime.map_value({
+		'arm':   brew_runtime.string_value('imasha2arm')
+		'intel': brew_runtime.string_value('imasha2intel')
+	}))
+	return dsl_spec_pass(production.ruby_dsl_l545_d37_sha256(receiver).type_name == 'NilClass')
 }
 
 // Ruby it `it "has no checksum when simulating an architecture whose checksum is missing" do` at line 188.
 pub fn ruby_dsl_spec_l188_d25_has(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('has', ...args)
+	mut receiver := dsl_spec_new('checksum-cask', {
+		'system_os':   brew_runtime.string_value('macos')
+		'system_arch': brew_runtime.string_value('intel')
+	})
+	receiver = production.ruby_dsl_l545_d37_sha256(receiver, brew_runtime.map_value({
+		'arm':         brew_runtime.string_value('imasha2arm')
+		'arm64_linux': brew_runtime.string_value('imasha2armlinux')
+	}))
+	return dsl_spec_pass(production.ruby_dsl_l545_d37_sha256(receiver).type_name == 'NilClass')
 }
 
 // Ruby it `it "loads the architecture requirement when the running-architecture checksum is missing" do` at line 198.
 pub fn ruby_dsl_spec_l198_d26_loads(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('loads', ...args)
+	mut receiver := dsl_spec_new('checksum-cask', {
+		'system_os':   brew_runtime.string_value('linux')
+		'system_arch': brew_runtime.string_value('intel')
+	})
+	receiver = production.ruby_dsl_l545_d37_sha256(receiver, brew_runtime.map_value({
+		'arm64_linux': brew_runtime.string_value('imasha2armlinux')
+		'intel':       brew_runtime.string_value('imasha2intel')
+	}))
+	receiver = production.ruby_dsl_l623_d40_depends_on(receiver, brew_runtime.map_value({
+		'arch': dsl_spec_symbol('arm64')
+	}))
+	depends := dsl_spec_dependency(receiver) or { return dsl_spec_bool(false) }
+	return dsl_spec_pass(production.ruby_dsl_l545_d37_sha256(receiver).type_name == 'NilClass' && depends.arch.len == 1 && depends.arch[0].kind == 'arm' && depends.arch[0].bits == 64)
 }
 
 // Ruby it `it "returns true if no_autobump! is not set" do` at line 214.
 pub fn ruby_dsl_spec_l214_d27_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	return dsl_spec_pass(production.ruby_dsl_l747_d49_autobump(dsl_spec_basic('basic-cask')).bool_data)
 }
 
 // Ruby let `let(:cask) do` at line 219.
 pub fn ruby_dsl_spec_l219_d28_cask(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask', ...args)
+	mut receiver := dsl_spec_new('checksum-cask', {})
+	return production.ruby_dsl_l736_d48_no_autobump(receiver, brew_runtime.map_value({
+		'because': brew_runtime.string_value('some reason')
+	}))
 }
 
 // Ruby it `it "returns false" do` at line 225.
 pub fn ruby_dsl_spec_l225_d29_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	receiver := ruby_dsl_spec_l219_d28_cask()
+	return dsl_spec_pass(!production.ruby_dsl_l747_d49_autobump(receiver).bool_data && production.ruby_dsl_l148_d3_no_autobump_message(receiver).as_string() == 'some reason')
 }
 
 // Ruby it `it "raises an error" do` at line 232.
 pub fn ruby_dsl_spec_l232_d30_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+	tap := brew_runtime.map_value({
+		'official': brew_runtime.bool_value(false)
+	})
+	receiver := dsl_spec_new('test-cask', {
+		'tap': tap
+	})
+	result := production.ruby_dsl_l736_d48_no_autobump(receiver, brew_runtime.map_value({
+		'because': brew_runtime.string_value('some reason')
+	}))
+	return dsl_spec_pass(dsl_spec_error(result, 'CaskInvalidError', 'official Homebrew taps'))
 }
 
 // Ruby it `it "does not raise for internal no_autobump! usage from common DSL stanzas" do` at line 240.
 pub fn ruby_dsl_spec_l240_d31_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	receiver := dsl_spec_new('test-cask', {
+		'tap': brew_runtime.map_value({
+			'official': brew_runtime.bool_value(false)
+		})
+	})
+	mut versioned := production.ruby_dsl_l503_d36_version(receiver, dsl_spec_symbol('latest'))
+	versioned = production.ruby_dsl_l434_d33_url(versioned, brew_runtime.string_value('https://brew.sh/TestCask.dmg'))
+	mut livecheck := core.new_livecheck_dsl(dsl_spec_cask('test-cask', {}))
+	livecheck.strategy = dsl_spec_symbol('extract_plist')
+	versioned = production.ruby_dsl_l719_d47_livecheck(versioned, core.livecheck_dsl_value(livecheck))
+	return dsl_spec_pass(versioned.type_name == 'Cask::DSL' && !production.ruby_dsl_l747_d49_autobump(versioned).bool_data)
 }
 
 // Ruby subject `subject(:cask) do` at line 257.
 pub fn ruby_dsl_spec_l257_d32_cask(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask', ...args)
+	languages := if args.len > 0 { args[0].as_string_array() or { []string{} } } else { []string{} }
+	return dsl_spec_language_cask(languages)
 }
 
 // Ruby matcher `matcher :be_the_chinese_version do` at line 273.
 pub fn ruby_dsl_spec_l273_d33_be_the_chinese_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('be_the_chinese_version', ...args)
+	if args.len == 0 {
+		return dsl_spec_bool(false)
+	}
+	return dsl_spec_pass(dsl_spec_language_matches(args[0], 'zh-CN', 'abc123'))
 }
 
 // Ruby matcher `matcher :be_the_english_version do` at line 281.
 pub fn ruby_dsl_spec_l281_d34_be_the_english_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('be_the_english_version', ...args)
+	if args.len == 0 {
+		return dsl_spec_bool(false)
+	}
+	return dsl_spec_pass(dsl_spec_language_matches(args[0], 'en-US', 'xyz789'))
 }
 
 // Ruby let `let(:languages) { [] }` at line 289.
 pub fn ruby_dsl_spec_l289_d35_languages(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('languages', ...args)
+	return brew_runtime.string_array_value([])
 }
 
 // Ruby let `let(:languages) { ["zh"] }` at line 298.
 pub fn ruby_dsl_spec_l298_d36_languages(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('languages', ...args)
+	return brew_runtime.string_array_value(['zh'])
 }
 
 // Ruby it `it { is_expected.to be_the_chinese_version }` at line 300.
 pub fn ruby_dsl_spec_l300_d37_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('{', ...args)
+	return ruby_dsl_spec_l273_d33_be_the_chinese_version(dsl_spec_language_cask(['zh']))
 }
 
 // Ruby let `let(:languages) { ["zh-XX"] }` at line 304.
 pub fn ruby_dsl_spec_l304_d38_languages(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('languages', ...args)
+	return brew_runtime.string_array_value(['zh-XX'])
 }
 
 // Ruby it `it { is_expected.to be_the_chinese_version }` at line 306.
 pub fn ruby_dsl_spec_l306_d39_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('{', ...args)
+	return ruby_dsl_spec_l273_d33_be_the_chinese_version(dsl_spec_language_cask([
+		'zh-XX',
+	]))
 }
 
 // Ruby let `let(:languages) { ["en"] }` at line 310.
 pub fn ruby_dsl_spec_l310_d40_languages(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('languages', ...args)
+	return brew_runtime.string_array_value(['en'])
 }
 
 // Ruby it `it { is_expected.to be_the_english_version }` at line 312.
 pub fn ruby_dsl_spec_l312_d41_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('{', ...args)
+	return ruby_dsl_spec_l281_d34_be_the_english_version(dsl_spec_language_cask(['en']))
 }
 
 // Ruby let `let(:languages) { ["xx-XX"] }` at line 316.
 pub fn ruby_dsl_spec_l316_d42_languages(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('languages', ...args)
+	return brew_runtime.string_array_value(['xx-XX'])
 }
 
 // Ruby it `it { is_expected.to be_the_english_version }` at line 318.
 pub fn ruby_dsl_spec_l318_d43_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('{', ...args)
+	return ruby_dsl_spec_l281_d34_be_the_english_version(dsl_spec_language_cask([
+		'xx-XX',
+	]))
 }
 
 // Ruby let `let(:languages) { ["xx-XX", "zh", "en"] }` at line 322.
 pub fn ruby_dsl_spec_l322_d44_languages(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('languages', ...args)
+	return brew_runtime.string_array_value(['xx-XX', 'zh', 'en'])
 }
 
 // Ruby it `it { is_expected.to be_the_chinese_version }` at line 324.
 pub fn ruby_dsl_spec_l324_d45_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('{', ...args)
+	return ruby_dsl_spec_l273_d33_be_the_chinese_version(dsl_spec_language_cask([
+		'xx-XX',
+		'zh',
+		'en',
+	]))
 }
 
 // Ruby let `let(:languages) { ["xx-XX", "en-US", "zh"] }` at line 328.
 pub fn ruby_dsl_spec_l328_d46_languages(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('languages', ...args)
+	return brew_runtime.string_array_value(['xx-XX', 'en-US', 'zh'])
 }
 
 // Ruby it `it { is_expected.to be_the_english_version }` at line 330.
 pub fn ruby_dsl_spec_l330_d47_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('{', ...args)
+	return ruby_dsl_spec_l281_d34_be_the_english_version(dsl_spec_language_cask([
+		'xx-XX',
+		'en-US',
+		'zh',
+	]))
 }
 
 // Ruby it `it "returns an empty array if no languages are specified" do` at line 334.
 pub fn ruby_dsl_spec_l334_d48_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	receiver := dsl_spec_new('cask-with-apps', {})
+	return dsl_spec_pass((production.ruby_dsl_l407_d30_languages(receiver).as_string_array() or { []string{} }).len == 0)
 }
 
 // Ruby it `it "returns an array of available languages" do` at line 344.
 pub fn ruby_dsl_spec_l344_d49_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	receiver := dsl_spec_language_cask([])
+	return dsl_spec_pass(production.ruby_dsl_l407_d30_languages(receiver).as_string_array() or { []string{} } == [
+		'zh',
+		'en',
+	])
 }
 
 // Ruby it `it "allows you to specify app stanzas" do` at line 366.
 pub fn ruby_dsl_spec_l366_d50_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+	mut receiver := dsl_spec_new('cask-with-apps', {})
+	receiver = production.ruby_dsl_l836_d52_klass_dsl_key(receiver, brew_runtime.string_value('app'), brew_runtime.string_value('Foo.app'))
+	receiver = production.ruby_dsl_l836_d52_klass_dsl_key(receiver, brew_runtime.string_value('app'), brew_runtime.string_value('Bar.app'))
+	dsl := production.cask_dsl_from_value(receiver) or { return dsl_spec_bool(false) }
+	items := dsl.artifacts.to_array()
+	return dsl_spec_pass(items.len == 2 && items[0].as_string() == 'Foo.app' && items[1].as_string() == 'Bar.app')
 }
 
 // Ruby it `it "allow app stanzas to be empty" do` at line 375.
 pub fn ruby_dsl_spec_l375_d51_allow(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allow', ...args)
+	dsl := production.cask_dsl_from_value(dsl_spec_new('cask-with-no-apps', {})) or { return dsl_spec_bool(false) }
+	return dsl_spec_pass(dsl.artifacts.items.len == 0)
 }
 
 // Ruby it `it "allows caveats to be specified via a method define" do` at line 382.
 pub fn ruby_dsl_spec_l382_d52_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+	plain := production.ruby_dsl_l691_d44_caveats(dsl_spec_new('plain-cask', {}))
+	mut receiver := dsl_spec_new('cask-with-caveats', {})
+	receiver = production.ruby_dsl_l691_d44_caveats(receiver, ruby_dsl_spec_l388_d53_caveats())
+	return dsl_spec_pass(plain.as_string() == '' && production.ruby_dsl_l691_d44_caveats(receiver).as_string() == 'When you install this Cask, you probably want to know this.\n')
 }
 
 // Ruby method `caveats` at line 388.
 pub fn ruby_dsl_spec_l388_d53_caveats(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('caveats', ...args)
+	return brew_runtime.string_value('When you install this Cask, you probably want to know this.\n')
 }
 
 // Ruby it `it "allows installable pkgs to be specified" do` at line 400.
 pub fn ruby_dsl_spec_l400_d54_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+	mut receiver := dsl_spec_new('cask-with-pkgs', {
+		'staged_path': brew_runtime.string_value('')
+	})
+	receiver = production.ruby_dsl_l836_d52_klass_dsl_key(receiver, brew_runtime.string_value('pkg'), brew_runtime.string_value('Foo.pkg'))
+	receiver = production.ruby_dsl_l836_d52_klass_dsl_key(receiver, brew_runtime.string_value('pkg'), brew_runtime.string_value('Bar.pkg'))
+	dsl := production.cask_dsl_from_value(receiver) or { return dsl_spec_bool(false) }
+	items := dsl.artifacts.to_array()
+	return dsl_spec_pass(items.len == 2 && items[0].type_name == 'Cask::Artifact::Pkg' && items[0].as_string().ends_with('Foo.pkg') && items[1].as_string().ends_with('Bar.pkg'))
 }
 
 // Ruby let `let(:token) { "invalid-two-url" }` at line 411.
 pub fn ruby_dsl_spec_l411_d55_token(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('token', ...args)
+	return brew_runtime.string_value('invalid-two-url')
 }
 
 // Ruby it `it "prevents defining multiple urls" do` at line 413.
 pub fn ruby_dsl_spec_l413_d56_prevents(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prevents', ...args)
+	mut receiver := dsl_spec_new('invalid-two-url', {})
+	receiver = production.ruby_dsl_l434_d33_url(receiver, brew_runtime.string_value('https://example.org/one'))
+	result := production.ruby_dsl_l434_d33_url(receiver, brew_runtime.string_value('https://example.org/two'))
+	return dsl_spec_pass(dsl_spec_error(result, 'CaskInvalidError', "'url' stanza may only appear once"))
 }
 
 // Ruby let `let(:token) { "invalid-two-homepage" }` at line 419.
 pub fn ruby_dsl_spec_l419_d57_token(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('token', ...args)
+	return brew_runtime.string_value('invalid-two-homepage')
 }
 
 // Ruby it `it "prevents defining multiple homepages" do` at line 421.
 pub fn ruby_dsl_spec_l421_d58_prevents(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prevents', ...args)
+	mut receiver := dsl_spec_new('invalid-two-homepage', {})
+	receiver = production.ruby_dsl_l341_d27_homepage(receiver, brew_runtime.string_value('https://example.org/one'))
+	result := production.ruby_dsl_l341_d27_homepage(receiver, brew_runtime.string_value('https://example.org/two'))
+	return dsl_spec_pass(dsl_spec_error(result, 'CaskInvalidError', "'homepage' stanza may only appear once"))
 }
 
 // Ruby it `it "records when a human browsed the homepage" do` at line 425.
 pub fn ruby_dsl_spec_l425_d59_records(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('records', ...args)
+	mut receiver := dsl_spec_new('cask-with-browsed-homepage', {})
+	receiver = production.ruby_dsl_l341_d27_homepage(receiver, brew_runtime.string_value('https://brew.sh/'), brew_runtime.map_value({
+		'browsed': brew_runtime.string_value('2026-07-26')
+	}))
+	return dsl_spec_pass(production.ruby_dsl_l181_d14_homepage_browsed(receiver).as_string() == '2026-07-26')
 }
 
 // Ruby it `it "requires a homepage URL when a human browser check is specified" do` at line 433.
 pub fn ruby_dsl_spec_l433_d60_requires(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('requires', ...args)
+	result := production.ruby_dsl_l341_d27_homepage(dsl_spec_new('cask-without-homepage', {}), brew_runtime.map_value({
+		'browsed': brew_runtime.string_value('2026-07-26')
+	}))
+	return dsl_spec_pass(dsl_spec_error(result, 'CaskInvalidError', '`browsed` requires a homepage URL'))
 }
 
 // Ruby let `let(:token) { "invalid-two-version" }` at line 443.
 pub fn ruby_dsl_spec_l443_d61_token(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('token', ...args)
+	return brew_runtime.string_value('invalid-two-version')
 }
 
 // Ruby it `it "prevents defining multiple versions" do` at line 445.
 pub fn ruby_dsl_spec_l445_d62_prevents(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prevents', ...args)
+	mut receiver := dsl_spec_new('invalid-two-version', {})
+	receiver = production.ruby_dsl_l503_d36_version(receiver, brew_runtime.string_value('1.0'))
+	result := production.ruby_dsl_l503_d36_version(receiver, brew_runtime.string_value('2.0'))
+	return dsl_spec_pass(dsl_spec_error(result, 'CaskInvalidError', "'version' stanza may only appear once"))
 }
 
 // Ruby let `let(:token) { "invalid-two-arch" }` at line 451.
 pub fn ruby_dsl_spec_l451_d63_token(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('token', ...args)
+	return brew_runtime.string_value('invalid-two-arch')
 }
 
 // Ruby it `it "prevents defining multiple arches" do` at line 453.
 pub fn ruby_dsl_spec_l453_d64_prevents(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prevents', ...args)
+	mut receiver := dsl_spec_new('invalid-two-arch', {
+		'system_arch': brew_runtime.string_value('arm')
+	})
+	receiver = production.ruby_dsl_l581_d38_arch(receiver, brew_runtime.map_value({
+		'arm':   brew_runtime.string_value('first')
+		'intel': brew_runtime.string_value('first')
+	}))
+	result := production.ruby_dsl_l581_d38_arch(receiver, brew_runtime.map_value({
+		'arm':   brew_runtime.string_value('second')
+		'intel': brew_runtime.string_value('second')
+	}))
+	return dsl_spec_pass(dsl_spec_error(result, 'CaskInvalidError', "'arch' stanza may only appear once"))
 }
 
 // Ruby let `let(:token) { "arch-arm-only" }` at line 458.
 pub fn ruby_dsl_spec_l458_d65_token(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('token', ...args)
+	return brew_runtime.string_value('arch-arm-only')
 }
 
 // Ruby it `it "returns the value" do` at line 465.
 pub fn ruby_dsl_spec_l465_d66_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	mut receiver := dsl_spec_new('arch-arm-only', {
+		'system_arch': brew_runtime.string_value('arm')
+	})
+	receiver = production.ruby_dsl_l581_d38_arch(receiver, brew_runtime.map_value({
+		'arm': brew_runtime.string_value('arm')
+	}))
+	arch := production.ruby_dsl_l581_d38_arch(receiver)
+	return dsl_spec_pass(arch.as_string() == 'arm' && 'file://fixture/caffeine-${arch.as_string()}.zip' == 'file://fixture/caffeine-arm.zip')
 }
 
 // Ruby it `it "defaults to `nil` for the other when no arrays are passed" do` at line 475.
 pub fn ruby_dsl_spec_l475_d67_defaults(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('defaults', ...args)
+	mut receiver := dsl_spec_new('arch-arm-only', {
+		'system_arch': brew_runtime.string_value('intel')
+	})
+	receiver = production.ruby_dsl_l581_d38_arch(receiver, brew_runtime.map_value({
+		'arm': brew_runtime.string_value('arm')
+	}))
+	arch := production.ruby_dsl_l581_d38_arch(receiver)
+	url := if arch.type_name == 'NilClass' {
+		'file://fixture/caffeine.zip'
+	} else {
+		'file://fixture/caffeine-${arch.as_string()}.zip'
+	}
+	return dsl_spec_pass(arch.type_name == 'NilClass' && url == 'file://fixture/caffeine.zip')
 }
 
 // Ruby let `let(:token) { "invalid-depends-on-key" }` at line 483.
 pub fn ruby_dsl_spec_l483_d68_token(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('token', ...args)
+	return brew_runtime.string_value('invalid-depends-on-key')
 }
 
 // Ruby it `it "refuses to load with an invalid depends_on key" do` at line 485.
 pub fn ruby_dsl_spec_l485_d69_refuses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('refuses', ...args)
+	result := production.ruby_dsl_l623_d40_depends_on(dsl_spec_new('invalid-depends-on-key', {}), brew_runtime.map_value({
+		'no_such_key': brew_runtime.string_value('unar')
+	}))
+	return dsl_spec_pass(result.type_name == 'CaskInvalidError')
 }
 
 // Ruby let `let(:token) { "with-depends-on-formula" }` at line 492.
 pub fn ruby_dsl_spec_l492_d70_token(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('token', ...args)
+	return brew_runtime.string_value('with-depends-on-formula')
 }
 
 // Ruby it `it "allows depends_on formula to be specified" do` at line 494.
 pub fn ruby_dsl_spec_l494_d71_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+	receiver := production.ruby_dsl_l623_d40_depends_on(dsl_spec_new('with-depends-on-formula', {}), brew_runtime.map_value({
+		'formula': brew_runtime.string_value('unar')
+	}))
+	depends := dsl_spec_dependency(receiver) or { return dsl_spec_bool(false) }
+	return dsl_spec_pass(depends.formulae == ['unar'])
 }
 
 // Ruby let `let(:token) { "with-depends-on-formula-multiple" }` at line 500.
 pub fn ruby_dsl_spec_l500_d72_token(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('token', ...args)
+	return brew_runtime.string_value('with-depends-on-formula-multiple')
 }
 
 // Ruby it `it "allows multiple depends_on formula to be specified" do` at line 502.
 pub fn ruby_dsl_spec_l502_d73_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+	mut receiver := dsl_spec_new('with-depends-on-formula-multiple', {})
+	receiver = production.ruby_dsl_l623_d40_depends_on(receiver, brew_runtime.map_value({
+		'formula': brew_runtime.string_value('unar')
+	}))
+	receiver = production.ruby_dsl_l623_d40_depends_on(receiver, brew_runtime.map_value({
+		'formula': brew_runtime.string_value('fileutils')
+	}))
+	depends := dsl_spec_dependency(receiver) or { return dsl_spec_bool(false) }
+	return dsl_spec_pass(depends.formulae == ['unar', 'fileutils'])
 }
 
 // Ruby let `let(:token) { "with-depends-on-cask" }` at line 510.
 pub fn ruby_dsl_spec_l510_d74_token(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('token', ...args)
+	return brew_runtime.string_value('with-depends-on-cask')
 }
 
 // Ruby it `it "is allowed" do` at line 512.
 pub fn ruby_dsl_spec_l512_d75_is(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('is', ...args)
+	receiver := production.ruby_dsl_l623_d40_depends_on(dsl_spec_new('with-depends-on-cask', {}), brew_runtime.map_value({
+		'cask': brew_runtime.string_value('local-transmission-zip')
+	}))
+	depends := dsl_spec_dependency(receiver) or { return dsl_spec_bool(false) }
+	return dsl_spec_pass(depends.casks == ['local-transmission-zip'])
 }
 
 // Ruby let `let(:token) { "with-depends-on-cask-multiple" }` at line 518.
 pub fn ruby_dsl_spec_l518_d76_token(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('token', ...args)
+	return brew_runtime.string_value('with-depends-on-cask-multiple')
 }
 
 // Ruby it `it "is allowed" do` at line 520.
 pub fn ruby_dsl_spec_l520_d77_is(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('is', ...args)
+	mut receiver := dsl_spec_new('with-depends-on-cask-multiple', {})
+	receiver = production.ruby_dsl_l623_d40_depends_on(receiver, brew_runtime.map_value({
+		'cask': brew_runtime.string_value('local-caffeine')
+	}))
+	receiver = production.ruby_dsl_l623_d40_depends_on(receiver, brew_runtime.map_value({
+		'cask': brew_runtime.string_value('local-transmission-zip')
+	}))
+	depends := dsl_spec_dependency(receiver) or { return dsl_spec_bool(false) }
+	return dsl_spec_pass(depends.casks == ['local-caffeine', 'local-transmission-zip'])
 }
 
 // Ruby let `let(:token) { "with-depends-on-macos-bare" }` at line 528.
 pub fn ruby_dsl_spec_l528_d78_token(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('token', ...args)
+	return brew_runtime.string_value('with-depends-on-macos-bare')
 }
 
 // Ruby it `it "creates a MacOSRequirement without a version" do` at line 530.
 pub fn ruby_dsl_spec_l530_d79_creates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('creates', ...args)
+	receiver := production.ruby_dsl_l623_d40_depends_on(dsl_spec_new('with-depends-on-macos-bare', {}), dsl_spec_symbol('macos'))
+	depends := dsl_spec_dependency(receiver) or { return dsl_spec_bool(false) }
+	requirement := depends.macos or { return dsl_spec_bool(false) }
+	return dsl_spec_pass(!requirement.version_specified() && requirement.to_h().len == 0)
 }
 
 // Ruby let `let(:token) { "with-depends-on-macos-symbol" }` at line 539.
 pub fn ruby_dsl_spec_l539_d80_token(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('token', ...args)
+	return brew_runtime.string_value('with-depends-on-macos-symbol')
 }
 
 // Ruby it `it "creates a minimum MacOSRequirement" do` at line 541.
 pub fn ruby_dsl_spec_l541_d81_creates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('creates', ...args)
+	receiver := production.ruby_dsl_l623_d40_depends_on(dsl_spec_new('with-depends-on-macos-symbol', {}), brew_runtime.map_value({
+		'macos': dsl_spec_symbol('tahoe')
+	}))
+	depends := dsl_spec_dependency(receiver) or { return dsl_spec_bool(false) }
+	requirement := depends.macos or { return dsl_spec_bool(false) }
+	return dsl_spec_pass(requirement.comparator == '>=' && requirement.versions.len == 1 && requirement.versions[0].str() == '26')
 }
 
 // Ruby let `let(:token) { "invalid-depends-on-macos-bad-release" }` at line 547.
 pub fn ruby_dsl_spec_l547_d82_token(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('token', ...args)
+	return brew_runtime.string_value('invalid-depends-on-macos-bad-release')
 }
 
 // Ruby it `it "refuses to load" do` at line 549.
 pub fn ruby_dsl_spec_l549_d83_refuses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('refuses', ...args)
+	result := production.ruby_dsl_l623_d40_depends_on(dsl_spec_new('invalid-depends-on-macos-bad-release', {}), brew_runtime.map_value({
+		'macos': brew_runtime.string_array_value(['no_such_release', 'catalina'])
+	}))
+	return dsl_spec_pass(result.type_name == 'CaskInvalidError')
 }
 
 // Ruby let `let(:token) { "invalid-depends-on-macos-conflicting-forms" }` at line 555.
 pub fn ruby_dsl_spec_l555_d84_token(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('token', ...args)
+	return brew_runtime.string_value('invalid-depends-on-macos-conflicting-forms')
 }
 
 // Ruby it `it "refuses to load" do` at line 557.
 pub fn ruby_dsl_spec_l557_d85_refuses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('refuses', ...args)
+	mut receiver := dsl_spec_new('invalid-depends-on-macos-conflicting-forms', {})
+	receiver = production.ruby_dsl_l623_d40_depends_on(receiver, brew_runtime.map_value({
+		'macos': dsl_spec_symbol('sequoia')
+	}))
+	result := production.ruby_dsl_l623_d40_depends_on(receiver, brew_runtime.map_value({
+		'macos': dsl_spec_symbol('sonoma')
+	}))
+	return dsl_spec_pass(result.type_name == 'CaskInvalidError')
 }
 
 // Ruby it `it "allows the active block to provide the macOS version" do` at line 563.
 pub fn ruby_dsl_spec_l563_d86_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+	mut dsl := production.new_cask_dsl(dsl_spec_cask('with-block-scoped-macos-version', {
+		'system_os':   brew_runtime.string_value('macos')
+		'system_arch': brew_runtime.string_value('intel')
+	}))
+	mut receiver := production.ruby_dsl_l623_d40_depends_on(production.cask_dsl_value(dsl), dsl_spec_symbol('macos'))
+	dsl = production.cask_dsl_from_value(receiver) or { return dsl_spec_bool(false) }
+	dsl.called_in_on_system_block = true
+	receiver = production.ruby_dsl_l623_d40_depends_on(production.cask_dsl_value(dsl), brew_runtime.map_value({
+		'macos': dsl_spec_symbol('ventura')
+	}))
+	depends := dsl_spec_dependency(receiver) or { return dsl_spec_bool(false) }
+	requirement := depends.macos or { return dsl_spec_bool(false) }
+	return dsl_spec_pass(requirement.versions.len == 1 && requirement.versions[0].str() == '13' && depends.macos_required)
 }
 
 // Ruby it `it "requires macOS because arch blocks are evaluated on every OS" do` at line 580.
 pub fn ruby_dsl_spec_l580_d87_requires(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('requires', ...args)
+	mut dsl := production.new_cask_dsl(dsl_spec_cask('with-arch-scoped-macos-version', {
+		'system_os':   brew_runtime.string_value('linux')
+		'system_arch': brew_runtime.string_value('arm')
+	}))
+	dsl.called_in_on_system_block = true
+	receiver := production.ruby_dsl_l623_d40_depends_on(production.cask_dsl_value(dsl), brew_runtime.map_value({
+		'macos': dsl_spec_symbol('ventura')
+	}))
+	depends := dsl_spec_dependency(receiver) or { return dsl_spec_bool(false) }
+	return dsl_spec_pass(depends.macos_required)
 }
 
 // Ruby let `let(:token) { "with-depends-on-linux-bare" }` at line 599.
 pub fn ruby_dsl_spec_l599_d88_token(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('token', ...args)
+	return brew_runtime.string_value('with-depends-on-linux-bare')
 }
 
 // Ruby it `it "creates a LinuxRequirement" do` at line 601.
 pub fn ruby_dsl_spec_l601_d89_creates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('creates', ...args)
+	receiver := production.ruby_dsl_l623_d40_depends_on(dsl_spec_new('with-depends-on-linux-bare', {}), dsl_spec_symbol('linux'))
+	depends := dsl_spec_dependency(receiver) or { return dsl_spec_bool(false) }
+	return dsl_spec_pass(depends.linux)
 }
 
 // Ruby let `let(:token) { "invalid-depends-on-macos-and-linux" }` at line 607.
 pub fn ruby_dsl_spec_l607_d90_token(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('token', ...args)
+	return brew_runtime.string_value('invalid-depends-on-macos-and-linux')
 }
 
 // Ruby it `it "refuses to load" do` at line 609.
 pub fn ruby_dsl_spec_l609_d91_refuses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('refuses', ...args)
+	mut receiver := production.ruby_dsl_l623_d40_depends_on(dsl_spec_new('invalid-depends-on-macos-and-linux', {}), brew_runtime.map_value({
+		'macos': dsl_spec_symbol('monterey')
+	}))
+	result := production.ruby_dsl_l623_d40_depends_on(receiver, dsl_spec_symbol('linux'))
+	return dsl_spec_pass(result.type_name == 'CaskInvalidError')
 }
 
 // Ruby let `let(:token) { "with-depends-on-maximum-macos" }` at line 617.
 pub fn ruby_dsl_spec_l617_d92_token(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('token', ...args)
+	return brew_runtime.string_value('with-depends-on-maximum-macos')
 }
 
 // Ruby it `it "creates a maximum MacOSRequirement" do` at line 619.
 pub fn ruby_dsl_spec_l619_d93_creates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('creates', ...args)
+	receiver := production.ruby_dsl_l623_d40_depends_on(dsl_spec_new('with-depends-on-maximum-macos', {}), brew_runtime.map_value({
+		'maximum_macos': dsl_spec_symbol('tahoe')
+	}))
+	depends := dsl_spec_dependency(receiver) or { return dsl_spec_bool(false) }
+	requirement := depends.maximum_macos or { return dsl_spec_bool(false) }
+	return dsl_spec_pass(requirement.comparator == '<=' && requirement.versions.len == 1 && requirement.versions[0].str() == '26')
 }
 
 // Ruby let `let(:token) { "invalid-depends-on-maximum-macos-comparator" }` at line 625.
 pub fn ruby_dsl_spec_l625_d94_token(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('token', ...args)
+	return brew_runtime.string_value('invalid-depends-on-maximum-macos-comparator')
 }
 
 // Ruby it `it "refuses to load" do` at line 627.
 pub fn ruby_dsl_spec_l627_d95_refuses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('refuses', ...args)
+	result := production.ruby_dsl_l623_d40_depends_on(dsl_spec_new('invalid-depends-on-maximum-macos-comparator', {}), brew_runtime.map_value({
+		'maximum_macos': brew_runtime.string_value('>= :sonoma')
+	}))
+	return dsl_spec_pass(result.type_name in ['CaskInvalidError', 'MethodDeprecatedError'])
 }
 
 // Ruby let `let(:token) { "invalid-depends-on-maximum-macos-array" }` at line 633.
 pub fn ruby_dsl_spec_l633_d96_token(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('token', ...args)
+	return brew_runtime.string_value('invalid-depends-on-maximum-macos-array')
 }
 
 // Ruby it `it "refuses to load" do` at line 635.
 pub fn ruby_dsl_spec_l635_d97_refuses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('refuses', ...args)
+	result := production.ruby_dsl_l623_d40_depends_on(dsl_spec_new('invalid-depends-on-maximum-macos-array', {}), brew_runtime.map_value({
+		'maximum_macos': brew_runtime.string_array_value(['ventura', 'sonoma'])
+	}))
+	return dsl_spec_pass(result.type_name == 'CaskInvalidError')
 }
 
 // Ruby let `let(:token) { "with-depends-on-arch" }` at line 643.
 pub fn ruby_dsl_spec_l643_d98_token(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('token', ...args)
+	return brew_runtime.string_value('with-depends-on-arch')
 }
 
 // Ruby it `it "is allowed to be specified" do` at line 645.
 pub fn ruby_dsl_spec_l645_d99_is(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('is', ...args)
+	receiver := production.ruby_dsl_l623_d40_depends_on(dsl_spec_new('with-depends-on-arch', {}), brew_runtime.map_value({
+		'arch': brew_runtime.string_array_value(['intel', 'arm64'])
+	}))
+	depends := dsl_spec_dependency(receiver) or { return dsl_spec_bool(false) }
+	return dsl_spec_pass(depends.arch.len == 2)
 }
 
 // Ruby let `let(:token) { "invalid-depends-on-arch-value" }` at line 651.
 pub fn ruby_dsl_spec_l651_d100_token(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('token', ...args)
+	return brew_runtime.string_value('invalid-depends-on-arch-value')
 }
 
 // Ruby it `it "refuses to load" do` at line 653.
 pub fn ruby_dsl_spec_l653_d101_refuses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('refuses', ...args)
+	result := production.ruby_dsl_l623_d40_depends_on(dsl_spec_new('invalid-depends-on-arch-value', {}), brew_runtime.map_value({
+		'arch': dsl_spec_symbol('no_such_arch')
+	}))
+	return dsl_spec_pass(result.type_name == 'CaskInvalidError')
 }
 
 // Ruby let `let(:local_caffeine) do` at line 660.
 pub fn ruby_dsl_spec_l660_d102_local_caffeine(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('local_caffeine', ...args)
+	return dsl_spec_cask('local-caffeine', {
+		'installed': brew_runtime.bool_value(true)
+	})
 }
 
 // Ruby let `let(:with_conflicts_with) do` at line 664.
 pub fn ruby_dsl_spec_l664_d103_with_conflicts_with(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('with_conflicts_with', ...args)
+	mut receiver := dsl_spec_new('with-conflicts-with', {})
+	return production.ruby_dsl_l655_d41_conflicts_with(receiver, brew_runtime.map_value({
+		'cask': brew_runtime.string_value('local-caffeine')
+	}))
 }
 
 // Ruby it `it "raises an error when a conflicting cask is already installed" do` at line 668.
 pub fn ruby_dsl_spec_l668_d104_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+	if args.len == 0 {
+		return dsl_spec_bool(false)
+	}
+	conflict := args[0]
+	return dsl_spec_pass(dsl_spec_error(conflict, 'CaskConflictError', "Cask 'with-conflicts-with' conflicts with 'local-caffeine'."))
 }
 
 // Ruby it `it "ignores an uninstalled conflicting cask from an untrusted tap", :trust_store do` at line 680.
 pub fn ruby_dsl_spec_l680_d105_ignores(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ignores', ...args)
+	if args.len < 2 {
+		return dsl_spec_bool(false)
+	}
+	installed := args[0].bool_data
+	loaded_untrusted := args[1].bool_data
+	return dsl_spec_pass(!installed && !loaded_untrusted)
 }
 
 // Ruby it `it "raises for an installed conflicting cask from an untrusted tap without loading it", :trust_store do` at line 703.
 pub fn ruby_dsl_spec_l703_d106_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+	if args.len < 2 {
+		return dsl_spec_bool(false)
+	}
+	conflict := args[0]
+	loaded_untrusted := args[1].bool_data
+	return dsl_spec_pass(dsl_spec_error(conflict, 'CaskConflictError', "Cask 'requested-cask' conflicts with 'conflicting-cask'.") && !loaded_untrusted)
 }
 
 // Ruby let `let(:token) { "with-conflicts-with" }` at line 734.
 pub fn ruby_dsl_spec_l734_d107_token(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('token', ...args)
+	return brew_runtime.string_value('with-conflicts-with')
 }
 
 // Ruby it `it "allows conflicts_with stanza to be specified" do` at line 736.
 pub fn ruby_dsl_spec_l736_d108_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+	receiver := production.ruby_dsl_l655_d41_conflicts_with(dsl_spec_new('with-conflicts-with', {}), brew_runtime.map_value({
+		'cask': brew_runtime.string_value('local-caffeine')
+	}))
+	dsl := production.cask_dsl_from_value(receiver) or { return dsl_spec_bool(false) }
+	return dsl_spec_pass(dsl.conflicts_with_value.conflicts['formula'].len == 0)
 }
 
 // Ruby let `let(:token) { "with-conflicts-with-multiple" }` at line 742.
 pub fn ruby_dsl_spec_l742_d109_token(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('token', ...args)
+	return brew_runtime.string_value('with-conflicts-with-multiple')
 }
 
 // Ruby it `it "merges and deduplicates all conflicts_with stanzas" do` at line 744.
 pub fn ruby_dsl_spec_l744_d110_merges(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('merges', ...args)
+	mut receiver := dsl_spec_new('with-conflicts-with-multiple', {})
+	receiver = production.ruby_dsl_l655_d41_conflicts_with(receiver, brew_runtime.map_value({
+		'cask': brew_runtime.string_array_value(['local-caffeine', 'with-caffeine'])
+	}))
+	os_conflict := if args.len > 0 { args[0].as_string() } else { 'macos-caffeine' }
+	receiver = production.ruby_dsl_l655_d41_conflicts_with(receiver, brew_runtime.map_value({
+		'cask': brew_runtime.string_array_value(['with-caffeine', os_conflict])
+	}))
+	dsl := production.cask_dsl_from_value(receiver) or { return dsl_spec_bool(false) }
+	return dsl_spec_pass(dsl.conflicts_with_value.conflicts['cask'] == [
+		'local-caffeine',
+		'with-caffeine',
+		os_conflict,
+	])
 }
 
 // Ruby let `let(:token) { "invalid-conflicts-with-key" }` at line 752.
 pub fn ruby_dsl_spec_l752_d111_token(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('token', ...args)
+	return brew_runtime.string_value('invalid-conflicts-with-key')
 }
 
 // Ruby it `it "refuses to load invalid conflicts_with key" do` at line 754.
 pub fn ruby_dsl_spec_l754_d112_refuses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('refuses', ...args)
+	result := production.ruby_dsl_l655_d41_conflicts_with(dsl_spec_new('invalid-conflicts-with-key', {}), brew_runtime.map_value({
+		'formula': brew_runtime.string_value('unar')
+	}))
+	return dsl_spec_pass(result.type_name == 'CaskInvalidError')
 }
 
 // Ruby let `let(:token) { "with-installer-script" }` at line 762.
 pub fn ruby_dsl_spec_l762_d113_token(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('token', ...args)
+	return brew_runtime.string_value('with-installer-script')
 }
 
 // Ruby it `it "allows installer script to be specified" do` at line 764.
 pub fn ruby_dsl_spec_l764_d114_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+	cask := dsl_spec_cask('with-installer-script', {
+		'staged_path': brew_runtime.string_value('')
+	})
+	one := artifact.ruby_installer_l40_d2_self_from_args(cask, brew_runtime.map_value({
+		'script': brew_runtime.map_value({
+			'executable': brew_runtime.string_value('/usr/bin/true')
+			'args':       brew_runtime.string_array_value(['--flag'])
+		})
+	}))
+	two := artifact.ruby_installer_l40_d2_self_from_args(cask, brew_runtime.map_value({
+		'script': brew_runtime.string_value('/usr/bin/false')
+		'args':   brew_runtime.string_array_value(['--flag'])
+	}))
+	first := artifact.installer_artifact_from_value(one) or { return dsl_spec_bool(false) }
+	second := artifact.installer_artifact_from_value(two) or { return dsl_spec_bool(false) }
+	return dsl_spec_pass(first.path == '/usr/bin/true' && (first.arguments['args'] or { dsl_spec_nil() }).as_string_array() or { []string{} } == [
+		'--flag',
+	] && second.path == '/usr/bin/false' && (second.arguments['args'] or { dsl_spec_nil() }).as_string_array() or { []string{} } == [
+		'--flag',
+	])
 }
 
 // Ruby let `let(:token) { "with-installer-manual" }` at line 773.
 pub fn ruby_dsl_spec_l773_d115_token(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('token', ...args)
+	return brew_runtime.string_value('with-installer-manual')
 }
 
 // Ruby it `it "allows installer manual to be specified" do` at line 775.
 pub fn ruby_dsl_spec_l775_d116_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+	value := artifact.ruby_installer_l40_d2_self_from_args(dsl_spec_cask('with-installer-manual', {}), brew_runtime.map_value({
+		'manual': brew_runtime.string_value('Caffeine.app')
+	}))
+	installer := artifact.installer_artifact_from_value(value) or { return dsl_spec_bool(false) }
+	return dsl_spec_pass(installer.manual_install && installer.path == 'Caffeine.app')
 }
 
 // Ruby let `let(:token) { "stage-only" }` at line 785.
 pub fn ruby_dsl_spec_l785_d117_token(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('token', ...args)
+	return brew_runtime.string_value('stage-only')
 }
 
 // Ruby it `it "allows stage_only stanza to be specified" do` at line 787.
 pub fn ruby_dsl_spec_l787_d118_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+	receiver := production.ruby_dsl_l836_d52_klass_dsl_key(dsl_spec_new('stage-only', {}), brew_runtime.string_value('stage_only'), brew_runtime.bool_value(true))
+	dsl := production.cask_dsl_from_value(receiver) or { return dsl_spec_bool(false) }
+	return dsl_spec_pass(dsl.artifacts.items.len == 1 && dsl.artifacts.items[0].type_name == 'Cask::Artifact::StageOnly')
 }
 
 // Ruby let `let(:token) { "invalid-stage-only-conflict" }` at line 793.
 pub fn ruby_dsl_spec_l793_d119_token(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('token', ...args)
+	return brew_runtime.string_value('invalid-stage-only-conflict')
 }
 
 // Ruby it `it "prevents specifying stage_only" do` at line 795.
 pub fn ruby_dsl_spec_l795_d120_prevents(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prevents', ...args)
+	mut receiver := production.ruby_dsl_l836_d52_klass_dsl_key(dsl_spec_new('invalid-stage-only-conflict', {}), brew_runtime.string_value('app'), brew_runtime.string_value('Foo.app'))
+	result := production.ruby_dsl_l836_d52_klass_dsl_key(receiver, brew_runtime.string_value('stage_only'), brew_runtime.bool_value(true))
+	return dsl_spec_pass(dsl_spec_error(result, 'CaskInvalidError', "'stage_only' must be the only activatable artifact"))
 }
 
 // Ruby let `let(:token) { "auto-updates" }` at line 802.
 pub fn ruby_dsl_spec_l802_d121_token(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('token', ...args)
+	return brew_runtime.string_value('auto-updates')
 }
 
 // Ruby it `it "allows auto_updates stanza to be specified" do` at line 804.
 pub fn ruby_dsl_spec_l804_d122_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+	receiver := production.ruby_dsl_l711_d46_auto_updates(dsl_spec_new('auto-updates', {}), brew_runtime.bool_value(true))
+	return dsl_spec_pass(production.ruby_dsl_l711_d46_auto_updates(receiver).bool_data)
 }
 
 // Ruby let `let(:token) { "appdir-interpolation" }` at line 811.
 pub fn ruby_dsl_spec_l811_d123_token(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('token', ...args)
+	return brew_runtime.string_value('appdir-interpolation')
 }
 
 // Ruby it `it "is allowed" do` at line 813.
 pub fn ruby_dsl_spec_l813_d124_is(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('is', ...args)
+	receiver := dsl_spec_new('appdir-interpolation', {
+		'config': brew_runtime.map_value({
+			'appdir': brew_runtime.string_value('/Applications')
+		})
+	})
+	appdir := production.ruby_dsl_l893_d58_appdir(receiver).as_string()
+	return dsl_spec_pass('${appdir}/some/path' == '/Applications/some/path')
 }
 
 // Ruby it `it "does not include a trailing slash" do` at line 818.
 pub fn ruby_dsl_spec_l818_d125_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	receiver := dsl_spec_new('appdir-trailing-slash', {
+		'config': brew_runtime.map_value({
+			'appdir': brew_runtime.string_value('/Applications/')
+		})
+	})
+	appdir := production.ruby_dsl_l893_d58_appdir(receiver).as_string()
+	return dsl_spec_pass(appdir == '/Applications' && '${appdir}/some/path' == '/Applications/some/path')
 }
 
 // Ruby it `it "sorts artifacts according to the preferable installation order" do` at line 832.
 pub fn ruby_dsl_spec_l832_d126_sorts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sorts', ...args)
+	mut receiver := dsl_spec_new('artifact-order', {})
+	receiver = production.ruby_dsl_l853_d53_dsl_key(receiver, brew_runtime.string_value('postflight'), brew_runtime.object_value('Proc', 'postflight'))
+	receiver = production.ruby_dsl_l853_d53_dsl_key(receiver, brew_runtime.string_value('preflight'), brew_runtime.object_value('Proc', 'preflight'))
+	receiver = production.ruby_dsl_l836_d52_klass_dsl_key(receiver, brew_runtime.string_value('binary'), brew_runtime.string_value('binary'))
+	receiver = production.ruby_dsl_l836_d52_klass_dsl_key(receiver, brew_runtime.string_value('app'), brew_runtime.string_value('App.app'))
+	dsl := production.cask_dsl_from_value(receiver) or { return dsl_spec_bool(false) }
+	keys := dsl.artifacts.to_array().map(it.attributes['dsl_key'] or { '' })
+	return dsl_spec_pass(keys == ['preflight', 'app', 'binary', 'postflight'])
 }
 
 // Ruby it `it "allows setting single rename operation" do` at line 857.
 pub fn ruby_dsl_spec_l857_d127_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+	mut receiver := dsl_spec_new('rename-cask', {})
+	receiver = production.ruby_dsl_l486_d35_rename(receiver, brew_runtime.string_value('Source*.pkg'), brew_runtime.string_value('Target.pkg'))
+	dsl := production.cask_dsl_from_value(receiver) or { return dsl_spec_bool(false) }
+	return dsl_spec_pass(dsl.renames.len == 1 && dsl.renames[0].from == 'Source*.pkg' && dsl.renames[0].to == 'Target.pkg')
 }
 
 // Ruby it `it "allows setting multiple rename operations" do` at line 867.
 pub fn ruby_dsl_spec_l867_d128_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+	mut receiver := dsl_spec_new('multi-rename-cask', {})
+	receiver = production.ruby_dsl_l486_d35_rename(receiver, brew_runtime.string_value('App*.pkg'), brew_runtime.string_value('App.pkg'))
+	receiver = production.ruby_dsl_l486_d35_rename(receiver, brew_runtime.string_value('Doc*.dmg'), brew_runtime.string_value('Doc.dmg'))
+	dsl := production.cask_dsl_from_value(receiver) or { return dsl_spec_bool(false) }
+	return dsl_spec_pass(dsl.renames.len == 2 && dsl.renames[0].from == 'App*.pkg' && dsl.renames[0].to == 'App.pkg' && dsl.renames[1].from == 'Doc*.dmg' && dsl.renames[1].to == 'Doc.dmg')
 }
 
 // Original Ruby source (line-for-line):

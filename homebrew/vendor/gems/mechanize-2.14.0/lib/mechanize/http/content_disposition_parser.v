@@ -1,58 +1,380 @@
 module http
 
-import brew_runtime
+import time
 
 // Translated from Homebrew/brew `vendor/gems/mechanize-2.14.0/lib/mechanize/http/content_disposition_parser.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub struct ContentDispositionScanner {
+pub:
+	input string
+pub mut:
+	position int
+}
 
-// Ruby attr_accessor `attr_accessor :scanner` at line 24.
-pub fn ruby_content_disposition_parser_l24_d1_scanner(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('scanner', ...args)
+pub struct ContentDispositionParameters {
+pub mut:
+	filename          ?string
+	creation_date     ?time.Time
+	modification_date ?time.Time
+	read_date         ?time.Time
+	size              ?i64
+	parameters        map[string]string
+}
+
+pub struct ContentDisposition {
+pub:
+	disposition_type  ?string
+	filename          ?string
+	creation_date     ?time.Time
+	modification_date ?time.Time
+	read_date         ?time.Time
+	size              ?i64
+	parameters        map[string]string
+}
+
+pub struct ContentDispositionParser {
+mut:
+	scanner     ContentDispositionScanner
+	has_scanner bool
+}
+
+pub fn new_content_disposition_scanner(input string) ContentDispositionScanner {
+	return ContentDispositionScanner{
+		input: input
+	}
+}
+
+pub fn new_content_disposition_parser() ContentDispositionParser {
+	return ContentDispositionParser{}
+}
+
+fn (scanner &ContentDispositionScanner) at_end() bool {
+	return scanner.position >= scanner.input.len
+}
+
+fn (scanner &ContentDispositionScanner) peek_byte() ?u8 {
+	if scanner.at_end() {
+		return none
+	}
+	return scanner.input[scanner.position]
+}
+
+fn (mut scanner ContentDispositionScanner) scan_ascii_case_insensitive(text string) bool {
+	if scanner.position + text.len > scanner.input.len {
+		return false
+	}
+	candidate := scanner.input[scanner.position..scanner.position + text.len].clone()
+	if candidate.to_lower() != text.to_lower() {
+		return false
+	}
+	scanner.position += text.len
+	return true
+}
+
+fn (mut scanner ContentDispositionScanner) scan_byte(character u8) bool {
+	if current := scanner.peek_byte() {
+		if current == character {
+			scanner.position++
+			return true
+		}
+	}
+	return false
+}
+
+fn (mut scanner ContentDispositionScanner) scan_semicolons() bool {
+	start := scanner.position
+	for scanner.scan_byte(`;`) {
+	}
+	return scanner.position > start
+}
+
+fn content_disposition_token_byte(character u8) bool {
+	if character <= 31 || character >= 127 || character == ` ` {
+		return false
+	}
+	return character !in [`(`, `)`, `<`, `>`, `@`, `,`, `;`, `:`, `\\`, `"`, `/`, `[`, `]`, `?`,
+		`=`]
+}
+
+fn ruby_decimal_integer(value string) i64 {
+	if value.len == 0 {
+		return 0
+	}
+	mut index := 0
+	mut negative := false
+	if value[0] == `-` || value[0] == `+` {
+		negative = value[0] == `-`
+		index++
+	}
+	mut parsed := i64(0)
+	mut digits := 0
+	for index < value.len && value[index] >= `0` && value[index] <= `9` {
+		parsed = parsed * 10 + i64(value[index] - `0`)
+		index++
+		digits++
+	}
+	if digits == 0 {
+		return 0
+	}
+	return if negative { -parsed } else { parsed }
+}
+
+fn content_disposition_date(value string) ?time.Time {
+	if parsed := time.parse_rfc2822(value) {
+		return parsed
+	}
+	if parsed := time.parse_iso8601(value) {
+		return parsed
+	}
+	return none
+}
+
+pub fn parse_content_disposition(content_disposition string, header bool) ?ContentDisposition {
+	mut parser := new_content_disposition_parser()
+	return parser.parse(content_disposition, header)
+}
+
+pub fn (mut parser ContentDispositionParser) parse(content_disposition string,
+	header bool) ?ContentDisposition {
+	if content_disposition.len == 0 {
+		return none
+	}
+	parser.scanner = new_content_disposition_scanner(content_disposition)
+	parser.has_scanner = true
+	if header {
+		if !parser.scanner.scan_ascii_case_insensitive('Content-Disposition') {
+			return none
+		}
+		if !parser.scanner.scan_byte(`:`) {
+			return none
+		}
+		parser.spaces()
+	}
+	mut disposition_type := parser.rfc_2045_token()
+	parser.spaces()
+	parser.scanner.scan_semicolons()
+	parser.spaces()
+	if current := parser.scanner.peek_byte() {
+		if current == `=` {
+			parser.scanner.position = if header {
+				'Content-Disposition:'.len
+			} else {
+				0
+			}
+			if header {
+				parser.spaces()
+			}
+			disposition_type = none
+		}
+	}
+	parameters := parser.parse_parameters() or { return none }
+	return ContentDisposition{
+		disposition_type: disposition_type
+		filename: parameters.filename
+		creation_date: parameters.creation_date
+		modification_date: parameters.modification_date
+		read_date: parameters.read_date
+		size: parameters.size
+		parameters: parameters.parameters.clone()
+	}
+}
+
+pub fn (mut parser ContentDispositionParser) parse_parameters() ?ContentDispositionParameters {
+	if !parser.has_scanner {
+		return none
+	}
+	mut output := ContentDispositionParameters{
+		parameters: map[string]string{}
+	}
+	for {
+		parameter_name := parser.rfc_2045_token() or { return none }
+		name := parameter_name.to_lower()
+		if !parser.scanner.scan_byte(`=`) {
+			return none
+		}
+		match name {
+			'filename' {
+				output.filename = parser.rfc_2045_value() or { return none }
+			}
+			'creation-date', 'modification-date', 'read-date' {
+				value := parser.rfc_2045_quoted_string() or { return none }
+				parsed := content_disposition_date(value) or { return none }
+				match name {
+					'creation-date' {
+						output.creation_date = parsed
+					}
+					'modification-date' {
+						output.modification_date = parsed
+					}
+					else {
+						output.read_date = parsed
+					}
+				}
+			}
+			'size' {
+				value := parser.rfc_2045_value() or { return none }
+				output.size = ruby_decimal_integer(value)
+			}
+			else {
+				output.parameters[name] = parser.rfc_2045_value() or { return none }
+			}
+		}
+		parser.spaces()
+		if parser.scanner.at_end() {
+			break
+		}
+		if !parser.scanner.scan_semicolons() {
+			return none
+		}
+		parser.spaces()
+	}
+	return output
+}
+
+pub fn (mut parser ContentDispositionParser) rfc_2045_quoted_string() ?string {
+	if !parser.has_scanner || !parser.scanner.scan_byte(`"`) {
+		return none
+	}
+	mut text := []u8{}
+	for {
+		character := parser.scanner.peek_byte() or { return none }
+		if character == `"` {
+			parser.scanner.position++
+			return text.bytestr()
+		}
+		if character == `\\` {
+			parser.scanner.position++
+			escaped := parser.scanner.peek_byte() or { return none }
+			text << escaped
+			parser.scanner.position++
+			continue
+		}
+		if character == `\r` {
+			position := parser.scanner.position
+			if position + 2 >= parser.scanner.input.len || parser.scanner.input[position + 1] != `\n` || parser.scanner.input[position + 2] !in [
+				`\t`,
+				` `,
+			] {
+				return none
+			}
+			parser.scanner.position += 2
+			for parser.scanner.position < parser.scanner.input.len && parser.scanner.input[parser.scanner.position] in [
+				`\t`,
+				` `,
+			] {
+				parser.scanner.position++
+			}
+			text << ` `
+			continue
+		}
+		if character <= 12 || (character >= 14 && character <= 33) || (character >= 35 && character <= 91) || (character >= 93 && character <= 127) {
+			text << character
+			parser.scanner.position++
+			continue
+		}
+		return none
+	}
+	return none
+}
+
+pub fn (mut parser ContentDispositionParser) rfc_2045_token() ?string {
+	if !parser.has_scanner {
+		return none
+	}
+	start := parser.scanner.position
+	for !parser.scanner.at_end() {
+		character := parser.scanner.peek_byte() or { break }
+		if !content_disposition_token_byte(character) {
+			break
+		}
+		parser.scanner.position++
+	}
+	if parser.scanner.position == start {
+		return none
+	}
+	return parser.scanner.input[start..parser.scanner.position]
+}
+
+pub fn (mut parser ContentDispositionParser) rfc_2045_value() ?string {
+	if !parser.has_scanner {
+		return none
+	}
+	if character := parser.scanner.peek_byte() {
+		if character == `"` {
+			return parser.rfc_2045_quoted_string()
+		}
+	}
+	return parser.rfc_2045_token()
+}
+
+pub fn (mut parser ContentDispositionParser) spaces() ?string {
+	if !parser.has_scanner {
+		return none
+	}
+	start := parser.scanner.position
+	for parser.scanner.scan_byte(` `) {
+	}
+	if parser.scanner.position == start {
+		return none
+	}
+	return parser.scanner.input[start..parser.scanner.position]
 }
 
 // Ruby attr_accessor `attr_accessor :scanner` at line 24.
-pub fn ruby_content_disposition_parser_l24_d2_scanner(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('scanner=', ...args)
+pub fn ruby_content_disposition_parser_l24_d1_scanner(parser &ContentDispositionParser) ?ContentDispositionScanner {
+	if !parser.has_scanner {
+		return none
+	}
+	return parser.scanner
+}
+
+// Ruby attr_accessor `attr_accessor :scanner` at line 24.
+pub fn ruby_content_disposition_parser_l24_d2_scanner(mut parser ContentDispositionParser,
+	scanner ContentDispositionScanner) ContentDispositionScanner {
+	parser.scanner = scanner
+	parser.has_scanner = true
+	return scanner
 }
 
 // Ruby method `self.parse content_disposition` at line 32.
-pub fn ruby_content_disposition_parser_l32_d3_self_parse(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.parse', ...args)
+pub fn ruby_content_disposition_parser_l32_d3_self_parse(content_disposition string) ?ContentDisposition {
+	return parse_content_disposition(content_disposition, false)
 }
 
 // Ruby method `initialize` at line 40.
-pub fn ruby_content_disposition_parser_l40_d4_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+pub fn ruby_content_disposition_parser_l40_d4_initialize() ContentDispositionParser {
+	return new_content_disposition_parser()
 }
 
 // Ruby method `parse content_disposition, header = false` at line 48.
-pub fn ruby_content_disposition_parser_l48_d5_parse(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('parse', ...args)
+pub fn ruby_content_disposition_parser_l48_d5_parse(mut parser ContentDispositionParser,
+	content_disposition string, header bool) ?ContentDisposition {
+	return parser.parse(content_disposition, header)
 }
 
 // Ruby method `parse_parameters` at line 86.
-pub fn ruby_content_disposition_parser_l86_d6_parse_parameters(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('parse_parameters', ...args)
+pub fn ruby_content_disposition_parser_l86_d6_parse_parameters(mut parser ContentDispositionParser) ?ContentDispositionParameters {
+	return parser.parse_parameters()
 }
 
 // Ruby method `rfc_2045_quoted_string` at line 137.
-pub fn ruby_content_disposition_parser_l137_d7_rfc_2045_quoted_string(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('rfc_2045_quoted_string', ...args)
+pub fn ruby_content_disposition_parser_l137_d7_rfc_2045_quoted_string(mut parser ContentDispositionParser) ?string {
+	return parser.rfc_2045_quoted_string()
 }
 
 // Ruby method `rfc_2045_token` at line 176.
-pub fn ruby_content_disposition_parser_l176_d8_rfc_2045_token(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('rfc_2045_token', ...args)
+pub fn ruby_content_disposition_parser_l176_d8_rfc_2045_token(mut parser ContentDispositionParser) ?string {
+	return parser.rfc_2045_token()
 }
 
 // Ruby method `rfc_2045_value` at line 185.
-pub fn ruby_content_disposition_parser_l185_d9_rfc_2045_value(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('rfc_2045_value', ...args)
+pub fn ruby_content_disposition_parser_l185_d9_rfc_2045_value(mut parser ContentDispositionParser) ?string {
+	return parser.rfc_2045_value()
 }
 
 // Ruby method `spaces` at line 198.
-pub fn ruby_content_disposition_parser_l198_d10_spaces(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('spaces', ...args)
+pub fn ruby_content_disposition_parser_l198_d10_spaces(mut parser ContentDispositionParser) ?string {
+	return parser.spaces()
 }
 
 // Original Ruby source (line-for-line):

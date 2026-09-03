@@ -1,93 +1,363 @@
 module requirements
 
 import brew_runtime
+import homebrew
+import x.json2
 
 // Translated from Homebrew/brew `requirements/macos_requirement.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub struct MacOSRequirement {
+pub:
+	comparator string
+	versions   []homebrew.MacOSVersion
+	tags       []string
+	fatal      bool = true
+}
+
+struct MacOSComparisonArgument {
+	comparator string
+	version    string
+}
+
+pub fn macos_oldest_allowed_version() homebrew.MacOSVersion {
+	configured := brew_runtime.environment_value('HOMEBREW_MACOS_OLDEST_ALLOWED')
+	value := if configured.len > 0 { configured } else { '10.15' }
+	return homebrew.new_macos_version(value) or { panic(err) }
+}
+
+pub fn macos_newest_unsupported_version() homebrew.MacOSVersion {
+	configured := brew_runtime.environment_value('HOMEBREW_MACOS_NEWEST_UNSUPPORTED')
+	value := if configured.len > 0 { configured } else { '27' }
+	return homebrew.new_macos_version(value) or { panic(err) }
+}
+
+fn macos_requirement_version(value string) !homebrew.MacOSVersion {
+	if value in homebrew.macos_symbol_versions() {
+		return homebrew.macos_version_from_symbol(value)
+	}
+	return homebrew.new_macos_version(value)
+}
+
+fn disabled_macos_requirement_version(value string) bool {
+	return value in ['mojave', 'high_sierra', 'sierra', 'el_capitan']
+}
+
+fn macos_comparison_argument(value string) ?MacOSComparisonArgument {
+	trimmed := value.trim_space()
+	for comparator in ['<=', '>=', '==', '<', '>'] {
+		if trimmed.starts_with(comparator) {
+			mut version := trimmed[comparator.len..].trim_space()
+			if version.starts_with(':') {
+				version = version[1..]
+			}
+			if version.len == 0 || version.contains(' ') || version.contains('\t') {
+				return none
+			}
+			return MacOSComparisonArgument{
+				comparator: comparator
+				version: version
+			}
+		}
+	}
+	return none
+}
+
+pub fn new_macos_requirement(tags []string, comparator string) !MacOSRequirement {
+	comparison := if comparator.len > 0 { comparator } else { '>=' }
+	if comparison !in ['>=', '<=', '==', '>', '<'] {
+		return error('unsupported macOS requirement comparator `${comparison}`')
+	}
+	if tags.len == 0 {
+		return MacOSRequirement{
+			comparator: comparison
+		}
+	}
+	version := macos_requirement_version(tags[0]) or {
+		if disabled_macos_requirement_version(tags[0]) {
+			return MacOSRequirement{
+				comparator: comparison
+				versions: if comparison == '>=' {
+					[macos_oldest_allowed_version()]} else {
+					[]homebrew.MacOSVersion{}}
+				tags: tags[1..].clone()
+			}
+		}
+		return err
+	}
+	return MacOSRequirement{
+		comparator: comparison
+		versions: [version]
+		tags: tags[1..].clone()
+	}
+}
+
+pub fn new_macos_range_requirement(version_values []string, tags []string) !MacOSRequirement {
+	mut versions := []homebrew.MacOSVersion{}
+	for value in version_values {
+		version := macos_requirement_version(value) or {
+			if disabled_macos_requirement_version(value) {
+				continue
+			}
+			return err
+		}
+		versions << version
+	}
+	return MacOSRequirement{
+		comparator: '=='
+		versions: versions
+		tags: tags.clone()
+	}
+}
+
+pub fn parse_macos_requirement(arguments []string, comparator string) !MacOSRequirement {
+	if arguments.len == 0 || arguments[0] == 'any' {
+		return new_macos_requirement([]string{}, '>=')
+	}
+	if arguments.len > 1 {
+		return new_macos_range_requirement(arguments, []string{})
+	}
+	if arguments[0] in homebrew.macos_symbol_versions() {
+		return new_macos_requirement(arguments, comparator)
+	}
+	if comparison := macos_comparison_argument(arguments[0]) {
+		return new_macos_requirement([comparison.version], comparison.comparator)
+	}
+	return new_macos_requirement(arguments, '==')
+}
+
+pub fn (requirement MacOSRequirement) version_specified() bool {
+	return requirement.versions.len > 0
+}
+
+pub fn (requirement MacOSRequirement) macos_version_satisfied() bool {
+	return false
+}
+
+pub fn (requirement MacOSRequirement) satisfied_on(current homebrew.MacOSVersion,
+	running_on_macos bool) bool {
+	if !running_on_macos {
+		return false
+	}
+	if !requirement.version_specified() {
+		return true
+	}
+	for version in requirement.versions {
+		matches := match requirement.comparator {
+			'>=' { current.compare(version) >= 0 }
+			'<=' { current.compare(version) <= 0 }
+			else { current.compare(version) == 0 }
+		}
+		if matches {
+			return true
+		}
+	}
+	return false
+}
+
+pub fn (requirement MacOSRequirement) minimum_version() homebrew.MacOSVersion {
+	if requirement.comparator == '<=' || !requirement.version_specified() {
+		return macos_oldest_allowed_version()
+	}
+	mut minimum := requirement.versions[0]
+	for version in requirement.versions[1..] {
+		if version.compare(minimum) < 0 {
+			minimum = version
+		}
+	}
+	return minimum
+}
+
+pub fn (requirement MacOSRequirement) maximum_version() homebrew.MacOSVersion {
+	if requirement.comparator == '>=' || !requirement.version_specified() {
+		return macos_newest_unsupported_version()
+	}
+	mut maximum := requirement.versions[0]
+	for version in requirement.versions[1..] {
+		if version.compare(maximum) > 0 {
+			maximum = version
+		}
+	}
+	return maximum
+}
+
+pub fn (requirement MacOSRequirement) allows(other homebrew.MacOSVersion) bool {
+	if !requirement.version_specified() {
+		return true
+	}
+	return match requirement.comparator {
+		'>=' { other.compare(requirement.versions[0]) >= 0 }
+		'<=' { other.compare(requirement.versions[0]) <= 0 }
+		else { requirement.versions.any(it.compare(other) == 0) }
+	}
+}
+
+pub fn (requirement MacOSRequirement) message(dependent_type string,
+	running_on_macos bool) string {
+	subject := if dependent_type == 'cask' { 'This cask' } else { 'This formula' }
+	if !running_on_macos || !requirement.version_specified() {
+		return '${subject} requires macOS.'
+	}
+	match requirement.comparator {
+		'>=' {
+			return '${subject} does not run on macOS versions older than ${requirement.versions[0].pretty_name()}.'
+		}
+		'<=' {
+			if dependent_type == 'cask' {
+				return '${subject} does not run on macOS versions newer than ${requirement.versions[0].pretty_name()}.'
+			}
+			return '${subject} either does not compile or function as expected on macOS\nversions newer than ${requirement.versions[0].pretty_name()} due to an upstream incompatibility.\n'
+		}
+		else {
+			pretty_versions := requirement.versions.map(it.pretty_name())
+			if pretty_versions.len > 1 {
+				return '${subject} does not run on macOS versions other than ${pretty_versions[..pretty_versions.len - 1].join(', ')} and ${pretty_versions.last()}.'
+			}
+			return '${subject} does not run on macOS versions other than ${pretty_versions[0]}.'
+		}
+	}
+}
+
+pub fn (requirement MacOSRequirement) equals(other MacOSRequirement) bool {
+	if requirement.comparator != other.comparator || requirement.tags != other.tags || requirement.versions.len != other.versions.len {
+		return false
+	}
+	for index, version in requirement.versions {
+		if version.compare(other.versions[index]) != 0 {
+			return false
+		}
+	}
+	return true
+}
+
+pub fn (requirement MacOSRequirement) hash_value() i64 {
+	mut hash := u64(14695981039346656037)
+	for character in '${requirement.comparator}\0${requirement.versions.map(it.str()).join('\0')}\0${requirement.tags.join('\0')}'.bytes() {
+		hash = (hash ^ u64(character)) * u64(1099511628211)
+	}
+	return i64(hash)
+}
+
+pub fn (requirement MacOSRequirement) inspect() string {
+	version_text := if requirement.versions.len > 1 {
+		'[${requirement.versions.map(it.str()).join(', ')}]'
+	} else if requirement.versions.len == 1 {
+		requirement.versions[0].str()
+	} else {
+		''
+	}
+	return '#<MacOSRequirement: version${requirement.comparator}"${version_text}" ${requirement_tags_inspect(requirement.tags)}>'
+}
+
+pub fn (requirement MacOSRequirement) display_s() string {
+	if !requirement.version_specified() {
+		return 'macOS'
+	}
+	return 'macOS ${requirement.comparator} ${requirement.versions.map(it.str()).join(' / ')}'
+}
+
+pub fn (requirement MacOSRequirement) to_h() map[string][]string {
+	if !requirement.version_specified() {
+		return map[string][]string{}
+	}
+	return {
+		requirement.comparator: requirement.versions.map(it.str())
+	}
+}
+
+pub fn (requirement MacOSRequirement) to_json() string {
+	return json2.encode(requirement.to_h())
+}
 
 // Ruby attr_reader `attr_reader :comparator` at line 16.
-pub fn ruby_macos_requirement_l16_d1_comparator(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('comparator', ...args)
+pub fn ruby_macos_requirement_l16_d1_comparator(requirement MacOSRequirement) string {
+	return requirement.comparator
 }
 
 // Ruby attr_reader `attr_reader :version` at line 19.
-pub fn ruby_macos_requirement_l19_d2_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('version', ...args)
+pub fn ruby_macos_requirement_l19_d2_version(requirement MacOSRequirement) []homebrew.MacOSVersion {
+	return requirement.versions.clone()
 }
 
 // Ruby method `self.parse(args, comparator:)` at line 32.
-pub fn ruby_macos_requirement_l32_d3_self_parse(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.parse', ...args)
+pub fn ruby_macos_requirement_l32_d3_self_parse(arguments []string,
+	comparator string) !MacOSRequirement {
+	return parse_macos_requirement(arguments, comparator)
 }
 
 // Ruby method `initialize(tags = [], comparator: ">=")` at line 60.
-pub fn ruby_macos_requirement_l60_d4_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+pub fn ruby_macos_requirement_l60_d4_initialize(tags []string,
+	comparator string) !MacOSRequirement {
+	return new_macos_requirement(tags, comparator)
 }
 
 // Ruby method `version_specified?` at line 93.
-pub fn ruby_macos_requirement_l93_d5_version_specified(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('version_specified?', ...args)
+pub fn ruby_macos_requirement_l93_d5_version_specified(requirement MacOSRequirement) bool {
+	return requirement.version_specified()
 }
 
 // Ruby method `macos_version_satisfied? = false` at line 103.
-pub fn ruby_macos_requirement_l103_d6_macos_version_satisfied(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('macos_version_satisfied?', ...args)
+pub fn ruby_macos_requirement_l103_d6_macos_version_satisfied(requirement MacOSRequirement) bool {
+	return requirement.macos_version_satisfied()
 }
 
 // Ruby method `minimum_version` at line 106.
-pub fn ruby_macos_requirement_l106_d7_minimum_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('minimum_version', ...args)
+pub fn ruby_macos_requirement_l106_d7_minimum_version(requirement MacOSRequirement) homebrew.MacOSVersion {
+	return requirement.minimum_version()
 }
 
 // Ruby method `maximum_version` at line 114.
-pub fn ruby_macos_requirement_l114_d8_maximum_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('maximum_version', ...args)
+pub fn ruby_macos_requirement_l114_d8_maximum_version(requirement MacOSRequirement) homebrew.MacOSVersion {
+	return requirement.maximum_version()
 }
 
 // Ruby method `allows?(other)` at line 122.
-pub fn ruby_macos_requirement_l122_d9_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows?', ...args)
+pub fn ruby_macos_requirement_l122_d9_allows(requirement MacOSRequirement,
+	other homebrew.MacOSVersion) bool {
+	return requirement.allows(other)
 }
 
 // Ruby method `message(type: :formula)` at line 137.
-pub fn ruby_macos_requirement_l137_d10_message(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('message', ...args)
+pub fn ruby_macos_requirement_l137_d10_message(requirement MacOSRequirement,
+	dependent_type string) string {
+	return requirement.message(dependent_type, brew_runtime.kernel_info().name == 'Darwin')
 }
 
 // Ruby method `==(other)` at line 143.
-pub fn ruby_macos_requirement_l143_d11_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('==', ...args)
+pub fn ruby_macos_requirement_l143_d11_anonymous(requirement MacOSRequirement,
+	other MacOSRequirement) bool {
+	return requirement.equals(other)
 }
 
 // Ruby alias `alias eql? ==` at line 146.
-pub fn ruby_macos_requirement_l146_d12_eql(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('eql?', ...args)
+pub fn ruby_macos_requirement_l146_d12_eql(requirement MacOSRequirement,
+	other MacOSRequirement) bool {
+	return requirement.equals(other)
 }
 
 // Ruby method `hash` at line 149.
-pub fn ruby_macos_requirement_l149_d13_hash(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('hash', ...args)
+pub fn ruby_macos_requirement_l149_d13_hash(requirement MacOSRequirement) i64 {
+	return requirement.hash_value()
 }
 
 // Ruby method `inspect` at line 154.
-pub fn ruby_macos_requirement_l154_d14_inspect(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('inspect', ...args)
+pub fn ruby_macos_requirement_l154_d14_inspect(requirement MacOSRequirement) string {
+	return requirement.inspect()
 }
 
 // Ruby method `display_s` at line 159.
-pub fn ruby_macos_requirement_l159_d15_display_s(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('display_s', ...args)
+pub fn ruby_macos_requirement_l159_d15_display_s(requirement MacOSRequirement) string {
+	return requirement.display_s()
 }
 
 // Ruby method `to_h` at line 172.
-pub fn ruby_macos_requirement_l172_d16_to_h(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_h', ...args)
+pub fn ruby_macos_requirement_l172_d16_to_h(requirement MacOSRequirement) map[string][]string {
+	return requirement.to_h()
 }
 
 // Ruby method `to_json(options)` at line 182.
-pub fn ruby_macos_requirement_l182_d17_to_json(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_json', ...args)
+pub fn ruby_macos_requirement_l182_d17_to_json(requirement MacOSRequirement,
+	_options string) string {
+	return requirement.to_json()
 }
 
 // Original Ruby source (line-for-line):

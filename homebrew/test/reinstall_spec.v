@@ -1,28 +1,114 @@
 module test
 
 import brew_runtime
+import homebrew.reinstall as reinstall_core
+import os
+import time
 
 // Translated from Homebrew/brew `test/reinstall_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
+fn reinstall_spec_root(example string) string {
+	return os.join_path(os.temp_dir(), 'brew-v-reinstall-${example}-${os.getpid()}-${time.now().unix_micro()}')
+}
+
+fn reinstall_spec_formula(keg_path string, linked bool) reinstall_core.ReinstallFormula {
+	return reinstall_core.ReinstallFormula{
+		name: 'testball'
+		full_name: 'testball'
+		prefix: keg_path
+		opt_prefix: keg_path
+		resolved_opt_prefix: keg_path
+		installed_on_request: true
+		keg_linked: linked
+	}
+}
+
+fn reinstall_spec_write(path string, contents string) ! {
+	os.mkdir_all(os.dir(path))!
+	os.write_file(path, contents)!
+}
+
 // Ruby it `it "leaves the current keg in place until reinstalling", :integration_test do` at line 8.
 pub fn ruby_reinstall_spec_l8_d1_leaves(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('leaves', ...args)
+	_ = args
+	root := reinstall_spec_root('context')
+	defer {
+		os.rmdir_all(root) or {}
+	}
+	keg_path := os.join_path(root, 'Cellar', 'testball', '0.1')
+	reinstall_spec_write(os.join_path(keg_path, 'bin', 'test'), 'current') or {
+		return brew_runtime.bool_value(false)
+	}
+	formula := reinstall_spec_formula(keg_path, true)
+	context := reinstall_core.build_install_context(formula, reinstall_core.BuildInstallContextOptions{})
+	return brew_runtime.bool_value(context.has_keg && context.keg.path == keg_path
+		&& context.link_keg && os.is_dir(formula.prefix) && os.is_dir(formula.opt_prefix)
+		&& !os.exists('${keg_path}.reinstall'))
 }
 
 // Ruby it `it "restores and relinks a backup keg when reinstalling fails", :integration_test do` at line 25.
 pub fn ruby_reinstall_spec_l25_d2_restores(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('restores', ...args)
+	_ = args
+	root := reinstall_spec_root('restore')
+	defer {
+		os.rmdir_all(root) or {}
+	}
+	keg_path := os.join_path(root, 'Cellar', 'testball', '0.1')
+	test_file := os.join_path(keg_path, 'bin', 'test')
+	reinstall_spec_write(test_file, 'current') or { return brew_runtime.bool_value(false) }
+	mut context := reinstall_core.build_install_context(reinstall_spec_formula(keg_path, true), reinstall_core.BuildInstallContextOptions{})
+	context.formula_installer.install_error = 'boom'
+	reinstall_core.reinstall_formula(mut context) or {
+		contents := os.read_file(test_file) or { '' }
+		return brew_runtime.bool_value(err.msg() == 'boom' && contents == 'current'
+			&& context.keg.linked)
+	}
+	return brew_runtime.bool_value(false)
 }
 
 // Ruby it `it "does not back up the keg when reinstall was already attempted", :integration_test do` at line 42.
 pub fn ruby_reinstall_spec_l42_d3_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	_ = args
+	root := reinstall_spec_root('attempted')
+	defer {
+		os.rmdir_all(root) or {}
+	}
+	keg_path := os.join_path(root, 'Cellar', 'testball', '0.1')
+	test_file := os.join_path(keg_path, 'bin', 'test')
+	reinstall_spec_write(test_file, 'current') or { return brew_runtime.bool_value(false) }
+	mut context := reinstall_core.build_install_context(reinstall_spec_formula(keg_path, true), reinstall_core.BuildInstallContextOptions{})
+	context.formula_installer.already_attempted = true
+	result := reinstall_core.reinstall_formula(mut context) or {
+		return brew_runtime.bool_value(false)
+	}
+	contents := os.read_file(test_file) or { '' }
+	return brew_runtime.bool_value(result.already_attempted && contents == 'current'
+		&& context.keg.linked && !os.exists('${keg_path}.reinstall'))
 }
 
 // Ruby it `it "removes a stale reinstall backup keg" do` at line 64.
 pub fn ruby_reinstall_spec_l64_d4_removes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('removes', ...args)
+	_ = args
+	root := reinstall_spec_root('stale')
+	defer {
+		os.rmdir_all(root) or {}
+	}
+	keg_path := os.join_path(root, 'Cellar', 'testball', '0.1')
+	backup := '${keg_path}.reinstall'
+	reinstall_spec_write(os.join_path(keg_path, 'bin', 'test'), 'current') or {
+		return brew_runtime.bool_value(false)
+	}
+	reinstall_spec_write(os.join_path(backup, 'bin', 'test'), 'stale') or {
+		return brew_runtime.bool_value(false)
+	}
+	mut keg := reinstall_core.ReinstallKeg{
+		name: 'testball'
+		path: keg_path
+	}
+	reinstall_core.backup(mut keg) or { return brew_runtime.bool_value(false) }
+	contents := os.read_file(os.join_path(backup, 'bin', 'test')) or { '' }
+	return brew_runtime.bool_value(!os.exists(keg_path) && contents == 'current')
 }
 
 // Original Ruby source (line-for-line):

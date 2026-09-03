@@ -1,13 +1,17 @@
 module language
 
-import brew_runtime
-
 // Translated from Homebrew/brew `extend/os/mac/language/java.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub type OpenJdkFormulaFinder = fn(string) ?string
+
+pub fn mac_java_home(version string, finder OpenJdkFormulaFinder) ?string {
+	opt_libexec := finder(version) or { return none }
+	return '${opt_libexec.trim_right('/')}/openjdk.jdk/Contents/Home'
+}
 
 // Ruby method `java_home(version = nil)` at line 14.
-pub fn ruby_java_l14_d1_java_home(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('java_home', ...args)
+pub fn ruby_java_l14_d1_java_home(version string, finder OpenJdkFormulaFinder) ?string {
+	return mac_java_home(version, finder)
 }
 
 // Original Ruby source (line-for-line):

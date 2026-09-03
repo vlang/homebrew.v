@@ -7,7 +7,27 @@ import brew_runtime
 
 // Ruby method `stub_cask_loader(cask, ref = cask.token, call_original: false)` at line 14.
 pub fn ruby_cask_l14_d1_stub_cask_loader(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('stub_cask_loader', ...args)
+	if args.len == 0 || args[0].type_name != 'Cask' {
+		panic('stub_cask_loader requires a Cask')
+	}
+	ref := if args.len > 1 && args[1].type_name != 'NilClass' {
+		args[1].as_string()
+	} else {
+		args[0].attribute('token') or { args[0].as_string() }
+	}
+	call_original := args.len > 2 && (args[2].as_bool() or { false })
+	return brew_runtime.Value{
+		type_name: 'CaskLoaderStub'
+		repr: ref
+		map_data: {
+			'cask': args[0]
+		}
+		attributes: {
+			'ref':           ref
+			'call_original': call_original.str()
+			'loader':        'CaskLoader::FromInstanceLoader'
+		}
+	}
 }
 
 // Original Ruby source (line-for-line):

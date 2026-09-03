@@ -1,53 +1,105 @@
 module keg_relocate
 
 import brew_runtime
+import homebrew
+import os
 
 // Translated from Homebrew/brew `test/keg_relocate/text_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:keg) { described_class.new(HOMEBREW_CELLAR/"foo/1.0.0") }` at line 7.
 pub fn ruby_text_spec_l7_d1_keg(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('keg', ...args)
+	return homebrew.keg_relocation_keg_value(text_spec_keg(text_spec_temp('keg')))
 }
 
 // Ruby let `let(:dir) { mktmpdir }` at line 9.
 pub fn ruby_text_spec_l9_d2_dir(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dir', ...args)
+	return brew_runtime.object_value('Pathname', text_spec_temp('dir'))
 }
 
 // Ruby let `let(:file) { dir/"file.txt" }` at line 10.
 pub fn ruby_text_spec_l10_d3_file(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('file', ...args)
+	return brew_runtime.object_value('Pathname', os.join_path(text_spec_temp('dir'), 'file.txt'))
 }
 
 // Ruby let `let(:placeholder) { "@@PLACEHOLDER@@" }` at line 11.
 pub fn ruby_text_spec_l11_d4_placeholder(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('placeholder', ...args)
+	return brew_runtime.string_value('@@PLACEHOLDER@@')
 }
 
 // Ruby method `setup_file(placeholders: false)` at line 17.
 pub fn ruby_text_spec_l17_d5_setup_file(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('setup_file', ...args)
+	dir := if args.len > 0 { args[0].as_string() } else { text_spec_temp('setup') }
+	placeholders := args.len > 1 && args[1].bool_data
+	file := text_spec_write_file(dir, placeholders) or { return brew_runtime.object_value('SystemCallError', err.msg()) }
+	return brew_runtime.object_value('Pathname', file)
 }
 
 // Ruby method `setup_relocation(placeholders: false)` at line 28.
 pub fn ruby_text_spec_l28_d6_setup_relocation(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('setup_relocation', ...args)
+	dir := if args.len > 0 { args[0].as_string() } else { text_spec_temp('relocation') }
+	return homebrew.keg_relocation_value(text_spec_relocation(dir, args.len > 1 && args[1].bool_data))
 }
 
 // Ruby specify `specify "::text_matches_in_file" do` at line 40.
 pub fn ruby_text_spec_l40_d7_text_matches_in_file(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('::text_matches_in_file', ...args)
+	dir := text_spec_temp('matches')
+	defer { os.rmdir_all(dir) or {} }
+	file := text_spec_write_file(dir, false) or { return brew_runtime.bool_value(false) }
+	no_matches := homebrew.keg_text_matches_in_file(file, '@@PLACEHOLDER@@', [], [], []) or { return brew_runtime.bool_value(false) }
+	matches := homebrew.keg_text_matches_in_file(file, dir, [], [], []) or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value(no_matches.len == 0 && matches.len == 2)
 }
 
 // Ruby specify `specify "with paths" do` at line 51.
 pub fn ruby_text_spec_l51_d8_with(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('with', ...args)
+	dir := text_spec_temp('paths')
+	defer { os.rmdir_all(dir) or {} }
+	file := text_spec_write_file(dir, false) or { return brew_runtime.bool_value(false) }
+	keg := text_spec_keg(dir)
+	_ := keg.replace_text_in_files(text_spec_relocation(dir, false), [file]) or { return brew_runtime.bool_value(false) }
+	expected := '@@PLACEHOLDER@@/file.txt\n/foo${dir}/file.txt\nfoo/bar:@@PLACEHOLDER@@/file.txt\nfoo/bar:/foo${dir}/file.txt\n@@PLACEHOLDER@@/bar.txt:@@PLACEHOLDER@@/baz.txt\n'
+	return brew_runtime.bool_value((os.read_file(file) or { return brew_runtime.bool_value(false) }) == expected)
 }
 
 // Ruby specify `specify "with placeholders" do` at line 67.
 pub fn ruby_text_spec_l67_d9_with(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('with', ...args)
+	dir := text_spec_temp('placeholders')
+	defer { os.rmdir_all(dir) or {} }
+	file := text_spec_write_file(dir, true) or { return brew_runtime.bool_value(false) }
+	keg := text_spec_keg(dir)
+	_ := keg.replace_text_in_files(text_spec_relocation(dir, true), [file]) or { return brew_runtime.bool_value(false) }
+	expected := '${dir}/file.txt\n/foo${dir}/file.txt\nfoo/bar:${dir}/file.txt\nfoo/bar:/foo${dir}/file.txt\n${dir}/bar.txt:${dir}/baz.txt\n'
+	return brew_runtime.bool_value((os.read_file(file) or { return brew_runtime.bool_value(false) }) == expected)
+}
+
+fn text_spec_temp(name string) string {
+	path := os.join_path(os.temp_dir(), 'brew-v-keg-text-${name}-${os.getpid()}')
+	os.rmdir_all(path) or {}
+	os.mkdir_all(path) or {}
+	return path
+}
+
+fn text_spec_keg(path string) homebrew.Keg {
+	return homebrew.Keg{ path: path, name: 'foo', prefix: os.dir(path), cellar: os.dir(path) }
+}
+
+fn text_spec_write_file(dir string, placeholders bool) !string {
+	os.mkdir_all(dir)!
+	path := if placeholders { '@@PLACEHOLDER@@' } else { dir }
+	file := os.join_path(dir, 'file.txt')
+	os.write_file(file, '${path}/file.txt\n/foo${path}/file.txt\nfoo/bar:${path}/file.txt\nfoo/bar:/foo${path}/file.txt\n${path}/bar.txt:${path}/baz.txt\n')!
+	return file
+}
+
+fn text_spec_relocation(dir string, placeholders bool) homebrew.KegRelocation {
+	mut relocation := homebrew.new_keg_relocation()
+	if placeholders {
+		relocation.add_replacement_pair('dir', '@@PLACEHOLDER@@', dir)
+	} else {
+		relocation.add_replacement_pair_with_path('dir', dir, '@@PLACEHOLDER@@', true)
+	}
+	return relocation
 }
 
 // Original Ruby source (line-for-line):

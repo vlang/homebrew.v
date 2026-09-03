@@ -4,20 +4,132 @@ import brew_runtime
 
 // Translated from Homebrew/brew `livecheck/strategy/github_latest.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub const github_latest_priority = 0
+
+pub struct GithubLatestFindRequest {
+pub:
+	url       string
+	regex     GithubReleasesRegex = GithubReleasesRegex{}
+	content   ?string
+	has_block bool
+	block     GithubReleasesBlock = unsafe { nil }
+}
+
+pub fn github_latest_matches_url(url string) bool {
+	return github_releases_matches_url(url)
+}
+
+pub fn github_latest_generate_input_values(url string) GithubReleasesInputValues {
+	generated := github_releases_generate_input_values(url)
+	if !generated.present {
+		return generated
+	}
+	return GithubReleasesInputValues{
+		...generated
+		url: '${generated.url}/latest'
+	}
+}
+
+pub fn github_latest_find_versions(request GithubLatestFindRequest, fetcher GithubReleasesFetcher) !GithubReleasesMatchData {
+	mut result := GithubReleasesMatchData{
+		matches: map[string]string{}
+		regex: request.regex
+		url: request.url
+	}
+	mut content := ''
+	if supplied_content := request.content {
+		result = GithubReleasesMatchData{
+			...result
+			cached: true
+			has_cached: true
+		}
+		content = supplied_content
+	}
+	generated := github_latest_generate_input_values(request.url)
+	if !generated.present {
+		return result
+	}
+	result = GithubReleasesMatchData{
+		...result
+		url: generated.url
+	}
+	if !result.has_cached {
+		content = fetcher(generated.url)!
+		result = GithubReleasesMatchData{
+			...result
+			content: content
+			has_content: true
+		}
+	}
+	if content.trim_space() == '' {
+		return result
+	}
+	versions := github_releases_versions_from_content(GithubReleasesVersionsRequest{
+		content: content
+		regex: request.regex
+		has_block: request.has_block
+		block: request.block
+	})!
+	mut matches := map[string]string{}
+	for version in versions {
+		matches[version] = version
+	}
+	return GithubReleasesMatchData{
+		...result
+		matches: matches
+	}
+}
 
 // Ruby method `self.match?(url)` at line 45.
 pub fn ruby_github_latest_l45_d1_self_match(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.match?', ...args)
+	if args.len == 0 {
+		return brew_runtime.bool_value(false)
+	}
+	return brew_runtime.bool_value(github_latest_matches_url(args[0].as_string()))
 }
 
 // Ruby method `self.generate_input_values(url)` at line 57.
 pub fn ruby_github_latest_l57_d2_self_generate_input_values(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.generate_input_values', ...args)
+	if args.len == 0 {
+		return brew_runtime.map_value({})
+	}
+	values := github_latest_generate_input_values(args[0].as_string())
+	if !values.present {
+		return brew_runtime.map_value({})
+	}
+	return brew_runtime.map_value({
+		'url':        brew_runtime.string_value(values.url)
+		'username':   brew_runtime.string_value(values.username)
+		'repository': brew_runtime.string_value(values.repository)
+	})
 }
 
 // Ruby method `self.find_versions(url:, regex: nil, content: nil, options: Options.new, &block)` at line 87.
 pub fn ruby_github_latest_l87_d3_self_find_versions(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.find_versions', ...args)
+	if args.len == 0 {
+		return brew_runtime.map_value({})
+	}
+	content := if args.len > 1 { ?string(args[1].as_string()) } else { none }
+	result := github_latest_find_versions(GithubLatestFindRequest{
+		url: args[0].as_string()
+		content: content
+	}, github_releases_empty_fetcher) or { return brew_runtime.object_value('Error', err.msg()) }
+	mut matches := map[string]brew_runtime.Value{}
+	for version in result.matches.keys() {
+		matches[version] = brew_runtime.string_value(version)
+	}
+	mut values := {
+		'matches': brew_runtime.map_value(matches)
+		'regex':   brew_runtime.string_value(result.regex.pattern)
+		'url':     brew_runtime.string_value(result.url)
+	}
+	if result.has_cached {
+		values['cached'] = brew_runtime.bool_value(result.cached)
+	}
+	if result.has_content {
+		values['content'] = brew_runtime.string_value(result.content)
+	}
+	return brew_runtime.map_value(values)
 }
 
 // Original Ruby source (line-for-line):

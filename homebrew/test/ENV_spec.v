@@ -1,203 +1,509 @@
 module test
 
 import brew_runtime
+import homebrew.compilers
+import homebrew.extend
+import homebrew.extend.env as env_extension
+import homebrew.extend.os.linux.extend.env as linux_env_extension
 
 // Translated from Homebrew/brew `test/ENV_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:env) { {}.extend(EnvActivation).extend(described_class) }` at line 7.
-pub fn ruby_env_spec_l7_d1_env(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('env', ...args)
+pub fn ruby_env_spec_l7_d1_env() &env_extension.SharedEnvState {
+	return env_extension.new_shared_env(env_spec_shared_config(), map[string]string{})
 }
 
 // Ruby it `it "supports switching compilers" do` at line 12.
-pub fn ruby_env_spec_l12_d2_supports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('supports', ...args)
+pub fn ruby_env_spec_l12_d2_supports() bool {
+	mut state := ruby_env_spec_l7_d1_env()
+	env_extension.ruby_shared_l258_d28_compiler(mut state, 'clang', 'clang++') or {
+		return false
+	}
+	values := state.to_map()
+	return 'LD' !in values && values['CC'] == values['OBJC']
 }
 
 // Ruby it `it "restores the environment" do` at line 19.
-pub fn ruby_env_spec_l19_d3_restores(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('restores', ...args)
+pub fn ruby_env_spec_l19_d3_restores() bool {
+	environment := map[string]string{}
+	before := environment.clone()
+	extend.with_build_environment(environment, extend.BuildEnvironmentOptions{}, none, env_spec_activation_setup, env_spec_mutating_block) or { return false }
+	return 'foo' !in environment && environment == before
 }
 
 // Ruby it `it "ensures the environment is restored" do` at line 30.
-pub fn ruby_env_spec_l30_d4_ensures(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ensures', ...args)
+pub fn ruby_env_spec_l30_d4_ensures() bool {
+	environment := map[string]string{}
+	before := environment.clone()
+	extend.with_build_environment(environment, extend.BuildEnvironmentOptions{}, none, env_spec_activation_setup, env_spec_failing_block) or {
+		return err.msg() == 'StandardError' && 'foo' !in environment && environment == before
+	}
+	return false
 }
 
 // Ruby it `it "returns the value of the block" do` at line 44.
-pub fn ruby_env_spec_l44_d5_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_env_spec_l44_d5_returns() bool {
+	result := extend.with_build_environment(map[string]string{}, extend.BuildEnvironmentOptions{}, none, env_spec_activation_setup, env_spec_one_block) or { return false }
+	return result.type_name == 'Integer' && result.int_data == 1
 }
 
 // Ruby it `it "does not mutate the interface" do` at line 48.
-pub fn ruby_env_spec_l48_d6_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_env_spec_l48_d6_does() bool {
+	environment := {
+		'PATH': '/usr/bin'
+	}
+	before := environment.clone()
+	result := extend.with_build_environment(environment, extend.BuildEnvironmentOptions{}, none, env_spec_activation_setup, env_spec_interface_block) or { return false }
+	return result.as_string_array() or { return false } == ['PATH'] && environment == before
 }
 
 // Ruby it `it "appends to an existing key" do` at line 61.
-pub fn ruby_env_spec_l61_d7_appends(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('appends', ...args)
+pub fn ruby_env_spec_l61_d7_appends() bool {
+	mut state := env_extension.new_shared_env(env_spec_shared_config(), {
+		'foo': 'bar'
+	})
+	env_extension.ruby_shared_l97_d10_append(mut state, ['foo'], '1', ' ')
+	return state.value('foo') or { '' } == 'bar 1'
 }
 
 // Ruby it `it "appends to an existing empty key" do` at line 67.
-pub fn ruby_env_spec_l67_d8_appends(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('appends', ...args)
+pub fn ruby_env_spec_l67_d8_appends() bool {
+	mut state := env_extension.new_shared_env(env_spec_shared_config(), {
+		'foo': ''
+	})
+	env_extension.ruby_shared_l97_d10_append(mut state, ['foo'], '1', ' ')
+	return state.value('foo') or { '' } == '1'
 }
 
 // Ruby it `it "appends to a non-existent key" do` at line 73.
-pub fn ruby_env_spec_l73_d9_appends(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('appends', ...args)
+pub fn ruby_env_spec_l73_d9_appends() bool {
+	mut state := ruby_env_spec_l7_d1_env()
+	env_extension.ruby_shared_l97_d10_append(mut state, ['foo'], '1', ' ')
+	return state.value('foo') or { '' } == '1'
 }
 
 // Ruby it `it "coerces a value to a string" do` at line 80.
-pub fn ruby_env_spec_l80_d10_coerces(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('coerces', ...args)
+pub fn ruby_env_spec_l80_d10_coerces() bool {
+	mut state := ruby_env_spec_l7_d1_env()
+	env_extension.ruby_shared_l97_d10_append(mut state, ['foo'], 42.str(), ' ')
+	return state.value('foo') or { '' } == '42'
 }
 
 // Ruby it `it "prepends to an existing key" do` at line 87.
-pub fn ruby_env_spec_l87_d11_prepends(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prepends', ...args)
+pub fn ruby_env_spec_l87_d11_prepends() bool {
+	mut state := env_extension.new_shared_env(env_spec_shared_config(), {
+		'foo': 'bar'
+	})
+	env_extension.ruby_shared_l110_d11_prepend(mut state, ['foo'], '1', ' ')
+	return state.value('foo') or { '' } == '1 bar'
 }
 
 // Ruby it `it "prepends to an existing empty key" do` at line 93.
-pub fn ruby_env_spec_l93_d12_prepends(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prepends', ...args)
+pub fn ruby_env_spec_l93_d12_prepends() bool {
+	mut state := env_extension.new_shared_env(env_spec_shared_config(), {
+		'foo': ''
+	})
+	env_extension.ruby_shared_l110_d11_prepend(mut state, ['foo'], '1', ' ')
+	return state.value('foo') or { '' } == '1'
 }
 
 // Ruby it `it "prepends to a non-existent key" do` at line 99.
-pub fn ruby_env_spec_l99_d13_prepends(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prepends', ...args)
+pub fn ruby_env_spec_l99_d13_prepends() bool {
+	mut state := ruby_env_spec_l7_d1_env()
+	env_extension.ruby_shared_l110_d11_prepend(mut state, ['foo'], '1', ' ')
+	return state.value('foo') or { '' } == '1'
 }
 
 // Ruby it `it "coerces a value to a string" do` at line 106.
-pub fn ruby_env_spec_l106_d14_coerces(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('coerces', ...args)
+pub fn ruby_env_spec_l106_d14_coerces() bool {
+	mut state := ruby_env_spec_l7_d1_env()
+	env_extension.ruby_shared_l110_d11_prepend(mut state, ['foo'], 42.str(), ' ')
+	return state.value('foo') or { '' } == '42'
 }
 
 // Ruby it `it "appends to a path" do` at line 113.
-pub fn ruby_env_spec_l113_d15_appends(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('appends', ...args)
+pub fn ruby_env_spec_l113_d15_appends() bool {
+	mut state := ruby_env_spec_l7_d1_env()
+	env_extension.ruby_shared_l123_d12_append_path(mut state, 'FOO', '/usr/bin')
+	if state.value('FOO') or { '' } != '/usr/bin' {
+		return false
+	}
+	env_extension.ruby_shared_l123_d12_append_path(mut state, 'FOO', '/bin')
+	return state.value('FOO') or { '' } == '/usr/bin:/bin'
 }
 
 // Ruby it `it "prepends to a path" do` at line 123.
-pub fn ruby_env_spec_l123_d16_prepends(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prepends', ...args)
+pub fn ruby_env_spec_l123_d16_prepends() bool {
+	mut state := ruby_env_spec_l7_d1_env()
+	env_extension.ruby_shared_l140_d14_prepend_path(mut state, 'FOO', '/usr/local')
+	if state.value('FOO') or { '' } != '/usr/local' {
+		return false
+	}
+	env_extension.ruby_shared_l140_d14_prepend_path(mut state, 'FOO', '/usr')
+	return state.value('FOO') or { '' } == '/usr:/usr/local'
 }
 
 // Ruby it `it "allows switching compilers" do` at line 133.
-pub fn ruby_env_spec_l133_d17_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+pub fn ruby_env_spec_l133_d17_allows() bool {
+	mut state := ruby_env_spec_l7_d1_env()
+	env_extension.ruby_shared_l258_d28_compiler(mut state, 'gcc-9', 'g++-9') or {
+		return false
+	}
+	compiler := env_extension.ruby_shared_l222_d26_compiler(mut state) or { return false }
+	return compiler.name == 'gcc-9'
 }
 
 // Ruby example `example "deparallelize_block_form_restores_makeflags" do` at line 139.
-pub fn ruby_env_spec_l139_d18_deparallelize_block_form_restores_makeflags(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('deparallelize_block_form_restores_makeflags', ...args)
+pub fn ruby_env_spec_l139_d18_deparallelize_block_form_restores_makeflags() bool {
+	mut standard := env_extension.new_shared_env(env_spec_shared_config(), {
+		'MAKEFLAGS': '-j4'
+	})
+	env_extension.stdenv_deparallelize(mut standard, env_spec_stdenv_deparallelized) or {
+		return false
+	}
+	if standard.value('MAKEFLAGS') or { '' } != '-j4' {
+		return false
+	}
+	mut superenv := env_extension.new_superenv(env_spec_super_config(), {
+		'MAKEFLAGS': '-j4'
+	})
+	env_extension.ruby_super_l340_d38_deparallelize(mut superenv, env_spec_superenv_deparallelized) or { return false }
+	return superenv.value('MAKEFLAGS') or { '' } == '-j4'
 }
 
 // Ruby it `it "list sensitive environment" do` at line 150.
-pub fn ruby_env_spec_l150_d19_list(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('list', ...args)
+pub fn ruby_env_spec_l150_d19_list() bool {
+	selected := env_extension.ruby_sensitive_l26_d2_sensitive_environment({
+		'SECRET_TOKEN': 'password'
+	})
+	return 'SECRET_TOKEN' in selected
 }
 
 // Ruby it `it "removes sensitive environment variables" do` at line 157.
-pub fn ruby_env_spec_l157_d20_removes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('removes', ...args)
+pub fn ruby_env_spec_l157_d20_removes() bool {
+	mut values := {
+		'SECRET_TOKEN': 'password'
+	}
+	env_extension.ruby_sensitive_l37_d3_clear_sensitive_environment(mut values, [], false)
+	return 'SECRET_TOKEN' !in values
 }
 
 // Ruby it `it "preserves excepted sensitive environment variables" do` at line 163.
-pub fn ruby_env_spec_l163_d21_preserves(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('preserves', ...args)
+pub fn ruby_env_spec_l163_d21_preserves() bool {
+	mut values := {
+		'SECRET_TOKEN': 'password'
+	}
+	env_extension.ruby_sensitive_l37_d3_clear_sensitive_environment(mut values, [
+		'SECRET_TOKEN',
+	], false)
+	return values['SECRET_TOKEN'] == 'password'
 }
 
 // Ruby it `it "leaves non-sensitive environment variables alone" do` at line 169.
-pub fn ruby_env_spec_l169_d22_leaves(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('leaves', ...args)
+pub fn ruby_env_spec_l169_d22_leaves() bool {
+	mut values := {
+		'FOO': 'bar'
+	}
+	env_extension.ruby_sensitive_l37_d3_clear_sensitive_environment(mut values, [], false)
+	return values['FOO'] == 'bar'
 }
 
 // Ruby it `it "restores the environment after yielding" do` at line 175.
-pub fn ruby_env_spec_l175_d23_restores(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('restores', ...args)
+pub fn ruby_env_spec_l175_d23_restores() bool {
+	mut values := {
+		'SECRET_TOKEN': 'password'
+		'FOO':          'bar'
+	}
+	result := env_extension.with_cleared_sensitive_environment(mut values, [], false, env_spec_cleared_mutation) or { return false }
+	items := result.as_array() or { return false }
+	return items.len == 2 && items[0].type_name in ['Nil', 'NilClass'] && items[1].as_string() == 'baz' && values['SECRET_TOKEN'] == 'password' && values['FOO'] == 'bar' && 'OTHER_TOKEN' !in values
 }
 
 // Ruby it `it "defers HOMEBREW_ secrets to a placeholder" do` at line 194.
-pub fn ruby_env_spec_l194_d24_defers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('defers', ...args)
+pub fn ruby_env_spec_l194_d24_defers() bool {
+	mut values := {
+		'HOMEBREW_PRIVATE_TOKEN': 'glpat-secret'
+	}
+	deferred := env_extension.ruby_sensitive_l62_d4_clear_sensitive_environment_for_eval(mut values, env_spec_private_token) or { return false }
+	masked := deferred.as_string()
+	expanded := env_extension.ruby_sensitive_l70_d5_expand_deferred_environment('PRIVATE-TOKEN: ${masked}', values, false)
+	return masked != 'glpat-secret' && masked != '' && expanded == 'PRIVATE-TOKEN: ${masked}'
 }
 
 // Ruby it `it "never expands a non-HOMEBREW_ secret back to its real value" do` at line 204.
-pub fn ruby_env_spec_l204_d25_never(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('never', ...args)
+pub fn ruby_env_spec_l204_d25_never() bool {
+	mut values := {
+		'SECRET_TOKEN': 'password'
+	}
+	deferred := env_extension.with_cleared_sensitive_environment(mut values, [
+		'HOMEBREW_GITHUB_API_TOKEN',
+	], true, env_spec_secret_token) or { return false }
+	expanded := env_extension.ruby_sensitive_l70_d5_expand_deferred_environment('X: ${deferred.as_string()}', values, true)
+	return !expanded.contains('password')
 }
 
 // Ruby it `it "keeps HOMEBREW_GITHUB_API_TOKEN readable during eval" do` at line 213.
-pub fn ruby_env_spec_l213_d26_keeps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('keeps', ...args)
+pub fn ruby_env_spec_l213_d26_keeps() bool {
+	mut values := {
+		'HOMEBREW_GITHUB_API_TOKEN': 'gh-token'
+	}
+	result := env_extension.ruby_sensitive_l62_d4_clear_sensitive_environment_for_eval(mut values, env_spec_github_token) or { return false }
+	return result.as_string() == 'gh-token'
 }
 
 // Ruby it `it "restores the environment after yielding" do` at line 220.
-pub fn ruby_env_spec_l220_d27_restores(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('restores', ...args)
+pub fn ruby_env_spec_l220_d27_restores() bool {
+	mut values := {
+		'HOMEBREW_PRIVATE_TOKEN': 'glpat-secret'
+	}
+	env_extension.ruby_sensitive_l62_d4_clear_sensitive_environment_for_eval(mut values, env_spec_nil_sensitive) or { return false }
+	return values['HOMEBREW_PRIVATE_TOKEN'] == 'glpat-secret'
 }
 
 // Ruby it `it "leaves values without a deferred placeholder unchanged" do` at line 228.
-pub fn ruby_env_spec_l228_d28_leaves(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('leaves', ...args)
+pub fn ruby_env_spec_l228_d28_leaves() bool {
+	value := 'PRIVATE-TOKEN: plain'
+	return env_extension.ruby_sensitive_l70_d5_expand_deferred_environment(value, map[string]string{}, false) == value
 }
 
 // Ruby it `it "expands placeholders only during download strategy fetches" do` at line 232.
-pub fn ruby_env_spec_l232_d29_expands(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('expands', ...args)
+pub fn ruby_env_spec_l232_d29_expands() bool {
+	mut values := {
+		'HOMEBREW_PRIVATE_TOKEN': 'glpat-secret'
+	}
+	deferred := env_extension.ruby_sensitive_l62_d4_clear_sensitive_environment_for_eval(mut values, env_spec_private_token) or { return false }
+	return env_extension.ruby_sensitive_l70_d5_expand_deferred_environment('PRIVATE-TOKEN: ${deferred.as_string()}', values, true) == 'PRIVATE-TOKEN: glpat-secret'
 }
 
 // Ruby it `it "initializes deps" do` at line 251.
-pub fn ruby_env_spec_l251_d30_initializes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initializes', ...args)
+pub fn ruby_env_spec_l251_d30_initializes() bool {
+	state := env_extension.new_superenv(env_spec_super_config(), map[string]string{})
+	return env_extension.ruby_super_l26_d3_deps(state) == [] && env_extension.ruby_super_l23_d1_keg_only_deps(state) == []
 }
 
 // Ruby it `it "supports gcc-11" do` at line 257.
-pub fn ruby_env_spec_l257_d31_supports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('supports', ...args)
+pub fn ruby_env_spec_l257_d31_supports() bool {
+	mut state := env_extension.new_superenv(env_spec_super_config(), map[string]string{})
+	env_extension.superenv_use_compiler(mut state, 'gcc-11')
+	env_extension.ruby_super_l373_d42_cxx11(mut state)
+	cccfg := state.value('HOMEBREW_CCCFG') or { '' }
+	return cccfg.contains('x') && !cccfg.contains('g')
 }
 
 // Ruby it `it "supports clang" do` at line 264.
-pub fn ruby_env_spec_l264_d32_supports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('supports', ...args)
+pub fn ruby_env_spec_l264_d32_supports() bool {
+	mut state := env_extension.new_superenv(env_spec_super_config(), map[string]string{})
+	env_extension.superenv_use_compiler(mut state, 'clang')
+	env_extension.ruby_super_l373_d42_cxx11(mut state)
+	cccfg := state.value('HOMEBREW_CCCFG') or { '' }
+	return cccfg.contains('x') && cccfg.contains('g')
 }
 
 // Ruby it `it "sets the debug symbols flag" do` at line 273.
-pub fn ruby_env_spec_l273_d33_sets(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sets', ...args)
+pub fn ruby_env_spec_l273_d33_sets() bool {
+	mut state := env_extension.new_superenv(env_spec_super_config(), map[string]string{})
+	env_extension.ruby_super_l384_d44_set_debug_symbols(mut state)
+	return state.value('HOMEBREW_CCCFG') or { '' }.contains('D')
 }
 
 // Ruby it `it "sets HOMEBREW_CC to shim name" do` at line 282.
-pub fn ruby_env_spec_l282_d34_sets(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sets', ...args)
+pub fn ruby_env_spec_l282_d34_sets() bool {
+	mut state := env_extension.new_superenv(env_spec_super_config(), map[string]string{})
+	env_extension.ruby_super_l146_d13_llvm_clang(mut state)
+	return state.value('HOMEBREW_CC') or { '' } == 'llvm_clang'
 }
 
 // Ruby it `it "sets CC/CXX to real names" do` at line 286.
-pub fn ruby_env_spec_l286_d35_sets(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sets', ...args)
+pub fn ruby_env_spec_l286_d35_sets() bool {
+	mut state := env_extension.new_superenv(env_spec_super_config(), map[string]string{})
+	env_extension.ruby_super_l146_d13_llvm_clang(mut state)
+	values := state.to_map()
+	return values['CC'] == 'clang' && values['CXX'] == 'clang++' && values['OBJC'] == 'clang' && values['OBJCXX'] == 'clang++'
 }
 
 // Ruby let `let(:gcc) { "gcc-#{CompilerConstants::GNU_GCC_VERSIONS.last}" }` at line 295.
-pub fn ruby_env_spec_l295_d36_gcc(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('gcc', ...args)
+pub fn ruby_env_spec_l295_d36_gcc() string {
+	versions := compilers.supported_gnu_gcc_versions()
+	return 'gcc-${versions.last()}'
 }
 
 // Ruby it `it "sets versioned HOMEBREW_CC" do` at line 299.
-pub fn ruby_env_spec_l299_d37_sets(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sets', ...args)
+pub fn ruby_env_spec_l299_d37_sets() bool {
+	mut state := env_extension.new_superenv(env_spec_super_config(), map[string]string{})
+	gcc := ruby_env_spec_l295_d36_gcc()
+	env_extension.superenv_use_compiler(mut state, gcc)
+	return state.value('HOMEBREW_CC') or { '' } == gcc
 }
 
 // Ruby it `it "sets unversioned CC/CXX on Linux", :needs_linux do` at line 303.
-pub fn ruby_env_spec_l303_d38_sets(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sets', ...args)
+pub fn ruby_env_spec_l303_d38_sets() bool {
+	mut state := env_extension.new_superenv(env_spec_super_config(), map[string]string{})
+	gcc := ruby_env_spec_l295_d36_gcc()
+	linux_env_extension.ruby_super_l102_d8_gcc_n(mut state, gcc)
+	values := state.to_map()
+	return values['CC'] == 'gcc' && values['CXX'] == 'g++' && values['OBJC'] == 'gcc' && values['OBJCXX'] == 'g++'
 }
 
 // Ruby it `it "sets versioned CC/CXX on macOS", :needs_macos do` at line 312.
-pub fn ruby_env_spec_l312_d39_sets(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sets', ...args)
+pub fn ruby_env_spec_l312_d39_sets() bool {
+	mut state := env_extension.new_superenv(env_spec_super_config(), map[string]string{})
+	gcc := ruby_env_spec_l295_d36_gcc()
+	env_extension.superenv_use_compiler(mut state, gcc)
+	values := state.to_map()
+	gxx := gcc.replace('gcc', 'g++')
+	return values['CC'] == gcc && values['CXX'] == gxx && values['OBJC'] == gcc && values['OBJCXX'] == gxx
+}
+
+fn env_spec_shared_config() env_extension.SharedEnvConfig {
+	return env_extension.SharedEnvConfig{
+		default_compiler: 'clang'
+		oldest_cpu: 'arm64'
+		make_jobs: 4
+	}
+}
+
+fn env_spec_super_config() env_extension.SuperenvConfig {
+	return env_extension.SuperenvConfig{
+		shims_path: '/shims'
+		superenv_bin: '/shims/super/bin'
+		brew_file: '/brew/bin/brew'
+		prefix: '/brew'
+		cellar: '/brew/Cellar'
+		temp: '/tmp/brew'
+		make_jobs: 4
+		compiler: 'clang'
+		effective_arch: 'arm64'
+	}
+}
+
+fn env_spec_activation_setup(environment map[string]string, _ extend.EnvironmentExtension,
+	_ extend.BuildEnvironmentOptions) !map[string]string {
+	return environment.clone()
+}
+
+fn env_spec_mutating_block(environment map[string]string) !brew_runtime.Value {
+	mut temporary := environment.clone()
+	temporary['foo'] = 'bar'
+	return brew_runtime.Value{
+		type_name: 'NilClass'
+		repr: 'nil'
+	}
+}
+
+fn env_spec_failing_block(environment map[string]string) !brew_runtime.Value {
+	mut temporary := environment.clone()
+	temporary['foo'] = 'bar'
+	return error('StandardError')
+}
+
+fn env_spec_one_block(_ map[string]string) !brew_runtime.Value {
+	return brew_runtime.int_value(1)
+}
+
+fn env_spec_interface_block(environment map[string]string) !brew_runtime.Value {
+	mut keys := environment.keys()
+	keys.sort()
+	return brew_runtime.string_array_value(keys)
+}
+
+fn env_spec_stdenv_deparallelized(mut state env_extension.SharedEnvState) !brew_runtime.Value {
+	if 'MAKEFLAGS' in state.to_map() {
+		return error('MAKEFLAGS was not removed')
+	}
+	return brew_runtime.bool_value(true)
+}
+
+fn env_spec_superenv_deparallelized(mut state env_extension.SuperenvState) !brew_runtime.Value {
+	if 'MAKEFLAGS' in state.to_map() {
+		return error('MAKEFLAGS was not removed')
+	}
+	return brew_runtime.bool_value(true)
+}
+
+fn env_spec_cleared_mutation(mut view env_extension.SensitiveEnvironmentView) !brew_runtime.Value {
+	view.values['FOO'] = 'baz'
+	view.values['OTHER_TOKEN'] = 'secret'
+	secret := if value := view.values['SECRET_TOKEN'] {
+		brew_runtime.string_value(value)
+	} else {
+		brew_runtime.Value{
+			type_name: 'NilClass'
+			repr: 'nil'
+		}
+	}
+	return brew_runtime.array_value([secret, brew_runtime.string_value(view.values['FOO'] or { '' })])
+}
+
+fn env_spec_private_token(mut view env_extension.SensitiveEnvironmentView) !brew_runtime.Value {
+	return brew_runtime.string_value(view.values['HOMEBREW_PRIVATE_TOKEN'] or { '' })
+}
+
+fn env_spec_secret_token(mut view env_extension.SensitiveEnvironmentView) !brew_runtime.Value {
+	return brew_runtime.string_value(view.values['SECRET_TOKEN'] or { '' })
+}
+
+fn env_spec_github_token(mut view env_extension.SensitiveEnvironmentView) !brew_runtime.Value {
+	return brew_runtime.string_value(view.values['HOMEBREW_GITHUB_API_TOKEN'] or { '' })
+}
+
+fn env_spec_nil_sensitive(mut _ env_extension.SensitiveEnvironmentView) !brew_runtime.Value {
+	return brew_runtime.Value{
+		type_name: 'NilClass'
+		repr: 'nil'
+	}
+}
+
+fn env_spec_map_value(values map[string]string) brew_runtime.Value {
+	mut translated := map[string]brew_runtime.Value{}
+	for key, value in values {
+		translated[key] = brew_runtime.string_value(value)
+	}
+	return brew_runtime.map_value(translated)
+}
+
+pub fn env_spec_all_boundaries() []brew_runtime.Value {
+	return [
+		env_spec_map_value(ruby_env_spec_l7_d1_env().to_map()),
+		brew_runtime.bool_value(ruby_env_spec_l12_d2_supports()),
+		brew_runtime.bool_value(ruby_env_spec_l19_d3_restores()),
+		brew_runtime.bool_value(ruby_env_spec_l30_d4_ensures()),
+		brew_runtime.bool_value(ruby_env_spec_l44_d5_returns()),
+		brew_runtime.bool_value(ruby_env_spec_l48_d6_does()),
+		brew_runtime.bool_value(ruby_env_spec_l61_d7_appends()),
+		brew_runtime.bool_value(ruby_env_spec_l67_d8_appends()),
+		brew_runtime.bool_value(ruby_env_spec_l73_d9_appends()),
+		brew_runtime.bool_value(ruby_env_spec_l80_d10_coerces()),
+		brew_runtime.bool_value(ruby_env_spec_l87_d11_prepends()),
+		brew_runtime.bool_value(ruby_env_spec_l93_d12_prepends()),
+		brew_runtime.bool_value(ruby_env_spec_l99_d13_prepends()),
+		brew_runtime.bool_value(ruby_env_spec_l106_d14_coerces()),
+		brew_runtime.bool_value(ruby_env_spec_l113_d15_appends()),
+		brew_runtime.bool_value(ruby_env_spec_l123_d16_prepends()),
+		brew_runtime.bool_value(ruby_env_spec_l133_d17_allows()),
+		brew_runtime.bool_value(ruby_env_spec_l139_d18_deparallelize_block_form_restores_makeflags()),
+		brew_runtime.bool_value(ruby_env_spec_l150_d19_list()),
+		brew_runtime.bool_value(ruby_env_spec_l157_d20_removes()),
+		brew_runtime.bool_value(ruby_env_spec_l163_d21_preserves()),
+		brew_runtime.bool_value(ruby_env_spec_l169_d22_leaves()),
+		brew_runtime.bool_value(ruby_env_spec_l175_d23_restores()),
+		brew_runtime.bool_value(ruby_env_spec_l194_d24_defers()),
+		brew_runtime.bool_value(ruby_env_spec_l204_d25_never()),
+		brew_runtime.bool_value(ruby_env_spec_l213_d26_keeps()),
+		brew_runtime.bool_value(ruby_env_spec_l220_d27_restores()),
+		brew_runtime.bool_value(ruby_env_spec_l228_d28_leaves()),
+		brew_runtime.bool_value(ruby_env_spec_l232_d29_expands()),
+		brew_runtime.bool_value(ruby_env_spec_l251_d30_initializes()),
+		brew_runtime.bool_value(ruby_env_spec_l257_d31_supports()),
+		brew_runtime.bool_value(ruby_env_spec_l264_d32_supports()),
+		brew_runtime.bool_value(ruby_env_spec_l273_d33_sets()),
+		brew_runtime.bool_value(ruby_env_spec_l282_d34_sets()),
+		brew_runtime.bool_value(ruby_env_spec_l286_d35_sets()),
+		brew_runtime.string_value(ruby_env_spec_l295_d36_gcc()),
+		brew_runtime.bool_value(ruby_env_spec_l299_d37_sets()),
+		brew_runtime.bool_value(ruby_env_spec_l303_d38_sets()),
+		brew_runtime.bool_value(ruby_env_spec_l312_d39_sets()),
+	]
 }
 
 // Original Ruby source (line-for-line):

@@ -1,38 +1,61 @@
 module text
 
 import brew_runtime
+import homebrew.rubocops as line_cops
 
 // Translated from Homebrew/brew `test/rubocops/text/make_check_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+const make_check_spec_path = '/homebrew/homebrew-core'
+const make_check_spec_allowlist = '[ "bar" ]\n'
+
+fn make_check_spec_formula(name string) string {
+	return 'class ${name[..1].to_upper()}${name[1..]} < Formula\n  desc "${name}"\n  url \'https://brew.sh/${name}-1.0.tgz\'\n  system "make", "-j1", "test"\nend'
+}
+
+fn make_check_spec_analysis(name string, exception bool) line_cops.LinesAnalysis {
+	return line_cops.audit_lines_make_check(line_cops.LinesContext{
+		source: make_check_spec_formula(name)
+		tap: 'homebrew-core'
+		formula_name: name
+		make_check_exception: exception
+	})
+}
 
 // Ruby subject `subject(:cop) { described_class.new }` at line 7.
 pub fn ruby_make_check_spec_l7_d1_cop(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cop', ...args)
+	return brew_runtime.object_value('RuboCop::Cop::FormulaAuditStrict::MakeCheck', 'MakeCheck')
 }
 
 // Ruby let `let(:path) { HOMEBREW_TAP_DIRECTORY/"homebrew/homebrew-core" }` at line 9.
 pub fn ruby_make_check_spec_l9_d2_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('path', ...args)
+	return brew_runtime.string_value(make_check_spec_path)
 }
 
 // Ruby method `setup_style_exceptions` at line 16.
 pub fn ruby_make_check_spec_l16_d3_setup_style_exceptions(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('setup_style_exceptions', ...args)
+	return brew_runtime.string_value(make_check_spec_allowlist)
 }
 
 // Ruby it `it "reports an offense when formulae in homebrew/core run build-time checks" do` at line 22.
 pub fn ruby_make_check_spec_l22_d4_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	source := make_check_spec_formula('foo')
+	analysis := make_check_spec_analysis('foo', false)
+	return brew_runtime.bool_value(analysis.offenses.len == 1 && analysis.offenses[0].message == 'Formulae in homebrew/core (except e.g. cryptography, libraries) should not run build-time checks' && source[analysis.offenses[0].begin_pos..analysis.offenses[0].end_pos] == 'system "make", "-j1", "test"' && analysis.corrected == source)
 }
 
 // Ruby it `it "reports no offenses when exempted formulae in homebrew/core run build-time checks" do` at line 35.
 pub fn ruby_make_check_spec_l35_d5_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	source := make_check_spec_formula('bar')
+	analysis := make_check_spec_analysis('bar', true)
+	return brew_runtime.bool_value(analysis.offenses.len == 0 && analysis.corrected == source)
 }
 
 // Ruby it `it "reuses style exceptions across formulae in the same tap" do` at line 47.
 pub fn ruby_make_check_spec_l47_d6_reuses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reuses', ...args)
+	first := make_check_spec_analysis('bar', true)
+	second := make_check_spec_analysis('bar', true)
+	source := make_check_spec_formula('bar')
+	return brew_runtime.bool_value(first.offenses.len == 0 && second.offenses.len == 0 && first.corrected == source && second.corrected == source)
 }
 
 // Original Ruby source (line-for-line):

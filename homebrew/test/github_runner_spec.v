@@ -1,33 +1,40 @@
 module test
 
-import brew_runtime
+import homebrew
 
 // Translated from Homebrew/brew `test/github_runner_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby let `let(:runner) do` at line 7.
-pub fn ruby_github_runner_spec_l7_d1_runner(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('runner', ...args)
+pub fn ruby_github_runner_spec_l7_d1_runner() homebrew.GitHubRunner {
+	return homebrew.new_github_runner('macos', 'arm64', homebrew.MacOSRunnerSpec{
+		name: 'macOS 11-arm64'
+		runner: '11-arm64'
+		timeout: 90
+		cleanup: true
+	}, '11')
 }
 
 // Ruby it `it "has immutable attributes" do` at line 13.
-pub fn ruby_github_runner_spec_l13_d2_has(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('has', ...args)
+pub fn ruby_github_runner_spec_l13_d2_has() bool {
+	// The source T::Struct declares these four fields as const; only `active` is mutable.
+	runner := ruby_github_runner_spec_l7_d1_runner()
+	return runner.platform == 'macos' && runner.arch == 'arm64' && runner.macos_version == '11'
 }
 
 // Ruby it `it "is inactive by default" do` at line 19.
-pub fn ruby_github_runner_spec_l19_d3_is(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('is', ...args)
+pub fn ruby_github_runner_spec_l19_d3_is() bool {
+	return !ruby_github_runner_spec_l7_d1_runner().active
 }
 
 // Ruby it `it "returns true if the runner is a macOS runner" do` at line 24.
-pub fn ruby_github_runner_spec_l24_d4_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_github_runner_spec_l24_d4_returns() bool {
+	return ruby_github_runner_spec_l7_d1_runner().macos()
 }
 
 // Ruby it `it "returns false if the runner is a macOS runner" do` at line 30.
-pub fn ruby_github_runner_spec_l30_d5_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_github_runner_spec_l30_d5_returns() bool {
+	return !ruby_github_runner_spec_l7_d1_runner().linux()
 }
 
 // Original Ruby source (line-for-line):

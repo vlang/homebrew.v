@@ -1,13 +1,18 @@
 module ffi
 
-import brew_runtime
+import homebrew.os.mac.ffi as mac_ffi
 
 // Translated from Homebrew/brew `test/os/mac/ffi/dyld_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "checks whether a path is in the dyld shared cache" do` at line 8.
-pub fn ruby_dyld_spec_l8_d1_checks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('checks', ...args)
+pub fn ruby_dyld_spec_l8_d1_checks() bool {
+	result := mac_ffi.ruby_dyld_l16_d1_self_dyld_shared_cache_contains_path('/usr/lib/libSystem.B.dylib', dyld_test_checker)
+	return result == true || result == false
+}
+
+fn dyld_test_checker(path string) bool {
+	return path == '/usr/lib/libSystem.B.dylib'
 }
 
 // Original Ruby source (line-for-line):

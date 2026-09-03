@@ -1,23 +1,142 @@
 module test_bot
 
 import brew_runtime
+import os
+
+pub struct JunitStep {
+pub:
+	command_short string
+	status        string
+	time          string
+	start_time    string
+	passed        bool
+	command       []string
+}
+
+pub struct JunitTest {
+pub:
+	steps []JunitStep
+}
+
+pub struct Junit {
+pub:
+	tests []JunitTest
+	tag   string
+pub mut:
+	xml_document string
+}
 
 // Translated from Homebrew/brew `test_bot/junit.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `initialize(tests)` at line 10.
 pub fn ruby_junit_l10_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	tests := if args.len > 0 { junit_tests_from_value(args[0]) } else { []JunitTest{} }
+	return brew_runtime.map_value({
+		'tests':        brew_runtime.int_value(tests.len)
+		'xml_document': brew_runtime.object_value('NilClass', 'nil')
+	})
 }
 
 // Ruby method `build(filters: nil)` at line 20.
 pub fn ruby_junit_l20_d2_build(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('build', ...args)
+	tests := if args.len > 0 { junit_tests_from_value(args[0]) } else { []JunitTest{} }
+	filters := if args.len > 1 { args[1].as_string_array() or { []string{} } } else { []string{} }
+	tag := if args.len > 2 {
+		args[2].as_string()
+	} else {
+		brew_runtime.environment_value('HOMEBREW_TEST_BOT_TAG')
+	}
+	mut junit := new_junit(tests, tag)
+	return brew_runtime.string_value(junit.build(filters))
 }
 
 // Ruby method `write(filename)` at line 52.
 pub fn ruby_junit_l52_d3_write(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('write', ...args)
+	if args.len < 2 {
+		return brew_runtime.object_value('RuntimeError', 'Junit.write requires a filename and built XML document')
+	}
+	write_junit(args[0].as_string(), args[1].as_string()) or {
+		return brew_runtime.object_value('RuntimeError', err.msg())
+	}
+	return brew_runtime.object_value('NilClass', 'nil')
+}
+
+pub fn new_junit(tests []JunitTest, tag string) Junit {
+	return Junit{
+		tests: tests.clone()
+		tag: tag
+	}
+}
+
+pub fn (mut junit Junit) build(filters []string) string {
+	mut lines := ["<?xml version='1.0'?>", '<testsuites>']
+	for test in junit.tests {
+		if test.steps.len == 0 {
+			continue
+		}
+		suite_name := junit_xml_attribute('brew-test-bot.' + junit.tag)
+		lines << "  <testsuite name='${suite_name}' timestamp='${junit_xml_attribute(test.steps[0].start_time)}'>"
+		for step in test.steps {
+			if !filters.any(step.command_short.starts_with(it)) {
+				continue
+			}
+			attributes := "name='${junit_xml_attribute(step.command_short)}' status='${junit_xml_attribute(step.status)}' time='${junit_xml_attribute(step.time)}' timestamp='${junit_xml_attribute(step.start_time)}'"
+			if step.passed {
+				lines << '    <testcase ${attributes}/>'
+				continue
+			}
+			lines << '    <testcase ${attributes}>'
+			message := '${step.status}: ${step.command.join(' ')}'
+			lines << "      <failure message='${junit_xml_attribute(message)}'/>"
+			lines << '    </testcase>'
+		}
+		lines << '  </testsuite>'
+	}
+	lines << '</testsuites>'
+	junit.xml_document = lines.join('\n')
+	return junit.xml_document
+}
+
+pub fn (junit Junit) write(filename string) ! {
+	if junit.xml_document == '' {
+		return error('Junit report has not been built')
+	}
+	write_junit(filename, junit.xml_document)!
+}
+
+pub fn write_junit(filename string, document string) ! {
+	if os.exists(filename) {
+		os.rm(filename)!
+	}
+	os.write_file(filename, document)!
+}
+
+fn junit_xml_attribute(value string) string {
+	return value.replace('&', '&amp;').replace("'", '&apos;').replace('<', '&lt;').replace('>', '&gt;').replace('"', '&quot;')
+}
+
+fn junit_tests_from_value(value brew_runtime.Value) []JunitTest {
+	values := value.as_array() or { return [] }
+	mut tests := []JunitTest{cap: values.len}
+	for test_value in values {
+		test_map := test_value.as_map() or { continue }
+		step_values := (test_map['steps'] or { continue }).as_array() or { continue }
+		mut steps := []JunitStep{cap: step_values.len}
+		for step_value in step_values {
+			step := step_value.as_map() or { continue }
+			steps << JunitStep{
+				command_short: (step['command_short'] or { brew_runtime.string_value('') }).as_string()
+				status: (step['status'] or { brew_runtime.string_value('') }).as_string()
+				time: (step['time'] or { brew_runtime.string_value('') }).as_string()
+				start_time: (step['start_time'] or { brew_runtime.string_value('') }).as_string()
+				passed: (step['passed'] or { brew_runtime.bool_value(false) }).bool_data
+				command: (step['command'] or { brew_runtime.string_array_value([]) }).as_string_array() or { [] }
+			}
+		}
+		tests << JunitTest{ steps: steps }
+	}
+	return tests
 }
 
 // Original Ruby source (line-for-line):

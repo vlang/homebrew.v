@@ -1,48 +1,79 @@
 module cask_loader
 
-import brew_runtime
+import homebrew.cask as brew_cask
 
 // Translated from Homebrew/brew `test/cask/cask_loader/from_content_loader_spec.rb`.
-// The original source is retained below until every stub has a typed V body.
+// The original source is retained below.
+
+pub struct FromContentLoaderSpecBoundary {
+pub:
+	line   int
+	passed bool
+}
+
+pub fn from_content_loader_spec_try_new(content string) ?brew_cask.CaskLoader {
+	return brew_cask.ruby_cask_loader_l74_d6_self_try_new(brew_cask.CaskLoaderReference{
+		kind: .text
+		value: content
+	})
+}
+
+fn from_content_loader_spec_returns(content string) bool {
+	loader := from_content_loader_spec_try_new(content) or { return false }
+	return loader.kind == .content && loader.content == content && !loader.has_tap
+}
 
 // Ruby it `it "returns a loader for Casks specified with `cask \"token\" do … end`" do` at line 6.
-pub fn ruby_from_content_loader_spec_l6_d1_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_from_content_loader_spec_l6_d1_returns() bool {
+	return from_content_loader_spec_returns('cask "token" do\nend\n')
 }
 
 // Ruby it `it "returns a loader for Casks specified with `cask \"token\" do; end`" do` at line 13.
-pub fn ruby_from_content_loader_spec_l13_d2_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_from_content_loader_spec_l13_d2_returns() bool {
+	return from_content_loader_spec_returns('cask "token" do; end\n')
 }
 
 // Ruby it `it "returns a loader for Casks specified with `cask 'token' do … end`" do` at line 19.
-pub fn ruby_from_content_loader_spec_l19_d3_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_from_content_loader_spec_l19_d3_returns() bool {
+	return from_content_loader_spec_returns("cask 'token' do\nend\n")
 }
 
 // Ruby it `it "returns a loader for Casks specified with `cask 'token' do; end`" do` at line 26.
-pub fn ruby_from_content_loader_spec_l26_d4_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_from_content_loader_spec_l26_d4_returns() bool {
+	return from_content_loader_spec_returns("cask 'token' do; end\n")
 }
 
 // Ruby it `it "returns a loader for Casks specified with `cask(\"token\") { … }`" do` at line 32.
-pub fn ruby_from_content_loader_spec_l32_d5_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_from_content_loader_spec_l32_d5_returns() bool {
+	return from_content_loader_spec_returns('cask("token") {\n}\n')
 }
 
 // Ruby it `it "returns a loader for Casks specified with `cask(\"token\") {}`" do` at line 39.
-pub fn ruby_from_content_loader_spec_l39_d6_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_from_content_loader_spec_l39_d6_returns() bool {
+	return from_content_loader_spec_returns('cask("token") {}\n')
 }
 
 // Ruby it `it "returns a loader for Casks specified with `cask('token') { … }`" do` at line 45.
-pub fn ruby_from_content_loader_spec_l45_d7_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_from_content_loader_spec_l45_d7_returns() bool {
+	return from_content_loader_spec_returns("cask('token') {\n}\n")
 }
 
 // Ruby it `it "returns a loader for Casks specified with `cask('token') {}`" do` at line 52.
-pub fn ruby_from_content_loader_spec_l52_d8_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_from_content_loader_spec_l52_d8_returns() bool {
+	return from_content_loader_spec_returns("cask('token') {}\n")
+}
+
+pub fn from_content_loader_spec_all_boundaries() []FromContentLoaderSpecBoundary {
+	return [
+		FromContentLoaderSpecBoundary{ line: 6, passed: ruby_from_content_loader_spec_l6_d1_returns() },
+		FromContentLoaderSpecBoundary{ line: 13, passed: ruby_from_content_loader_spec_l13_d2_returns() },
+		FromContentLoaderSpecBoundary{ line: 19, passed: ruby_from_content_loader_spec_l19_d3_returns() },
+		FromContentLoaderSpecBoundary{ line: 26, passed: ruby_from_content_loader_spec_l26_d4_returns() },
+		FromContentLoaderSpecBoundary{ line: 32, passed: ruby_from_content_loader_spec_l32_d5_returns() },
+		FromContentLoaderSpecBoundary{ line: 39, passed: ruby_from_content_loader_spec_l39_d6_returns() },
+		FromContentLoaderSpecBoundary{ line: 45, passed: ruby_from_content_loader_spec_l45_d7_returns() },
+		FromContentLoaderSpecBoundary{ line: 52, passed: ruby_from_content_loader_spec_l52_d8_returns() },
+	]
 }
 
 // Original Ruby source (line-for-line):

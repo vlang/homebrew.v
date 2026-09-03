@@ -1,213 +1,469 @@
 module utils
 
-import brew_runtime
+import homebrew.utils as cpan
 
 // Translated from Homebrew/brew `test/utils/cpan_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+const cpan_spec_package_url = 'https://cpan.metacpan.org/authors/id/P/PE/PEVANS/Scalar-List-Utils-1.68.tar.gz'
+const cpan_spec_tgz_url = 'https://cpan.metacpan.org/authors/id/S/ST/STBEY/Example-Module-1.23.tgz'
+const cpan_spec_non_package_url = 'https://github.com/example/package/archive/v1.0.0.tar.gz'
+const cpan_spec_latest_url = 'https://cpan.metacpan.org/authors/id/P/PE/PEVANS/Scalar-List-Utils-1.69.tar.gz'
+
+pub struct CpanSpecCurlResult {
+pub:
+	stdout  string
+	success bool
+}
+
+fn cpan_spec_metadata(url string, checksum string, version string) string {
+	return '{"download_url":"${url}","checksum_sha256":"${checksum}","version":"${version}"}'
+}
+
+fn cpan_spec_latest_metadata() string {
+	return cpan_spec_metadata(cpan_spec_latest_url, 'a'.repeat(64), '1.69')
+}
+
+fn cpan_spec_update_metadata() string {
+	return cpan_spec_metadata(cpan_spec_latest_url, 'd'.repeat(64), '1.69')
+}
+
+fn cpan_spec_current_metadata() string {
+	return cpan_spec_metadata(cpan_spec_package_url, 'c'.repeat(64), '1.68')
+}
+
+fn cpan_spec_fetch_latest(url string) !string {
+	if url != 'https://fastapi.metacpan.org/v1/download_url/Scalar::Util' {
+		return error('unexpected MetaCPAN URL: ${url}')
+	}
+	return cpan_spec_latest_metadata()
+}
+
+fn cpan_spec_fetch_update(_ string) !string {
+	return cpan_spec_update_metadata()
+}
+
+fn cpan_spec_fetch_current(_ string) !string {
+	return cpan_spec_current_metadata()
+}
+
+fn cpan_spec_fetch_failure(_ string) !string {
+	return error('MetaCPAN cannot be reached')
+}
+
+fn cpan_spec_formula_contents() string {
+	return 'class Foo < Formula\n  desc "Test formula"\n  homepage "https://example.com"\n  url "https://example.com/foo-1.0.tar.gz"\n  sha256 "${'b'.repeat(64)}"\n\n  resource "Scalar::Util" do\n    url "${cpan_spec_package_url}"\n    sha256 "${'c'.repeat(64)}"\n  end\n\n  def install\n    bin.install "foo"\n  end\nend\n'
+}
+
+fn cpan_spec_mixed_formula_contents() string {
+	inserted := '  resource "vendored-blob" do\n    url "${cpan_spec_non_package_url}"\n    sha256 "${'e'.repeat(64)}"\n  end\n\n  def install'
+	return cpan_spec_formula_contents().replace_once('  def install', inserted)
+}
+
+fn cpan_spec_livecheck_formula_contents() string {
+	checksum := '    sha256 "${'c'.repeat(64)}"'
+	livecheck := '${checksum}\n    livecheck do\n      regex(/Scalar-List-Utils[._-]v?(\\d+(?:\\.\\d+)+)\\.t/i)\n    end'
+	return cpan_spec_formula_contents().replace_once(checksum, livecheck)
+}
+
+fn cpan_spec_formula() cpan.CpanFormula {
+	return cpan.CpanFormula{
+		name: 'foo'
+		path: '/tmp/foo.rb'
+		source: cpan_spec_formula_contents()
+		resources: [cpan.CpanResource{
+			name: 'Scalar::Util'
+			url: cpan_spec_package_url
+		}]
+	}
+}
+
+fn cpan_spec_mixed_formula() cpan.CpanFormula {
+	return cpan.CpanFormula{
+		...cpan_spec_formula()
+		source: cpan_spec_mixed_formula_contents()
+		resources: [
+			cpan.CpanResource{
+				name: 'Scalar::Util'
+				url: cpan_spec_package_url
+			},
+			cpan.CpanResource{
+				name: 'vendored-blob'
+				url: cpan_spec_non_package_url
+			},
+		]
+	}
+}
+
+fn cpan_spec_livecheck_formula() cpan.CpanFormula {
+	return cpan.CpanFormula{
+		...cpan_spec_formula()
+		source: cpan_spec_livecheck_formula_contents()
+		resources: [cpan.CpanResource{
+			name: 'Scalar::Util'
+			url: cpan_spec_package_url
+			livecheck: true
+		}]
+	}
+}
+
+fn cpan_spec_updated_resource_output() string {
+	return '  resource "Scalar::Util" do\n    url "${cpan_spec_latest_url}"\n    sha256 "${'d'.repeat(64)}"\n  end\n'
+}
+
+fn cpan_spec_result(spec int) !bool {
+	match spec {
+		8 {
+			mut package := cpan.new_cpan_package('Scalar::Util', cpan_spec_package_url)
+			mut tgz_package := cpan.new_cpan_package('Example::Module', cpan_spec_tgz_url)
+			package_version := package.current_version() or { '' }
+			tgz_version := tgz_package.current_version() or { '' }
+			return package.name() == 'Scalar::Util' && package_version == '1.68' && tgz_version == '1.23'
+		}
+		9 {
+			mut non_cpan := cpan.new_cpan_package('SomePackage', cpan_spec_non_package_url)
+			mut unversioned := cpan.new_cpan_package('Example::Module', 'https://cpan.metacpan.org/authors/id/E/EX/EXAMPLE/Example-Module-main.tar.gz')
+			return non_cpan.current_version() == none && unversioned.current_version() == none
+		}
+		10 {
+			return cpan.new_cpan_package('Scalar::Util', cpan_spec_package_url).valid() && !cpan.new_cpan_package('SomePackage', cpan_spec_non_package_url).valid()
+		}
+		13 {
+			mut package := cpan.new_cpan_package('Scalar::Util', cpan_spec_package_url)
+			first := package.latest_info(cpan_spec_fetch_latest)!
+			second := package.latest_info(cpan_spec_fetch_failure)!
+			return first.found && second.found && first.info == second.info && first.info.name == 'Scalar::Util' && first.info.download_url == cpan_spec_latest_url && first.info.checksum == 'a'.repeat(64) && first.info.version == '1.69'
+		}
+		14 {
+			mut package := cpan.new_cpan_package('SomePackage', cpan_spec_non_package_url)
+			return !(package.latest_info(cpan_spec_fetch_failure)!).found
+		}
+		15 {
+			mut package := cpan.new_cpan_package('Scalar::Util', cpan_spec_package_url)
+			return !(package.latest_info(cpan_spec_fetch_failure)!).found
+		}
+		16 {
+			mut package := cpan.new_cpan_package('Scalar::Util', cpan_spec_package_url)
+			lookup := package.latest_info(fn (_ string) !string {
+				return 'not json'
+			})!
+			return !lookup.found
+		}
+		17 {
+			mut without_url := cpan.new_cpan_package('Scalar::Util', cpan_spec_package_url)
+			mut without_checksum := cpan.new_cpan_package('Scalar::Util', cpan_spec_package_url)
+			first := without_url.latest_info(fn (_ string) !string {
+				return '{"checksum_sha256":"${'a'.repeat(64)}","version":"1.69"}'
+			})!
+			second := without_checksum.latest_info(fn (_ string) !string {
+				return '{"download_url":"${cpan_spec_latest_url}","version":"1.69"}'
+			})!
+			return !first.found && !second.found
+		}
+		18 {
+			return cpan.new_cpan_package('Scalar::Util', cpan_spec_package_url).name() == 'Scalar::Util'
+		}
+		30 {
+			result := cpan.update_perl_resources(cpan_spec_formula(), cpan.CpanUpdateOptions{
+				print_only: true
+			}, cpan_spec_fetch_update)!
+			return result.resource_section + '\n' == cpan_spec_updated_resource_output()
+		}
+		31 {
+			result := cpan.update_perl_resources(cpan_spec_formula(), cpan.CpanUpdateOptions{
+				quiet: true
+			}, cpan_spec_fetch_update)!
+			expected := cpan_spec_formula_contents().replace_once(cpan_spec_package_url, cpan_spec_latest_url).replace_once('c'.repeat(64), 'd'.repeat(64))
+			return result.updated_source == expected
+		}
+		32 {
+			original := cpan_spec_mixed_formula_contents()
+			if _ := cpan.update_perl_resources(cpan_spec_mixed_formula(), cpan.CpanUpdateOptions{
+				quiet: true
+			}, cpan_spec_fetch_failure) {
+				return false
+			} else {
+				return err.msg().contains('contains non-CPAN resources: vendored-blob') && err.msg().contains('Please update the resources manually') && cpan_spec_mixed_formula().source == original
+			}
+		}
+		33 {
+			result := cpan.update_perl_resources(cpan_spec_mixed_formula(), cpan.CpanUpdateOptions{
+				print_only: true
+			}, cpan_spec_fetch_update)!
+			return result.resource_section + '\n' == cpan_spec_updated_resource_output()
+		}
+		34 {
+			original := cpan_spec_livecheck_formula_contents()
+			if _ := cpan.update_perl_resources(cpan_spec_livecheck_formula(), cpan.CpanUpdateOptions{
+				quiet: true
+			}, cpan_spec_fetch_failure) {
+				return false
+			} else {
+				return err.msg().contains('contains CPAN resources with livecheck blocks: Scalar::Util') && err.msg().contains('Please update the resources manually') && cpan_spec_livecheck_formula().source == original
+			}
+		}
+		35 {
+			result := cpan.update_perl_resources(cpan_spec_livecheck_formula(), cpan.CpanUpdateOptions{
+				print_only: true
+			}, cpan_spec_fetch_update)!
+			return result.resource_section + '\n' == cpan_spec_updated_resource_output()
+		}
+		36 {
+			result := cpan.update_perl_resources(cpan_spec_formula(), cpan.CpanUpdateOptions{}, cpan_spec_fetch_update)!
+			return result.messages.any(it == 'Found 1 CPAN resources to update') && result.messages.any(it.contains('1.68 -> 1.69')) && result.messages.any(it == 'Updated 1 CPAN resource')
+		}
+		37 {
+			result := cpan.update_perl_resources(cpan_spec_formula(), cpan.CpanUpdateOptions{}, cpan_spec_fetch_current)!
+			return result.messages.any(it == '"Scalar::Util": already up to date (1.68)')
+		}
+		38 {
+			formula := cpan.CpanFormula{
+				name: 'foo'
+				resources: [cpan.CpanResource{
+					name: 'Example'
+					url: cpan_spec_non_package_url
+				}]
+			}
+			if _ := cpan.update_perl_resources(formula, cpan.CpanUpdateOptions{}, cpan_spec_fetch_failure) {
+				return false
+			} else {
+				return err.msg().contains('"foo" has no CPAN resources to update')
+			}
+		}
+		39 {
+			if _ := cpan.update_perl_resources(cpan_spec_formula(), cpan.CpanUpdateOptions{
+				print_only: true
+			}, cpan_spec_fetch_failure) {
+				return false
+			} else {
+				return err.msg().contains('Unable to resolve "Scalar::Util"')
+			}
+		}
+		40 {
+			result := cpan.update_perl_resources(cpan_spec_formula(), cpan.CpanUpdateOptions{
+				print_only: true
+				ignore_errors: true
+			}, cpan_spec_fetch_failure)!
+			return result.resource_section + '\n' == '  # RESOURCE-ERROR: Unable to resolve "Scalar::Util"\n'
+		}
+		41 {
+			result := cpan.update_perl_resources(cpan_spec_formula(), cpan.CpanUpdateOptions{
+				ignore_errors: true
+				quiet: true
+			}, cpan_spec_fetch_failure)!
+			return result.updated_source.contains('  # RESOURCE-ERROR: Unable to resolve "Scalar::Util"') && result.failed && result.errors.any(it.contains('Unable to resolve some dependencies'))
+		}
+		else {
+			return error('unknown CPAN spec ${spec}')
+		}
+	}
+}
 
 // Ruby let `let(:cpan_package_url) do` at line 8.
-pub fn ruby_cpan_spec_l8_d1_cpan_package_url(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cpan_package_url', ...args)
+pub fn ruby_cpan_spec_l8_d1_cpan_package_url() string {
+	return cpan_spec_package_url
 }
 
 // Ruby let `let(:cpan_tgz_url) do` at line 11.
-pub fn ruby_cpan_spec_l11_d2_cpan_tgz_url(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cpan_tgz_url', ...args)
+pub fn ruby_cpan_spec_l11_d2_cpan_tgz_url() string {
+	return cpan_spec_tgz_url
 }
 
 // Ruby let `let(:non_cpan_package_url) do` at line 14.
-pub fn ruby_cpan_spec_l14_d3_non_cpan_package_url(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('non_cpan_package_url', ...args)
+pub fn ruby_cpan_spec_l14_d3_non_cpan_package_url() string {
+	return cpan_spec_non_package_url
 }
 
 // Ruby method `curl_result(stdout: "", success: true)` at line 18.
-pub fn ruby_cpan_spec_l18_d4_curl_result(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('curl_result', ...args)
+pub fn ruby_cpan_spec_l18_d4_curl_result(stdout string, success bool) CpanSpecCurlResult {
+	return CpanSpecCurlResult{
+		stdout: stdout
+		success: success
+	}
 }
 
 // Ruby let `let(:package_from_cpan_url) { described_class.new("Scalar::Util", cpan_package_url) }` at line 24.
-pub fn ruby_cpan_spec_l24_d5_package_from_cpan_url(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('package_from_cpan_url', ...args)
+pub fn ruby_cpan_spec_l24_d5_package_from_cpan_url() &cpan.CpanPackage {
+	return cpan.new_cpan_package('Scalar::Util', cpan_spec_package_url)
 }
 
 // Ruby let `let(:package_from_tgz_url) { described_class.new("Example::Module", cpan_tgz_url) }` at line 25.
-pub fn ruby_cpan_spec_l25_d6_package_from_tgz_url(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('package_from_tgz_url', ...args)
+pub fn ruby_cpan_spec_l25_d6_package_from_tgz_url() &cpan.CpanPackage {
+	return cpan.new_cpan_package('Example::Module', cpan_spec_tgz_url)
 }
 
 // Ruby let `let(:package_from_non_cpan_url) { described_class.new("SomePackage", non_cpan_package_url) }` at line 26.
-pub fn ruby_cpan_spec_l26_d7_package_from_non_cpan_url(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('package_from_non_cpan_url', ...args)
+pub fn ruby_cpan_spec_l26_d7_package_from_non_cpan_url() &cpan.CpanPackage {
+	return cpan.new_cpan_package('SomePackage', cpan_spec_non_package_url)
 }
 
 // Ruby specify `specify do` at line 29.
-pub fn ruby_cpan_spec_l29_d8_do(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('do', ...args)
+pub fn ruby_cpan_spec_l29_d8_do() !bool {
+	return cpan_spec_result(8)
 }
 
 // Ruby it `it "returns nil for non-CPAN and unversioned archive URLs" do` at line 37.
-pub fn ruby_cpan_spec_l37_d9_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_cpan_spec_l37_d9_returns() !bool {
+	return cpan_spec_result(9)
 }
 
 // Ruby specify `specify do` at line 48.
-pub fn ruby_cpan_spec_l48_d10_do(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('do', ...args)
+pub fn ruby_cpan_spec_l48_d10_do() !bool {
+	return cpan_spec_result(10)
 }
 
 // Ruby let `let(:latest_package_url) do` at line 55.
-pub fn ruby_cpan_spec_l55_d11_latest_package_url(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('latest_package_url', ...args)
+pub fn ruby_cpan_spec_l55_d11_latest_package_url() string {
+	return cpan_spec_latest_url
 }
 
 // Ruby let `let(:latest_metadata) do` at line 58.
-pub fn ruby_cpan_spec_l58_d12_latest_metadata(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('latest_metadata', ...args)
+pub fn ruby_cpan_spec_l58_d12_latest_metadata() string {
+	return cpan_spec_latest_metadata()
 }
 
 // Ruby it `it "returns and caches release metadata" do` at line 66.
-pub fn ruby_cpan_spec_l66_d13_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_cpan_spec_l66_d13_returns() !bool {
+	return cpan_spec_result(13)
 }
 
 // Ruby it `it "does not query MetaCPAN for non-CPAN resources" do` at line 77.
-pub fn ruby_cpan_spec_l77_d14_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_cpan_spec_l77_d14_does() !bool {
+	return cpan_spec_result(14)
 }
 
 // Ruby it `it "returns nil when MetaCPAN cannot be reached" do` at line 83.
-pub fn ruby_cpan_spec_l83_d15_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_cpan_spec_l83_d15_returns() !bool {
+	return cpan_spec_result(15)
 }
 
 // Ruby it `it "returns nil for invalid JSON" do` at line 89.
-pub fn ruby_cpan_spec_l89_d16_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_cpan_spec_l89_d16_returns() !bool {
+	return cpan_spec_result(16)
 }
 
 // Ruby it `it "returns nil when required release metadata is missing" do` at line 95.
-pub fn ruby_cpan_spec_l95_d17_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_cpan_spec_l95_d17_returns() !bool {
+	return cpan_spec_result(17)
 }
 
 // Ruby it `it "returns resource name" do` at line 111.
-pub fn ruby_cpan_spec_l111_d18_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_cpan_spec_l111_d18_returns() !bool {
+	return cpan_spec_result(18)
 }
 
 // Ruby let `let(:formula_path) { mktmpdir/"foo.rb" }` at line 118.
-pub fn ruby_cpan_spec_l118_d19_formula_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_path', ...args)
+pub fn ruby_cpan_spec_l118_d19_formula_path() string {
+	return '/tmp/foo.rb'
 }
 
 // Ruby let `let(:formula_contents) do` at line 119.
-pub fn ruby_cpan_spec_l119_d20_formula_contents(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_contents', ...args)
+pub fn ruby_cpan_spec_l119_d20_formula_contents() string {
+	return cpan_spec_formula_contents()
 }
 
 // Ruby method `install` at line 132.
-pub fn ruby_cpan_spec_l132_d21_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+pub fn ruby_cpan_spec_l132_d21_install() bool {
+	return cpan_spec_formula_contents().contains('  def install\n    bin.install "foo"')
 }
 
 // Ruby let `let(:mixed_formula_contents) do` at line 138.
-pub fn ruby_cpan_spec_l138_d22_mixed_formula_contents(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('mixed_formula_contents', ...args)
+pub fn ruby_cpan_spec_l138_d22_mixed_formula_contents() string {
+	return cpan_spec_mixed_formula_contents()
 }
 
 // Ruby let `let(:livecheck_formula_contents) do` at line 151.
-pub fn ruby_cpan_spec_l151_d23_livecheck_formula_contents(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('livecheck_formula_contents', ...args)
+pub fn ruby_cpan_spec_l151_d23_livecheck_formula_contents() string {
+	return cpan_spec_livecheck_formula_contents()
 }
 
 // Ruby let `let(:test_formula) do` at line 162.
-pub fn ruby_cpan_spec_l162_d24_test_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('test_formula', ...args)
+pub fn ruby_cpan_spec_l162_d24_test_formula() cpan.CpanFormula {
+	return cpan_spec_formula()
 }
 
 // Ruby let `let(:mixed_formula) do` at line 174.
-pub fn ruby_cpan_spec_l174_d25_mixed_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('mixed_formula', ...args)
+pub fn ruby_cpan_spec_l174_d25_mixed_formula() cpan.CpanFormula {
+	return cpan_spec_mixed_formula()
 }
 
 // Ruby let `let(:livecheck_formula) do` at line 191.
-pub fn ruby_cpan_spec_l191_d26_livecheck_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('livecheck_formula', ...args)
+pub fn ruby_cpan_spec_l191_d26_livecheck_formula() cpan.CpanFormula {
+	return cpan_spec_livecheck_formula()
 }
 
 // Ruby let `let(:latest_package_url) do` at line 206.
-pub fn ruby_cpan_spec_l206_d27_latest_package_url(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('latest_package_url', ...args)
+pub fn ruby_cpan_spec_l206_d27_latest_package_url() string {
+	return cpan_spec_latest_url
 }
 
 // Ruby let `let(:latest_metadata) do` at line 209.
-pub fn ruby_cpan_spec_l209_d28_latest_metadata(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('latest_metadata', ...args)
+pub fn ruby_cpan_spec_l209_d28_latest_metadata() string {
+	return cpan_spec_update_metadata()
 }
 
 // Ruby let `let(:updated_resource_output) do` at line 216.
-pub fn ruby_cpan_spec_l216_d29_updated_resource_output(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('updated_resource_output', ...args)
+pub fn ruby_cpan_spec_l216_d29_updated_resource_output() string {
+	return cpan_spec_updated_resource_output()
 }
 
 // Ruby it `it "prints updated CPAN resource blocks" do` at line 230.
-pub fn ruby_cpan_spec_l230_d30_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+pub fn ruby_cpan_spec_l230_d30_prints() !bool {
+	return cpan_spec_result(30)
 }
 
 // Ruby it `it "updates CPAN resource blocks in the formula" do` at line 236.
-pub fn ruby_cpan_spec_l236_d31_updates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('updates', ...args)
+pub fn ruby_cpan_spec_l236_d31_updates() !bool {
+	return cpan_spec_result(31)
 }
 
 // Ruby it `it "fails without modifying formulas containing non-CPAN resources" do` at line 243.
-pub fn ruby_cpan_spec_l243_d32_fails(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fails', ...args)
+pub fn ruby_cpan_spec_l243_d32_fails() !bool {
+	return cpan_spec_result(32)
 }
 
 // Ruby it `it "prints CPAN resource blocks for formulas containing non-CPAN resources" do` at line 254.
-pub fn ruby_cpan_spec_l254_d33_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+pub fn ruby_cpan_spec_l254_d33_prints() !bool {
+	return cpan_spec_result(33)
 }
 
 // Ruby it `it "fails without modifying formulas containing CPAN resource livecheck blocks" do` at line 260.
-pub fn ruby_cpan_spec_l260_d34_fails(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fails', ...args)
+pub fn ruby_cpan_spec_l260_d34_fails() !bool {
+	return cpan_spec_result(34)
 }
 
 // Ruby it `it "prints CPAN resource blocks for formulas containing CPAN resource livecheck blocks" do` at line 271.
-pub fn ruby_cpan_spec_l271_d35_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+pub fn ruby_cpan_spec_l271_d35_prints() !bool {
+	return cpan_spec_result(35)
 }
 
 // Ruby it `it "reports resolved resource updates" do` at line 277.
-pub fn ruby_cpan_spec_l277_d36_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_cpan_spec_l277_d36_reports() !bool {
+	return cpan_spec_result(36)
 }
 
 // Ruby it `it "reports resources that are already current" do` at line 285.
-pub fn ruby_cpan_spec_l285_d37_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_cpan_spec_l285_d37_reports() !bool {
+	return cpan_spec_result(37)
 }
 
 // Ruby it `it "fails when the formula has no CPAN resources" do` at line 298.
-pub fn ruby_cpan_spec_l298_d38_fails(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fails', ...args)
+pub fn ruby_cpan_spec_l298_d38_fails() !bool {
+	return cpan_spec_result(38)
 }
 
 // Ruby it `it "fails when release metadata cannot be resolved" do` at line 314.
-pub fn ruby_cpan_spec_l314_d39_fails(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fails', ...args)
+pub fn ruby_cpan_spec_l314_d39_fails() !bool {
+	return cpan_spec_result(39)
 }
 
 // Ruby it `it "emits an error comment when unresolved resources are ignored" do` at line 322.
-pub fn ruby_cpan_spec_l322_d40_emits(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('emits', ...args)
+pub fn ruby_cpan_spec_l322_d40_emits() !bool {
+	return cpan_spec_result(40)
 }
 
 // Ruby it `it "writes error comments and marks the command failed when unresolved resources are ignored" do` at line 330.
-pub fn ruby_cpan_spec_l330_d41_writes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('writes', ...args)
+pub fn ruby_cpan_spec_l330_d41_writes() !bool {
+	return cpan_spec_result(41)
 }
 
 // Original Ruby source (line-for-line):

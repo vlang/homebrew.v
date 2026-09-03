@@ -4,15 +4,103 @@ import brew_runtime
 
 // Translated from Homebrew/brew `cask/artifact/uninstall.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub struct UninstallPhaseOptions {
+pub:
+	upgrade   bool
+	reinstall bool
+	quit      bool = true
+	operation AbstractUninstallOptions
+}
+
+fn uninstall_on_upgrade_directives(artifact AbstractUninstallArtifact) []string {
+	raw := artifact.directives['on_upgrade'] or { return [] }
+	return value_strings(raw)
+}
+
+fn uninstall_operation_options(options UninstallPhaseOptions,
+	signal_on_upgrade bool) AbstractUninstallOptions {
+	return AbstractUninstallOptions{
+		...options.operation
+		upgrade: options.upgrade
+		reinstall: options.reinstall
+		signal_on_upgrade: signal_on_upgrade
+	}
+}
+
+pub fn uninstall_phase_with_command(mut artifact AbstractUninstallArtifact,
+	options UninstallPhaseOptions, runner UninstallCommandRunner) AbstractUninstallResult {
+	on_upgrade := uninstall_on_upgrade_directives(artifact)
+	allow_signal := 'signal' in on_upgrade
+	operation := uninstall_operation_options(options, allow_signal)
+	mut result := AbstractUninstallResult{}
+	for directive in abstract_uninstall_ordered_directives {
+		if directive == 'rmdir' {
+			continue
+		}
+		if directive == 'quit' && !options.quit {
+			continue
+		}
+		if directive == 'signal' && (options.upgrade || options.reinstall) && !allow_signal {
+			continue
+		}
+		dispatch_abstract_uninstall_directive(artifact, directive, operation, runner, mut result)
+		if !result.success {
+			break
+		}
+	}
+	artifact.bundle_ids_to_reopen << result.bundle_ids_to_reopen
+	return result
+}
+
+pub fn uninstall_phase(mut artifact AbstractUninstallArtifact,
+	options UninstallPhaseOptions) AbstractUninstallResult {
+	return uninstall_phase_with_command(mut artifact, options, default_uninstall_runner)
+}
+
+pub fn post_uninstall_phase_with_command(artifact AbstractUninstallArtifact,
+	options AbstractUninstallOptions, runner UninstallCommandRunner) AbstractUninstallResult {
+	mut result := AbstractUninstallResult{}
+	dispatch_abstract_uninstall_directive(artifact, 'rmdir', options, runner, mut result)
+	return result
+}
+
+pub fn post_uninstall_phase(artifact AbstractUninstallArtifact,
+	options AbstractUninstallOptions) AbstractUninstallResult {
+	return post_uninstall_phase_with_command(artifact, options, default_uninstall_runner)
+}
+
+fn uninstall_phase_options_from_value(value brew_runtime.Value) UninstallPhaseOptions {
+	values := value.as_map() or { return UninstallPhaseOptions{} }
+	return UninstallPhaseOptions{
+		upgrade: value_bool(values, 'upgrade', false)
+		reinstall: value_bool(values, 'reinstall', false)
+		quit: value_bool(values, 'quit', true)
+		operation: AbstractUninstallOptions{
+			home: (values['home'] or { brew_runtime.string_value('') }).as_string()
+			gui: value_bool(values, 'gui', true)
+			force: value_bool(values, 'force', false)
+			trash_directory: (values['trash_directory'] or { brew_runtime.string_value('') }).as_string()
+			undeletable: value_strings(values['undeletable'] or {
+				brew_runtime.string_array_value([])})
+		}
+	}
+}
 
 // Ruby method `uninstall_phase(upgrade: false, reinstall: false, quit: true, **options)` at line 20.
 pub fn ruby_uninstall_l20_d1_uninstall_phase(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uninstall_phase', ...args)
+	mut artifact := adapter_artifact(args)
+	options := if args.len > 1 {
+		uninstall_phase_options_from_value(args[1])
+	} else {
+		UninstallPhaseOptions{}
+	}
+	return abstract_uninstall_result_to_value(uninstall_phase(mut artifact, options))
 }
 
 // Ruby method `post_uninstall_phase(**options)` at line 52.
 pub fn ruby_uninstall_l52_d2_post_uninstall_phase(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('post_uninstall_phase', ...args)
+	artifact := adapter_artifact(args)
+	return abstract_uninstall_result_to_value(post_uninstall_phase(artifact, adapter_options(args, 1)))
 }
 
 // Original Ruby source (line-for-line):

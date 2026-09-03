@@ -7,12 +7,16 @@ import brew_runtime
 
 // Ruby method `display_s` at line 13.
 pub fn ruby_linux_requirement_l13_d1_display_s(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('display_s', ...args)
+	return brew_runtime.string_value('Linux')
 }
 
 // Ruby method `message` at line 18.
 pub fn ruby_linux_requirement_l18_d2_message(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('message', ...args)
+	return brew_runtime.string_value('Linux is required for this software.')
+}
+
+pub fn linux_requirement_satisfied() bool {
+	return brew_runtime.kernel_info().name == 'Linux'
 }
 
 // Original Ruby source (line-for-line):

@@ -4,15 +4,47 @@ import brew_runtime
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/elftools-1.3.1/lib/elftools/constants.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub fn machine_name(value int) string {
+	return match value {
+		0 { 'None' }
+		3, 6 { 'Intel 80386' }
+		7 { 'Intel 80860' }
+		8 { 'MIPS R3000' }
+		20 { 'PowerPC' }
+		21 { 'PowerPC64' }
+		40 { 'ARM' }
+		50 { 'Intel IA-64' }
+		62 { 'Advanced Micro Devices X86-64' }
+		183 { 'AArch64' }
+		else { '<unknown>: 0x${value.hex()}' }
+	}
+}
+
+pub fn elf_type_name(value int) string {
+	return match value {
+		0 { 'NONE' }
+		1 { 'REL' }
+		2 { 'EXEC' }
+		3 { 'DYN' }
+		4 { 'CORE' }
+		else { '<unknown>' }
+	}
+}
 
 // Ruby method `self.mapping(val)` at line 427.
 pub fn ruby_constants_l427_d1_self_mapping(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.mapping', ...args)
+	if args.len == 0 {
+		panic('ELFTools::Constants::EM.mapping requires a value')
+	}
+	return brew_runtime.string_value(machine_name(int(args[0].as_int() or { panic(err) })))
 }
 
 // Ruby method `self.mapping(type)` at line 454.
 pub fn ruby_constants_l454_d2_self_mapping(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.mapping', ...args)
+	if args.len == 0 {
+		panic('ELFTools::Constants::ET.mapping requires a value')
+	}
+	return brew_runtime.string_value(elf_type_name(int(args[0].as_int() or { panic(err) })))
 }
 
 // Original Ruby source (line-for-line):

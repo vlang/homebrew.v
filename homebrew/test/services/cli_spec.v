@@ -1,288 +1,607 @@
 module services
 
-import brew_runtime
+import homebrew.services as services_cli
+import os
 
 // Translated from Homebrew/brew `test/services/cli_spec.rb`.
-// The original source is retained below until every stub has a typed V body.
+// The retained Ruby source follows these concrete source-derived examples.
+struct CliSpecResolver {
+	values map[string]services_cli.CliResolvedService
+}
+
+fn (resolver CliSpecResolver) resolve(label string) services_cli.CliResolvedService {
+	return resolver.values[label] or { services_cli.CliResolvedService{} }
+}
+
+fn cli_spec_temp_dir(label string) !string {
+	path := os.join_path(os.temp_dir(), 'brew-v-cli-${os.getpid()}-${label}')
+	if os.exists(path) {
+		os.rmdir_all(path)!
+	}
+	os.mkdir_all(path)!
+	return path
+}
+
+fn cli_spec_system(manager services_cli.FormulaWrapperDaemonManager,
+	root bool) services_cli.CliSystem {
+	return services_cli.CliSystem{
+		manager: manager
+		root: root
+		domain_target: 'gui/501'
+		candidate_domain_targets: ['gui/501']
+		systemctl_scope: if root { '' } else { '--user' }
+		user_exists: {
+			'_serviced': true
+		}
+	}
+}
+
+fn cli_spec_service(directory string) !services_cli.CliService {
+	os.mkdir_all(directory)!
+	service_file := os.join_path(directory, 'source', 'homebrew.name.service')
+	os.mkdir_all(os.dir(service_file))!
+	os.write_file(service_file, 'service')!
+	return services_cli.CliService{
+		name: 'name'
+		service_name: 'homebrew.name'
+		formula_name: 'name'
+		installed: true
+		service_file: service_file
+		dest: os.join_path(directory, 'dest', 'homebrew.name.service')
+		dest_dir: os.join_path(directory, 'dest')
+		timer_file: os.join_path(directory, 'source', 'homebrew.name.timer')
+		timer_dest: os.join_path(directory, 'dest', 'homebrew.name.timer')
+		service_contents: 'service'
+	}
+}
+
+fn cli_spec_command_args(result services_cli.CliActionResult) []string {
+	return result.commands.map(it.args.join(' '))
+}
 
 // Ruby subject `subject(:services_cli) { described_class }` at line 12.
-pub fn ruby_cli_spec_l12_d1_services_cli(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('services_cli', ...args)
+pub fn ruby_cli_spec_l12_d1_services_cli() string {
+	return 'Homebrew::Services::Cli'
 }
 
 // Ruby let `let(:service_string) { "service" }` at line 14.
-pub fn ruby_cli_spec_l14_d2_service_string(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('service_string', ...args)
+pub fn ruby_cli_spec_l14_d2_service_string() string {
+	return 'service'
 }
 
 // Ruby it `it "outputs command name" do` at line 17.
-pub fn ruby_cli_spec_l17_d3_outputs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('outputs', ...args)
+pub fn ruby_cli_spec_l17_d3_outputs() bool {
+	return services_cli.ruby_cli_l26_d3_self_bin() == 'brew services'
 }
 
 // Ruby it `it "macOS - returns the currently running services" do` at line 23.
-pub fn ruby_cli_spec_l23_d4_macos(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('macOS', ...args)
+pub fn ruby_cli_spec_l23_d4_macos() bool {
+	system := services_cli.CliSystem{
+		manager: .launchctl
+		running_output: '77513   50  homebrew.mxcl.php\n495     0   homebrew.mxcl.node_exporter\n1234    34  homebrew.mxcl.postgresql@14\n'
+	}
+	return services_cli.ruby_cli_l32_d4_self_running(system) == ['homebrew.mxcl.php',
+		'homebrew.mxcl.node_exporter', 'homebrew.mxcl.postgresql@14']
 }
 
 // Ruby it `it "systemD - returns the currently running services" do` at line 37.
-pub fn ruby_cli_spec_l37_d5_systemd(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('systemD', ...args)
+pub fn ruby_cli_spec_l37_d5_systemd() bool {
+	system := services_cli.CliSystem{
+		manager: .systemctl
+		running_output: 'homebrew.php.service     loaded active running Homebrew PHP service\nsystemd-udevd.service    loaded active running Rule-based Manager for Device Events and Files\nudisks2.service          loaded active running Disk Manager\nuser@1000.service        loaded active running User Manager for UID 1000\n'
+	}
+	return services_cli.ruby_cli_l32_d4_self_running(system) == ['homebrew.php']
 }
 
 // Ruby it `it "checks the input does not exist" do` at line 50.
-pub fn ruby_cli_spec_l50_d6_checks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('checks', ...args)
+pub fn ruby_cli_spec_l50_d6_checks() bool {
+	services_cli.ruby_cli_l48_d5_self_check([]services_cli.CliService{}) or {
+		return err.msg() == 'Invalid usage: Formula(e) missing, please provide a formula name or use `--all`.'
+	}
+	return false
 }
 
 // Ruby it `it "checks the input exists" do` at line 57.
-pub fn ruby_cli_spec_l57_d7_checks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('checks', ...args)
+pub fn ruby_cli_spec_l57_d7_checks() bool {
+	return services_cli.ruby_cli_l48_d5_self_check([
+		services_cli.CliService{ name: 'name' },
+	]) or {
+		false
+	}
 }
 
 // Ruby it `it "skips unmanaged services" do` at line 66.
-pub fn ruby_cli_spec_l66_d8_skips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skips', ...args)
+pub fn ruby_cli_spec_l66_d8_skips() bool {
+	mut state := services_cli.CliState{}
+	system := services_cli.CliSystem{ running_labels: ['example_service'] }
+	result := services_cli.ruby_cli_l56_d6_self_kill_orphaned_services(mut state, system, CliSpecResolver{ values: map[string]services_cli.CliResolvedService{} })
+	return result.warnings == [
+		'Warning: Service example_service not managed by `brew services` => skipping',
+	]
 }
 
 // Ruby it `it "tries but is unable to kill a non existing service" do` at line 73.
-pub fn ruby_cli_spec_l73_d9_tries(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tries', ...args)
+pub fn ruby_cli_spec_l73_d9_tries() bool {
+	mut state := services_cli.CliState{}
+	service := services_cli.CliService{
+		name: 'example_service'
+		service_name: 'homebrew.example_service'
+		dest: 'this_path_does_not_exist'
+		pid_values: [true, true]
+	}
+	system := services_cli.CliSystem{ running_labels: ['example_service'] }
+	result := services_cli.ruby_cli_l56_d6_self_kill_orphaned_services(mut state, system, CliSpecResolver{
+		values: {
+			'example_service': services_cli.CliResolvedService{ found: true, service: service }
+		}
+	})
+	return result.stdout.contains('Killing `example_service`... (might take a while)')
 }
 
 // Ruby it `it "removes unused timer files" do` at line 92.
-pub fn ruby_cli_spec_l92_d10_removes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('removes', ...args)
+pub fn ruby_cli_spec_l92_d10_removes() !bool {
+	directory := cli_spec_temp_dir('remove-unused')!
+	defer { os.rmdir_all(directory) or {} }
+	active := os.join_path(directory, 'homebrew.name.timer')
+	stale := os.join_path(directory, 'homebrew.stale.timer')
+	os.write_file(active, 'timer')!
+	os.write_file(stale, 'timer')!
+	result := services_cli.ruby_cli_l74_d7_self_remove_unused_service_files(services_cli.CliSystem{
+		path: directory
+		running_output: 'homebrew.name'
+	})!
+	return result.cleaned == [stale] && os.exists(active) && !os.exists(stale)
 }
 
 // Ruby it `it "checks missing file causes error" do` at line 110.
-pub fn ruby_cli_spec_l110_d11_checks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('checks', ...args)
+pub fn ruby_cli_spec_l110_d11_checks() bool {
+	mut state := services_cli.CliState{}
+	mut targets := [services_cli.CliService{ name: 'service_name' }]
+	services_cli.ruby_cli_l122_d9_self_start(mut state, cli_spec_system(.launchctl, false), mut targets, services_cli.CliFileArgument{ present: true, path: '/non/existent/path' }, false) or { return err.msg() == 'Invalid usage: Provided service file does not exist.' }
+	return false
 }
 
 // Ruby it `it "checks empty targets cause no error" do` at line 118.
-pub fn ruby_cli_spec_l118_d12_checks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('checks', ...args)
+pub fn ruby_cli_spec_l118_d12_checks() !bool {
+	mut state := services_cli.CliState{}
+	mut targets := []services_cli.CliService{}
+	result := services_cli.ruby_cli_l95_d8_self_run(mut state, cli_spec_system(.launchctl, false), mut targets, services_cli.CliFileArgument{}, false)!
+	return result.stdout.len == 0 && result.commands.len == 0
 }
 
 // Ruby it `it "checks if target service is already running and suggests restart instead" do` at line 123.
-pub fn ruby_cli_spec_l123_d13_checks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('checks', ...args)
+pub fn ruby_cli_spec_l123_d13_checks() !bool {
+	mut state := services_cli.CliState{}
+	mut targets := [
+		services_cli.CliService{ name: 'example_service', pid_values: [true] },
+	]
+	result := services_cli.ruby_cli_l95_d8_self_run(mut state, cli_spec_system(.launchctl, false), mut targets, services_cli.CliFileArgument{}, false)!
+	return result.stdout == [
+		'Service `example_service` already running, use `brew services restart example_service` to restart.',
+	]
 }
 
 // Ruby it `it "checks missing file causes error" do` at line 134.
-pub fn ruby_cli_spec_l134_d14_checks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('checks', ...args)
+pub fn ruby_cli_spec_l134_d14_checks() bool {
+	mut state := services_cli.CliState{}
+	mut targets := [services_cli.CliService{ name: 'service_name' }]
+	services_cli.ruby_cli_l122_d9_self_start(mut state, cli_spec_system(.launchctl, false), mut targets, services_cli.CliFileArgument{
+		present: true
+		path: '/hfdkjshksdjhfkjsdhf/fdsjghsdkjhb'
+	}, false) or { return err.msg() == 'Invalid usage: Provided service file does not exist.' }
+	return false
 }
 
 // Ruby it `it "checks empty targets cause no error" do` at line 142.
-pub fn ruby_cli_spec_l142_d15_checks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('checks', ...args)
+pub fn ruby_cli_spec_l142_d15_checks() !bool {
+	mut state := services_cli.CliState{}
+	mut targets := []services_cli.CliService{}
+	result := services_cli.ruby_cli_l122_d9_self_start(mut state, cli_spec_system(.launchctl, false), mut targets, services_cli.CliFileArgument{}, false)!
+	return result.commands.len == 0
 }
 
 // Ruby it `it "checks if target service has already been started and suggests restart instead" do` at line 147.
-pub fn ruby_cli_spec_l147_d16_checks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('checks', ...args)
+pub fn ruby_cli_spec_l147_d16_checks() !bool {
+	mut state := services_cli.CliState{}
+	mut targets := [
+		services_cli.CliService{ name: 'example_service', pid_values: [true] },
+	]
+	result := services_cli.ruby_cli_l122_d9_self_start(mut state, cli_spec_system(.launchctl, false), mut targets, services_cli.CliFileArgument{}, false)!
+	return result.stdout == [
+		'Service `example_service` already started, use `brew services restart example_service` to restart.',
+	]
 }
 
 // Ruby let `let(:service) do` at line 157.
-pub fn ruby_cli_spec_l157_d17_service(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('service', ...args)
+pub fn ruby_cli_spec_l157_d17_service() !services_cli.CliService {
+	return cli_spec_service(cli_spec_temp_dir('start-service')!)
 }
 
 // Ruby it `it "loads service for root" do` at line 171.
-pub fn ruby_cli_spec_l171_d18_loads(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('loads', ...args)
+pub fn ruby_cli_spec_l171_d18_loads() !bool {
+	directory := cli_spec_temp_dir('start-root')!
+	defer { os.rmdir_all(directory) or {} }
+	mut state := services_cli.CliState{}
+	mut service := cli_spec_service(directory)!
+	service.install_handled_by_collaborator = true
+	mut targets := [service]
+	result := services_cli.ruby_cli_l122_d9_self_start(mut state, cli_spec_system(.systemctl, true), mut targets, services_cli.CliFileArgument{}, false)!
+	return result.loaded && cli_spec_command_args(result).contains('start homebrew.name')
 }
 
 // Ruby it `it "loads service for non-root user" do` at line 178.
-pub fn ruby_cli_spec_l178_d19_loads(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('loads', ...args)
+pub fn ruby_cli_spec_l178_d19_loads() !bool {
+	directory := cli_spec_temp_dir('start-user')!
+	defer { os.rmdir_all(directory) or {} }
+	mut state := services_cli.CliState{}
+	mut service := cli_spec_service(directory)!
+	service.install_handled_by_collaborator = true
+	mut targets := [service]
+	result := services_cli.ruby_cli_l122_d9_self_start(mut state, cli_spec_system(.launchctl, false), mut targets, services_cli.CliFileArgument{}, false)!
+	return result.loaded && result.commands.any(it.args.len > 0 && it.args[0] == 'bootstrap')
 }
 
 // Ruby it `it "loads service for root when given `--sudo-service-user`" do` at line 185.
-pub fn ruby_cli_spec_l185_d20_loads(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('loads', ...args)
+pub fn ruby_cli_spec_l185_d20_loads() !bool {
+	directory := cli_spec_temp_dir('start-root-sudo-user')!
+	defer { os.rmdir_all(directory) or {} }
+	mut state := services_cli.CliState{ sudo_service_user: '_serviced' }
+	mut service := cli_spec_service(directory)!
+	service.install_handled_by_collaborator = true
+	mut targets := [service]
+	result := services_cli.ruby_cli_l122_d9_self_start(mut state, cli_spec_system(.systemctl, true), mut targets, services_cli.CliFileArgument{}, false)!
+	return result.loaded
 }
 
 // Ruby it `it "does not load service for non-root user when given `--sudo-service-user`" do` at line 192.
-pub fn ruby_cli_spec_l192_d21_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_cli_spec_l192_d21_does() !bool {
+	directory := cli_spec_temp_dir('start-user-sudo-user')!
+	defer { os.rmdir_all(directory) or {} }
+	mut state := services_cli.CliState{ sudo_service_user: '_serviced' }
+	mut service := cli_spec_service(directory)!
+	service.install_handled_by_collaborator = true
+	mut targets := [service]
+	result := services_cli.ruby_cli_l122_d9_self_start(mut state, cli_spec_system(.launchctl, false), mut targets, services_cli.CliFileArgument{}, false)!
+	return !result.loaded && !result.commands.any(it.args.len > 0 && it.args[0] == 'bootstrap')
 }
 
 // Ruby it `it "checks empty targets cause no error" do` at line 202.
-pub fn ruby_cli_spec_l202_d22_checks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('checks', ...args)
+pub fn ruby_cli_spec_l202_d22_checks() !bool {
+	mut targets := []services_cli.CliService{}
+	result := services_cli.ruby_cli_l174_d10_self_stop(cli_spec_system(.systemctl, false), mut targets, false, false, 0, false)!
+	return result.commands.len == 0
 }
 
 // Ruby it `it "stops timed systemd timers before services when kept" do` at line 207.
-pub fn ruby_cli_spec_l207_d23_stops(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('stops', ...args)
+pub fn ruby_cli_spec_l207_d23_stops() !bool {
+	mut targets := [services_cli.CliService{
+		name: 'name'
+		service_name: 'homebrew.name'
+		timed: true
+		timer_file: '/tmp/homebrew.name.timer'
+		loaded_values: [true, false]
+	}]
+	result := services_cli.ruby_cli_l174_d10_self_stop(cli_spec_system(.systemctl, false), mut targets, false, false, 0, true)!
+	return cli_spec_command_args(result) == ['--user stop homebrew.name.timer',
+		'--user stop homebrew.name'] && result.stdout.last().contains('Successfully stopped `name`')
 }
 
 // Ruby it `it "stops and removes timed systemd timer files" do` at line 232.
-pub fn ruby_cli_spec_l232_d24_stops(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('stops', ...args)
+pub fn ruby_cli_spec_l232_d24_stops() !bool {
+	directory := cli_spec_temp_dir('stop-timed')!
+	defer { os.rmdir_all(directory) or {} }
+	service_dest := os.join_path(directory, 'homebrew.name.service')
+	timer_dest := os.join_path(directory, 'homebrew.name.timer')
+	os.write_file(service_dest, 'service')!
+	os.write_file(timer_dest, 'timer')!
+	mut targets := [services_cli.CliService{
+		name: 'name'
+		service_name: 'homebrew.name'
+		dest: service_dest
+		timed: true
+		timer_file: timer_dest
+		timer_dest: timer_dest
+		loaded_values: [true, false]
+	}]
+	result := services_cli.ruby_cli_l174_d10_self_stop(cli_spec_system(.systemctl, false), mut targets, false, false, 0, false)!
+	return cli_spec_command_args(result)[..2] == [
+		'--user disable --now homebrew.name.timer',
+		'--user disable --now homebrew.name',
+	] && !os.exists(timer_dest)
 }
 
 // Ruby it `it "checks empty targets cause no error" do` at line 267.
-pub fn ruby_cli_spec_l267_d25_checks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('checks', ...args)
+pub fn ruby_cli_spec_l267_d25_checks() bool {
+	mut state := services_cli.CliState{}
+	mut targets := []services_cli.CliService{}
+	return services_cli.ruby_cli_l258_d11_self_kill(mut state, cli_spec_system(.systemctl, false), mut targets, false).commands.len == 0
 }
 
 // Ruby it `it "prints a message if service is not running" do` at line 272.
-pub fn ruby_cli_spec_l272_d26_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+pub fn ruby_cli_spec_l272_d26_prints() bool {
+	mut state := services_cli.CliState{}
+	mut targets := [services_cli.CliService{ name: 'example_service' }]
+	result := services_cli.ruby_cli_l258_d11_self_kill(mut state, cli_spec_system(.systemctl, false), mut targets, false)
+	return result.stdout == ['Service `example_service` is not started.']
 }
 
 // Ruby it `it "prints a message if service is set to keep alive" do` at line 280.
-pub fn ruby_cli_spec_l280_d27_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+pub fn ruby_cli_spec_l280_d27_prints() bool {
+	mut state := services_cli.CliState{}
+	mut targets := [services_cli.CliService{
+		name: 'example_service'
+		pid_values: [true]
+		keep_alive: true
+	}]
+	result := services_cli.ruby_cli_l258_d11_self_kill(mut state, cli_spec_system(.systemctl, false), mut targets, false)
+	return result.stdout == [
+		"Service `example_service` is set to automatically restart and can't be killed.",
+	]
 }
 
 // Ruby it `it "returns false when given non-root user" do` at line 290.
-pub fn ruby_cli_spec_l290_d28_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_cli_spec_l290_d28_returns() bool {
+	return !services_cli.ruby_cli_l288_d12_self_take_root_ownership(services_cli.CliState{}, cli_spec_system(.launchctl, false), services_cli.CliService{}).ownership_taken
 }
 
 // Ruby it `it "returns false when given `--sudo-service-user`" do` at line 296.
-pub fn ruby_cli_spec_l296_d29_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_cli_spec_l296_d29_returns() bool {
+	return !services_cli.ruby_cli_l288_d12_self_take_root_ownership(services_cli.CliState{
+		sudo_service_user: '_serviced'
+	}, cli_spec_system(.launchctl, true), services_cli.CliService{}).ownership_taken
 }
 
 // Ruby it `it "checks service is installed" do` at line 305.
-pub fn ruby_cli_spec_l305_d30_checks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('checks', ...args)
+pub fn ruby_cli_spec_l305_d30_checks() bool {
+	services_cli.ruby_cli_l407_d16_self_install_service_file(services_cli.CliState{}, cli_spec_system(.launchctl, false), services_cli.CliService{ name: 'name' }, services_cli.CliFileArgument{}) or {
+		return err.msg() == 'Invalid usage: Formula `name` is not installed.'
+	}
+	return false
 }
 
 // Ruby it `it "checks service file exists" do` at line 312.
-pub fn ruby_cli_spec_l312_d31_checks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('checks', ...args)
+pub fn ruby_cli_spec_l312_d31_checks() bool {
+	services_cli.ruby_cli_l407_d16_self_install_service_file(services_cli.CliState{}, cli_spec_system(.launchctl, false), services_cli.CliService{
+		name: 'name'
+		installed: true
+		service_file: '/does/not/exist'
+	}, services_cli.CliFileArgument{}) or {
+		return err.msg() == 'Invalid usage: Formula `name` has not implemented #plist, #service or provided a locatable service file.'
+	}
+	return false
 }
 
 // Ruby it `it "installs timed systemd timer files" do` at line 327.
-pub fn ruby_cli_spec_l327_d32_installs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('installs', ...args)
+pub fn ruby_cli_spec_l327_d32_installs() !bool {
+	directory := cli_spec_temp_dir('install-timer')!
+	defer { os.rmdir_all(directory) or {} }
+	mut service := cli_spec_service(directory)!
+	service.timed = true
+	os.write_file(service.timer_file, 'timer')!
+	result := services_cli.ruby_cli_l407_d16_self_install_service_file(services_cli.CliState{}, cli_spec_system(.systemctl, false), service, services_cli.CliFileArgument{})!
+	return os.read_file(service.timer_dest)! == 'timer' && cli_spec_command_args(result).contains('--user daemon-reload')
 }
 
 // Ruby let `let(:dest_dir) { mktmpdir }` at line 357.
-pub fn ruby_cli_spec_l357_d33_dest_dir(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dest_dir', ...args)
+pub fn ruby_cli_spec_l357_d33_dest_dir() !string {
+	return cli_spec_temp_dir('plist-dest')
 }
 
 // Ruby let `let(:plist_xml) do` at line 358.
-pub fn ruby_cli_spec_l358_d34_plist_xml(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('plist_xml', ...args)
+pub fn ruby_cli_spec_l358_d34_plist_xml() string {
+	return '<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n<plist version="1.0">\n<dict>\n  <key>Label</key>\n  <string>homebrew.test</string>\n  <key>ProgramArguments</key>\n  <array>\n    <string>/opt/homebrew/opt/test/bin/test</string>\n  </array>\n</dict>\n</plist>\n'
 }
 
 // Ruby let `let(:service) do` at line 374.
-pub fn ruby_cli_spec_l374_d35_service(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('service', ...args)
+pub fn ruby_cli_spec_l374_d35_service() !services_cli.CliService {
+	directory := cli_spec_temp_dir('plist-service')!
+	source := os.join_path(directory, 'source', 'homebrew.test.plist')
+	os.mkdir_all(os.dir(source))!
+	contents := ruby_cli_spec_l358_d34_plist_xml()
+	os.write_file(source, contents)!
+	return services_cli.CliService{
+		name: 'name'
+		service_name: 'homebrew.test'
+		formula_name: 'name'
+		installed: true
+		service_file: source
+		service_contents: contents
+		dest_dir: os.join_path(directory, 'dest')
+		dest: os.join_path(directory, 'dest', 'homebrew.test.plist')
+	}
 }
 
 // Ruby it `it "prints the given username" do` at line 395.
-pub fn ruby_cli_spec_l395_d36_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+pub fn ruby_cli_spec_l395_d36_prints() !bool {
+	service := ruby_cli_spec_l374_d35_service()!
+	defer { os.rmdir_all(os.dir(os.dir(service.service_file))) or {} }
+	result := services_cli.ruby_cli_l407_d16_self_install_service_file(services_cli.CliState{
+		sudo_service_user: '_serviced'
+	}, cli_spec_system(.launchctl, false), service, services_cli.CliFileArgument{})!
+	return result.stdout == ['==> Setting username in homebrew.test to: _serviced']
 }
 
 // Ruby it `it "sets username in the generated plist" do` at line 401.
-pub fn ruby_cli_spec_l401_d37_sets(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sets', ...args)
+pub fn ruby_cli_spec_l401_d37_sets() !bool {
+	service := ruby_cli_spec_l374_d35_service()!
+	defer { os.rmdir_all(os.dir(os.dir(service.service_file))) or {} }
+	services_cli.ruby_cli_l407_d16_self_install_service_file(services_cli.CliState{
+		sudo_service_user: '_serviced'
+	}, cli_spec_system(.launchctl, false), service, services_cli.CliFileArgument{})!
+	contents := os.read_file(service.dest)!
+	return contents.contains('<key>UserName</key>') && contents.contains('<string>_serviced</string>')
 }
 
 // Ruby let `let(:bindir) { mktmpdir }` at line 409.
-pub fn ruby_cli_spec_l409_d38_bindir(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('bindir', ...args)
+pub fn ruby_cli_spec_l409_d38_bindir() !string {
+	return cli_spec_temp_dir('systemctl-bin')
 }
 
 // Ruby let `let(:log) { bindir/"systemctl.log" }` at line 410.
-pub fn ruby_cli_spec_l410_d39_log(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('log', ...args)
+pub fn ruby_cli_spec_l410_d39_log() !string {
+	return os.join_path(ruby_cli_spec_l409_d38_bindir()!, 'systemctl.log')
 }
 
 // Ruby it `it "checks non-enabling run" do` at line 421.
-pub fn ruby_cli_spec_l421_d40_checks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('checks', ...args)
+pub fn ruby_cli_spec_l421_d40_checks() bool {
+	result := services_cli.ruby_cli_l367_d14_self_systemd_load(cli_spec_system(.systemctl, false), services_cli.CliService{ service_name: 'name' }, false)
+	return cli_spec_command_args(result) == ['--user start name']
 }
 
 // Ruby it `it "checks enabling run" do` at line 432.
-pub fn ruby_cli_spec_l432_d41_checks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('checks', ...args)
+pub fn ruby_cli_spec_l432_d41_checks() bool {
+	result := services_cli.ruby_cli_l367_d14_self_systemd_load(cli_spec_system(.systemctl, false), services_cli.CliService{ service_name: 'name' }, true)
+	return cli_spec_command_args(result) == ['--user start name', '--user enable name']
 }
 
 // Ruby it `it "checks enabling timed run" do` at line 446.
-pub fn ruby_cli_spec_l446_d42_checks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('checks', ...args)
+pub fn ruby_cli_spec_l446_d42_checks() bool {
+	result := services_cli.ruby_cli_l367_d14_self_systemd_load(cli_spec_system(.systemctl, false), services_cli.CliService{
+		service_name: 'name'
+		timed: true
+		timer_file: 'name.timer'
+	}, true)
+	return cli_spec_command_args(result) == ['--user start name', '--user start name.timer',
+		'--user enable name.timer']
 }
 
 // Ruby let `let(:bindir) { mktmpdir }` at line 468.
-pub fn ruby_cli_spec_l468_d43_bindir(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('bindir', ...args)
+pub fn ruby_cli_spec_l468_d43_bindir() !string {
+	return cli_spec_temp_dir('launchctl-bin')
 }
 
 // Ruby let `let(:log) { bindir/"launchctl.log" }` at line 469.
-pub fn ruby_cli_spec_l469_d44_log(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('log', ...args)
+pub fn ruby_cli_spec_l469_d44_log() !string {
+	return os.join_path(ruby_cli_spec_l468_d43_bindir()!, 'launchctl.log')
 }
 
 // Ruby it `it "checks non-enabling run" do` at line 480.
-pub fn ruby_cli_spec_l480_d45_checks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('checks', ...args)
+pub fn ruby_cli_spec_l480_d45_checks() bool {
+	result := services_cli.ruby_cli_l361_d13_self_launchctl_load(cli_spec_system(.launchctl, false), services_cli.CliService{}, 'a', false)
+	return cli_spec_command_args(result) == ['bootstrap gui/501 a']
 }
 
 // Ruby it `it "checks enabling run" do` at line 488.
-pub fn ruby_cli_spec_l488_d46_checks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('checks', ...args)
+pub fn ruby_cli_spec_l488_d46_checks() bool {
+	result := services_cli.ruby_cli_l361_d13_self_launchctl_load(cli_spec_system(.launchctl, false), services_cli.CliService{ service_name: 'name' }, 'a', true)
+	return cli_spec_command_args(result) == ['enable gui/501/name', 'bootstrap gui/501 a']
 }
 
 // Ruby it `it "checks non-root for login" do` at line 503.
-pub fn ruby_cli_spec_l503_d47_checks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('checks', ...args)
+pub fn ruby_cli_spec_l503_d47_checks() !bool {
+	mut state := services_cli.CliState{}
+	mut service := services_cli.CliService{ name: 'name', service_name: 'service.name' }
+	result := services_cli.ruby_cli_l378_d15_self_service_load(mut state, cli_spec_system(.unavailable, true), mut service, services_cli.CliFileArgument{}, false)!
+	return result.stdout == ['==> Successfully ran `name` (label: service.name)']
 }
 
 // Ruby it `it "checks root for startup" do` at line 522.
-pub fn ruby_cli_spec_l522_d48_checks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('checks', ...args)
+pub fn ruby_cli_spec_l522_d48_checks() !bool {
+	mut state := services_cli.CliState{}
+	mut service := services_cli.CliService{
+		name: 'name'
+		service_name: 'service.name'
+		service_startup: true
+	}
+	result := services_cli.ruby_cli_l378_d15_self_service_load(mut state, cli_spec_system(.unavailable, false), mut service, services_cli.CliFileArgument{}, false)!
+	return result.stdout == ['==> Successfully ran `name` (label: service.name)']
 }
 
 // Ruby it `it "warns root for login without `--sudo-service-user`" do` at line 540.
-pub fn ruby_cli_spec_l540_d49_warns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('warns', ...args)
+pub fn ruby_cli_spec_l540_d49_warns() !bool {
+	mut state := services_cli.CliState{}
+	mut service := services_cli.CliService{ name: 'name', service_name: 'service.name' }
+	result := services_cli.ruby_cli_l378_d15_self_service_load(mut state, cli_spec_system(.unavailable, true), mut service, services_cli.CliFileArgument{}, true)!
+	return result.warnings.contains('Warning: `name` must be run as non-root to start at user login!')
 }
 
 // Ruby it `it "does not warn root for login when given `--sudo-service-user`" do` at line 558.
-pub fn ruby_cli_spec_l558_d50_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_cli_spec_l558_d50_does() !bool {
+	mut state := services_cli.CliState{ sudo_service_user: '_serviced' }
+	mut service := services_cli.CliService{ name: 'name', service_name: 'service.name' }
+	result := services_cli.ruby_cli_l378_d15_self_service_load(mut state, cli_spec_system(.unavailable, true), mut service, services_cli.CliFileArgument{}, true)!
+	return !result.warnings.any(it.contains('must be run as non-root'))
 }
 
 // Ruby it `it "errors then exits when given a `--sudo-service-user` which does not exist" do` at line 578.
-pub fn ruby_cli_spec_l578_d51_errors(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('errors', ...args)
+pub fn ruby_cli_spec_l578_d51_errors() bool {
+	mut state := services_cli.CliState{ sudo_service_user: 'not_a_real_user' }
+	mut service := services_cli.CliService{ name: 'name', service_name: 'service.name' }
+	services_cli.ruby_cli_l378_d15_self_service_load(mut state, cli_spec_system(.unavailable, true), mut service, services_cli.CliFileArgument{}, true) or {
+		return err.msg() == 'Error: Cannot start `name` as `not_a_real_user` is not a user!'
+	}
+	return false
 }
 
 // Ruby it `it "continues loading when given a `--sudo-service-user` which exists" do` at line 596.
-pub fn ruby_cli_spec_l596_d52_continues(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('continues', ...args)
+pub fn ruby_cli_spec_l596_d52_continues() !bool {
+	mut state := services_cli.CliState{ sudo_service_user: '_serviced' }
+	mut service := services_cli.CliService{ name: 'name', service_name: 'service.name' }
+	result := services_cli.ruby_cli_l378_d15_self_service_load(mut state, cli_spec_system(.unavailable, true), mut service, services_cli.CliFileArgument{}, true)!
+	return result.stdout == ['==> Successfully started `name` (label: service.name)']
 }
 
 // Ruby it `it "triggers launchctl" do` at line 618.
-pub fn ruby_cli_spec_l618_d53_triggers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('triggers', ...args)
+pub fn ruby_cli_spec_l618_d53_triggers() !bool {
+	mut state := services_cli.CliState{}
+	mut service := services_cli.CliService{
+		name: 'name'
+		service_name: 'service.name'
+		service_file: 'service-file'
+	}
+	result := services_cli.ruby_cli_l378_d15_self_service_load(mut state, cli_spec_system(.launchctl, false), mut service, services_cli.CliFileArgument{}, false)!
+	return result.commands.len == 1 && result.commands[0].args == ['bootstrap', 'gui/501',
+		'service-file']
 }
 
 // Ruby it `it "creates service path directories before loading" do` at line 639.
-pub fn ruby_cli_spec_l639_d54_creates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('creates', ...args)
+pub fn ruby_cli_spec_l639_d54_creates() !bool {
+	directory := cli_spec_temp_dir('path-dirs')!
+	defer { os.rmdir_all(directory) or {} }
+	paths := [os.join_path(directory, 'var', 'run'), os.join_path(directory, 'var', 'log')]
+	mut state := services_cli.CliState{}
+	mut service := services_cli.CliService{
+		name: 'name'
+		service_name: 'service.name'
+		service_file: 'service-file'
+		path_dirs: paths
+	}
+	services_cli.ruby_cli_l378_d15_self_service_load(mut state, cli_spec_system(.launchctl, false), mut service, services_cli.CliFileArgument{}, false)!
+	return paths.all(os.is_dir(it))
 }
 
 // Ruby it `it "triggers systemctl" do` at line 668.
-pub fn ruby_cli_spec_l668_d55_triggers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('triggers', ...args)
+pub fn ruby_cli_spec_l668_d55_triggers() !bool {
+	directory := cli_spec_temp_dir('systemctl-trigger')!
+	defer { os.rmdir_all(directory) or {} }
+	dest := os.join_path(directory, 'homebrew.name.service')
+	os.write_file(dest, 'service')!
+	mut state := services_cli.CliState{}
+	mut service := services_cli.CliService{
+		name: 'name'
+		service_name: 'service.name'
+		dest: dest
+	}
+	result := services_cli.ruby_cli_l378_d15_self_service_load(mut state, cli_spec_system(.systemctl, false), mut service, services_cli.CliFileArgument{}, false)!
+	return cli_spec_command_args(result) == ['--user start service.name']
 }
 
 // Ruby it `it "represents correct action" do` at line 690.
-pub fn ruby_cli_spec_l690_d56_represents(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('represents', ...args)
+pub fn ruby_cli_spec_l690_d56_represents() !bool {
+	directory := cli_spec_temp_dir('systemctl-action')!
+	defer { os.rmdir_all(directory) or {} }
+	dest := os.join_path(directory, 'homebrew.name.service')
+	os.write_file(dest, 'service')!
+	mut state := services_cli.CliState{}
+	mut service := services_cli.CliService{
+		name: 'name'
+		service_name: 'service.name'
+		dest: dest
+	}
+	result := services_cli.ruby_cli_l378_d15_self_service_load(mut state, cli_spec_system(.systemctl, false), mut service, services_cli.CliFileArgument{}, true)!
+	return cli_spec_command_args(result) == ['--user start service.name', '--user enable service.name'] && result.stdout == [
+		'==> Successfully started `name` (label: service.name)',
+	]
 }
 
 // Original Ruby source (line-for-line):

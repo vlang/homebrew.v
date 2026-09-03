@@ -1,148 +1,359 @@
 module dev_cmd
 
+import crypto.sha256
 import brew_runtime
+import homebrew.dev_cmd as production_dev_cmd
+import os
+import time
 
 // Translated from Homebrew/brew `test/dev-cmd/bump-formula-pr_spec.rb`.
-// The original source is retained below until every stub has a typed V body.
+// The original source is retained below for source-by-source auditability.
+
+fn bump_formula_pr_spec_formula() production_dev_cmd.BumpFormula {
+	return production_dev_cmd.BumpFormula{
+		name: 'test'
+		full_name: 'test'
+		contents: 'class Test < Formula\n  url "https://brew.sh/test-1.2.3.tgz"\nend\n'
+		version: '1.2.3'
+		url: 'https://brew.sh/test-1.2.3.tgz'
+		tap_name: 'test/tap'
+		tap_remote_repository: 'test/tap'
+	}
+}
+
+fn bump_formula_pr_spec_throttle_formula(name string, rate ?int, days ?int,
+	allows_bump bool) production_dev_cmd.BumpFormula {
+	return production_dev_cmd.BumpFormula{
+		name: name
+		full_name: 'test/tap/${name}'
+		contents: 'class Test < Formula\n  url "https://brew.sh/test-1.2.3.tgz"\nend\n'
+		version: '1.2.3'
+		url: 'https://brew.sh/test-1.2.3.tgz'
+		tap_name: 'test/tap'
+		tap_remote_repository: 'test/tap'
+		throttle_rate: rate
+		throttle_days: days
+		throttle_allows_bump: allows_bump
+	}
+}
+
+fn bump_formula_pr_spec_matching_formula() production_dev_cmd.BumpFormula {
+	return production_dev_cmd.BumpFormula{
+		name: 'test'
+		full_name: 'test'
+		contents: 'class Test < Formula\n  url "https://brew.sh/test-1.2.3.tgz"\n\n  resource "parent" do\n    url "https://brew.sh/parent-1.2.3.tar.gz"\n  end\n\n  resource "no-parent" do\n    url "https://brew.sh/no-parent-1.2.3.tar.gz"\n  end\nend\n'
+		version: '1.2.3'
+		url: 'https://brew.sh/test-1.2.3.tgz'
+		resources: [
+			production_dev_cmd.BumpFormulaResource{
+				name: 'parent'
+				version: '1.2.3'
+				url: 'https://brew.sh/parent-1.2.3.tar.gz'
+				livecheck_parent: true
+				fetched_version: '1.2.4'
+			},
+			production_dev_cmd.BumpFormulaResource{
+				name: 'no-parent'
+				version: '1.2.3'
+				url: 'https://brew.sh/no-parent-1.2.3.tar.gz'
+				fetched_version: '1.2.4'
+			},
+		]
+		tap_name: 'test/tap'
+		tap_remote_repository: 'test/tap'
+	}
+}
+
+fn bump_formula_pr_spec_resource_formula() production_dev_cmd.BumpFormula {
+	return production_dev_cmd.BumpFormula{
+		name: 'test'
+		full_name: 'test'
+		contents: 'class Test < Formula\n  url "https://brew.sh/test-1.0.0.tgz"\n\n  resource "foo" do\n    url "https://brew.sh/foo-1.2.3.tar.gz"\n  end\nend\n'
+		version: '1.0.0'
+		url: 'https://brew.sh/test-1.0.0.tgz'
+		resources: [production_dev_cmd.BumpFormulaResource{
+			name: 'foo'
+			version: '1.2.3'
+			url: 'https://brew.sh/foo-1.2.3.tar.gz'
+		}]
+		tap_name: 'test/tap'
+		tap_remote_repository: 'test/tap'
+	}
+}
+
+fn bump_formula_pr_spec_versions(current string,
+	latest string) map[string]production_dev_cmd.BumpFormulaResourceVersion {
+	return {
+		'foo': production_dev_cmd.BumpFormulaResourceVersion{
+			current_version: current
+			latest_version: latest
+		}
+	}
+}
+
+fn bump_formula_pr_spec_bool(value bool) brew_runtime.Value {
+	return brew_runtime.bool_value(value)
+}
 
 // Ruby subject `subject(:bump_formula_pr) { described_class.new(["test"]) }` at line 9.
 pub fn ruby_bump_formula_pr_spec_l9_d1_bump_formula_pr(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('bump_formula_pr', ...args)
+	_ = args
+	return brew_runtime.structured_value('Homebrew::DevCmd::BumpFormulaPr', 'test', {
+		'named': 'test'
+	})
 }
 
 // Ruby let `let(:f) do` at line 11.
 pub fn ruby_bump_formula_pr_spec_l11_d2_f(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f', ...args)
+	_ = args
+	return production_dev_cmd.bump_formula_value(bump_formula_pr_spec_formula())
 }
 
 // Ruby it `it "adds updated mirrors as string literals" do` at line 21.
 pub fn ruby_bump_formula_pr_spec_l21_d3_adds(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('adds', ...args)
+	_ = args
+	root := os.join_path(os.temp_dir(), 'brew-v-bump-formula-pr-spec-${os.getpid()}-${time.now().unix_micro()}')
+	os.mkdir_all(root) or { return bump_formula_pr_spec_bool(false) }
+	defer { os.rmdir_all(root) or {} }
+	formula_path := os.join_path(root, 'couchdb.rb')
+	resource_path := os.join_path(root, 'apache-couchdb-3.5.2.tar.gz')
+	contents := 'class Couchdb < Formula\n  url "https://www.apache.org/dyn/closer.lua?path=couchdb/source/3.5.1/apache-couchdb-3.5.1.tar.gz"\n  mirror "https://archive.apache.org/dist/couchdb/source/3.5.1/apache-couchdb-3.5.1.tar.gz"\n  sha256 "${'a'.repeat(64)}"\nend\n'
+	os.write_file(formula_path, contents) or { return bump_formula_pr_spec_bool(false) }
+	os.write_file(resource_path, 'couchdb') or { return bump_formula_pr_spec_bool(false) }
+	updated_mirror := 'https://archive.apache.org/dist/couchdb/source/3.5.2/apache-couchdb-3.5.2.tar.gz'
+	digest := sha256.sum256('couchdb'.bytes()).hex()
+	result := production_dev_cmd.bump_formula_run(production_dev_cmd.BumpFormulaRunRequest{
+		formula: production_dev_cmd.BumpFormula{
+			name: 'couchdb'
+			full_name: 'homebrew/core/couchdb'
+			path: formula_path
+			contents: contents
+			version: '3.5.1'
+			url: 'https://www.apache.org/dyn/closer.lua?path=couchdb/source/3.5.1/apache-couchdb-3.5.1.tar.gz'
+			checksum: 'a'.repeat(64)
+			mirrors: [
+				'https://archive.apache.org/dist/couchdb/source/3.5.1/apache-couchdb-3.5.1.tar.gz',
+			]
+			tap_name: 'homebrew/core'
+			tap_path: root
+			tap_remote_repository: 'Homebrew/homebrew-core'
+			tap_official: true
+			download_path: resource_path
+			fetched_version: '3.5.2'
+		}
+		options: production_dev_cmd.BumpFormulaOptions{
+			url: 'https://www.apache.org/dyn/closer.lua?path=couchdb/source/3.5.2/apache-couchdb-3.5.2.tar.gz'
+			write_only: true
+			no_audit: true
+		}
+	})
+	written := os.read_file(formula_path) or { return bump_formula_pr_spec_bool(false) }
+	return bump_formula_pr_spec_bool(result.error == ''
+		&& written.contains('  mirror "${updated_mirror}"\n  sha256 "${digest}"\n'))
 }
 
 // Ruby let `let(:tap) { Tap.fetch("test", "tap") }` at line 66.
 pub fn ruby_bump_formula_pr_spec_l66_d4_tap(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tap', ...args)
+	_ = args
+	return brew_runtime.structured_value('Tap', 'test/tap', {
+		'user':       'test'
+		'repository': 'tap'
+	})
 }
 
 // Ruby let `let(:f_throttle) do` at line 68.
 pub fn ruby_bump_formula_pr_spec_l68_d5_f_throttle(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f_throttle', ...args)
+	_ = args
+	return production_dev_cmd.bump_formula_value(bump_formula_pr_spec_throttle_formula('throttle-test', 5, none, true))
 }
 
 // Ruby let `let(:f_throttle_days) do` at line 79.
 pub fn ruby_bump_formula_pr_spec_l79_d6_f_throttle_days(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f_throttle_days', ...args)
+	_ = args
+	return production_dev_cmd.bump_formula_value(bump_formula_pr_spec_throttle_formula('throttle-days-test', none, 1, true))
 }
 
 // Ruby let `let(:f_throttle_rate_and_days) do` at line 90.
 pub fn ruby_bump_formula_pr_spec_l90_d7_f_throttle_rate_and_days(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f_throttle_rate_and_days', ...args)
+	_ = args
+	return production_dev_cmd.bump_formula_value(bump_formula_pr_spec_throttle_formula('throttle-rate-and-days-test', 5, 1, true))
 }
 
 // Ruby let `let(:throttle_error) { "Error: throttle-test should only be updated every 5 releases on multiples of 5\n" }` at line 101.
 pub fn ruby_bump_formula_pr_spec_l101_d8_throttle_error(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('throttle_error', ...args)
+	_ = args
+	return brew_runtime.string_value('Error: throttle-test should only be updated every 5 releases on multiples of 5\n')
 }
 
 // Ruby let `let(:throttle_days_error) { "Error: throttle-days-test should only be updated every 1 day\n" }` at line 102.
 pub fn ruby_bump_formula_pr_spec_l102_d9_throttle_days_error(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('throttle_days_error', ...args)
+	_ = args
+	return brew_runtime.string_value('Error: throttle-days-test should only be updated every 1 day\n')
 }
 
 // Ruby let `let(:throttle_rate_days_error) do` at line 103.
 pub fn ruby_bump_formula_pr_spec_l103_d10_throttle_rate_days_error(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('throttle_rate_days_error', ...args)
+	_ = args
+	return brew_runtime.string_value('Error: throttle-rate-and-days-test should only be updated every 5 releases on multiples of 5 or 1 day\n')
 }
 
 // Ruby it `it "outputs nothing" do` at line 108.
 pub fn ruby_bump_formula_pr_spec_l108_d11_outputs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('outputs', ...args)
+	_ = args
+	mut formula := bump_formula_pr_spec_formula()
+	formula = production_dev_cmd.BumpFormula{
+		...formula
+		tap_present: false
+	}
+	result := production_dev_cmd.bump_formula_check_throttle(formula, '1.2.4')
+	return bump_formula_pr_spec_bool(result.allowed && result.error == '' && result.output.len == 0)
 }
 
 // Ruby it `it "does not throttle" do` at line 116.
 pub fn ruby_bump_formula_pr_spec_l116_d12_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	_ = args
+	result := production_dev_cmd.bump_formula_check_throttle(bump_formula_pr_spec_formula(), '1.2.4')
+	return bump_formula_pr_spec_bool(result.allowed && result.error == '' && result.output.len == 0)
 }
 
 // Ruby it `it "does not throttle" do` at line 124.
 pub fn ruby_bump_formula_pr_spec_l124_d13_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	_ = args
+	result := production_dev_cmd.bump_formula_check_throttle(bump_formula_pr_spec_throttle_formula('throttle-test', 5, none, true), '1.2.5')
+	return bump_formula_pr_spec_bool(result.allowed && result.error == '' && result.output.len == 0)
 }
 
 // Ruby it `it "throttles version" do` at line 132.
 pub fn ruby_bump_formula_pr_spec_l132_d14_throttles(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('throttles', ...args)
+	_ = args
+	result := production_dev_cmd.bump_formula_check_throttle(bump_formula_pr_spec_throttle_formula('throttle-test', 5, none, false), '1.2.4')
+	stderr := if result.error == '' { '' } else { 'Error: ${result.error}\n' }
+	return bump_formula_pr_spec_bool(!result.allowed
+		&& stderr == ruby_bump_formula_pr_spec_l101_d8_throttle_error().as_string())
 }
 
 // Ruby it `it "throttles version when throttle interval has not elapsed" do` at line 148.
 pub fn ruby_bump_formula_pr_spec_l148_d15_throttles(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('throttles', ...args)
+	_ = args
+	result := production_dev_cmd.bump_formula_check_throttle(bump_formula_pr_spec_throttle_formula('throttle-rate-and-days-test', 5, 1, false), '1.2.4')
+	stderr := if result.error == '' { '' } else { 'Error: ${result.error}\n' }
+	return bump_formula_pr_spec_bool(!result.allowed
+		&& stderr == ruby_bump_formula_pr_spec_l103_d10_throttle_rate_days_error().as_string())
 }
 
 // Ruby it `it "does not throttle when throttle interval has elapsed" do` at line 158.
 pub fn ruby_bump_formula_pr_spec_l158_d16_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	_ = args
+	result := production_dev_cmd.bump_formula_check_throttle(bump_formula_pr_spec_throttle_formula('throttle-rate-and-days-test', 5, 1, true), '1.2.4')
+	return bump_formula_pr_spec_bool(result.allowed && result.error == '' && result.output.len == 0)
 }
 
 // Ruby it `it "throttles version when throttle interval has not elapsed" do` at line 170.
 pub fn ruby_bump_formula_pr_spec_l170_d17_throttles(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('throttles', ...args)
+	_ = args
+	result := production_dev_cmd.bump_formula_check_throttle(bump_formula_pr_spec_throttle_formula('throttle-days-test', none, 1, false), '1.2.4')
+	stderr := if result.error == '' { '' } else { 'Error: ${result.error}\n' }
+	return bump_formula_pr_spec_bool(!result.allowed
+		&& stderr == ruby_bump_formula_pr_spec_l102_d9_throttle_days_error().as_string())
 }
 
 // Ruby it `it "does not throttle when throttle interval has elapsed" do` at line 180.
 pub fn ruby_bump_formula_pr_spec_l180_d18_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	_ = args
+	result := production_dev_cmd.bump_formula_check_throttle(bump_formula_pr_spec_throttle_formula('throttle-days-test', none, 1, true), '1.2.4')
+	return bump_formula_pr_spec_bool(result.allowed && result.error == '' && result.output.len == 0)
 }
 
 // Ruby let `let(:f) do` at line 191.
 pub fn ruby_bump_formula_pr_spec_l191_d19_f(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f', ...args)
+	_ = args
+	return production_dev_cmd.bump_formula_value(bump_formula_pr_spec_matching_formula())
 }
 
 // Ruby let `let(:resource) { f.resource("parent") }` at line 208.
 pub fn ruby_bump_formula_pr_spec_l208_d20_resource(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('resource', ...args)
+	_ = args
+	return production_dev_cmd.bump_formula_resource_value(bump_formula_pr_spec_matching_formula().resources[0])
 }
 
 // Ruby let `let(:version) { "1.2.4" }` at line 209.
 pub fn ruby_bump_formula_pr_spec_l209_d21_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('version', ...args)
+	_ = args
+	return brew_runtime.string_value('1.2.4')
 }
 
 // Ruby it `it "only updates `:parent` resource" do` at line 211.
 pub fn ruby_bump_formula_pr_spec_l211_d22_only(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('only', ...args)
+	_ = args
+	updates := production_dev_cmd.bump_formula_update_matching_version_resources(bump_formula_pr_spec_matching_formula(), '1.2.4', map[string]production_dev_cmd.BumpFormulaResourceVersion{})
+	return bump_formula_pr_spec_bool(updates.statuses == {
+		'parent': 'success'
+	}
+		&& updates.contents.contains('parent-1.2.4.tar.gz')
+		&& updates.contents.contains('no-parent-1.2.3.tar.gz'))
 }
 
 // Ruby it `it "does not update `:parent` resource if set in `--resource-versions`" do` at line 216.
 pub fn ruby_bump_formula_pr_spec_l216_d23_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	_ = args
+	updates := production_dev_cmd.bump_formula_update_matching_version_resources(bump_formula_pr_spec_matching_formula(), '1.2.4', {
+		'parent': production_dev_cmd.BumpFormulaResourceVersion{
+			current_version: '1.2.3'
+			latest_version: '1.2.4'
+		}
+	})
+	return bump_formula_pr_spec_bool(updates.statuses.len == 0
+		&& updates.contents == bump_formula_pr_spec_matching_formula().contents)
 }
 
 // Ruby let `let(:f) do` at line 224.
 pub fn ruby_bump_formula_pr_spec_l224_d24_f(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f', ...args)
+	_ = args
+	return production_dev_cmd.bump_formula_value(bump_formula_pr_spec_resource_formula())
 }
 
 // Ruby let `let(:r) { f.resource("foo") }` at line 234.
 pub fn ruby_bump_formula_pr_spec_l234_d25_r(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('r', ...args)
+	_ = args
+	return production_dev_cmd.bump_formula_resource_value(bump_formula_pr_spec_resource_formula().resources[0])
 }
 
 // Ruby it `it "updates to requested version" do` at line 236.
 pub fn ruby_bump_formula_pr_spec_l236_d26_updates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('updates', ...args)
+	_ = args
+	updates := production_dev_cmd.bump_formula_update_resources(bump_formula_pr_spec_resource_formula(), bump_formula_pr_spec_versions('1.2.3', '2.1.0'))
+	return bump_formula_pr_spec_bool(updates.statuses == {
+		'foo': 'success'
+	}
+		&& updates.contents.contains('foo-2.1.0.tar.gz'))
 }
 
 // Ruby it `it "downgrades to requested version" do` at line 243.
 pub fn ruby_bump_formula_pr_spec_l243_d27_downgrades(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('downgrades', ...args)
+	_ = args
+	updates := production_dev_cmd.bump_formula_update_resources(bump_formula_pr_spec_resource_formula(), bump_formula_pr_spec_versions('1.2.3', '0.1.2'))
+	return bump_formula_pr_spec_bool(updates.statuses == {
+		'foo': 'downgraded'
+	}
+		&& updates.contents.contains('foo-0.1.2.tar.gz'))
 }
 
 // Ruby it `it "returns update failures" do` at line 250.
 pub fn ruby_bump_formula_pr_spec_l250_d28_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	formula := bump_formula_pr_spec_resource_formula()
+	unchanged := production_dev_cmd.BumpFormula{
+		...formula
+		contents: formula.contents.replace('foo-1.2.3.tar.gz', 'foo.tar.gz')
+		resources: [production_dev_cmd.BumpFormulaResource{
+			...formula.resources[0]
+			url: 'https://brew.sh/foo.tar.gz'
+		}]
+	}
+	updates := production_dev_cmd.bump_formula_update_resources(unchanged, bump_formula_pr_spec_versions('1.2.3', '0.1.2'))
+	return bump_formula_pr_spec_bool(updates.statuses == {
+		'foo': 'url_unchanged'
+	})
 }
 
 // Original Ruby source (line-for-line):

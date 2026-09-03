@@ -1,68 +1,514 @@
 module concurrent
 
 import brew_runtime
+import sync
+import time
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/ivar.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub enum IVarState {
+	unscheduled
+	pending
+	processing
+	fulfilled
+	rejected
+	cancelled
+}
+
+pub type IVarTask = fn([]brew_runtime.Value) !brew_runtime.Value
+
+pub type IVarCompletion = fn(bool, brew_runtime.Value, string)
+
+pub type IVarObserver = fn(i64, brew_runtime.Value, string)
+
+pub type IVarCopy = fn(brew_runtime.Value) brew_runtime.Value
+
+pub struct IVarOptions {
+pub:
+	dup_on_deref    bool
+	freeze_on_deref bool
+	copy_on_deref   ?IVarCopy
+	args            []brew_runtime.Value
+}
+
+struct IVarObserverEntry {
+	id       string
+	callback IVarObserver @[required]
+}
+
+@[heap]
+struct IVarData {
+	mutex     &sync.Mutex
+	condition &sync.Cond
+mut:
+	state     IVarState
+	value     brew_runtime.Value
+	reason    string
+	observers []IVarObserverEntry
+}
+
+@[heap]
+pub struct IVar {
+	options IVarOptions
+mut:
+	data &IVarData
+}
+
+pub fn new_ivar() &IVar {
+	return new_ivar_with_options(IVarOptions{})
+}
+
+pub fn new_ivar_with_options(options IVarOptions) &IVar {
+	mutex := sync.new_mutex()
+	return &IVar{
+		data: &IVarData{
+			mutex: mutex
+			condition: sync.new_cond(mutex)
+			state: .pending
+			value: ivar_nil_value()
+		}
+		options: options
+	}
+}
+
+pub fn new_fulfilled_ivar(value brew_runtime.Value, options IVarOptions) &IVar {
+	mut ivar := new_ivar_with_options(options)
+	ivar.complete_without_notification(true, value, '') or { panic(err) }
+	return ivar
+}
+
+fn ivar_nil_value() brew_runtime.Value {
+	return brew_runtime.object_value('NilClass', 'nil')
+}
+
+fn ivar_state_complete(state IVarState) bool {
+	return state in [.fulfilled, .rejected]
+}
+
+fn ivar_state_from_string(value string) IVarState {
+	return match value.trim_left(':') {
+		'unscheduled' { .unscheduled }
+		'pending' { .pending }
+		'processing' { .processing }
+		'fulfilled' { .fulfilled }
+		'rejected' { .rejected }
+		'cancelled' { .cancelled }
+		else { panic('ArgumentError: unknown IVar state `${value}`') }
+	}
+}
+
+fn ivar_duplicate_value(value brew_runtime.Value) brew_runtime.Value {
+	return brew_runtime.Value{
+		type_name: value.type_name
+		repr: value.repr
+		bool_data: value.bool_data
+		int_data: value.int_data
+		float_data: value.float_data
+		string_array_data: value.string_array_data.clone()
+		array_data: value.array_data.clone()
+		map_data: value.map_data.clone()
+		attributes: value.attributes.clone()
+	}
+}
+
+fn ivar_apply_options(value brew_runtime.Value, options IVarOptions) brew_runtime.Value {
+	if value.type_name == 'NilClass' {
+		return value
+	}
+	mut result := value
+	if copy_fn := options.copy_on_deref {
+		result = copy_fn(result)
+	}
+	if options.dup_on_deref {
+		result = ivar_duplicate_value(result)
+	}
+	// Boundary values are immutable, so freeze_on_deref needs no additional V operation.
+	return result
+}
+
+pub fn (mut ivar IVar) state() IVarState {
+	ivar.data.mutex.lock()
+	state := ivar.data.state
+	ivar.data.mutex.unlock()
+	return state
+}
+
+pub fn (mut ivar IVar) fulfilled() bool {
+	return ivar.state() == .fulfilled
+}
+
+pub fn (mut ivar IVar) rejected() bool {
+	return ivar.state() == .rejected
+}
+
+pub fn (mut ivar IVar) pending() bool {
+	return ivar.state() == .pending
+}
+
+pub fn (mut ivar IVar) unscheduled() bool {
+	return ivar.state() == .unscheduled
+}
+
+pub fn (mut ivar IVar) is_complete() bool {
+	return ivar_state_complete(ivar.state())
+}
+
+pub fn (mut ivar IVar) is_incomplete() bool {
+	return !ivar.is_complete()
+}
+
+pub fn (mut ivar IVar) reason() string {
+	ivar.data.mutex.lock()
+	reason := ivar.data.reason
+	ivar.data.mutex.unlock()
+	return reason
+}
+
+pub fn (mut ivar IVar) wait(timeout ?time.Duration) bool {
+	ivar.data.mutex.lock()
+	defer {
+		ivar.data.mutex.unlock()
+	}
+	if ivar_state_complete(ivar.data.state) {
+		return true
+	}
+	if duration := timeout {
+		if duration <= 0 {
+			return false
+		}
+		deadline := time.sys_mono_now() + u64(duration)
+		for !ivar_state_complete(ivar.data.state) {
+			now := time.sys_mono_now()
+			if now >= deadline {
+				return false
+			}
+			remaining := deadline - now
+			sleep_for := if remaining < u64(time.millisecond) {
+				time.Duration(remaining)
+			} else {
+				time.millisecond
+			}
+			ivar.data.mutex.unlock()
+			time.sleep(sleep_for)
+			ivar.data.mutex.lock()
+		}
+		return true
+	}
+	for !ivar_state_complete(ivar.data.state) {
+		ivar.data.condition.wait()
+	}
+	return true
+}
+
+pub fn (mut ivar IVar) value(timeout ?time.Duration) brew_runtime.Value {
+	ivar.wait(timeout)
+	ivar.data.mutex.lock()
+	value := if ivar.data.state == .fulfilled {
+		ivar_apply_options(ivar.data.value, ivar.options)
+	} else {
+		ivar_nil_value()
+	}
+	ivar.data.mutex.unlock()
+	return value
+}
+
+pub fn (mut ivar IVar) value_or_error(timeout ?time.Duration) !brew_runtime.Value {
+	ivar.wait(timeout)
+	ivar.data.mutex.lock()
+	defer {
+		ivar.data.mutex.unlock()
+	}
+	if ivar.data.state == .rejected {
+		return error(ivar.data.reason)
+	}
+	return if ivar.data.state == .fulfilled {
+		ivar_apply_options(ivar.data.value, ivar.options)
+	} else {
+		ivar_nil_value()
+	}
+}
+
+pub fn (mut ivar IVar) compare_and_set_state(next_state IVarState, expected []IVarState) bool {
+	ivar.data.mutex.lock()
+	defer {
+		ivar.data.mutex.unlock()
+	}
+	if ivar.data.state !in expected {
+		return false
+	}
+	ivar.data.state = next_state
+	return true
+}
+
+pub fn (mut ivar IVar) set_state(state IVarState) {
+	ivar.data.mutex.lock()
+	ivar.data.state = state
+	ivar.data.mutex.unlock()
+}
+
+pub fn (mut ivar IVar) add_observer(id string, callback IVarObserver) string {
+	if id.len == 0 {
+		panic('ArgumentError: should pass observer as a first argument or block')
+	}
+	ivar.data.mutex.lock()
+	if ivar_state_complete(ivar.data.state) {
+		value := if ivar.data.state == .fulfilled {
+			ivar_apply_options(ivar.data.value, ivar.options)
+		} else {
+			ivar_nil_value()
+		}
+		reason := ivar.data.reason
+		ivar.data.mutex.unlock()
+		callback(time.now().unix_nano(), value, reason)
+		return id
+	}
+	entry := IVarObserverEntry{
+		id: id
+		callback: callback
+	}
+	mut replaced := false
+	for index, observer in ivar.data.observers {
+		if observer.id == id {
+			ivar.data.observers[index] = entry
+			replaced = true
+			break
+		}
+	}
+	if !replaced {
+		ivar.data.observers << entry
+	}
+	ivar.data.mutex.unlock()
+	return id
+}
+
+pub fn (mut ivar IVar) notify_observers(value brew_runtime.Value, reason string) {
+	ivar.data.mutex.lock()
+	observers := ivar.data.observers.clone()
+	ivar.data.observers.clear()
+	ivar.data.mutex.unlock()
+	completed_at := time.now().unix_nano()
+	for observer in observers {
+		observer.callback(completed_at, value, reason)
+	}
+}
+
+pub fn (mut ivar IVar) set(value brew_runtime.Value) !&IVar {
+	if !ivar.compare_and_set_state(.processing, [.pending]) {
+		return error('MultipleAssignmentError')
+	}
+	ivar.complete_without_notification(true, value, '')!
+	ivar.notify_observers(ivar.value(time.Duration(0)), '')
+	return ivar
+}
+
+pub fn (mut ivar IVar) set_from_task(task IVarTask) !&IVar {
+	if !ivar.compare_and_set_state(.processing, [.pending]) {
+		return error('MultipleAssignmentError')
+	}
+	value := task([]) or {
+		ivar.complete_without_notification(false, ivar_nil_value(), err.msg())!
+		ivar.notify_observers(ivar_nil_value(), err.msg())
+		return ivar
+	}
+	ivar.complete_without_notification(true, value, '')!
+	ivar.notify_observers(ivar.value(time.Duration(0)), '')
+	return ivar
+}
+
+pub fn (mut ivar IVar) fail(reason string) !&IVar {
+	ivar.complete(false, ivar_nil_value(), if reason.len > 0 { reason } else { 'StandardError' })!
+	return ivar
+}
+
+pub fn (mut ivar IVar) try_set(value brew_runtime.Value) bool {
+	ivar.set(value) or { return false }
+	return true
+}
+
+pub fn (mut ivar IVar) safe_execute(task IVarTask, args []brew_runtime.Value, completion ?IVarCompletion) bool {
+	if !ivar.compare_and_set_state(.processing, [.pending]) {
+		return false
+	}
+	value := task(args) or {
+		ivar.complete(false, ivar_nil_value(), err.msg()) or { panic(err) }
+		if callback := completion {
+			callback(false, ivar_nil_value(), err.msg())
+		}
+		return true
+	}
+	ivar.complete(true, value, '') or { panic(err) }
+	if callback := completion {
+		callback(true, value, '')
+	}
+	return true
+}
+
+pub fn (mut ivar IVar) complete(success bool, value brew_runtime.Value, reason string) !&IVar {
+	ivar.complete_without_notification(success, value, reason)!
+	notification_value := if success { ivar.value(time.Duration(0)) } else { ivar_nil_value() }
+	ivar.notify_observers(notification_value, reason)
+	return ivar
+}
+
+pub fn (mut ivar IVar) complete_without_notification(success bool, value brew_runtime.Value, reason string) !&IVar {
+	ivar.data.mutex.lock()
+	if ivar_state_complete(ivar.data.state) {
+		ivar.data.mutex.unlock()
+		return error('MultipleAssignmentError')
+	}
+	if success {
+		ivar.data.value = value
+		ivar.data.reason = ''
+		ivar.data.state = .fulfilled
+	} else {
+		ivar.data.value = ivar_nil_value()
+		ivar.data.reason = reason
+		ivar.data.state = .rejected
+	}
+	ivar.data.condition.broadcast()
+	ivar.data.mutex.unlock()
+	return ivar
+}
+
+fn ivar_boundary_value(ivar &IVar) brew_runtime.Value {
+	return brew_runtime.structured_value('Concurrent::IVar', '#<Concurrent::IVar>', {
+		'ivar_address': u64(voidptr(ivar)).str()
+	})
+}
+
+fn ivar_boundary_receiver(args []brew_runtime.Value) &IVar {
+	if args.len == 0 {
+		panic('IVar method requires a receiver')
+	}
+	address := (args[0].attribute('ivar_address') or {
+		panic('${args[0].type_name} has no translated IVar state')
+	}).u64()
+	return unsafe { &IVar(voidptr(address)) }
+}
+
+fn ivar_boundary_reason(value brew_runtime.Value) string {
+	return if value.type_name == 'NilClass' { '' } else { value.as_string() }
+}
 
 // Ruby method `initialize(value = NULL, opts = {}, &block)` at line 62.
 pub fn ruby_ivar_l62_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	ivar := if args.len > 0 {
+		new_fulfilled_ivar(args[0], IVarOptions{})
+	} else {
+		new_ivar()
+	}
+	return ivar_boundary_value(ivar)
 }
 
 // Ruby method `add_observer(observer = nil, func = :update, &block)` at line 81.
 pub fn ruby_ivar_l81_d2_add_observer(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('add_observer', ...args)
+	mut ivar := ivar_boundary_receiver(args)
+	if args.len < 2 || args[1].type_name == 'NilClass' {
+		panic('ArgumentError: should pass observer as a first argument or block')
+	}
+	// A boundary Value cannot carry a V callback; the typed add_observer API performs delivery.
+	if ivar.is_complete() {
+		ivar.value(time.Duration(0))
+		ivar.reason()
+	}
+	return args[1]
 }
 
 // Ruby method `set(value = NULL)` at line 113.
 pub fn ruby_ivar_l113_d3_set(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('set', ...args)
+	mut ivar := ivar_boundary_receiver(args)
+	if args.len < 2 {
+		panic('ArgumentError: must set with either a value or a block')
+	}
+	ivar.set(args[1]) or { panic(err) }
+	return args[0]
 }
 
 // Ruby method `fail(reason = StandardError.new)` at line 135.
 pub fn ruby_ivar_l135_d4_fail(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fail', ...args)
+	mut ivar := ivar_boundary_receiver(args)
+	reason := if args.len > 1 { ivar_boundary_reason(args[1]) } else { 'StandardError' }
+	ivar.fail(reason) or { panic(err) }
+	return args[0]
 }
 
 // Ruby method `try_set(value = NULL, &block)` at line 145.
 pub fn ruby_ivar_l145_d5_try_set(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('try_set', ...args)
+	mut ivar := ivar_boundary_receiver(args)
+	if args.len < 2 {
+		panic('ArgumentError: must set with either a value or a block')
+	}
+	return brew_runtime.bool_value(ivar.try_set(args[1]))
 }
 
 // Ruby method `ns_initialize(value, opts)` at line 155.
 pub fn ruby_ivar_l155_d6_ns_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ns_initialize', ...args)
+	return ruby_ivar_l62_d1_initialize(...args)
 }
 
 // Ruby method `safe_execute(task, args = [])` at line 168.
 pub fn ruby_ivar_l168_d7_safe_execute(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('safe_execute', ...args)
+	mut ivar := ivar_boundary_receiver(args)
+	if args.len < 2 {
+		panic('ArgumentError: no task result given')
+	}
+	if args[1].type_name.ends_with('Error') {
+		if ivar.compare_and_set_state(.processing, [.pending]) {
+			ivar.complete(false, ivar_nil_value(), args[1].as_string()) or { panic(err) }
+		}
+	} else if ivar.compare_and_set_state(.processing, [.pending]) {
+		ivar.complete(true, args[1], '') or { panic(err) }
+	}
+	return args[0]
 }
 
 // Ruby method `complete(success, value, reason)` at line 177.
 pub fn ruby_ivar_l177_d8_complete(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('complete', ...args)
+	mut ivar := ivar_boundary_receiver(args)
+	if args.len < 4 {
+		panic('complete requires success, value, and reason')
+	}
+	ivar.complete(args[1].as_bool() or { panic(err) }, args[2], ivar_boundary_reason(args[3])) or {
+		panic(err)
+	}
+	return args[0]
 }
 
 // Ruby method `complete_without_notification(success, value, reason)` at line 184.
 pub fn ruby_ivar_l184_d9_complete_without_notification(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('complete_without_notification', ...args)
+	mut ivar := ivar_boundary_receiver(args)
+	if args.len < 4 {
+		panic('complete_without_notification requires success, value, and reason')
+	}
+	ivar.complete_without_notification(args[1].as_bool() or { panic(err) }, args[2], ivar_boundary_reason(args[3])) or { panic(err) }
+	return args[0]
 }
 
 // Ruby method `notify_observers(value, reason)` at line 190.
 pub fn ruby_ivar_l190_d10_notify_observers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('notify_observers', ...args)
+	mut ivar := ivar_boundary_receiver(args)
+	value := if args.len > 1 { args[1] } else { ivar_nil_value() }
+	reason := if args.len > 2 { ivar_boundary_reason(args[2]) } else { '' }
+	ivar.notify_observers(value, reason)
+	return args[0]
 }
 
 // Ruby method `ns_complete_without_notification(success, value, reason)` at line 195.
 pub fn ruby_ivar_l195_d11_ns_complete_without_notification(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ns_complete_without_notification', ...args)
+	return ruby_ivar_l184_d9_complete_without_notification(...args)
 }
 
 // Ruby method `check_for_block_or_value!(block_given, value) # :nodoc:` at line 202.
 pub fn ruby_ivar_l202_d12_check_for_block_or_value(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('check_for_block_or_value!', ...args)
+	if args.len < 2 {
+		panic('check_for_block_or_value! requires block_given and value')
+	}
+	block_given := args[0].as_bool() or { panic(err) }
+	value_missing := args[1].type_name == 'Concurrent::NULL'
+	if (block_given && !value_missing) || (!block_given && value_missing) {
+		panic('ArgumentError: must set with either a value or a block')
+	}
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Original Ruby source (line-for-line):

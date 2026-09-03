@@ -1,23 +1,27 @@
 module bundle
 
 import brew_runtime
+import homebrew.bundle as bundle_impl
 
 // Translated from Homebrew/brew `test/bundle/remover_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:remover) { described_class }` at line 8.
 pub fn ruby_remover_spec_l8_d1_remover(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('remover', ...args)
+	return brew_runtime.object_value('Homebrew::Bundle::Remover', 'Homebrew::Bundle::Remover')
 }
 
 // Ruby let `let(:name) { "foo" }` at line 10.
 pub fn ruby_remover_spec_l10_d2_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('name', ...args)
+	return brew_runtime.string_value('foo')
 }
 
 // Ruby it `it "raises no errors when requested" do` at line 14.
 pub fn ruby_remover_spec_l14_d3_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+	bundle_impl.possible_bundle_names('foo', []bundle_impl.BundlePackage{}, false) or {
+		return brew_runtime.bool_value(false)
+	}
+	return brew_runtime.bool_value(true)
 }
 
 // Original Ruby source (line-for-line):

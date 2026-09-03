@@ -2,62 +2,319 @@ module props
 
 import brew_runtime
 
+pub enum GeneratedValidationMode {
+	serialize
+	deserialize
+}
+
+const serialize_receiver_methods = ['dup', 'map', 'transform_values', 'transform_keys',
+	'each_with_object', 'nil?', '[]=', 'serialize']
+const deserialize_receiver_methods = ['dup', 'map', 'transform_values', 'transform_keys',
+	'each_with_object', 'nil?', '[]=', 'to_f']
+const serialize_constant_methods = ['checked_serialize', 'deep_clone', 'deep_clone_object']
+const deserialize_constant_methods = ['deserialize', 'from_hash', 'deep_clone', 'deep_clone_object']
+
+pub fn generated_validation_whitelist(mode GeneratedValidationMode) map[string][]string {
+	return if mode == .serialize {
+		{
+			'lvar':  serialize_receiver_methods.clone()
+			'ivar':  serialize_receiver_methods.filter(it != 'nil?')
+			'const': serialize_constant_methods.clone()
+		}
+	} else {
+		{
+			'lvar':  deserialize_receiver_methods.clone()
+			'const': deserialize_constant_methods.clone()
+		}
+	}
+}
+
+fn generated_lines(source string) []string {
+	return source.split('\n').map(it.trim_space()).filter(it.len > 0)
+}
+
+fn generated_method_name(header string) !(string, string) {
+	if !header.starts_with('def ') || !header.ends_with(')') {
+		return error('Expected generated method definition, got `${header}`')
+	}
+	body := header[4..]
+	open := body.index('(') or { return error('Expected generated method arguments') }
+	return body[..open], body[open + 1..body.len - 1]
+}
+
+fn validate_generated_expression(expression string, mode GeneratedValidationMode) ! {
+	unsafe_fragments := ['`', 'system(', 'exec(', 'spawn(', 'fork(', 'eval(', 'class_eval(',
+		'module_eval(', 'instance_eval(', 'remove_const', 'const_set', 'define_method', 'public_send(',
+		'__send__(']
+	for fragment in unsafe_fragments {
+		if expression.contains(fragment) {
+			return error('Unexpected side effect in generated expression: ${fragment}')
+		}
+	}
+	whitelist := generated_validation_whitelist(mode)
+	mut allowed := []string{}
+	allowed << whitelist['lvar'] or { []string{} }
+	allowed << whitelist['ivar'] or { []string{} }
+	allowed << whitelist['const'] or { []string{} }
+	allowed << [
+		'key?',
+		'freeze',
+		'fetch',
+		'default',
+		'props_with_defaults',
+		'decorator',
+		'class',
+		'required_prop_missing_from_deserialize',
+		'raise_nil_deserialize_error',
+		'raise_deserialization_error',
+	]
+	mut rest := expression
+	for {
+		dot := rest.index('.') or { break }
+		rest = rest[dot + 1..]
+		mut end := 0
+		for end < rest.len && ((rest[end] >= `A` && rest[end] <= `Z`) || (rest[end] >= `a` && rest[end] <= `z`) || (rest[end] >= `0` && rest[end] <= `9`) || rest[end] in [
+			`_`,
+			`?`,
+			`!`,
+			`=`,
+		]) {
+			end++
+		}
+		if end == 0 {
+			continue
+		}
+		method := rest[..end]
+		if method !in allowed {
+			return error('Unexpected method ${method} in generated expression')
+		}
+		rest = rest[end..]
+	}
+}
+
+pub fn validate_generated_serialize_clause(lines []string) ! {
+	if lines.len < 4 || !lines[0].starts_with('if @') || !lines[0].ends_with('.nil?') {
+		return error('Expected nil-checking serialize clause')
+	}
+	else_index := lines.index('else')
+	if else_index < 0 || !lines[else_index + 1].starts_with('h[') || !lines[else_index + 1].contains('] = ') || lines[lines.len - 1] != 'end' {
+		return error('Expected assignment to serialized hash')
+	}
+	if else_index > 1 {
+		missing := lines[1]
+		if !missing.starts_with('required_prop_missing_from_serialize(:') || !missing.ends_with(') if strict') {
+			return error('Unexpected required-property handler')
+		}
+	}
+	validate_generated_expression(lines[else_index + 1].all_after(' = '), .serialize)!
+}
+
+pub fn validate_generated_deserialize_hash_read(line string) ! {
+	if !line.starts_with('val = hash[') || !line.ends_with(']') {
+		return error('Expected `val = hash[serialized_form]`')
+	}
+}
+
+pub fn validate_generated_deserialize_nil_handler(handler string) ! {
+	trimmed := handler.trim_space()
+	if trimmed in ['{}', '[]', 'true', 'false', 'nil'] || trimmed.starts_with('"') || trimmed.starts_with(':') || trimmed[0].is_digit() {
+		return
+	}
+	allowed := ['required_prop_missing_from_deserialize(:',
+		'self.class.decorator.raise_nil_deserialize_error(',
+		'self.class.decorator.props_with_defaults.fetch(']
+	if allowed.any(trimmed.starts_with(it)) {
+		validate_generated_expression(trimmed, .deserialize)!
+		return
+	}
+	return error('Unexpected nil handler: ${handler}')
+}
+
+pub fn validate_generated_deserialize_ivar_clause(lines []string) ! {
+	if lines.len < 6 || !lines[0].starts_with('@') || !lines[0].ends_with(' = if val.nil?') {
+		return error('Expected instance-variable deserialize clause')
+	}
+	if !lines[1].starts_with('found -= 1 unless hash.key?(') || !lines[1].ends_with('.freeze)') {
+		return error('Expected side-effect-free found counter update')
+	}
+	else_index := lines.index('else')
+	if else_index < 0 || lines[lines.len - 1] != 'end' {
+		return error('Expected deserialize else branch')
+	}
+	validate_generated_deserialize_nil_handler(lines[2])!
+	validate_generated_expression(lines[else_index + 1], .deserialize)!
+}
+
+pub fn validate_generated_serialize(source string) ! {
+	lines := generated_lines(source)
+	if lines.len < 4 {
+		return error('Generated serialize source is incomplete')
+	}
+	name, argument := generated_method_name(lines[0])!
+	if name != '__t_props_generated_serialize' || argument != 'strict' {
+		return error('Expected __t_props_generated_serialize(strict)')
+	}
+	if lines[1] != 'h = {}' || lines[lines.len - 2] != 'h' || lines[lines.len - 1] != 'end' {
+		return error('Unexpected generated serialize method structure')
+	}
+	mut index := 2
+	for index < lines.len - 2 {
+		if !lines[index].starts_with('if ') {
+			return error('Expected serialize property clause')
+		}
+		mut finish := index
+		mut depth := 0
+		for finish < lines.len - 2 {
+			if lines[finish].starts_with('if ') { depth++ }
+			if lines[finish] == 'end' {
+				depth--
+				if depth == 0 {
+					break
+				}
+			}
+			finish++
+		}
+		validate_generated_serialize_clause(lines[index..finish + 1])!
+		index = finish + 1
+	}
+}
+
+pub fn validate_generated_deserialize(source string) ! {
+	lines := generated_lines(source)
+	if lines.len < 4 {
+		return error('Generated deserialize source is incomplete')
+	}
+	name, argument := generated_method_name(lines[0])!
+	if name != '__t_props_generated_deserialize' || argument != 'hash' {
+		return error('Expected __t_props_generated_deserialize(hash)')
+	}
+	if !lines[1].starts_with('found = ') || lines[lines.len - 2] != 'found' || lines[lines.len - 1] != 'end' {
+		return error('Unexpected generated deserialize method structure')
+	}
+	mut index := 2
+	for index < lines.len - 2 {
+		validate_generated_deserialize_hash_read(lines[index])!
+		index++
+		mut finish := index
+		for finish < lines.len - 2 && lines[finish] != 'end' {
+			finish++
+		}
+		if finish >= lines.len - 2 {
+			return error('Unterminated deserialize property clause')
+		}
+		validate_generated_deserialize_ivar_clause(lines[index..finish + 1])!
+		index = finish + 1
+	}
+}
+
+fn generated_value_equal(left brew_runtime.Value, right brew_runtime.Value) bool {
+	if left.type_name != right.type_name || left.repr != right.repr || left.bool_data != right.bool_data || left.int_data != right.int_data || left.array_data.len != right.array_data.len || left.map_data.len != right.map_data.len {
+		return false
+	}
+	for i, item in left.array_data {
+		if !generated_value_equal(item, right.array_data[i]) {
+			return false
+		}
+	}
+	for key, item in left.map_data {
+		other := right.map_data[key] or { return false }
+		if !generated_value_equal(item, other) {
+			return false
+		}
+	}
+	return true
+}
+
+fn generated_whitelist_value(mode GeneratedValidationMode) brew_runtime.Value {
+	mut result := map[string]brew_runtime.Value{}
+	for receiver, methods in generated_validation_whitelist(mode) {
+		result[receiver] = brew_runtime.string_array_value(methods)
+	}
+	return brew_runtime.map_value(result)
+}
+
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/sorbet-runtime-0.6.13412/lib/types/props/generated_code_validation.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `self.validate_deserialize(source)` at line 17.
 pub fn ruby_generated_code_validation_l17_d1_self_validate_deserialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.validate_deserialize', ...args)
+	if args.len == 0 { panic('validate_deserialize requires source') }
+	validate_generated_deserialize(args[args.len - 1].as_string()) or { panic(err) }
+	return props_nil_value()
 }
 
 // Ruby method `self.validate_serialize(source)` at line 49.
 pub fn ruby_generated_code_validation_l49_d2_self_validate_serialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.validate_serialize', ...args)
+	if args.len == 0 { panic('validate_serialize requires source') }
+	validate_generated_serialize(args[args.len - 1].as_string()) or { panic(err) }
+	return props_nil_value()
 }
 
 // Ruby method `self.validate_serialize_clause(clause)` at line 74.
 pub fn ruby_generated_code_validation_l74_d3_self_validate_serialize_clause(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.validate_serialize_clause', ...args)
+	if args.len == 0 { panic('validate_serialize_clause requires clause') }
+	validate_generated_serialize_clause(generated_lines(args[args.len - 1].as_string())) or { panic(err) }
+	return props_nil_value()
 }
 
 // Ruby method `self.validate_deserialize_hash_read(clause)` at line 107.
 pub fn ruby_generated_code_validation_l107_d4_self_validate_deserialize_hash_read(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.validate_deserialize_hash_read', ...args)
+	if args.len == 0 { panic('validate_deserialize_hash_read requires clause') }
+	validate_generated_deserialize_hash_read(args[args.len - 1].as_string().trim_space()) or { panic(err) }
+	return props_nil_value()
 }
 
 // Ruby method `self.validate_deserialize_ivar_set(clause)` at line 120.
 pub fn ruby_generated_code_validation_l120_d5_self_validate_deserialize_ivar_set(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.validate_deserialize_ivar_set', ...args)
+	if args.len == 0 { panic('validate_deserialize_ivar_set requires clause') }
+	validate_generated_deserialize_ivar_clause(generated_lines(args[args.len - 1].as_string())) or { panic(err) }
+	return props_nil_value()
 }
 
 // Ruby method `self.validate_deserialize_handle_nil(node)` at line 186.
 pub fn ruby_generated_code_validation_l186_d6_self_validate_deserialize_handle_nil(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.validate_deserialize_handle_nil', ...args)
+	if args.len == 0 { panic('validate_deserialize_handle_nil requires node') }
+	validate_generated_deserialize_nil_handler(args[args.len - 1].as_string()) or { panic(err) }
+	return props_nil_value()
 }
 
 // Ruby method `self.self_class_decorator` at line 218.
 pub fn ruby_generated_code_validation_l218_d7_self_self_class_decorator(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.self_class_decorator', ...args)
+	return brew_runtime.structured_value('Parser::AST::Node', 'self.class.decorator', {
+		'type':   'send'
+		'frozen': 'true'
+	})
 }
 
 // Ruby method `self.validate_lack_of_side_effects(node, whitelisted_methods_by_receiver_type)` at line 222.
 pub fn ruby_generated_code_validation_l222_d8_self_validate_lack_of_side_effects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.validate_lack_of_side_effects', ...args)
+	if args.len == 0 { panic('validate_lack_of_side_effects requires expression') }
+	mode := if args.len > 1 && args[args.len - 1].repr.contains('from_hash') {
+		GeneratedValidationMode.deserialize
+	} else {
+		GeneratedValidationMode.serialize
+	}
+	validate_generated_expression(args[args.len - if args.len > 1 { 2 } else { 1 }].as_string(), mode) or { panic(err) }
+	return props_nil_value()
 }
 
 // Ruby method `self.assert_equal(expected, actual)` at line 260.
 pub fn ruby_generated_code_validation_l260_d9_self_assert_equal(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.assert_equal', ...args)
+	if args.len < 2 { panic('assert_equal requires expected and actual') }
+	if !generated_value_equal(args[args.len - 2], args[args.len - 1]) {
+		panic('Expected ${args[args.len - 2].repr}, got ${args[args.len - 1].repr}')
+	}
+	return props_nil_value()
 }
 
 // Ruby method `self.whitelisted_methods_for_serialize` at line 267.
 pub fn ruby_generated_code_validation_l267_d10_self_whitelisted_methods_for_serialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.whitelisted_methods_for_serialize', ...args)
+	return generated_whitelist_value(.serialize)
 }
 
 // Ruby method `self.whitelisted_methods_for_deserialize` at line 276.
 pub fn ruby_generated_code_validation_l276_d11_self_whitelisted_methods_for_deserialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.whitelisted_methods_for_deserialize', ...args)
+	return generated_whitelist_value(.deserialize)
 }
 
 // Original Ruby source (line-for-line):

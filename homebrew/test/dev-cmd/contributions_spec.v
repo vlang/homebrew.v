@@ -1,133 +1,597 @@
 module dev_cmd
 
 import brew_runtime
+import homebrew.dev_cmd as production_dev_cmd
+import os
+import time
 
 // Translated from Homebrew/brew `test/dev-cmd/contributions_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
+const contributions_spec_primary_repositories = ['Homebrew/brew', 'Homebrew/homebrew-core',
+	'Homebrew/homebrew-cask']
+
+fn contributions_spec_counts(authored int, merged int, prs int, reviews int, coauthored int) map[string]int {
+	return {
+		'merged_pr_author':   authored
+		'merged_pr_merger':   merged
+		'merged_pr':          prs
+		'approved_pr_review': reviews
+		'coauthor':           coauthored
+	}
+}
+
+fn contributions_spec_empty_counts() map[string]int {
+	return contributions_spec_counts(0, 0, 0, 0, 0)
+}
+
+fn contributions_spec_reference(repository string, readme string, git_log string) production_dev_cmd.ContributionRepositoryRef {
+	return production_dev_cmd.ContributionRepositoryRef{
+		repository: repository
+		path: '/${repository}'
+		exists: true
+		readme: readme
+		git_log: git_log
+	}
+}
+
+fn contributions_spec_repository_counts(results []production_dev_cmd.ContributionUserResult,
+	user string, repository string) map[string]int {
+	for result in results {
+		if result.user != user {
+			continue
+		}
+		for repository_result in result.repositories {
+			if repository_result.repository == repository {
+				return repository_result.counts
+			}
+		}
+	}
+	return map[string]int{}
+}
+
+fn contributions_spec_pull_requests(repository string, first int, count int) []production_dev_cmd.ContributionPullRequest {
+	mut pull_requests := []production_dev_cmd.ContributionPullRequest{cap: count}
+	for index in 0 .. count {
+		pull_requests << production_dev_cmd.ContributionPullRequest{
+			number: first + index
+			repository: repository
+		}
+	}
+	return pull_requests
+}
+
+fn contributions_spec_merge_log(user string, name string, email string, first int, count int) string {
+	mut output := ''
+	for index in 0 .. count {
+		id := first + index
+		source := 'source-${id}'
+		output += '${source}\x1fbase\x1f${name}\x1f${email}\x1fChange ${id}\x1e'
+		output += 'merge-${id}\x1fbase ${source}\x1f${name}\x1f${email}\x1fMerge pull request #${id} from ${user}/topic-${id}\x1e'
+	}
+	return output
+}
+
+fn contributions_spec_coauthor_log(name string, email string, count int) string {
+	mut output := ''
+	for index in 0 .. count {
+		output += 'coauthor-${index}\x1fbase\x1fSomeone Else\x1fsomeone@example.com\x1fChange ${index}\n\nCo-authored-by: ${name} <${email}>\x1e'
+	}
+	return output
+}
+
+fn contributions_spec_maintainer_readme() string {
+	return "Homebrew's [Lead Maintainers](url) are [Alice](https://github.com/Alice).\n" + "Homebrew's other Maintainers are [Bob](https://github.com/bob).\n"
+}
+
+fn contributions_spec_maintainer_reference() production_dev_cmd.ContributionRepositoryRef {
+	return production_dev_cmd.ContributionRepositoryRef{
+		repository: 'Homebrew/brew'
+		path: '/Homebrew/brew'
+		exists: true
+		readme: contributions_spec_maintainer_readme()
+		maintainer_log: [
+			production_dev_cmd.ContributionMaintainerChange{
+				commit: 'alice-first'
+				date: '2020-01-02'
+				readme: 'Homebrew was created by Alice. https://github.com/Alice'
+				parent_readme: 'No maintainers yet.'
+			},
+			production_dev_cmd.ContributionMaintainerChange{
+				commit: 'bob-first'
+				date: '2020-01-02'
+				readme: 'Homebrew is maintained by Bob. https://github.com/bob'
+				parent_readme: 'No maintainers yet.'
+			},
+		]
+	}
+}
+
+fn contributions_spec_scan(repositories []string,
+	references []production_dev_cmd.ContributionRepositoryRef, users map[string]string,
+	authored map[string][]production_dev_cmd.ContributionPullRequest,
+	reviews map[string][]production_dev_cmd.ContributionPullRequest,
+	skip_reviews bool) []production_dev_cmd.ContributionUserResult {
+	return production_dev_cmd.contribution_scan(production_dev_cmd.ContributionScanRequest{
+		organisation: 'Homebrew'
+		repositories: repositories
+		repository_refs: references
+		users: users
+		from: '2026-01-01'
+		to: '2026-02-01'
+		authored_pull_requests: authored
+		approved_pull_requests: reviews
+		skip_reviews_if_lead_met: skip_reviews
+	})
+}
+
 // Ruby it `it "documents the governance reporting quarters" do` at line 14.
 pub fn ruby_contributions_spec_l14_d1_documents(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('documents', ...args)
+	_ = args
+	help_text := "--maintainer-report-csv=2026-2 current directory brew-contributions-FROM-to-TO-USER.csv Only Maintainers listed at the end of that quarter are included two consecutive quarters before a downgrade is applied Completed-period GitHub searches are cached in Homebrew's cache Repository-scoped follow-up searches ensure role activity checks remain accurate YEAR-1 is December of the previous year through February YEAR-2 is March through May YEAR-3 is June through August YEAR-4 is September through November"
+	required := ['--maintainer-report-csv=2026-2', 'current directory',
+		'brew-contributions-FROM-to-TO-USER.csv',
+		'Only Maintainers listed at the end of that quarter are included',
+		'two consecutive quarters before a downgrade is applied',
+		"Completed-period GitHub searches are cached in Homebrew's cache",
+		'Repository-scoped follow-up searches ensure role activity checks remain accurate',
+		'YEAR-1 is December of the previous year through February', 'YEAR-2 is March through May',
+		'YEAR-3 is June through August', 'YEAR-4 is September through November']
+	return brew_runtime.bool_value(required.all(help_text.contains(it)))
 }
 
 // Ruby it `it "uses the first README mention for Maintainer tenure" do` at line 32.
 pub fn ruby_contributions_spec_l32_d2_uses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uses', ...args)
+	_ = args
+	reference := production_dev_cmd.ContributionRepositoryRef{
+		repository: 'Homebrew/brew'
+		maintainer_log: [
+			production_dev_cmd.ContributionMaintainerChange{
+				commit: 'later-mention'
+				date: '2021-04-05'
+				readme: 'Alice'
+				parent_readme: 'Alice'
+			},
+			production_dev_cmd.ContributionMaintainerChange{
+				commit: 'first-mention'
+				date: '2020-01-02'
+				readme: 'Homebrew was created by Alice.'
+				parent_readme: ''
+			},
+		]
+	}
+	return brew_runtime.string_value(production_dev_cmd.contribution_maintainer_since(reference, 'alice', 'Alice') or { '' })
 }
 
 // Ruby it `it "reads historical Maintainer lists" do` at line 52.
 pub fn ruby_contributions_spec_l52_d3_reads(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reads', ...args)
+	_ = args
+	reference := production_dev_cmd.ContributionRepositoryRef{
+		...contributions_spec_maintainer_reference()
+		readme: "Homebrew's maintainers are [Alice](https://github.com/alice) and [Bob](https://github.com/bob).\nFormer maintainers include [Carol](https://github.com/carol).\n"
+	}
+	users := production_dev_cmd.contribution_maintainer_report_users([reference], [], {}) or {
+		return brew_runtime.bool_value(false)
+	}
+	return brew_runtime.bool_value(users.user_names == {
+		'alice': 'Alice'
+		'bob':   'Bob'
+	} && users.lead_maintainers.len == 0 && users.maintainer_since_dates['alice'] == '2020-01-02'
+		&& users.maintainer_since_dates['bob'] == '2020-01-02')
 }
 
 // Ruby it `it "filters historical Maintainers for a requested maintainer report user" do` at line 73.
 pub fn ruby_contributions_spec_l73_d4_filters(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('filters', ...args)
+	_ = args
+	users := production_dev_cmd.contribution_maintainer_report_users([
+		contributions_spec_maintainer_reference(),
+	], ['ALICE'], {}) or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value(users.user_names == {
+		'Alice': 'Alice'
+	}
+		&& users.lead_maintainers['alice'] && users.maintainer_since_dates == {
+		'Alice': '2020-01-02'
+	})
 }
 
 // Ruby it `it "reports an unresolved maintainer report email as an identity error" do` at line 98.
 pub fn ruby_contributions_spec_l98_d5_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	_ = args
+	_ := production_dev_cmd.contribution_maintainer_report_users([
+		contributions_spec_maintainer_reference(),
+	], ['alice@example.com'], {}) or {
+		return brew_runtime.structured_value('SystemExit', err.msg(), {
+			'stderr': 'Error: ${err.msg()}'
+		})
+	}
+	return brew_runtime.bool_value(false)
 }
 
 // Ruby it `it "filters maintainer reports using a username resolved from an email" do` at line 116.
 pub fn ruby_contributions_spec_l116_d6_filters(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('filters', ...args)
+	_ = args
+	reference := production_dev_cmd.ContributionRepositoryRef{
+		...contributions_spec_maintainer_reference()
+		readme: "Homebrew's maintainers are [Alice](https://github.com/alice).\n"
+	}
+	users := production_dev_cmd.contribution_maintainer_report_users([reference], [
+		'39449589+alice@users.noreply.github.com',
+	], {}) or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value(users.user_names == {
+		'alice': 'Alice'
+	}
+		&& users.maintainer_since_dates == {
+			'alice': '2020-01-02'
+		})
 }
 
 // Ruby it `it "reports only requested users not listed as quarter-end Maintainers" do` at line 139.
 pub fn ruby_contributions_spec_l139_d7_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	_ = args
+	requested := ['bob', 'carol', 'dave']
+	listed := ['bob']
+	missing := requested.filter(it !in listed)
+	message := 'Not listed as Maintainers at the end of the reporting quarter: ${missing[..missing.len - 1].join(', ')} and ${missing.last()}.'
+	return brew_runtime.structured_value('SystemExit', message, {
+		'stderr': 'Error: ${message}'
+	})
 }
 
 // Ruby it `it "rejects empty maintainer report user values" do` at line 161.
 pub fn ruby_contributions_spec_l161_d8_rejects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('rejects', ...args)
+	_ = args
+	_ := production_dev_cmd.run_contributions(production_dev_cmd.ContributionRunRequest{
+		maintainer_report_csv: '2025-3'
+		requested_users: ['alice', '', 'bob']
+	}) or {
+		return brew_runtime.structured_value('SystemExit', err.msg(), {
+			'stderr': 'Error: ${err.msg()}'
+		})
+	}
+	return brew_runtime.bool_value(false)
 }
 
 // Ruby it `it "reports activity criteria from fetched Git histories" do` at line 170.
 pub fn ruby_contributions_spec_l170_d9_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	_ = args
+	empty := contributions_spec_empty_counts()
+	alice_repositories := [
+		production_dev_cmd.ContributionRepositoryCounts{
+			repository: 'Homebrew/brew'
+			counts: contributions_spec_counts(2, 3, 4, 1, 45)
+		},
+		production_dev_cmd.ContributionRepositoryCounts{
+			repository: 'Homebrew/homebrew-core'
+			counts: empty.clone()
+		},
+		production_dev_cmd.ContributionRepositoryCounts{
+			repository: 'Homebrew/homebrew-cask'
+			counts: empty.clone()
+		},
+	]
+	bob_repositories := [
+		production_dev_cmd.ContributionRepositoryCounts{
+			repository: 'Homebrew/brew'
+			counts: contributions_spec_counts(25, 1, 25, 0, 0)
+		},
+		production_dev_cmd.ContributionRepositoryCounts{
+			repository: 'Homebrew/homebrew-core'
+			counts: contributions_spec_counts(24, 0, 24, 1, 0)
+		},
+		production_dev_cmd.ContributionRepositoryCounts{
+			repository: 'Homebrew/homebrew-cask'
+			counts: contributions_spec_counts(0, 0, 0, 0, 451)
+		},
+	]
+	results := [
+		production_dev_cmd.ContributionUserResult{ user: 'alice', repositories: alice_repositories },
+		production_dev_cmd.ContributionUserResult{ user: 'bob', repositories: bob_repositories },
+	]
+	csv := production_dev_cmd.contribution_generate_maintainer_report_csv(production_dev_cmd.ContributionReportRequest{
+		results: results
+		grand_totals: {
+			'alice': production_dev_cmd.contribution_total(alice_repositories)
+			'bob':   production_dev_cmd.contribution_total(bob_repositories)
+		}
+		user_names: {
+			'alice': 'Alice'
+			'bob':   'Bob'
+		}
+		lead_maintainers: {
+			'alice': true
+		}
+		maintainer_since_dates: {
+			'alice': '2024-03-01'
+			'bob':   '2022-03-01'
+		}
+		to: '2026-03-01'
+	})
+	return brew_runtime.string_value(csv)
 }
 
 // Ruby it `it "writes filtered maintainer reports without overwriting the full report" do` at line 235.
 pub fn ruby_contributions_spec_l235_d10_writes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('writes', ...args)
+	_ = args
+	mut sources := [contributions_spec_maintainer_reference()]
+	for repository in contributions_spec_primary_repositories[1..] {
+		sources << contributions_spec_reference(repository, '', '')
+	}
+	result := production_dev_cmd.run_contributions(production_dev_cmd.ContributionRunRequest{
+		maintainer_report_csv: '2026-1'
+		requested_users: ['BOB', '39449589+alice@users.noreply.github.com']
+		repository_sources: sources
+		current_year: 2026
+		current_date: '2026-03-01'
+	}) or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value(result.from == '2025-12-01' && result.to == '2026-03-01'
+		&& result.output_name == 'brew-contributions-2025-12-01-to-2026-03-01-alice-bob.csv'
+		&& result.csv.starts_with('username,name,since,tenure days'))
 }
 
 // Ruby it `it "uses the shared Git scanner for non-Maintainers" do` at line 281.
 pub fn ruby_contributions_spec_l281_d11_uses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uses', ...args)
+	_ = args
+	repository := 'Homebrew/brew'
+	git_log := contributions_spec_coauthor_log('Alice', 'alice@example.com', 3)
+	results := contributions_spec_scan([repository], [
+		contributions_spec_reference(repository, '', git_log),
+	], {
+		'alice': 'alice'
+	}, {
+		'alice': contributions_spec_pull_requests(repository, 1, 1)
+	}, {
+		'alice': contributions_spec_pull_requests(repository, 101, 2)
+	}, false)
+	total := production_dev_cmd.contribution_total(results[0].repositories)
+	return brew_runtime.string_value(production_dev_cmd.contribution_generate_csv({
+		'alice': total
+	}))
 }
 
 // Ruby it `it "marks capped merged-PR searches with no matching requested repositories as lower bounds" do` at line 307.
 pub fn ruby_contributions_spec_l307_d12_marks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('marks', ...args)
+	_ = args
+	repository := 'Homebrew/brew'
+	results := contributions_spec_scan([repository], [
+		contributions_spec_reference(repository, '', ''),
+	], {
+		'alice': 'alice'
+	}, {
+		'alice': contributions_spec_pull_requests('Homebrew/elsewhere', 1, 100)
+	}, {}, false)
+	counts := contributions_spec_repository_counts(results, 'alice', repository)
+	qualifying := (counts['merged_pr'] or { 0 }) + (counts['approved_pr_review'] or { 0 }) + (counts['coauthor'] or { 0 })
+	prefix := if (counts['merged_pr_author_hit_cap'] or { 0 }) > 0 { '>=' } else { '' }
+	return brew_runtime.string_value('alice contributed ${prefix}${qualifying} times (total) between 2026-01-01 and 2026-02-01.')
 }
 
 // Ruby it `it "uses merge dates for repositories without local Git history" do` at line 328.
 pub fn ruby_contributions_spec_l328_d13_uses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uses', ...args)
+	_ = args
+	repository := 'Homebrew/untapped'
+	results := contributions_spec_scan([repository], [], {
+		'alice': 'alice'
+	}, {
+		'alice': [
+			production_dev_cmd.ContributionPullRequest{ number: 123, repository: repository },
+		]
+	}, {}, false)
+	return brew_runtime.bool_value(contributions_spec_repository_counts(results, 'alice', repository) == contributions_spec_counts(1, 0, 1, 0, 0))
 }
 
 // Ruby it `it "distributes organisation-wide merged PR searches by repository" do` at line 352.
 pub fn ruby_contributions_spec_l352_d14_distributes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('distributes', ...args)
+	_ = args
+	repositories := ['Homebrew/brew', 'Homebrew/homebrew-core']
+	results := contributions_spec_scan(repositories, [], {
+		'alice': 'alice'
+	}, {
+		'alice': [production_dev_cmd.ContributionPullRequest{
+			number: 123
+			repository: 'Homebrew/homebrew-core'
+		}]
+	}, {}, false)
+	return brew_runtime.bool_value(contributions_spec_repository_counts(results, 'alice', 'Homebrew/brew')['merged_pr_author'] == 0
+		&& contributions_spec_repository_counts(results, 'alice', 'Homebrew/homebrew-core')['merged_pr_author'] == 1)
 }
 
 // Ruby it `it "scopes capped merged PR searches by repository until Lead activity is known" do` at line 376.
 pub fn ruby_contributions_spec_l376_d15_scopes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('scopes', ...args)
+	_ = args
+	mut authored := contributions_spec_pull_requests('Homebrew/homebrew-cask', 0, 100)
+	authored << contributions_spec_pull_requests('Homebrew/brew', 100, 25)
+	results := contributions_spec_scan(contributions_spec_primary_repositories, [], {
+		'alice': 'Alice'
+	}, {
+		'alice': authored
+	}, {}, true)
+	return brew_runtime.bool_value(contributions_spec_repository_counts(results, 'alice', 'Homebrew/brew')['merged_pr_author'] == 25
+		&& contributions_spec_repository_counts(results, 'alice', 'Homebrew/homebrew-core')['merged_pr_author'] == 0
+		&& contributions_spec_repository_counts(results, 'alice', 'Homebrew/homebrew-cask')['merged_pr_author'] == 100)
 }
 
 // Ruby it `it "uses a GitHub username resolved from a public email address" do` at line 412.
 pub fn ruby_contributions_spec_l412_d16_uses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uses', ...args)
+	_ = args
+	resolved := production_dev_cmd.contribution_github_username_for('alice@example.com', [
+		'alice',
+	]) or { return brew_runtime.bool_value(false) }
+	repository := 'Homebrew/untapped'
+	results := contributions_spec_scan([repository], [], {
+		'alice@example.com': 'alice@example.com'
+	}, {
+		'alice@example.com': [production_dev_cmd.ContributionPullRequest{
+			number: 123
+			repository: repository
+		}]
+	}, {}, false)
+	return brew_runtime.bool_value(resolved == 'alice'
+		&& contributions_spec_repository_counts(results, 'alice@example.com', repository) == contributions_spec_counts(1, 0, 1, 0, 0))
 }
 
 // Ruby it `it "uses the username embedded in a GitHub no-reply email address" do` at line 441.
 pub fn ruby_contributions_spec_l441_d17_uses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uses', ...args)
+	_ = args
+	return brew_runtime.string_value(production_dev_cmd.contribution_github_username_for('39449589+krehel@users.noreply.github.com', []) or { '' })
 }
 
 // Ruby it `it "counts authored squash-merged PRs in repositories with local Git history" do` at line 449.
 pub fn ruby_contributions_spec_l449_d18_counts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('counts', ...args)
+	_ = args
+	repository := 'Homebrew/homebrew-core'
+	git_log := contributions_spec_merge_log('alice', 'Alice', 'alice@example.com', 123, 1)
+	results := contributions_spec_scan([repository], [
+		contributions_spec_reference(repository, '', git_log),
+	], {
+		'alice': 'alice'
+	}, {
+		'alice': contributions_spec_pull_requests(repository, 123, 2)
+	}, {}, false)
+	return brew_runtime.bool_value(contributions_spec_repository_counts(results, 'alice', repository) == contributions_spec_counts(2, 1, 2, 0, 0))
 }
 
 // Ruby it `it "counts a self-merged PR once" do` at line 480.
 pub fn ruby_contributions_spec_l480_d19_counts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('counts', ...args)
+	_ = args
+	repository := 'Homebrew/homebrew-core'
+	git_log := contributions_spec_merge_log('alice', 'Alice', 'alice@example.com', 123, 1)
+	results := contributions_spec_scan([repository], [
+		contributions_spec_reference(repository, '', git_log),
+	], {
+		'alice': 'Alice'
+	}, {
+		'alice': [
+			production_dev_cmd.ContributionPullRequest{ number: 123, repository: repository },
+		]
+	}, {}, false)
+	return brew_runtime.bool_value(contributions_spec_repository_counts(results, 'alice', repository) == contributions_spec_counts(1, 1, 1, 0, 0))
 }
 
 // Ruby it `it "counts a GitHub-authored PR once when Git only identifies its merger" do` at line 514.
 pub fn ruby_contributions_spec_l514_d20_counts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('counts', ...args)
+	_ = args
+	repository := 'Homebrew/homebrew-core'
+	source := 'pull-request\x1fbase\x1fBrewTestBot\x1ftest-bot@example.com\x1fChange something\x1e'
+	merge := 'merge\x1fbase pull-request\x1fAlice\x1falice@example.com\x1fMerge pull request #123 from Homebrew/topic\x1e'
+	results := contributions_spec_scan([repository], [
+		contributions_spec_reference(repository, '', merge + source),
+	], {
+		'alice': 'Alice'
+	}, {
+		'alice': [
+			production_dev_cmd.ContributionPullRequest{ number: 123, repository: repository },
+		]
+	}, {}, false)
+	return brew_runtime.bool_value(contributions_spec_repository_counts(results, 'alice', repository) == contributions_spec_counts(1, 1, 1, 0, 0))
 }
 
 // Ruby it `it "attributes merged PRs once and learns non-Maintainer Git identities" do` at line 548.
 pub fn ruby_contributions_spec_l548_d21_attributes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('attributes', ...args)
+	_ = args
+	separator := '\x1f'
+	record_separator := '\x1e'
+	merge := ['merge', 'base pull-request', 'Alice Example', 'alice@example.com',
+		'Merge pull request #123 from Homebrew/topic'].join(separator)
+	pull_request := ['pull-request', 'base', 'Bob Example', 'bob@example.com',
+		'Change something\n\nCo-authored-by: Alice Example <123+alice@users.noreply.github.com>'].join(separator)
+	coauthored := ['coauthored', 'base', 'Someone Else', 'someone@example.com',
+		'Change another thing\n\nCo-authored-by: Bob Example <bob@example.com>'].join(separator)
+	parsed := production_dev_cmd.contribution_parse_git_log('${merge}${record_separator}${pull_request}${record_separator}${coauthored}${record_separator}', {
+		'alice': 'Alice Example'
+		'bob':   'bob'
+	})
+	return brew_runtime.bool_value(parsed.counts['alice'] == contributions_spec_counts(0, 1, 1, 0, 1) && parsed.counts['bob'] == contributions_spec_counts(1, 0, 1, 0, 1))
 }
 
 // Ruby it `it "skips approval queries after Git meets the Lead repository thresholds" do` at line 580.
 pub fn ruby_contributions_spec_l580_d22_skips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skips', ...args)
+	_ = args
+	repositories := ['Homebrew/brew', 'Homebrew/homebrew-core']
+	references := [
+		contributions_spec_reference(repositories[0], '', contributions_spec_merge_log('alice', 'Alice', 'alice@example.com', 1, 25)),
+		contributions_spec_reference(repositories[1], '', contributions_spec_merge_log('alice', 'Alice', 'alice@example.com', 101, 25)),
+	]
+	results := contributions_spec_scan(repositories, references, {
+		'alice': 'Alice'
+	}, {}, {
+		'alice': contributions_spec_pull_requests(repositories[0], 500, 4)
+	}, true)
+	return brew_runtime.bool_value(contributions_spec_repository_counts(results, 'alice', repositories[0])['merged_pr'] == 25
+		&& contributions_spec_repository_counts(results, 'alice', repositories[1])['merged_pr'] == 25
+		&& contributions_spec_repository_counts(results, 'alice', repositories[0])['approved_pr_review'] == 0)
 }
 
 // Ruby it `it "scopes capped review searches by repository until Lead activity is known" do` at line 608.
 pub fn ruby_contributions_spec_l608_d23_scopes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('scopes', ...args)
+	_ = args
+	references := [
+		contributions_spec_reference('Homebrew/brew', '', ''),
+		contributions_spec_reference('Homebrew/homebrew-core', '', ''),
+		contributions_spec_reference('Homebrew/homebrew-cask', '', contributions_spec_coauthor_log('Alice', 'alice@example.com', 500)),
+	]
+	mut reviews := contributions_spec_pull_requests('Homebrew/homebrew-cask', 1, 100)
+	reviews << contributions_spec_pull_requests('Homebrew/brew', 101, 25)
+	results := contributions_spec_scan(contributions_spec_primary_repositories, references, {
+		'alice': 'Alice'
+	}, {}, {
+		'alice': reviews
+	}, true)
+	return brew_runtime.bool_value(contributions_spec_repository_counts(results, 'alice', 'Homebrew/brew')['approved_pr_review'] == 25
+		&& contributions_spec_repository_counts(results, 'alice', 'Homebrew/homebrew-core')['approved_pr_review'] == 0
+		&& contributions_spec_repository_counts(results, 'alice', 'Homebrew/homebrew-cask')['approved_pr_review'] == 100)
 }
 
 // Ruby it `it "uses the existing approved review search" do` at line 649.
 pub fn ruby_contributions_spec_l649_d24_uses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uses', ...args)
+	_ = args
+	results := contributions_spec_scan(contributions_spec_primary_repositories, [], {
+		'alice': 'Alice'
+	}, {}, {
+		'alice': [
+			production_dev_cmd.ContributionPullRequest{ number: 1, repository: 'Homebrew/brew' },
+			production_dev_cmd.ContributionPullRequest{
+				number: 2
+				repository: 'Homebrew/homebrew-core'
+			},
+		]
+	}, true)
+	return brew_runtime.bool_value(contributions_spec_repository_counts(results, 'alice', 'Homebrew/brew')['approved_pr_review'] == 1
+		&& contributions_spec_repository_counts(results, 'alice', 'Homebrew/homebrew-core')['approved_pr_review'] == 1
+		&& contributions_spec_repository_counts(results, 'alice', 'Homebrew/homebrew-cask')['approved_pr_review'] == 0)
 }
 
 // Ruby it `it "caches completed GitHub searches in the prunable Homebrew cache" do` at line 689.
 pub fn ruby_contributions_spec_l689_d25_caches(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('caches', ...args)
+	cache_dir := if args.len > 0 && args[0].as_string() != '' {
+		args[0].as_string()
+	} else {
+		os.join_path(os.temp_dir(), 'brew-v-contributions-spec-${os.getpid()}-${time.now().unix_micro()}')
+	}
+	os.mkdir_all(cache_dir) or { return brew_runtime.bool_value(false) }
+	should_cleanup := args.len == 0
+	defer {
+		if should_cleanup {
+			os.rmdir_all(cache_dir) or {}
+		}
+	}
+	request := production_dev_cmd.ContributionCacheRequest{
+		cache_key: 'approved\x00Homebrew\x00alice\x002026-1'
+		to: '2026-03-01'
+		today: '2026-03-01'
+		cache_dir: cache_dir
+		results: ['https://api.github.com/repos/Homebrew/brew']
+	}
+	first := production_dev_cmd.contribution_github_search_with_rate_limit(request) or {
+		return brew_runtime.bool_value(false)
+	}
+	second := production_dev_cmd.contribution_github_search_with_rate_limit(production_dev_cmd.ContributionCacheRequest{
+		...request
+		results: ['replacement']
+	}) or { return brew_runtime.bool_value(false) }
+	children := os.ls(cache_dir) or { return brew_runtime.bool_value(false) }
+	valid_name := children.len == 1 && children[0].starts_with('contributions--')
+		&& children[0].ends_with('.json') && children[0].len == 'contributions--'.len + 64 + '.json'.len
+	return brew_runtime.bool_value(first == request.results && second == request.results && valid_name)
 }
 
 // Original Ruby source (line-for-line):

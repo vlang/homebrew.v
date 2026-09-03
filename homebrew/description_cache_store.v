@@ -4,45 +4,166 @@ import brew_runtime
 
 // Translated from Homebrew/brew `description_cache_store.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub struct DescriptionFormula {
+pub:
+	full_name   string
+	description brew_runtime.Value
+}
+
+pub struct DescriptionRename {
+pub:
+	old_name string
+	new_name string
+}
+
+pub struct DescriptionReport {
+pub:
+	empty             bool
+	formula_added     []string
+	formula_modified  []string
+	formula_deleted   []string
+	formula_renamings []DescriptionRename
+	cask_added        []string
+	cask_modified     []string
+	cask_deleted      []string
+}
+
+pub type DescriptionFormulaLoader = fn(string) !DescriptionFormula
+
+pub struct DescriptionCacheStore {
+pub mut:
+	database CacheStoreDatabase
+}
+
+pub fn new_description_cache_store(database CacheStoreDatabase) DescriptionCacheStore {
+	return DescriptionCacheStore{
+		database: database
+	}
+}
+
+pub fn (mut store DescriptionCacheStore) update(formula_name string,
+	description brew_runtime.Value) {
+	store.database.set(formula_name, description)
+}
+
+pub fn (mut store DescriptionCacheStore) delete(formula_name string) {
+	store.database.delete(formula_name)
+}
+
+pub fn (mut store DescriptionCacheStore) populate_if_empty(eval_all bool,
+	formulae []DescriptionFormula) {
+	if !eval_all || !store.database.empty() {
+		return
+	}
+	for formula in formulae {
+		store.update(formula.full_name, formula.description)
+	}
+}
+
+pub fn (mut store DescriptionCacheStore) update_from_formula_names(formula_names []string,
+	trust_configured bool, all_formulae []DescriptionFormula, loader DescriptionFormulaLoader) {
+	if !trust_configured {
+		store.database.clear()
+		return
+	}
+	if store.database.empty() {
+		store.populate_if_empty(trust_configured, all_formulae)
+		return
+	}
+	for name in formula_names {
+		formula := loader(name) or {
+			store.delete(name)
+			continue
+		}
+		store.update(name, formula.description)
+	}
+}
+
+pub fn (mut store DescriptionCacheStore) delete_from_formula_names(formula_names []string) {
+	if store.database.empty() {
+		return
+	}
+	for name in formula_names {
+		store.delete(name)
+	}
+}
+
+pub fn (mut store DescriptionCacheStore) update_from_report(report DescriptionReport,
+	trust_configured bool, all_formulae []DescriptionFormula, loader DescriptionFormulaLoader) {
+	if !trust_configured {
+		store.database.clear()
+		return
+	}
+	if store.database.empty() {
+		store.populate_if_empty(trust_configured, all_formulae)
+		return
+	}
+	if report.empty {
+		return
+	}
+	mut alterations := report.formula_added.clone()
+	alterations << report.formula_modified
+	mut deletions := report.formula_deleted.clone()
+	for rename in report.formula_renamings {
+		alterations << rename.new_name
+		deletions << rename.old_name
+	}
+	store.update_from_formula_names(alterations, trust_configured, all_formulae, loader)
+	store.delete_from_formula_names(deletions)
+}
+
+pub fn (mut store DescriptionCacheStore) select(predicate CacheStorePredicate) map[string]brew_runtime.Value {
+	return store.database.select(predicate)
+}
 
 // Ruby method `update!(formula_name, description)` at line 22.
-pub fn ruby_description_cache_store_l22_d1_update(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('update!', ...args)
+pub fn ruby_description_cache_store_l22_d1_update(mut store DescriptionCacheStore,
+	formula_name string, description brew_runtime.Value) {
+	store.update(formula_name, description)
 }
 
 // Ruby method `delete!(formula_name)` at line 31.
-pub fn ruby_description_cache_store_l31_d2_delete(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('delete!', ...args)
+pub fn ruby_description_cache_store_l31_d2_delete(mut store DescriptionCacheStore,
+	formula_name string) {
+	store.delete(formula_name)
 }
 
 // Ruby method `populate_if_empty!(eval_all: Homebrew::EnvConfig.tap_trust_configured?)` at line 39.
-pub fn ruby_description_cache_store_l39_d3_populate_if_empty(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('populate_if_empty!', ...args)
+pub fn ruby_description_cache_store_l39_d3_populate_if_empty(mut store DescriptionCacheStore,
+	eval_all bool, formulae []DescriptionFormula) {
+	store.populate_if_empty(eval_all, formulae)
 }
 
 // Ruby method `update_from_report!(report)` at line 51.
-pub fn ruby_description_cache_store_l51_d4_update_from_report(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('update_from_report!', ...args)
+pub fn ruby_description_cache_store_l51_d4_update_from_report(mut store DescriptionCacheStore,
+	report DescriptionReport, trust_configured bool, all_formulae []DescriptionFormula,
+	loader DescriptionFormulaLoader) {
+	store.update_from_report(report, trust_configured, all_formulae, loader)
 }
 
 // Ruby method `update_from_formula_names!(formula_names)` at line 80.
-pub fn ruby_description_cache_store_l80_d5_update_from_formula_names(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('update_from_formula_names!', ...args)
+pub fn ruby_description_cache_store_l80_d5_update_from_formula_names(mut store DescriptionCacheStore,
+	formula_names []string, trust_configured bool, all_formulae []DescriptionFormula,
+	loader DescriptionFormulaLoader) {
+	store.update_from_formula_names(formula_names, trust_configured, all_formulae, loader)
 }
 
 // Ruby method `delete_from_formula_names!(formula_names)` at line 99.
-pub fn ruby_description_cache_store_l99_d6_delete_from_formula_names(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('delete_from_formula_names!', ...args)
+pub fn ruby_description_cache_store_l99_d6_delete_from_formula_names(mut store DescriptionCacheStore,
+	formula_names []string) {
+	store.delete_from_formula_names(formula_names)
 }
 
 // Ruby alias `alias delete_from_cask_tokens! delete_from_formula_names!` at line 104.
-pub fn ruby_description_cache_store_l104_d7_delete_from_cask_tokens(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('delete_from_cask_tokens!', ...args)
+pub fn ruby_description_cache_store_l104_d7_delete_from_cask_tokens(mut store DescriptionCacheStore,
+	cask_tokens []string) {
+	store.delete_from_formula_names(cask_tokens)
 }
 
 // Ruby method `select(&block)` at line 108.
-pub fn ruby_description_cache_store_l108_d8_select(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('select', ...args)
+pub fn ruby_description_cache_store_l108_d8_select(mut store DescriptionCacheStore,
+	predicate CacheStorePredicate) map[string]brew_runtime.Value {
+	return store.select(predicate)
 }
 
 // Original Ruby source (line-for-line):

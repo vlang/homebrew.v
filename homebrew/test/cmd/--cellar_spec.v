@@ -1,18 +1,23 @@
 module cmd
 
 import brew_runtime
+import homebrew.cmd as cmd_core
 
 // Translated from Homebrew/brew `test/cmd/--cellar_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "prints Homebrew's Cellar", :integration_test do` at line 10.
 pub fn ruby_cellar_spec_l10_d1_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+	cellar := if args.len > 0 { args[0].as_string() } else { '/opt/homebrew/Cellar' }
+	return brew_runtime.bool_value(cmd_core.cellar_output(cellar, []) == '${cellar}\n')
 }
 
 // Ruby it `it "prints the Cellar for a Formula" do` at line 17.
 pub fn ruby_cellar_spec_l17_d2_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+	cellar := if args.len > 0 { args[0].as_string() } else { '/opt/homebrew/Cellar' }
+	return brew_runtime.bool_value(cmd_core.cellar_output(cellar, [
+		'${cellar}/testball',
+	]) == '${cellar}/testball\n')
 }
 
 // Original Ruby source (line-for-line):

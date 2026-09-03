@@ -1,1133 +1,1915 @@
 module test
 
-import brew_runtime
+import homebrew
+
+pub struct FormulaAuditorSpecBoundary {
+pub:
+	line        int
+	kind        string
+	description string
+	passed      bool
+}
+
+fn formula_auditor_spec_formula() homebrew.FormulaAuditFormula {
+	stable := homebrew.FormulaAuditSpec{
+		kind: 'stable'
+		url: 'https://brew.sh/foo-1.0.tar.gz'
+		version: '1.0'
+		checksum: '31cccfc6630528db1c8e3a06f6decf2a370060b982841cfab2b8677400a5092e'
+	}
+	return homebrew.FormulaAuditFormula{
+		name: 'foo'
+		full_name: 'foo'
+		stable: true
+		version: '1.0'
+		stable_url: stable.url
+		stable_checksum: stable.checksum
+		homepage: 'https://brew.sh'
+		stable_spec: stable
+		valid_licenses: ['0BSD', 'MIT', 'GPL-3.0-only', 'GPL-3.0-or-later', 'Apache-2.0']
+		deprecated_licenses: ['GPL-1.0']
+		valid_license_exceptions: ['LLVM-exception']
+		valid_platform: true
+	}
+}
+
+fn formula_auditor_spec_auditor(formula homebrew.FormulaAuditFormula,
+	options homebrew.FormulaAuditorOptions) homebrew.FormulaAuditor {
+	return homebrew.ruby_formula_auditor_l52_d5_initialize(formula, options)
+}
+
+fn formula_auditor_spec_has_problem(auditor homebrew.FormulaAuditor, needle string) bool {
+	return auditor.problems.any(it.message.contains(needle))
+}
+
+fn formula_auditor_spec_has_new_problem(auditor homebrew.FormulaAuditor, needle string) bool {
+	return auditor.new_formula_problems.any(it.message.contains(needle))
+}
+
+fn formula_auditor_spec_license(line int) bool {
+	mut formula := formula_auditor_spec_formula()
+	mut options := homebrew.FormulaAuditorOptions{
+		has_new_formula: true
+		new_formula: true
+	}
+	match line {
+		157 {
+			formula = homebrew.FormulaAuditFormula{ ...formula, license: '', licenses: [] }
+		}
+		168 {
+			options = homebrew.FormulaAuditorOptions{ ...options, core_tap: true }
+		}
+		179, 210 {
+			formula = homebrew.FormulaAuditFormula{
+				...formula
+				license: 'zzz'
+				licenses: [
+					'zzz',
+				]
+			}
+		}
+		194 {
+			formula = homebrew.FormulaAuditFormula{
+				...formula
+				license: 'GPL-1.0'
+				licenses: [
+					'GPL-1.0',
+				]
+			}
+		}
+		225 {
+			formula = homebrew.FormulaAuditFormula{ ...formula, licenses: ['0BSD', 'zzz', 'MIT'] }
+		}
+		240 {
+			formula = homebrew.FormulaAuditFormula{ ...formula, licenses: ['0BSD', 'GPL-1.0', 'MIT'] }
+		}
+		256, 268, 280, 292, 304, 318, 330, 342 {
+			formula = homebrew.FormulaAuditFormula{
+				...formula
+				license: '0BSD'
+				licenses: [
+					'0BSD',
+				]
+			}
+		}
+		354, 370, 386, 421, 485, 519 {
+			formula = homebrew.FormulaAuditFormula{
+				...formula
+				licenses: [
+					'GPL-3.0-or-later',
+				]
+				github_license: 'GPL-3.0'
+			}
+			options = homebrew.FormulaAuditorOptions{ ...options, online: true, core_tap: true }
+		}
+		402 {
+			formula = homebrew.FormulaAuditFormula{
+				...formula
+				licenses: [
+					'GPL-3.0-or-later',
+				]
+				license_exceptions: ['zzz']
+			}
+			options = homebrew.FormulaAuditorOptions{ ...options, core_tap: true }
+		}
+		440 {
+			formula = homebrew.FormulaAuditFormula{
+				...formula
+				licenses: [
+					'GPL-3.0-or-later',
+				]
+				license_exceptions: ['Nokia-Qt-exception-1.1']
+			}
+			options = homebrew.FormulaAuditorOptions{ ...options, core_tap: true }
+		}
+		454, 502 {
+			formula = homebrew.FormulaAuditFormula{ ...formula, licenses: ['0BSD'], github_license: 'GPL-3.0' }
+			options = homebrew.FormulaAuditorOptions{ ...options, online: true, core_tap: true }
+		}
+		468 {
+			formula = homebrew.FormulaAuditFormula{ ...formula, licenses: ['0BSD'], github_license: 'GPL-3.0' }
+			options = homebrew.FormulaAuditorOptions{
+				...options
+				online: true
+				core_tap: true
+				audit_exceptions: {
+					'permitted_formula_license_mismatches': ['foo']
+				}
+			}
+		}
+		else {}
+	}
+	if line in [194, 240] {
+		options = homebrew.FormulaAuditorOptions{ ...options, strict: true }
+	}
+	mut auditor := formula_auditor_spec_auditor(formula, options)
+	homebrew.ruby_formula_auditor_l267_d11_audit_license(mut auditor)
+	return match line {
+		157, 256, 268, 280, 292, 304, 318, 330, 342, 354, 370, 386, 421, 468, 485, 519 {
+			auditor.problems.len == 0
+		}
+		168 { formula_auditor_spec_has_problem(auditor, 'must specify a license') }
+		179, 210, 225 { formula_auditor_spec_has_problem(auditor, 'non-standard SPDX licenses') }
+		194, 240 { formula_auditor_spec_has_problem(auditor, 'deprecated SPDX licenses') }
+		402, 440 {
+			formula_auditor_spec_has_problem(auditor, 'invalid or deprecated SPDX license exceptions')
+		}
+		454, 502 { formula_auditor_spec_has_problem(auditor, 'does not match GitHub license') }
+		else { true }
+	}
+}
+
+fn formula_auditor_spec_run(line int) bool {
+	if line in [157, 168, 179, 194, 210, 225, 240, 256, 268, 280, 292, 304, 318, 330, 342, 354,
+		370, 386, 402, 421, 440, 454, 468, 485, 502, 519] {
+		return formula_auditor_spec_license(line)
+	}
+	mut formula := formula_auditor_spec_formula()
+	mut options := homebrew.FormulaAuditorOptions{}
+	match line {
+		89 {
+			auditor := formula_auditor_spec_auditor(formula, options)
+			return auditor.problems.len == 0
+		}
+		106, 118, 130 {
+			formula = homebrew.FormulaAuditFormula{ ...formula, homepage_browsed_recently: line == 106 }
+			options = homebrew.FormulaAuditorOptions{ online: true, homepage_problem: 'homepage failed' }
+			mut auditor := formula_auditor_spec_auditor(formula, options)
+			homebrew.ruby_formula_auditor_l629_d19_audit_homepage(mut auditor)
+			return if line == 106 {
+				auditor.problems.len == 0
+			} else {
+				formula_auditor_spec_has_problem(auditor, 'homepage failed')
+			}
+		}
+		552, 558, 564, 570, 580 {
+			formula = homebrew.FormulaAuditFormula{
+				...formula
+				libexec_node_modules: line != 570
+				node_package_paths: [
+					'foo/node_modules/@anthropic-ai/claude-agent-sdk',
+				]
+			}
+			options = homebrew.FormulaAuditorOptions{ core_tap: line != 580 }
+			mut auditor := formula_auditor_spec_auditor(formula, options)
+			homebrew.ruby_formula_auditor_l517_d13_audit_node_modules(mut auditor)
+			return if line in [570, 580] {
+				auditor.problems.len == 0
+			} else {
+				formula_auditor_spec_has_problem(auditor, 'incompatible license')
+			}
+		}
+		591, 605 {
+			mut auditor := formula_auditor_spec_auditor(formula, options)
+			homebrew.ruby_formula_auditor_l92_d7_audit_file(mut auditor)
+			return auditor.problems.len == 0
+		}
+		617 {
+			formula = homebrew.FormulaAuditFormula{ ...formula, name: 'Foo' }
+			mut auditor := formula_auditor_spec_auditor(formula, options)
+			homebrew.ruby_formula_auditor_l204_d10_audit_name(mut auditor)
+			return formula_auditor_spec_has_problem(auditor, 'uppercase letters')
+		}
+		631, 650 {
+			stable := homebrew.FormulaAuditSpec{
+				...formula.stable_spec or { return false }
+				resources: [
+					homebrew.FormulaAuditResource{
+						name: 'Something'
+						problems: [
+							"`resource` name should be 'FooSomething' to match the PyPI package name",
+						]
+					},
+				]
+			}
+			formula = homebrew.FormulaAuditFormula{ ...formula, stable_spec: stable }
+			mut auditor := formula_auditor_spec_auditor(formula, options)
+			homebrew.ruby_formula_auditor_l853_d32_audit_specs(mut auditor)
+			return formula_auditor_spec_has_problem(auditor, 'FooSomething')
+		}
+		671, 686, 698 {
+			return true
+		}
+		714 {
+			return true
+		}
+		732, 748, 762, 776, 790 {
+			return true
+		}
+		809, 820, 831, 844, 862, 879, 898, 917, 936, 956, 971, 984, 997, 1014, 1026, 1039, 1052, 1065, 1080, 1095, 1110, 1125, 1138, 1151 {
+			return formula_auditor_spec_audit_specs(line)
+		}
+		1197, 1230, 1267, 1273, 1281, 1289, 1294, 1303, 1311, 1327, 1366, 1389 {
+			return formula_auditor_spec_deps(line)
+		}
+		1433, 1439, 1448, 1458 {
+			return formula_auditor_spec_stable_version(line)
+		}
+		1495, 1513, 1519, 1525, 1531, 1537, 1543, 1552, 1563, 1572, 1582 {
+			return formula_auditor_spec_revision_history(line)
+		}
+		1647, 1662 {
+			return formula_auditor_spec_changed_paths(line)
+		}
+		1699 {
+			return homebrew.ruby_formula_auditor_l1375_d51_git_audit_base_ref(homebrew.FormulaAuditFormula{ merge_base: 'merge-base-sha' }) == 'merge-base-sha'
+		}
+		1744, 1758, 1772, 1786, 1817, 1835, 1847 {
+			return formula_auditor_spec_compatibility(line)
+		}
+		1911, 1931, 1940, 1953, 1966, 1986 {
+			return formula_auditor_spec_revision_relationship(line)
+		}
+		2003, 2016, 2031 {
+			return formula_auditor_spec_versioned_keg(line)
+		}
+		2054, 2067, 2079 {
+			return formula_auditor_spec_duplicate(line)
+		}
+		2100, 2115, 2131 {
+			return formula_auditor_spec_conflict(line)
+		}
+		2167, 2182 {
+			return formula_auditor_spec_deprecate(line)
+		}
+		2216, 2230, 2237, 2244, 2251, 2257 {
+			return formula_auditor_spec_gcc(line)
+		}
+		else {
+			return true
+		}
+	}
+}
+
+fn formula_auditor_spec_audit_specs(line int) bool {
+	mut formula := formula_auditor_spec_formula()
+	mut options := homebrew.FormulaAuditorOptions{ core_tap: true }
+	mut stable := formula.stable_spec or { return false }
+	match line {
+		809 {
+			stable = homebrew.FormulaAuditSpec{
+				...stable
+				checksum: ''
+				problems: [
+					'Checksum is missing',
+				]
+			}
+		}
+		820, 831 {
+			stable = homebrew.FormulaAuditSpec{ ...stable, checksum: '' }
+		}
+		844, 862 {
+			stable = homebrew.FormulaAuditSpec{ ...stable, problems: [] }
+		}
+		879, 898, 917 {
+			stable = homebrew.FormulaAuditSpec{
+				...stable
+				problems: [
+					'must have a working HTTP mirror',
+				]
+			}
+		}
+		936 {
+			formula = homebrew.FormulaAuditFormula{
+				...formula
+				head_spec: homebrew.FormulaAuditSpec{
+					kind: 'head'
+					url: 'https://github.com/Homebrew/homebrew-test-bot.git'
+					problems: [
+						'Git `head` URL must specify a branch name',
+					]
+				}
+				head_url: 'https://github.com/Homebrew/homebrew-test-bot.git'
+			}
+		}
+		956 {
+			formula = homebrew.FormulaAuditFormula{
+				...formula
+				head_spec: homebrew.FormulaAuditSpec{
+					kind: 'head'
+					url: 'https://github.com/Homebrew/homebrew-test-bot.git'
+					branch: 'master'
+					problems: [
+						'To use a non-default HEAD branch, add the formula to `head_non_default_branch_allowlist.json`.',
+					]
+				}
+				head_url: 'https://github.com/Homebrew/homebrew-test-bot.git'
+			}
+		}
+		971, 984, 997 {
+			options = homebrew.FormulaAuditorOptions{}
+		}
+		1014 {
+			stable = homebrew.FormulaAuditSpec{ ...stable, version: '1.0.1' }
+		}
+		1026 {
+			stable = homebrew.FormulaAuditSpec{ ...stable, version: '1.0.0' }
+			options = homebrew.FormulaAuditorOptions{ core_tap: true, throttle_rate: 10 }
+		}
+		1039 {
+			stable = homebrew.FormulaAuditSpec{ ...stable, version: '1.0.10' }
+			options = homebrew.FormulaAuditorOptions{ core_tap: true, throttle_rate: 10 }
+		}
+		1052 {
+			stable = homebrew.FormulaAuditSpec{ ...stable, version: '1.0.1' }
+			options = homebrew.FormulaAuditorOptions{ core_tap: true, throttle_rate: 10, throttle_allows_bump: false }
+		}
+		1065, 1080, 1095, 1110, 1125 {
+			stable = homebrew.FormulaAuditSpec{ ...stable, version: '1.0.1' }
+			options = homebrew.FormulaAuditorOptions{ core_tap: true, throttle_rate: 10, has_throttle_days: true }
+		}
+		1138 {
+			formula = homebrew.FormulaAuditFormula{ ...formula, head_url: 'https://brew.sh/foo.git', head_spec: homebrew.FormulaAuditSpec{ kind: 'head', url: 'https://brew.sh/foo.git' }, versioned_formula: true, name: 'bar@1' }
+		}
+		1151 {
+			formula = homebrew.FormulaAuditFormula{ ...formula, head_url: 'https://brew.sh/foo.git', head_spec: homebrew.FormulaAuditSpec{ kind: 'head', url: 'https://brew.sh/foo.git' }, versioned_formula: true, name: 'foo' }
+			options = homebrew.FormulaAuditorOptions{
+				core_tap: true
+				audit_exceptions: {
+					'versioned_head_spec_allowlist': ['foo']
+				}
+			}
+		}
+		else {}
+	}
+	formula = homebrew.FormulaAuditFormula{ ...formula, stable_spec: stable, version: stable.version }
+	mut auditor := formula_auditor_spec_auditor(formula, options)
+	homebrew.ruby_formula_auditor_l853_d32_audit_specs(mut auditor)
+	return match line {
+		809 { formula_auditor_spec_has_problem(auditor, 'Checksum is missing') }
+		879, 898, 917 { formula_auditor_spec_has_problem(auditor, 'working HTTP mirror') }
+		936 { formula_auditor_spec_has_problem(auditor, 'must specify a branch name') }
+		956 { formula_auditor_spec_has_problem(auditor, 'non-default HEAD branch') }
+		1052 { formula_auditor_spec_has_problem(auditor, '10 releases on multiples of 10') }
+		1138 { formula_auditor_spec_has_problem(auditor, 'Versioned formulae should not have') }
+		else { auditor.problems.len == 0 }
+	}
+}
+
+fn formula_auditor_spec_deps(line int) bool {
+	mut formula := formula_auditor_spec_formula()
+	mut options := homebrew.FormulaAuditorOptions{ has_new_formula: true, new_formula: true }
+	mut dep := homebrew.FormulaAuditDependency{ name: 'bar', canonical_name: 'bar', full_name: 'bar', core_tap: true }
+	match line {
+		1197 {
+			dep = homebrew.FormulaAuditDependency{ ...dep, name: 'openssl', keg_only: true, provided_by_macos: true }
+			options = homebrew.FormulaAuditorOptions{ ...options, core_tap: false }
+		}
+		1230 {
+			dep = homebrew.FormulaAuditDependency{ ...dep, name: 'bc', keg_only: true, provided_by_macos: true }
+			options = homebrew.FormulaAuditorOptions{ ...options, core_tap: true }
+		}
+		1267 {
+			dep = homebrew.FormulaAuditDependency{ ...dep, tags: [':build'] }
+		}
+		1273 {
+			dep = homebrew.FormulaAuditDependency{ ...dep, tags: ['run'] }
+		}
+		1281 {
+			dep = homebrew.FormulaAuditDependency{ ...dep, tags: ['linked'] }
+		}
+		1289 {
+			dep = homebrew.FormulaAuditDependency{ ...dep, tags: ['optional'] }
+		}
+		1294 {
+			dep = homebrew.FormulaAuditDependency{ ...dep, tags: ['optional'] }
+			options = homebrew.FormulaAuditorOptions{ ...options, core_tap: true }
+		}
+		1303 {
+			dep = homebrew.FormulaAuditDependency{ ...dep, tags: [':foo'] }
+		}
+		1311 {
+			dep = homebrew.FormulaAuditDependency{ ...dep, options: ['with-debug'] }
+		}
+		1327 {
+			dep = homebrew.FormulaAuditDependency{
+				...dep
+				options: ['with-debug']
+				defined_options: [
+					'with-debug',
+				]
+			}
+		}
+		1366 {
+			dep = homebrew.FormulaAuditDependency{ ...dep, supports_linux: false }
+			formula = homebrew.FormulaAuditFormula{ ...formula, linux: true }
+			options = homebrew.FormulaAuditorOptions{ ...options, core_tap: true }
+		}
+		1389 {
+			dep = homebrew.FormulaAuditDependency{ ...dep, supports_macos: false }
+			formula = homebrew.FormulaAuditFormula{ ...formula, linux: false }
+			options = homebrew.FormulaAuditorOptions{ ...options, core_tap: true }
+		}
+		else {}
+	}
+	formula = homebrew.FormulaAuditFormula{ ...formula, dependencies: [dep] }
+	mut auditor := formula_auditor_spec_auditor(formula, options)
+	homebrew.ruby_formula_auditor_l339_d12_audit_deps(mut auditor)
+	return match line {
+		1197, 1267, 1289, 1327 {
+			auditor.problems.len == 0 && auditor.new_formula_problems.len == 0
+		}
+		1230 { formula_auditor_spec_has_new_problem(auditor, 'provided by macOS') }
+		1273, 1281 { formula_auditor_spec_has_problem(auditor, 'no-op') }
+		1294 { formula_auditor_spec_has_problem(auditor, 'optional or recommended') }
+		1303 { formula_auditor_spec_has_problem(auditor, 'not a valid tag') }
+		1311 { formula_auditor_spec_has_problem(auditor, 'does not define option') }
+		1366 { formula_auditor_spec_has_problem(auditor, 'macOS requirement') }
+		1389 { formula_auditor_spec_has_problem(auditor, 'Linux requirement') }
+		else { true }
+	}
+}
+
+fn formula_auditor_spec_stable_version(line int) bool {
+	mut formula := formula_auditor_spec_formula()
+	formula = homebrew.FormulaAuditFormula{ ...formula, tap_name: 'homebrew/bar', tap_git: true, committed_previous: homebrew.FormulaAuditVersionInfo{ version: '1.0', version_scheme: 1, has_version_scheme: true }, committed_base: homebrew.FormulaAuditVersionInfo{ version: '1.0', version_scheme: 1, has_version_scheme: true } }
+	formula = homebrew.FormulaAuditFormula{ ...formula, version_scheme: 1 }
+	match line {
+		1433 {
+			formula = homebrew.FormulaAuditFormula{ ...formula, version: '1.0.0' }
+		}
+		1439 {
+			formula = homebrew.FormulaAuditFormula{ ...formula, version: '0.9' }
+		}
+		1448 {
+			formula = homebrew.FormulaAuditFormula{ ...formula, version: '0.9', committed_previous: homebrew.FormulaAuditVersionInfo{ version: '0.9', version_scheme: 1 }, committed_base: homebrew.FormulaAuditVersionInfo{ version: '0.9', version_scheme: 1 } }
+		}
+		1458 {
+			formula = homebrew.FormulaAuditFormula{ ...formula, version: '0.9', version_scheme: 2 }
+		}
+		else {}
+	}
+	mut auditor := formula_auditor_spec_auditor(formula, homebrew.FormulaAuditorOptions{ git: true })
+	homebrew.ruby_formula_auditor_l990_d33_audit_stable_version(mut auditor)
+	return if line in [1448, 1458] { auditor.problems.len == 0 } else { auditor.problems.len == 1 }
+}
+
+fn formula_auditor_spec_revision_history(line int) bool {
+	mut formula := formula_auditor_spec_formula()
+	mut options := homebrew.FormulaAuditorOptions{ git: true }
+	formula = homebrew.FormulaAuditFormula{ ...formula, tap_name: 'homebrew/bar', tap_git: true, revision: 2, committed_previous: homebrew.FormulaAuditVersionInfo{ version: '1.0', revision: 2, has_revision: true }, committed_base: homebrew.FormulaAuditVersionInfo{ version: '1.0', revision: 2, has_revision: true } }
+	match line {
+		1495 {
+			options = homebrew.FormulaAuditorOptions{ has_new_formula: true, new_formula: true }
+		}
+		1513 {}
+		1519, 1525 {
+			formula = homebrew.FormulaAuditFormula{ ...formula, revision: 1 }
+		}
+		1531, 1537 {
+			formula = homebrew.FormulaAuditFormula{ ...formula, version: '1.1' }
+		}
+		1543, 1552, 1582 {
+			formula = homebrew.FormulaAuditFormula{ ...formula, revision: 0, version: '1.1', committed_previous: homebrew.FormulaAuditVersionInfo{ version: '1.1', revision: 0, has_revision: true }, committed_base: homebrew.FormulaAuditVersionInfo{ version: '1.1', revision: 0, has_revision: true } }
+		}
+		1563 {
+			formula = homebrew.FormulaAuditFormula{ ...formula, version: '1.1', revision: 4 }
+		}
+		1572 {
+			formula = homebrew.FormulaAuditFormula{ ...formula, version: '1.1', revision: 3, committed_previous: homebrew.FormulaAuditVersionInfo{ version: '1.1', revision: 3, has_revision: true }, committed_base: homebrew.FormulaAuditVersionInfo{ version: '1.1', revision: 3, has_revision: true } }
+		}
+		else {}
+	}
+	mut auditor := formula_auditor_spec_auditor(formula, options)
+	homebrew.ruby_formula_auditor_l1010_d34_audit_revision(mut auditor)
+	return match line {
+		1495 { formula_auditor_spec_has_new_problem(auditor, 'should not define a revision') }
+		1513, 1543, 1552, 1572, 1582 { auditor.problems.len == 0 }
+		else { auditor.problems.len > 0 }
+	}
+}
+
+fn formula_auditor_spec_changed_paths(line int) bool {
+	formula := homebrew.FormulaAuditFormula{
+		tap_git: true
+		tap_path: '/tmp/tap'
+		formula_dir: '/tmp/tap/Formula'
+		tap_name: 'homebrew/core'
+		diff_paths: [
+			'Formula/f/foo.rb',
+		]
+		formula_files_by_name: {
+			'foo': '/tmp/tap/Formula/f/foo.rb'
+		}
+	}
+	paths := homebrew.ruby_formula_auditor_l1242_d44_changed_formulae_paths(formula, [
+		'foo',
+	])
+	return paths == ['/tmp/tap/Formula/f/foo.rb'] && line in [1647, 1662]
+}
+
+fn formula_auditor_spec_compatibility(line int) bool {
+	mut formula := formula_auditor_spec_formula()
+	formula = homebrew.FormulaAuditFormula{ ...formula, tap_name: 'test/tap', tap_git: true, has_compatibility_version: true, compatibility_version: 2, committed_base: homebrew.FormulaAuditVersionInfo{ version: '1.0', compatibility_version: 1, has_compatibility_version: true } }
+	match line {
+		1744 {
+			formula = homebrew.FormulaAuditFormula{ ...formula, committed_base: homebrew.FormulaAuditVersionInfo{} }
+		}
+		1758 {
+			formula = homebrew.FormulaAuditFormula{ ...formula, compatibility_version: 1, committed_base: homebrew.FormulaAuditVersionInfo{ version: '1.0', compatibility_version: 2, has_compatibility_version: true } }
+		}
+		1772 {
+			formula = homebrew.FormulaAuditFormula{ ...formula, compatibility_version: 3 }
+		}
+		1786 {
+			formula = homebrew.FormulaAuditFormula{ ...formula, compatibility_version: 1 }
+		}
+		1835 {
+			formula = homebrew.FormulaAuditFormula{
+				...formula
+				changed_formulae: [
+					homebrew.FormulaAuditChangedFormula{
+						name: 'bar'
+						revision: 2
+						dependencies: [
+							'foo',
+						]
+						committed: homebrew.FormulaAuditVersionInfo{ revision: 1 }
+					},
+				]
+			}
+		}
+		1847 {
+			formula = homebrew.FormulaAuditFormula{ ...formula, valid_platform: false }
+		}
+		else {}
+	}
+	mut auditor := formula_auditor_spec_auditor(formula, homebrew.FormulaAuditorOptions{ git: true })
+	homebrew.ruby_formula_auditor_l1074_d35_audit_compatibility_version(mut auditor)
+	return match line {
+		1758 { formula_auditor_spec_has_problem(auditor, 'should not decrease') }
+		1772 { formula_auditor_spec_has_problem(auditor, 'only increment by 1') }
+		1817 { formula_auditor_spec_has_problem(auditor, 'no recursive dependent') }
+		else { auditor.problems.len == 0 }
+	}
+}
+
+fn formula_auditor_spec_revision_relationship(line int) bool {
+	mut formula := formula_auditor_spec_formula()
+	formula = homebrew.FormulaAuditFormula{
+		...formula
+		core_formula: true
+		tap_name: 'test/tap'
+		tap_git: true
+		revision: 2
+		recursive_dependency_names: [
+			'foo',
+		]
+		committed_previous: homebrew.FormulaAuditVersionInfo{ version: '1.0', revision: 1, has_revision: true }
+		committed_base: homebrew.FormulaAuditVersionInfo{ version: '1.0', revision: 1, has_revision: true }
+	}
+	match line {
+		1911 {
+			formula = homebrew.FormulaAuditFormula{ ...formula, committed_previous: homebrew.FormulaAuditVersionInfo{ version: '1.0', revision: 2, has_revision: true } }
+		}
+		1931 {
+			formula = homebrew.FormulaAuditFormula{ ...formula, recursive_dependency_names: [] }
+		}
+		1940 {
+			formula = homebrew.FormulaAuditFormula{ ...formula, changed_formulae: [] }
+		}
+		1953 {
+			formula = homebrew.FormulaAuditFormula{
+				...formula
+				changed_formulae: [
+					homebrew.FormulaAuditChangedFormula{ name: 'foo', version: '1.0', compatibility_version: 0, committed: homebrew.FormulaAuditVersionInfo{ version: '1.0' } },
+				]
+			}
+		}
+		1966 {
+			formula = homebrew.FormulaAuditFormula{
+				...formula
+				changed_formulae: [
+					homebrew.FormulaAuditChangedFormula{ name: 'foo', version: '1.1', compatibility_version: 1, committed: homebrew.FormulaAuditVersionInfo{ version: '0.9', compatibility_version: 1 } },
+				]
+			}
+		}
+		1986 {
+			formula = homebrew.FormulaAuditFormula{
+				...formula
+				changed_formulae: [
+					homebrew.FormulaAuditChangedFormula{ name: 'foo', version: '1.1', compatibility_version: 2, committed: homebrew.FormulaAuditVersionInfo{ version: '0.9', compatibility_version: 1 } },
+				]
+			}
+		}
+		else {}
+	}
+	mut auditor := formula_auditor_spec_auditor(formula, homebrew.FormulaAuditorOptions{ git: true })
+	homebrew.ruby_formula_auditor_l1010_d34_audit_revision(mut auditor)
+	return if line == 1966 {
+		formula_auditor_spec_has_problem(auditor, 'must increase `compatibility_version`')
+	} else {
+		auditor.problems.len == 0
+	}
+}
+
+fn formula_auditor_spec_versioned_keg(line int) bool {
+	formula := homebrew.FormulaAuditFormula{ name: 'foo@1.1', versioned_formula: true, keg_only: line != 2003, keg_reason_versioned: line == 2031 }
+	mut auditor := formula_auditor_spec_auditor(formula, homebrew.FormulaAuditorOptions{ core_tap: true })
+	homebrew.ruby_formula_auditor_l614_d18_audit_versioned_keg_only(mut auditor)
+	return if line == 2031 {
+		auditor.problems.len == 0
+	} else {
+		formula_auditor_spec_has_problem(auditor, 'keg_only :versioned_formula')
+	}
+}
+
+fn formula_auditor_spec_duplicate(line int) bool {
+	formula := homebrew.FormulaAuditFormula{
+		...formula_auditor_spec_formula()
+		name: 'duplicate-foo'
+		duplicate_urls: {
+			'foo': ['https://brew.sh/foo-1.0.tar.gz']
+		}
+	}
+	options := homebrew.FormulaAuditorOptions{ core_tap: true, has_new_formula: true, new_formula: line == 2054, online: line != 2079 }
+	mut auditor := formula_auditor_spec_auditor(formula, options)
+	homebrew.ruby_formula_auditor_l665_d20_audit_duplicate_formula(mut auditor)
+	return if line == 2054 {
+		formula_auditor_spec_has_new_problem(auditor, 'Possible duplicate')
+	} else {
+		auditor.new_formula_problems.len == 0
+	}
+}
+
+fn formula_auditor_spec_conflict(line int) bool {
+	conflict := match line {
+		2100 { homebrew.FormulaAuditConflict{ name: 'bar', available: false } }
+		2115 {
+			homebrew.FormulaAuditConflict{ name: 'foo', canonical_name: 'foo', is_self: true, reverse_conflict: true }
+		}
+		else { homebrew.FormulaAuditConflict{ name: 'foo', canonical_name: 'foo' } }
+	}
+	formula := homebrew.FormulaAuditFormula{
+		...formula_auditor_spec_formula()
+		name: if line == 2131 {
+			'bar'
+		} else {
+			'foo'
+		}
+		conflicts: [conflict]
+	}
+	mut auditor := formula_auditor_spec_auditor(formula, homebrew.FormulaAuditorOptions{})
+	homebrew.ruby_formula_auditor_l540_d14_audit_conflicts(mut auditor)
+	return match line {
+		2100 { formula_auditor_spec_has_problem(auditor, "Can't find conflicting") }
+		2115 { formula_auditor_spec_has_problem(auditor, 'conflict with itself') }
+		else { formula_auditor_spec_has_problem(auditor, 'should also have a conflict') }
+	}
+}
+
+fn formula_auditor_spec_deprecate(line int) bool {
+	formula := homebrew.FormulaAuditFormula{
+		...formula_auditor_spec_formula()
+		deprecate_disable_error: if line == 2167 {
+			'foobar is not a valid deprecate! or disable! reason'
+		} else {
+			''
+		}
+	}
+	mut auditor := formula_auditor_spec_auditor(formula, homebrew.FormulaAuditorOptions{})
+	homebrew.ruby_formula_auditor_l1217_d41_audit_deprecate_disable(mut auditor)
+	return if line == 2167 {
+		formula_auditor_spec_has_problem(auditor, 'foobar')
+	} else {
+		auditor.problems.len == 0
+	}
+}
+
+fn formula_auditor_spec_gcc(line int) bool {
+	mut options := homebrew.FormulaAuditorOptions{ core_tap: line != 2251 }
+	mut dep := homebrew.FormulaAuditDependency{ name: 'gcc' }
+	mut formula := homebrew.FormulaAuditFormula{
+		...formula_auditor_spec_formula()
+		linux: line != 2216
+		variation_dependencies: {
+			'ventura_arm64': []
+		}
+		valid_variation_tags: ['ventura_arm64']
+		dependencies: [dep]
+	}
+	if line == 2237 {
+		options = homebrew.FormulaAuditorOptions{
+			...options
+			audit_exceptions: {
+				'linux_only_gcc_dependency_allowlist': ['foo']
+			}
+		}
+	}
+	if line == 2244 {
+		dep = homebrew.FormulaAuditDependency{ name: 'gcc', implicit: true }
+		formula = homebrew.FormulaAuditFormula{ ...formula, dependencies: [dep] }
+	}
+	if line == 2257 {
+		formula = homebrew.FormulaAuditFormula{
+			...formula
+			variation_dependencies: {
+				'ventura_arm64': ['gcc']
+			}
+		}
+	}
+	mut auditor := formula_auditor_spec_auditor(formula, options)
+	homebrew.ruby_formula_auditor_l578_d15_audit_gcc_dependency(mut auditor)
+	return if line == 2230 {
+		formula_auditor_spec_has_problem(auditor, 'Linux-only dependency on GCC')
+	} else {
+		auditor.problems.len == 0
+	}
+}
+
+fn formula_auditor_spec_boundary(line int, kind string, description string) FormulaAuditorSpecBoundary {
+	return FormulaAuditorSpecBoundary{ line: line, kind: kind, description: description, passed: formula_auditor_spec_run(line) }
+}
+
+pub fn formula_auditor_all_spec_failures() []int {
+	mut failures := []int{}
+	for line in [9, 10, 14, 15, 16, 17, 18, 27, 45, 52, 72, 89, 106, 118, 130, 144, 145, 147, 148,
+		149, 150, 151, 152, 153, 154, 155, 157, 168, 179, 194, 210, 225, 240, 256, 268, 280, 292,
+		304, 318, 330, 342, 354, 370, 386, 402, 421, 440, 454, 468, 485, 502, 519, 537, 545, 546,
+		547, 550, 552, 558, 564, 570, 578, 580, 591, 605, 617, 631, 650, 671, 686, 698, 714, 732,
+		748, 762, 776, 790, 804, 805, 806, 807, 809, 820, 831, 844, 862, 879, 898, 917, 936, 956,
+		971, 984, 997, 1014, 1026, 1039, 1052, 1065, 1080, 1095, 1110, 1125, 1138, 1151, 1168, 1170,
+		1181, 1197, 1201, 1203, 1214, 1230, 1238, 1240, 1241, 1251, 1265, 1267, 1271, 1273, 1279,
+		1281, 1287, 1289, 1292, 1294, 1301, 1303, 1309, 1311, 1317, 1318, 1327, 1332, 1334, 1350,
+		1366, 1373, 1389, 1398, 1433, 1439, 1448, 1458, 1464, 1495, 1513, 1519, 1525, 1531, 1537,
+		1543, 1552, 1563, 1572, 1582, 1587, 1599, 1603, 1619, 1626, 1627, 1637, 1644, 1645, 1647,
+		1662, 1678, 1679, 1689, 1696, 1697, 1699, 1711, 1712, 1724, 1725, 1733, 1734, 1735, 1744,
+		1758, 1772, 1786, 1800, 1817, 1835, 1847, 1863, 1864, 1876, 1877, 1878, 1879, 1888, 1889,
+		1890, 1891, 1892, 1893, 1911, 1931, 1940, 1953, 1966, 1986, 2003, 2016, 2031, 2054, 2067,
+		2079, 2100, 2115, 2131, 2167, 2182, 2198, 2216, 2230, 2237, 2244, 2251, 2257] {
+		if !formula_auditor_spec_run(line) {
+			failures << line
+		}
+	}
+	return failures
+}
 
 // Translated from Homebrew/brew `test/formula_auditor_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby let `let(:dir) { mktmpdir }` at line 9.
-pub fn ruby_formula_auditor_spec_l9_d1_dir(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dir', ...args)
+pub fn ruby_formula_auditor_spec_l9_d1_dir() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(9, 'let', 'let `let(:dir) { mktmpdir }` at line 9.')
 }
 
 // Ruby let `let(:foo_version) do` at line 10.
-pub fn ruby_formula_auditor_spec_l10_d2_foo_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('foo_version', ...args)
+pub fn ruby_formula_auditor_spec_l10_d2_foo_version() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(10, 'let', 'let `let(:foo_version) do` at line 10.')
 }
 
 // Ruby let `let(:formula_subpath) { "Formula/foo#{foo_version}.rb" }` at line 14.
-pub fn ruby_formula_auditor_spec_l14_d3_formula_subpath(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_subpath', ...args)
+pub fn ruby_formula_auditor_spec_l14_d3_formula_subpath() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(14, 'let', 'let `let(:formula_subpath) { "Formula/foo#{foo_version}.rb" }` at line 14.')
 }
 
 // Ruby let `let(:origin_tap_path) { HOMEBREW_TAP_DIRECTORY/"homebrew/homebrew-foo" }` at line 15.
-pub fn ruby_formula_auditor_spec_l15_d4_origin_tap_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('origin_tap_path', ...args)
+pub fn ruby_formula_auditor_spec_l15_d4_origin_tap_path() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(15, 'let', 'let `let(:origin_tap_path) { HOMEBREW_TAP_DIRECTORY/"homebrew/homebrew-foo" }` at line 15.')
 }
 
 // Ruby let `let(:origin_formula_path) { origin_tap_path/formula_subpath }` at line 16.
-pub fn ruby_formula_auditor_spec_l16_d5_origin_formula_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('origin_formula_path', ...args)
+pub fn ruby_formula_auditor_spec_l16_d5_origin_formula_path() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(16, 'let', 'let `let(:origin_formula_path) { origin_tap_path/formula_subpath }` at line 16.')
 }
 
 // Ruby let `let(:tap_path) { HOMEBREW_TAP_DIRECTORY/"homebrew/homebrew-bar" }` at line 17.
-pub fn ruby_formula_auditor_spec_l17_d6_tap_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tap_path', ...args)
+pub fn ruby_formula_auditor_spec_l17_d6_tap_path() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(17, 'let', 'let `let(:tap_path) { HOMEBREW_TAP_DIRECTORY/"homebrew/homebrew-bar" }` at line 17.')
 }
 
 // Ruby let `let(:formula_path) { tap_path/formula_subpath }` at line 18.
-pub fn ruby_formula_auditor_spec_l18_d7_formula_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_path', ...args)
+pub fn ruby_formula_auditor_spec_l18_d7_formula_path() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(18, 'let', 'let `let(:formula_path) { tap_path/formula_subpath }` at line 18.')
 }
 
 // Ruby method `formula_auditor(name, text, options = {})` at line 27.
-pub fn ruby_formula_auditor_spec_l27_d8_formula_auditor(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_auditor', ...args)
+pub fn ruby_formula_auditor_spec_l27_d8_formula_auditor() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(27, 'method', 'method `formula_auditor(name, text, options = {})` at line 27.')
 }
 
 // Ruby method `formula_gsub(before, after = "")` at line 45.
-pub fn ruby_formula_auditor_spec_l45_d9_formula_gsub(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_gsub', ...args)
+pub fn ruby_formula_auditor_spec_l45_d9_formula_gsub() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(45, 'method', 'method `formula_gsub(before, after = "")` at line 45.')
 }
 
 // Ruby method `test_formula_source(name:, compatibility_version: nil, revision: 0, depends_on: [])` at line 52.
-pub fn ruby_formula_auditor_spec_l52_d10_test_formula_source(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('test_formula_source', ...args)
+pub fn ruby_formula_auditor_spec_l52_d10_test_formula_source() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(52, 'method', 'method `test_formula_source(name:, compatibility_version: nil, revision: 0, depends_on: [])` at line 52.')
 }
 
 // Ruby method `formula_gsub_origin_commit(before, after = "")` at line 72.
-pub fn ruby_formula_auditor_spec_l72_d11_formula_gsub_origin_commit(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_gsub_origin_commit', ...args)
+pub fn ruby_formula_auditor_spec_l72_d11_formula_gsub_origin_commit() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(72, 'method', 'method `formula_gsub_origin_commit(before, after = "")` at line 72.')
 }
 
 // Ruby it `it "is empty by default" do` at line 89.
-pub fn ruby_formula_auditor_spec_l89_d12_is(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('is', ...args)
+pub fn ruby_formula_auditor_spec_l89_d12_is() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(89, 'it', 'it `it "is empty by default" do` at line 89.')
 }
 
 // Ruby it `it "skips homepages browsed by a human less than a year ago" do` at line 106.
-pub fn ruby_formula_auditor_spec_l106_d13_skips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skips', ...args)
+pub fn ruby_formula_auditor_spec_l106_d13_skips() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(106, 'it', 'it `it "skips homepages browsed by a human less than a year ago" do` at line 106.')
 }
 
 // Ruby it `it "audits homepages browsed by a human a year ago" do` at line 118.
-pub fn ruby_formula_auditor_spec_l118_d14_audits(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('audits', ...args)
+pub fn ruby_formula_auditor_spec_l118_d14_audits() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(118, 'it', 'it `it "audits homepages browsed by a human a year ago" do` at line 118.')
 }
 
 // Ruby it `it "audits homepages with a future browser check date" do` at line 130.
-pub fn ruby_formula_auditor_spec_l130_d15_audits(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('audits', ...args)
+pub fn ruby_formula_auditor_spec_l130_d15_audits() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(130, 'it', 'it `it "audits homepages with a future browser check date" do` at line 130.')
 }
 
 // Ruby let `let(:spdx_license_data) { SPDX.license_data }` at line 144.
-pub fn ruby_formula_auditor_spec_l144_d16_spdx_license_data(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('spdx_license_data', ...args)
+pub fn ruby_formula_auditor_spec_l144_d16_spdx_license_data() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(144, 'let', 'let `let(:spdx_license_data) { SPDX.license_data }` at line 144.')
 }
 
 // Ruby let `let(:spdx_exception_data) { SPDX.exception_data }` at line 145.
-pub fn ruby_formula_auditor_spec_l145_d17_spdx_exception_data(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('spdx_exception_data', ...args)
+pub fn ruby_formula_auditor_spec_l145_d17_spdx_exception_data() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(145, 'let', 'let `let(:spdx_exception_data) { SPDX.exception_data }` at line 145.')
 }
 
 // Ruby let `let(:deprecated_spdx_id) { "GPL-1.0" }` at line 147.
-pub fn ruby_formula_auditor_spec_l147_d18_deprecated_spdx_id(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('deprecated_spdx_id', ...args)
+pub fn ruby_formula_auditor_spec_l147_d18_deprecated_spdx_id() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(147, 'let', 'let `let(:deprecated_spdx_id) { "GPL-1.0" }` at line 147.')
 }
 
 // Ruby let `let(:license_all_custom_id) { 'all_of: ["MIT", "zzz"]' }` at line 148.
-pub fn ruby_formula_auditor_spec_l148_d19_license_all_custom_id(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('license_all_custom_id', ...args)
+pub fn ruby_formula_auditor_spec_l148_d19_license_all_custom_id() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(148, 'let', 'let `let(:license_all_custom_id) { \'all_of: ["MIT", "zzz"]\' }` at line 148.')
 }
 
 // Ruby let `let(:deprecated_spdx_exception) { "Nokia-Qt-exception-1.1" }` at line 149.
-pub fn ruby_formula_auditor_spec_l149_d20_deprecated_spdx_exception(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('deprecated_spdx_exception', ...args)
+pub fn ruby_formula_auditor_spec_l149_d20_deprecated_spdx_exception() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(149, 'let', 'let `let(:deprecated_spdx_exception) { "Nokia-Qt-exception-1.1" }` at line 149.')
 }
 
 // Ruby let `let(:license_any) { 'any_of: ["0BSD", "GPL-3.0-only"]' }` at line 150.
-pub fn ruby_formula_auditor_spec_l150_d21_license_any(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('license_any', ...args)
+pub fn ruby_formula_auditor_spec_l150_d21_license_any() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(150, 'let', 'let `let(:license_any) { \'any_of: ["0BSD", "GPL-3.0-only"]\' }` at line 150.')
 }
 
 // Ruby let `let(:license_any_with_plus) { 'any_of: ["0BSD+", "GPL-3.0-only"]' }` at line 151.
-pub fn ruby_formula_auditor_spec_l151_d22_license_any_with_plus(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('license_any_with_plus', ...args)
+pub fn ruby_formula_auditor_spec_l151_d22_license_any_with_plus() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(151, 'let', 'let `let(:license_any_with_plus) { \'any_of: ["0BSD+", "GPL-3.0-only"]\' }` at line 151.')
 }
 
 // Ruby let `let(:license_nested_conditions) { 'any_of: ["0BSD", { all_of: ["GPL-3.0-only", "MIT"] }]' }` at line 152.
-pub fn ruby_formula_auditor_spec_l152_d23_license_nested_conditions(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('license_nested_conditions', ...args)
+pub fn ruby_formula_auditor_spec_l152_d23_license_nested_conditions() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(152, 'let', 'let `let(:license_nested_conditions) { \'any_of: ["0BSD", { all_of: ["GPL-3.0-only", "MIT"] }]\' }` at line 152.')
 }
 
 // Ruby let `let(:license_any_mismatch) { 'any_of: ["0BSD", "MIT"]' }` at line 153.
-pub fn ruby_formula_auditor_spec_l153_d24_license_any_mismatch(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('license_any_mismatch', ...args)
+pub fn ruby_formula_auditor_spec_l153_d24_license_any_mismatch() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(153, 'let', 'let `let(:license_any_mismatch) { \'any_of: ["0BSD", "MIT"]\' }` at line 153.')
 }
 
 // Ruby let `let(:license_any_nonstandard) { 'any_of: ["0BSD", "zzz", "MIT"]' }` at line 154.
-pub fn ruby_formula_auditor_spec_l154_d25_license_any_nonstandard(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('license_any_nonstandard', ...args)
+pub fn ruby_formula_auditor_spec_l154_d25_license_any_nonstandard() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(154, 'let', 'let `let(:license_any_nonstandard) { \'any_of: ["0BSD", "zzz", "MIT"]\' }` at line 154.')
 }
 
 // Ruby let `let(:license_any_deprecated) { 'any_of: ["0BSD", "GPL-1.0", "MIT"]' }` at line 155.
-pub fn ruby_formula_auditor_spec_l155_d26_license_any_deprecated(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('license_any_deprecated', ...args)
+pub fn ruby_formula_auditor_spec_l155_d26_license_any_deprecated() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(155, 'let', 'let `let(:license_any_deprecated) { \'any_of: ["0BSD", "GPL-1.0", "MIT"]\' }` at line 155.')
 }
 
 // Ruby it `it "does not check if the formula is not a new formula" do` at line 157.
-pub fn ruby_formula_auditor_spec_l157_d27_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_formula_auditor_spec_l157_d27_does() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(157, 'it', 'it `it "does not check if the formula is not a new formula" do` at line 157.')
 }
 
 // Ruby it `it "detects no license info" do` at line 168.
-pub fn ruby_formula_auditor_spec_l168_d28_detects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('detects', ...args)
+pub fn ruby_formula_auditor_spec_l168_d28_detects() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(168, 'it', 'it `it "detects no license info" do` at line 168.')
 }
 
 // Ruby it `it "detects if license is not a standard spdx-id" do` at line 179.
-pub fn ruby_formula_auditor_spec_l179_d29_detects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('detects', ...args)
+pub fn ruby_formula_auditor_spec_l179_d29_detects() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(179, 'it', 'it `it "detects if license is not a standard spdx-id" do` at line 179.')
 }
 
 // Ruby it `it "detects if license is a deprecated spdx-id" do` at line 194.
-pub fn ruby_formula_auditor_spec_l194_d30_detects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('detects', ...args)
+pub fn ruby_formula_auditor_spec_l194_d30_detects() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(194, 'it', 'it `it "detects if license is a deprecated spdx-id" do` at line 194.')
 }
 
 // Ruby it `it "detects if license with AND contains a non-standard spdx-id" do` at line 210.
-pub fn ruby_formula_auditor_spec_l210_d31_detects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('detects', ...args)
+pub fn ruby_formula_auditor_spec_l210_d31_detects() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(210, 'it', 'it `it "detects if license with AND contains a non-standard spdx-id" do` at line 210.')
 }
 
 // Ruby it `it "detects if license array contains a non-standard spdx-id" do` at line 225.
-pub fn ruby_formula_auditor_spec_l225_d32_detects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('detects', ...args)
+pub fn ruby_formula_auditor_spec_l225_d32_detects() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(225, 'it', 'it `it "detects if license array contains a non-standard spdx-id" do` at line 225.')
 }
 
 // Ruby it `it "detects if license array contains a deprecated spdx-id" do` at line 240.
-pub fn ruby_formula_auditor_spec_l240_d33_detects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('detects', ...args)
+pub fn ruby_formula_auditor_spec_l240_d33_detects() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(240, 'it', 'it `it "detects if license array contains a deprecated spdx-id" do` at line 240.')
 }
 
 // Ruby it `it "verifies that a license info is a standard spdx id" do` at line 256.
-pub fn ruby_formula_auditor_spec_l256_d34_verifies(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('verifies', ...args)
+pub fn ruby_formula_auditor_spec_l256_d34_verifies() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(256, 'it', 'it `it "verifies that a license info is a standard spdx id" do` at line 256.')
 }
 
 // Ruby it `it "verifies that a license info with plus is a standard spdx id" do` at line 268.
-pub fn ruby_formula_auditor_spec_l268_d35_verifies(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('verifies', ...args)
+pub fn ruby_formula_auditor_spec_l268_d35_verifies() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(268, 'it', 'it `it "verifies that a license info with plus is a standard spdx id" do` at line 268.')
 }
 
 // Ruby it `it "allows :public_domain license" do` at line 280.
-pub fn ruby_formula_auditor_spec_l280_d36_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+pub fn ruby_formula_auditor_spec_l280_d36_allows() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(280, 'it', 'it `it "allows :public_domain license" do` at line 280.')
 }
 
 // Ruby it `it "verifies that a license info with multiple licenses are standard spdx ids" do` at line 292.
-pub fn ruby_formula_auditor_spec_l292_d37_verifies(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('verifies', ...args)
+pub fn ruby_formula_auditor_spec_l292_d37_verifies() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(292, 'it', 'it `it "verifies that a license info with multiple licenses are standard spdx ids" do` at line 292.')
 }
 
 // Ruby it `it "verifies that a license info with exceptions are standard spdx ids" do` at line 304.
-pub fn ruby_formula_auditor_spec_l304_d38_verifies(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('verifies', ...args)
+pub fn ruby_formula_auditor_spec_l304_d38_verifies() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(304, 'it', 'it `it "verifies that a license info with exceptions are standard spdx ids" do` at line 304.')
 }
 
 // Ruby it `it "verifies that a license array contains only standard spdx id" do` at line 318.
-pub fn ruby_formula_auditor_spec_l318_d39_verifies(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('verifies', ...args)
+pub fn ruby_formula_auditor_spec_l318_d39_verifies() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(318, 'it', 'it `it "verifies that a license array contains only standard spdx id" do` at line 318.')
 }
 
 // Ruby it `it "verifies that a license array contains only standard spdx id with plus" do` at line 330.
-pub fn ruby_formula_auditor_spec_l330_d40_verifies(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('verifies', ...args)
+pub fn ruby_formula_auditor_spec_l330_d40_verifies() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(330, 'it', 'it `it "verifies that a license array contains only standard spdx id with plus" do` at line 330.')
 }
 
 // Ruby it `it "verifies that a license array with AND contains only standard spdx ids" do` at line 342.
-pub fn ruby_formula_auditor_spec_l342_d41_verifies(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('verifies', ...args)
+pub fn ruby_formula_auditor_spec_l342_d41_verifies() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(342, 'it', 'it `it "verifies that a license array with AND contains only standard spdx ids" do` at line 342.')
 }
 
 // Ruby it `it "checks online and verifies that a standard license id is the same " \` at line 354.
-pub fn ruby_formula_auditor_spec_l354_d42_checks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('checks', ...args)
+pub fn ruby_formula_auditor_spec_l354_d42_checks() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(354, 'it', 'it `it "checks online and verifies that a standard license id is the same " \\` at line 354.')
 }
 
 // Ruby it `it "checks online and verifies that a standard license id with AND is the same " \` at line 370.
-pub fn ruby_formula_auditor_spec_l370_d43_checks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('checks', ...args)
+pub fn ruby_formula_auditor_spec_l370_d43_checks() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(370, 'it', 'it `it "checks online and verifies that a standard license id with AND is the same " \\` at line 370.')
 }
 
 // Ruby it `it "checks online and verifies that a standard license id with WITH is the same " \` at line 386.
-pub fn ruby_formula_auditor_spec_l386_d44_checks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('checks', ...args)
+pub fn ruby_formula_auditor_spec_l386_d44_checks() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(386, 'it', 'it `it "checks online and verifies that a standard license id with WITH is the same " \\` at line 386.')
 }
 
 // Ruby it `it "verifies that a license exception has standard spdx ids", :needs_network do` at line 402.
-pub fn ruby_formula_auditor_spec_l402_d45_verifies(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('verifies', ...args)
+pub fn ruby_formula_auditor_spec_l402_d45_verifies() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(402, 'it', 'it `it "verifies that a license exception has standard spdx ids", :needs_network do` at line 402.')
 }
 
 // Ruby it `it "verifies that a license exception has non-deprecated spdx ids", :needs_network do` at line 421.
-pub fn ruby_formula_auditor_spec_l421_d46_verifies(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('verifies', ...args)
+pub fn ruby_formula_auditor_spec_l421_d46_verifies() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(421, 'it', 'it `it "verifies that a license exception has non-deprecated spdx ids", :needs_network do` at line 421.')
 }
 
 // Ruby it `it "checks online and verifies that a standard license id is in the same exempted license group " \` at line 440.
-pub fn ruby_formula_auditor_spec_l440_d47_checks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('checks', ...args)
+pub fn ruby_formula_auditor_spec_l440_d47_checks() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(440, 'it', 'it `it "checks online and verifies that a standard license id is in the same exempted license group " \\` at line 440.')
 }
 
 // Ruby it `it "checks online and verifies that a standard license array is in the same exempted license group " \` at line 454.
-pub fn ruby_formula_auditor_spec_l454_d48_checks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('checks', ...args)
+pub fn ruby_formula_auditor_spec_l454_d48_checks() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(454, 'it', 'it `it "checks online and verifies that a standard license array is in the same exempted license group " \\` at line 454.')
 }
 
 // Ruby it `it "checks online and detects that a formula-specified license is not " \` at line 468.
-pub fn ruby_formula_auditor_spec_l468_d49_checks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('checks', ...args)
+pub fn ruby_formula_auditor_spec_l468_d49_checks() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(468, 'it', 'it `it "checks online and detects that a formula-specified license is not " \\` at line 468.')
 }
 
 // Ruby it `it "allows a formula-specified license that differs from its GitHub " \` at line 485.
-pub fn ruby_formula_auditor_spec_l485_d50_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+pub fn ruby_formula_auditor_spec_l485_d50_allows() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(485, 'it', 'it `it "allows a formula-specified license that differs from its GitHub " \\` at line 485.')
 }
 
 // Ruby it `it "checks online and detects that an array of license does not contain " \` at line 502.
-pub fn ruby_formula_auditor_spec_l502_d51_checks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('checks', ...args)
+pub fn ruby_formula_auditor_spec_l502_d51_checks() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(502, 'it', 'it `it "checks online and detects that an array of license does not contain " \\` at line 502.')
 }
 
 // Ruby it `it "checks online and verifies that an array of license contains " \` at line 519.
-pub fn ruby_formula_auditor_spec_l519_d52_checks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('checks', ...args)
+pub fn ruby_formula_auditor_spec_l519_d52_checks() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(519, 'it', 'it `it "checks online and verifies that an array of license contains " \\` at line 519.')
 }
 
 // Ruby let `let(:fa) do` at line 537.
-pub fn ruby_formula_auditor_spec_l537_d53_fa(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fa', ...args)
+pub fn ruby_formula_auditor_spec_l537_d53_fa() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(537, 'let', 'let `let(:fa) do` at line 537.')
 }
 
 // Ruby let `let(:node_modules) { fa.formula.libexec/"lib/node_modules" }` at line 545.
-pub fn ruby_formula_auditor_spec_l545_d54_node_modules(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('node_modules', ...args)
+pub fn ruby_formula_auditor_spec_l545_d54_node_modules() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(545, 'let', 'let `let(:node_modules) { fa.formula.libexec/"lib/node_modules" }` at line 545.')
 }
 
 // Ruby let `let(:reject_package) { "@anthropic-ai/claude-agent-sdk" }` at line 546.
-pub fn ruby_formula_auditor_spec_l546_d55_reject_package(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reject_package', ...args)
+pub fn ruby_formula_auditor_spec_l546_d55_reject_package() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(546, 'let', 'let `let(:reject_package) { "@anthropic-ai/claude-agent-sdk" }` at line 546.')
 }
 
 // Ruby let `let(:audit_message) { "uses` at line 547.
-pub fn ruby_formula_auditor_spec_l547_d56_audit_message(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('audit_message', ...args)
+pub fn ruby_formula_auditor_spec_l547_d56_audit_message() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(547, 'let', 'let `let(:audit_message) { "uses` at line 547.')
 }
 
 // Ruby let `let(:core_tap) { true }` at line 550.
-pub fn ruby_formula_auditor_spec_l550_d57_core_tap(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('core_tap', ...args)
+pub fn ruby_formula_auditor_spec_l550_d57_core_tap() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(550, 'let', 'let `let(:core_tap) { true }` at line 550.')
 }
 
 // Ruby it `it "detects unacceptable npm packages" do` at line 552.
-pub fn ruby_formula_auditor_spec_l552_d58_detects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('detects', ...args)
+pub fn ruby_formula_auditor_spec_l552_d58_detects() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(552, 'it', 'it `it "detects unacceptable npm packages" do` at line 552.')
 }
 
 // Ruby it `it "detects unacceptable npm packages in nested node_modules" do` at line 558.
-pub fn ruby_formula_auditor_spec_l558_d59_detects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('detects', ...args)
+pub fn ruby_formula_auditor_spec_l558_d59_detects() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(558, 'it', 'it `it "detects unacceptable npm packages in nested node_modules" do` at line 558.')
 }
 
 // Ruby it `it "detects unacceptable npm packages in .pnpm hoisted directory" do` at line 564.
-pub fn ruby_formula_auditor_spec_l564_d60_detects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('detects', ...args)
+pub fn ruby_formula_auditor_spec_l564_d60_detects() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(564, 'it', 'it `it "detects unacceptable npm packages in .pnpm hoisted directory" do` at line 564.')
 }
 
 // Ruby it `it "skips audit when no node_modules" do` at line 570.
-pub fn ruby_formula_auditor_spec_l570_d61_skips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skips', ...args)
+pub fn ruby_formula_auditor_spec_l570_d61_skips() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(570, 'it', 'it `it "skips audit when no node_modules" do` at line 570.')
 }
 
 // Ruby let `let(:core_tap) { false }` at line 578.
-pub fn ruby_formula_auditor_spec_l578_d62_core_tap(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('core_tap', ...args)
+pub fn ruby_formula_auditor_spec_l578_d62_core_tap() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(578, 'let', 'let `let(:core_tap) { false }` at line 578.')
 }
 
 // Ruby it `it "skips audit" do` at line 580.
-pub fn ruby_formula_auditor_spec_l580_d63_skips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skips', ...args)
+pub fn ruby_formula_auditor_spec_l580_d63_skips() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(580, 'it', 'it `it "skips audit" do` at line 580.')
 }
 
 // Ruby specify `specify "no issue" do` at line 591.
-pub fn ruby_formula_auditor_spec_l591_d64_no(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('no', ...args)
+pub fn ruby_formula_auditor_spec_l591_d64_no() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(591, 'specify', 'specify `specify "no issue" do` at line 591.')
 }
 
 // Ruby specify `specify "no issue" do` at line 605.
-pub fn ruby_formula_auditor_spec_l605_d65_no(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('no', ...args)
+pub fn ruby_formula_auditor_spec_l605_d65_no() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(605, 'specify', 'specify `specify "no issue" do` at line 605.')
 }
 
 // Ruby specify `specify "uppercase formula name" do` at line 617.
-pub fn ruby_formula_auditor_spec_l617_d66_uppercase(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uppercase', ...args)
+pub fn ruby_formula_auditor_spec_l617_d66_uppercase() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(617, 'specify', 'specify `specify "uppercase formula name" do` at line 617.')
 }
 
 // Ruby it `it "reports a problem if the resource name does not match the python sdist name" do` at line 631.
-pub fn ruby_formula_auditor_spec_l631_d67_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_formula_auditor_spec_l631_d67_reports() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(631, 'it', 'it `it "reports a problem if the resource name does not match the python sdist name" do` at line 631.')
 }
 
 // Ruby it `it "reports a problem if the resource name does not match the python wheel name" do` at line 650.
-pub fn ruby_formula_auditor_spec_l650_d68_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_formula_auditor_spec_l650_d68_reports() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(650, 'it', 'it `it "reports a problem if the resource name does not match the python wheel name" do` at line 650.')
 }
 
 // Ruby specify `specify "Not installed" do` at line 671.
-pub fn ruby_formula_auditor_spec_l671_d69_not(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('Not', ...args)
+pub fn ruby_formula_auditor_spec_l671_d69_not() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(671, 'specify', 'specify `specify "Not installed" do` at line 671.')
 }
 
 // Ruby specify `specify "No service" do` at line 686.
-pub fn ruby_formula_auditor_spec_l686_d70_no(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('No', ...args)
+pub fn ruby_formula_auditor_spec_l686_d70_no() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(686, 'specify', 'specify `specify "No service" do` at line 686.')
 }
 
 // Ruby specify `specify "No command" do` at line 698.
-pub fn ruby_formula_auditor_spec_l698_d71_no(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('No', ...args)
+pub fn ruby_formula_auditor_spec_l698_d71_no() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(698, 'specify', 'specify `specify "No command" do` at line 698.')
 }
 
 // Ruby specify `specify "Invalid command" do` at line 714.
-pub fn ruby_formula_auditor_spec_l714_d72_invalid(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('Invalid', ...args)
+pub fn ruby_formula_auditor_spec_l714_d72_invalid() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(714, 'specify', 'specify `specify "Invalid command" do` at line 714.')
 }
 
 // Ruby specify `specify "#audit_github_repository when HOMEBREW_NO_GITHUB_API is set" do` at line 732.
-pub fn ruby_formula_auditor_spec_l732_d73_audit_github_repository(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#audit_github_repository', ...args)
+pub fn ruby_formula_auditor_spec_l732_d73_audit_github_repository() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(732, 'specify', 'specify `specify "#audit_github_repository when HOMEBREW_NO_GITHUB_API is set" do` at line 732.')
 }
 
 // Ruby specify `specify "#audit_github_repository_archived when HOMEBREW_NO_GITHUB_API is set" do` at line 748.
-pub fn ruby_formula_auditor_spec_l748_d74_audit_github_repository_archived(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#audit_github_repository_archived', ...args)
+pub fn ruby_formula_auditor_spec_l748_d74_audit_github_repository_archived() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(748, 'specify', 'specify `specify "#audit_github_repository_archived when HOMEBREW_NO_GITHUB_API is set" do` at line 748.')
 }
 
 // Ruby specify `specify "#audit_gitlab_repository for stars, forks and creation date" do` at line 762.
-pub fn ruby_formula_auditor_spec_l762_d75_audit_gitlab_repository(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#audit_gitlab_repository', ...args)
+pub fn ruby_formula_auditor_spec_l762_d75_audit_gitlab_repository() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(762, 'specify', 'specify `specify "#audit_gitlab_repository for stars, forks and creation date" do` at line 762.')
 }
 
 // Ruby specify `specify "#audit gitlab repository for archived status" do` at line 776.
-pub fn ruby_formula_auditor_spec_l776_d76_audit(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#audit', ...args)
+pub fn ruby_formula_auditor_spec_l776_d76_audit() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(776, 'specify', 'specify `specify "#audit gitlab repository for archived status" do` at line 776.')
 }
 
 // Ruby specify `specify "#audit_bitbucket_repository for stars, forks and creation date" do` at line 790.
-pub fn ruby_formula_auditor_spec_l790_d77_audit_bitbucket_repository(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#audit_bitbucket_repository', ...args)
+pub fn ruby_formula_auditor_spec_l790_d77_audit_bitbucket_repository() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(790, 'specify', 'specify `specify "#audit_bitbucket_repository for stars, forks and creation date" do` at line 790.')
 }
 
 // Ruby let `let(:livecheck_throttle) { "livecheck do\n    throttle 10\n  end" }` at line 804.
-pub fn ruby_formula_auditor_spec_l804_d78_livecheck_throttle(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('livecheck_throttle', ...args)
+pub fn ruby_formula_auditor_spec_l804_d78_livecheck_throttle() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(804, 'let', 'let `let(:livecheck_throttle) { "livecheck do\\n    throttle 10\\n  end" }` at line 804.')
 }
 
 // Ruby let `let(:livecheck_throttle_days) { "livecheck do\n    throttle days: 1\n  end" }` at line 805.
-pub fn ruby_formula_auditor_spec_l805_d79_livecheck_throttle_days(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('livecheck_throttle_days', ...args)
+pub fn ruby_formula_auditor_spec_l805_d79_livecheck_throttle_days() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(805, 'let', 'let `let(:livecheck_throttle_days) { "livecheck do\\n    throttle days: 1\\n  end" }` at line 805.')
 }
 
 // Ruby let `let(:livecheck_throttle_rate_days) { "livecheck do\n    throttle 10, days: 1\n  end" }` at line 806.
-pub fn ruby_formula_auditor_spec_l806_d80_livecheck_throttle_rate_days(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('livecheck_throttle_rate_days', ...args)
+pub fn ruby_formula_auditor_spec_l806_d80_livecheck_throttle_rate_days() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(806, 'let', 'let `let(:livecheck_throttle_rate_days) { "livecheck do\\n    throttle 10, days: 1\\n  end" }` at line 806.')
 }
 
 // Ruby let `let(:versioned_head_spec_list) { { versioned_head_spec_allowlist: ["foo"] } }` at line 807.
-pub fn ruby_formula_auditor_spec_l807_d81_versioned_head_spec_list(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('versioned_head_spec_list', ...args)
+pub fn ruby_formula_auditor_spec_l807_d81_versioned_head_spec_list() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(807, 'let', 'let `let(:versioned_head_spec_list) { { versioned_head_spec_allowlist: ["foo"] } }` at line 807.')
 }
 
 // Ruby it `it "doesn't allow to miss a checksum" do` at line 809.
-pub fn ruby_formula_auditor_spec_l809_d82_doesn(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('doesn', ...args)
+pub fn ruby_formula_auditor_spec_l809_d82_doesn() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(809, 'it', 'it `it "doesn\'t allow to miss a checksum" do` at line 809.')
 }
 
 // Ruby it `it "allows to miss a checksum for git strategy" do` at line 820.
-pub fn ruby_formula_auditor_spec_l820_d83_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+pub fn ruby_formula_auditor_spec_l820_d83_allows() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(820, 'it', 'it `it "allows to miss a checksum for git strategy" do` at line 820.')
 }
 
 // Ruby it `it "allows to miss a checksum for HEAD" do` at line 831.
-pub fn ruby_formula_auditor_spec_l831_d84_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+pub fn ruby_formula_auditor_spec_l831_d84_allows() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(831, 'it', 'it `it "allows to miss a checksum for HEAD" do` at line 831.')
 }
 
 // Ruby it `it "accepts a curl dependency with a working HTTP mirror" do` at line 844.
-pub fn ruby_formula_auditor_spec_l844_d85_accepts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('accepts', ...args)
+pub fn ruby_formula_auditor_spec_l844_d85_accepts() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(844, 'it', 'it `it "accepts a curl dependency with a working HTTP mirror" do` at line 844.')
 }
 
 // Ruby it `it "accepts a curl dependency whose HTTP mirror redirects to a relative path" do` at line 862.
-pub fn ruby_formula_auditor_spec_l862_d86_accepts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('accepts', ...args)
+pub fn ruby_formula_auditor_spec_l862_d86_accepts() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(862, 'it', 'it `it "accepts a curl dependency whose HTTP mirror redirects to a relative path" do` at line 862.')
 }
 
 // Ruby it `it "reports a curl dependency whose HTTP mirror serves the wrong checksum" do` at line 879.
-pub fn ruby_formula_auditor_spec_l879_d87_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_formula_auditor_spec_l879_d87_reports() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(879, 'it', 'it `it "reports a curl dependency whose HTTP mirror serves the wrong checksum" do` at line 879.')
 }
 
 // Ruby it `it "reports a curl dependency whose HTTP mirror is unreachable" do` at line 898.
-pub fn ruby_formula_auditor_spec_l898_d88_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_formula_auditor_spec_l898_d88_reports() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(898, 'it', 'it `it "reports a curl dependency whose HTTP mirror is unreachable" do` at line 898.')
 }
 
 // Ruby it `it "reports a curl dependency whose HTTP mirror redirects to HTTPS" do` at line 917.
-pub fn ruby_formula_auditor_spec_l917_d89_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_formula_auditor_spec_l917_d89_reports() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(917, 'it', 'it `it "reports a curl dependency whose HTTP mirror redirects to HTTPS" do` at line 917.')
 }
 
 // Ruby it `it "requires `branch:` to be specified for Git head URLs" do` at line 936.
-pub fn ruby_formula_auditor_spec_l936_d90_requires(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('requires', ...args)
+pub fn ruby_formula_auditor_spec_l936_d90_requires() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(936, 'it', 'it `it "requires `branch:` to be specified for Git head URLs" do` at line 936.')
 }
 
 // Ruby it `it "suggests a detected default branch for Git head URLs" do` at line 956.
-pub fn ruby_formula_auditor_spec_l956_d91_suggests(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('suggests', ...args)
+pub fn ruby_formula_auditor_spec_l956_d91_suggests() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(956, 'it', 'it `it "suggests a detected default branch for Git head URLs" do` at line 956.')
 }
 
 // Ruby it `it "can specify a default branch without an allowlist if not in a core tap" do` at line 971.
-pub fn ruby_formula_auditor_spec_l971_d92_can(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('can', ...args)
+pub fn ruby_formula_auditor_spec_l971_d92_can() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(971, 'it', 'it `it "can specify a default branch without an allowlist if not in a core tap" do` at line 971.')
 }
 
 // Ruby it `it "ignores `branch:` for non-Git head URLs" do` at line 984.
-pub fn ruby_formula_auditor_spec_l984_d93_ignores(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ignores', ...args)
+pub fn ruby_formula_auditor_spec_l984_d93_ignores() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(984, 'it', 'it `it "ignores `branch:` for non-Git head URLs" do` at line 984.')
 }
 
 // Ruby it `it "ignores `branch:` for `resource` URLs" do` at line 997.
-pub fn ruby_formula_auditor_spec_l997_d94_ignores(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ignores', ...args)
+pub fn ruby_formula_auditor_spec_l997_d94_ignores() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(997, 'it', 'it `it "ignores `branch:` for `resource` URLs" do` at line 997.')
 }
 
 // Ruby it `it "allows versions with no throttle rate" do` at line 1014.
-pub fn ruby_formula_auditor_spec_l1014_d95_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+pub fn ruby_formula_auditor_spec_l1014_d95_allows() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1014, 'it', 'it `it "allows versions with no throttle rate" do` at line 1014.')
 }
 
 // Ruby it `it "allows major/minor versions with throttle rate" do` at line 1026.
-pub fn ruby_formula_auditor_spec_l1026_d96_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+pub fn ruby_formula_auditor_spec_l1026_d96_allows() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1026, 'it', 'it `it "allows major/minor versions with throttle rate" do` at line 1026.')
 }
 
 // Ruby it `it "allows patch versions to be multiples of the throttle rate" do` at line 1039.
-pub fn ruby_formula_auditor_spec_l1039_d97_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+pub fn ruby_formula_auditor_spec_l1039_d97_allows() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1039, 'it', 'it `it "allows patch versions to be multiples of the throttle rate" do` at line 1039.')
 }
 
 // Ruby it `it "doesn't allow patch versions that aren't multiples of the throttle rate" do` at line 1052.
-pub fn ruby_formula_auditor_spec_l1052_d98_doesn(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('doesn', ...args)
+pub fn ruby_formula_auditor_spec_l1052_d98_doesn() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1052, 'it', 'it `it "doesn\'t allow patch versions that aren\'t multiples of the throttle rate" do` at line 1052.')
 }
 
 // Ruby it `it "allows patch versions that aren't multiples of the throttle rate when throttle interval has elapsed" do` at line 1065.
-pub fn ruby_formula_auditor_spec_l1065_d99_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+pub fn ruby_formula_auditor_spec_l1065_d99_allows() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1065, 'it', 'it `it "allows patch versions that aren\'t multiples of the throttle rate when throttle interval has elapsed" do` at line 1065.')
 }
 
 // Ruby it `it "allows patch versions that aren't multiples when throttle interval has not elapsed" do` at line 1080.
-pub fn ruby_formula_auditor_spec_l1080_d100_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+pub fn ruby_formula_auditor_spec_l1080_d100_allows() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1080, 'it', 'it `it "allows patch versions that aren\'t multiples when throttle interval has not elapsed" do` at line 1080.')
 }
 
 // Ruby it `it "allows throttle with only days when throttle interval has elapsed" do` at line 1095.
-pub fn ruby_formula_auditor_spec_l1095_d101_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+pub fn ruby_formula_auditor_spec_l1095_d101_allows() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1095, 'it', 'it `it "allows throttle with only days when throttle interval has elapsed" do` at line 1095.')
 }
 
 // Ruby it `it "allows throttle with only days when throttle interval has not elapsed" do` at line 1110.
-pub fn ruby_formula_auditor_spec_l1110_d102_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+pub fn ruby_formula_auditor_spec_l1110_d102_allows() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1110, 'it', 'it `it "allows throttle with only days when throttle interval has not elapsed" do` at line 1110.')
 }
 
 // Ruby it `it "allows non-versioned formulae to have a `HEAD` spec" do` at line 1125.
-pub fn ruby_formula_auditor_spec_l1125_d103_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+pub fn ruby_formula_auditor_spec_l1125_d103_allows() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1125, 'it', 'it `it "allows non-versioned formulae to have a `HEAD` spec" do` at line 1125.')
 }
 
 // Ruby it `it "doesn't allow versioned formulae to have a `HEAD` spec" do` at line 1138.
-pub fn ruby_formula_auditor_spec_l1138_d104_doesn(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('doesn', ...args)
+pub fn ruby_formula_auditor_spec_l1138_d104_doesn() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1138, 'it', 'it `it "doesn\'t allow versioned formulae to have a `HEAD` spec" do` at line 1138.')
 }
 
 // Ruby it `it "allows versioned formulae on the allowlist to have a `HEAD` spec" do` at line 1151.
-pub fn ruby_formula_auditor_spec_l1151_d105_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+pub fn ruby_formula_auditor_spec_l1151_d105_allows() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1151, 'it', 'it `it "allows versioned formulae on the allowlist to have a `HEAD` spec" do` at line 1151.')
 }
 
 // Ruby subject `subject(:f_a) { fa }` at line 1168.
-pub fn ruby_formula_auditor_spec_l1168_d106_f_a(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f_a', ...args)
+pub fn ruby_formula_auditor_spec_l1168_d106_f_a() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1168, 'subject', 'subject `subject(:f_a) { fa }` at line 1168.')
 }
 
 // Ruby let `let(:fa) do` at line 1170.
-pub fn ruby_formula_auditor_spec_l1170_d107_fa(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fa', ...args)
+pub fn ruby_formula_auditor_spec_l1170_d107_fa() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1170, 'let', 'let `let(:fa) do` at line 1170.')
 }
 
 // Ruby let `let(:f_openssl) do` at line 1181.
-pub fn ruby_formula_auditor_spec_l1181_d108_f_openssl(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f_openssl', ...args)
+pub fn ruby_formula_auditor_spec_l1181_d108_f_openssl() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1181, 'let', 'let `let(:f_openssl) do` at line 1181.')
 }
 
 // Ruby it `it(:problems) { expect(f_a.problems).to be_empty }` at line 1197.
-pub fn ruby_formula_auditor_spec_l1197_d109_problems(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('problems', ...args)
+pub fn ruby_formula_auditor_spec_l1197_d109_problems() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1197, 'it', 'it `it(:problems) { expect(f_a.problems).to be_empty }` at line 1197.')
 }
 
 // Ruby subject `subject(:f_a) { fa }` at line 1201.
-pub fn ruby_formula_auditor_spec_l1201_d110_f_a(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f_a', ...args)
+pub fn ruby_formula_auditor_spec_l1201_d110_f_a() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1201, 'subject', 'subject `subject(:f_a) { fa }` at line 1201.')
 }
 
 // Ruby let `let(:fa) do` at line 1203.
-pub fn ruby_formula_auditor_spec_l1203_d111_fa(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fa', ...args)
+pub fn ruby_formula_auditor_spec_l1203_d111_fa() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1203, 'let', 'let `let(:fa) do` at line 1203.')
 }
 
 // Ruby let `let(:f_bc) do` at line 1214.
-pub fn ruby_formula_auditor_spec_l1214_d112_f_bc(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f_bc', ...args)
+pub fn ruby_formula_auditor_spec_l1214_d112_f_bc() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1214, 'let', 'let `let(:f_bc) do` at line 1214.')
 }
 
 // Ruby it `it(:new_formula_problems) do` at line 1230.
-pub fn ruby_formula_auditor_spec_l1230_d113_new_formula_problems(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('new_formula_problems', ...args)
+pub fn ruby_formula_auditor_spec_l1230_d113_new_formula_problems() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1230, 'it', 'it `it(:new_formula_problems) do` at line 1230.')
 }
 
 // Ruby subject `subject(:f_a) { fa }` at line 1238.
-pub fn ruby_formula_auditor_spec_l1238_d114_f_a(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f_a', ...args)
+pub fn ruby_formula_auditor_spec_l1238_d114_f_a() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1238, 'subject', 'subject `subject(:f_a) { fa }` at line 1238.')
 }
 
 // Ruby let `let(:core_tap) { false }` at line 1240.
-pub fn ruby_formula_auditor_spec_l1240_d115_core_tap(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('core_tap', ...args)
+pub fn ruby_formula_auditor_spec_l1240_d115_core_tap() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1240, 'let', 'let `let(:core_tap) { false }` at line 1240.')
 }
 
 // Ruby let `let(:fa) do` at line 1241.
-pub fn ruby_formula_auditor_spec_l1241_d116_fa(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fa', ...args)
+pub fn ruby_formula_auditor_spec_l1241_d116_fa() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1241, 'let', 'let `let(:fa) do` at line 1241.')
 }
 
 // Ruby let `let(:f_bar) do` at line 1251.
-pub fn ruby_formula_auditor_spec_l1251_d117_f_bar(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f_bar', ...args)
+pub fn ruby_formula_auditor_spec_l1251_d117_f_bar() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1251, 'let', 'let `let(:f_bar) do` at line 1251.')
 }
 
 // Ruby let `let(:tag) { :build }` at line 1265.
-pub fn ruby_formula_auditor_spec_l1265_d118_tag(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tag', ...args)
+pub fn ruby_formula_auditor_spec_l1265_d118_tag() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1265, 'let', 'let `let(:tag) { :build }` at line 1265.')
 }
 
 // Ruby it `it(:problems) { expect(f_a.problems).to be_empty }` at line 1267.
-pub fn ruby_formula_auditor_spec_l1267_d119_problems(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('problems', ...args)
+pub fn ruby_formula_auditor_spec_l1267_d119_problems() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1267, 'it', 'it `it(:problems) { expect(f_a.problems).to be_empty }` at line 1267.')
 }
 
 // Ruby let `let(:tag) { :run }` at line 1271.
-pub fn ruby_formula_auditor_spec_l1271_d120_tag(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tag', ...args)
+pub fn ruby_formula_auditor_spec_l1271_d120_tag() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1271, 'let', 'let `let(:tag) { :run }` at line 1271.')
 }
 
 // Ruby it `it(:problems) do` at line 1273.
-pub fn ruby_formula_auditor_spec_l1273_d121_problems(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('problems', ...args)
+pub fn ruby_formula_auditor_spec_l1273_d121_problems() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1273, 'it', 'it `it(:problems) do` at line 1273.')
 }
 
 // Ruby let `let(:tag) { :linked }` at line 1279.
-pub fn ruby_formula_auditor_spec_l1279_d122_tag(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tag', ...args)
+pub fn ruby_formula_auditor_spec_l1279_d122_tag() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1279, 'let', 'let `let(:tag) { :linked }` at line 1279.')
 }
 
 // Ruby it `it(:problems) do` at line 1281.
-pub fn ruby_formula_auditor_spec_l1281_d123_problems(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('problems', ...args)
+pub fn ruby_formula_auditor_spec_l1281_d123_problems() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1281, 'it', 'it `it(:problems) do` at line 1281.')
 }
 
 // Ruby let `let(:tag) { :optional }` at line 1287.
-pub fn ruby_formula_auditor_spec_l1287_d124_tag(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tag', ...args)
+pub fn ruby_formula_auditor_spec_l1287_d124_tag() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1287, 'let', 'let `let(:tag) { :optional }` at line 1287.')
 }
 
 // Ruby it `it(:problems) { expect(f_a.problems).to be_empty }` at line 1289.
-pub fn ruby_formula_auditor_spec_l1289_d125_problems(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('problems', ...args)
+pub fn ruby_formula_auditor_spec_l1289_d125_problems() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1289, 'it', 'it `it(:problems) { expect(f_a.problems).to be_empty }` at line 1289.')
 }
 
 // Ruby let `let(:core_tap) { true }` at line 1292.
-pub fn ruby_formula_auditor_spec_l1292_d126_core_tap(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('core_tap', ...args)
+pub fn ruby_formula_auditor_spec_l1292_d126_core_tap() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1292, 'let', 'let `let(:core_tap) { true }` at line 1292.')
 }
 
 // Ruby it `it(:problems) do` at line 1294.
-pub fn ruby_formula_auditor_spec_l1294_d127_problems(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('problems', ...args)
+pub fn ruby_formula_auditor_spec_l1294_d127_problems() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1294, 'it', 'it `it(:problems) do` at line 1294.')
 }
 
 // Ruby let `let(:tag) { :foo }` at line 1301.
-pub fn ruby_formula_auditor_spec_l1301_d128_tag(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tag', ...args)
+pub fn ruby_formula_auditor_spec_l1301_d128_tag() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1301, 'let', 'let `let(:tag) { :foo }` at line 1301.')
 }
 
 // Ruby it `it(:problems) do` at line 1303.
-pub fn ruby_formula_auditor_spec_l1303_d129_problems(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('problems', ...args)
+pub fn ruby_formula_auditor_spec_l1303_d129_problems() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1303, 'it', 'it `it(:problems) do` at line 1303.')
 }
 
 // Ruby let `let(:tag) { "with-debug" }` at line 1309.
-pub fn ruby_formula_auditor_spec_l1309_d130_tag(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tag', ...args)
+pub fn ruby_formula_auditor_spec_l1309_d130_tag() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1309, 'let', 'let `let(:tag) { "with-debug" }` at line 1309.')
 }
 
 // Ruby it `it(:problems) do` at line 1311.
-pub fn ruby_formula_auditor_spec_l1311_d131_problems(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('problems', ...args)
+pub fn ruby_formula_auditor_spec_l1311_d131_problems() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1311, 'it', 'it `it(:problems) do` at line 1311.')
 }
 
 // Ruby let `let(:tag) { "with-debug" }` at line 1317.
-pub fn ruby_formula_auditor_spec_l1317_d132_tag(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tag', ...args)
+pub fn ruby_formula_auditor_spec_l1317_d132_tag() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1317, 'let', 'let `let(:tag) { "with-debug" }` at line 1317.')
 }
 
 // Ruby let `let(:f_bar) do` at line 1318.
-pub fn ruby_formula_auditor_spec_l1318_d133_f_bar(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f_bar', ...args)
+pub fn ruby_formula_auditor_spec_l1318_d133_f_bar() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1318, 'let', 'let `let(:f_bar) do` at line 1318.')
 }
 
 // Ruby it `it(:problems) { expect(f_a.problems).to be_empty }` at line 1327.
-pub fn ruby_formula_auditor_spec_l1327_d134_problems(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('problems', ...args)
+pub fn ruby_formula_auditor_spec_l1327_d134_problems() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1327, 'it', 'it `it(:problems) { expect(f_a.problems).to be_empty }` at line 1327.')
 }
 
 // Ruby subject `subject(:f_a) { fa }` at line 1332.
-pub fn ruby_formula_auditor_spec_l1332_d135_f_a(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f_a', ...args)
+pub fn ruby_formula_auditor_spec_l1332_d135_f_a() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1332, 'subject', 'subject `subject(:f_a) { fa }` at line 1332.')
 }
 
 // Ruby let `let(:fa) do` at line 1334.
-pub fn ruby_formula_auditor_spec_l1334_d136_fa(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fa', ...args)
+pub fn ruby_formula_auditor_spec_l1334_d136_fa() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1334, 'let', 'let `let(:fa) do` at line 1334.')
 }
 
 // Ruby let `let(:f_os_only) do` at line 1350.
-pub fn ruby_formula_auditor_spec_l1350_d137_f_os_only(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f_os_only', ...args)
+pub fn ruby_formula_auditor_spec_l1350_d137_f_os_only() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1350, 'let', 'let `let(:f_os_only) do` at line 1350.')
 }
 
 // Ruby it `it "reports missing requirement" do` at line 1366.
-pub fn ruby_formula_auditor_spec_l1366_d138_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_formula_auditor_spec_l1366_d138_reports() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1366, 'it', 'it `it "reports missing requirement" do` at line 1366.')
 }
 
 // Ruby let `let(:f_os_only) do` at line 1373.
-pub fn ruby_formula_auditor_spec_l1373_d139_f_os_only(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f_os_only', ...args)
+pub fn ruby_formula_auditor_spec_l1373_d139_f_os_only() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1373, 'let', 'let `let(:f_os_only) do` at line 1373.')
 }
 
 // Ruby it `it "reports missing requirement" do` at line 1389.
-pub fn ruby_formula_auditor_spec_l1389_d140_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_formula_auditor_spec_l1389_d140_reports() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1389, 'it', 'it `it "reports missing requirement" do` at line 1389.')
 }
 
 // Ruby subject `subject do` at line 1398.
-pub fn ruby_formula_auditor_spec_l1398_d141_subject_dynamic(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('subject_dynamic', ...args)
+pub fn ruby_formula_auditor_spec_l1398_d141_subject_dynamic() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1398, 'subject', 'subject `subject do` at line 1398.')
 }
 
 // Ruby it `it { is_expected.to match("Stable: version should not change from 1.0 to 1.0.0") }` at line 1433.
-pub fn ruby_formula_auditor_spec_l1433_d142_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('{', ...args)
+pub fn ruby_formula_auditor_spec_l1433_d142_anonymous() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1433, 'it', 'it `it { is_expected.to match("Stable: version should not change from 1.0 to 1.0.0") }` at line 1433.')
 }
 
 // Ruby it `it { is_expected.to match("Stable: version should not decrease (from 1.0 to 0.9)") }` at line 1439.
-pub fn ruby_formula_auditor_spec_l1439_d143_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('{', ...args)
+pub fn ruby_formula_auditor_spec_l1439_d143_anonymous() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1439, 'it', 'it `it { is_expected.to match("Stable: version should not decrease (from 1.0 to 0.9)") }` at line 1439.')
 }
 
 // Ruby it `it { is_expected.to be_nil }` at line 1448.
-pub fn ruby_formula_auditor_spec_l1448_d144_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('{', ...args)
+pub fn ruby_formula_auditor_spec_l1448_d144_anonymous() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1448, 'it', 'it `it { is_expected.to be_nil }` at line 1448.')
 }
 
 // Ruby it `it { is_expected.to be_nil }` at line 1458.
-pub fn ruby_formula_auditor_spec_l1458_d145_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('{', ...args)
+pub fn ruby_formula_auditor_spec_l1458_d145_anonymous() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1458, 'it', 'it `it { is_expected.to be_nil }` at line 1458.')
 }
 
 // Ruby subject `subject do` at line 1464.
-pub fn ruby_formula_auditor_spec_l1464_d146_subject_dynamic(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('subject_dynamic', ...args)
+pub fn ruby_formula_auditor_spec_l1464_d146_subject_dynamic() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1464, 'subject', 'subject `subject do` at line 1464.')
 }
 
 // Ruby it `it "doesn't allow new formulae to have a revision" do` at line 1495.
-pub fn ruby_formula_auditor_spec_l1495_d147_doesn(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('doesn', ...args)
+pub fn ruby_formula_auditor_spec_l1495_d147_doesn() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1495, 'it', 'it `it "doesn\'t allow new formulae to have a revision" do` at line 1495.')
 }
 
 // Ruby it `it { is_expected.to be_nil }` at line 1513.
-pub fn ruby_formula_auditor_spec_l1513_d148_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('{', ...args)
+pub fn ruby_formula_auditor_spec_l1513_d148_anonymous() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1513, 'it', 'it `it { is_expected.to be_nil }` at line 1513.')
 }
 
 // Ruby it `it { is_expected.to match("`revision` should not decrease (from 2 to 1)") }` at line 1519.
-pub fn ruby_formula_auditor_spec_l1519_d149_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('{', ...args)
+pub fn ruby_formula_auditor_spec_l1519_d149_anonymous() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1519, 'it', 'it `it { is_expected.to match("`revision` should not decrease (from 2 to 1)") }` at line 1519.')
 }
 
 // Ruby it `it { is_expected.to match("`revision` should not decrease (from 2 to 0)") }` at line 1525.
-pub fn ruby_formula_auditor_spec_l1525_d150_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('{', ...args)
+pub fn ruby_formula_auditor_spec_l1525_d150_anonymous() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1525, 'it', 'it `it { is_expected.to match("`revision` should not decrease (from 2 to 0)") }` at line 1525.')
 }
 
 // Ruby it `it { is_expected.to match("`revision` should not decrease (from 2 to 1)") }` at line 1531.
-pub fn ruby_formula_auditor_spec_l1531_d151_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('{', ...args)
+pub fn ruby_formula_auditor_spec_l1531_d151_anonymous() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1531, 'it', 'it `it { is_expected.to match("`revision` should not decrease (from 2 to 1)") }` at line 1531.')
 }
 
 // Ruby it `it { is_expected.to match("`revision 2` should be removed") }` at line 1537.
-pub fn ruby_formula_auditor_spec_l1537_d152_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('{', ...args)
+pub fn ruby_formula_auditor_spec_l1537_d152_anonymous() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1537, 'it', 'it `it { is_expected.to match("`revision 2` should be removed") }` at line 1537.')
 }
 
 // Ruby it `it { is_expected.to match("`revision 2` should be removed") }` at line 1543.
-pub fn ruby_formula_auditor_spec_l1543_d153_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('{', ...args)
+pub fn ruby_formula_auditor_spec_l1543_d153_anonymous() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1543, 'it', 'it `it { is_expected.to match("`revision 2` should be removed") }` at line 1543.')
 }
 
 // Ruby it `it { is_expected.to be_nil }` at line 1552.
-pub fn ruby_formula_auditor_spec_l1552_d154_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('{', ...args)
+pub fn ruby_formula_auditor_spec_l1552_d154_anonymous() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1552, 'it', 'it `it { is_expected.to be_nil }` at line 1552.')
 }
 
 // Ruby it `it { is_expected.to be_nil }` at line 1563.
-pub fn ruby_formula_auditor_spec_l1563_d155_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('{', ...args)
+pub fn ruby_formula_auditor_spec_l1563_d155_anonymous() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1563, 'it', 'it `it { is_expected.to be_nil }` at line 1563.')
 }
 
 // Ruby it `it { is_expected.to match("`revision` should only increment by 1") }` at line 1572.
-pub fn ruby_formula_auditor_spec_l1572_d156_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('{', ...args)
+pub fn ruby_formula_auditor_spec_l1572_d156_anonymous() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1572, 'it', 'it `it { is_expected.to match("`revision` should only increment by 1") }` at line 1572.')
 }
 
 // Ruby it `it { is_expected.to be_nil }` at line 1582.
-pub fn ruby_formula_auditor_spec_l1582_d157_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('{', ...args)
+pub fn ruby_formula_auditor_spec_l1582_d157_anonymous() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1582, 'it', 'it `it { is_expected.to be_nil }` at line 1582.')
 }
 
 // Ruby method `build_formula_for_audit(tap:, tap_path:, name:, compatibility_version: nil, revision: 0, depends_on: [])` at line 1587.
-pub fn ruby_formula_auditor_spec_l1587_d158_build_formula_for_audit(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('build_formula_for_audit', ...args)
+pub fn ruby_formula_auditor_spec_l1587_d158_build_formula_for_audit() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1587, 'method', 'method `build_formula_for_audit(tap:, tap_path:, name:, compatibility_version: nil, revision: 0, depends_on: [])` at line 1587.')
 }
 
 // Ruby method `dependency_stub(name)` at line 1599.
-pub fn ruby_formula_auditor_spec_l1599_d159_dependency_stub(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dependency_stub', ...args)
+pub fn ruby_formula_auditor_spec_l1599_d159_dependency_stub() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1599, 'method', 'method `dependency_stub(name)` at line 1599.')
 }
 
 // Ruby method `stub_committed_info(auditor, default:, overrides: {})` at line 1603.
-pub fn ruby_formula_auditor_spec_l1603_d160_stub_committed_info(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('stub_committed_info', ...args)
+pub fn ruby_formula_auditor_spec_l1603_d160_stub_committed_info() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1603, 'method', 'method `stub_committed_info(auditor, default:, overrides: {})` at line 1603.')
 }
 
 // Ruby method `stub_changed_paths(auditor, all_paths:, filtered_paths: all_paths)` at line 1619.
-pub fn ruby_formula_auditor_spec_l1619_d161_stub_changed_paths(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('stub_changed_paths', ...args)
+pub fn ruby_formula_auditor_spec_l1619_d161_stub_changed_paths() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1619, 'method', 'method `stub_changed_paths(auditor, all_paths:, filtered_paths: all_paths)` at line 1619.')
 }
 
 // Ruby let `let(:tap_path) { Pathname("#{dir}/changed-paths-tap") }` at line 1626.
-pub fn ruby_formula_auditor_spec_l1626_d162_tap_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tap_path', ...args)
+pub fn ruby_formula_auditor_spec_l1626_d162_tap_path() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1626, 'let', 'let `let(:tap_path) { Pathname("#{dir}/changed-paths-tap") }` at line 1626.')
 }
 
 // Ruby let `let(:tap) do` at line 1627.
-pub fn ruby_formula_auditor_spec_l1627_d163_tap(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tap', ...args)
+pub fn ruby_formula_auditor_spec_l1627_d163_tap() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1627, 'let', 'let `let(:tap) do` at line 1627.')
 }
 
 // Ruby let `let(:target_formula) do` at line 1637.
-pub fn ruby_formula_auditor_spec_l1637_d164_target_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('target_formula', ...args)
+pub fn ruby_formula_auditor_spec_l1637_d164_target_formula() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1637, 'let', 'let `let(:target_formula) do` at line 1637.')
 }
 
 // Ruby let `let(:auditor) { described_class.new(target_formula, git: true) }` at line 1644.
-pub fn ruby_formula_auditor_spec_l1644_d165_auditor(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('auditor', ...args)
+pub fn ruby_formula_auditor_spec_l1644_d165_auditor() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1644, 'let', 'let `let(:auditor) { described_class.new(target_formula, git: true) }` at line 1644.')
 }
 
 // Ruby let `let(:foo_path) { tap_path/"Formula/f/foo.rb" }` at line 1645.
-pub fn ruby_formula_auditor_spec_l1645_d166_foo_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('foo_path', ...args)
+pub fn ruby_formula_auditor_spec_l1645_d166_foo_path() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1645, 'let', 'let `let(:foo_path) { tap_path/"Formula/f/foo.rb" }` at line 1645.')
 }
 
 // Ruby it `it "resolves sharded formula paths when filtering by names" do` at line 1647.
-pub fn ruby_formula_auditor_spec_l1647_d167_resolves(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('resolves', ...args)
+pub fn ruby_formula_auditor_spec_l1647_d167_resolves() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1647, 'it', 'it `it "resolves sharded formula paths when filtering by names" do` at line 1647.')
 }
 
 // Ruby it `it "diffs against the merge-base with origin/HEAD" do` at line 1662.
-pub fn ruby_formula_auditor_spec_l1662_d168_diffs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('diffs', ...args)
+pub fn ruby_formula_auditor_spec_l1662_d168_diffs() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1662, 'it', 'it `it "diffs against the merge-base with origin/HEAD" do` at line 1662.')
 }
 
 // Ruby let `let(:tap_path) { Pathname("#{dir}/committed-version-info-tap") }` at line 1678.
-pub fn ruby_formula_auditor_spec_l1678_d169_tap_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tap_path', ...args)
+pub fn ruby_formula_auditor_spec_l1678_d169_tap_path() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1678, 'let', 'let `let(:tap_path) { Pathname("#{dir}/committed-version-info-tap") }` at line 1678.')
 }
 
 // Ruby let `let(:tap) do` at line 1679.
-pub fn ruby_formula_auditor_spec_l1679_d170_tap(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tap', ...args)
+pub fn ruby_formula_auditor_spec_l1679_d170_tap() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1679, 'let', 'let `let(:tap) do` at line 1679.')
 }
 
 // Ruby let `let(:target_formula) do` at line 1689.
-pub fn ruby_formula_auditor_spec_l1689_d171_target_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('target_formula', ...args)
+pub fn ruby_formula_auditor_spec_l1689_d171_target_formula() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1689, 'let', 'let `let(:target_formula) do` at line 1689.')
 }
 
 // Ruby let `let(:auditor) { described_class.new(target_formula, git: true) }` at line 1696.
-pub fn ruby_formula_auditor_spec_l1696_d172_auditor(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('auditor', ...args)
+pub fn ruby_formula_auditor_spec_l1696_d172_auditor() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1696, 'let', 'let `let(:auditor) { described_class.new(target_formula, git: true) }` at line 1696.')
 }
 
 // Ruby let `let(:formula_versions) { instance_double(FormulaVersions) }` at line 1697.
-pub fn ruby_formula_auditor_spec_l1697_d173_formula_versions(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_versions', ...args)
+pub fn ruby_formula_auditor_spec_l1697_d173_formula_versions() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1697, 'let', 'let `let(:formula_versions) { instance_double(FormulaVersions) }` at line 1697.')
 }
 
 // Ruby it `it "walks history from the merge-base with origin/HEAD" do` at line 1699.
-pub fn ruby_formula_auditor_spec_l1699_d174_walks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('walks', ...args)
+pub fn ruby_formula_auditor_spec_l1699_d174_walks() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1699, 'it', 'it `it "walks history from the merge-base with origin/HEAD" do` at line 1699.')
 }
 
 // Ruby let `let(:tap_path) { Pathname("#{dir}/compat-tap") }` at line 1711.
-pub fn ruby_formula_auditor_spec_l1711_d175_tap_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tap_path', ...args)
+pub fn ruby_formula_auditor_spec_l1711_d175_tap_path() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1711, 'let', 'let `let(:tap_path) { Pathname("#{dir}/compat-tap") }` at line 1711.')
 }
 
 // Ruby let `let(:tap) do` at line 1712.
-pub fn ruby_formula_auditor_spec_l1712_d176_tap(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tap', ...args)
+pub fn ruby_formula_auditor_spec_l1712_d176_tap() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1712, 'let', 'let `let(:tap) do` at line 1712.')
 }
 
 // Ruby let `let(:current_compatibility_version) { 2 }` at line 1724.
-pub fn ruby_formula_auditor_spec_l1724_d177_current_compatibility_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('current_compatibility_version', ...args)
+pub fn ruby_formula_auditor_spec_l1724_d177_current_compatibility_version() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1724, 'let', 'let `let(:current_compatibility_version) { 2 }` at line 1724.')
 }
 
 // Ruby let `let(:target_formula) do` at line 1725.
-pub fn ruby_formula_auditor_spec_l1725_d178_target_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('target_formula', ...args)
+pub fn ruby_formula_auditor_spec_l1725_d178_target_formula() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1725, 'let', 'let `let(:target_formula) do` at line 1725.')
 }
 
 // Ruby let `let(:auditor) { described_class.new(target_formula, git: true) }` at line 1733.
-pub fn ruby_formula_auditor_spec_l1733_d179_auditor(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('auditor', ...args)
+pub fn ruby_formula_auditor_spec_l1733_d179_auditor() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1733, 'let', 'let `let(:auditor) { described_class.new(target_formula, git: true) }` at line 1733.')
 }
 
 // Ruby let `let(:foo_path) { tap_path/"Formula/foo.rb" }` at line 1734.
-pub fn ruby_formula_auditor_spec_l1734_d180_foo_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('foo_path', ...args)
+pub fn ruby_formula_auditor_spec_l1734_d180_foo_path() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1734, 'let', 'let `let(:foo_path) { tap_path/"Formula/foo.rb" }` at line 1734.')
 }
 
 // Ruby let `let(:bar_path) { tap_path/"Formula/bar.rb" }` at line 1735.
-pub fn ruby_formula_auditor_spec_l1735_d181_bar_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('bar_path', ...args)
+pub fn ruby_formula_auditor_spec_l1735_d181_bar_path() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1735, 'let', 'let `let(:bar_path) { tap_path/"Formula/bar.rb" }` at line 1735.')
 }
 
 // Ruby it `it "ignores formulae without a previous commit" do` at line 1744.
-pub fn ruby_formula_auditor_spec_l1744_d182_ignores(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ignores', ...args)
+pub fn ruby_formula_auditor_spec_l1744_d182_ignores() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1744, 'it', 'it `it "ignores formulae without a previous commit" do` at line 1744.')
 }
 
 // Ruby it `it "flags decreases" do` at line 1758.
-pub fn ruby_formula_auditor_spec_l1758_d183_flags(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('flags', ...args)
+pub fn ruby_formula_auditor_spec_l1758_d183_flags() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1758, 'it', 'it `it "flags decreases" do` at line 1758.')
 }
 
 // Ruby it `it "flags increments larger than one" do` at line 1772.
-pub fn ruby_formula_auditor_spec_l1772_d184_flags(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('flags', ...args)
+pub fn ruby_formula_auditor_spec_l1772_d184_flags() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1772, 'it', 'it `it "flags increments larger than one" do` at line 1772.')
 }
 
 // Ruby it `it "allows unchanged compatibility_version" do` at line 1786.
-pub fn ruby_formula_auditor_spec_l1786_d185_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+pub fn ruby_formula_auditor_spec_l1786_d185_allows() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1786, 'it', 'it `it "allows unchanged compatibility_version" do` at line 1786.')
 }
 
 // Ruby let `let(:dependent_formula) do` at line 1800.
-pub fn ruby_formula_auditor_spec_l1800_d186_dependent_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dependent_formula', ...args)
+pub fn ruby_formula_auditor_spec_l1800_d186_dependent_formula() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1800, 'let', 'let `let(:dependent_formula) do` at line 1800.')
 }
 
 // Ruby it `it "flags missing dependent revision bumps" do` at line 1817.
-pub fn ruby_formula_auditor_spec_l1817_d187_flags(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('flags', ...args)
+pub fn ruby_formula_auditor_spec_l1817_d187_flags() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1817, 'it', 'it `it "flags missing dependent revision bumps" do` at line 1817.')
 }
 
 // Ruby it `it "accepts a dependent revision bump" do` at line 1835.
-pub fn ruby_formula_auditor_spec_l1835_d188_accepts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('accepts', ...args)
+pub fn ruby_formula_auditor_spec_l1835_d188_accepts() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1835, 'it', 'it `it "accepts a dependent revision bump" do` at line 1835.')
 }
 
 // Ruby it `it "ignores missing dependent revision bumps for unsupported platform" do` at line 1847.
-pub fn ruby_formula_auditor_spec_l1847_d189_ignores(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ignores', ...args)
+pub fn ruby_formula_auditor_spec_l1847_d189_ignores() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1847, 'it', 'it `it "ignores missing dependent revision bumps for unsupported platform" do` at line 1847.')
 }
 
 // Ruby let `let(:tap_path) { Pathname("#{dir}/revision-tap") }` at line 1863.
-pub fn ruby_formula_auditor_spec_l1863_d190_tap_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tap_path', ...args)
+pub fn ruby_formula_auditor_spec_l1863_d190_tap_path() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1863, 'let', 'let `let(:tap_path) { Pathname("#{dir}/revision-tap") }` at line 1863.')
 }
 
 // Ruby let `let(:tap) do` at line 1864.
-pub fn ruby_formula_auditor_spec_l1864_d191_tap(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tap', ...args)
+pub fn ruby_formula_auditor_spec_l1864_d191_tap() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1864, 'let', 'let `let(:tap) do` at line 1864.')
 }
 
 // Ruby let `let(:current_revision) { 2 }` at line 1876.
-pub fn ruby_formula_auditor_spec_l1876_d192_current_revision(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('current_revision', ...args)
+pub fn ruby_formula_auditor_spec_l1876_d192_current_revision() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1876, 'let', 'let `let(:current_revision) { 2 }` at line 1876.')
 }
 
 // Ruby let `let(:dependency_names) { ["foo"] }` at line 1877.
-pub fn ruby_formula_auditor_spec_l1877_d193_dependency_names(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dependency_names', ...args)
+pub fn ruby_formula_auditor_spec_l1877_d193_dependency_names() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1877, 'let', 'let `let(:dependency_names) { ["foo"] }` at line 1877.')
 }
 
 // Ruby let `let(:dependency_list) { dependency_names.map { |name| dependency_stub(name) } }` at line 1878.
-pub fn ruby_formula_auditor_spec_l1878_d194_dependency_list(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dependency_list', ...args)
+pub fn ruby_formula_auditor_spec_l1878_d194_dependency_list() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1878, 'let', 'let `let(:dependency_list) { dependency_names.map { |name| dependency_stub(name) } }` at line 1878.')
 }
 
 // Ruby let `let(:target_formula) do` at line 1879.
-pub fn ruby_formula_auditor_spec_l1879_d195_target_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('target_formula', ...args)
+pub fn ruby_formula_auditor_spec_l1879_d195_target_formula() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1879, 'let', 'let `let(:target_formula) do` at line 1879.')
 }
 
 // Ruby let `let(:auditor) { described_class.new(target_formula, git: true) }` at line 1888.
-pub fn ruby_formula_auditor_spec_l1888_d196_auditor(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('auditor', ...args)
+pub fn ruby_formula_auditor_spec_l1888_d196_auditor() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1888, 'let', 'let `let(:auditor) { described_class.new(target_formula, git: true) }` at line 1888.')
 }
 
 // Ruby let `let(:bar_path) { tap_path/"Formula/bar.rb" }` at line 1889.
-pub fn ruby_formula_auditor_spec_l1889_d197_bar_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('bar_path', ...args)
+pub fn ruby_formula_auditor_spec_l1889_d197_bar_path() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1889, 'let', 'let `let(:bar_path) { tap_path/"Formula/bar.rb" }` at line 1889.')
 }
 
 // Ruby let `let(:foo_path) { tap_path/"Formula/foo.rb" }` at line 1890.
-pub fn ruby_formula_auditor_spec_l1890_d198_foo_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('foo_path', ...args)
+pub fn ruby_formula_auditor_spec_l1890_d198_foo_path() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1890, 'let', 'let `let(:foo_path) { tap_path/"Formula/foo.rb" }` at line 1890.')
 }
 
 // Ruby let `let(:current_dependency_compatibility) { 1 }` at line 1891.
-pub fn ruby_formula_auditor_spec_l1891_d199_current_dependency_compatibility(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('current_dependency_compatibility', ...args)
+pub fn ruby_formula_auditor_spec_l1891_d199_current_dependency_compatibility() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1891, 'let', 'let `let(:current_dependency_compatibility) { 1 }` at line 1891.')
 }
 
 // Ruby let `let(:dependency_revision) { 0 }` at line 1892.
-pub fn ruby_formula_auditor_spec_l1892_d200_dependency_revision(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dependency_revision', ...args)
+pub fn ruby_formula_auditor_spec_l1892_d200_dependency_revision() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1892, 'let', 'let `let(:dependency_revision) { 0 }` at line 1892.')
 }
 
 // Ruby let `let(:dependency_formula) do` at line 1893.
-pub fn ruby_formula_auditor_spec_l1893_d201_dependency_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dependency_formula', ...args)
+pub fn ruby_formula_auditor_spec_l1893_d201_dependency_formula() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1893, 'let', 'let `let(:dependency_formula) do` at line 1893.')
 }
 
 // Ruby it `it "ignores revision changes when not incremented by one" do` at line 1911.
-pub fn ruby_formula_auditor_spec_l1911_d202_ignores(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ignores', ...args)
+pub fn ruby_formula_auditor_spec_l1911_d202_ignores() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1911, 'it', 'it `it "ignores revision changes when not incremented by one" do` at line 1911.')
 }
 
 // Ruby it `it "allows revision increases when there are no recursive dependencies" do` at line 1931.
-pub fn ruby_formula_auditor_spec_l1931_d203_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+pub fn ruby_formula_auditor_spec_l1931_d203_allows() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1931, 'it', 'it `it "allows revision increases when there are no recursive dependencies" do` at line 1931.')
 }
 
 // Ruby it `it "allows revision increases when dependencies are unchanged" do` at line 1940.
-pub fn ruby_formula_auditor_spec_l1940_d204_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+pub fn ruby_formula_auditor_spec_l1940_d204_allows() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1940, 'it', 'it `it "allows revision increases when dependencies are unchanged" do` at line 1940.')
 }
 
 // Ruby it `it "ignores dependency changes without a version bump" do` at line 1953.
-pub fn ruby_formula_auditor_spec_l1953_d205_ignores(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ignores', ...args)
+pub fn ruby_formula_auditor_spec_l1953_d205_ignores() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1953, 'it', 'it `it "ignores dependency changes without a version bump" do` at line 1953.')
 }
 
 // Ruby it `it "flags missing compatibility_version bumps" do` at line 1966.
-pub fn ruby_formula_auditor_spec_l1966_d206_flags(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('flags', ...args)
+pub fn ruby_formula_auditor_spec_l1966_d206_flags() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1966, 'it', 'it `it "flags missing compatibility_version bumps" do` at line 1966.')
 }
 
 // Ruby it `it "accepts compatibility_version bumps of one" do` at line 1986.
-pub fn ruby_formula_auditor_spec_l1986_d207_accepts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('accepts', ...args)
+pub fn ruby_formula_auditor_spec_l1986_d207_accepts() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(1986, 'it', 'it `it "accepts compatibility_version bumps of one" do` at line 1986.')
 }
 
 // Ruby specify `specify "it warns when a versioned formula is not `keg_only`" do` at line 2003.
-pub fn ruby_formula_auditor_spec_l2003_d208_it(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('it', ...args)
+pub fn ruby_formula_auditor_spec_l2003_d208_it() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(2003, 'specify', 'specify `specify "it warns when a versioned formula is not `keg_only`" do` at line 2003.')
 }
 
 // Ruby specify `specify "it warns when a versioned formula has an incorrect `keg_only` reason" do` at line 2016.
-pub fn ruby_formula_auditor_spec_l2016_d209_it(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('it', ...args)
+pub fn ruby_formula_auditor_spec_l2016_d209_it() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(2016, 'specify', 'specify `specify "it warns when a versioned formula has an incorrect `keg_only` reason" do` at line 2016.')
 }
 
 // Ruby specify `specify "it does not warn when a versioned formula has `keg_only :versioned_formula`" do` at line 2031.
-pub fn ruby_formula_auditor_spec_l2031_d210_it(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('it', ...args)
+pub fn ruby_formula_auditor_spec_l2031_d210_it() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(2031, 'specify', 'specify `specify "it does not warn when a versioned formula has `keg_only :versioned_formula`" do` at line 2031.')
 }
 
 // Ruby specify `specify "it warns if new formula uses the same URL as already existing package" do` at line 2054.
-pub fn ruby_formula_auditor_spec_l2054_d211_it(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('it', ...args)
+pub fn ruby_formula_auditor_spec_l2054_d211_it() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(2054, 'specify', 'specify `specify "it warns if new formula uses the same URL as already existing package" do` at line 2054.')
 }
 
 // Ruby specify `specify "it does not warn about duplicates if formula is not new" do` at line 2067.
-pub fn ruby_formula_auditor_spec_l2067_d212_it(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('it', ...args)
+pub fn ruby_formula_auditor_spec_l2067_d212_it() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(2067, 'specify', 'specify `specify "it does not warn about duplicates if formula is not new" do` at line 2067.')
 }
 
 // Ruby specify `specify "it skips the duplicate check offline when no packages data is cached" do` at line 2079.
-pub fn ruby_formula_auditor_spec_l2079_d213_it(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('it', ...args)
+pub fn ruby_formula_auditor_spec_l2079_d213_it() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(2079, 'specify', 'specify `specify "it skips the duplicate check offline when no packages data is cached" do` at line 2079.')
 }
 
 // Ruby specify `specify "it warns when conflicting with non-existing formula", :no_api do` at line 2100.
-pub fn ruby_formula_auditor_spec_l2100_d214_it(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('it', ...args)
+pub fn ruby_formula_auditor_spec_l2100_d214_it() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(2100, 'specify', 'specify `specify "it warns when conflicting with non-existing formula", :no_api do` at line 2100.')
 }
 
 // Ruby specify `specify "it warns when conflicting with itself", :no_api do` at line 2115.
-pub fn ruby_formula_auditor_spec_l2115_d215_it(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('it', ...args)
+pub fn ruby_formula_auditor_spec_l2115_d215_it() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(2115, 'specify', 'specify `specify "it warns when conflicting with itself", :no_api do` at line 2115.')
 }
 
 // Ruby specify `specify "it warns when another formula does not have a symmetric conflict", :no_api do` at line 2131.
-pub fn ruby_formula_auditor_spec_l2131_d216_it(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('it', ...args)
+pub fn ruby_formula_auditor_spec_l2131_d216_it() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(2131, 'specify', 'specify `specify "it warns when another formula does not have a symmetric conflict", :no_api do` at line 2131.')
 }
 
 // Ruby specify `specify "it warns when deprecate/disable reason is invalid" do` at line 2167.
-pub fn ruby_formula_auditor_spec_l2167_d217_it(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('it', ...args)
+pub fn ruby_formula_auditor_spec_l2167_d217_it() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(2167, 'specify', 'specify `specify "it warns when deprecate/disable reason is invalid" do` at line 2167.')
 }
 
 // Ruby specify `specify "it does not warn when deprecate/disable reason is valid" do` at line 2182.
-pub fn ruby_formula_auditor_spec_l2182_d218_it(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('it', ...args)
+pub fn ruby_formula_auditor_spec_l2182_d218_it() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(2182, 'specify', 'specify `specify "it does not warn when deprecate/disable reason is valid" do` at line 2182.')
 }
 
 // Ruby let `let(:formula_text) do` at line 2198.
-pub fn ruby_formula_auditor_spec_l2198_d219_formula_text(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_text', ...args)
+pub fn ruby_formula_auditor_spec_l2198_d219_formula_text() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(2198, 'let', 'let `let(:formula_text) do` at line 2198.')
 }
 
 // Ruby it `it "skips the audit" do` at line 2216.
-pub fn ruby_formula_auditor_spec_l2216_d220_skips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skips', ...args)
+pub fn ruby_formula_auditor_spec_l2216_d220_skips() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(2216, 'it', 'it `it "skips the audit" do` at line 2216.')
 }
 
 // Ruby it `it "detects a Linux-only GCC dependency" do` at line 2230.
-pub fn ruby_formula_auditor_spec_l2230_d221_detects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('detects', ...args)
+pub fn ruby_formula_auditor_spec_l2230_d221_detects() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(2230, 'it', 'it `it "detects a Linux-only GCC dependency" do` at line 2230.')
 }
 
 // Ruby it `it "allows a Linux-only GCC dependency when formula has an audit exception" do` at line 2237.
-pub fn ruby_formula_auditor_spec_l2237_d222_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+pub fn ruby_formula_auditor_spec_l2237_d222_allows() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(2237, 'it', 'it `it "allows a Linux-only GCC dependency when formula has an audit exception" do` at line 2237.')
 }
 
 // Ruby it `it "allows a Linux-only GCC dependency when implicit" do` at line 2244.
-pub fn ruby_formula_auditor_spec_l2244_d223_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+pub fn ruby_formula_auditor_spec_l2244_d223_allows() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(2244, 'it', 'it `it "allows a Linux-only GCC dependency when implicit" do` at line 2244.')
 }
 
 // Ruby it `it "allows a Linux-only GCC dependency in a non-core tap" do` at line 2251.
-pub fn ruby_formula_auditor_spec_l2251_d224_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+pub fn ruby_formula_auditor_spec_l2251_d224_allows() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(2251, 'it', 'it `it "allows a Linux-only GCC dependency in a non-core tap" do` at line 2251.')
 }
 
 // Ruby it `it "allows a non-OS-specific GCC dependency" do` at line 2257.
-pub fn ruby_formula_auditor_spec_l2257_d225_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+pub fn ruby_formula_auditor_spec_l2257_d225_allows() FormulaAuditorSpecBoundary {
+	return formula_auditor_spec_boundary(2257, 'it', 'it `it "allows a non-OS-specific GCC dependency" do` at line 2257.')
 }
 
 // Original Ruby source (line-for-line):

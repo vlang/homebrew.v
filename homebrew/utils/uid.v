@@ -1,13 +1,40 @@
 module utils
 
 import brew_runtime
+import os
+
+#include <pwd.h>
+
+struct C.passwd {
+	pw_dir &char
+}
+
+fn C.getpwuid(uid u32) &C.passwd
 
 // Translated from Homebrew/brew `utils/uid.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `self.uid_home` at line 7.
 pub fn ruby_uid_l7_d1_self_uid_home(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.uid_home', ...args)
+	return if directory := uid_home() {
+		brew_runtime.string_value(directory)
+	} else {
+		brew_runtime.object_value('Nil', '')
+	}
+}
+
+// uid_home reads the passwd entry for the process UID, matching Etc.getpwuid
+// rather than trusting a potentially overridden HOME environment variable.
+pub fn uid_home() ?string {
+	$if windows {
+		return none
+	} $else {
+		entry := C.getpwuid(u32(os.getuid()))
+		if isnil(entry) || isnil(entry.pw_dir) {
+			return none
+		}
+		return unsafe { cstring_to_vstring(entry.pw_dir) }
+	}
 }
 
 // Original Ruby source (line-for-line):

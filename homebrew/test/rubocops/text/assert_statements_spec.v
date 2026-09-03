@@ -1,33 +1,49 @@
 module text
 
 import brew_runtime
+import homebrew.rubocops as line_cops
 
 // Translated from Homebrew/brew `test/rubocops/text/assert_statements_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+fn assert_statements_spec_formula(statement string) string {
+	return 'class Foo < Formula\n  desc "foo"\n  url \'https://brew.sh/foo-1.0.tgz\'\n  ${statement}\nend'
+}
+
+fn assert_statements_spec_reports(statement string, message string) bool {
+	source := assert_statements_spec_formula(statement)
+	analysis := line_cops.audit_lines_assert_statements(line_cops.LinesContext{
+		source: source
+	})
+	return analysis.offenses.len == 1 && analysis.offenses[0].message == message && analysis.corrected == source
+}
 
 // Ruby subject `subject(:cop) { described_class.new }` at line 7.
 pub fn ruby_assert_statements_spec_l7_d1_cop(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cop', ...args)
+	return brew_runtime.object_value('RuboCop::Cop::FormulaAudit::AssertStatements', 'AssertStatements')
 }
 
 // Ruby it `it "reports an offense when assert ... include is used" do` at line 10.
 pub fn ruby_assert_statements_spec_l10_d2_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	statement := 'assert File.read("inbox").include?("Sample message 1")'
+	return brew_runtime.bool_value(assert_statements_spec_reports(statement, 'Use `assert_match` instead of `assert ...include?`'))
 }
 
 // Ruby it `it "reports an offense when assert ... exist? is used without a negation" do` at line 21.
 pub fn ruby_assert_statements_spec_l21_d3_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	statement := 'assert File.exist? "default.ini"'
+	return brew_runtime.bool_value(assert_statements_spec_reports(statement, 'Use `assert_path_exists <path_to_file>` instead of `${statement}`'))
 }
 
 // Ruby it `it "reports an offense when assert ... exist? is used with a negation" do` at line 32.
 pub fn ruby_assert_statements_spec_l32_d4_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	statement := 'assert !File.exist?("default.ini")'
+	return brew_runtime.bool_value(assert_statements_spec_reports(statement, 'Use `refute_path_exists <path_to_file>` instead of `${statement}`'))
 }
 
 // Ruby it `it "reports an offense when assert ... executable? is used without a negation" do` at line 43.
 pub fn ruby_assert_statements_spec_l43_d5_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	statement := 'assert File.executable? f'
+	return brew_runtime.bool_value(assert_statements_spec_reports(statement, 'Use `assert_predicate <path_to_file>, :executable?` instead of `${statement}`'))
 }
 
 // Original Ruby source (line-for-line):

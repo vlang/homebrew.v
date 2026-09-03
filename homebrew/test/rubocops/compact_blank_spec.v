@@ -1,73 +1,90 @@
 module rubocops
 
 import brew_runtime
+import homebrew.rubocops as compact_blank_core
 
 // Translated from Homebrew/brew `test/rubocops/compact_blank_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+fn compact_blank_spec_offense(source string, expected_fragment string, replacement string) bool {
+	analysis := compact_blank_core.analyze_compact_blank(source)
+	return analysis.offenses.len == 1 && source[analysis.offenses[0].begin_pos..analysis.offenses[0].end_pos] == expected_fragment && analysis.offenses[0].message == 'Use `${replacement}` instead.' && analysis.offenses[0].replacement == replacement && analysis.corrected == source.replace_once(expected_fragment, replacement)
+}
 
 // Ruby it `it "registers and corrects an offense when using `reject { |e| e.blank? }`" do` at line 7.
-pub fn ruby_compact_blank_spec_l7_d1_registers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('registers', ...args)
+pub fn ruby_compact_blank_spec_l7_d1_registers() bool {
+	source := 'collection.reject { |e| e.blank? }\n'
+	return compact_blank_spec_offense(source, 'reject { |e| e.blank? }', 'compact_blank')
 }
 
 // Ruby it `it "registers and corrects an offense when using `reject(&:blank?)`" do` at line 18.
-pub fn ruby_compact_blank_spec_l18_d2_registers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('registers', ...args)
+pub fn ruby_compact_blank_spec_l18_d2_registers() bool {
+	source := 'collection.reject(&:blank?)\n'
+	return compact_blank_spec_offense(source, 'reject(&:blank?)', 'compact_blank')
 }
 
 // Ruby it `it "registers and corrects an offense when using `delete_if { |e| e.blank? }`" do` at line 29.
-pub fn ruby_compact_blank_spec_l29_d3_registers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('registers', ...args)
+pub fn ruby_compact_blank_spec_l29_d3_registers() bool {
+	source := 'collection.delete_if { |e| e.blank? }\n'
+	return compact_blank_spec_offense(source, 'delete_if { |e| e.blank? }', 'compact_blank!')
 }
 
 // Ruby it `it "registers and corrects an offense when using `delete_if(&:blank?)`" do` at line 40.
-pub fn ruby_compact_blank_spec_l40_d4_registers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('registers', ...args)
+pub fn ruby_compact_blank_spec_l40_d4_registers() bool {
+	source := 'collection.delete_if(&:blank?)\n'
+	return compact_blank_spec_offense(source, 'delete_if(&:blank?)', 'compact_blank!')
 }
 
 // Ruby it `it "registers and corrects an offense when using `reject! { |e| e.blank? }`" do` at line 51.
-pub fn ruby_compact_blank_spec_l51_d5_registers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('registers', ...args)
+pub fn ruby_compact_blank_spec_l51_d5_registers() bool {
+	source := 'collection.reject! { |e| e.blank? }\n'
+	return compact_blank_spec_offense(source, 'reject! { |e| e.blank? }', 'compact_blank!')
 }
 
 // Ruby it `it "registers and corrects an offense when using `reject!(&:blank?)`" do` at line 62.
-pub fn ruby_compact_blank_spec_l62_d6_registers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('registers', ...args)
+pub fn ruby_compact_blank_spec_l62_d6_registers() bool {
+	source := 'collection.reject!(&:blank?)\n'
+	return compact_blank_spec_offense(source, 'reject!(&:blank?)', 'compact_blank!')
 }
 
 // Ruby it `it "registers and corrects an offense when using `reject(&:blank?)` in block" do` at line 73.
-pub fn ruby_compact_blank_spec_l73_d7_registers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('registers', ...args)
+pub fn ruby_compact_blank_spec_l73_d7_registers() bool {
+	source := 'hash.transform_values { |value| value.reject(&:blank?) }\n'
+	return compact_blank_spec_offense(source, 'reject(&:blank?)', 'compact_blank')
 }
 
 // Ruby it `it "does not register an offense when using `compact_blank`" do` at line 84.
-pub fn ruby_compact_blank_spec_l84_d8_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_compact_blank_spec_l84_d8_does() bool {
+	return compact_blank_core.audit_compact_blank('collection.compact_blank\n').len == 0
 }
 
 // Ruby it `it "does not register an offense when using `compact_blank!`" do` at line 90.
-pub fn ruby_compact_blank_spec_l90_d9_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_compact_blank_spec_l90_d9_does() bool {
+	return compact_blank_core.audit_compact_blank('collection.compact_blank!\n').len == 0
 }
 
 // Ruby it `it "does not register an offense when using `reject { |k, v| k.blank? }`" do` at line 96.
-pub fn ruby_compact_blank_spec_l96_d10_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_compact_blank_spec_l96_d10_does() bool {
+	return compact_blank_core.audit_compact_blank('collection.reject { |k, v| k.blank? }\n').len == 0
 }
 
 // Ruby it `it "does not register an offense when using the receiver of `blank?` is not a block variable" do` at line 102.
-pub fn ruby_compact_blank_spec_l102_d11_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_compact_blank_spec_l102_d11_does() bool {
+	source := 'def foo(arg)\n  collection.reject { |_| arg.blank? }\nend\n'
+	return compact_blank_core.audit_compact_blank(source).len == 0
 }
 
 // Ruby method `foo(arg)` at line 104.
 pub fn ruby_compact_blank_spec_l104_d12_foo(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('foo', ...args)
+	arg_is_blank := args.len == 0 || args[0].type_name == 'NilClass' || (args[0].type_name == 'Bool' && !(args[0].as_bool() or { false })) || (args[0].type_name == 'String' && args[0].as_string().trim_space() == '')
+	if arg_is_blank {
+		return brew_runtime.array_value([]brew_runtime.Value{})
+	}
+	return if args.len > 1 { args[1] } else { brew_runtime.array_value([]brew_runtime.Value{}) }
 }
 
 // Ruby it `it "does not register an offense when using `reject { |e| e.empty? }`" do` at line 110.
-pub fn ruby_compact_blank_spec_l110_d13_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_compact_blank_spec_l110_d13_does() bool {
+	return compact_blank_core.audit_compact_blank('collection.reject { |e| e.empty? }\n').len == 0
 }
 
 // Original Ruby source (line-for-line):

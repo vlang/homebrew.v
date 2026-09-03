@@ -7,62 +7,84 @@ import brew_runtime
 
 // Ruby method `initialize(type)` at line 6.
 pub fn ruby_typed_module_l6_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	if args.len == 0 {
+		panic('TypedModule#initialize requires a type')
+	}
+	return typed_meta_value(new_typed_meta_type('Module', args[0]))
 }
 
 // Ruby method `type` at line 10.
 pub fn ruby_typed_module_l10_d2_type(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('type', ...args)
+	return typed_meta_from_args(args, 'Module').type_value
 }
 
 // Ruby method `build_type` at line 14.
 pub fn ruby_typed_module_l14_d3_build_type(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('build_type', ...args)
+	typed_meta_from_args(args, 'Module').build_type() or { panic(err) }
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Ruby method `name` at line 20.
 pub fn ruby_typed_module_l20_d4_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('name', ...args)
+	return brew_runtime.string_value(typed_meta_from_args(args, 'Module').name())
 }
 
 // Ruby method `underlying_class` at line 24.
 pub fn ruby_typed_module_l24_d5_underlying_class(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('underlying_class', ...args)
+	typed_meta_from_args(args, 'Module')
+	return brew_runtime.object_value('Class', 'Module')
 }
 
 // Ruby method `valid?(obj)` at line 29.
 pub fn ruby_typed_module_l29_d6_valid(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('valid?', ...args)
+	if args.len < 2 {
+		panic('TypedModule#valid? requires an object')
+	}
+	return brew_runtime.bool_value(typed_meta_from_args(args, 'Module').valid(args[1]))
 }
 
 // Ruby method `subtype_of_single?(type)` at line 34.
 pub fn ruby_typed_module_l34_d7_subtype_of_single(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('subtype_of_single?', ...args)
+	if args.len < 2 {
+		panic('TypedModule#subtype_of_single? requires another type')
+	}
+	return brew_runtime.bool_value(typed_meta_from_args(args, 'Module').subtype_of_single(args[1]))
 }
 
 // Ruby method `self.type_for_module(mod)` at line 58.
 pub fn ruby_typed_module_l58_d8_self_type_for_module(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.type_for_module', ...args)
+	if args.len == 0 {
+		panic('TypedModule.type_for_module requires a module')
+	}
+	return typed_meta_for_module('Module', args[0])
 }
 
 // Ruby method `initialize` at line 73.
 pub fn ruby_typed_module_l73_d9_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	return typed_meta_value(new_typed_meta_type('Module', base_type_boundary_value(base_untyped_type())))
 }
 
 // Ruby method `freeze` at line 77.
 pub fn ruby_typed_module_l77_d10_freeze(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('freeze', ...args)
+	if args.len == 0 {
+		panic('TypedModule::Untyped#freeze requires a receiver')
+	}
+	typed_meta_from_args(args, 'Module').build_type() or { panic(err) }
+	return args[0]
 }
 
 // Ruby method `initialize` at line 88.
 pub fn ruby_typed_module_l88_d11_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	return typed_meta_value(new_typed_meta_type('Module', base_type_boundary_value(base_anything_type())))
 }
 
 // Ruby method `freeze` at line 92.
 pub fn ruby_typed_module_l92_d12_freeze(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('freeze', ...args)
+	if args.len == 0 {
+		panic('TypedModule::Anything#freeze requires a receiver')
+	}
+	typed_meta_from_args(args, 'Module').build_type() or { panic(err) }
+	return args[0]
 }
 
 // Original Ruby source (line-for-line):

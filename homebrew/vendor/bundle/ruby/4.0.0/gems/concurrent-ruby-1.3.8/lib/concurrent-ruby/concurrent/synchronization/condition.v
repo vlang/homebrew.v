@@ -1,63 +1,125 @@
 module synchronization
 
 import brew_runtime
+import time
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/synchronization/condition.rb`.
 // The original source is retained below until every stub has a typed V body.
+@[heap]
+pub struct Condition {
+mut:
+	associated_lock &MutexLockableObject
+}
+
+pub fn new_condition(associated_lock &MutexLockableObject) &Condition {
+	return &Condition{
+		associated_lock: associated_lock
+	}
+}
+
+pub fn (mut condition Condition) wait(timeout ?time.Duration) bool {
+	return condition.associated_lock.wait(timeout)
+}
+
+pub fn (mut condition Condition) wait_until(timeout ?time.Duration, predicate LockableCondition) bool {
+	return condition.associated_lock.wait_until(timeout, predicate)
+}
+
+pub fn (mut condition Condition) signal() &Condition {
+	condition.associated_lock.signal()
+	return condition
+}
+
+pub fn (mut condition Condition) broadcast() &Condition {
+	condition.associated_lock.broadcast()
+	return condition
+}
+
+fn condition_boundary_value(condition &Condition) brew_runtime.Value {
+	return brew_runtime.structured_value('Concurrent::Synchronization::Condition', '#<Concurrent::Synchronization::Condition>', {
+		'condition_address': u64(voidptr(condition)).str()
+	})
+}
+
+fn condition_boundary_receiver(args []brew_runtime.Value) &Condition {
+	if args.len == 0 {
+		panic('Condition method requires a receiver')
+	}
+	address := (args[0].attribute('condition_address') or {
+		panic('${args[0].type_name} has no translated Condition state')
+	}).u64()
+	return unsafe { &Condition(voidptr(address)) }
+}
 
 // Ruby alias_method `singleton_class.send :alias_method, :private_new, :new` at line 15.
 pub fn ruby_condition_l15_d1_private_new(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('private_new', ...args)
+	return ruby_condition_l18_d2_initialize(...args)
 }
 
 // Ruby method `initialize(lock)` at line 18.
 pub fn ruby_condition_l18_d2_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	if args.len == 0 {
+		panic('Condition.new requires a LockableObject')
+	}
+	return condition_boundary_value(new_condition(lockable_boundary_receiver(args)))
 }
 
 // Ruby method `wait(timeout = nil)` at line 23.
 pub fn ruby_condition_l23_d3_wait(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('wait', ...args)
+	mut condition := condition_boundary_receiver(args)
+	condition.wait(lockable_boundary_timeout(args, 1))
+	return args[0]
 }
 
 // Ruby method `ns_wait(timeout = nil)` at line 27.
 pub fn ruby_condition_l27_d4_ns_wait(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ns_wait', ...args)
+	return ruby_condition_l23_d3_wait(...args)
 }
 
 // Ruby method `wait_until(timeout = nil, &condition)` at line 31.
 pub fn ruby_condition_l31_d5_wait_until(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('wait_until', ...args)
+	mut condition := condition_boundary_receiver(args)
+	expected := if args.len > 2 { args[2].as_bool() or { false } } else { false }
+	return brew_runtime.bool_value(condition.wait_until(lockable_boundary_timeout(args, 1), fn [expected] () bool {
+		return expected
+	}))
 }
 
 // Ruby method `ns_wait_until(timeout = nil, &condition)` at line 35.
 pub fn ruby_condition_l35_d6_ns_wait_until(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ns_wait_until', ...args)
+	return ruby_condition_l31_d5_wait_until(...args)
 }
 
 // Ruby method `signal` at line 39.
 pub fn ruby_condition_l39_d7_signal(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('signal', ...args)
+	mut condition := condition_boundary_receiver(args)
+	condition.signal()
+	return args[0]
 }
 
 // Ruby method `ns_signal` at line 43.
 pub fn ruby_condition_l43_d8_ns_signal(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ns_signal', ...args)
+	return ruby_condition_l39_d7_signal(...args)
 }
 
 // Ruby method `broadcast` at line 47.
 pub fn ruby_condition_l47_d9_broadcast(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('broadcast', ...args)
+	mut condition := condition_boundary_receiver(args)
+	condition.broadcast()
+	return args[0]
 }
 
 // Ruby method `ns_broadcast` at line 51.
 pub fn ruby_condition_l51_d10_ns_broadcast(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ns_broadcast', ...args)
+	return ruby_condition_l47_d9_broadcast(...args)
 }
 
 // Ruby method `new_condition` at line 57.
 pub fn ruby_condition_l57_d11_new_condition(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('new_condition', ...args)
+	if args.len == 0 {
+		panic('LockableObject#new_condition requires a receiver')
+	}
+	return condition_boundary_value(new_condition(lockable_boundary_receiver(args)))
 }
 
 // Original Ruby source (line-for-line):

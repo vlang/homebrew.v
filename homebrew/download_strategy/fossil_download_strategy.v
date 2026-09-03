@@ -1,53 +1,123 @@
 module download_strategy
 
-import brew_runtime
-
 // Translated from Homebrew/brew `download_strategy/fossil_download_strategy.rb`.
-// The original source is retained below until every stub has a typed V body.
+// The original source is retained below for line-for-line traceability.
 
 // Ruby method `initialize(url, name, version, **meta)` at line 9.
-pub fn ruby_fossil_download_strategy_l9_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+pub fn new_fossil_download_strategy(source_url string, name string, version string, meta VCSDownloadMeta) VCSDownloadStrategy {
+	url := if source_url.starts_with('fossil://') {
+		source_url['fossil://'.len..]
+	} else {
+		source_url
+	}
+	mut strategy := new_vcs_download_strategy(url, name, version, meta, 'fossil', .fossil)
+	strategy.url = url
+	return strategy
+}
+
+fn (strategy &VCSDownloadStrategy) fossil_tip_info() !string {
+	result := vcs_command_checked('fossil', ['info', 'tip', '-R', strategy.cached_location_value], '', strategy.fossil_env(), none)!
+	return result.output
+}
+
+fn fossil_tip_line(output string) !string {
+	for line in output.split_into_lines() {
+		trimmed := line.trim_space()
+		if trimmed.starts_with('hash:') || trimmed.starts_with('uuid:') {
+			return trimmed
+		}
+	}
+	return error('Could not read the Fossil tip')
 }
 
 // Ruby method `source_modified_time` at line 18.
-pub fn ruby_fossil_download_strategy_l18_d2_source_modified_time(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('source_modified_time', ...args)
+pub fn (strategy &VCSDownloadStrategy) fossil_source_modified_time() !i64 {
+	line := fossil_tip_line(strategy.fossil_tip_info()!)!
+	fields := line.fields()
+	if fields.len < 3 {
+		return error('Could not read the Fossil tip timestamp')
+	}
+	return parse_vcs_timestamp(fields[2..].join(' '))!
 }
 
 // Ruby method `source_revision = last_commit.presence` at line 24.
-pub fn ruby_fossil_download_strategy_l24_d3_source_revision(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('source_revision', ...args)
+pub fn (strategy &VCSDownloadStrategy) fossil_source_revision() !string {
+	return strategy.fossil_last_commit()
 }
 
 // Ruby method `last_commit` at line 30.
-pub fn ruby_fossil_download_strategy_l30_d4_last_commit(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('last_commit', ...args)
+pub fn (strategy &VCSDownloadStrategy) fossil_last_commit() !string {
+	line := fossil_tip_line(strategy.fossil_tip_info()!)!
+	fields := line.fields()
+	if fields.len < 2 {
+		return error('Could not read the Fossil tip hash')
+	}
+	return fields[1]
 }
 
 // Ruby method `repo_valid?` at line 36.
-pub fn ruby_fossil_download_strategy_l36_d5_repo_valid(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('repo_valid?', ...args)
+pub fn (strategy &VCSDownloadStrategy) fossil_repo_valid() bool {
+	result := vcs_command('fossil', ['branch', '-R', strategy.cached_location_value], '', strategy.fossil_env(), none) or { return false }
+	return result.exit_code == 0
 }
 
 // Ruby method `env` at line 43.
-pub fn ruby_fossil_download_strategy_l43_d6_env(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('env', ...args)
+pub fn (strategy &VCSDownloadStrategy) fossil_env() map[string]string {
+	_ = strategy
+	return formula_opt_bin_environment('fossil', false)
 }
 
 // Ruby method `cache_tag` at line 48.
-pub fn ruby_fossil_download_strategy_l48_d7_cache_tag(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cache_tag', ...args)
+pub fn (strategy &VCSDownloadStrategy) fossil_cache_tag() string {
+	_ = strategy
+	return 'fossil'
 }
 
 // Ruby method `clone_repo(timeout: nil)` at line 53.
-pub fn ruby_fossil_download_strategy_l53_d8_clone_repo(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('clone_repo', ...args)
+pub fn (mut strategy VCSDownloadStrategy) fossil_clone_repo(deadline ?i64) ! {
+	vcs_command_checked('fossil', ['clone', strategy.url, strategy.cached_location_value], '', strategy.fossil_env(), deadline)!
 }
 
 // Ruby method `update(timeout: nil)` at line 58.
-pub fn ruby_fossil_download_strategy_l58_d9_update(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('update', ...args)
+pub fn (mut strategy VCSDownloadStrategy) fossil_update(deadline ?i64) ! {
+	vcs_command_checked('fossil', ['pull', '-R', strategy.cached_location_value], '', strategy.fossil_env(), deadline)!
+}
+
+// Source entrypoint translations.
+pub fn ruby_fossil_download_strategy_l9_d1_initialize(url string, name string, version string, meta VCSDownloadMeta) VCSDownloadStrategy {
+	return new_fossil_download_strategy(url, name, version, meta)
+}
+
+pub fn ruby_fossil_download_strategy_l18_d2_source_modified_time(strategy &VCSDownloadStrategy) !i64 {
+	return strategy.fossil_source_modified_time()
+}
+
+pub fn ruby_fossil_download_strategy_l24_d3_source_revision(strategy &VCSDownloadStrategy) !string {
+	return strategy.fossil_source_revision()
+}
+
+pub fn ruby_fossil_download_strategy_l30_d4_last_commit(strategy &VCSDownloadStrategy) !string {
+	return strategy.fossil_last_commit()
+}
+
+pub fn ruby_fossil_download_strategy_l36_d5_repo_valid(strategy &VCSDownloadStrategy) bool {
+	return strategy.fossil_repo_valid()
+}
+
+pub fn ruby_fossil_download_strategy_l43_d6_env(strategy &VCSDownloadStrategy) map[string]string {
+	return strategy.fossil_env()
+}
+
+pub fn ruby_fossil_download_strategy_l48_d7_cache_tag(strategy &VCSDownloadStrategy) string {
+	return strategy.fossil_cache_tag()
+}
+
+pub fn ruby_fossil_download_strategy_l53_d8_clone_repo(mut strategy VCSDownloadStrategy, deadline ?i64) ! {
+	strategy.fossil_clone_repo(deadline)!
+}
+
+pub fn ruby_fossil_download_strategy_l58_d9_update(mut strategy VCSDownloadStrategy, deadline ?i64) ! {
+	strategy.fossil_update(deadline)!
 }
 
 // Original Ruby source (line-for-line):

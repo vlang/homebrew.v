@@ -1,48 +1,82 @@
 module keg_relocate
 
 import brew_runtime
+import homebrew
+import os
 
 // Translated from Homebrew/brew `test/keg_relocate/grep_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:keg) { described_class.new(HOMEBREW_CELLAR/"foo/1.0.0") }` at line 7.
 pub fn ruby_grep_spec_l7_d1_keg(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('keg', ...args)
+	dir := grep_spec_temp('keg')
+	return homebrew.keg_relocation_keg_value(grep_spec_keg(dir))
 }
 
 // Ruby let `let(:dir) { HOMEBREW_CELLAR/"foo/1.0.0" }` at line 9.
 pub fn ruby_grep_spec_l9_d2_dir(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dir', ...args)
+	return brew_runtime.object_value('Pathname', grep_spec_temp('dir'))
 }
 
 // Ruby let `let(:text_file) { dir/"file.txt" }` at line 10.
 pub fn ruby_grep_spec_l10_d3_text_file(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('text_file', ...args)
+	return brew_runtime.object_value('Pathname', os.join_path(grep_spec_temp('dir'), 'file.txt'))
 }
 
 // Ruby let `let(:binary_file) { dir/"file.bin" }` at line 11.
 pub fn ruby_grep_spec_l11_d4_binary_file(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('binary_file', ...args)
+	return brew_runtime.object_value('Pathname', os.join_path(grep_spec_temp('dir'), 'file.bin'))
 }
 
 // Ruby method `setup_text_file` at line 17.
 pub fn ruby_grep_spec_l17_d5_setup_text_file(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('setup_text_file', ...args)
+	dir := if args.len > 0 { args[0].as_string() } else { grep_spec_temp('text') }
+	file := grep_spec_write_text(dir) or { return brew_runtime.object_value('SystemCallError', err.msg()) }
+	return brew_runtime.object_value('Pathname', file)
 }
 
 // Ruby method `setup_binary_file` at line 27.
 pub fn ruby_grep_spec_l27_d6_setup_binary_file(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('setup_binary_file', ...args)
+	dir := if args.len > 0 { args[0].as_string() } else { grep_spec_temp('binary') }
+	file := os.join_path(dir, 'file.bin')
+	os.write_file_array(file, [u8(0), `\n`]) or { return brew_runtime.object_value('SystemCallError', err.msg()) }
+	return brew_runtime.object_value('Pathname', file)
 }
 
 // Ruby specify `specify "find string matches to path" do` at line 34.
 pub fn ruby_grep_spec_l34_d7_find(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('find', ...args)
+	dir := grep_spec_temp('find')
+	defer { os.rmdir_all(dir) or {} }
+	_ := grep_spec_write_text(dir) or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value(homebrew.keg_each_unique_file_matching(grep_spec_keg(dir), dir).len == 1)
 }
 
 // Ruby specify `specify "test if file has null bytes" do` at line 47.
 pub fn ruby_grep_spec_l47_d8_test(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('test', ...args)
+	dir := grep_spec_temp('test')
+	defer { os.rmdir_all(dir) or {} }
+	binary := os.join_path(dir, 'file.bin')
+	os.write_file_array(binary, [u8(0), `\n`]) or { return brew_runtime.bool_value(false) }
+	text := grep_spec_write_text(dir) or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value(homebrew.keg_binary_file(binary) && !homebrew.keg_binary_file(text))
+}
+
+fn grep_spec_temp(name string) string {
+	path := os.join_path(os.temp_dir(), 'brew-v-keg-grep-${name}-${os.getpid()}')
+	os.rmdir_all(path) or {}
+	os.mkdir_all(path) or {}
+	return path
+}
+
+fn grep_spec_keg(path string) homebrew.Keg {
+	return homebrew.Keg{ path: path, name: 'foo', prefix: os.dir(path), cellar: os.dir(path) }
+}
+
+fn grep_spec_write_text(dir string) !string {
+	os.mkdir_all(dir)!
+	file := os.join_path(dir, 'file.txt')
+	os.write_file(file, '${dir}/file.txt\n/foo${dir}/file.txt\nfoo/bar:${dir}/file.txt\nfoo/bar:/foo${dir}/file.txt\n${dir}/bar.txt:${dir}/baz.txt\n')!
+	return file
 }
 
 // Original Ruby source (line-for-line):

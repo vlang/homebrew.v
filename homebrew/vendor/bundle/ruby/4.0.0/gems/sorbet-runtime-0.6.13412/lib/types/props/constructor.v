@@ -5,9 +5,60 @@ import brew_runtime
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/sorbet-runtime-0.6.13412/lib/types/props/constructor.rb`.
 // The original source is retained below until every stub has a typed V body.
 
+// construct_required_props_without_defaults mirrors Constructor's deliberate
+// setter call for every property. A failed setter on an absent key is reported
+// as the source's missing-required-property ArgumentError.
+pub fn construct_required_props_without_defaults(mut instance PropInstance,
+	definitions []PropDefinition, hash map[string]brew_runtime.Value) !int {
+	mut result := 0
+	for definition in definitions {
+		if definition.has_default || definition.has_factory {
+			continue
+		}
+		present := definition.name in hash
+		value := hash[definition.name] or { props_nil_value() }
+		set_prop_value(mut instance, definition, value) or {
+			if !present {
+				return error('Missing required prop `${definition.name}` for class `${instance.class_name}`')
+			}
+			return err
+		}
+		if props_truthy(value) || present {
+			result++
+		}
+	}
+	return result
+}
+
+pub fn strict_construct(class_name string, definitions []PropDefinition,
+	hash map[string]brew_runtime.Value) !PropInstance {
+	mut instance := PropInstance{
+		class_name: class_name
+		values: map[string]brew_runtime.Value{}
+	}
+	matched := construct_props_with_defaults(mut instance, definitions, hash)! + construct_required_props_without_defaults(mut instance, definitions, hash)!
+	if matched < hash.len {
+		known := definitions.map(it.name)
+		mut unknown := []string{}
+		for key in hash.keys() {
+			if key !in known {
+				unknown << key
+			}
+		}
+		unknown.sort()
+		return error('${class_name}: Unrecognized properties: ${unknown.join(', ')}')
+	}
+	return instance
+}
+
 // Ruby method `construct_props_without_defaults(instance, hash)` at line 19.
 pub fn ruby_constructor_l19_d1_construct_props_without_defaults(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('construct_props_without_defaults', ...args)
+	if args.len < 3 {
+		panic('construct_props_without_defaults requires decorator, instance, and hash')
+	}
+	mut instance := prop_instance_from_value(args[1])
+	count := construct_required_props_without_defaults(mut instance, prop_definitions_from_value(args[0]), args[2].as_map() or { panic(err) }) or { panic(err) }
+	return brew_runtime.int_value(count)
 }
 
 // Original Ruby source (line-for-line):

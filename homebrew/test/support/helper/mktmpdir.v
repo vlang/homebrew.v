@@ -1,13 +1,41 @@
 module helper
 
 import brew_runtime
+import os
+import time
+
+pub type MkTmpDirAction = fn(string) !brew_runtime.Value
+
+pub fn make_test_tmpdir(prefix string, suffix string, parent string) !string {
+	os.mkdir_all(parent)!
+	for attempt in 0 .. 100 {
+		candidate := os.join_path(parent, '${prefix}${os.getpid()}-${time.now().unix_nano()}-${attempt}${suffix}')
+		if !os.exists(candidate) {
+			os.mkdir(candidate)!
+			return candidate
+		}
+	}
+	return error('unable to create a temporary directory in ${parent}')
+}
+
+pub fn with_test_tmpdir(prefix string, suffix string, parent string,
+	action ?MkTmpDirAction) !brew_runtime.Value {
+	path := make_test_tmpdir(prefix, suffix, parent)!
+	if callback := action {
+		return callback(path)
+	}
+	return brew_runtime.string_value(path)
+}
 
 // Translated from Homebrew/brew `test/support/helper/mktmpdir.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `mktmpdir(prefix_suffix = nil, &block)` at line 13.
-pub fn ruby_mktmpdir_l13_d1_mktmpdir(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('mktmpdir', ...args)
+pub fn ruby_mktmpdir_l13_d1_mktmpdir(prefix_suffix []string, parent string,
+	action ?MkTmpDirAction) !brew_runtime.Value {
+	prefix := if prefix_suffix.len > 0 { prefix_suffix[0] } else { 'd' }
+	suffix := if prefix_suffix.len > 1 { prefix_suffix[1] } else { '' }
+	return with_test_tmpdir(prefix, suffix, parent, action)
 }
 
 // Original Ruby source (line-for-line):

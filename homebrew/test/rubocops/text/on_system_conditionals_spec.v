@@ -1,198 +1,262 @@
 module text
 
 import brew_runtime
+import homebrew.rubocops as line_cops
 
 // Translated from Homebrew/brew `test/rubocops/text/on_system_conditionals_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+fn on_system_spec_reports(source string, message string, corrected string) bool {
+	analysis := line_cops.audit_lines_on_system(line_cops.LinesContext{
+		source: source
+		tap: 'homebrew-core'
+	})
+	return analysis.offenses.len == 1 && analysis.offenses[0].message == message && analysis.corrected == corrected
+}
+
+fn on_system_spec_condition_formula(condition string, body_url string, else_url string) string {
+	mut source := 'class Foo < Formula\n  desc "foo"\n  if ${condition}\n    url \'${body_url}\''
+	if else_url != '' {
+		source += "\n  else\n    url '${else_url}'"
+	}
+	return source + '\n  end\nend'
+}
+
+fn on_system_spec_condition_correction(method string, body_url string, else_method string,
+	else_url string) string {
+	mut corrected := 'class Foo < Formula\n  desc "foo"\n  ${method} do\nurl \'${body_url}\'\nend'
+	if else_method != '' {
+		corrected += "\n${else_method} do\nurl '${else_url}'\nend"
+	}
+	return corrected + '\nend'
+}
+
+fn on_system_spec_parent_source(parent string, invocation string) string {
+	header := if parent == 'install' { 'def install' } else { 'test do' }
+	return 'class Foo < Formula\n  desc "foo"\n  url \'https://brew.sh/foo-1.0.tgz\'\n\n  ${header}\n    ${invocation} do\n      true\n    end\n  end\nend'
+}
+
+fn on_system_spec_parent_correction(parent string, condition string) string {
+	header := if parent == 'install' { 'def install' } else { 'test do' }
+	return 'class Foo < Formula\n  desc "foo"\n  url \'https://brew.sh/foo-1.0.tgz\'\n\n  ${header}\n    ${condition}\n      true\n    end\n  end\nend'
+}
+
+fn on_system_spec_parent_reports(parent string, invocation string, condition string) bool {
+	parent_name := if parent == 'install' { 'def install' } else { 'test do' }
+	message := 'Instead of using `${invocation}` in `${parent_name}`, use `${condition}`.'
+	return on_system_spec_reports(on_system_spec_parent_source(parent, invocation), message, on_system_spec_parent_correction(parent, condition))
+}
+
+fn on_system_spec_install(invocation string) string {
+	return 'def install\n  ${invocation} do\n    true\n  end\nend'
+}
+
+fn on_system_spec_corrected_install(condition string) string {
+	return 'def install\n  ${condition}\n    true\n  end\nend'
+}
 
 // Ruby subject `subject(:cop) { described_class.new }` at line 7.
 pub fn ruby_on_system_conditionals_spec_l7_d1_cop(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cop', ...args)
+	return brew_runtime.object_value('RuboCop::Cop::FormulaAudit::OnSystemConditionals', 'OnSystemConditionals')
 }
 
 // Ruby it `it "reports an offense when `OS.linux?` is used on Formula class" do` at line 10.
 pub fn ruby_on_system_conditionals_spec_l10_d2_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	source := on_system_spec_condition_formula('OS.linux?', 'https://brew.sh/linux-1.0.tgz', 'https://brew.sh/linux-1.0.tgz')
+	corrected := on_system_spec_condition_correction('on_linux', 'https://brew.sh/linux-1.0.tgz', 'on_macos', 'https://brew.sh/linux-1.0.tgz')
+	return brew_runtime.bool_value(on_system_spec_reports(source, 'Instead of `if OS.linux?`, use `on_linux do`.', corrected))
 }
 
 // Ruby it `it "reports an offense when `OS.mac?` is used on Formula class" do` at line 36.
 pub fn ruby_on_system_conditionals_spec_l36_d3_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	source := on_system_spec_condition_formula('OS.mac?', 'https://brew.sh/mac-1.0.tgz', 'https://brew.sh/linux-1.0.tgz')
+	corrected := on_system_spec_condition_correction('on_macos', 'https://brew.sh/mac-1.0.tgz', 'on_linux', 'https://brew.sh/linux-1.0.tgz')
+	return brew_runtime.bool_value(on_system_spec_reports(source, 'Instead of `if OS.mac?`, use `on_macos do`.', corrected))
 }
 
 // Ruby it `it "reports an offense when `on_macos` is used in install method" do` at line 62.
 pub fn ruby_on_system_conditionals_spec_l62_d4_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	return brew_runtime.bool_value(on_system_spec_parent_reports('install', 'on_macos', 'if OS.mac?'))
 }
 
 // Ruby method `install` at line 68.
 pub fn ruby_on_system_conditionals_spec_l68_d5_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	return brew_runtime.string_value(on_system_spec_install('on_macos'))
 }
 
 // Ruby method `install` at line 82.
 pub fn ruby_on_system_conditionals_spec_l82_d6_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	return brew_runtime.string_value(on_system_spec_corrected_install('if OS.mac?'))
 }
 
 // Ruby it `it "reports an offense when `on_linux` is used in install method" do` at line 91.
 pub fn ruby_on_system_conditionals_spec_l91_d7_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	return brew_runtime.bool_value(on_system_spec_parent_reports('install', 'on_linux', 'if OS.linux?'))
 }
 
 // Ruby method `install` at line 97.
 pub fn ruby_on_system_conditionals_spec_l97_d8_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	return brew_runtime.string_value(on_system_spec_install('on_linux'))
 }
 
 // Ruby method `install` at line 111.
 pub fn ruby_on_system_conditionals_spec_l111_d9_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	return brew_runtime.string_value(on_system_spec_corrected_install('if OS.linux?'))
 }
 
 // Ruby it `it "reports an offense when `on_macos` is used in test block" do` at line 120.
 pub fn ruby_on_system_conditionals_spec_l120_d10_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	return brew_runtime.bool_value(on_system_spec_parent_reports('test', 'on_macos', 'if OS.mac?'))
 }
 
 // Ruby it `it "reports an offense when `Hardware::CPU.arm?` is used on Formula class" do` at line 151.
 pub fn ruby_on_system_conditionals_spec_l151_d11_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	source := on_system_spec_condition_formula('Hardware::CPU.arm?', 'https://brew.sh/linux-1.0.tgz', 'https://brew.sh/linux-1.0.tgz')
+	corrected := on_system_spec_condition_correction('on_arm', 'https://brew.sh/linux-1.0.tgz', 'on_intel', 'https://brew.sh/linux-1.0.tgz')
+	return brew_runtime.bool_value(on_system_spec_reports(source, 'Instead of `if Hardware::CPU.arm?`, use `on_arm do`.', corrected))
 }
 
 // Ruby it `it "reports an offense when `Hardware::CPU.intel?` is used on Formula class" do` at line 177.
 pub fn ruby_on_system_conditionals_spec_l177_d12_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	source := on_system_spec_condition_formula('Hardware::CPU.intel?', 'https://brew.sh/mac-1.0.tgz', 'https://brew.sh/linux-1.0.tgz')
+	corrected := on_system_spec_condition_correction('on_intel', 'https://brew.sh/mac-1.0.tgz', 'on_arm', 'https://brew.sh/linux-1.0.tgz')
+	return brew_runtime.bool_value(on_system_spec_reports(source, 'Instead of `if Hardware::CPU.intel?`, use `on_intel do`.', corrected))
 }
 
 // Ruby it `it "reports an offense when `on_intel` is used in install method" do` at line 203.
 pub fn ruby_on_system_conditionals_spec_l203_d13_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	return brew_runtime.bool_value(on_system_spec_parent_reports('install', 'on_intel', 'if Hardware::CPU.intel?'))
 }
 
 // Ruby method `install` at line 209.
 pub fn ruby_on_system_conditionals_spec_l209_d14_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	return brew_runtime.string_value(on_system_spec_install('on_intel'))
 }
 
 // Ruby method `install` at line 223.
 pub fn ruby_on_system_conditionals_spec_l223_d15_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	return brew_runtime.string_value(on_system_spec_corrected_install('if Hardware::CPU.intel?'))
 }
 
 // Ruby it `it "reports an offense when `on_arm` is used in install method" do` at line 232.
 pub fn ruby_on_system_conditionals_spec_l232_d16_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	return brew_runtime.bool_value(on_system_spec_parent_reports('install', 'on_arm', 'if Hardware::CPU.arm?'))
 }
 
 // Ruby method `install` at line 238.
 pub fn ruby_on_system_conditionals_spec_l238_d17_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	return brew_runtime.string_value(on_system_spec_install('on_arm'))
 }
 
 // Ruby method `install` at line 252.
 pub fn ruby_on_system_conditionals_spec_l252_d18_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	return brew_runtime.string_value(on_system_spec_corrected_install('if Hardware::CPU.arm?'))
 }
 
 // Ruby it `it "reports an offense when `on_intel` is used in test block" do` at line 261.
 pub fn ruby_on_system_conditionals_spec_l261_d19_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	return brew_runtime.bool_value(on_system_spec_parent_reports('test', 'on_intel', 'if Hardware::CPU.intel?'))
 }
 
 // Ruby it `it "reports an offense when `MacOS.version ==` is used on Formula class" do` at line 292.
 pub fn ruby_on_system_conditionals_spec_l292_d20_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	source := on_system_spec_condition_formula('MacOS.version == :monterey', 'https://brew.sh/linux-1.0.tgz', '')
+	corrected := on_system_spec_condition_correction('on_monterey', 'https://brew.sh/linux-1.0.tgz', '', '')
+	return brew_runtime.bool_value(on_system_spec_reports(source, 'Instead of `if MacOS.version == :monterey`, use `on_monterey do`.', corrected))
 }
 
 // Ruby it `it "reports an offense when `MacOS.version <=` is used on Formula class" do` at line 313.
 pub fn ruby_on_system_conditionals_spec_l313_d21_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	source := on_system_spec_condition_formula('MacOS.version <= :monterey', 'https://brew.sh/mac-1.0.tgz', '')
+	corrected := on_system_spec_condition_correction('on_system :linux, macos: :monterey_or_older', 'https://brew.sh/mac-1.0.tgz', '', '')
+	return brew_runtime.bool_value(on_system_spec_reports(source, 'Instead of `if MacOS.version <= :monterey`, use `on_system :linux, macos: :monterey_or_older do`.', corrected))
 }
 
 // Ruby it `it "reports an offense when `MacOS.version <` is used on Formula class" do` at line 334.
 pub fn ruby_on_system_conditionals_spec_l334_d22_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	source := on_system_spec_condition_formula('MacOS.version < :monterey', 'https://brew.sh/mac-1.0.tgz', '')
+	return brew_runtime.bool_value(on_system_spec_reports(source, 'Instead of `if MacOS.version < :monterey`, use `on_system do`.', source))
 }
 
 // Ruby it `it "reports an offense when `MacOS.version >=` is used on Formula class" do` at line 346.
 pub fn ruby_on_system_conditionals_spec_l346_d23_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	source := on_system_spec_condition_formula('MacOS.version >= :monterey', 'https://brew.sh/mac-1.0.tgz', 'https://brew.sh/linux-1.0.tgz')
+	return brew_runtime.bool_value(on_system_spec_reports(source, 'Instead of `if MacOS.version >= :monterey`, use `on_monterey :or_newer do`.', source))
 }
 
 // Ruby it `it "reports an offense when `MacOS.version >` is used on Formula class" do` at line 360.
 pub fn ruby_on_system_conditionals_spec_l360_d24_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	source := on_system_spec_condition_formula('MacOS.version > :monterey', 'https://brew.sh/mac-1.0.tgz', '')
+	return brew_runtime.bool_value(on_system_spec_reports(source, 'Instead of `if MacOS.version > :monterey`, use `on_monterey do`.', source))
 }
 
 // Ruby it `it "reports an offense when `on_monterey` is used in install method" do` at line 372.
 pub fn ruby_on_system_conditionals_spec_l372_d25_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	return brew_runtime.bool_value(on_system_spec_parent_reports('install', 'on_monterey', 'if MacOS.version == :monterey'))
 }
 
 // Ruby method `install` at line 378.
 pub fn ruby_on_system_conditionals_spec_l378_d26_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	return brew_runtime.string_value(on_system_spec_install('on_monterey'))
 }
 
 // Ruby method `install` at line 392.
 pub fn ruby_on_system_conditionals_spec_l392_d27_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	return brew_runtime.string_value(on_system_spec_corrected_install('if MacOS.version == :monterey'))
 }
 
 // Ruby it `it "reports an offense when `on_monterey :or_older` is used in install method" do` at line 401.
 pub fn ruby_on_system_conditionals_spec_l401_d28_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	return brew_runtime.bool_value(on_system_spec_parent_reports('install', 'on_monterey :or_older', 'if MacOS.version <= :monterey'))
 }
 
 // Ruby method `install` at line 407.
 pub fn ruby_on_system_conditionals_spec_l407_d29_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	return brew_runtime.string_value(on_system_spec_install('on_monterey :or_older'))
 }
 
 // Ruby method `install` at line 421.
 pub fn ruby_on_system_conditionals_spec_l421_d30_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	return brew_runtime.string_value(on_system_spec_corrected_install('if MacOS.version <= :monterey'))
 }
 
 // Ruby it `it "reports an offense when `on_monterey :or_newer` is used in install method" do` at line 430.
 pub fn ruby_on_system_conditionals_spec_l430_d31_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	return brew_runtime.bool_value(on_system_spec_parent_reports('install', 'on_monterey :or_newer', 'if MacOS.version >= :monterey'))
 }
 
 // Ruby method `install` at line 436.
 pub fn ruby_on_system_conditionals_spec_l436_d32_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	return brew_runtime.string_value(on_system_spec_install('on_monterey :or_newer'))
 }
 
 // Ruby method `install` at line 450.
 pub fn ruby_on_system_conditionals_spec_l450_d33_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	return brew_runtime.string_value(on_system_spec_corrected_install('if MacOS.version >= :monterey'))
 }
 
 // Ruby it `it "reports an offense when `on_system :linux, macos: :monterey_or_newer` is used in install method" do` at line 459.
 pub fn ruby_on_system_conditionals_spec_l459_d34_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	return brew_runtime.bool_value(on_system_spec_parent_reports('install', 'on_system :linux, macos: :monterey_or_newer', 'if OS.linux? || MacOS.version >= :monterey'))
 }
 
 // Ruby method `install` at line 465.
 pub fn ruby_on_system_conditionals_spec_l465_d35_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	return brew_runtime.string_value(on_system_spec_install('on_system :linux, macos: :monterey_or_newer'))
 }
 
 // Ruby method `install` at line 479.
 pub fn ruby_on_system_conditionals_spec_l479_d36_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	return brew_runtime.string_value(on_system_spec_corrected_install('if OS.linux? || MacOS.version >= :monterey'))
 }
 
 // Ruby it `it "reports an offense when `on_monterey` is used in test block" do` at line 488.
 pub fn ruby_on_system_conditionals_spec_l488_d37_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	return brew_runtime.bool_value(on_system_spec_parent_reports('test', 'on_monterey', 'if MacOS.version == :monterey'))
 }
 
 // Ruby it `it "reports an offense when `on_system :linux, macos: :monterey` is used in test block" do` at line 517.
 pub fn ruby_on_system_conditionals_spec_l517_d38_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	return brew_runtime.bool_value(on_system_spec_parent_reports('test', 'on_system :linux, macos: :monterey', 'if OS.linux? || MacOS.version == :monterey'))
 }
 
 // Original Ruby source (line-for-line):

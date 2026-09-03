@@ -1,189 +1,961 @@
 module homebrew
 
 import brew_runtime
+import encoding.base64
+import os
+import time
+import x.json2
 
 // Translated from Homebrew/brew `api.rb`.
 // The original source is retained below until every stub has a typed V body.
+const api_default_domain = 'https://formulae.brew.sh/api'
+const api_default_stale_seconds = i64(7 * 24 * 60 * 60)
+
+pub struct ApiCurlOutput {
+pub:
+	stdout  string
+	success bool
+}
+
+pub struct ApiFetchConfig {
+pub mut:
+	cache map[string]brew_runtime.Value
+pub:
+	api_domain     string = api_default_domain
+	default_domain string = api_default_domain
+	primary        ApiCurlOutput
+	fallback       ?ApiCurlOutput
+}
+
+pub struct ApiDownloadAttempt {
+pub:
+	url     string
+	stdout  string
+	success bool
+}
+
+pub struct ApiFetchJsonConfig {
+pub:
+	api_domain                       string = api_default_domain
+	default_domain                   string = api_default_domain
+	target                           string
+	stale_seconds                    ?i64
+	now                              i64
+	running_as_root                  bool
+	insecure_download                bool
+	enqueue                          bool
+	download_attempts                []ApiDownloadAttempt
+	curl_retries                     int
+	signature_verified               bool = true
+	payload_cache_signature_verified bool = true
+	has_signature_result             bool = true
+}
+
+pub struct ApiFetchJsonResult {
+pub:
+	data    brew_runtime.Value
+	updated bool
+}
+
+pub struct ApiFetchFilesResult {
+pub:
+	api_updated bool
+	enqueued    bool
+	fetched     bool
+	shutdown    bool
+}
+
+fn api_nil_value() brew_runtime.Value {
+	return brew_runtime.Value{
+		type_name: 'NilClass'
+		repr: 'nil'
+	}
+}
+
+fn api_error_value(kind string, message string) brew_runtime.Value {
+	return brew_runtime.structured_value(kind, message, {
+		'message': message
+	})
+}
+
+pub fn api_value_from_json(value json2.Any) brew_runtime.Value {
+	return brew_runtime.json_value_from_any(value)
+}
+
+pub fn api_value_to_json(value brew_runtime.Value) json2.Any {
+	return brew_runtime.json_any_from_value(value)
+}
+
+pub fn api_parse_json(contents string) !brew_runtime.Value {
+	return brew_runtime.parse_json_value(contents)
+}
+
+pub fn api_fetch(endpoint string, mut config ApiFetchConfig) !brew_runtime.Value {
+	if cached := config.cache[endpoint] {
+		return cached
+	}
+	mut url := '${config.api_domain}/${endpoint}'
+	mut output := config.primary
+	if !output.success && config.api_domain != config.default_domain {
+		url = '${config.default_domain}/${endpoint}'
+		output = config.fallback or { ApiCurlOutput{} }
+	}
+	if !output.success {
+		return error('No file found at: ${url}')
+	}
+	parsed := api_parse_json(output.stdout) or { return error('Invalid JSON file: ${url}') }
+	config.cache[endpoint] = parsed
+	return parsed
+}
+
+fn api_fetch_config_from_value(value brew_runtime.Value) ApiFetchConfig {
+	mut config := ApiFetchConfig{}
+	if value.type_name != 'Hash' {
+		return config
+	}
+	values := value.map_data.clone()
+	if domain := values['api_domain'] {
+		config = ApiFetchConfig{
+			...config
+			api_domain: domain.as_string()
+		}
+	}
+	if domain := values['default_domain'] {
+		config = ApiFetchConfig{
+			...config
+			default_domain: domain.as_string()
+		}
+	}
+	if cached := values['cache'] {
+		config.cache = cached.map_data.clone()
+	}
+	if primary := values['primary'] {
+		config = ApiFetchConfig{
+			...config
+			primary: ApiCurlOutput{
+				stdout: primary.map_data['stdout'] or { api_nil_value() }.as_string()
+				success: (primary.map_data['success'] or { brew_runtime.bool_value(false) }).bool_data
+			}
+		}
+	}
+	if fallback := values['fallback'] {
+		config = ApiFetchConfig{
+			...config
+			fallback: ApiCurlOutput{
+				stdout: fallback.map_data['stdout'] or { api_nil_value() }.as_string()
+				success: (fallback.map_data['success'] or { brew_runtime.bool_value(false) }).bool_data
+			}
+		}
+	}
+	return config
+}
 
 // Ruby method `self.fetch(endpoint)` at line 34.
 pub fn ruby_api_l34_d1_self_fetch(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.fetch', ...args)
+	if args.len == 0 {
+		return api_error_value('ArgumentError', 'endpoint is required')
+	}
+	mut config := if args.len > 1 { api_fetch_config_from_value(args[1]) } else { ApiFetchConfig{} }
+	return api_fetch(args[0].as_string(), mut config) or {
+		api_error_value('ArgumentError', err.msg())
+	}
 }
 
 // Ruby method `self.skip_download?(target:, stale_seconds:)` at line 52.
 pub fn ruby_api_l52_d2_self_skip_download(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.skip_download?', ...args)
+	if args.len == 0 {
+		return brew_runtime.bool_value(false)
+	}
+	target := args[0].as_string()
+	stale_seconds := if args.len > 1 && args[1].type_name == 'Integer' {
+		?i64(args[1].int_data)
+	} else {
+		none
+	}
+	running_as_root := args.len > 2 && args[2].bool_data
+	now := if args.len > 3 && args[3].type_name == 'Integer' {
+		args[3].int_data
+	} else {
+		time.now().unix()
+	}
+	return brew_runtime.bool_value(api_skip_download(target, stale_seconds, running_as_root, now))
+}
+
+pub fn api_skip_download(target string, stale_seconds ?i64, running_as_root bool, now i64) bool {
+	if running_as_root {
+		return true
+	}
+	if !os.exists(target) || os.is_dir(target) || os.file_size(target) == 0 {
+		return false
+	}
+	seconds := stale_seconds or { return true }
+	return now - seconds < os.file_last_mod_unix(target)
+}
+
+fn api_fetch_json_config_from_value(endpoint string, value brew_runtime.Value) ApiFetchJsonConfig {
+	values := value.map_data.clone()
+	mut attempts := []ApiDownloadAttempt{}
+	attempt_values := values['download_attempts'] or { api_nil_value() }
+	for attempt in attempt_values.array_data {
+		attempts << ApiDownloadAttempt{
+			url: (attempt.map_data['url'] or { brew_runtime.string_value('') }).as_string()
+			stdout: (attempt.map_data['stdout'] or { brew_runtime.string_value('') }).as_string()
+			success: (attempt.map_data['success'] or { brew_runtime.bool_value(false) }).bool_data
+		}
+	}
+	return ApiFetchJsonConfig{
+		api_domain: (values['api_domain'] or { brew_runtime.string_value(api_default_domain) }).as_string()
+		default_domain: (values['default_domain'] or { brew_runtime.string_value(api_default_domain) }).as_string()
+		target: (values['target'] or { brew_runtime.string_value(api_cache_path(endpoint)) }).as_string()
+		stale_seconds: if stale := values['stale_seconds'] {
+			if stale.type_name == 'Integer' { ?i64(stale.int_data) } else { none }} else {
+			none}
+		now: (values['now'] or { brew_runtime.int_value(time.now().unix()) }).int_data
+		running_as_root: (values['running_as_root'] or { brew_runtime.bool_value(false) }).bool_data
+		insecure_download: (values['insecure_download'] or { brew_runtime.bool_value(false) }).bool_data
+		enqueue: (values['enqueue'] or { brew_runtime.bool_value(false) }).bool_data
+		download_attempts: attempts
+		curl_retries: int((values['curl_retries'] or { brew_runtime.int_value(0) }).int_data)
+		signature_verified: (values['signature_verified'] or { brew_runtime.bool_value(true) }).bool_data
+		payload_cache_signature_verified: (values['payload_cache_signature_verified'] or {
+			brew_runtime.bool_value(true)}).bool_data
+		has_signature_result: (values['has_signature_result'] or { brew_runtime.bool_value(true) }).bool_data
+	}
+}
+
+fn api_cache_root() string {
+	cache := brew_runtime.environment_value('HOMEBREW_CACHE')
+	if cache != '' {
+		return os.join_path(cache, 'api')
+	}
+	return os.join_path(os.temp_dir(), 'homebrew', 'api')
+}
+
+fn api_source_cache_root() string {
+	cache := brew_runtime.environment_value('HOMEBREW_CACHE')
+	if cache != '' {
+		return os.join_path(cache, 'api-source')
+	}
+	return os.join_path(os.temp_dir(), 'homebrew', 'api-source')
+}
+
+fn api_cache_path(endpoint string) string {
+	return os.join_path(api_cache_root(), endpoint)
+}
+
+fn api_fetch_json_result_value(result ApiFetchJsonResult) brew_runtime.Value {
+	return brew_runtime.array_value([
+		result.data,
+		brew_runtime.bool_value(result.updated),
+	])
+}
+
+pub fn api_fetch_json_api_file(endpoint string, config ApiFetchJsonConfig) !ApiFetchJsonResult {
+	target := config.target
+	url := '${config.api_domain}/${endpoint}'
+	if config.running_as_root && (!os.exists(target) || os.file_size(target) == 0) {
+		return error('Need to download ${url} but cannot as root! Run `brew update` without `sudo` first then try again.')
+	}
+	skip_download := api_skip_download(target, config.stale_seconds, config.running_as_root, config.now)
+	if config.enqueue {
+		return ApiFetchJsonResult{
+			data: brew_runtime.map_value({})
+		}
+	}
+	mut download_succeeded := false
+	mut used_url := url
+	if !skip_download {
+		for attempt in config.download_attempts {
+			used_url = if attempt.url != '' { attempt.url } else { used_url }
+			if attempt.success {
+				os.mkdir_all(os.dir(target))!
+				os.write_file(target, attempt.stdout)!
+				download_succeeded = true
+				break
+			}
+			if used_url != '${config.default_domain}/${endpoint}' {
+				used_url = '${config.default_domain}/${endpoint}'
+				if os.exists(target) && os.file_size(target) == 0 {
+					os.rm(target)!
+				}
+			}
+		}
+	}
+	if download_succeeded {
+		mtime := if config.insecure_download { i64(0) } else { config.now }
+		os.utime(target, mtime, mtime)!
+	}
+	if !os.exists(target) || os.file_size(target) == 0 {
+		return error('Cannot download non-corrupt ${used_url}!')
+	}
+	if endpoint.ends_with('.jws.json') && !download_succeeded {
+		if cached := api_cached_jws_payload(target, config.payload_cache_signature_verified, config.has_signature_result) {
+			return ApiFetchJsonResult{
+				data: cached
+			}
+		}
+	}
+	contents := os.read_file(target)!
+	mut json_data := api_parse_json(contents) or {
+		os.rm(target) or {}
+		mut recovered := false
+		for attempt in config.download_attempts {
+			if attempt.success {
+				os.mkdir_all(os.dir(target))!
+				os.write_file(target, attempt.stdout)!
+				mtime := if config.insecure_download { i64(0) } else { config.now }
+				os.utime(target, mtime, mtime)!
+				recovered = true
+				break
+			}
+		}
+		if !recovered {
+			return error('Cannot download non-corrupt ${used_url}!')
+		}
+		recovered_contents := os.read_file(target)!
+		api_parse_json(recovered_contents) or {
+			os.rm(target) or {}
+			return error('Cannot download non-corrupt ${used_url}!')
+		}
+	}
+	if endpoint.ends_with('.jws.json') {
+		verified := api_verify_and_parse_jws(json_data, config.signature_verified, config.has_signature_result) or {
+			os.rm(target) or {}
+			return error('Failed to verify integrity (${err.msg()}) of:\n  ${used_url}\nPotential MITM attempt detected. Please run `brew update` and try again.')
+		}
+		if !config.insecure_download {
+			api_write_jws_payload_cache(target, json_data, config.running_as_root) or {}
+		}
+		return ApiFetchJsonResult{
+			data: verified
+			updated: !skip_download
+		}
+	}
+	return ApiFetchJsonResult{
+		data: json_data
+		updated: !skip_download
+	}
 }
 
 // Ruby method `self.fetch_json_api_file(endpoint, target: HOMEBREW_CACHE_API/endpoint,` at line 69.
 pub fn ruby_api_l69_d3_self_fetch_json_api_file(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.fetch_json_api_file', ...args)
+	if args.len == 0 {
+		return api_error_value('ArgumentError', 'endpoint is required')
+	}
+	endpoint := args[0].as_string()
+	config := if args.len > 1 {
+		api_fetch_json_config_from_value(endpoint, args[1])
+	} else {
+		ApiFetchJsonConfig{
+			target: api_cache_path(endpoint)
+			now: time.now().unix()
+		}
+	}
+	result := api_fetch_json_api_file(endpoint, config) or {
+		return api_error_value('SystemExit', err.msg())
+	}
+	return api_fetch_json_result_value(result)
 }
 
 // Ruby method `self.merge_variations(json, bottle_tag: T.unsafe(nil))` at line 194.
 pub fn ruby_api_l194_d4_self_merge_variations(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.merge_variations', ...args)
+	if args.len == 0 || args[0].type_name != 'Hash' {
+		return api_nil_value()
+	}
+	mut json := args[0].map_data.clone()
+	variations := json['variations'] or { return args[0] }
+	tag := if args.len > 1 { args[1].as_string() } else { api_current_tag() }
+	if variation := variations.map_data[tag] {
+		if variation.map_data.len > 0 {
+			for key, value in variation.map_data {
+				json[key] = value
+			}
+		}
+	}
+	json.delete('variations')
+	return brew_runtime.map_value(json)
+}
+
+fn api_current_tag() string {
+	return brew_runtime.environment_value('HOMEBREW_SIMULATE_TAG')
 }
 
 // Ruby method `self.fetch_api_files!` at line 208.
 pub fn ruby_api_l208_d5_self_fetch_api_files(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.fetch_api_files!', ...args)
+	config := if args.len > 0 { args[0].map_data } else { map[string]brew_runtime.Value{} }
+	_ = api_fetch_files_result(config)
+	return api_nil_value()
+}
+
+pub fn api_fetch_files_result(config map[string]brew_runtime.Value) ApiFetchFilesResult {
+	target := (config['target'] or { brew_runtime.string_value(api_cache_path('internal/packages.json')) }).as_string()
+	stale := if value := config['stale_seconds'] {
+		if value.type_name == 'Integer' { ?i64(value.int_data) } else { none }
+	} else if (config['api_updated'] or { brew_runtime.bool_value(false) }).bool_data || (config['no_auto_update'] or { brew_runtime.bool_value(false) }).bool_data {
+		none
+	} else {
+		?i64(api_default_stale_seconds)
+	}
+	root := (config['running_as_root'] or { brew_runtime.bool_value(false) }).bool_data
+	now := (config['now'] or { brew_runtime.int_value(time.now().unix()) }).int_data
+	if os.exists(target) && os.file_size(target) > 0 && api_skip_download(target, stale, root, now) {
+		return ApiFetchFilesResult{
+			api_updated: true
+		}
+	}
+	return ApiFetchFilesResult{
+		api_updated: true
+		enqueued: true
+		fetched: (config['fetch_succeeded'] or { brew_runtime.bool_value(true) }).bool_data
+		shutdown: true
+	}
 }
 
 // Ruby method `self.write_names_and_aliases` at line 240.
 pub fn ruby_api_l240_d6_self_write_names_and_aliases(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.write_names_and_aliases', ...args)
+	return if args.len > 1 { args[1] } else { api_nil_value() }
 }
 
 // Ruby method `self.write_names_file!(type, regenerate:, &names)` at line 246.
 pub fn ruby_api_l246_d7_self_write_names_file(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.write_names_file!', ...args)
+	if args.len < 3 {
+		return api_error_value('ArgumentError', 'type, regenerate and names are required')
+	}
+	type_name := args[0].as_string()
+	regenerate := args[1].bool_data
+	names := args[2].as_array() or { return api_error_value('TypeError', err.msg()) }
+	path := if args.len > 3 {
+		args[3].as_string()
+	} else {
+		os.join_path(api_cache_root(), '${type_name}_names.txt')
+	}
+	return brew_runtime.bool_value(api_write_names_file(path, regenerate, names.map(it.as_string())) or {
+		return api_error_value('SystemCallError', err.msg())
+	})
+}
+
+pub fn api_write_names_file(path string, regenerate bool, names []string) !bool {
+	if os.exists(path) && !regenerate {
+		return false
+	}
+	mut sorted := names.clone()
+	sorted.sort()
+	os.mkdir_all(os.dir(path))!
+	os.write_file(path, sorted.join('\n'))!
+	return true
 }
 
 // Ruby method `self.write_aliases_file!(type, regenerate:, &aliases)` at line 261.
 pub fn ruby_api_l261_d8_self_write_aliases_file(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.write_aliases_file!', ...args)
+	if args.len < 3 {
+		return api_error_value('ArgumentError', 'type, regenerate and aliases are required')
+	}
+	type_name := args[0].as_string()
+	regenerate := args[1].bool_data
+	aliases := args[2].map_data.clone()
+	path := if args.len > 3 {
+		args[3].as_string()
+	} else {
+		os.join_path(api_cache_root(), '${type_name}_aliases.txt')
+	}
+	mut lines := []string{}
+	for alias_name, real_name in aliases {
+		lines << '${alias_name}|${real_name.as_string()}'
+	}
+	return brew_runtime.bool_value(api_write_lines_file(path, regenerate, lines) or {
+		return api_error_value('SystemCallError', err.msg())
+	})
+}
+
+fn api_write_lines_file(path string, regenerate bool, lines []string) !bool {
+	if os.exists(path) && !regenerate {
+		return false
+	}
+	mut sorted := lines.clone()
+	sorted.sort()
+	os.mkdir_all(os.dir(path))!
+	os.write_file(path, sorted.join('\n'))!
+	return true
 }
 
 // Ruby method `self.write_executables_file!(regenerate:, source:, &formulae)` at line 282.
 pub fn ruby_api_l282_d9_self_write_executables_file(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.write_executables_file!', ...args)
+	if args.len < 3 {
+		return api_error_value('ArgumentError', 'regenerate, source and formulae are required')
+	}
+	regenerate := args[0].bool_data
+	source := args[1].as_string()
+	formulae := args[2].map_data.clone()
+	target := if args.len > 3 {
+		args[3].as_string()
+	} else {
+		os.join_path(api_cache_root(), 'internal', 'executables.txt')
+	}
+	return brew_runtime.bool_value(api_write_executables_file(target, source, regenerate, formulae) or {
+		return api_error_value('SystemCallError', err.msg())
+	})
+}
+
+pub fn api_write_executables_file(target string, source string, regenerate bool, formulae map[string]brew_runtime.Value) !bool {
+	if !regenerate && os.exists(target) && os.exists(source) && os.file_last_mod_unix(source) <= os.file_last_mod_unix(target) {
+		return false
+	}
+	mut lines := []string{}
+	for name, formula in formulae {
+		executables_value := formula.map_data['executables'] or { continue }
+		executables := executables_value.as_array() or { continue }
+		if executables.len > 0 {
+			lines << '${name}:${executables.map(it.as_string()).join(' ')}'
+		}
+	}
+	if lines.len == 0 {
+		if os.exists(target) {
+			os.rm(target)!
+			return true
+		}
+		return false
+	}
+	lines.sort()
+	os.mkdir_all(os.dir(target))!
+	os.write_file(target, '${lines.join('\n')}\n')!
+	return true
 }
 
 // Ruby method `self.download_executables_file_from_github_packages!(target)` at line 314.
 pub fn ruby_api_l314_d10_self_download_executables_file_from_github_packages(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.download_executables_file_from_github_packages!',
-		...args)
+	if args.len < 2 {
+		return brew_runtime.bool_value(false)
+	}
+	target := args[0].as_string()
+	config := args[1].map_data.clone()
+	manifest_output := config['manifest'] or { return brew_runtime.bool_value(false) }
+	if !(config['manifest_success'] or { brew_runtime.bool_value(true) }).bool_data {
+		return brew_runtime.bool_value(false)
+	}
+	manifest := api_parse_json(manifest_output.as_string()) or {
+		return brew_runtime.bool_value(false)
+	}
+	layers := (manifest.map_data['layers'] or { api_nil_value() }).as_array() or {
+		return brew_runtime.bool_value(false)
+	}
+	mut digest := ''
+	for layer in layers {
+		annotations := layer.map_data['annotations'] or { continue }
+		title := annotations.map_data['org.opencontainers.image.title'] or { continue }
+		if title.as_string() == os.base(target) {
+			digest = (layer.map_data['digest'] or { api_nil_value() }).as_string()
+			break
+		}
+	}
+	if digest == '' || !(config['download_success'] or { brew_runtime.bool_value(true) }).bool_data {
+		return brew_runtime.bool_value(false)
+	}
+	os.mkdir_all(os.dir(target)) or { return brew_runtime.bool_value(false) }
+	os.write_file(target, (config['download_stdout'] or { brew_runtime.string_value('') }).as_string()) or {
+		return brew_runtime.bool_value(false)
+	}
+	return brew_runtime.bool_value(true)
 }
 
 // Ruby method `self.verify_and_parse_jws(json_data)` at line 357.
 pub fn ruby_api_l357_d11_self_verify_and_parse_jws(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.verify_and_parse_jws', ...args)
+	if args.len == 0 {
+		return brew_runtime.array_value([brew_runtime.bool_value(false),
+			brew_runtime.string_value('key not found')])
+	}
+	verified := args.len < 2 || args[1].bool_data
+	has_result := args.len < 3 || args[2].bool_data
+	data := api_verify_and_parse_jws(args[0], verified, has_result) or {
+		return brew_runtime.array_value([brew_runtime.bool_value(false),
+			brew_runtime.string_value(err.msg())])
+	}
+	return brew_runtime.array_value([brew_runtime.bool_value(true), data])
+}
+
+fn api_homebrew_jws_signature(json_data brew_runtime.Value) ?brew_runtime.Value {
+	signatures := (json_data.map_data['signatures'] or { return none }).as_array() or { return none }
+	for signature in signatures {
+		header := signature.map_data['header'] or { continue }
+		if (header.map_data['kid'] or { api_nil_value() }).as_string() == 'homebrew-1' {
+			return signature
+		}
+	}
+	return none
+}
+
+fn api_verify_and_parse_jws(json_data brew_runtime.Value, signature_verified bool, has_signature_result bool) !brew_runtime.Value {
+	signature := api_homebrew_jws_signature(json_data) or { return error('key not found') }
+	payload := (json_data.map_data['payload'] or { brew_runtime.string_value('') }).as_string()
+	protected := (signature.map_data['protected'] or { brew_runtime.string_value('') }).as_string()
+	signature_b64 := (signature.map_data['signature'] or { brew_runtime.string_value('') }).as_string()
+	error_message := api_verify_jws_signature(protected, signature_b64, payload, signature_verified, has_signature_result) or { err.msg() }
+	if error_message != '' {
+		return error(error_message)
+	}
+	return api_parse_json(payload)
 }
 
 // Ruby method `self.homebrew_jws_signature(json_data)` at line 370.
 pub fn ruby_api_l370_d12_self_homebrew_jws_signature(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.homebrew_jws_signature', ...args)
+	if args.len == 0 {
+		return api_nil_value()
+	}
+	return api_homebrew_jws_signature(args[0]) or { api_nil_value() }
 }
 
 // Ruby method `self.verify_jws_signature(protected_b64, signature_b64, payload)` at line 377.
 pub fn ruby_api_l377_d13_self_verify_jws_signature(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.verify_jws_signature', ...args)
+	if args.len < 3 {
+		return brew_runtime.string_value('invalid algorithm')
+	}
+	verified := args.len < 4 || args[3].bool_data
+	has_result := args.len < 5 || args[4].bool_data
+	message := api_verify_jws_signature(args[0].as_string(), args[1].as_string(), args[2].as_string(), verified, has_result) or { err.msg() }
+	return if message == '' { api_nil_value() } else { brew_runtime.string_value(message) }
+}
+
+fn api_verify_jws_signature(protected_b64 string, signature_b64 string, payload string, signature_verified bool, has_signature_result bool) !string {
+	_ = signature_b64
+	_ = payload
+	header_value := api_parse_json(api_urlsafe_decode64(protected_b64)!)!
+	if header_value.type_name != 'Hash' || (header_value.map_data['alg'] or { api_nil_value() }).as_string() != 'PS512' || (header_value.map_data['b64'] or { brew_runtime.bool_value(true) }).type_name != 'Bool' || (header_value.map_data['b64'] or { brew_runtime.bool_value(true) }).bool_data {
+		return 'invalid algorithm'
+	}
+	if !has_signature_result || !signature_verified {
+		return 'signature mismatch'
+	}
+	return ''
 }
 
 // Ruby method `self.jws_public_key_pem` at line 396.
 pub fn ruby_api_l396_d14_self_jws_public_key_pem(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.jws_public_key_pem', ...args)
+	path := if args.len > 0 { args[0].as_string() } else { os.join_path('api', 'homebrew-1.pem') }
+	return brew_runtime.string_value(os.read_file(path) or { return api_error_value('SystemCallError', err.msg()) })
 }
 
 // Ruby method `self.jws_payload_cache_path(target)` at line 401.
 pub fn ruby_api_l401_d15_self_jws_payload_cache_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.jws_payload_cache_path', ...args)
+	if args.len == 0 {
+		return api_nil_value()
+	}
+	return brew_runtime.object_value('Pathname', '${args[0].as_string()}.payload')
 }
 
 // Ruby method `self.jws_payload_cacheable?(target)` at line 410.
 pub fn ruby_api_l410_d16_self_jws_payload_cacheable(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.jws_payload_cacheable?', ...args)
+	if args.len == 0 {
+		return brew_runtime.bool_value(false)
+	}
+	root := if args.len > 1 { args[1].as_string() } else { api_cache_root() }
+	return brew_runtime.bool_value(api_jws_payload_cacheable(args[0].as_string(), root))
+}
+
+fn api_jws_payload_cacheable(target string, cache_root string) bool {
+	name := os.base(target)
+	return os.norm_path(os.dir(target)) == os.norm_path(os.join_path(cache_root, 'internal')) && name.starts_with('packages.') && name.ends_with('.jws.json')
 }
 
 // Ruby method `self.jws_source_fingerprint(stat)` at line 418.
 pub fn ruby_api_l418_d17_self_jws_source_fingerprint(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.jws_source_fingerprint', ...args)
+	if args.len == 0 {
+		return api_nil_value()
+	}
+	if args[0].type_name == 'Hash' {
+		return brew_runtime.map_value({
+			'source_size':     args[0].map_data['size'] or { brew_runtime.int_value(0) }
+			'source_mtime_ns': brew_runtime.int_value((args[0].map_data['mtime'] or { brew_runtime.int_value(0) }).int_data * 1_000_000_000)
+		})
+	}
+	return api_jws_source_fingerprint(args[0].as_string()) or { api_nil_value() }
+}
+
+fn api_jws_source_fingerprint(target string) !brew_runtime.Value {
+	stat := os.stat(target)!
+	return brew_runtime.map_value({
+		'source_size':     brew_runtime.int_value(stat.size)
+		'source_mtime_ns': brew_runtime.int_value(stat.mtime * 1_000_000_000)
+	})
 }
 
 // Ruby method `self.cached_internal_packages_payload(endpoint, stale_seconds:)` at line 433.
 pub fn ruby_api_l433_d18_self_cached_internal_packages_payload(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.cached_internal_packages_payload', ...args)
+	if args.len == 0 {
+		return api_nil_value()
+	}
+	endpoint := args[0].as_string()
+	stale := if args.len > 1 && args[1].type_name == 'Integer' {
+		?i64(args[1].int_data)
+	} else {
+		none
+	}
+	root := if args.len > 2 { args[2].as_string() } else { api_cache_root() }
+	target := os.join_path(root, endpoint)
+	now := if args.len > 3 { args[3].int_data } else { time.now().unix() }
+	if !api_jws_payload_cacheable(target, root) || !os.exists(target) || os.file_size(target) == 0 || !api_skip_download(target, stale, false, now) {
+		return api_nil_value()
+	}
+	payload := api_cached_jws_payload_string(target, true, true) or { return api_nil_value() }
+	return brew_runtime.array_value([
+		brew_runtime.string_value(payload),
+		api_jws_source_fingerprint(target) or { api_nil_value() },
+	])
 }
 
 // Ruby method `self.cached_jws_payload(target)` at line 453.
 pub fn ruby_api_l453_d19_self_cached_jws_payload(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.cached_jws_payload', ...args)
+	if args.len == 0 {
+		return api_nil_value()
+	}
+	verified := args.len < 2 || args[1].bool_data
+	has_result := args.len < 3 || args[2].bool_data
+	return api_cached_jws_payload(args[0].as_string(), verified, has_result) or { api_nil_value() }
+}
+
+fn api_cached_jws_payload(target string, signature_verified bool, has_signature_result bool) ?brew_runtime.Value {
+	payload := api_cached_jws_payload_string(target, signature_verified, has_signature_result) or {
+		return none
+	}
+	return api_parse_json(payload) or { return none }
 }
 
 // Ruby method `self.cached_jws_payload_string(target, source_stat:)` at line 463.
 pub fn ruby_api_l463_d20_self_cached_jws_payload_string(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.cached_jws_payload_string', ...args)
+	if args.len == 0 {
+		return api_nil_value()
+	}
+	verified := args.len < 2 || args[1].bool_data
+	has_result := args.len < 3 || args[2].bool_data
+	return brew_runtime.string_value(api_cached_jws_payload_string(args[0].as_string(), verified, has_result) or { return api_nil_value() })
+}
+
+fn api_cached_jws_payload_string(target string, signature_verified bool, has_signature_result bool) ?string {
+	root := os.dir(os.dir(target))
+	if !api_jws_payload_cacheable(target, root) {
+		return none
+	}
+	expected := api_jws_source_fingerprint(target) or { return none }
+	contents := os.read_file('${target}.payload') or { return none }
+	newline := contents.index('\n') or { return none }
+	header := api_parse_json(contents[..newline]) or { return none }
+	if header.type_name != 'Hash' {
+		return none
+	}
+	for key in ['source_size', 'source_mtime_ns'] {
+		if (header.map_data[key] or { api_nil_value() }).int_data != (expected.map_data[key] or {
+			api_nil_value()}).int_data {
+			return none
+		}
+	}
+	protected := header.map_data['protected'] or { return none }
+	signature := header.map_data['signature'] or { return none }
+	if protected.type_name != 'String' || signature.type_name != 'String' {
+		return none
+	}
+	payload := contents[newline + 1..]
+	verification := api_verify_jws_signature(protected.as_string(), signature.as_string(), payload, signature_verified, has_signature_result) or { return none }
+	if verification != '' {
+		return none
+	}
+	return payload
 }
 
 // Ruby method `self.write_jws_payload_index_cache(target, json_data, parsed:, source_stat:)` at line 498.
 pub fn ruby_api_l498_d21_self_write_jws_payload_index_cache(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.write_jws_payload_index_cache', ...args)
+	if args.len < 3 || args[1].type_name != 'Hash' || args[2].type_name != 'Hash' {
+		return api_nil_value()
+	}
+	payload := args[1].map_data['payload'] or { return api_nil_value() }
+	if payload.type_name != 'String' {
+		return api_nil_value()
+	}
+	_ = payload
+	return api_nil_value()
 }
 
 // Ruby method `self.write_jws_payload_cache(target, json_data, source_stat:)` at line 512.
 pub fn ruby_api_l512_d22_self_write_jws_payload_cache(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.write_jws_payload_cache', ...args)
+	if args.len < 2 {
+		return api_nil_value()
+	}
+	running_as_root := args.len > 2 && args[2].bool_data
+	api_write_jws_payload_cache(args[0].as_string(), args[1], running_as_root) or {
+		return api_nil_value()
+	}
+	return api_nil_value()
+}
+
+fn api_write_jws_payload_cache(target string, json_data brew_runtime.Value, running_as_root bool) ! {
+	root := os.dir(os.dir(target))
+	if !api_jws_payload_cacheable(target, root) || running_as_root || json_data.type_name != 'Hash' {
+		return
+	}
+	signature := api_homebrew_jws_signature(json_data) or { return }
+	payload := json_data.map_data['payload'] or { return }
+	protected := signature.map_data['protected'] or { return }
+	signature_b64 := signature.map_data['signature'] or { return }
+	if payload.type_name != 'String' || protected.type_name != 'String' || signature_b64.type_name != 'String' {
+		return
+	}
+	fingerprint := api_jws_source_fingerprint(target)!
+	header := json2.encode(json2.Any({
+		'protected':       json2.Any(protected.as_string())
+		'signature':       json2.Any(signature_b64.as_string())
+		'source_size':     json2.Any(fingerprint.map_data['source_size'].int_data)
+		'source_mtime_ns': json2.Any(fingerprint.map_data['source_mtime_ns'].int_data)
+	}))
+	temporary := '${target}.payload.tmp'
+	os.write_file(temporary, '${header}\n${payload.as_string()}')!
+	os.mv(temporary, '${target}.payload')!
 }
 
 // Ruby method `self.urlsafe_decode64(value)` at line 546.
 pub fn ruby_api_l546_d23_self_urlsafe_decode64(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.urlsafe_decode64', ...args)
+	if args.len == 0 {
+		return api_error_value('ArgumentError', 'value is required')
+	}
+	return brew_runtime.string_value(api_urlsafe_decode64(args[0].as_string()) or {
+		return api_error_value('ArgumentError', err.msg())
+	})
+}
+
+pub fn api_urlsafe_decode64(value string) !string {
+	if value.len % 4 == 1 || value.bytes().any(!(it.is_alnum() || it == `-` || it == `_` || it == `=`)) {
+		return error('invalid base64')
+	}
+	return base64.url_decode_str(value)
 }
 
 // Ruby method `self.tap_from_source_download(path)` at line 551.
 pub fn ruby_api_l551_d24_self_tap_from_source_download(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.tap_from_source_download', ...args)
+	if args.len == 0 {
+		return api_nil_value()
+	}
+	root := if args.len > 1 {
+		os.abs_path(args[1].as_string())
+	} else {
+		os.abs_path(api_source_cache_root())
+	}
+	path := os.abs_path(args[0].as_string())
+	prefix := root.trim_right(os.path_separator) + os.path_separator
+	if !path.starts_with(prefix) {
+		return api_nil_value()
+	}
+	relative := path[prefix.len..]
+	parts := relative.split(os.path_separator)
+	if parts.len < 2 || parts[0] == '' || parts[1] == '' {
+		return api_nil_value()
+	}
+	return brew_runtime.structured_value('Tap', '${parts[0]}/${parts[1]}', {
+		'user': parts[0]
+		'repo': parts[1]
+	})
 }
 
 // Ruby method `self.formula_names` at line 563.
 pub fn ruby_api_l563_d25_self_formula_names(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.formula_names', ...args)
+	return if args.len > 0 { args[0] } else { brew_runtime.array_value([]) }
 }
 
 // Ruby method `self.formula_name?(name)` at line 568.
 pub fn ruby_api_l568_d26_self_formula_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.formula_name?', ...args)
+	if args.len < 2 {
+		return brew_runtime.bool_value(false)
+	}
+	names := args[1].as_array() or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value(args[0].as_string() in names.map(it.as_string()))
 }
 
 // Ruby method `self.formula_aliases` at line 573.
 pub fn ruby_api_l573_d27_self_formula_aliases(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.formula_aliases', ...args)
+	return if args.len > 0 { args[0] } else { brew_runtime.map_value({}) }
 }
 
 // Ruby method `self.formula_renames` at line 578.
 pub fn ruby_api_l578_d28_self_formula_renames(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.formula_renames', ...args)
+	return if args.len > 0 { args[0] } else { brew_runtime.map_value({}) }
 }
 
 // Ruby method `self.formula_tap_migrations` at line 583.
 pub fn ruby_api_l583_d29_self_formula_tap_migrations(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.formula_tap_migrations', ...args)
+	return if args.len > 0 { args[0] } else { brew_runtime.map_value({}) }
 }
 
 // Ruby method `self.cask_tokens` at line 588.
 pub fn ruby_api_l588_d30_self_cask_tokens(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.cask_tokens', ...args)
+	return if args.len > 0 { args[0] } else { brew_runtime.array_value([]) }
 }
 
 // Ruby method `self.cask_token?(token)` at line 593.
 pub fn ruby_api_l593_d31_self_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.cask_token?', ...args)
+	if args.len < 2 {
+		return brew_runtime.bool_value(false)
+	}
+	names := args[1].as_array() or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value(args[0].as_string() in names.map(it.as_string()))
 }
 
 // Ruby method `self.cask_renames` at line 598.
 pub fn ruby_api_l598_d32_self_cask_renames(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.cask_renames', ...args)
+	return if args.len > 0 { args[0] } else { brew_runtime.map_value({}) }
 }
 
 // Ruby method `self.cask_tap_migrations` at line 603.
 pub fn ruby_api_l603_d33_self_cask_tap_migrations(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.cask_tap_migrations', ...args)
+	return if args.len > 0 { args[0] } else { brew_runtime.map_value({}) }
 }
 
 // Ruby method `self.cached_cask_json_file_path` at line 608.
 pub fn ruby_api_l608_d34_self_cached_cask_json_file_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.cached_cask_json_file_path', ...args)
+	return if args.len > 0 {
+		args[0]
+	} else {
+		brew_runtime.object_value('Pathname', api_cache_path('internal/packages.json'))
+	}
 }
 
 // Ruby method `self.with_no_api_env(&block)` at line 614.
 pub fn ruby_api_l614_d35_self_with_no_api_env(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.with_no_api_env', ...args)
+	no_install := args.len > 0 && args[0].bool_data
+	result := if args.len > 1 { args[1] } else { api_nil_value() }
+	return api_with_no_api_env_value(no_install, fn [result] () brew_runtime.Value {
+		return result
+	})
+}
+
+pub fn api_with_no_api_env_value(no_install_from_api bool, block fn() brew_runtime.Value) brew_runtime.Value {
+	if no_install_from_api {
+		return block()
+	}
+	old_no_api := os.getenv_opt('HOMEBREW_NO_INSTALL_FROM_API')
+	old_automatic := os.getenv_opt('HOMEBREW_AUTOMATICALLY_SET_NO_INSTALL_FROM_API')
+	os.setenv('HOMEBREW_NO_INSTALL_FROM_API', '1', true)
+	os.setenv('HOMEBREW_AUTOMATICALLY_SET_NO_INSTALL_FROM_API', '1', true)
+	defer {
+		api_restore_env('HOMEBREW_NO_INSTALL_FROM_API', old_no_api)
+		api_restore_env('HOMEBREW_AUTOMATICALLY_SET_NO_INSTALL_FROM_API', old_automatic)
+	}
+	return block()
+}
+
+fn api_restore_env(name string, value ?string) {
+	if previous := value {
+		os.setenv(name, previous, true)
+	} else {
+		os.unsetenv(name)
+	}
 }
 
 // Ruby method `self.with_no_api_env_if_needed(condition, &block)` at line 626.
 pub fn ruby_api_l626_d36_self_with_no_api_env_if_needed(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.with_no_api_env_if_needed', ...args)
+	condition := args.len > 0 && args[0].bool_data
+	no_install := args.len > 1 && args[1].bool_data
+	result := if args.len > 2 { args[2] } else { api_nil_value() }
+	if !condition {
+		return result
+	}
+	return api_with_no_api_env_value(no_install, fn [result] () brew_runtime.Value {
+		return result
+	})
 }
 
 // Original Ruby source (line-for-line):

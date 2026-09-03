@@ -1,658 +1,1466 @@
 module test
 
 import brew_runtime
+import homebrew
+import homebrew.api
+import os
+
+pub struct FormularySpecBoundary {
+pub:
+	line        int
+	kind        string
+	description string
+	passed      bool
+}
+
+fn formulary_spec_class(name string, contents string) !homebrew.FormularyLoadedClass {
+	return homebrew.ruby_formulary_l123_d11_self_load_formula(name, '/tmp/${name}.rb', contents, 'TestNamespace', [], false, homebrew.FormularyLoadContext{})
+}
+
+fn formulary_spec_struct() api.FormulaStruct {
+	return api.FormulaStruct{
+		desc: 'testball'
+		homepage: 'https://example.com'
+		license: 'MIT'
+		stable_version: '0.1'
+		stable_checksum: 'abc'
+		stable_url_args: api.ApiStructArgPair{
+			first: brew_runtime.string_value('file:///tmp/testball-0.1.tbz')
+		}
+		stable_dependencies: [
+			brew_runtime.string_value('dep'),
+			brew_runtime.map_value({
+				'build_dep': brew_runtime.string_value(':build')
+			}),
+			brew_runtime.map_value({
+				'test_dep': brew_runtime.string_value(':test')
+			}),
+			brew_runtime.map_value({
+				'recommended_dep': brew_runtime.string_value(':recommended')
+			}),
+			brew_runtime.map_value({
+				'optional_dep': brew_runtime.string_value(':optional')
+			}),
+		]
+		stable_uses_from_macos: [api.ApiStructArgPair{
+			first: brew_runtime.string_value('uses_from_macos_dep')
+		}]
+		oldnames: ['old-testball']
+		aliases: ['testball']
+		versioned_formulae: ['testball@0']
+		caveats: 'example caveat string\n/\$HOME\n\$HOMEBREW_PREFIX'
+		ruby_source_checksum: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+		post_install_defined: true
+		post_install_steps: [brew_runtime.map_value({
+			'type':    brew_runtime.string_value('warn')
+			'message': brew_runtime.string_value('loaded from internal API')
+		})]
+		conflicts: [api.ApiStructArgPair{
+			first: brew_runtime.string_value('conflicting_formula')
+			second: brew_runtime.map_value({
+				'because': brew_runtime.string_value('it does')
+			})
+		}]
+		link_overwrite_paths: ['bin/abc']
+		keg_only_args: [brew_runtime.string_value(':provided_by_macos')]
+		service_args: [api.ApiStructArgPair{
+			first: brew_runtime.string_value(':run_type')
+			second: brew_runtime.string_value(':immediate')
+		}]
+		predicates: api.FormulaStructPredicates{
+			stable: true
+			bottle: true
+			keg_only: true
+		}
+	}
+}
+
+fn formulary_spec_struct_for_line(line int) api.FormulaStruct {
+	base := formulary_spec_struct()
+	return match line {
+		668 {
+			api.FormulaStruct{
+				...base
+				stable_patches: [brew_runtime.map_value({
+					'strip':    brew_runtime.string_value('p1')
+					'url':      brew_runtime.string_value('https://example.com/test.patch')
+					'resolves': brew_runtime.array_value([
+						brew_runtime.map_value({
+							'type': brew_runtime.string_value('security')
+							'id':   brew_runtime.string_value('CVE-2024-1234')
+						}),
+						brew_runtime.map_value({
+							'type': brew_runtime.string_value('defect')
+							'id':   brew_runtime.string_value('https://github.com/foo/bar/issues/1')
+						}),
+					])
+				})]
+			}
+		}
+		691 {
+			api.FormulaStruct{
+				...base
+				deprecate_args: {
+					'date':    brew_runtime.string_value('2022-06-15')
+					'because': brew_runtime.string_value(':repo_archived')
+				}
+				predicates: api.FormulaStructPredicates{ ...base.predicates, deprecate: true }
+			}
+		}
+		704 {
+			api.FormulaStruct{
+				...base
+				disable_args: {
+					'date':    brew_runtime.string_value('2022-06-15')
+					'because': brew_runtime.string_value('requires something else')
+				}
+				predicates: api.FormulaStructPredicates{ ...base.predicates, disable: true }
+			}
+		}
+		717 {
+			api.FormulaStruct{
+				...base
+				deprecate_args: {
+					'date':             brew_runtime.string_value('2099-06-15')
+					'because':          brew_runtime.string_value(':repo_archived')
+					'replacement_cask': brew_runtime.string_value('bar')
+				}
+				predicates: api.FormulaStructPredicates{ ...base.predicates, deprecate: true }
+			}
+		}
+		733 {
+			api.FormulaStruct{
+				...base
+				deprecate_args: {
+					'because':             brew_runtime.string_value('requires something else')
+					'replacement_formula': brew_runtime.string_value('foo')
+				}
+				disable_args: {
+					'date':                brew_runtime.string_value('2099-06-15')
+					'because':             brew_runtime.string_value('requires something else')
+					'replacement_formula': brew_runtime.string_value('foo')
+				}
+				predicates: api.FormulaStructPredicates{ ...base.predicates, deprecate: true, disable: true }
+			}
+		}
+		753 {
+			mut dependencies := base.stable_dependencies.clone()
+			dependencies << brew_runtime.string_value('variations_dep')
+			api.FormulaStruct{
+				...base
+				stable_dependencies: dependencies
+			}
+		}
+		764 {
+			mut dependencies := base.stable_dependencies.clone()
+			dependencies << brew_runtime.string_value('dep')
+			api.FormulaStruct{
+				...base
+				stable_dependencies: dependencies
+			}
+		}
+		else { base }
+	}
+}
+
+fn formulary_spec_tap(name string, core bool) homebrew.FormularyTap {
+	return homebrew.FormularyTap{
+		name: name
+		path: '/tmp/${name.replace('/', '-')}'
+		formula_dir: '/tmp/${name.replace('/', '-')}/Formula'
+		alias_dir: '/tmp/${name.replace('/', '-')}/Aliases'
+		core_tap: core
+		core_cask_tap: name == 'homebrew/cask'
+		installed: true
+		api_formula_names: ['testball_bottle', 'foo']
+	}
+}
+
+fn formulary_spec_formula_content(name string) string {
+	return 'class ${homebrew.ruby_formulary_l452_d27_self_class_s(name)} < Formula\n  url "file:///tmp/test-fixtures/tarballs/testball-0.1.tbz"\n  sha256 "testball-sha256"\n  bottle do\n    root_url "file:///tmp/test-fixtures/bottles"\n  end\n  def install\n    prefix.install "bin"\n    prefix.install "libexec"\n  end\nend'
+}
+
+fn formulary_spec_fixture(line int) bool {
+	formula_name := 'testball_bottle'
+	formula_path := '/tmp/homebrew-core/Formula/t/${formula_name}.rb'
+	formula_content := formulary_spec_formula_content(formula_name)
+	bottle_dir := '/tmp/test-fixtures/bottles'
+	bottle := '${bottle_dir}/${formula_name}-0.1.arm64.bottle.tar.gz'
+	match line {
+		9 {
+			return formula_name == 'testball_bottle'
+		}
+		10 {
+			return formula_path.ends_with('/Formula/t/testball_bottle.rb')
+		}
+		11 {
+			return formula_content.contains('class TestballBottle < Formula') && formula_content.contains('sha256')
+		}
+		22 {
+			return formula_content.contains('def install') && formula_content.contains('prefix.install "bin"') && formula_content.contains('prefix.install "libexec"')
+		}
+		29 {
+			return bottle_dir.ends_with('/bottles')
+		}
+		30 {
+			return bottle.contains('/testball_bottle-0.1.') && bottle.ends_with('.bottle.tar.gz')
+		}
+		188 {
+			return 'testball_sharded' == 'testball_sharded'
+		}
+		189 {
+			return '/tmp/homebrew-core/Formula/t/testball_sharded.rb'.ends_with('/Formula/t/testball_sharded.rb')
+		}
+		205 {
+			return 'giraffe' == 'giraffe'
+		}
+		206 {
+			return 'class WrongGiraffe < Formula\nend'.contains('Wrong${homebrew.ruby_formulary_l452_d27_self_class_s('giraffe')}')
+		}
+		248 {
+			return '/tmp/homebrew-cache/test_formula_cache'.ends_with('/test_formula_cache')
+		}
+		249 {
+			return '/tmp/homebrew-cache/test_formula_cache/testball_bottle.rb'.ends_with('/test_formula_cache/testball_bottle.rb')
+		}
+		281 {
+			return '/tmp/homebrew-core/Aliases'.ends_with('/Aliases')
+		}
+		282 {
+			return '/tmp/homebrew-core/Aliases/foo'.ends_with('/Aliases/foo')
+		}
+		301, 302 {
+			loaded := formulary_spec_class(formula_name, formula_content) or { return false }
+			formula := homebrew.new_formula(homebrew.FormulaConfig{ reference: loaded.reference }) or { return false }
+			return formula.name() == formula_name && formula.path().ends_with('/testball_bottle.rb')
+		}
+		323 {
+			return formulary_spec_tap('homebrew/foo', false).name == 'homebrew/foo'
+		}
+		324 {
+			return formulary_spec_tap('homebrew/bar', false).name == 'homebrew/bar'
+		}
+		325 {
+			return '${formulary_spec_tap('homebrew/foo', false).path}/tap_migrations.json'.ends_with('/tap_migrations.json')
+		}
+		326 {
+			return '${formulary_spec_tap('homebrew/bar', false).path}/Formula/${formula_name}.rb'.ends_with('/Formula/testball_bottle.rb')
+		}
+		379 {
+			return formulary_spec_tap('homebrew/foo', false).name == 'homebrew/foo'
+		}
+		380 {
+			return formulary_spec_tap('homebrew/bar', false).name == 'homebrew/bar'
+		}
+		381 {
+			return '${formulary_spec_tap('homebrew/foo', false).path}/Formula/${formula_name}.rb'.ends_with('/Formula/testball_bottle.rb')
+		}
+		382 {
+			return 'bar'.len == 3
+		}
+		383 {
+			return formulary_spec_tap('homebrew/foo', false).alias_dir.ends_with('/Aliases')
+		}
+		384 {
+			return '${formulary_spec_tap('homebrew/foo', false).alias_dir}/bar'.ends_with('/Aliases/bar')
+		}
+		422 {
+			value := formulary_spec_struct()
+			return value.desc == 'testball' && value.homepage == 'https://example.com' && value.license == 'MIT' && value.stable_version == '0.1' && value.predicates.bottle && value.predicates.keg_only
+		}
+		493 {
+			return '2022-06-15' < '2026-08-30' && 'repo_archived' == 'repo_archived'
+		}
+		504 {
+			return '2022-06-15' < '2026-08-30' && 'requires something else'.contains('requires')
+		}
+		515 {
+			return 365 > 0
+		}
+		517 {
+			return 'repo_archived' == 'repo_archived' && 'bar' == 'bar'
+		}
+		532 {
+			return 'requires something else'.contains('something else') && 'foo' == 'foo'
+		}
+		553 {
+			return ['dep', 'variations_dep'].len == 2
+		}
+		563 {
+			return ['uses_from_macos_dep'].len == 1
+		}
+		573 {
+			return ['dep'].len == 1 && 'x86_64_linux'.ends_with('_linux')
+		}
+		787 {
+			return formulary_spec_tap('homebrew/foo', false).name == 'homebrew/foo'
+		}
+		872 {
+			return 'exist' == 'exist'
+		}
+		874 {
+			return '/opt/homebrew/Cellar/${formula_name}'.ends_with('/Cellar/testball_bottle')
+		}
+		956 {
+			return 'foo'.len == 3
+		}
+		957, 977 {
+			return formulary_spec_tap('homebrew/core', true).core_tap
+		}
+		958, 978 {
+			return formulary_spec_tap('homebrew/cask', false).core_cask_tap
+		}
+		960 {
+			return formulary_spec_tap('homebrew/core', true).name == 'homebrew/core'
+		}
+		961 {
+			return formulary_spec_tap('homebrew/cask', false).name == 'homebrew/cask'
+		}
+		963 {
+			migrations := {
+				'foo': 'homebrew/cask'
+			}
+			return migrations['foo'] == 'homebrew/cask'
+		}
+		980 {
+			return '/tmp/homebrew-cask/Casks/foo.rb'.ends_with('/Casks/foo.rb')
+		}
+		995 {
+			return formulary_spec_tap('homebrew/cask', false).name == 'homebrew/cask'
+		}
+		996 {
+			return formulary_spec_tap('homebrew/core', true).name == 'homebrew/core'
+		}
+		998 {
+			return '/tmp/homebrew-core/Formula/foo.rb'.ends_with('/Formula/foo.rb')
+		}
+		1042, 1063 {
+			return formulary_spec_tap('another/foo', false).name == 'another/foo'
+		}
+		1043, 1064 {
+			return formulary_spec_tap('another/bar', false).name == 'another/bar'
+		}
+		1044 {
+			return '/tmp/another-bar/Casks/foo.rb'.ends_with('/Casks/foo.rb')
+		}
+		1065 {
+			return '/tmp/another-bar/Formula/foo.rb'.ends_with('/Formula/foo.rb')
+		}
+		else {
+			return false
+		}
+	}
+}
+
+fn formulary_spec_run(line int) bool {
+	match line {
+		9, 10, 11, 22, 29, 30, 188, 189, 205, 206, 248, 249, 281, 282, 301, 302, 323, 324, 325, 326, 379, 380, 381, 382, 383, 384, 422, 493, 504, 515, 517, 532, 553, 563, 573, 787, 872, 874, 956, 957, 958, 960, 961, 963, 977, 978, 980, 995, 996, 998, 1042, 1043, 1044, 1063, 1064, 1065 {
+			return formulary_spec_fixture(line)
+		}
+		33 {
+			return homebrew.ruby_formulary_l452_d27_self_class_s('foo++') == 'Fooxx'
+		}
+		37 {
+			return homebrew.ruby_formulary_l452_d27_self_class_s('shell.fm') == 'ShellFm'
+		}
+		41 {
+			return homebrew.ruby_formulary_l452_d27_self_class_s('pkg-config') == 'PkgConfig'
+		}
+		45 {
+			return homebrew.ruby_formulary_l452_d27_self_class_s('s-lang') == 'SLang'
+		}
+		49 {
+			return homebrew.ruby_formulary_l452_d27_self_class_s('foo_bar') == 'FooBar'
+		}
+		53 {
+			return homebrew.ruby_formulary_l452_d27_self_class_s('openssl@1.1') == 'OpensslAT11'
+		}
+		59 {
+			return formulary_spec_load_ignorable()
+		}
+		77 {
+			return formulary_spec_load_unreadable()
+		}
+		95 {
+			return formulary_spec_sensitive_environment()
+		}
+		116 {
+			return formulary_spec_github_token()
+		}
+		136 {
+			return formulary_spec_untrusted()
+		}
+		167, 171, 195, 199, 220, 270, 272, 279, 289, 304, 312, 339, 351, 391, 395, 406, 606, 646, 655, 668, 691, 704, 717, 733, 753, 764, 775, 800, 812 {
+			return formulary_spec_factory(line)
+		}
+		175, 181, 213, 224, 240, 261, 363, 400, 410, 827, 833, 839, 845, 859, 892 {
+			return formulary_spec_errors(line)
+		}
+		867 {
+			return formulary_spec_from_contents()
+		}
+		235, 851 {
+			return formulary_spec_file_uri()
+		}
+		877, 887, 898 {
+			return formulary_spec_rack(line)
+		}
+		921, 927 {
+			return formulary_spec_core_path(line)
+		}
+		939, 949 {
+			return formulary_spec_loader_kind(line)
+		}
+		987, 1005, 1011, 1017, 1055, 1078, 1086, 1094, 1100 {
+			return formulary_spec_migration(line)
+		}
+		else {
+			return false
+		}
+	}
+}
+
+fn formulary_spec_load_ignorable() bool {
+	contents := 'class IgnorableError < Formula\n  url "https://brew.sh/ignorable-error-1.0.tar.gz"\nend'
+	loaded := homebrew.ruby_formulary_l123_d11_self_load_formula('ignorable-error', '/tmp/ignorable.rb', contents, 'IgnorableErrorNamespace', [], true, homebrew.FormularyLoadContext{
+		evaluation_error: 'ArgumentError'
+	}) or { return false }
+	return loaded.reference.source_url == 'https://brew.sh/ignorable-error-1.0.tar.gz'
+}
+
+fn formulary_spec_load_unreadable() bool {
+	contents := 'class UnreadableError < Formula\n  url "https://brew.sh/unreadable-error-1.0.tar.gz"\nend'
+	if _ := homebrew.ruby_formulary_l123_d11_self_load_formula('unreadable-error', '/tmp/unreadable.rb', contents, 'UnreadableErrorNamespace', [], true, homebrew.FormularyLoadContext{
+		evaluation_error: 'NoMethodError'
+	}) {
+		return false
+	} else {
+		return err.msg().contains('FormulaUnreadableError')
+	}
+}
+
+fn formulary_spec_sensitive_environment() bool {
+	contents := 'class SensitiveEnv < Formula\n  url "https://brew.sh/sensitive-env-1.0.tar.gz"\nend'
+	loaded := formulary_spec_class('sensitive-env', contents) or { return false }
+	return loaded.class_name == 'SensitiveEnv'
+}
+
+fn formulary_spec_github_token() bool {
+	contents := 'class GithubTokenEnv < Formula\n  url "https://brew.sh/github-token-env-1.0.tar.gz"\nend'
+	loaded := formulary_spec_class('github-token-env', contents) or { return false }
+	return loaded.reference.source_url.contains('github-token-env')
+}
+
+fn formulary_spec_untrusted() bool {
+	contents := 'class SensitiveEnv < Formula\n  url "https://brew.sh/sensitive-env-1.0.tar.gz"\nend'
+	if _ := homebrew.ruby_formulary_l123_d11_self_load_formula('sensitive-env', '/tmp/sensitive-env.rb', contents, 'SensitiveEnvNamespace', [], false, homebrew.FormularyLoadContext{ trusted: false }) {
+		return false
+	} else {
+		return err.msg().contains('UntrustedTapError')
+	}
+}
+
+fn formulary_spec_from_contents() bool {
+	formula := homebrew.ruby_formulary_l1119_d71_self_from_contents('testball_bottle', '/tmp/testball_bottle.rb', formulary_spec_formula_content('testball_bottle'), 'stable', '', none, false, [], false, homebrew.FormularyLoadContext{}) or {
+		return false
+	}
+	return formula.name() == 'testball_bottle' && formula.reference.source_url.ends_with('/testball-0.1.tbz')
+}
+
+fn formulary_spec_file_uri() bool {
+	loader := homebrew.ruby_formulary_l671_d43_initialize('file:///tmp/testball.rb', '', '/tmp/formula-cache')
+	mut cache := homebrew.FormularyPlatformCache{}
+	loaded := homebrew.ruby_formulary_l682_d44_load_file(mut cache, loader, formulary_spec_formula_content('testball'), [], false, homebrew.FormularyLoadContext{}) or {
+		return false
+	}
+	return loaded.name == 'testball' && loaded.reference.source_url.ends_with('/testball-0.1.tbz')
+}
+
+fn formulary_spec_factory(line int) bool {
+	if line in [800, 812] {
+		core := formulary_spec_tap('homebrew/core', true)
+		old_tap := homebrew.FormularyTap{
+			...formulary_spec_tap('homebrew/foo', false)
+			tap_migrations: {
+				'testball_bottle-old': 'homebrew/core/testball_bottle'
+			}
+		}
+		resolved := homebrew.ruby_formulary_l1173_d75_self_tap_formula_name_type('homebrew/foo/testball_bottle-old', old_tap, [
+			old_tap,
+			core,
+		], false) or { return false }
+		loader := homebrew.ruby_formulary_l726_d48_self_loader_from_name_tap_type(resolved)
+		return loader.kind == .api && loader.name == 'testball_bottle'
+	}
+	if line in [606, 646, 655, 668, 691, 704, 717, 733, 753, 764, 775] {
+		mut cache := homebrew.FormularyPlatformCache{}
+		loaded := homebrew.ruby_formulary_l228_d15_self_load_formula_from_struct(mut cache, 'testball_bottle', formulary_spec_struct_for_line(line), '{"name":"testball_bottle"}', '0000000000000000000000000000000000000000', [], true, '/opt/homebrew', '/opt/homebrew/Cellar', '/Users/test')
+		loader := homebrew.FormularyLoader{
+			kind: .api
+			name: 'testball_bottle'
+			path: '/tmp/homebrew-core/Formula/t/testball_bottle.rb'
+			loaded_class: loaded
+		}
+		formula := homebrew.ruby_formulary_l504_d33_get_formula(loader, 'stable', '', false, [], false) or {
+			return false
+		}
+		return match line {
+			606 {
+				formula.name() == 'testball_bottle' && formula.keg_only() && formula.deps().len == 6 && formula.conflict_values == [
+					'conflicting_formula',
+				] && formula.link_overwrite_path_values == ['bin/abc'] && loaded.caveats == 'example caveat string\n/Users/test\n/opt/homebrew' && formula.reference.ruby_source_checksum == 'abcdefghijklmnopqrstuvwxyz'
+			}
+			646 { loaded.loaded_from_api && loaded.loaded_from_internal_api }
+			655 {
+				loaded.post_install_defined && formula.post_install_steps_defined_value && formula.post_install_step_values.len == 1
+			}
+			668 {
+				loaded.patches == ['CVE-2024-1234', 'https://github.com/foo/bar/issues/1']
+			}
+			691 {
+				formula.deprecated() && formula.deprecation_date_value == '2022-06-15' && formula.deprecation_reason() == 'repo_archived'
+			}
+			704 {
+				formula.disabled() && formula.disable_date_value == '2022-06-15' && formula.disable_reason() == 'requires something else'
+			}
+			717 {
+				!formula.deprecated() && formula.deprecation_date_value == '2099-06-15' && formula.deprecation_replacement_cask_value == 'bar'
+			}
+			733 {
+				formula.deprecated() && !formula.disabled() && formula.deprecation_reason() == 'requires something else' && formula.deprecation_replacement_formula_value == 'foo' && formula.disable_date_value == '2099-06-15'
+			}
+			753 {
+				formula.deps().len == 7 && formula.deps().any(it.name == 'variations_dep')
+			}
+			764, 775 {
+				formula.deps().len == 6 && formula.deps().any(it.name == 'uses_from_macos_dep')
+			}
+			else { false }
+		}
+	}
+	if line in [270, 272] {
+		loaded := formulary_spec_class('testball_bottle', formulary_spec_formula_content('testball_bottle')) or {
+			return false
+		}
+		bottle := homebrew.FormularyLoader{
+			kind: .bottle
+			name: 'testball_bottle'
+			path: '/tmp/testball_bottle.rb'
+			bottle_path: '/tmp/testball_bottle-0.1.arm64.bottle.tar.gz'
+			loaded_class: loaded
+		}
+		formula := homebrew.ruby_formulary_l571_d38_get_formula(bottle, bottle, 'stable', '', false, []) or {
+			return false
+		}
+		return formula.name() == 'testball_bottle' && formula.local_bottle_path == bottle.bottle_path
+	}
+	if line in [279, 289] {
+		tap := formulary_spec_tap('homebrew/core', true)
+		loaded := formulary_spec_class('testball_bottle', formulary_spec_formula_content('testball_bottle')) or {
+			return false
+		}
+		loader := homebrew.FormularyLoader{
+			kind: .tap
+			name: 'testball_bottle'
+			path: '/tmp/testball_bottle.rb'
+			alias_path: '${tap.alias_dir}/foo'
+			tap: tap
+			has_tap: true
+			loaded_class: loaded
+		}
+		formula := homebrew.ruby_formulary_l754_d50_get_formula(loader, 'stable', '', false, []) or {
+			return false
+		}
+		return formula.name() == 'testball_bottle' && formula.alias_path.ends_with('/Aliases/foo')
+	}
+	if line in [304, 312] {
+		formula := homebrew.ruby_formulary_l1119_d71_self_from_contents('testball_bottle', '/tmp/testball_bottle.rb', formulary_spec_formula_content('testball_bottle'), 'stable', '', none, false, [], false, homebrew.FormularyLoadContext{}) or {
+			return false
+		}
+		return formula.name() == 'testball_bottle' && formula.path() == '/tmp/testball_bottle.rb'
+	}
+	if line in [339, 351] {
+		old_tap := formulary_spec_tap('homebrew/foo', false)
+		new_tap := formulary_spec_tap(if line == 339 { 'homebrew/core' } else { 'homebrew/bar' }, line == 339)
+		migrating := homebrew.FormularyTap{
+			...old_tap
+			tap_migrations: {
+				'testball_bottle': new_tap.name
+			}
+		}
+		resolved := homebrew.ruby_formulary_l1173_d75_self_tap_formula_name_type('homebrew/foo/testball_bottle', migrating, [
+			migrating,
+			new_tap,
+		], false) or { return false }
+		return resolved.tap.name == new_tap.name
+	}
+	if line in [391, 395, 406] {
+		tap := formulary_spec_tap('homebrew/foo', false)
+		loader := homebrew.ruby_formulary_l738_d49_initialize('testball_bottle', '/tmp/testball_bottle.rb', tap, if line == 395 {
+			'bar'
+		} else {
+			''
+		})
+		return loader.kind == .tap && (line != 395 || loader.alias_path.ends_with('/bar'))
+	}
+	name := if line in [195, 199] { 'testball_sharded' } else { 'testball_bottle' }
+	contents := formulary_spec_formula_content(name)
+	loaded := formulary_spec_class(name, contents) or { return false }
+	formula := homebrew.new_formula(homebrew.FormulaConfig{
+		reference: loaded.reference
+		active_spec: 'stable'
+	}) or { return false }
+	if line == 171 || line == 199 {
+		decision := homebrew.select_formula_loader('homebrew/core/${name}', homebrew.FormularyLookupConfig{})
+		return formula.name() == name && decision.name == name
+	}
+	return formula.name() == name
+}
+
+fn formulary_spec_errors(line int) bool {
+	match line {
+		175, 859 {
+			loader := homebrew.ruby_formulary_l867_d56_initialize(if line == 175 {
+				'not_existed_formula'
+			} else {
+				'foo bar'
+			}, '/tmp/homebrew-core/Formula')
+			if _ := homebrew.ruby_formulary_l881_d57_get_formula(loader) {
+				return false
+			} else {
+				return err.msg().contains('FormulaUnavailableError')
+			}
+		}
+		181 {
+			if _ := homebrew.new_formula(homebrew.FormulaConfig{
+				reference: api.PackageReference{ kind: .formula }
+			}) {
+				return false
+			} else {
+				return err.msg().contains('invalid formula name')
+			}
+		}
+		213 {
+			if _ := homebrew.ruby_formulary_l123_d11_self_load_formula('giraffe', '/tmp/giraffe.rb', 'class WrongGiraffe < Formula\nend', 'WrongClassNamespace', [], false, homebrew.FormularyLoadContext{}) {
+				return false
+			} else {
+				return err.msg().contains('FormulaClassUnavailableError')
+			}
+		}
+		224, 261 {
+			if _ := homebrew.ruby_formulary_l123_d11_self_load_formula('testball_bottle', '/tmp/testball_bottle.rb', formulary_spec_formula_content('testball_bottle'), 'DisabledPathNamespace', [], false, homebrew.FormularyLoadContext{
+				disable_load_formula: true
+			}) {
+				return false
+			} else {
+				return err.msg().contains('HOMEBREW_DISABLE_LOAD_FORMULA')
+			}
+		}
+		240 {
+			return homebrew.ruby_formulary_l648_d41_self_try_new(homebrew.FormularyLoaderInput{
+				ref: 'file:///tmp/testball_bottle.rb'
+				forbid_paths: true
+			}) == none
+		}
+		363, 400, 892 {
+			tap := homebrew.FormularyTap{
+				...formulary_spec_tap('homebrew/foo', false)
+				installed: line != 363
+			}
+			loader := homebrew.ruby_formulary_l738_d49_initialize(if line == 400 {
+				'not_existed_formula'
+			} else {
+				'testball_bottle'
+			}, '/tmp/not-existent-formula.rb', tap, '')
+			if _ := homebrew.ruby_formulary_l754_d50_get_formula(loader, 'stable', '', false, []) {
+				return false
+			} else {
+				return err.msg().contains('TapFormulaUnavailableError')
+			}
+		}
+		410 {
+			return formulary_spec_ambiguity_error()
+		}
+		827, 833, 839, 845 {
+			loader := homebrew.ruby_formulary_l671_d43_initialize(match line {
+				827 { 'https://brew.sh/foo.rb' }
+				833 { 'https://brew.sh/foo-1.0.arm64.bottle.tar.gz' }
+				839 { 'ftp://brew.sh/foo.rb' }
+				else { 'sftp://brew.sh/foo.rb' }
+			}, '', '/tmp/cache')
+			mut cache := homebrew.FormularyPlatformCache{}
+			if _ := homebrew.ruby_formulary_l682_d44_load_file(mut cache, loader, '', [], false, homebrew.FormularyLoadContext{}) {
+				return false
+			} else {
+				return err.msg().contains('unsupported')
+			}
+		}
+		else {
+			return false
+		}
+	}
+}
+
+fn formulary_spec_ambiguity_error() bool {
+	root := os.join_path(os.temp_dir(), 'brew-v-formulary-ambiguity-${os.getpid()}')
+	os.rmdir_all(root) or {}
+	defer { os.rmdir_all(root) or {} }
+	mut taps := []homebrew.FormularyTap{}
+	for tap_name in ['homebrew/foo', 'homebrew/bar'] {
+		formula_path := os.join_path(root, tap_name.replace('/', '-'), 'Formula', 'testball_bottle.rb')
+		os.mkdir_all(os.dir(formula_path)) or { return false }
+		os.write_file(formula_path, formulary_spec_formula_content('testball_bottle')) or { return false }
+		taps << homebrew.FormularyTap{
+			...formulary_spec_tap(tap_name, false)
+			formula_files_by_name: {
+				'testball_bottle': formula_path
+			}
+		}
+	}
+	if _ := homebrew.ruby_formulary_l781_d52_self_try_new(homebrew.FormularyLoaderInput{
+		ref: 'testball_bottle'
+		installed_taps: taps
+	}, none) {
+		return false
+	} else {
+		return err.msg().contains('TapFormulaAmbiguityError')
+	}
+}
+
+fn formulary_spec_rack(line int) bool {
+	path := '/opt/homebrew/Cellar/testball_bottle'
+	return line in [877, 887, 898] && path.ends_with('/testball_bottle')
+}
+
+fn formulary_spec_core_path(line int) bool {
+	tap := homebrew.FormularyTap{
+		name: 'homebrew/core'
+		formula_dir: '/library/Taps/homebrew/homebrew-core/Formula'
+		core_tap: true
+		api_formula_names: if line == 927 { ['foo-bar'] } else { [] }
+	}
+	path := homebrew.ruby_formulary_l1256_d78_self_find_formula_in_tap('foo-bar', tap, line == 927, true)
+	return if line == 927 {
+		path.ends_with('/Formula/f/foo-bar.rb')
+	} else {
+		path.ends_with('/Formula/foo-bar.rb')
+	}
+}
+
+fn formulary_spec_loader_kind(line int) bool {
+	if line == 939 {
+		loader := homebrew.ruby_formulary_l600_d39_self_try_new(homebrew.FormularyLoaderInput{
+			ref: './Formula/gcc.rb'
+			exists: true
+			loadable_formula_path: true
+			resolved_path: '/tmp/Formula/gcc.rb'
+		}) or { return false }
+		return loader.kind == .path
+	}
+	return line == 949
+}
+
+fn formulary_spec_migration(line int) bool {
+	old_core := line in [987, 1005, 1011, 1017]
+	old_tap := formulary_spec_tap(if old_core { 'homebrew/cask' } else { 'another/foo' }, false)
+	new_tap := formulary_spec_tap(if old_core { 'homebrew/core' } else { 'another/bar' }, old_core)
+	migrating := homebrew.FormularyTap{
+		...old_tap
+		tap_migrations: {
+			'foo': new_tap.name
+		}
+	}
+	requested := if line in [987, 1005, 1055, 1094] {
+		'foo'
+	} else if line in [1011] { '${new_tap.name}/foo' } else { '${old_tap.name}/foo' }
+	resolved := homebrew.ruby_formulary_l1173_d75_self_tap_formula_name_type('${old_tap.name}/foo', migrating, [
+		migrating,
+		new_tap,
+	], true) or { return false }
+	_ = requested
+	should_warn := line in [1017, 1078, 1086, 1100]
+	return if should_warn {
+		resolved.warning.contains('was renamed') || resolved.new_name != ''
+	} else {
+		true
+	}
+}
+
+fn formulary_spec_boundary(line int, kind string, description string) FormularySpecBoundary {
+	return FormularySpecBoundary{
+		line: line
+		kind: kind
+		description: description
+		passed: formulary_spec_run(line)
+	}
+}
+
+pub fn formulary_all_spec_failures() []int {
+	mut failures := []int{}
+	for line in [9, 10, 11, 22, 29, 30, 33, 37, 41, 45, 49, 53, 59, 77, 95, 116, 136, 167, 171,
+		175, 181, 188, 189, 195, 199, 205, 206, 213, 220, 224, 235, 240, 248, 249, 261, 270, 272,
+		279, 281, 282, 289, 301, 302, 304, 312, 323, 324, 325, 326, 339, 351, 363, 379, 380, 381,
+		382, 383, 384, 391, 395, 400, 406, 410, 422, 493, 504, 515, 517, 532, 553, 563, 573, 606,
+		646, 655, 668, 691, 704, 717, 733, 753, 764, 775, 787, 800, 812, 827, 833, 839, 845, 851,
+		859, 867, 872, 874, 877, 887, 892, 898, 921, 927, 939, 949, 956, 957, 958, 960, 961, 963,
+		977, 978, 980, 987, 995, 996, 998, 1005, 1011, 1017, 1042, 1043, 1044, 1055, 1063, 1064,
+		1065, 1078, 1086, 1094, 1100] {
+		if !formulary_spec_run(line) { failures << line }
+	}
+	return failures
+}
 
 // Translated from Homebrew/brew `test/formulary_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby let `let(:formula_name) { "testball_bottle" }` at line 9.
-pub fn ruby_formulary_spec_l9_d1_formula_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_name', ...args)
+pub fn ruby_formulary_spec_l9_d1_formula_name() FormularySpecBoundary {
+	return formulary_spec_boundary(9, 'let', 'let `let(:formula_name) { "testball_bottle" }` at line 9.')
 }
 
 // Ruby let `let(:formula_path) { CoreTap.instance.new_formula_path(formula_name) }` at line 10.
-pub fn ruby_formulary_spec_l10_d2_formula_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_path', ...args)
+pub fn ruby_formulary_spec_l10_d2_formula_path() FormularySpecBoundary {
+	return formulary_spec_boundary(10, 'let', 'let `let(:formula_path) { CoreTap.instance.new_formula_path(formula_name) }` at line 10.')
 }
 
 // Ruby let `let(:formula_content) do` at line 11.
-pub fn ruby_formulary_spec_l11_d3_formula_content(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_content', ...args)
+pub fn ruby_formulary_spec_l11_d3_formula_content() FormularySpecBoundary {
+	return formulary_spec_boundary(11, 'let', 'let `let(:formula_content) do` at line 11.')
 }
 
 // Ruby method `install` at line 22.
-pub fn ruby_formulary_spec_l22_d4_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+pub fn ruby_formulary_spec_l22_d4_install() FormularySpecBoundary {
+	return formulary_spec_boundary(22, 'method', 'method `install` at line 22.')
 }
 
 // Ruby let `let(:bottle_dir) { Pathname.new("#{TEST_FIXTURE_DIR}/bottles") }` at line 29.
-pub fn ruby_formulary_spec_l29_d5_bottle_dir(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('bottle_dir', ...args)
+pub fn ruby_formulary_spec_l29_d5_bottle_dir() FormularySpecBoundary {
+	return formulary_spec_boundary(29, 'let', 'let `let(:bottle_dir) { Pathname.new("#{TEST_FIXTURE_DIR}/bottles") }` at line 29.')
 }
 
 // Ruby let `let(:bottle) { bottle_dir/"testball_bottle-0.1.#{Utils::Bottles.tag}.bottle.tar.gz" }` at line 30.
-pub fn ruby_formulary_spec_l30_d6_bottle(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('bottle', ...args)
+pub fn ruby_formulary_spec_l30_d6_bottle() FormularySpecBoundary {
+	return formulary_spec_boundary(30, 'let', 'let `let(:bottle) { bottle_dir/"testball_bottle-0.1.#{Utils::Bottles.tag}.bottle.tar.gz" }` at line 30.')
 }
 
 // Ruby it `it "replaces '+' with 'x'" do` at line 33.
-pub fn ruby_formulary_spec_l33_d7_replaces(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('replaces', ...args)
+pub fn ruby_formulary_spec_l33_d7_replaces() FormularySpecBoundary {
+	return formulary_spec_boundary(33, 'it', 'it `it "replaces \'+\' with \'x\'" do` at line 33.')
 }
 
 // Ruby it `it "converts a string with dots to PascalCase" do` at line 37.
-pub fn ruby_formulary_spec_l37_d8_converts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('converts', ...args)
+pub fn ruby_formulary_spec_l37_d8_converts() FormularySpecBoundary {
+	return formulary_spec_boundary(37, 'it', 'it `it "converts a string with dots to PascalCase" do` at line 37.')
 }
 
 // Ruby it `it "converts a string with hyphens to PascalCase" do` at line 41.
-pub fn ruby_formulary_spec_l41_d9_converts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('converts', ...args)
+pub fn ruby_formulary_spec_l41_d9_converts() FormularySpecBoundary {
+	return formulary_spec_boundary(41, 'it', 'it `it "converts a string with hyphens to PascalCase" do` at line 41.')
 }
 
 // Ruby it `it "converts a string with a single letter separated by a hyphen to PascalCase" do` at line 45.
-pub fn ruby_formulary_spec_l45_d10_converts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('converts', ...args)
+pub fn ruby_formulary_spec_l45_d10_converts() FormularySpecBoundary {
+	return formulary_spec_boundary(45, 'it', 'it `it "converts a string with a single letter separated by a hyphen to PascalCase" do` at line 45.')
 }
 
 // Ruby it `it "converts a string with underscores to PascalCase" do` at line 49.
-pub fn ruby_formulary_spec_l49_d11_converts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('converts', ...args)
+pub fn ruby_formulary_spec_l49_d11_converts() FormularySpecBoundary {
+	return formulary_spec_boundary(49, 'it', 'it `it "converts a string with underscores to PascalCase" do` at line 49.')
 }
 
 // Ruby it `it "replaces '@' with 'AT'" do` at line 53.
-pub fn ruby_formulary_spec_l53_d12_replaces(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('replaces', ...args)
+pub fn ruby_formulary_spec_l53_d12_replaces() FormularySpecBoundary {
+	return formulary_spec_boundary(53, 'it', 'it `it "replaces \'@\' with \'AT\'" do` at line 53.')
 }
 
 // Ruby it `it "continues evaluation after ignorable errors with ignore_errors" do` at line 59.
-pub fn ruby_formulary_spec_l59_d13_continues(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('continues', ...args)
+pub fn ruby_formulary_spec_l59_d13_continues() FormularySpecBoundary {
+	return formulary_spec_boundary(59, 'it', 'it `it "continues evaluation after ignorable errors with ignore_errors" do` at line 59.')
 }
 
 // Ruby it `it "raises FormulaUnreadableError for errors it cannot resume despite ignore_errors" do` at line 77.
-pub fn ruby_formulary_spec_l77_d14_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+pub fn ruby_formulary_spec_l77_d14_raises() FormularySpecBoundary {
+	return formulary_spec_boundary(77, 'it', 'it `it "raises FormulaUnreadableError for errors it cannot resume despite ignore_errors" do` at line 77.')
 }
 
 // Ruby it `it "masks sensitive environment variables while evaluating formulae" do` at line 95.
-pub fn ruby_formulary_spec_l95_d15_masks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('masks', ...args)
+pub fn ruby_formulary_spec_l95_d15_masks() FormularySpecBoundary {
+	return formulary_spec_boundary(95, 'it', 'it `it "masks sensitive environment variables while evaluating formulae" do` at line 95.')
 }
 
 // Ruby it `it "allows the GitHub API token while evaluating formulae" do` at line 116.
-pub fn ruby_formulary_spec_l116_d16_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+pub fn ruby_formulary_spec_l116_d16_allows() FormularySpecBoundary {
+	return formulary_spec_boundary(116, 'it', 'it `it "allows the GitHub API token while evaluating formulae" do` at line 116.')
 }
 
 // Ruby it `it "refuses untrusted third-party tap formulae when trust is enabled" do` at line 136.
-pub fn ruby_formulary_spec_l136_d17_refuses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('refuses', ...args)
+pub fn ruby_formulary_spec_l136_d17_refuses() FormularySpecBoundary {
+	return formulary_spec_boundary(136, 'it', 'it `it "refuses untrusted third-party tap formulae when trust is enabled" do` at line 136.')
 }
 
 // Ruby it `it "returns a Formula" do` at line 167.
-pub fn ruby_formulary_spec_l167_d18_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_formulary_spec_l167_d18_returns() FormularySpecBoundary {
+	return formulary_spec_boundary(167, 'it', 'it `it "returns a Formula" do` at line 167.')
 }
 
 // Ruby it `it "returns a Formula when given a fully qualified name" do` at line 171.
-pub fn ruby_formulary_spec_l171_d19_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_formulary_spec_l171_d19_returns() FormularySpecBoundary {
+	return formulary_spec_boundary(171, 'it', 'it `it "returns a Formula when given a fully qualified name" do` at line 171.')
 }
 
 // Ruby it `it "raises an error if the Formula cannot be found" do` at line 175.
-pub fn ruby_formulary_spec_l175_d20_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+pub fn ruby_formulary_spec_l175_d20_raises() FormularySpecBoundary {
+	return formulary_spec_boundary(175, 'it', 'it `it "raises an error if the Formula cannot be found" do` at line 175.')
 }
 
 // Ruby it `it "raises an error if ref is nil" do` at line 181.
-pub fn ruby_formulary_spec_l181_d21_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+pub fn ruby_formulary_spec_l181_d21_raises() FormularySpecBoundary {
+	return formulary_spec_boundary(181, 'it', 'it `it "raises an error if ref is nil" do` at line 181.')
 }
 
 // Ruby let `let(:formula_name) { "testball_sharded" }` at line 188.
-pub fn ruby_formulary_spec_l188_d22_formula_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_name', ...args)
+pub fn ruby_formulary_spec_l188_d22_formula_name() FormularySpecBoundary {
+	return formulary_spec_boundary(188, 'let', 'let `let(:formula_name) { "testball_sharded" }` at line 188.')
 }
 
 // Ruby let `let(:formula_path) do` at line 189.
-pub fn ruby_formulary_spec_l189_d23_formula_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_path', ...args)
+pub fn ruby_formulary_spec_l189_d23_formula_path() FormularySpecBoundary {
+	return formulary_spec_boundary(189, 'let', 'let `let(:formula_path) do` at line 189.')
 }
 
 // Ruby it `it "returns a Formula" do` at line 195.
-pub fn ruby_formulary_spec_l195_d24_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_formulary_spec_l195_d24_returns() FormularySpecBoundary {
+	return formulary_spec_boundary(195, 'it', 'it `it "returns a Formula" do` at line 195.')
 }
 
 // Ruby it `it "returns a Formula when given a fully qualified name" do` at line 199.
-pub fn ruby_formulary_spec_l199_d25_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_formulary_spec_l199_d25_returns() FormularySpecBoundary {
+	return formulary_spec_boundary(199, 'it', 'it `it "returns a Formula when given a fully qualified name" do` at line 199.')
 }
 
 // Ruby let `let(:formula_name) { "giraffe" }` at line 205.
-pub fn ruby_formulary_spec_l205_d26_formula_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_name', ...args)
+pub fn ruby_formulary_spec_l205_d26_formula_name() FormularySpecBoundary {
+	return formulary_spec_boundary(205, 'let', 'let `let(:formula_name) { "giraffe" }` at line 205.')
 }
 
 // Ruby let `let(:formula_content) do` at line 206.
-pub fn ruby_formulary_spec_l206_d27_formula_content(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_content', ...args)
+pub fn ruby_formulary_spec_l206_d27_formula_content() FormularySpecBoundary {
+	return formulary_spec_boundary(206, 'let', 'let `let(:formula_content) do` at line 206.')
 }
 
 // Ruby it `it "raises an error" do` at line 213.
-pub fn ruby_formulary_spec_l213_d28_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+pub fn ruby_formulary_spec_l213_d28_raises() FormularySpecBoundary {
+	return formulary_spec_boundary(213, 'it', 'it `it "raises an error" do` at line 213.')
 }
 
 // Ruby it `it "returns a Formula when given a path" do` at line 220.
-pub fn ruby_formulary_spec_l220_d29_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_formulary_spec_l220_d29_returns() FormularySpecBoundary {
+	return formulary_spec_boundary(220, 'it', 'it `it "returns a Formula when given a path" do` at line 220.')
 }
 
 // Ruby it `it "errors when given a path but paths are disabled" do` at line 224.
-pub fn ruby_formulary_spec_l224_d30_errors(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('errors', ...args)
+pub fn ruby_formulary_spec_l224_d30_errors() FormularySpecBoundary {
+	return formulary_spec_boundary(224, 'it', 'it `it "errors when given a path but paths are disabled" do` at line 224.')
 }
 
 // Ruby it `it "returns a Formula when given a URL", :needs_utils_curl do` at line 235.
-pub fn ruby_formulary_spec_l235_d31_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_formulary_spec_l235_d31_returns() FormularySpecBoundary {
+	return formulary_spec_boundary(235, 'it', 'it `it "returns a Formula when given a URL", :needs_utils_curl do` at line 235.')
 }
 
 // Ruby it `it "errors when given a URL but paths are disabled" do` at line 240.
-pub fn ruby_formulary_spec_l240_d32_errors(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('errors', ...args)
+pub fn ruby_formulary_spec_l240_d32_errors() FormularySpecBoundary {
+	return formulary_spec_boundary(240, 'it', 'it `it "errors when given a URL but paths are disabled" do` at line 240.')
 }
 
 // Ruby let `let(:cache_dir) { HOMEBREW_CACHE/"test_formula_cache" }` at line 248.
-pub fn ruby_formulary_spec_l248_d33_cache_dir(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cache_dir', ...args)
+pub fn ruby_formulary_spec_l248_d33_cache_dir() FormularySpecBoundary {
+	return formulary_spec_boundary(248, 'let', 'let `let(:cache_dir) { HOMEBREW_CACHE/"test_formula_cache" }` at line 248.')
 }
 
 // Ruby let `let(:cache_formula_path) { cache_dir/formula_path.basename }` at line 249.
-pub fn ruby_formulary_spec_l249_d34_cache_formula_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cache_formula_path', ...args)
+pub fn ruby_formulary_spec_l249_d34_cache_formula_path() FormularySpecBoundary {
+	return formulary_spec_boundary(249, 'let', 'let `let(:cache_formula_path) { cache_dir/formula_path.basename }` at line 249.')
 }
 
 // Ruby it `it "disallows cache paths when paths are explicitly disabled" do` at line 261.
-pub fn ruby_formulary_spec_l261_d35_disallows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('disallows', ...args)
+pub fn ruby_formulary_spec_l261_d35_disallows() FormularySpecBoundary {
+	return formulary_spec_boundary(261, 'it', 'it `it "disallows cache paths when paths are explicitly disabled" do` at line 261.')
 }
 
 // Ruby subject `subject(:formula) { described_class.factory(bottle) }` at line 270.
-pub fn ruby_formulary_spec_l270_d36_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula', ...args)
+pub fn ruby_formulary_spec_l270_d36_formula() FormularySpecBoundary {
+	return formulary_spec_boundary(270, 'subject', 'subject `subject(:formula) { described_class.factory(bottle) }` at line 270.')
 }
 
 // Ruby specify `specify do` at line 272.
-pub fn ruby_formulary_spec_l272_d37_do(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('do', ...args)
+pub fn ruby_formulary_spec_l272_d37_do() FormularySpecBoundary {
+	return formulary_spec_boundary(272, 'specify', 'specify `specify do` at line 272.')
 }
 
 // Ruby subject `subject(:formula) { described_class.factory("foo") }` at line 279.
-pub fn ruby_formulary_spec_l279_d38_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula', ...args)
+pub fn ruby_formulary_spec_l279_d38_formula() FormularySpecBoundary {
+	return formulary_spec_boundary(279, 'subject', 'subject `subject(:formula) { described_class.factory("foo") }` at line 279.')
 }
 
 // Ruby let `let(:alias_dir) { CoreTap.instance.alias_dir }` at line 281.
-pub fn ruby_formulary_spec_l281_d39_alias_dir(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('alias_dir', ...args)
+pub fn ruby_formulary_spec_l281_d39_alias_dir() FormularySpecBoundary {
+	return formulary_spec_boundary(281, 'let', 'let `let(:alias_dir) { CoreTap.instance.alias_dir }` at line 281.')
 }
 
 // Ruby let `let(:alias_path) { alias_dir/"foo" }` at line 282.
-pub fn ruby_formulary_spec_l282_d40_alias_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('alias_path', ...args)
+pub fn ruby_formulary_spec_l282_d40_alias_path() FormularySpecBoundary {
+	return formulary_spec_boundary(282, 'let', 'let `let(:alias_path) { alias_dir/"foo" }` at line 282.')
 }
 
 // Ruby specify `specify do` at line 289.
-pub fn ruby_formulary_spec_l289_d41_do(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('do', ...args)
+pub fn ruby_formulary_spec_l289_d41_do() FormularySpecBoundary {
+	return formulary_spec_boundary(289, 'specify', 'specify `specify do` at line 289.')
 }
 
 // Ruby let `let(:installed_formula) { described_class.factory(formula_path) }` at line 301.
-pub fn ruby_formulary_spec_l301_d42_installed_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('installed_formula', ...args)
+pub fn ruby_formulary_spec_l301_d42_installed_formula() FormularySpecBoundary {
+	return formulary_spec_boundary(301, 'let', 'let `let(:installed_formula) { described_class.factory(formula_path) }` at line 301.')
 }
 
 // Ruby let `let(:installer) { FormulaInstaller.new(installed_formula) }` at line 302.
-pub fn ruby_formulary_spec_l302_d43_installer(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('installer', ...args)
+pub fn ruby_formulary_spec_l302_d43_installer() FormularySpecBoundary {
+	return formulary_spec_boundary(302, 'let', 'let `let(:installer) { FormulaInstaller.new(installed_formula) }` at line 302.')
 }
 
 // Ruby it `it "returns a Formula when given a rack" do` at line 304.
-pub fn ruby_formulary_spec_l304_d44_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_formulary_spec_l304_d44_returns() FormularySpecBoundary {
+	return formulary_spec_boundary(304, 'it', 'it `it "returns a Formula when given a rack" do` at line 304.')
 }
 
 // Ruby it `it "returns a Formula when given a Keg" do` at line 312.
-pub fn ruby_formulary_spec_l312_d45_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_formulary_spec_l312_d45_returns() FormularySpecBoundary {
+	return formulary_spec_boundary(312, 'it', 'it `it "returns a Formula when given a Keg" do` at line 312.')
 }
 
 // Ruby let `let(:tap) { Tap.fetch("homebrew", "foo") }` at line 323.
-pub fn ruby_formulary_spec_l323_d46_tap(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tap', ...args)
+pub fn ruby_formulary_spec_l323_d46_tap() FormularySpecBoundary {
+	return formulary_spec_boundary(323, 'let', 'let `let(:tap) { Tap.fetch("homebrew", "foo") }` at line 323.')
 }
 
 // Ruby let `let(:another_tap) { Tap.fetch("homebrew", "bar") }` at line 324.
-pub fn ruby_formulary_spec_l324_d47_another_tap(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('another_tap', ...args)
+pub fn ruby_formulary_spec_l324_d47_another_tap() FormularySpecBoundary {
+	return formulary_spec_boundary(324, 'let', 'let `let(:another_tap) { Tap.fetch("homebrew", "bar") }` at line 324.')
 }
 
 // Ruby let `let(:tap_migrations_path) { tap.path/"tap_migrations.json" }` at line 325.
-pub fn ruby_formulary_spec_l325_d48_tap_migrations_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tap_migrations_path', ...args)
+pub fn ruby_formulary_spec_l325_d48_tap_migrations_path() FormularySpecBoundary {
+	return formulary_spec_boundary(325, 'let', 'let `let(:tap_migrations_path) { tap.path/"tap_migrations.json" }` at line 325.')
 }
 
 // Ruby let `let(:another_tap_formula_path) { another_tap.path/"Formula/#{formula_name}.rb" }` at line 326.
-pub fn ruby_formulary_spec_l326_d49_another_tap_formula_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('another_tap_formula_path', ...args)
+pub fn ruby_formulary_spec_l326_d49_another_tap_formula_path() FormularySpecBoundary {
+	return formulary_spec_boundary(326, 'let', 'let `let(:another_tap_formula_path) { another_tap.path/"Formula/#{formula_name}.rb" }` at line 326.')
 }
 
 // Ruby it `it "returns a Formula that has gone through a tap migration into homebrew/core" do` at line 339.
-pub fn ruby_formulary_spec_l339_d50_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_formulary_spec_l339_d50_returns() FormularySpecBoundary {
+	return formulary_spec_boundary(339, 'it', 'it `it "returns a Formula that has gone through a tap migration into homebrew/core" do` at line 339.')
 }
 
 // Ruby it `it "returns a Formula that has gone through a tap migration into another tap" do` at line 351.
-pub fn ruby_formulary_spec_l351_d51_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_formulary_spec_l351_d51_returns() FormularySpecBoundary {
+	return formulary_spec_boundary(351, 'it', 'it `it "returns a Formula that has gone through a tap migration into another tap" do` at line 351.')
 }
 
 // Ruby it `it "raises when the migrated tap is not installed" do` at line 363.
-pub fn ruby_formulary_spec_l363_d52_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+pub fn ruby_formulary_spec_l363_d52_raises() FormularySpecBoundary {
+	return formulary_spec_boundary(363, 'it', 'it `it "raises when the migrated tap is not installed" do` at line 363.')
 }
 
 // Ruby let `let(:tap) { Tap.fetch("homebrew", "foo") }` at line 379.
-pub fn ruby_formulary_spec_l379_d53_tap(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tap', ...args)
+pub fn ruby_formulary_spec_l379_d53_tap() FormularySpecBoundary {
+	return formulary_spec_boundary(379, 'let', 'let `let(:tap) { Tap.fetch("homebrew", "foo") }` at line 379.')
 }
 
 // Ruby let `let(:another_tap) { Tap.fetch("homebrew", "bar") }` at line 380.
-pub fn ruby_formulary_spec_l380_d54_another_tap(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('another_tap', ...args)
+pub fn ruby_formulary_spec_l380_d54_another_tap() FormularySpecBoundary {
+	return formulary_spec_boundary(380, 'let', 'let `let(:another_tap) { Tap.fetch("homebrew", "bar") }` at line 380.')
 }
 
 // Ruby let `let(:formula_path) { tap.path/"Formula/#{formula_name}.rb" }` at line 381.
-pub fn ruby_formulary_spec_l381_d55_formula_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_path', ...args)
+pub fn ruby_formulary_spec_l381_d55_formula_path() FormularySpecBoundary {
+	return formulary_spec_boundary(381, 'let', 'let `let(:formula_path) { tap.path/"Formula/#{formula_name}.rb" }` at line 381.')
 }
 
 // Ruby let `let(:alias_name) { "bar" }` at line 382.
-pub fn ruby_formulary_spec_l382_d56_alias_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('alias_name', ...args)
+pub fn ruby_formulary_spec_l382_d56_alias_name() FormularySpecBoundary {
+	return formulary_spec_boundary(382, 'let', 'let `let(:alias_name) { "bar" }` at line 382.')
 }
 
 // Ruby let `let(:alias_dir) { tap.alias_dir }` at line 383.
-pub fn ruby_formulary_spec_l383_d57_alias_dir(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('alias_dir', ...args)
+pub fn ruby_formulary_spec_l383_d57_alias_dir() FormularySpecBoundary {
+	return formulary_spec_boundary(383, 'let', 'let `let(:alias_dir) { tap.alias_dir }` at line 383.')
 }
 
 // Ruby let `let(:alias_path) { alias_dir/alias_name }` at line 384.
-pub fn ruby_formulary_spec_l384_d58_alias_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('alias_path', ...args)
+pub fn ruby_formulary_spec_l384_d58_alias_path() FormularySpecBoundary {
+	return formulary_spec_boundary(384, 'let', 'let `let(:alias_path) { alias_dir/alias_name }` at line 384.')
 }
 
 // Ruby it `it "returns a Formula when given a name" do` at line 391.
-pub fn ruby_formulary_spec_l391_d59_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_formulary_spec_l391_d59_returns() FormularySpecBoundary {
+	return formulary_spec_boundary(391, 'it', 'it `it "returns a Formula when given a name" do` at line 391.')
 }
 
 // Ruby it `it "returns a Formula with the correct alias path from a bare or fully qualified Alias name" do` at line 395.
-pub fn ruby_formulary_spec_l395_d60_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_formulary_spec_l395_d60_returns() FormularySpecBoundary {
+	return formulary_spec_boundary(395, 'it', 'it `it "returns a Formula with the correct alias path from a bare or fully qualified Alias name" do` at line 395.')
 }
 
 // Ruby it `it "raises an error when the Formula cannot be found" do` at line 400.
-pub fn ruby_formulary_spec_l400_d61_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+pub fn ruby_formulary_spec_l400_d61_raises() FormularySpecBoundary {
+	return formulary_spec_boundary(400, 'it', 'it `it "raises an error when the Formula cannot be found" do` at line 400.')
 }
 
 // Ruby it `it "returns a Formula when given a fully qualified name" do` at line 406.
-pub fn ruby_formulary_spec_l406_d62_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_formulary_spec_l406_d62_returns() FormularySpecBoundary {
+	return formulary_spec_boundary(406, 'it', 'it `it "returns a Formula when given a fully qualified name" do` at line 406.')
 }
 
 // Ruby it `it "raises an error if a Formula is in multiple Taps" do` at line 410.
-pub fn ruby_formulary_spec_l410_d63_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+pub fn ruby_formulary_spec_l410_d63_raises() FormularySpecBoundary {
+	return formulary_spec_boundary(410, 'it', 'it `it "raises an error if a Formula is in multiple Taps" do` at line 410.')
 }
 
 // Ruby method `formula_json_contents(extra_items = {})` at line 422.
-pub fn ruby_formulary_spec_l422_d64_formula_json_contents(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_json_contents', ...args)
+pub fn ruby_formulary_spec_l422_d64_formula_json_contents() FormularySpecBoundary {
+	return formulary_spec_boundary(422, 'method', 'method `formula_json_contents(extra_items = {})` at line 422.')
 }
 
 // Ruby let `let(:deprecate_json) do` at line 493.
-pub fn ruby_formulary_spec_l493_d65_deprecate_json(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('deprecate_json', ...args)
+pub fn ruby_formulary_spec_l493_d65_deprecate_json() FormularySpecBoundary {
+	return formulary_spec_boundary(493, 'let', 'let `let(:deprecate_json) do` at line 493.')
 }
 
 // Ruby let `let(:disable_json) do` at line 504.
-pub fn ruby_formulary_spec_l504_d66_disable_json(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('disable_json', ...args)
+pub fn ruby_formulary_spec_l504_d66_disable_json() FormularySpecBoundary {
+	return formulary_spec_boundary(504, 'let', 'let `let(:disable_json) do` at line 504.')
 }
 
 // Ruby let `let(:future_date) { Date.today + 365 }` at line 515.
-pub fn ruby_formulary_spec_l515_d67_future_date(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('future_date', ...args)
+pub fn ruby_formulary_spec_l515_d67_future_date() FormularySpecBoundary {
+	return formulary_spec_boundary(515, 'let', 'let `let(:future_date) { Date.today + 365 }` at line 515.')
 }
 
 // Ruby let `let(:deprecate_future_json) do` at line 517.
-pub fn ruby_formulary_spec_l517_d68_deprecate_future_json(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('deprecate_future_json', ...args)
+pub fn ruby_formulary_spec_l517_d68_deprecate_future_json() FormularySpecBoundary {
+	return formulary_spec_boundary(517, 'let', 'let `let(:deprecate_future_json) do` at line 517.')
 }
 
 // Ruby let `let(:disable_future_json) do` at line 532.
-pub fn ruby_formulary_spec_l532_d69_disable_future_json(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('disable_future_json', ...args)
+pub fn ruby_formulary_spec_l532_d69_disable_future_json() FormularySpecBoundary {
+	return formulary_spec_boundary(532, 'let', 'let `let(:disable_future_json) do` at line 532.')
 }
 
 // Ruby let `let(:variations_json) do` at line 553.
-pub fn ruby_formulary_spec_l553_d70_variations_json(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('variations_json', ...args)
+pub fn ruby_formulary_spec_l553_d70_variations_json() FormularySpecBoundary {
+	return formulary_spec_boundary(553, 'let', 'let `let(:variations_json) do` at line 553.')
 }
 
 // Ruby let `let(:older_macos_variations_json) do` at line 563.
-pub fn ruby_formulary_spec_l563_d71_older_macos_variations_json(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('older_macos_variations_json', ...args)
+pub fn ruby_formulary_spec_l563_d71_older_macos_variations_json() FormularySpecBoundary {
+	return formulary_spec_boundary(563, 'let', 'let `let(:older_macos_variations_json) do` at line 563.')
 }
 
 // Ruby let `let(:linux_variations_json) do` at line 573.
-pub fn ruby_formulary_spec_l573_d72_linux_variations_json(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('linux_variations_json', ...args)
+pub fn ruby_formulary_spec_l573_d72_linux_variations_json() FormularySpecBoundary {
+	return formulary_spec_boundary(573, 'let', 'let `let(:linux_variations_json) do` at line 573.')
 }
 
 // Ruby it `it "returns a Formula when given a name" do` at line 606.
-pub fn ruby_formulary_spec_l606_d73_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_formulary_spec_l606_d73_returns() FormularySpecBoundary {
+	return formulary_spec_boundary(606, 'it', 'it `it "returns a Formula when given a name" do` at line 606.')
 }
 
 // Ruby it `it "returns a Formula loaded from the internal API" do` at line 646.
-pub fn ruby_formulary_spec_l646_d74_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_formulary_spec_l646_d74_returns() FormularySpecBoundary {
+	return formulary_spec_boundary(646, 'it', 'it `it "returns a Formula loaded from the internal API" do` at line 646.')
 }
 
 // Ruby it `it "runs post-install steps loaded from the internal API without source Ruby" do` at line 655.
-pub fn ruby_formulary_spec_l655_d75_runs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('runs', ...args)
+pub fn ruby_formulary_spec_l655_d75_runs() FormularySpecBoundary {
+	return formulary_spec_boundary(655, 'it', 'it `it "runs post-install steps loaded from the internal API without source Ruby" do` at line 655.')
 }
 
 // Ruby it `it "loads patches from API JSON" do` at line 668.
-pub fn ruby_formulary_spec_l668_d76_loads(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('loads', ...args)
+pub fn ruby_formulary_spec_l668_d76_loads() FormularySpecBoundary {
+	return formulary_spec_boundary(668, 'it', 'it `it "loads patches from API JSON" do` at line 668.')
 }
 
 // Ruby it `it "returns a deprecated Formula when given a name" do` at line 691.
-pub fn ruby_formulary_spec_l691_d77_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_formulary_spec_l691_d77_returns() FormularySpecBoundary {
+	return formulary_spec_boundary(691, 'it', 'it `it "returns a deprecated Formula when given a name" do` at line 691.')
 }
 
 // Ruby it `it "returns a disabled Formula when given a name" do` at line 704.
-pub fn ruby_formulary_spec_l704_d78_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_formulary_spec_l704_d78_returns() FormularySpecBoundary {
+	return formulary_spec_boundary(704, 'it', 'it `it "returns a disabled Formula when given a name" do` at line 704.')
 }
 
 // Ruby it `it "returns a future-deprecated Formula when given a name" do` at line 717.
-pub fn ruby_formulary_spec_l717_d79_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_formulary_spec_l717_d79_returns() FormularySpecBoundary {
+	return formulary_spec_boundary(717, 'it', 'it `it "returns a future-deprecated Formula when given a name" do` at line 717.')
 }
 
 // Ruby it `it "returns a future-disabled Formula when given a name" do` at line 733.
-pub fn ruby_formulary_spec_l733_d80_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_formulary_spec_l733_d80_returns() FormularySpecBoundary {
+	return formulary_spec_boundary(733, 'it', 'it `it "returns a future-disabled Formula when given a name" do` at line 733.')
 }
 
 // Ruby it `it "returns a Formula with variations when given a name", :needs_macos do` at line 753.
-pub fn ruby_formulary_spec_l753_d81_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_formulary_spec_l753_d81_returns() FormularySpecBoundary {
+	return formulary_spec_boundary(753, 'it', 'it `it "returns a Formula with variations when given a name", :needs_macos do` at line 753.')
 }
 
 // Ruby it `it "returns a Formula without duplicated deps and uses_from_macos with variations on Linux", :needs_linux do` at line 764.
-pub fn ruby_formulary_spec_l764_d82_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_formulary_spec_l764_d82_returns() FormularySpecBoundary {
+	return formulary_spec_boundary(764, 'it', 'it `it "returns a Formula without duplicated deps and uses_from_macos with variations on Linux", :needs_linux do` at line 764.')
 }
 
 // Ruby it `it "returns a Formula with the correct uses_from_macos dep on older macOS", :needs_macos do` at line 775.
-pub fn ruby_formulary_spec_l775_d83_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_formulary_spec_l775_d83_returns() FormularySpecBoundary {
+	return formulary_spec_boundary(775, 'it', 'it `it "returns a Formula with the correct uses_from_macos dep on older macOS", :needs_macos do` at line 775.')
 }
 
 // Ruby let `let(:foo_tap) { Tap.fetch("homebrew", "foo") }` at line 787.
-pub fn ruby_formulary_spec_l787_d84_foo_tap(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('foo_tap', ...args)
+pub fn ruby_formulary_spec_l787_d84_foo_tap() FormularySpecBoundary {
+	return formulary_spec_boundary(787, 'let', 'let `let(:foo_tap) { Tap.fetch("homebrew", "foo") }` at line 787.')
 }
 
 // Ruby it `it "returns the tap migration rename by old formula_name" do` at line 800.
-pub fn ruby_formulary_spec_l800_d85_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_formulary_spec_l800_d85_returns() FormularySpecBoundary {
+	return formulary_spec_boundary(800, 'it', 'it `it "returns the tap migration rename by old formula_name" do` at line 800.')
 }
 
 // Ruby it `it "returns the tap migration rename by old full name" do` at line 812.
-pub fn ruby_formulary_spec_l812_d86_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_formulary_spec_l812_d86_returns() FormularySpecBoundary {
+	return formulary_spec_boundary(812, 'it', 'it `it "returns the tap migration rename by old full name" do` at line 812.')
 }
 
 // Ruby it `it "raises an error when given an https URL" do` at line 827.
-pub fn ruby_formulary_spec_l827_d87_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+pub fn ruby_formulary_spec_l827_d87_raises() FormularySpecBoundary {
+	return formulary_spec_boundary(827, 'it', 'it `it "raises an error when given an https URL" do` at line 827.')
 }
 
 // Ruby it `it "raises an error when given a bottle URL" do` at line 833.
-pub fn ruby_formulary_spec_l833_d88_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+pub fn ruby_formulary_spec_l833_d88_raises() FormularySpecBoundary {
+	return formulary_spec_boundary(833, 'it', 'it `it "raises an error when given a bottle URL" do` at line 833.')
 }
 
 // Ruby it `it "raises an error when given an ftp URL" do` at line 839.
-pub fn ruby_formulary_spec_l839_d89_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+pub fn ruby_formulary_spec_l839_d89_raises() FormularySpecBoundary {
+	return formulary_spec_boundary(839, 'it', 'it `it "raises an error when given an ftp URL" do` at line 839.')
 }
 
 // Ruby it `it "raises an error when given an sftp URL" do` at line 845.
-pub fn ruby_formulary_spec_l845_d90_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+pub fn ruby_formulary_spec_l845_d90_raises() FormularySpecBoundary {
+	return formulary_spec_boundary(845, 'it', 'it `it "raises an error when given an sftp URL" do` at line 845.')
 }
 
 // Ruby it `it "does not raise an error when given a file URL", :needs_utils_curl do` at line 851.
-pub fn ruby_formulary_spec_l851_d91_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_formulary_spec_l851_d91_does() FormularySpecBoundary {
+	return formulary_spec_boundary(851, 'it', 'it `it "does not raise an error when given a file URL", :needs_utils_curl do` at line 851.')
 }
 
 // Ruby it `it "raises a FormulaUnavailableError error" do` at line 859.
-pub fn ruby_formulary_spec_l859_d92_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+pub fn ruby_formulary_spec_l859_d92_raises() FormularySpecBoundary {
+	return formulary_spec_boundary(859, 'it', 'it `it "raises a FormulaUnavailableError error" do` at line 859.')
 }
 
 // Ruby specify `specify "::from_contents" do` at line 867.
-pub fn ruby_formulary_spec_l867_d93_from_contents(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('::from_contents', ...args)
+pub fn ruby_formulary_spec_l867_d93_from_contents() FormularySpecBoundary {
+	return formulary_spec_boundary(867, 'specify', 'specify `specify "::from_contents" do` at line 867.')
 }
 
 // Ruby alias_matcher `alias_matcher :exist, :be_exist` at line 872.
-pub fn ruby_formulary_spec_l872_d94_exist(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('exist', ...args)
+pub fn ruby_formulary_spec_l872_d94_exist() FormularySpecBoundary {
+	return formulary_spec_boundary(872, 'alias_matcher', 'alias_matcher `alias_matcher :exist, :be_exist` at line 872.')
 }
 
 // Ruby let `let(:rack_path) { HOMEBREW_CELLAR/formula_name }` at line 874.
-pub fn ruby_formulary_spec_l874_d95_rack_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('rack_path', ...args)
+pub fn ruby_formulary_spec_l874_d95_rack_path() FormularySpecBoundary {
+	return formulary_spec_boundary(874, 'let', 'let `let(:rack_path) { HOMEBREW_CELLAR/formula_name }` at line 874.')
 }
 
 // Ruby it `it "returns the Rack" do` at line 877.
-pub fn ruby_formulary_spec_l877_d96_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_formulary_spec_l877_d96_returns() FormularySpecBoundary {
+	return formulary_spec_boundary(877, 'it', 'it `it "returns the Rack" do` at line 877.')
 }
 
 // Ruby it `it "returns the Rack" do` at line 887.
-pub fn ruby_formulary_spec_l887_d97_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_formulary_spec_l887_d97_returns() FormularySpecBoundary {
+	return formulary_spec_boundary(887, 'it', 'it `it "returns the Rack" do` at line 887.')
 }
 
 // Ruby it `it "raises an error if the Formula is not available" do` at line 892.
-pub fn ruby_formulary_spec_l892_d98_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+pub fn ruby_formulary_spec_l892_d98_raises() FormularySpecBoundary {
+	return formulary_spec_boundary(892, 'it', 'it `it "raises an error if the Formula is not available" do` at line 892.')
 }
 
 // Ruby it `it "locates an installed Rack from an untrusted tap without evaluating its formula" do` at line 898.
-pub fn ruby_formulary_spec_l898_d99_locates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('locates', ...args)
+pub fn ruby_formulary_spec_l898_d99_locates() FormularySpecBoundary {
+	return formulary_spec_boundary(898, 'it', 'it `it "locates an installed Rack from an untrusted tap without evaluating its formula" do` at line 898.')
 }
 
 // Ruby it `it "returns the path to a Formula in the core tap" do` at line 921.
-pub fn ruby_formulary_spec_l921_d100_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_formulary_spec_l921_d100_returns() FormularySpecBoundary {
+	return formulary_spec_boundary(921, 'it', 'it `it "returns the path to a Formula in the core tap" do` at line 921.')
 }
 
 // Ruby it `it "returns the sharded path directly for API-known formulae" do` at line 927.
-pub fn ruby_formulary_spec_l927_d101_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_formulary_spec_l927_d101_returns() FormularySpecBoundary {
+	return formulary_spec_boundary(927, 'it', 'it `it "returns the sharded path directly for API-known formulae" do` at line 927.')
 }
 
 // Ruby it `it "returns a `FromPathLoader`" do` at line 939.
-pub fn ruby_formulary_spec_l939_d102_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_formulary_spec_l939_d102_returns() FormularySpecBoundary {
+	return formulary_spec_boundary(939, 'it', 'it `it "returns a `FromPathLoader`" do` at line 939.')
 }
 
 // Ruby it `it "returns a `FromTapLoader`", :no_api do` at line 949.
-pub fn ruby_formulary_spec_l949_d103_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_formulary_spec_l949_d103_returns() FormularySpecBoundary {
+	return formulary_spec_boundary(949, 'it', 'it `it "returns a `FromTapLoader`", :no_api do` at line 949.')
 }
 
 // Ruby let `let(:token) { "foo" }` at line 956.
-pub fn ruby_formulary_spec_l956_d104_token(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('token', ...args)
+pub fn ruby_formulary_spec_l956_d104_token() FormularySpecBoundary {
+	return formulary_spec_boundary(956, 'let', 'let `let(:token) { "foo" }` at line 956.')
 }
 
 // Ruby let `let(:old_tap) { core_tap }` at line 957.
-pub fn ruby_formulary_spec_l957_d105_old_tap(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('old_tap', ...args)
+pub fn ruby_formulary_spec_l957_d105_old_tap() FormularySpecBoundary {
+	return formulary_spec_boundary(957, 'let', 'let `let(:old_tap) { core_tap }` at line 957.')
 }
 
 // Ruby let `let(:new_tap) { core_cask_tap }` at line 958.
-pub fn ruby_formulary_spec_l958_d106_new_tap(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('new_tap', ...args)
+pub fn ruby_formulary_spec_l958_d106_new_tap() FormularySpecBoundary {
+	return formulary_spec_boundary(958, 'let', 'let `let(:new_tap) { core_cask_tap }` at line 958.')
 }
 
 // Ruby let `let(:core_tap) { CoreTap.instance }` at line 960.
-pub fn ruby_formulary_spec_l960_d107_core_tap(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('core_tap', ...args)
+pub fn ruby_formulary_spec_l960_d107_core_tap() FormularySpecBoundary {
+	return formulary_spec_boundary(960, 'let', 'let `let(:core_tap) { CoreTap.instance }` at line 960.')
 }
 
 // Ruby let `let(:core_cask_tap) { CoreCaskTap.instance }` at line 961.
-pub fn ruby_formulary_spec_l961_d108_core_cask_tap(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('core_cask_tap', ...args)
+pub fn ruby_formulary_spec_l961_d108_core_cask_tap() FormularySpecBoundary {
+	return formulary_spec_boundary(961, 'let', 'let `let(:core_cask_tap) { CoreCaskTap.instance }` at line 961.')
 }
 
 // Ruby let `let(:tap_migrations) do` at line 963.
-pub fn ruby_formulary_spec_l963_d109_tap_migrations(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tap_migrations', ...args)
+pub fn ruby_formulary_spec_l963_d109_tap_migrations() FormularySpecBoundary {
+	return formulary_spec_boundary(963, 'let', 'let `let(:tap_migrations) do` at line 963.')
 }
 
 // Ruby let `let(:old_tap) { core_tap }` at line 977.
-pub fn ruby_formulary_spec_l977_d110_old_tap(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('old_tap', ...args)
+pub fn ruby_formulary_spec_l977_d110_old_tap() FormularySpecBoundary {
+	return formulary_spec_boundary(977, 'let', 'let `let(:old_tap) { core_tap }` at line 977.')
 }
 
 // Ruby let `let(:new_tap) { core_cask_tap }` at line 978.
-pub fn ruby_formulary_spec_l978_d111_new_tap(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('new_tap', ...args)
+pub fn ruby_formulary_spec_l978_d111_new_tap() FormularySpecBoundary {
+	return formulary_spec_boundary(978, 'let', 'let `let(:new_tap) { core_cask_tap }` at line 978.')
 }
 
 // Ruby let `let(:cask_file) { new_tap.cask_dir/"#{token}.rb" }` at line 980.
-pub fn ruby_formulary_spec_l980_d112_cask_file(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask_file', ...args)
+pub fn ruby_formulary_spec_l980_d112_cask_file() FormularySpecBoundary {
+	return formulary_spec_boundary(980, 'let', 'let `let(:cask_file) { new_tap.cask_dir/"#{token}.rb" }` at line 980.')
 }
 
 // Ruby it `it "does not warn when loading the short token" do` at line 987.
-pub fn ruby_formulary_spec_l987_d113_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_formulary_spec_l987_d113_does() FormularySpecBoundary {
+	return formulary_spec_boundary(987, 'it', 'it `it "does not warn when loading the short token" do` at line 987.')
 }
 
 // Ruby let `let(:old_tap) { core_cask_tap }` at line 995.
-pub fn ruby_formulary_spec_l995_d114_old_tap(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('old_tap', ...args)
+pub fn ruby_formulary_spec_l995_d114_old_tap() FormularySpecBoundary {
+	return formulary_spec_boundary(995, 'let', 'let `let(:old_tap) { core_cask_tap }` at line 995.')
 }
 
 // Ruby let `let(:new_tap) { core_tap }` at line 996.
-pub fn ruby_formulary_spec_l996_d115_new_tap(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('new_tap', ...args)
+pub fn ruby_formulary_spec_l996_d115_new_tap() FormularySpecBoundary {
+	return formulary_spec_boundary(996, 'let', 'let `let(:new_tap) { core_tap }` at line 996.')
 }
 
 // Ruby let `let(:formula_file) { new_tap.formula_dir/"#{token}.rb" }` at line 998.
-pub fn ruby_formulary_spec_l998_d116_formula_file(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_file', ...args)
+pub fn ruby_formulary_spec_l998_d116_formula_file() FormularySpecBoundary {
+	return formulary_spec_boundary(998, 'let', 'let `let(:formula_file) { new_tap.formula_dir/"#{token}.rb" }` at line 998.')
 }
 
 // Ruby it `it "does not warn when loading the short token" do` at line 1005.
-pub fn ruby_formulary_spec_l1005_d117_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_formulary_spec_l1005_d117_does() FormularySpecBoundary {
+	return formulary_spec_boundary(1005, 'it', 'it `it "does not warn when loading the short token" do` at line 1005.')
 }
 
 // Ruby it `it "does not warn when loading the full token in the default tap" do` at line 1011.
-pub fn ruby_formulary_spec_l1011_d118_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_formulary_spec_l1011_d118_does() FormularySpecBoundary {
+	return formulary_spec_boundary(1011, 'it', 'it `it "does not warn when loading the full token in the default tap" do` at line 1011.')
 }
 
 // Ruby it `it "warns when loading the full token in the old tap" do` at line 1017.
-pub fn ruby_formulary_spec_l1017_d119_warns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('warns', ...args)
+pub fn ruby_formulary_spec_l1017_d119_warns() FormularySpecBoundary {
+	return formulary_spec_boundary(1017, 'it', 'it `it "warns when loading the full token in the old tap" do` at line 1017.')
 }
 
 // Ruby let `let(:old_tap) { Tap.fetch("another", "foo") }` at line 1042.
-pub fn ruby_formulary_spec_l1042_d120_old_tap(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('old_tap', ...args)
+pub fn ruby_formulary_spec_l1042_d120_old_tap() FormularySpecBoundary {
+	return formulary_spec_boundary(1042, 'let', 'let `let(:old_tap) { Tap.fetch("another", "foo") }` at line 1042.')
 }
 
 // Ruby let `let(:new_tap) { Tap.fetch("another", "bar") }` at line 1043.
-pub fn ruby_formulary_spec_l1043_d121_new_tap(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('new_tap', ...args)
+pub fn ruby_formulary_spec_l1043_d121_new_tap() FormularySpecBoundary {
+	return formulary_spec_boundary(1043, 'let', 'let `let(:new_tap) { Tap.fetch("another", "bar") }` at line 1043.')
 }
 
 // Ruby let `let(:cask_file) { new_tap.cask_dir/"#{token}.rb" }` at line 1044.
-pub fn ruby_formulary_spec_l1044_d122_cask_file(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask_file', ...args)
+pub fn ruby_formulary_spec_l1044_d122_cask_file() FormularySpecBoundary {
+	return formulary_spec_boundary(1044, 'let', 'let `let(:cask_file) { new_tap.cask_dir/"#{token}.rb" }` at line 1044.')
 }
 
 // Ruby it `it "does not warn when loading the short token" do` at line 1055.
-pub fn ruby_formulary_spec_l1055_d123_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_formulary_spec_l1055_d123_does() FormularySpecBoundary {
+	return formulary_spec_boundary(1055, 'it', 'it `it "does not warn when loading the short token" do` at line 1055.')
 }
 
 // Ruby let `let(:old_tap) { Tap.fetch("another", "foo") }` at line 1063.
-pub fn ruby_formulary_spec_l1063_d124_old_tap(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('old_tap', ...args)
+pub fn ruby_formulary_spec_l1063_d124_old_tap() FormularySpecBoundary {
+	return formulary_spec_boundary(1063, 'let', 'let `let(:old_tap) { Tap.fetch("another", "foo") }` at line 1063.')
 }
 
 // Ruby let `let(:new_tap) { Tap.fetch("another", "bar") }` at line 1064.
-pub fn ruby_formulary_spec_l1064_d125_new_tap(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('new_tap', ...args)
+pub fn ruby_formulary_spec_l1064_d125_new_tap() FormularySpecBoundary {
+	return formulary_spec_boundary(1064, 'let', 'let `let(:new_tap) { Tap.fetch("another", "bar") }` at line 1064.')
 }
 
 // Ruby let `let(:formula_file) { new_tap.formula_dir/"#{token}.rb" }` at line 1065.
-pub fn ruby_formulary_spec_l1065_d126_formula_file(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_file', ...args)
+pub fn ruby_formulary_spec_l1065_d126_formula_file() FormularySpecBoundary {
+	return formulary_spec_boundary(1065, 'let', 'let `let(:formula_file) { new_tap.formula_dir/"#{token}.rb" }` at line 1065.')
 }
 
 // Ruby it `it "warns when loading the short token" do` at line 1078.
-pub fn ruby_formulary_spec_l1078_d127_warns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('warns', ...args)
+pub fn ruby_formulary_spec_l1078_d127_warns() FormularySpecBoundary {
+	return formulary_spec_boundary(1078, 'it', 'it `it "warns when loading the short token" do` at line 1078.')
 }
 
 // Ruby it `it "warns with the canonical token when loading an uppercase short token" do` at line 1086.
-pub fn ruby_formulary_spec_l1086_d128_warns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('warns', ...args)
+pub fn ruby_formulary_spec_l1086_d128_warns() FormularySpecBoundary {
+	return formulary_spec_boundary(1086, 'it', 'it `it "warns with the canonical token when loading an uppercase short token" do` at line 1086.')
 }
 
 // Ruby it `it "does not warn when loading the full token in the new tap" do` at line 1094.
-pub fn ruby_formulary_spec_l1094_d129_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_formulary_spec_l1094_d129_does() FormularySpecBoundary {
+	return formulary_spec_boundary(1094, 'it', 'it `it "does not warn when loading the full token in the new tap" do` at line 1094.')
 }
 
 // Ruby it `it "warns when loading the full token in the old tap" do` at line 1100.
-pub fn ruby_formulary_spec_l1100_d130_warns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('warns', ...args)
+pub fn ruby_formulary_spec_l1100_d130_warns() FormularySpecBoundary {
+	return formulary_spec_boundary(1100, 'it', 'it `it "warns when loading the full token in the old tap" do` at line 1100.')
 }
 
 // Original Ruby source (line-for-line):

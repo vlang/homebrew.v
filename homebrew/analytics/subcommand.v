@@ -1,13 +1,36 @@
 module analytics
 
-import brew_runtime
+import homebrew.analytics.subcommand
+import homebrew.utils
 
 // Translated from Homebrew/brew `analytics/subcommand.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `dispatch(args)` at line 16.
-pub fn ruby_subcommand_l16_dispatch(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dispatch', ...args)
+pub fn ruby_subcommand_l16_dispatch(arguments []string, mut state utils.AnalyticsState) !string {
+	if arguments.len > 1 {
+		return error('analytics accepts at most one named argument')
+	}
+	name := if arguments.len == 0 { 'state' } else { arguments[0] }
+	match name {
+		'on' {
+			subcommand.ruby_on_l20_run(mut state)
+			return ''
+		}
+		'off' {
+			subcommand.ruby_off_l20_run(mut state)
+			return ''
+		}
+		'state' {
+			return subcommand.ruby_state_l20_run(state)
+		}
+		'regenerate-uuid' {
+			return subcommand.ruby_regenerate_uuid_l21_run()
+		}
+		else {
+			return error('unknown analytics subcommand: ${name}')
+		}
+	}
 }
 
 // Original Ruby source (line-for-line):

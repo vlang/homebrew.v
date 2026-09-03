@@ -1,208 +1,699 @@
 module bindata
 
 import brew_runtime
+import math
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/bindata-2.5.1/lib/bindata/base.rb`.
 // The original source is retained below until every stub has a typed V body.
+@[heap]
+pub struct BaseObject {
+pub:
+	type_name string
+mut:
+	parameters       map[string]brew_runtime.Value
+	parent           brew_runtime.Value
+	has_parent       bool
+	assigned_value   brew_runtime.Value
+	has_assignment   bool
+	snapshot_value   brew_runtime.Value
+	binary_value     string
+	do_num_bytes     f64
+	clear            bool = true
+	reading          bool
+	top_level_values map[string]brew_runtime.Value
+	method_names     []string
+}
+
+pub struct BaseSeparatedArguments {
+pub:
+	value      brew_runtime.Value
+	has_value  bool
+	parameters map[string]brew_runtime.Value
+	parent     brew_runtime.Value
+	has_parent bool
+}
+
+fn base_nil_value() brew_runtime.Value {
+	return brew_runtime.object_value('NilClass', 'nil')
+}
+
+fn base_value_truthy(value brew_runtime.Value) bool {
+	return value.type_name != 'NilClass' && !(value.type_name == 'Bool' && !value.bool_data)
+}
+
+fn base_name(value brew_runtime.Value) string {
+	return value.as_string().trim_left(':')
+}
+
+fn base_object_value(object &BaseObject) brew_runtime.Value {
+	mut attributes := {
+		'base_object_address': u64(voidptr(object)).str()
+		'clear':               object.clear.str()
+	}
+	if object.method_names.len > 0 {
+		attributes['method_names'] = object.method_names.join(',')
+	}
+	return brew_runtime.Value{
+		type_name: object.type_name
+		repr: object.snapshot_value.repr
+		int_data: i64(u64(voidptr(object)))
+		map_data: object.parameters
+		attributes: attributes
+	}
+}
+
+fn base_object_from_value(value brew_runtime.Value) &BaseObject {
+	if address := value.attributes['base_object_address'] {
+		actual := if value.int_data != 0 { u64(value.int_data) } else { address.u64() }
+		return unsafe { &BaseObject(voidptr(actual)) }
+	}
+	mut methods := []string{}
+	if names := value.attributes['method_names'] {
+		methods = names.split(',').filter(it.len > 0)
+	}
+	return &BaseObject{
+		type_name: value.type_name
+		parameters: value.map_data.clone()
+		snapshot_value: value
+		assigned_value: value
+		binary_value: value.attributes['binary'] or { '' }
+		do_num_bytes: (value.attributes['do_num_bytes'] or { '0' }).f64()
+		clear: (value.attributes['clear'] or { 'true' }).bool()
+		top_level_values: map[string]brew_runtime.Value{}
+		method_names: methods
+	}
+}
+
+pub fn new_base_object(type_name string, parameters map[string]brew_runtime.Value) &BaseObject {
+	nil_value := base_nil_value()
+	return &BaseObject{
+		type_name: type_name
+		parameters: parameters.clone()
+		parent: nil_value
+		assigned_value: nil_value
+		snapshot_value: nil_value
+		top_level_values: map[string]brew_runtime.Value{}
+	}
+}
+
+pub fn base_boundary_value(object &BaseObject) brew_runtime.Value {
+	return base_object_value(object)
+}
+
+pub fn (object &BaseObject) params() map[string]brew_runtime.Value {
+	return object.parameters.clone()
+}
+
+pub fn (object &BaseObject) snapshot() brew_runtime.Value {
+	return object.snapshot_value
+}
+
+pub fn (object &BaseObject) is_clear() bool {
+	return object.clear
+}
+
+fn values_equal(left brew_runtime.Value, right brew_runtime.Value) bool {
+	if left.type_name != right.type_name || left.repr != right.repr || left.bool_data != right.bool_data || left.int_data != right.int_data || left.float_data != right.float_data || left.string_array_data != right.string_array_data || left.attributes != right.attributes {
+		return false
+	}
+	if left.array_data.len != right.array_data.len || left.map_data.len != right.map_data.len {
+		return false
+	}
+	for index, item in left.array_data {
+		if !values_equal(item, right.array_data[index]) {
+			return false
+		}
+	}
+	for key, item in left.map_data {
+		other := right.map_data[key] or { return false }
+		if !values_equal(item, other) {
+			return false
+		}
+	}
+	return true
+}
+
+pub fn separate_base_arguments(obj_args []brew_runtime.Value) BaseSeparatedArguments {
+	mut args := obj_args.clone()
+	mut result := BaseSeparatedArguments{
+		value: base_nil_value()
+		parameters: map[string]brew_runtime.Value{}
+		parent: base_nil_value()
+	}
+	if args.len > 1 && args.last().type_name.starts_with('BinData::') {
+		result = BaseSeparatedArguments{
+			...result
+			parent: args.pop()
+			has_parent: true
+		}
+	}
+	if args.len > 0 && args.last().type_name == 'Hash' {
+		result = BaseSeparatedArguments{
+			...result
+			parameters: args.pop().as_map() or { panic(err) }
+		}
+	}
+	if args.len > 0 {
+		result = BaseSeparatedArguments{
+			...result
+			value: args.pop()
+			has_value: true
+		}
+	}
+	return result
+}
+
+fn normalized_base_parameters(parameters map[string]brew_runtime.Value) map[string]brew_runtime.Value {
+	mut normalized := map[string]brew_runtime.Value{}
+	for key, value in parameters {
+		normalized[key.trim_left(':')] = value
+	}
+	return normalized
+}
+
+pub fn sanitize_base_parameters(parameters map[string]brew_runtime.Value, object_class brew_runtime.Value) !map[string]brew_runtime.Value {
+	mut result := normalized_base_parameters(parameters)
+	for key, value in result {
+		if value.type_name == 'NilClass' {
+			return error("parameter '${key}' has nil value in ${object_class.repr}")
+		}
+	}
+	accepted := accepted_parameters_for_plugin(object_class)
+	for key, value in accepted.default_values {
+		if key !in result {
+			result[key] = value
+		}
+	}
+	processor := object_class.attributes['arg_processor'] or { '' }
+	if processor in ['struct', 'record'] {
+		result = sanitize_struct_parameters(object_class, result)!
+	}
+	for key in accepted.mandatory_names {
+		if key !in result {
+			return error("parameter '${key}' must be specified in ${object_class.repr}")
+		}
+	}
+	if result.len >= 2 {
+		for pair in accepted.mutually_exclusive_pairs {
+			if pair.len >= 2 && pair[0] in result && pair[1] in result {
+				return error("params '${pair[0]}' and '${pair[1]}' are mutually exclusive in ${object_class.repr}")
+			}
+		}
+	}
+	return result
+}
+
+pub fn initialize_base_object(receiver brew_runtime.Value, obj_args []brew_runtime.Value) brew_runtime.Value {
+	separated := separate_base_arguments(obj_args)
+	parameters := sanitize_base_parameters(separated.parameters, receiver) or { panic(err) }
+	processor := receiver.attributes['arg_processor'] or { '' }
+	if processor in ['struct', 'record'] {
+		return initialize_struct_object(receiver, parameters, separated)
+	}
+	mut object := new_base_object(receiver.type_name, parameters)
+	object.method_names = (receiver.attributes['method_names'] or { '' }).split(',').filter(it.len > 0)
+	if separated.has_parent {
+		object.parent = separated.parent
+		object.has_parent = true
+	}
+	if separated.has_value && base_value_truthy(separated.value) {
+		object.assigned_value = separated.value
+		object.snapshot_value = separated.value
+		object.has_assignment = true
+		object.clear = false
+	}
+	return base_object_value(object)
+}
+
+fn base_arguments_value(separated BaseSeparatedArguments) brew_runtime.Value {
+	return brew_runtime.array_value([
+		if separated.has_value { separated.value } else { base_nil_value() },
+		brew_runtime.map_value(separated.parameters),
+		if separated.has_parent { separated.parent } else { base_nil_value() },
+	])
+}
+
+fn base_top_level(receiver brew_runtime.Value) brew_runtime.Value {
+	mut current := receiver
+	for {
+		object := base_object_from_value(current)
+		if !object.has_parent {
+			return current
+		}
+		current = object.parent
+	}
+	return current
+}
+
+fn base_integer_value(value brew_runtime.Value) i64 {
+	return if value.type_name == 'Float' { i64(value.float_data) } else { value.int_data }
+}
 
 // Ruby method `read(io, *args, &block)` at line 19.
 pub fn ruby_base_l19_d1_read(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('read', ...args)
+	if args.len < 2 {
+		panic('Base.read requires a class and IO')
+	}
+	object := initialize_base_object(args[0], args[2..])
+	ruby_base_l144_d16_read(object, args[1])
+	return object
 }
 
 // Ruby method `arg_processor(name = nil)` at line 26.
 pub fn ruby_base_l26_d2_arg_processor(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('arg_processor', ...args)
+	if args.len == 0 {
+		panic('Base.arg_processor requires a class')
+	}
+	if args.len > 1 && args[1].type_name != 'NilClass' {
+		name := base_name(args[1]) + '_arg_processor'
+		parts := name.split('_').filter(it.len > 0)
+		camelized := parts.map(it[..1].to_upper() + it[1..]).join('')
+		return brew_runtime.object_value('Symbol', ':${camelized}')
+	}
+	processor := args[0].attributes['arg_processor'] or {
+		if ancestor := args[0].map_data['superclass'] {
+			return ruby_base_l26_d2_arg_processor(ancestor)
+		}
+		'base'
+	}
+	return brew_runtime.object_value('BinData::ArgProcessor', processor)
 }
 
 // Ruby method `bindata_name` at line 41.
 pub fn ruby_base_l41_d3_bindata_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('bindata_name', ...args)
+	if args.len == 0 {
+		panic('Base.bindata_name requires a class')
+	}
+	return brew_runtime.string_value(underscore_registry_name(args[0].repr))
 }
 
 // Ruby method `unregister_self` at line 46.
 pub fn ruby_base_l46_d4_unregister_self(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('unregister_self', ...args)
+	if args.len == 0 {
+		panic('Base.unregister_self requires a class')
+	}
+	if args.len > 1 && args[1].type_name == 'BinData::Registry' {
+		return ruby_registry_l34_d3_unregister(args[1], brew_runtime.string_value(args[0].repr))
+	}
+	return base_nil_value()
 }
 
 // Ruby method `register_subclasses # :nodoc:` at line 51.
 pub fn ruby_base_l51_d5_register_subclasses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('register_subclasses', ...args)
+	if args.len == 0 {
+		panic('Base.register_subclasses requires a class')
+	}
+	return args[0]
 }
 
 // Ruby define_singleton_method `define_singleton_method(:inherited) do |subclass|` at line 53.
 pub fn ruby_base_l53_d6_inherited(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('inherited', ...args)
+	if args.len < 2 {
+		panic('Base.inherited requires a class and subclass')
+	}
+	if args.len > 2 && args[2].type_name == 'BinData::Registry' {
+		return ruby_registry_l25_d2_register(args[2], brew_runtime.string_value(args[1].repr), args[1])
+	}
+	return args[1]
 }
 
 // Ruby method `initialize(*args)` at line 80.
 pub fn ruby_base_l80_d7_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	if args.len == 0 {
+		panic('Base#initialize requires a receiver')
+	}
+	return initialize_base_object(args[0], args[1..])
 }
 
 // Ruby attr_accessor `attr_accessor :parent` at line 88.
 pub fn ruby_base_l88_d8_parent(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('parent', ...args)
+	if args.len == 0 {
+		panic('Base#parent requires a receiver')
+	}
+	object := base_object_from_value(args[0])
+	return if object.has_parent { object.parent } else { base_nil_value() }
 }
 
 // Ruby attr_accessor `attr_accessor :parent` at line 88.
 pub fn ruby_base_l88_d9_parent(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('parent=', ...args)
+	if args.len < 2 {
+		panic('Base#parent= requires a receiver and parent')
+	}
+	mut object := base_object_from_value(args[0])
+	object.parent = args[1]
+	object.has_parent = args[1].type_name != 'NilClass'
+	return args[1]
 }
 
 // Ruby method `new(value = nil, parent = nil)` at line 97.
 pub fn ruby_base_l97_d10_new(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('new', ...args)
+	if args.len == 0 {
+		panic('Base#new requires a prototype')
+	}
+	prototype := base_object_from_value(args[0])
+	mut clone := new_base_object(prototype.type_name, prototype.parameters)
+	clone.method_names = prototype.method_names.clone()
+	if prototype.has_parent {
+		clone.parent = prototype.parent
+		clone.has_parent = true
+	}
+	if args.len > 2 && base_value_truthy(args[2]) {
+		clone.parent = args[2]
+		clone.has_parent = true
+	}
+	if args.len > 1 && base_value_truthy(args[1]) {
+		clone.assigned_value = args[1]
+		clone.snapshot_value = args[1]
+		clone.has_assignment = true
+		clone.clear = false
+	}
+	return base_object_value(clone)
 }
 
 // Ruby method `eval_parameter(key, overrides = nil)` at line 112.
 pub fn ruby_base_l112_d11_eval_parameter(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('eval_parameter', ...args)
+	if args.len < 2 {
+		panic('Base#eval_parameter requires a receiver and key')
+	}
+	value := ruby_base_l129_d13_get_parameter(args[0], args[1])
+	if value.type_name == 'Symbol' {
+		name := base_name(value)
+		overrides := if args.len > 2 && args[2].type_name == 'Hash' {
+			args[2].map_data
+		} else {
+			map[string]brew_runtime.Value{}
+		}
+		if result := overrides[name] {
+			return result
+		}
+		object := base_object_from_value(args[0])
+		if result := object.parameters[name] {
+			return result
+		}
+	}
+	return value
 }
 
 // Ruby method `lazy_evaluator # :nodoc:` at line 122.
 pub fn ruby_base_l122_d12_lazy_evaluator(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('lazy_evaluator', ...args)
+	if args.len == 0 {
+		panic('Base#lazy_evaluator requires a receiver')
+	}
+	return brew_runtime.Value{
+		type_name: 'BinData::LazyEvaluator'
+		repr: args[0].repr
+		map_data: {
+			'parent': args[0]
+		}
+	}
 }
 
 // Ruby method `get_parameter(key)` at line 129.
 pub fn ruby_base_l129_d13_get_parameter(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('get_parameter', ...args)
+	if args.len < 2 {
+		panic('Base#get_parameter requires a receiver and key')
+	}
+	object := base_object_from_value(args[0])
+	return object.parameters[base_name(args[1])] or { base_nil_value() }
 }
 
 // Ruby method `has_parameter?(key)` at line 134.
 pub fn ruby_base_l134_d14_has_parameter(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('has_parameter?', ...args)
+	if args.len < 2 {
+		panic('Base#has_parameter? requires a receiver and key')
+	}
+	object := base_object_from_value(args[0])
+	return brew_runtime.bool_value(base_name(args[1]) in object.parameters)
 }
 
 // Ruby method `clear` at line 139.
 pub fn ruby_base_l139_d15_clear(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('clear', ...args)
+	if args.len == 0 {
+		panic('Base#clear requires a receiver')
+	}
+	mut object := base_object_from_value(args[0])
+	object.assigned_value = base_nil_value()
+	object.snapshot_value = base_nil_value()
+	object.has_assignment = false
+	object.clear = true
+	return base_nil_value()
 }
 
 // Ruby method `read(io, &block)` at line 144.
 pub fn ruby_base_l144_d16_read(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('read', ...args)
+	if args.len < 2 {
+		panic('Base#read requires a receiver and IO')
+	}
+	mut object := base_object_from_value(args[0])
+	mut top := base_object_from_value(base_top_level(args[0]))
+	top.reading = true
+	ruby_base_l139_d15_clear(args[0])
+	if binary := args[1].map_data['binary'] {
+		object.binary_value = binary.as_string()
+		object.snapshot_value = binary
+		object.assigned_value = binary
+		object.has_assignment = true
+		object.clear = false
+	} else if args[1].type_name == 'String' {
+		object.binary_value = args[1].as_string()
+		object.snapshot_value = args[1]
+		object.assigned_value = args[1]
+		object.has_assignment = true
+		object.clear = false
+	}
+	top.reading = false
+	return args[0]
 }
 
 // Ruby method `write(io, &block)` at line 157.
 pub fn ruby_base_l157_d17_write(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('write', ...args)
+	if args.len < 2 {
+		panic('Base#write requires a receiver and IO')
+	}
+	return args[0]
 }
 
 // Ruby method `num_bytes` at line 169.
 pub fn ruby_base_l169_d18_num_bytes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('num_bytes', ...args)
+	if args.len == 0 {
+		panic('Base#num_bytes requires a receiver')
+	}
+	object := base_object_from_value(args[0])
+	value := if object.do_num_bytes > 0 {
+		object.do_num_bytes
+	} else {
+		f64(object.binary_value.len)
+	}
+	return brew_runtime.int_value(i64(math.ceil(value)))
 }
 
 // Ruby method `to_binary_s(&block)` at line 174.
 pub fn ruby_base_l174_d19_to_binary_s(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_binary_s', ...args)
+	if args.len == 0 {
+		panic('Base#to_binary_s requires a receiver')
+	}
+	return brew_runtime.string_value(base_object_from_value(args[0]).binary_value)
 }
 
 // Ruby method `to_hex(&block)` at line 181.
 pub fn ruby_base_l181_d20_to_hex(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_hex', ...args)
+	binary := ruby_base_l174_d19_to_binary_s(...args).as_string()
+	return brew_runtime.string_value(binary.bytes().map(it.hex()).join(''))
 }
 
 // Ruby method `inspect` at line 186.
 pub fn ruby_base_l186_d21_inspect(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('inspect', ...args)
+	if args.len == 0 {
+		panic('Base#inspect requires a receiver')
+	}
+	return brew_runtime.string_value(base_object_from_value(args[0]).snapshot_value.repr)
 }
 
 // Ruby method `to_s` at line 191.
 pub fn ruby_base_l191_d22_to_s(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_s', ...args)
+	return ruby_base_l186_d21_inspect(...args)
 }
 
 // Ruby method `pretty_print(pp) # :nodoc:` at line 196.
 pub fn ruby_base_l196_d23_pretty_print(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('pretty_print', ...args)
+	if args.len < 2 {
+		panic('Base#pretty_print requires a receiver and printer')
+	}
+	return base_object_from_value(args[0]).snapshot_value
 }
 
 // Ruby method `=~(other)` at line 201.
 pub fn ruby_base_l201_d24_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('=~', ...args)
+	if args.len < 2 {
+		panic('Base#=~ requires a receiver and pattern')
+	}
+	return brew_runtime.bool_value(base_object_from_value(args[0]).snapshot_value.repr.contains(args[1].repr))
 }
 
 // Ruby method `debug_name` at line 206.
 pub fn ruby_base_l206_d25_debug_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('debug_name', ...args)
+	if args.len == 0 {
+		panic('Base#debug_name requires a receiver')
+	}
+	object := base_object_from_value(args[0])
+	if object.has_parent {
+		return struct_debug_name_of_value(object.parent, args[0])
+	}
+	return brew_runtime.string_value('obj')
 }
 
 // Ruby method `abs_offset` at line 212.
 pub fn ruby_base_l212_d26_abs_offset(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('abs_offset', ...args)
+	if args.len == 0 {
+		panic('Base#abs_offset requires a receiver')
+	}
+	object := base_object_from_value(args[0])
+	if !object.has_parent {
+		return brew_runtime.int_value(0)
+	}
+	parent_offset := ruby_base_l212_d26_abs_offset(object.parent)
+	relative := struct_offset_of_value(object.parent, args[0])
+	return brew_runtime.int_value(base_integer_value(parent_offset) + base_integer_value(relative))
 }
 
 // Ruby method `rel_offset` at line 217.
 pub fn ruby_base_l217_d27_rel_offset(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('rel_offset', ...args)
+	if args.len == 0 {
+		panic('Base#rel_offset requires a receiver')
+	}
+	object := base_object_from_value(args[0])
+	return if object.has_parent {
+		struct_offset_of_value(object.parent, args[0])
+	} else {
+		brew_runtime.int_value(0)
+	}
 }
 
 // Ruby method `==(other) # :nodoc:` at line 221.
 pub fn ruby_base_l221_d28_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('==', ...args)
+	if args.len < 2 {
+		return brew_runtime.bool_value(false)
+	}
+	return brew_runtime.bool_value(values_equal(args[1], base_object_from_value(args[0]).snapshot_value))
 }
 
 // Ruby method `safe_respond_to?(symbol, include_private = false) # :nodoc:` at line 228.
 pub fn ruby_base_l228_d29_safe_respond_to(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('safe_respond_to?', ...args)
+	if args.len < 2 {
+		panic('Base#safe_respond_to? requires a receiver and method')
+	}
+	name := base_name(args[1])
+	base_methods := ['parent', 'new', 'eval_parameter', 'lazy_evaluator', 'get_parameter',
+		'has_parameter?', 'clear', 'read', 'write', 'num_bytes', 'to_binary_s', 'to_hex', 'inspect',
+		'to_s', 'pretty_print', '=~', 'debug_name', 'abs_offset', 'rel_offset', '==',
+		'safe_respond_to?', 'base_respond_to?']
+	object := base_object_from_value(args[0])
+	return brew_runtime.bool_value(name in base_methods || name in object.method_names)
 }
 
 // Ruby alias `alias base_respond_to? respond_to?` at line 232.
 pub fn ruby_base_l232_d30_base_respond_to(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('base_respond_to?', ...args)
+	return ruby_base_l228_d29_safe_respond_to(...args)
 }
 
 // Ruby method `extract_args(args)` at line 237.
 pub fn ruby_base_l237_d31_extract_args(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('extract_args', ...args)
+	if args.len < 2 {
+		panic('Base#extract_args requires a receiver and argument array')
+	}
+	separated := separate_base_arguments(args[1].as_array() or { panic(err) })
+	sanitized := sanitize_base_parameters(separated.parameters, args[0]) or { panic(err) }
+	return base_arguments_value(BaseSeparatedArguments{
+		...separated
+		parameters: sanitized
+	})
 }
 
 // Ruby method `start_read` at line 241.
 pub fn ruby_base_l241_d32_start_read(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('start_read', ...args)
+	if args.len == 0 {
+		panic('Base#start_read requires a receiver')
+	}
+	mut top := base_object_from_value(base_top_level(args[0]))
+	top.reading = true
+	result := if args.len > 1 { args[1] } else { base_nil_value() }
+	top.reading = false
+	return result
 }
 
 // Ruby method `reading?` at line 249.
 pub fn ruby_base_l249_d33_reading(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reading?', ...args)
+	if args.len == 0 {
+		panic('Base#reading? requires a receiver')
+	}
+	return brew_runtime.bool_value(base_object_from_value(base_top_level(args[0])).reading)
 }
 
 // Ruby method `top_level_set(sym, value)` at line 253.
 pub fn ruby_base_l253_d34_top_level_set(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('top_level_set', ...args)
+	if args.len < 3 {
+		panic('Base#top_level_set requires a receiver, name and value')
+	}
+	mut top := base_object_from_value(base_top_level(args[0]))
+	top.top_level_values[base_name(args[1])] = args[2]
+	if base_name(args[1]) == 'in_read' && args[2].type_name == 'Bool' {
+		top.reading = args[2].bool_data
+	}
+	return args[2]
 }
 
 // Ruby method `top_level_get(sym)` at line 257.
 pub fn ruby_base_l257_d35_top_level_get(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('top_level_get', ...args)
+	if args.len < 2 {
+		panic('Base#top_level_get requires a receiver and name')
+	}
+	top := base_object_from_value(base_top_level(args[0]))
+	return top.top_level_values[base_name(args[1])] or { base_nil_value() }
 }
 
 // Ruby method `top_level` at line 263.
 pub fn ruby_base_l263_d36_top_level(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('top_level', ...args)
+	if args.len == 0 {
+		panic('Base#top_level requires a receiver')
+	}
+	return base_top_level(args[0])
 }
 
 // Ruby method `binary_string(str)` at line 274.
 pub fn ruby_base_l274_d37_binary_string(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('binary_string', ...args)
+	if args.len < 2 {
+		panic('Base#binary_string requires a receiver and string')
+	}
+	return brew_runtime.string_value(args[1].as_string())
 }
 
 // Ruby method `extract_args(obj_class, obj_args)` at line 289.
 pub fn ruby_base_l289_d38_extract_args(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('extract_args', ...args)
+	if args.len < 3 {
+		panic('BaseArgProcessor#extract_args requires a receiver, class and argument array')
+	}
+	separated := separate_base_arguments(args[2].as_array() or { panic(err) })
+	sanitized := sanitize_base_parameters(separated.parameters, args[1]) or { panic(err) }
+	return base_arguments_value(BaseSeparatedArguments{
+		...separated
+		parameters: sanitized
+	})
 }
 
 // Ruby method `separate_args(_obj_class, obj_args)` at line 298.
 pub fn ruby_base_l298_d39_separate_args(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('separate_args', ...args)
+	if args.len < 3 {
+		panic('BaseArgProcessor#separate_args requires a receiver, class and argument array')
+	}
+	return base_arguments_value(separate_base_arguments(args[2].as_array() or { panic(err) }))
 }
 
 // Ruby method `sanitize_parameters!(obj_class, obj_params); end` at line 322.
 pub fn ruby_base_l322_d40_sanitize_parameters(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sanitize_parameters!', ...args)
+	if args.len < 3 {
+		panic('BaseArgProcessor#sanitize_parameters! requires a receiver, class and parameters')
+	}
+	return args[2]
 }
 
 // Original Ruby source (line-for-line):

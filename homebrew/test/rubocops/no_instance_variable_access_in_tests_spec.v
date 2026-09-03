@@ -1,58 +1,60 @@
 module rubocops
 
-import brew_runtime
+import homebrew.rubocops as instance_access_core
 
 // Translated from Homebrew/brew `test/rubocops/no_instance_variable_access_in_tests_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "registers an offense when using `instance_variable_get`" do` at line 7.
-pub fn ruby_no_instance_variable_access_in_tests_spec_l7_d1_registers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('registers', ...args)
+pub fn ruby_no_instance_variable_access_in_tests_spec_l7_d1_registers() bool {
+	offenses := instance_access_core.audit_instance_variable_access('formula.instance_variable_get(:@tap)')
+	return offenses.len == 1 && offenses[0].method == 'instance_variable_get'
 }
 
 // Ruby attr_reader `^^^^^^^^^^^^^^^^^^^^^ Use a public `attr_reader`/`attr_writer` (or an existing accessor) instead of `instance_variable_get` in tests.` at line 10.
-pub fn ruby_no_instance_variable_access_in_tests_spec_l10_d2_attr_reader_dynamic(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('attr_reader_dynamic', ...args)
+pub fn ruby_no_instance_variable_access_in_tests_spec_l10_d2_attr_reader_dynamic() string {
+	return instance_access_core.no_instance_variable_access_message_template.replace('%s', 'instance_variable_get')
 }
 
 // Ruby it `it "registers an offense when using `instance_variable_set`" do` at line 14.
-pub fn ruby_no_instance_variable_access_in_tests_spec_l14_d3_registers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('registers', ...args)
+pub fn ruby_no_instance_variable_access_in_tests_spec_l14_d3_registers() bool {
+	offenses := instance_access_core.audit_instance_variable_access('formula.instance_variable_set(:@tap, CoreTap.instance)')
+	return offenses.len == 1 && offenses[0].method == 'instance_variable_set'
 }
 
 // Ruby attr_reader `^^^^^^^^^^^^^^^^^^^^^ Use a public `attr_reader`/`attr_writer` (or an existing accessor) instead of `instance_variable_set` in tests.` at line 17.
-pub fn ruby_no_instance_variable_access_in_tests_spec_l17_d4_attr_reader_dynamic(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('attr_reader_dynamic', ...args)
+pub fn ruby_no_instance_variable_access_in_tests_spec_l17_d4_attr_reader_dynamic() string {
+	return instance_access_core.no_instance_variable_access_message_template.replace('%s', 'instance_variable_set')
 }
 
 // Ruby it `it "registers an offense when using `instance_variable_set` without a receiver" do` at line 21.
-pub fn ruby_no_instance_variable_access_in_tests_spec_l21_d5_registers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('registers', ...args)
+pub fn ruby_no_instance_variable_access_in_tests_spec_l21_d5_registers() bool {
+	return instance_access_core.audit_instance_variable_access('instance_variable_set(:@staged_path, tmp_staged)').len == 1
 }
 
 // Ruby attr_reader `^^^^^^^^^^^^^^^^^^^^^ Use a public `attr_reader`/`attr_writer` (or an existing accessor) instead of `instance_variable_set` in tests.` at line 24.
-pub fn ruby_no_instance_variable_access_in_tests_spec_l24_d6_attr_reader_dynamic(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('attr_reader_dynamic', ...args)
+pub fn ruby_no_instance_variable_access_in_tests_spec_l24_d6_attr_reader_dynamic() string {
+	return ruby_no_instance_variable_access_in_tests_spec_l17_d4_attr_reader_dynamic()
 }
 
 // Ruby it `it "registers an offense when using `instance_variable_get` with a dynamic name" do` at line 28.
-pub fn ruby_no_instance_variable_access_in_tests_spec_l28_d7_registers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('registers', ...args)
+pub fn ruby_no_instance_variable_access_in_tests_spec_l28_d7_registers() bool {
+	return instance_access_core.audit_instance_variable_access('pathname.instance_variable_get(ivar)').len == 1
 }
 
 // Ruby attr_reader `^^^^^^^^^^^^^^^^^^^^^ Use a public `attr_reader`/`attr_writer` (or an existing accessor) instead of `instance_variable_get` in tests.` at line 31.
-pub fn ruby_no_instance_variable_access_in_tests_spec_l31_d8_attr_reader_dynamic(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('attr_reader_dynamic', ...args)
+pub fn ruby_no_instance_variable_access_in_tests_spec_l31_d8_attr_reader_dynamic() string {
+	return ruby_no_instance_variable_access_in_tests_spec_l10_d2_attr_reader_dynamic()
 }
 
 // Ruby it `it "does not register an offense when using `instance_variable_defined?`" do` at line 35.
-pub fn ruby_no_instance_variable_access_in_tests_spec_l35_d9_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_no_instance_variable_access_in_tests_spec_l35_d9_does() bool {
+	return instance_access_core.audit_instance_variable_access('described_class.instance_variable_defined?(:@version)').len == 0
 }
 
 // Ruby it `it "does not register an offense for direct accessor calls" do` at line 41.
-pub fn ruby_no_instance_variable_access_in_tests_spec_l41_d10_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_no_instance_variable_access_in_tests_spec_l41_d10_does() bool {
+	return instance_access_core.audit_instance_variable_access('formula.tap = CoreTap.instance').len == 0
 }
 
 // Original Ruby source (line-for-line):

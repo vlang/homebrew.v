@@ -7,7 +7,8 @@ import brew_runtime
 
 // Ruby method `null?` at line 13.
 pub fn ruby_null_section_l13_d1_null(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('null?', ...args)
+	_ = args
+	return brew_runtime.bool_value(true)
 }
 
 // Original Ruby source (line-for-line):

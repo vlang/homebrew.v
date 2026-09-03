@@ -1,28 +1,51 @@
 module test
 
-import brew_runtime
+import homebrew
+import os
+import time
 
 // Translated from Homebrew/brew `test/os_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "detects nix-homebrew from its repository" do` at line 7.
-pub fn ruby_os_spec_l7_d1_detects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('detects', ...args)
+pub fn ruby_os_spec_l7_d1_detects() bool {
+	context := homebrew.OsContext{
+		repository: '/opt/homebrew/Library/.homebrew-is-managed-by-nix'
+		prefix: '/opt/homebrew'
+	}
+	return homebrew.os_is_nix_managed_homebrew(context) && homebrew.os_nix_managed_homebrew_issues_url(context) == 'https://github.com/zhaofengli/nix-homebrew/issues'
 }
 
 // Ruby it `it "detects nix-homebrew from its prefix marker" do` at line 15.
-pub fn ruby_os_spec_l15_d2_detects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('detects', ...args)
+pub fn ruby_os_spec_l15_d2_detects() !bool {
+	prefix := os.join_path(os.temp_dir(), 'brew-v-os-nix-marker-${os.getpid()}-${time.now().unix_nano()}')
+	os.mkdir_all(prefix)!
+	defer { os.rmdir_all(prefix) or {} }
+	os.write_file(os.join_path(prefix, '.managed_by_nix_darwin'), '')!
+	return homebrew.os_is_nix_managed_homebrew(homebrew.OsContext{
+		prefix: prefix
+		repository: os.join_path(prefix, 'Library/Homebrew')
+	})
 }
 
 // Ruby it `it "detects nix-homebrew from update environment values" do` at line 26.
-pub fn ruby_os_spec_l26_d3_detects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('detects', ...args)
+pub fn ruby_os_spec_l26_d3_detects() bool {
+	return homebrew.os_is_nix_managed_homebrew(homebrew.OsContext{
+		prefix: '/opt/homebrew'
+		repository: '/opt/homebrew/Library/Homebrew'
+		update_before: 'nix'
+		update_after: 'nix'
+	})
 }
 
 // Ruby it `it "detects nix-darwin from a Nix store Brewfile" do` at line 42.
-pub fn ruby_os_spec_l42_d4_detects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('detects', ...args)
+pub fn ruby_os_spec_l42_d4_detects() bool {
+	context := homebrew.OsContext{
+		prefix: '/opt/homebrew'
+		repository: '/opt/homebrew/Library/Homebrew'
+		arguments: ['bundle', '--file=/nix/store/example-Brewfile']
+	}
+	return homebrew.os_is_nix_managed_homebrew(context) && homebrew.os_nix_managed_homebrew_issues_url(context) == 'https://github.com/nix-darwin/nix-darwin/issues'
 }
 
 // Original Ruby source (line-for-line):

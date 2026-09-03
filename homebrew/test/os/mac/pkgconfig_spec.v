@@ -1,63 +1,128 @@
 module mac
 
-import brew_runtime
+pub fn pc_version(contents string) string {
+	mut version := ''
+	for line in contents.split_into_lines() {
+		if line.trim_space().starts_with('Version:') {
+			version = line.all_after('Version:').trim_space()
+			break
+		}
+	}
+	if version.len >= 4 && version[0] == `$` && version[1] == `{` && version[version.len - 1] == `}` {
+		variable := version[2..version.len - 1]
+		for line in contents.split_into_lines() {
+			trimmed := line.trim_space()
+			equals_index := trimmed.index_u8(`=`)
+			if equals_index >= 0 && trimmed[..equals_index].trim_space() == variable {
+				return trimmed[equals_index + 1..].trim_space()
+			}
+		}
+	}
+	return version
+}
+
+fn quoted_define(contents string, name string) string {
+	for line in contents.split_into_lines() {
+		trimmed := line.trim_space()
+		if trimmed.starts_with('#define ${name} ') {
+			return trimmed.all_after('#define ${name} ').trim_space().trim('"')
+		}
+	}
+	return ''
+}
+
+fn pkgconfig_version(library string, header string) string {
+	return match library {
+		'bzip2' { header.all_after('bzip2/libbzip2 version ').all_before(' of ').trim_space() }
+		'libcurl' { quoted_define(header, 'LIBCURL_VERSION') }
+		'libexslt' {
+			digits := quoted_define(header.replace('#define LIBEXSLT_VERSION ', '#define LIBEXSLT_VERSION "'), 'LIBEXSLT_VERSION').trim('"').int().str()
+			padded := '000000${digits}'
+			value := padded[padded.len - 6..]
+			'${value[..2].int()}.${value[2..4].int()}.${value[4..].int()}'
+		}
+		'libffi' { header.all_after('libffi ').fields()[0] }
+		'libxml-2.0' { quoted_define(header, 'LIBXML_DOTTED_VERSION') }
+		'libxslt' { quoted_define(header, 'LIBXSLT_DOTTED_VERSION') }
+		'ncurses', 'ncursesw' {
+			major := quoted_define(header, 'NCURSES_VERSION_MAJOR')
+			minor := quoted_define(header, 'NCURSES_VERSION_MINOR')
+			patch := quoted_define(header, 'NCURSES_VERSION_PATCH')
+			'${major}.${minor}.${patch}'
+		}
+		'sqlite3' { quoted_define(header, 'SQLITE_VERSION') }
+		'zlib' { quoted_define(header, 'ZLIB_VERSION') }
+		else { '' }
+	}
+}
 
 // Translated from Homebrew/brew `test/os/mac/pkgconfig_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `pc_version(library)` at line 18.
-pub fn ruby_pkgconfig_spec_l18_d1_pc_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('pc_version', ...args)
+pub fn ruby_pkgconfig_spec_l18_d1_pc_version(library string, contents string) string {
+	_ = library
+	return pc_version(contents)
 }
 
 // Ruby let `let(:sdk) { MacOS.sdk_path }` at line 35.
-pub fn ruby_pkgconfig_spec_l35_d2_sdk(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sdk', ...args)
+pub fn ruby_pkgconfig_spec_l35_d2_sdk() string {
+	return '/tmp/MacOSX.sdk'
 }
 
 // Ruby it `it "returns the correct version for bzip2" do` at line 37.
-pub fn ruby_pkgconfig_spec_l37_d3_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_pkgconfig_spec_l37_d3_returns() bool {
+	version := pkgconfig_version('bzip2', 'bzip2/libbzip2 version 1.0.8 of 13 July 2019')
+	return pc_version('Version: 1.0.8') == version
 }
 
 // Ruby it `it "returns the correct version for libcurl" do` at line 59.
-pub fn ruby_pkgconfig_spec_l59_d4_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_pkgconfig_spec_l59_d4_returns() bool {
+	version := pkgconfig_version('libcurl', '#define LIBCURL_VERSION "8.7.1"')
+	return pc_version('Version: 8.7.1') == version
 }
 
 // Ruby it `it "returns the correct version for libexslt" do` at line 68.
-pub fn ruby_pkgconfig_spec_l68_d5_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_pkgconfig_spec_l68_d5_returns() bool {
+	version := pkgconfig_version('libexslt', '#define LIBEXSLT_VERSION 10143')
+	return pc_version('Version: 1.1.43') == version
 }
 
 // Ruby it `it "returns the correct version for libffi" do` at line 79.
-pub fn ruby_pkgconfig_spec_l79_d6_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_pkgconfig_spec_l79_d6_returns() bool {
+	version := pkgconfig_version('libffi', 'libffi 3.4.4 - Copyright')
+	return pc_version('Version: 3.4.4') == version
 }
 
 // Ruby it `it "returns the correct version for libxml-2.0" do` at line 90.
-pub fn ruby_pkgconfig_spec_l90_d7_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_pkgconfig_spec_l90_d7_returns() bool {
+	version := pkgconfig_version('libxml-2.0', '#define LIBXML_DOTTED_VERSION "2.12.7"')
+	return pc_version(r'Version: ${libxml_version}' + '\nlibxml_version = 2.12.7') == version
 }
 
 // Ruby it `it "returns the correct version for libxslt" do` at line 99.
-pub fn ruby_pkgconfig_spec_l99_d8_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_pkgconfig_spec_l99_d8_returns() bool {
+	version := pkgconfig_version('libxslt', '#define LIBXSLT_DOTTED_VERSION "1.1.39"')
+	return pc_version('Version: 1.1.39') == version
 }
 
 // Ruby it `it "returns the correct version for ncurses" do` at line 108.
-pub fn ruby_pkgconfig_spec_l108_d9_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_pkgconfig_spec_l108_d9_returns() bool {
+	header := '#define NCURSES_VERSION_MAJOR 6\n#define NCURSES_VERSION_MINOR 4\n#define NCURSES_VERSION_PATCH 20240113'
+	version := pkgconfig_version('ncurses', header)
+	return pc_version('Version: 6.4.20240113') == version && pkgconfig_version('ncursesw', header) == version
 }
 
 // Ruby it `it "returns the correct version for sqlite3" do` at line 121.
-pub fn ruby_pkgconfig_spec_l121_d10_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_pkgconfig_spec_l121_d10_returns() bool {
+	version := pkgconfig_version('sqlite3', '#define SQLITE_VERSION      "3.45.3"')
+	return pc_version('Version: 3.45.3') == version
 }
 
 // Ruby it `it "returns the correct version for zlib" do` at line 130.
-pub fn ruby_pkgconfig_spec_l130_d11_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_pkgconfig_spec_l130_d11_returns() bool {
+	version := pkgconfig_version('zlib', '#define ZLIB_VERSION "1.2.12"')
+	return pc_version('Version: 1.2.12') == version
 }
 
 // Original Ruby source (line-for-line):

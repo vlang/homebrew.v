@@ -1,83 +1,88 @@
 module rubocops
 
-import brew_runtime
+import homebrew.rubocops as no_send_core
 
 // Translated from Homebrew/brew `test/rubocops/no_send_in_tests_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+fn no_send_in_tests_spec_offense(source string, method string, message string) bool {
+	offenses := no_send_core.audit_no_send_in_tests(source)
+	return offenses.len == 1 && source[offenses[0].begin_pos..offenses[0].end_pos] == method && offenses[0].call.method == method && offenses[0].message == message
+}
 
 // Ruby it `it "registers an offense when using `send` with a static method name" do` at line 7.
-pub fn ruby_no_send_in_tests_spec_l7_d1_registers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('registers', ...args)
+pub fn ruby_no_send_in_tests_spec_l7_d1_registers() bool {
+	return no_send_in_tests_spec_offense('formula.send(:active_spec)', 'send', 'Make the method public and call it directly instead of using `send` in tests.')
 }
 
 // Ruby it `it "registers an offense when using `send` without a receiver" do` at line 14.
-pub fn ruby_no_send_in_tests_spec_l14_d2_registers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('registers', ...args)
+pub fn ruby_no_send_in_tests_spec_l14_d2_registers() bool {
+	return no_send_in_tests_spec_offense('send(:generate_runners!)', 'send', 'Make the method public and call it directly instead of using `send` in tests.')
 }
 
 // Ruby it `it "registers an offense when using `__send__`" do` at line 21.
-pub fn ruby_no_send_in_tests_spec_l21_d3_registers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('registers', ...args)
+pub fn ruby_no_send_in_tests_spec_l21_d3_registers() bool {
+	return no_send_in_tests_spec_offense('formula.__send__(:active_spec)', '__send__', 'Make the method public and call it directly instead of using `__send__` in tests.')
 }
 
 // Ruby it `it "registers an offense when using `send` with a safe navigation operator" do` at line 28.
-pub fn ruby_no_send_in_tests_spec_l28_d4_registers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('registers', ...args)
+pub fn ruby_no_send_in_tests_spec_l28_d4_registers() bool {
+	offenses := no_send_core.audit_no_send_in_tests('formula&.send(:active_spec)')
+	return offenses.len == 1 && offenses[0].call.safe_navigation && offenses[0].begin_pos == 'formula&.'.len && offenses[0].end_pos == 'formula&.send'.len && offenses[0].message == 'Make the method public and call it directly instead of using `send` in tests.'
 }
 
 // Ruby it `it "registers an offense when using `send` with a dynamic method name" do` at line 35.
-pub fn ruby_no_send_in_tests_spec_l35_d5_registers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('registers', ...args)
+pub fn ruby_no_send_in_tests_spec_l35_d5_registers() bool {
+	return no_send_in_tests_spec_offense(r'formula.send(:"#{action}_network_access!")', 'send', 'Use `public_send` instead of `send` in tests; `send` bypasses method visibility.')
 }
 
 // Ruby it `it "registers an offense when using `public_send` with a static method name" do` at line 42.
-pub fn ruby_no_send_in_tests_spec_l42_d6_registers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('registers', ...args)
+pub fn ruby_no_send_in_tests_spec_l42_d6_registers() bool {
+	return no_send_in_tests_spec_offense('formula.public_send(:active_spec)', 'public_send', no_send_core.no_send_in_tests_public_send_message)
 }
 
 // Ruby it `it "registers an offense when using `public_send` with a static string method name" do` at line 49.
-pub fn ruby_no_send_in_tests_spec_l49_d7_registers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('registers', ...args)
+pub fn ruby_no_send_in_tests_spec_l49_d7_registers() bool {
+	return no_send_in_tests_spec_offense('formula.public_send("active_spec")', 'public_send', no_send_core.no_send_in_tests_public_send_message)
 }
 
 // Ruby it `it "registers an offense when using `public_send` with a static setter method name" do` at line 56.
-pub fn ruby_no_send_in_tests_spec_l56_d8_registers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('registers', ...args)
+pub fn ruby_no_send_in_tests_spec_l56_d8_registers() bool {
+	return no_send_in_tests_spec_offense('formula.public_send(:name=, "foo")', 'public_send', no_send_core.no_send_in_tests_public_send_message)
 }
 
 // Ruby it `it "registers an offense when using `public_send` with a static index method name" do` at line 63.
-pub fn ruby_no_send_in_tests_spec_l63_d9_registers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('registers', ...args)
+pub fn ruby_no_send_in_tests_spec_l63_d9_registers() bool {
+	return no_send_in_tests_spec_offense('config.public_send(:[], :key)', 'public_send', no_send_core.no_send_in_tests_public_send_message)
 }
 
 // Ruby it `it "registers an offense when using `public_send` with a static index setter method name" do` at line 70.
-pub fn ruby_no_send_in_tests_spec_l70_d10_registers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('registers', ...args)
+pub fn ruby_no_send_in_tests_spec_l70_d10_registers() bool {
+	return no_send_in_tests_spec_offense('config.public_send(:[]=, :key, "value")', 'public_send', no_send_core.no_send_in_tests_public_send_message)
 }
 
 // Ruby it `it "registers an offense when using `send` with a static operator method name" do` at line 77.
-pub fn ruby_no_send_in_tests_spec_l77_d11_registers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('registers', ...args)
+pub fn ruby_no_send_in_tests_spec_l77_d11_registers() bool {
+	return no_send_in_tests_spec_offense('formula.send(:<<, "value")', 'send', 'Make the method public and call it directly instead of using `send` in tests.')
 }
 
 // Ruby it `it "does not register an offense when using `public_send` with a dynamic method name" do` at line 84.
-pub fn ruby_no_send_in_tests_spec_l84_d12_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_no_send_in_tests_spec_l84_d12_does() bool {
+	return no_send_core.audit_no_send_in_tests(r'subject.public_send(:"#{artifact_dsl_key}_phase", command: fake_system_command)').len == 0
 }
 
 // Ruby it `it "does not register an offense when using `public_send` with a variable method name" do` at line 90.
-pub fn ruby_no_send_in_tests_spec_l90_d13_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_no_send_in_tests_spec_l90_d13_does() bool {
+	return no_send_core.audit_no_send_in_tests('described_class.public_send(method_name, TEST_TMPDIR, safe: false)').len == 0
 }
 
 // Ruby it `it "does not register an offense when using `public_send` with a method name that has no call syntax" do` at line 96.
-pub fn ruby_no_send_in_tests_spec_l96_d14_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_no_send_in_tests_spec_l96_d14_does() bool {
+	return no_send_core.audit_no_send_in_tests('subject.public_send(:"gcc-9")').len == 0
 }
 
 // Ruby it `it "does not register an offense for a direct method call" do` at line 102.
-pub fn ruby_no_send_in_tests_spec_l102_d15_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_no_send_in_tests_spec_l102_d15_does() bool {
+	return no_send_core.audit_no_send_in_tests('formula.active_spec').len == 0
 }
 
 // Original Ruby source (line-for-line):

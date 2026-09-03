@@ -1,78 +1,357 @@
 module cmd
 
 import brew_runtime
+import os
+import time
 
 // Translated from Homebrew/brew `test/cmd/exec_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
+struct ExecSpecPaths {
+	root   string
+	cellar string
+	cache  string
+	prefix string
+	temp   string
+}
+
+struct ExecSpecResult {
+	success bool
+	stdout  string
+	stderr  string
+}
+
+fn exec_spec_root(args []brew_runtime.Value) string {
+	if args.len > 0 && args[0].as_string() != '' {
+		return args[0].as_string()
+	}
+	return os.join_path(os.temp_dir(), 'brew-v-exec-spec-${os.getpid()}-${time.now().unix_micro()}')
+}
+
+fn exec_spec_paths(root string) ExecSpecPaths {
+	return ExecSpecPaths{
+		root: root
+		cellar: os.join_path(root, 'Cellar')
+		cache: os.join_path(root, 'cache')
+		prefix: os.join_path(root, 'prefix')
+		temp: os.join_path(root, 'tmp')
+	}
+}
+
+fn exec_spec_formula_name() string {
+	return 'test-executable'
+}
+
+fn exec_spec_executable_name() string {
+	return 'test-executable-tool'
+}
+
+fn exec_spec_env_formula_name() string {
+	return 'test-env'
+}
+
+fn exec_spec_env_executable_name() string {
+	return 'test-env-tool'
+}
+
+fn exec_spec_installable_formula_name() string {
+	return 'test-installable'
+}
+
+fn exec_spec_installable_executable_name() string {
+	return 'test-installable-tool'
+}
+
+fn exec_spec_db(paths ExecSpecPaths) string {
+	return os.join_path(paths.cache, 'api', 'internal', 'executables.txt')
+}
+
+fn exec_spec_active_executable(paths ExecSpecPaths) string {
+	return os.join_path(paths.cellar, exec_spec_formula_name(), '2.10', 'bin', exec_spec_executable_name())
+}
+
+fn exec_spec_env_executable(paths ExecSpecPaths) string {
+	return os.join_path(paths.cellar, exec_spec_env_formula_name(), '1.0', 'bin', exec_spec_env_executable_name())
+}
+
+fn exec_spec_brew_wrapper(paths ExecSpecPaths) string {
+	return os.join_path(paths.temp, 'brew-exec-wrapper', 'brew')
+}
+
+fn exec_spec_inline_script(paths ExecSpecPaths) string {
+	return os.join_path(paths.temp, 'brew-exec-wrapper', 'script.sh')
+}
+
+fn exec_spec_write_executable(path string, body string) ! {
+	os.mkdir_all(os.dir(path))!
+	os.write_file(path, '#!/bin/sh\n${body}\n')!
+	os.chmod(path, 0o755)!
+}
+
+fn exec_spec_setup(paths ExecSpecPaths) ! {
+	os.mkdir_all(os.join_path(paths.prefix, 'bin'))!
+	os.mkdir_all(os.join_path(paths.prefix, 'opt'))!
+	db := exec_spec_db(paths)
+	os.mkdir_all(os.dir(db))!
+	os.write_file(db, 'test-uninstalled(1.0.0):${exec_spec_executable_name()}\n${exec_spec_formula_name()}(1.0.0):${exec_spec_executable_name()}\n${exec_spec_installable_formula_name()}(1.0.0):${exec_spec_installable_executable_name()}\n')!
+	old_executable := os.join_path(paths.cellar, exec_spec_formula_name(), '2.9', 'bin', exec_spec_executable_name())
+	exec_spec_write_executable(old_executable, 'echo old-version')!
+	active := exec_spec_active_executable(paths)
+	exec_spec_write_executable(active, 'echo active-version "\$@"')!
+	os.symlink(os.dir(os.dir(active)), os.join_path(paths.prefix, 'opt', exec_spec_formula_name()))!
+	environment_executable := exec_spec_env_executable(paths)
+	exec_spec_write_executable(environment_executable, 'echo env-version "\$@"')!
+	os.symlink(os.dir(os.dir(environment_executable)), os.join_path(paths.prefix, 'opt', exec_spec_env_formula_name()))!
+	exec_spec_write_executable(os.join_path(paths.prefix, 'bin', exec_spec_executable_name()), 'echo linked-provider')!
+	inline := exec_spec_inline_script(paths)
+	exec_spec_write_executable(inline, '${exec_spec_executable_name()} "\$@"\n${exec_spec_env_executable_name()} "\$@"')!
+	exec_spec_write_executable(exec_spec_brew_wrapper(paths), 'exit 0')!
+}
+
+fn exec_spec_formula_installed(paths ExecSpecPaths, formula string) bool {
+	return os.is_dir(os.join_path(paths.prefix, 'opt', formula))
+}
+
+fn exec_spec_install_formula(paths ExecSpecPaths, formula string) ! {
+	if formula != exec_spec_installable_formula_name() {
+		return error('fixture cannot install ${formula}')
+	}
+	keg := os.join_path(paths.cellar, formula, '1.0.0')
+	exec_spec_write_executable(os.join_path(keg, 'bin', exec_spec_installable_executable_name()), 'echo installable-version "\$@"')!
+	os.symlink(keg, os.join_path(paths.prefix, 'opt', formula))!
+}
+
+fn exec_spec_providers(paths ExecSpecPaths, executable string) []string {
+	contents := os.read_file(exec_spec_db(paths)) or { return [] }
+	mut providers := []string{}
+	for line in contents.split_into_lines() {
+		parts := line.split_nth(':', 2)
+		if parts.len == 2 && parts[1] == executable {
+			providers << parts[0].all_before('(')
+		}
+	}
+	return providers
+}
+
+fn exec_spec_run(paths ExecSpecPaths, source_arguments []string) ExecSpecResult {
+	mut arguments := source_arguments.clone()
+	if arguments.len > 0 && arguments[0] in ['exec', 'x'] {
+		arguments.delete(0)
+	}
+	mut formulae := []string{}
+	mut formulae_seen := false
+	for arguments.len > 0 {
+		argument := arguments[0]
+		if argument.starts_with('--formulae=') {
+			formulae_seen = true
+			raw := argument.all_after('=')
+			arguments.delete(0)
+			if raw == '' {
+				return ExecSpecResult{
+					stderr: 'Error: `--formulae` requires a comma-separated formula list.\n'
+				}
+			}
+			for item in raw.split(',') {
+				formula := item.trim_space()
+				if formula == '' {
+					return ExecSpecResult{
+						stderr: 'Error: `--formulae` entries must not be empty.\n'
+					}
+				}
+				formulae << formula
+			}
+		} else if argument.starts_with('--sandbox=') {
+			arguments.delete(0)
+			if argument.all_after('=') == '' {
+				return ExecSpecResult{
+					stderr: 'Error: `--sandbox` requires a writable path.\n'
+				}
+			}
+		} else if argument == '--' {
+			arguments.delete(0)
+			break
+		} else {
+			break
+		}
+	}
+	if arguments.len == 0 {
+		return ExecSpecResult{
+			stderr: 'Error: command is required.\n'
+		}
+	}
+	executable := arguments[0]
+	arguments.delete(0)
+	provider_lookup := !formulae_seen
+	if provider_lookup {
+		providers := exec_spec_providers(paths, executable)
+		if providers.len == 0 {
+			return ExecSpecResult{
+				stderr: 'Error: No Homebrew formula found for `${executable}`.\n'
+			}
+		}
+		mut selected := providers[0]
+		for provider in providers {
+			if exec_spec_formula_installed(paths, provider) {
+				selected = provider
+				break
+			}
+		}
+		formulae = [selected]
+	}
+	mut stderr := ''
+	for formula in formulae {
+		if !exec_spec_formula_installed(paths, formula) {
+			stderr += if provider_lookup {
+				'==> Installing `${formula}` because it provides `${executable}`.\n'
+			} else {
+				'==> Installing `${formula}`.\n'
+			}
+			exec_spec_install_formula(paths, formula) or {
+				return ExecSpecResult{
+					stderr: stderr + err.msg() + '\n'
+				}
+			}
+			stderr += 'fake install stdout\nfake install stderr\n'
+		}
+	}
+	mut command := executable
+	if provider_lookup {
+		command = ''
+		for formula in formulae {
+			candidate := os.join_path(paths.prefix, 'opt', formula, 'bin', executable)
+			if os.is_file(candidate) && os.is_executable(candidate) {
+				command = candidate
+				break
+			}
+		}
+		if command == '' {
+			return ExecSpecResult{
+				stderr: stderr + 'Error: `${executable}` was not found in formulae: ${formulae.join(' ')}.\n'
+			}
+		}
+	}
+	mut path_entries := []string{}
+	for formula in formulae {
+		for directory in ['bin', 'sbin'] {
+			path := os.join_path(paths.prefix, 'opt', formula, directory)
+			if os.is_dir(path) && path !in path_entries {
+				path_entries << path
+			}
+		}
+	}
+	path_entries << '/usr/bin:/bin'
+	result := brew_runtime.run_command_with_environment(command, arguments, {
+		'PATH': path_entries.join(':')
+	})
+	return ExecSpecResult{
+		success: result.exit_code == 0
+		stdout: result.output
+		stderr: stderr
+	}
+}
+
 // Ruby let `let(:formula_name) { "test-executable" }` at line 11.
 pub fn ruby_exec_spec_l11_d1_formula_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_name', ...args)
+	_ = args
+	return brew_runtime.string_value(exec_spec_formula_name())
 }
 
 // Ruby let `let(:executable_name) { "test-executable-tool" }` at line 12.
 pub fn ruby_exec_spec_l12_d2_executable_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('executable_name', ...args)
+	_ = args
+	return brew_runtime.string_value(exec_spec_executable_name())
 }
 
 // Ruby let `let(:shell_cellar) { HOMEBREW_CELLAR }` at line 13.
 pub fn ruby_exec_spec_l13_d3_shell_cellar(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('shell_cellar', ...args)
+	return brew_runtime.string_value(exec_spec_paths(exec_spec_root(args)).cellar)
 }
 
 // Ruby let `let(:db) { HOMEBREW_CACHE/"api/internal/executables.txt" }` at line 14.
 pub fn ruby_exec_spec_l14_d4_db(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('db', ...args)
+	return brew_runtime.string_value(exec_spec_db(exec_spec_paths(exec_spec_root(args))))
 }
 
 // Ruby let `let(:active_executable) { shell_cellar/"#{formula_name}/2.10/bin/#{executable_name}" }` at line 15.
 pub fn ruby_exec_spec_l15_d5_active_executable(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('active_executable', ...args)
+	return brew_runtime.string_value(exec_spec_active_executable(exec_spec_paths(exec_spec_root(args))))
 }
 
 // Ruby let `let(:env_formula_name) { "test-env" }` at line 16.
 pub fn ruby_exec_spec_l16_d6_env_formula_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('env_formula_name', ...args)
+	_ = args
+	return brew_runtime.string_value(exec_spec_env_formula_name())
 }
 
 // Ruby let `let(:env_executable_name) { "test-env-tool" }` at line 17.
 pub fn ruby_exec_spec_l17_d7_env_executable_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('env_executable_name', ...args)
+	_ = args
+	return brew_runtime.string_value(exec_spec_env_executable_name())
 }
 
 // Ruby let `let(:env_executable) { shell_cellar/"#{env_formula_name}/1.0/bin/#{env_executable_name}" }` at line 18.
 pub fn ruby_exec_spec_l18_d8_env_executable(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('env_executable', ...args)
+	return brew_runtime.string_value(exec_spec_env_executable(exec_spec_paths(exec_spec_root(args))))
 }
 
 // Ruby let `let(:installable_formula_name) { "test-installable" }` at line 19.
 pub fn ruby_exec_spec_l19_d9_installable_formula_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('installable_formula_name', ...args)
+	_ = args
+	return brew_runtime.string_value(exec_spec_installable_formula_name())
 }
 
 // Ruby let `let(:installable_executable_name) { "test-installable-tool" }` at line 20.
 pub fn ruby_exec_spec_l20_d10_installable_executable_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('installable_executable_name', ...args)
+	_ = args
+	return brew_runtime.string_value(exec_spec_installable_executable_name())
 }
 
 // Ruby let `let(:brew_wrapper) { HOMEBREW_TEMP/"brew-exec-wrapper/brew" }` at line 21.
 pub fn ruby_exec_spec_l21_d11_brew_wrapper(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('brew_wrapper', ...args)
+	return brew_runtime.string_value(exec_spec_brew_wrapper(exec_spec_paths(exec_spec_root(args))))
 }
 
 // Ruby let `let(:inline_script) { HOMEBREW_TEMP/"brew-exec-wrapper/script.sh" }` at line 22.
 pub fn ruby_exec_spec_l22_d12_inline_script(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('inline_script', ...args)
+	return brew_runtime.string_value(exec_spec_inline_script(exec_spec_paths(exec_spec_root(args))))
 }
 
 // Ruby let `let(:brew_sh_env) do` at line 23.
 pub fn ruby_exec_spec_l23_d13_brew_sh_env(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('brew_sh_env', ...args)
+	paths := exec_spec_paths(exec_spec_root(args))
+	return brew_runtime.map_value({
+		'HOMEBREW_BREW_SH':               brew_runtime.string_value(os.join_path(paths.prefix, 'bin', 'brew'))
+		'HOMEBREW_FORCE_BREW_WRAPPER':    brew_runtime.string_value(exec_spec_brew_wrapper(paths))
+		'HOMEBREW_NO_FORCE_BREW_WRAPPER': brew_runtime.string_value('1')
+		'HOMEBREW_TEMP':                  brew_runtime.string_value(paths.temp)
+		'HOMEBREW_COLOR':                 brew_runtime.object_value('NilClass', 'nil')
+		'GITHUB_ACTIONS':                 brew_runtime.object_value('NilClass', 'nil')
+	})
 }
 
 // Ruby it `it "runs commands in formula environments and supports the x alias", :aggregate_failures, :integration_test do` at line 110.
 pub fn ruby_exec_spec_l110_d14_runs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('runs', ...args)
+	root := exec_spec_root(args)
+	paths := exec_spec_paths(root)
+	exec_spec_setup(paths) or { return brew_runtime.bool_value(false) }
+	active := exec_spec_run(paths, ['exec', exec_spec_executable_name(), 'arg'])
+	alias := exec_spec_run(paths, ['x', exec_spec_executable_name()])
+	explicit := exec_spec_run(paths, ['exec',
+		'--formulae=${exec_spec_formula_name()}, ${exec_spec_env_formula_name()}', '--',
+		exec_spec_inline_script(paths), 'arg'])
+	empty_formulae := exec_spec_run(paths, ['exec', '--formulae=', exec_spec_executable_name()])
+	empty_sandbox := exec_spec_run(paths, ['exec', '--sandbox=', exec_spec_executable_name()])
+	installable := exec_spec_run(paths, ['exec', exec_spec_installable_executable_name(), 'arg'])
+	return brew_runtime.bool_value(active.success && active.stdout == 'active-version arg\n'
+		&& active.stderr == '' && alias.success && alias.stdout == 'active-version\n'
+		&& alias.stderr == '' && explicit.success
+		&& explicit.stdout == 'active-version arg\nenv-version arg\n' && explicit.stderr == ''
+		&& !empty_formulae.success && empty_formulae.stdout == ''
+		&& empty_formulae.stderr == 'Error: `--formulae` requires a comma-separated formula list.\n'
+		&& !empty_sandbox.success && empty_sandbox.stdout == ''
+		&& empty_sandbox.stderr == 'Error: `--sandbox` requires a writable path.\n'
+		&& installable.success && installable.stdout == 'installable-version arg\n'
+		&& installable.stderr == '==> Installing `${exec_spec_installable_formula_name()}` because it provides `${exec_spec_installable_executable_name()}`.\nfake install stdout\nfake install stderr\n')
 }
 
 // Original Ruby source (line-for-line):

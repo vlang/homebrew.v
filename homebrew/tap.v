@@ -1,538 +1,1878 @@
 module homebrew
 
-import brew_runtime
+import hash.fnv1a
+import homebrew.tap as tap_config
+import os
+import x.json2
 
 // Translated from Homebrew/brew `tap.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub struct TapReference {
+pub:
+	user            string
+	repository      string
+	full_repository string
+	name            string
+	full_name       string
+	remote          string
+}
+
+pub struct TapCache {
+pub:
+	remote                            ?string
+	repository_var_suffix             ?string
+	private                           ?bool
+	formula_dir                       ?string
+	formula_files                     []string
+	formula_files_by_name             map[string]string
+	formula_names                     []string
+	prefix_to_versioned_formula_names map[string][]string
+	formula_renames                   map[string]string
+	formula_reverse_renames           map[string][]string
+	cask_dir                          ?string
+	cask_files                        []string
+	cask_files_by_name                map[string]string
+	cask_tokens                       []string
+	cask_renames                      map[string]string
+	cask_reverse_renames              map[string][]string
+	alias_dir                         ?string
+	alias_files                       []string
+	aliases                           []string
+	alias_table                       map[string]string
+	alias_reverse_table               map[string][]string
+	command_dir                       ?string
+	command_files                     []string
+	tap_migrations                    map[string]string
+	reverse_tap_migrations            map[string][]string
+	audit_exceptions                  map[string]json2.Any
+	style_exceptions                  map[string]json2.Any
+	synced_versions_formulae          [][]string
+}
+
+pub struct TapPrivateQuery {
+pub:
+	core_tap          bool
+	core_cask_tap     bool
+	custom_remote     bool
+	github_value      ?bool
+	github_api_failed bool
+}
+
+pub struct TapCommand {
+pub:
+	arguments   []string
+	chdir       string
+	environment map[string]string
+}
+
+pub struct TapRedirectRequest {
+pub:
+	tap                      TapReference
+	tap_path                 string
+	redirected_remote        string
+	redirected_tap_installed bool
+	allowed                  bool = true
+	forbidden                bool
+	forbidden_owner          string
+	forbidden_owner_contact  string
+	trust_invalidated        bool
+	quiet                    bool
+}
+
+pub struct TapRedirectPlan {
+pub:
+	changed           bool
+	tap               TapReference
+	old_name          string
+	old_remote        string
+	old_path          string
+	new_path          string
+	move_repository   bool
+	set_remote        TapCommand
+	message           string
+	trust_message     string
+	invalidate_name   string
+	invalidate_remote string
+}
+
+pub struct TapInstallRequest {
+pub:
+	tap                       TapReference
+	path                      string
+	installed                 bool
+	shallow                   bool
+	quiet                     bool
+	clone_target              ?string
+	custom_remote             bool
+	verify                    bool
+	force                     bool
+	core_tap                  bool
+	core_cask_tap             bool
+	no_install_from_api       bool
+	worktree_source_tap_path  ?string
+	allowed                   bool = true
+	forbidden                 bool
+	forbidden_owner           string
+	forbidden_owner_contact   string
+	current_remote            ?string
+	configured_core_remote    ?string
+	fetched_worktree_head     ?string
+	deprecated_official_taps  []string
+	developer                 bool
+	readall_valid             bool = true
+	private                   bool
+	credential_helper_present bool
+	formula_names             []string
+	cask_tokens               []string
+}
+
+pub enum TapInstallDisposition {
+	clone
+	fetch
+	worktree
+}
+
+pub struct TapInstallPlan {
+pub:
+	disposition             TapInstallDisposition
+	requested_remote        string
+	command                 TapCommand
+	worktree_source         string
+	worktree_fetch          TapCommand
+	worktree_add            TapCommand
+	fix_remote              bool
+	verify                  bool
+	link_completions        bool
+	rebuild_commands        bool
+	update_formula_cache    bool
+	update_cask_cache       bool
+	remove_untapped_name    bool
+	show_private_advice     bool
+	cleanup_path_on_error   string
+	cleanup_parent_on_error string
+	delete_forceautoupdate  bool
+}
+
+pub struct TapEachResult {
+pub:
+	enumerator bool
+	taps       []TapReference
+}
+
+pub struct TapLinkPlan {
+pub:
+	link_manpages      bool
+	link_completions   bool
+	unlink_completions bool
+	command            string
+}
+
+pub struct TapFixRemoteRequest {
+pub:
+	path                      string
+	name                      string
+	remote                    ?string
+	requested_remote          ?string
+	quiet                     bool
+	current_upstream_head     ?string
+	origin_has_current_branch bool
+	new_upstream_head         ?string
+}
+
+pub struct TapFixRemotePlan {
+pub:
+	set_remote_commands  []TapCommand
+	fetch_command        ?TapCommand
+	set_head_origin_auto bool
+	rename_old_branch    string
+	rename_new_branch    string
+	message              string
+}
+
+pub struct TapUninstallPlan {
+pub:
+	path                     string
+	worktree_source_path     ?string
+	worktree_remove_command  ?TapCommand
+	delete_formula_names     []string
+	delete_cask_tokens       []string
+	unlink_manpages          bool
+	unlink_completions       bool
+	rebuild_commands         bool
+	add_to_untapped_official bool
+}
+
+pub struct TapPackageMetadata {
+pub:
+	autobump       bool
+	disabled       bool
+	skip_livecheck bool
+}
+
+pub struct TapHash {
+pub:
+	name                string
+	user                string
+	repo                string
+	repository          string
+	path                string
+	installed           bool
+	official            bool
+	trusted             bool
+	formula_names       []string
+	cask_tokens         []string
+	formula_files       []string
+	cask_files          []string
+	command_files       []string
+	remote              string
+	custom_remote       bool
+	private             bool
+	head                string
+	last_commit         string
+	branch              string
+	has_install_details bool
+}
+
+pub struct TapAuditList {
+pub:
+	array_values []string
+	hash_values  map[string]TapAuditValue
+	is_hash      bool
+}
+
+pub struct TapAuditValue {
+pub:
+	value        string
+	array_values []string
+	is_array     bool
+}
+
+pub struct TapAuditResult {
+pub:
+	matched       bool
+	value_present bool
+	value         string
+	is_array      bool
+	array_value   []string
+}
+
+pub struct TapFormulaListResult {
+pub:
+	value   json2.Any
+	warning string
+}
+
+pub type TapComparable = TapReference | string
+
+fn tap_repository_without_official_prefix(repository string) string {
+	lower := repository.to_lower()
+	for prefix in ['homebrew-', 'linuxbrew-'] {
+		if lower.starts_with(prefix) {
+			return repository[prefix.len..]
+		}
+	}
+	return repository
+}
+
+pub fn new_tap_reference(name string, remote string) !TapReference {
+	parts := name.split('/')
+	if parts.len != 2 || parts[0] == '' || parts[1] == '' {
+		return error("Invalid tap name: '${name}'")
+	}
+	mut user := parts[0]
+	mut repository := tap_repository_without_official_prefix(parts[1])
+	if user.to_lower() in ['homebrew', 'linuxbrew'] {
+		user = if user.to_lower() == 'homebrew' { 'Homebrew' } else { 'Linuxbrew' }
+	}
+	if user in ['Homebrew', 'Linuxbrew'] && repository in ['core', 'homebrew'] {
+		user = 'Homebrew'
+		repository = 'core'
+	}
+	if user == 'Homebrew' && repository == 'cask' {
+		repository = 'cask'
+	}
+	full_repository := 'homebrew-${repository}'
+	full_name := '${user}/${full_repository}'
+	default_remote := 'https://github.com/${full_name}'
+	return TapReference{
+		user: user
+		repository: repository
+		full_repository: full_repository
+		name: '${user}/${repository}'.to_lower()
+		full_name: full_name
+		remote: if remote.trim_space() == '' { default_remote } else { remote }
+	}
+}
+
+pub fn tap_remote_reference(reference string) bool {
+	if reference.starts_with('/') || reference.starts_with('.') || reference.starts_with('~') {
+		return true
+	}
+	colon := reference.index(':') or { return false }
+	slash := reference.index('/') or { reference.len }
+	return colon < slash && colon + 1 < reference.len
+}
+
+fn valid_tap_remote_scheme(scheme string) bool {
+	if scheme == '' || !scheme[0].is_letter() {
+		return false
+	}
+	for character in scheme[1..] {
+		if !character.is_alnum() && character !in [`+`, `.`, `-`] {
+			return false
+		}
+	}
+	return true
+}
+
+fn tap_remote_host(remote string) string {
+	mut authority := remote
+	if scheme_end := remote.index('://') {
+		if valid_tap_remote_scheme(remote[..scheme_end]) {
+			authority = remote[scheme_end + 3..]
+		}
+	}
+	if slash := authority.index('/') {
+		authority = authority[..slash]
+	}
+	if at := authority.last_index('@') {
+		authority = authority[at + 1..]
+	}
+	if colon := authority.index(':') {
+		authority = authority[..colon]
+	}
+	return authority
+}
+
+fn canonicalize_github_remote(remote string) string {
+	if scheme_end := remote.index('://') {
+		scheme := remote[..scheme_end]
+		if !valid_tap_remote_scheme(scheme) {
+			return remote
+		}
+		rest := remote[scheme_end + 3..]
+		slash := rest.index('/') or { return remote }
+		authority := rest[..slash]
+		host := if at := authority.last_index('@') {
+			authority[at + 1..]
+		} else {
+			authority
+		}
+		if host == 'github.com' {
+			return 'https://github.com/${rest[slash + 1..]}'
+		}
+		return remote
+	}
+	colon := remote.index(':') or { return remote }
+	authority := remote[..colon]
+	host := if at := authority.last_index('@') {
+		authority[at + 1..]
+	} else {
+		authority
+	}
+	if host == 'github.com' {
+		return 'https://github.com/${remote[colon + 1..]}'
+	}
+	return remote
+}
+
+pub fn normalize_tap_remote(remote string) ?string {
+	mut normalized := remote.trim_space().to_lower()
+	if normalized == '' {
+		return none
+	}
+	normalized = canonicalize_github_remote(normalized)
+	if tap_remote_host(normalized) !in ['github.com', 'gitlab.com'] {
+		return normalized
+	}
+	for normalized.ends_with('/') {
+		normalized = normalized[..normalized.len - 1]
+	}
+	if normalized.ends_with('.git') {
+		normalized = normalized[..normalized.len - 4]
+	}
+	return normalized
+}
+
+pub fn same_tap_remote(first string, second string) bool {
+	first_normalized := normalize_tap_remote(first) or { return false }
+	second_normalized := normalize_tap_remote(second) or { return false }
+	return first_normalized == second_normalized
+}
+
+pub fn (tap TapReference) default_remote() string {
+	return 'https://github.com/${tap.full_name}'
+}
+
+fn tap_remote_repository(remote string) ?string {
+	mut repository_remote := remote.trim_space()
+	if repository_remote == '' {
+		return none
+	}
+	for repository_remote.ends_with('/') {
+		repository_remote = repository_remote[..repository_remote.len - 1]
+	}
+	if repository_remote.ends_with('.git') {
+		repository_remote = repository_remote[..repository_remote.len - 4]
+	}
+	mut path := repository_remote
+	if scheme_end := repository_remote.index('://') {
+		path = repository_remote[scheme_end + 3..]
+		if slash := path.index('/') {
+			path = path[slash + 1..]
+		} else {
+			return none
+		}
+	} else if colon := repository_remote.index(':') {
+		path = repository_remote[colon + 1..]
+	}
+	parts := path.split('/')
+	if parts.len < 2 || parts[parts.len - 2] == '' || parts.last() == '' {
+		return none
+	}
+	return '${parts[parts.len - 2]}/${parts.last()}'
+}
+
+pub fn tap_remote_to_reference(remote string) ?string {
+	normalized := normalize_tap_remote(remote) or { return none }
+	repository := tap_remote_repository(normalized) or { return normalized }
+	tap := new_tap_reference(repository, '') or { return normalized }
+	return if same_tap_remote(normalized, tap.default_remote()) { tap.name } else { normalized }
+}
+
+pub fn normalize_tap_references(references []string, env_var string) []string {
+	mut normalized := []string{}
+	for reference in references {
+		if tap_remote_reference(reference) {
+			normalized << reference
+			continue
+		}
+		tap := new_tap_reference(reference, '') or {
+			eprintln('Warning: Invalid tap name in `\$${env_var}`: ${reference}')
+			continue
+		}
+		normalized << tap.name
+	}
+	return normalized
+}
+
+pub fn tap_list_references(env_taps string, env_var string) []string {
+	return normalize_tap_references(env_taps.fields(), env_var)
+}
+
+pub fn (tap TapReference) uses_custom_remote() bool {
+	return tap.remote != '' && !same_tap_remote(tap.remote, tap.default_remote())
+}
+
+pub fn (tap TapReference) custom_remote() bool {
+	return tap.remote == '' || !same_tap_remote(tap.remote, tap.default_remote())
+}
+
+pub fn (tap TapReference) official() bool {
+	return tap.user == 'Homebrew'
+}
+
+pub fn (tap TapReference) reference() string {
+	return if tap.remote == '' || same_tap_remote(tap.remote, tap.default_remote()) {
+		tap.name
+	} else {
+		tap.remote
+	}
+}
+
+pub fn (tap TapReference) matches_reference(reference string) bool {
+	if tap_remote_reference(reference) {
+		return same_tap_remote(reference, tap.remote)
+	}
+	return !tap.uses_custom_remote() && tap.name == reference.to_lower()
+}
+
+pub fn (tap TapReference) canonical_remote() bool {
+	return tap.remote == '' || same_tap_remote(tap.remote, tap.default_remote())
+}
+
+pub fn (tap TapReference) implicitly_trusted() bool {
+	return tap.user == 'Homebrew' && tap.canonical_remote()
+}
+
+pub fn tap_core_implicitly_trusted(remote string, no_install_from_api bool,
+	core_git_remote string) bool {
+	return !no_install_from_api || same_tap_remote(remote, core_git_remote)
+}
+
+pub fn (tap TapReference) allowed_by_references(allowed []string) bool {
+	return tap.implicitly_trusted() || allowed.len == 0 || allowed.any(tap.matches_reference(it))
+}
+
+pub fn (tap TapReference) forbidden_by_references(forbidden []string) bool {
+	return forbidden.any(tap.matches_reference(it))
+}
+
+pub fn tap_path(tap TapReference, tap_directory string) string {
+	return os.join_path(tap_directory, tap.full_name.to_lower())
+}
+
+pub fn tap_from_path(path string, tap_directory string) ?TapReference {
+	absolute := os.abs_path(path)
+	root := os.abs_path(tap_directory).trim_right(os.path_separator)
+	prefix := root + os.path_separator
+	if !absolute.starts_with(prefix) {
+		return none
+	}
+	relative := absolute[prefix.len..].replace('\\', '/')
+	parts := relative.split('/')
+	if parts.len < 2 || !parts[1].to_lower().starts_with('homebrew-') {
+		return none
+	}
+	return new_tap_reference('${parts[0]}/${parts[1]}', '') or { none }
+}
+
+pub fn tap_with_formula_name(name string) ?(TapReference, string) {
+	parts := name.split('/')
+	if parts.len != 3 || parts[0] in ['.', '..'] || parts[1] in ['.', '..'] || parts.any(it == '') {
+		return none
+	}
+	tap := new_tap_reference('${parts[0]}/${parts[1]}', '') or { return none }
+	return tap, parts[2].to_lower()
+}
+
+pub fn tap_with_cask_token(token string) ?(TapReference, string) {
+	return tap_with_formula_name(token)
+}
+
+pub fn tap_repository_var_suffix(tap TapReference, tap_directory string) string {
+	path := tap_path(tap, tap_directory)
+	mut relative := path.trim_string_left(tap_directory)
+	mut suffix := ''
+	for character in relative {
+		suffix += if character.is_alnum() { character.ascii_str() } else { '_' }
+	}
+	return suffix.to_upper()
+}
+
+pub fn tap_worktree_source_path(tap TapReference, path string, repository_path string,
+	worktree_list string) ?string {
+	git_file := os.join_path(path, '.git')
+	if !os.is_file(git_file) {
+		return none
+	}
+	line := os.read_file(git_file) or { return none }.trim_right('\r\n')
+	prefix := 'gitdir: '
+	if !line.starts_with(prefix) || line.len == prefix.len {
+		return none
+	}
+	mut git_dir := line[prefix.len..]
+	if !os.is_abs_path(git_dir) {
+		git_dir = os.join_path(path, git_dir)
+	}
+	git_dir = os.norm_path(git_dir)
+	parent := os.dir(git_dir)
+	grandparent := os.dir(parent)
+	if os.base(grandparent) == '.git' && os.base(parent) == 'worktrees' {
+		source_path := os.dir(grandparent)
+		if os.norm_path(path) != os.norm_path(repository_path) {
+			return source_path
+		}
+		candidate := os.join_path(source_path, 'Library', 'Taps', tap.full_name.to_lower())
+		if os.exists(os.join_path(candidate, '.git')) {
+			return candidate
+		}
+	}
+	for worktree_line in worktree_list.split_into_lines() {
+		if !worktree_line.starts_with('worktree ') {
+			continue
+		}
+		candidate := os.join_path(worktree_line['worktree '.len..], 'Library', 'Taps', tap.full_name.to_lower())
+		if os.exists(os.join_path(candidate, '.git')) {
+			return candidate
+		}
+	}
+	return none
+}
+
+pub fn tap_private(query TapPrivateQuery) bool {
+	if query.core_tap || query.core_cask_tap {
+		return false
+	}
+	if query.custom_remote || query.github_api_failed {
+		return true
+	}
+	return query.github_value or { true }
+}
+
+pub fn tap_update_remote_from_redirect(output string, request TapRedirectRequest) !TapRedirectPlan {
+	for line in output.split_into_lines() {
+		lower := line.to_lower()
+		needle := 'redirecting to '
+		index := lower.index(needle) or { continue }
+		mut redirected := line[index + needle.len..].fields()
+		if redirected.len == 0 {
+			continue
+		}
+		return tap_apply_redirect(request, redirected[0])
+	}
+	return TapRedirectPlan{
+		tap: request.tap
+		old_name: request.tap.name
+		old_remote: request.tap.remote
+	}
+}
+
+pub fn tap_apply_redirect(request TapRedirectRequest, redirected_remote string) !TapRedirectPlan {
+	if request.tap.remote != '' && same_tap_remote(request.tap.remote, redirected_remote) {
+		return TapRedirectPlan{
+			tap: request.tap
+			old_name: request.tap.name
+			old_remote: request.tap.remote
+		}
+	}
+	if !request.allowed || request.forbidden {
+		mut message := '${request.tap.name} was redirected to ${redirected_remote} but ${request.forbidden_owner}\n'
+		if !request.allowed {
+			message += 'has not allowed this tap in `\$HOMEBREW_ALLOWED_TAPS`'
+		}
+		if !request.allowed && request.forbidden {
+			message += ' and\n'
+		}
+		if request.forbidden {
+			message += 'has forbidden this tap in `\$HOMEBREW_FORBIDDEN_TAPS`'
+		}
+		if request.forbidden_owner_contact != '' {
+			message += '.\n${request.forbidden_owner_contact}'
+		} else {
+			message += '.'
+		}
+		return error(message)
+	}
+	mut redirected_tap := request.tap
+	mut move_repository := false
+	mut new_path := request.tap_path
+	if reference := tap_remote_to_reference(redirected_remote) {
+		if !tap_remote_reference(reference) {
+			candidate := new_tap_reference(reference, redirected_remote)!
+			if candidate.name != request.tap.name && !request.redirected_tap_installed {
+				redirected_tap = candidate
+				move_repository = true
+				new_path = os.join_path(os.dir(os.dir(request.tap_path)), candidate.full_name.to_lower())
+			}
+		}
+	}
+	message := if request.quiet {
+		''
+	} else if request.tap.name == redirected_tap.name {
+		'Redirected tap ${redirected_tap.name} remote to ${redirected_remote}'
+	} else {
+		'Redirected tap ${request.tap.name} to tap ${redirected_tap.name}'
+	}
+	return TapRedirectPlan{
+		changed: true
+		tap: redirected_tap
+		old_name: request.tap.name
+		old_remote: request.tap.remote
+		old_path: request.tap_path
+		new_path: new_path
+		move_repository: move_repository
+		set_remote: TapCommand{
+			arguments: ['git', '-C', new_path, 'remote', 'set-url', 'origin', '--end-of-options',
+				redirected_remote]
+		}
+		message: message
+		trust_message: if request.quiet {
+			''} else if request.trust_invalidated {
+			'Untrusted tap: ${request.tap.name}'} else {
+			'Not trusted tap: ${request.tap.name}'}
+		invalidate_name: request.tap.name
+		invalidate_remote: request.tap.remote
+	}
+}
+
+pub fn tap_git_command(arguments []string, chdir string) TapCommand {
+	mut args := ['git', '-c', 'core.hooksPath=${os.path_devnull}']
+	args << arguments
+	return TapCommand{
+		arguments: args
+		chdir: chdir
+		environment: {
+			'GIT_TERMINAL_PROMPT': '0'
+		}
+	}
+}
+
+pub fn tap_install_plan(request TapInstallRequest) !TapInstallPlan {
+	if request.tap.official() && request.tap.repository in request.deprecated_official_taps {
+		return error('${request.tap.name} was deprecated. This tap is now empty and all its contents were either deleted or migrated.')
+	}
+	if request.tap.user.to_lower() == 'caskroom' || request.tap.name == 'phinze/cask' {
+		new_repository := if request.tap.repository == 'cask' {
+			'cask'
+		} else {
+			'cask-${request.tap.repository}'
+		}
+		return error('${request.tap.name} was moved. Tap homebrew/${new_repository} instead.')
+	}
+	if request.custom_remote && request.clone_target == none {
+		return error('TapNoCustomRemoteError: ${request.tap.name}')
+	}
+	requested_remote := request.clone_target or { request.tap.default_remote() }
+	if request.core_tap {
+		if configured := request.configured_core_remote {
+			if requested := request.clone_target {
+				if !same_tap_remote(requested, configured) {
+					return error('TapCoreRemoteMismatchError: ${requested} != ${configured}')
+				}
+			}
+		}
+	}
+	if request.installed && !request.custom_remote {
+		if clone_target := request.clone_target {
+			if current := request.current_remote {
+				if requested_remote != current {
+					return error('TapRemoteMismatchError: ${request.tap.name}: ${current} != ${requested_remote}')
+				}
+			}
+			_ = clone_target
+		}
+		if !request.shallow {
+			return error('TapAlreadyTappedError: ${request.tap.name}')
+		}
+	}
+	if !request.allowed || request.forbidden {
+		mut message := 'The installation of the ${request.tap.full_name} was requested but ${request.forbidden_owner}\n'
+		if !request.allowed {
+			message += 'has not allowed this tap in `\$HOMEBREW_ALLOWED_TAPS`'
+		}
+		if !request.allowed && request.forbidden {
+			message += ' and\n'
+		}
+		if request.forbidden {
+			message += 'has forbidden this tap in `\$HOMEBREW_FORBIDDEN_TAPS`'
+		}
+		message += '.'
+		if request.forbidden_owner_contact != '' {
+			message += '\n${request.forbidden_owner_contact}'
+		}
+		return error(message)
+	}
+	if request.verify && !request.developer && !request.readall_valid {
+		return error('Cannot tap ${request.tap.name}: invalid syntax in tap!')
+	}
+	use_worktree := request.core_tap || (request.core_cask_tap && request.clone_target == none && !request.custom_remote)
+	worktree_source := if use_worktree { request.worktree_source_tap_path } else { none }
+	if request.installed {
+		mut fetch_args := ['fetch']
+		if request.shallow {
+			fetch_args << '--unshallow'
+		}
+		if request.quiet {
+			fetch_args << '-q'
+		}
+		return TapInstallPlan{
+			disposition: .fetch
+			requested_remote: requested_remote
+			command: tap_git_command(fetch_args, request.path)
+			fix_remote: (request.current_remote or { '' }) != requested_remote
+			delete_forceautoupdate: true
+		}
+	}
+	if (request.core_tap || request.core_cask_tap) && !request.no_install_from_api && !request.force && worktree_source == none {
+		return error('Tapping ${request.tap.name} is no longer typically necessary. Add --force if you are sure you need it for contributing to Homebrew.')
+	}
+	mut clone_args := ['clone', '--origin=origin']
+	if request.quiet {
+		clone_args << '-q'
+	}
+	clone_args << ['--template=', '--config', 'core.fsmonitor=false', '--end-of-options',
+		requested_remote, request.path]
+	if source := worktree_source {
+		mut fetch_args := ['git', '-c', 'core.hooksPath=${os.path_devnull}', '-C', source, 'fetch']
+		if request.quiet {
+			fetch_args << '--quiet'
+		}
+		fetch_args << ['origin', 'HEAD']
+		mut add_args := ['git', '-c', 'core.hooksPath=${os.path_devnull}', '-C', source, 'worktree',
+			'add']
+		if request.quiet {
+			add_args << '--quiet'
+		}
+		add_args << ['--detach', request.path, request.fetched_worktree_head or { 'HEAD' }]
+		return TapInstallPlan{
+			disposition: .worktree
+			requested_remote: requested_remote
+			worktree_source: source
+			worktree_fetch: TapCommand{
+				arguments: fetch_args
+				environment: {
+					'GIT_TERMINAL_PROMPT': '0'
+				}
+			}
+			worktree_add: TapCommand{ arguments: add_args }
+			verify: request.verify && !request.developer
+			link_completions: true
+			rebuild_commands: true
+			remove_untapped_name: request.tap.official()
+			show_private_advice: request.clone_target == none && request.private && !request.quiet && !request.credential_helper_present
+			update_formula_cache: request.formula_names.len > 0
+			update_cask_cache: request.cask_tokens.len > 0
+			cleanup_path_on_error: request.path
+			cleanup_parent_on_error: os.dir(request.path)
+		}
+	}
+	return TapInstallPlan{
+		disposition: .clone
+		requested_remote: requested_remote
+		command: tap_git_command(clone_args, '')
+		verify: request.verify && !request.developer
+		link_completions: true
+		rebuild_commands: true
+		remove_untapped_name: request.tap.official()
+		show_private_advice: request.clone_target == none && request.private && !request.quiet && !request.credential_helper_present
+		update_formula_cache: request.formula_names.len > 0
+		update_cask_cache: request.cask_tokens.len > 0
+		cleanup_path_on_error: request.path
+		cleanup_parent_on_error: os.dir(request.path)
+	}
+}
+
+pub fn tap_link_plan(tap TapReference, completions_enabled bool) TapLinkPlan {
+	return TapLinkPlan{
+		link_manpages: true
+		link_completions: tap.official() || completions_enabled
+		unlink_completions: !tap.official() && !completions_enabled
+		command: 'brew tap --repair'
+	}
+}
+
+pub fn tap_fix_remote_plan(request TapFixRemoteRequest) TapFixRemotePlan {
+	mut commands := []TapCommand{}
+	if requested := request.requested_remote {
+		if requested != '' {
+			commands << TapCommand{
+				arguments: ['git', 'remote', 'set-url', 'origin', '--end-of-options', requested]
+				chdir: request.path
+			}
+			commands << TapCommand{
+				arguments: ['git', 'config', 'remote.origin.fetch',
+					'+refs/heads/*:refs/remotes/origin/*']
+				chdir: request.path
+			}
+		}
+	}
+	if request.remote == none {
+		return TapFixRemotePlan{ set_remote_commands: commands }
+	}
+	if current := request.current_upstream_head {
+		if current != '' && request.requested_remote == none && request.origin_has_current_branch {
+			return TapFixRemotePlan{ set_remote_commands: commands }
+		}
+	}
+	mut fetch_args := ['fetch']
+	if request.quiet {
+		fetch_args << '--quiet'
+	}
+	fetch_args << ['origin', '+refs/heads/*:refs/remotes/origin/*']
+	old_head := request.current_upstream_head or { request.new_upstream_head or { '' } }
+	new_head := request.new_upstream_head or { '' }
+	return TapFixRemotePlan{
+		set_remote_commands: commands
+		fetch_command: tap_git_command(fetch_args, request.path)
+		set_head_origin_auto: true
+		rename_old_branch: if new_head != old_head { old_head } else { '' }
+		rename_new_branch: if new_head != old_head { new_head } else { '' }
+		message: if !request.quiet && new_head != old_head {
+			'${request.name}: changed default branch name from ${old_head} to ${new_head}!'} else {
+			''}
+	}
+}
+
+pub fn tap_uninstall_plan(tap TapReference, path string, installed bool, manual bool,
+	worktree_source ?string, formula_names []string, cask_tokens []string) !TapUninstallPlan {
+	if !installed {
+		return error('TapUnavailableError: ${tap.name}')
+	}
+	return TapUninstallPlan{
+		path: path
+		worktree_source_path: worktree_source
+		worktree_remove_command: if source := worktree_source {
+			TapCommand{ arguments: ['git', '-C', source, 'worktree', 'remove', '--force', path] }} else {
+			none}
+		delete_formula_names: formula_names
+		delete_cask_tokens: cask_tokens
+		unlink_manpages: true
+		unlink_completions: true
+		rebuild_commands: true
+		add_to_untapped_official: manual && tap.official()
+	}
+}
+
+pub fn tap_potential_formula_dirs(path string) []string {
+	return [os.join_path(path, 'Formula'), os.join_path(path, 'HomebrewFormula'), path]
+}
+
+pub fn tap_formula_dir(tap TapReference, path string) string {
+	if tap.official() {
+		return os.join_path(path, 'Formula')
+	}
+	for candidate in tap_potential_formula_dirs(path) {
+		if os.is_dir(candidate) {
+			return candidate
+		}
+	}
+	return os.join_path(path, 'Formula')
+}
+
+pub fn tap_formula_files(tap TapReference, path string) []string {
+	directory := tap_formula_dir(tap, path)
+	if !os.is_dir(directory) {
+		return []
+	}
+	pattern := if os.norm_path(directory) == os.norm_path(path) {
+		os.join_path(directory, '*.rb')
+	} else {
+		os.join_path(directory, '**', '*.rb')
+	}
+	mut files := os.glob(pattern) or { []string{} }
+	files.sort()
+	return files
+}
+
+pub fn tap_cask_files(path string) []string {
+	directory := os.join_path(path, 'Casks')
+	if !os.is_dir(directory) {
+		return []
+	}
+	mut files := os.glob(os.join_path(directory, '**', '*.rb')) or { []string{} }
+	files.sort()
+	return files
+}
+
+pub fn tap_files_by_name(files []string) map[string]string {
+	mut result := map[string]string{}
+	for file in files {
+		base := os.base(file).trim_string_right('.rb')
+		existing := result[base] or { '' }
+		if existing == '' || existing.len < file.len {
+			result[base] = file
+		}
+	}
+	return result
+}
+
+fn tap_ruby_relative_path(file string, prefix string, allow_subdirectories bool) bool {
+	if prefix == '' {
+		return !file.contains('/') && file.ends_with('.rb') && file.len > 3
+	}
+	if !file.starts_with('${prefix}/') {
+		return false
+	}
+	relative := file[prefix.len + 1..]
+	if relative == '' || !relative.ends_with('.rb') {
+		return false
+	}
+	return allow_subdirectories || !relative.contains('/')
+}
+
+pub fn tap_formula_file(tap TapReference, path string, file string) !bool {
+	directory := tap_formula_dir(tap, path)
+	if os.norm_path(directory) == os.norm_path(os.join_path(path, 'Formula')) {
+		return tap_ruby_relative_path(file, 'Formula', true)
+	}
+	if os.norm_path(directory) == os.norm_path(os.join_path(path, 'HomebrewFormula')) {
+		return tap_ruby_relative_path(file, 'HomebrewFormula', true)
+	}
+	if os.norm_path(directory) == os.norm_path(path) {
+		return tap_ruby_relative_path(file, '', false)
+	}
+	return error('Unexpected formula_dir: ${directory}')
+}
+
+pub fn tap_cask_file(file string) bool {
+	return tap_ruby_relative_path(file, 'Casks', true)
+}
+
+pub fn tap_formula_file_to_name(tap TapReference, file string) string {
+	return '${tap.name}/${os.base(file).trim_string_right('.rb')}'
+}
+
+pub fn tap_alias_file_to_name(tap TapReference, file string) string {
+	return '${tap.name}/${os.base(file)}'
+}
+
+pub fn tap_formula_names(tap TapReference, files []string) []string {
+	return files.map(tap_formula_file_to_name(tap, it))
+}
+
+fn tap_versioned_formula_prefix(name string) string {
+	mut base := name
+	mut full_suffix := ''
+	if base.ends_with('-full') {
+		base = base[..base.len - 5]
+		full_suffix = '-full'
+	}
+	at := base.last_index('@') or { return name }
+	version := base[at + 1..]
+	if version == '' || !version.bytes().all(it.is_digit() || it == `.`) {
+		return name
+	}
+	return base[..at] + full_suffix
+}
+
+pub fn tap_prefix_to_versioned_formulae_names(names []string) map[string][]string {
+	mut result := map[string][]string{}
+	for name in names {
+		if !name.contains('@') {
+			continue
+		}
+		prefix := tap_versioned_formula_prefix(name)
+		result[prefix] << name
+	}
+	for key, values in result {
+		mut sorted := values.clone()
+		sorted.sort()
+		result[key] = sorted
+	}
+	return result
+}
+
+pub fn tap_alias_files(path string) []string {
+	directory := os.join_path(path, 'Aliases')
+	mut files := os.glob(os.join_path(directory, '*')) or { []string{} }
+	files = files.filter(os.is_file(it))
+	files.sort()
+	return files
+}
+
+pub fn tap_alias_table(tap TapReference, files []string) map[string]string {
+	mut table := map[string]string{}
+	for file in files {
+		table[tap_alias_file_to_name(tap, file)] = tap_formula_file_to_name(tap, os.real_path(file))
+	}
+	return table
+}
+
+pub fn tap_reverse_table(table map[string]string) map[string][]string {
+	mut reverse := map[string][]string{}
+	for old_name, new_name in table {
+		reverse[new_name] << old_name
+	}
+	return reverse
+}
+
+pub fn tap_contents(command_files []string, cask_files []string, formula_files []string) []string {
+	mut contents := []string{}
+	for pair in [TapCount{ singular: 'command', count: command_files.len }, TapCount{
+		singular: 'cask'
+		count: cask_files.len
+	}, TapCount{ singular: 'formula', count: formula_files.len }] {
+		if pair.count > 0 {
+			plural := if pair.count == 1 {
+				pair.singular
+			} else if pair.singular == 'formula' {
+				'formulae'
+			} else {
+				'${pair.singular}s'
+			}
+			contents << '${pair.count} ${plural}'
+		}
+	}
+	return contents
+}
+
+struct TapCount {
+	singular string
+	count    int
+}
+
+pub fn tap_command_files(path string) []string {
+	directory := os.join_path(path, 'cmd')
+	return if os.is_dir(directory) { find_commands(directory) } else { [] }
+}
+
+pub fn tap_hash(tap TapReference, path string, installed bool, trusted bool, private_value bool,
+	formula_names []string, cask_tokens []string, formula_files []string, cask_files []string,
+	command_files []string, head ?string, last_commit ?string, branch ?string) TapHash {
+	return TapHash{
+		name: tap.name
+		user: tap.user
+		repo: tap.repository
+		repository: tap.repository
+		path: path
+		installed: installed
+		official: tap.official()
+		trusted: trusted
+		formula_names: formula_names
+		cask_tokens: cask_tokens
+		formula_files: if installed { formula_files } else { [] }
+		cask_files: if installed { cask_files } else { [] }
+		command_files: if installed { command_files } else { [] }
+		remote: if installed { tap.remote } else { '' }
+		custom_remote: installed && tap.custom_remote()
+		private: installed && private_value
+		head: if installed { head or { '(none)' } } else { '' }
+		last_commit: if installed { last_commit or { 'never' } } else { '' }
+		branch: if installed { branch or { '(none)' } } else { '' }
+		has_install_details: installed
+	}
+}
+
+pub fn tap_read_string_map(path string) map[string]string {
+	if !os.is_file(path) {
+		return map[string]string{}
+	}
+	return json2.decode[map[string]string](os.read_file(path) or {
+		return map[string]string{}
+	}) or { map[string]string{} }
+}
+
+fn tap_full_name(value string) bool {
+	parts := value.split('/')
+	return parts.len == 3 && parts.all(it != '')
+}
+
+pub fn tap_reverse_migration_renames(migrations map[string]string) map[string][]string {
+	mut reverse := map[string][]string{}
+	for old_name, new_name in migrations {
+		if tap_full_name(new_name) {
+			reverse[new_name] << old_name
+		}
+	}
+	return reverse
+}
+
+pub fn tap_migration_oldnames(taps []map[string][]string, current_tap TapReference,
+	name_or_token string) []string {
+	key := '${current_tap.name}/${name_or_token}'
+	mut result := []string{}
+	for reverse in taps {
+		result << reverse[key] or { []string{} }
+	}
+	return result
+}
+
+pub fn tap_autobump(packages map[string]TapPackageMetadata, autobump_file string) []string {
+	mut names := []string{}
+	for name, package in packages {
+		if !package.disabled && !package.skip_livecheck && package.autobump {
+			names << name
+		}
+	}
+	if names.len == 0 && os.is_file(autobump_file) {
+		names = os.read_lines(autobump_file) or { []string{} }
+	}
+	return names
+}
+
+pub fn tap_autobump_for_tap(core_tap bool, core_cask_tap bool,
+	formula_packages map[string]TapPackageMetadata, cask_packages map[string]TapPackageMetadata,
+	autobump_file string) []string {
+	packages := if core_cask_tap {
+		cask_packages
+	} else if core_tap {
+		formula_packages
+	} else {
+		map[string]TapPackageMetadata{}
+	}
+	return tap_autobump(packages, autobump_file)
+}
+
+pub fn tap_allow_bump(tap TapReference, autobump []string, name string,
+	test_bot_autobump bool) bool {
+	return test_bot_autobump || !tap.official() || name !in autobump
+}
+
+pub fn tap_read_string_arrays(path string) [][]string {
+	if !os.is_file(path) {
+		return []
+	}
+	return json2.decode[[][]string](os.read_file(path) or { return [] }) or { [] }
+}
+
+pub fn tap_read_string_array(path string) []string {
+	if !os.is_file(path) {
+		return []
+	}
+	return json2.decode[[]string](os.read_file(path) or { return [] }) or { [] }
+}
+
+pub fn tap_audit_exception(exceptions map[string]TapAuditList, list_name string,
+	formula_or_cask string, value ?string) TapAuditResult {
+	list := exceptions[list_name] or { return TapAuditResult{} }
+	if !list.is_hash {
+		return TapAuditResult{ matched: formula_or_cask in list.array_values }
+	}
+	entry := list.hash_values[formula_or_cask] or { return TapAuditResult{} }
+	if query := value {
+		return TapAuditResult{
+			matched: if entry.is_array { query in entry.array_values } else { entry.value == query }
+		}
+	}
+	return TapAuditResult{
+		matched: true
+		value_present: true
+		value: entry.value
+		is_array: entry.is_array
+		array_value: entry.array_values
+	}
+}
+
+pub fn tap_installed(tap_directory string) []TapReference {
+	if !os.is_dir(tap_directory) {
+		return []
+	}
+	mut result := []TapReference{}
+	for user in os.ls(tap_directory) or { []string{} } {
+		user_path := os.join_path(tap_directory, user)
+		if !os.is_dir(user_path) {
+			continue
+		}
+		for repository in os.ls(user_path) or { []string{} } {
+			path := os.join_path(user_path, repository)
+			if !os.is_dir(path) {
+				continue
+			}
+			if tap := tap_from_path(path, tap_directory) {
+				result << tap
+			}
+		}
+	}
+	return result
+}
+
+pub fn tap_core_taps() []TapReference {
+	return [new_tap_reference('Homebrew/core', '') or { panic(err) },
+		new_tap_reference('Homebrew/cask', '') or { panic(err) }]
+}
+
+pub fn tap_union(first []TapReference, second []TapReference) []TapReference {
+	mut result := first.clone()
+	mut names := result.map(it.name)
+	for tap in second {
+		if tap.name !in names {
+			result << tap
+			names << tap.name
+		}
+	}
+	return result
+}
+
+pub fn tap_equal(tap TapReference, other ?TapComparable) bool {
+	value := other or { return false }
+	return match value {
+		TapReference { tap.name == value.name }
+		string {
+			candidate := new_tap_reference(value, '') or { return false }
+			tap.name == candidate.name
+		}
+	}
+}
+
+pub fn tap_read_formula_list(file string) TapFormulaListResult {
+	contents := os.read_file(file) or {
+		return TapFormulaListResult{ value: json2.Any(map[string]json2.Any{}) }
+	}
+	value := json2.decode[json2.Any](contents) or {
+		return TapFormulaListResult{
+			value: json2.Any(map[string]json2.Any{})
+			warning: '${file} contains invalid JSON'
+		}
+	}
+	return TapFormulaListResult{ value: value }
+}
+
+pub fn tap_read_formula_list_directory(path string, directory string) map[string]json2.Any {
+	mut list := map[string]json2.Any{}
+	for exception_file in os.glob(os.join_path(path, directory)) or { []string{} } {
+		entry := tap_read_formula_list(exception_file)
+		if entry.warning != '' {
+			eprintln('Warning: ${entry.warning}')
+		}
+		if entry.value.str() in ['', '{}', '[]', 'null'] {
+			continue
+		}
+		name := os.base(exception_file).trim_string_right('.json')
+		list[name] = entry.value
+	}
+	return list
+}
 
 // Ruby method `self.fetch(user, repository = T.unsafe(nil))` at line 56.
-pub fn ruby_tap_l56_d1_self_fetch(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.fetch', ...args)
+pub fn ruby_tap_l56_d1_self_fetch(user string, repository string) !TapReference {
+	return new_tap_reference('${user}/${repository}', '')
 }
 
 // Ruby method `self.from_path(path)` at line 80.
-pub fn ruby_tap_l80_d2_self_from_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.from_path', ...args)
+pub fn ruby_tap_l80_d2_self_from_path(path string, tap_directory string) ?TapReference {
+	return tap_from_path(path, tap_directory)
 }
 
 // Ruby method `self.with_formula_name(name)` at line 91.
-pub fn ruby_tap_l91_d3_self_with_formula_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.with_formula_name', ...args)
+pub fn ruby_tap_l91_d3_self_with_formula_name(name string) ?(TapReference, string) {
+	return tap_with_formula_name(name)
 }
 
 // Ruby method `self.with_cask_token(token)` at line 106.
-pub fn ruby_tap_l106_d4_self_with_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.with_cask_token', ...args)
+pub fn ruby_tap_l106_d4_self_with_cask_token(token string) ?(TapReference, string) {
+	return tap_with_cask_token(token)
 }
 
 // Ruby method `self.allowed_taps` at line 121.
-pub fn ruby_tap_l121_d5_self_allowed_taps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.allowed_taps', ...args)
+pub fn ruby_tap_l121_d5_self_allowed_taps(value string) []string {
+	return tap_list_references(value, 'HOMEBREW_ALLOWED_TAPS')
 }
 
 // Ruby method `self.forbidden_taps` at line 127.
-pub fn ruby_tap_l127_d6_self_forbidden_taps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.forbidden_taps', ...args)
+pub fn ruby_tap_l127_d6_self_forbidden_taps(value string) []string {
+	return tap_list_references(value, 'HOMEBREW_FORBIDDEN_TAPS')
 }
 
 // Ruby method `self.remote_reference?(reference)` at line 138.
-pub fn ruby_tap_l138_d7_self_remote_reference(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.remote_reference?', ...args)
+pub fn ruby_tap_l138_d7_self_remote_reference(reference string) bool {
+	return tap_remote_reference(reference)
 }
 
 // Ruby method `self.normalize_remote(remote)` at line 165.
-pub fn ruby_tap_l165_d8_self_normalize_remote(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.normalize_remote', ...args)
+pub fn ruby_tap_l165_d8_self_normalize_remote(remote string) ?string {
+	return normalize_tap_remote(remote)
 }
 
 // Ruby method `self.remote_to_reference(url)` at line 186.
-pub fn ruby_tap_l186_d9_self_remote_to_reference(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.remote_to_reference', ...args)
+pub fn ruby_tap_l186_d9_self_remote_to_reference(remote string) ?string {
+	return tap_remote_to_reference(remote)
 }
 
 // Ruby method `self.same_remote?(first, second)` at line 207.
-pub fn ruby_tap_l207_d10_self_same_remote(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.same_remote?', ...args)
+pub fn ruby_tap_l207_d10_self_same_remote(first string, second string) bool {
+	return same_tap_remote(first, second)
 }
 
 // Ruby method `self.tap_list_references(env_taps, env_var)` at line 215.
-pub fn ruby_tap_l215_d11_self_tap_list_references(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.tap_list_references', ...args)
+pub fn ruby_tap_l215_d11_self_tap_list_references(env_taps string, env_var string) []string {
+	return tap_list_references(env_taps, env_var)
 }
 
 // Ruby attr_reader `attr_reader :user` at line 242.
-pub fn ruby_tap_l242_d12_user(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('user', ...args)
+pub fn ruby_tap_l242_d12_user(tap TapReference) string {
+	return tap.user
 }
 
 // Ruby attr_reader `attr_reader :repository` at line 248.
-pub fn ruby_tap_l248_d13_repository(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('repository', ...args)
+pub fn ruby_tap_l248_d13_repository(tap TapReference) string {
+	return tap.repository
 }
 
 // Ruby attr_reader `attr_reader :full_repository` at line 254.
-pub fn ruby_tap_l254_d14_full_repository(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('full_repository', ...args)
+pub fn ruby_tap_l254_d14_full_repository(tap TapReference) string {
+	return tap.full_repository
 }
 
 // Ruby attr_reader `attr_reader :name` at line 262.
-pub fn ruby_tap_l262_d15_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('name', ...args)
+pub fn ruby_tap_l262_d15_name(tap TapReference) string {
+	return tap.name
 }
 
 // Ruby method `to_s = name` at line 268.
-pub fn ruby_tap_l268_d16_to_s(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_s', ...args)
+pub fn ruby_tap_l268_d16_to_s(tap TapReference) string {
+	return tap.name
 }
 
 // Ruby attr_reader `attr_reader :full_name` at line 276.
-pub fn ruby_tap_l276_d17_full_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('full_name', ...args)
+pub fn ruby_tap_l276_d17_full_name(tap TapReference) string {
+	return tap.full_name
 }
 
 // Ruby attr_reader `attr_reader :path` at line 283.
-pub fn ruby_tap_l283_d18_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('path', ...args)
+pub fn ruby_tap_l283_d18_path(tap TapReference, tap_directory string) string {
+	return tap_path(tap, tap_directory)
 }
 
 // Ruby attr_reader `attr_reader :git_repository` at line 287.
-pub fn ruby_tap_l287_d19_git_repository(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('git_repository', ...args)
+pub fn ruby_tap_l287_d19_git_repository(tap TapReference, tap_directory string) GitRepository {
+	return new_git_repository(tap_path(tap, tap_directory))
 }
 
 // Ruby method `initialize(user, repository)` at line 293.
-pub fn ruby_tap_l293_d20_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+pub fn ruby_tap_l293_d20_initialize(user string, repository string) !TapReference {
+	return new_tap_reference('${user}/${repository}', '')
 }
 
 // Ruby method `clear_cache` at line 307.
-pub fn ruby_tap_l307_d21_clear_cache(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('clear_cache', ...args)
+pub fn ruby_tap_l307_d21_clear_cache(_ TapCache) TapCache {
+	return TapCache{}
 }
 
 // Ruby method `worktree_source_tap_path_for(path:)` at line 347.
-pub fn ruby_tap_l347_d22_worktree_source_tap_path_for(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('worktree_source_tap_path_for', ...args)
+pub fn ruby_tap_l347_d22_worktree_source_tap_path_for(tap TapReference, path string,
+	repository_path string, worktree_list string) ?string {
+	return tap_worktree_source_path(tap, path, repository_path, worktree_list)
 }
 
 // Ruby method `ensure_installed!` at line 377.
-pub fn ruby_tap_l377_d23_ensure_installed(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ensure_installed!', ...args)
+pub fn ruby_tap_l377_d23_ensure_installed(installed bool) bool {
+	return !installed
 }
 
 // Ruby method `remote` at line 388.
-pub fn ruby_tap_l388_d24_remote(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('remote', ...args)
+pub fn ruby_tap_l388_d24_remote(tap TapReference) string {
+	return tap.remote
 }
 
 // Ruby method `remote_repository` at line 399.
-pub fn ruby_tap_l399_d25_remote_repository(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('remote_repository', ...args)
+pub fn ruby_tap_l399_d25_remote_repository(tap TapReference) ?string {
+	return tap_remote_repository(tap.remote)
 }
 
 // Ruby method `default_remote` at line 408.
-pub fn ruby_tap_l408_d26_default_remote(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('default_remote', ...args)
+pub fn ruby_tap_l408_d26_default_remote(tap TapReference) string {
+	return tap.default_remote()
 }
 
 // Ruby method `repository_var_suffix` at line 413.
-pub fn ruby_tap_l413_d27_repository_var_suffix(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('repository_var_suffix', ...args)
+pub fn ruby_tap_l413_d27_repository_var_suffix(tap TapReference, tap_directory string) string {
+	return tap_repository_var_suffix(tap, tap_directory)
 }
 
 // Ruby method `git?` at line 424.
-pub fn ruby_tap_l424_d28_git(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('git?', ...args)
+pub fn ruby_tap_l424_d28_git(repository GitRepository) bool {
+	return repository.is_git_repository()
 }
 
 // Ruby method `git_branch` at line 432.
-pub fn ruby_tap_l432_d29_git_branch(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('git_branch', ...args)
+pub fn ruby_tap_l432_d29_git_branch(tap TapReference, installed bool,
+	repository GitRepository) !GitRepositoryText {
+	if !installed {
+		return error('TapUnavailableError: ${tap.name}')
+	}
+	return repository.branch_name(false)
 }
 
 // Ruby method `git_head` at line 442.
-pub fn ruby_tap_l442_d30_git_head(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('git_head', ...args)
+pub fn ruby_tap_l442_d30_git_head(tap TapReference, installed bool,
+	repository GitRepository) !GitRepositoryText {
+	if !installed {
+		return error('TapUnavailableError: ${tap.name}')
+	}
+	return repository.head_ref(false)
 }
 
 // Ruby method `git_last_commit` at line 452.
-pub fn ruby_tap_l452_d31_git_last_commit(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('git_last_commit', ...args)
+pub fn ruby_tap_l452_d31_git_last_commit(tap TapReference, installed bool,
+	repository GitRepository) !GitRepositoryText {
+	if !installed {
+		return error('TapUnavailableError: ${tap.name}')
+	}
+	return repository.last_committed()
 }
 
 // Ruby method `issues_url` at line 463.
-pub fn ruby_tap_l463_d32_issues_url(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('issues_url', ...args)
+pub fn ruby_tap_l463_d32_issues_url(tap TapReference) ?string {
+	if !tap.official() && tap.custom_remote() {
+		return none
+	}
+	return '${tap.default_remote()}/issues'
 }
 
 // Ruby method `official?` at line 473.
-pub fn ruby_tap_l473_d33_official(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('official?', ...args)
+pub fn ruby_tap_l473_d33_official(tap TapReference) bool {
+	return tap.official()
 }
 
 // Ruby method `private?` at line 481.
-pub fn ruby_tap_l481_d34_private(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('private?', ...args)
+pub fn ruby_tap_l481_d34_private(query TapPrivateQuery) bool {
+	return tap_private(query)
 }
 
 // Ruby method `config` at line 503.
-pub fn ruby_tap_l503_d35_config(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('config', ...args)
+pub fn ruby_tap_l503_d35_config(tap TapReference, path string, installed bool) !tap_config.TapConfig {
+	if !installed {
+		return error('TapUnavailableError: ${tap.name}')
+	}
+	return tap_config.new_tap_config(tap_config.TapConfigTap{
+		name: tap.name
+		path: path
+		git: new_git_repository(path).is_git_repository()
+	})
 }
 
 // Ruby method `installed?` at line 515.
-pub fn ruby_tap_l515_d36_installed(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('installed?', ...args)
+pub fn ruby_tap_l515_d36_installed(path string) bool {
+	return os.is_dir(path)
 }
 
 // Ruby method `shallow?` at line 521.
-pub fn ruby_tap_l521_d37_shallow(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('shallow?', ...args)
+pub fn ruby_tap_l521_d37_shallow(path string) bool {
+	return os.exists(os.join_path(path, '.git', 'shallow'))
 }
 
 // Ruby method `core_tap?` at line 526.
-pub fn ruby_tap_l526_d38_core_tap(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('core_tap?', ...args)
+pub fn ruby_tap_l526_d38_core_tap() bool {
+	return false
 }
 
 // Ruby method `core_cask_tap?` at line 531.
-pub fn ruby_tap_l531_d39_core_cask_tap(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('core_cask_tap?', ...args)
+pub fn ruby_tap_l531_d39_core_cask_tap() bool {
+	return false
 }
 
 // Ruby method `update_remote_from_git_redirect!(output, quiet: false)` at line 536.
-pub fn ruby_tap_l536_d40_update_remote_from_git_redirect(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('update_remote_from_git_redirect!', ...args)
+pub fn ruby_tap_l536_d40_update_remote_from_git_redirect(output string,
+	request TapRedirectRequest) !TapRedirectPlan {
+	return tap_update_remote_from_redirect(output, request)
 }
 
 // Ruby method `apply_redirected_remote!(redirected_remote, quiet: false)` at line 546.
-pub fn ruby_tap_l546_d41_apply_redirected_remote(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('apply_redirected_remote!', ...args)
+pub fn ruby_tap_l546_d41_apply_redirected_remote(request TapRedirectRequest) !TapRedirectPlan {
+	return tap_apply_redirect(request, request.redirected_remote)
 }
 
 // Ruby method `git_command!(args, chdir: nil)` at line 611.
-pub fn ruby_tap_l611_d42_git_command(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('git_command!', ...args)
+pub fn ruby_tap_l611_d42_git_command(arguments []string, chdir string) TapCommand {
+	return tap_git_command(arguments, chdir)
 }
 
 // Ruby method `install(quiet: false, clone_target: nil,` at line 639.
-pub fn ruby_tap_l639_d43_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+pub fn ruby_tap_l639_d43_install(request TapInstallRequest) !TapInstallPlan {
+	return tap_install_plan(request)
 }
 
 // Ruby method `link_completions_and_manpages` at line 813.
-pub fn ruby_tap_l813_d44_link_completions_and_manpages(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('link_completions_and_manpages', ...args)
+pub fn ruby_tap_l813_d44_link_completions_and_manpages(tap TapReference,
+	completions_enabled bool) TapLinkPlan {
+	return tap_link_plan(tap, completions_enabled)
 }
 
 // Ruby method `fix_remote_configuration(requested_remote: nil, quiet: false)` at line 829.
-pub fn ruby_tap_l829_d45_fix_remote_configuration(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fix_remote_configuration', ...args)
+pub fn ruby_tap_l829_d45_fix_remote_configuration(request TapFixRemoteRequest) TapFixRemotePlan {
+	return tap_fix_remote_plan(request)
 }
 
 // Ruby method `uninstall(manual: false)` at line 869.
-pub fn ruby_tap_l869_d46_uninstall(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uninstall', ...args)
+pub fn ruby_tap_l869_d46_uninstall(tap TapReference, path string, installed bool, manual bool,
+	worktree_source ?string, formula_names []string, cask_tokens []string) !TapUninstallPlan {
+	return tap_uninstall_plan(tap, path, installed, manual, worktree_source, formula_names, cask_tokens)
 }
 
 // Ruby method `custom_remote?` at line 915.
-pub fn ruby_tap_l915_d47_custom_remote(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('custom_remote?', ...args)
+pub fn ruby_tap_l915_d47_custom_remote(tap TapReference) bool {
+	return tap.custom_remote()
 }
 
 // Ruby method `uses_custom_remote?` at line 924.
-pub fn ruby_tap_l924_d48_uses_custom_remote(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uses_custom_remote?', ...args)
+pub fn ruby_tap_l924_d48_uses_custom_remote(tap TapReference) bool {
+	return tap.uses_custom_remote()
 }
 
 // Ruby method `reference(remote: nil)` at line 931.
-pub fn ruby_tap_l931_d49_reference(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reference', ...args)
+pub fn ruby_tap_l931_d49_reference(tap TapReference) string {
+	return tap.reference()
 }
 
 // Ruby method `matches_reference?(reference, remote: self.remote)` at line 941.
-pub fn ruby_tap_l941_d50_matches_reference(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('matches_reference?', ...args)
+pub fn ruby_tap_l941_d50_matches_reference(tap TapReference, reference string) bool {
+	return tap.matches_reference(reference)
 }
 
 // Ruby method `formula_dir` at line 954.
-pub fn ruby_tap_l954_d51_formula_dir(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_dir', ...args)
+pub fn ruby_tap_l954_d51_formula_dir(tap TapReference, path string) string {
+	return tap_formula_dir(tap, path)
 }
 
 // Ruby method `potential_formula_dirs` at line 967.
-pub fn ruby_tap_l967_d52_potential_formula_dirs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('potential_formula_dirs', ...args)
+pub fn ruby_tap_l967_d52_potential_formula_dirs(path string) []string {
+	return tap_potential_formula_dirs(path)
 }
 
 // Ruby method `new_formula_path(name)` at line 972.
-pub fn ruby_tap_l972_d53_new_formula_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('new_formula_path', ...args)
+pub fn ruby_tap_l972_d53_new_formula_path(tap TapReference, path string, name string) string {
+	return os.join_path(tap_formula_dir(tap, path), '${name.to_lower()}.rb')
 }
 
 // Ruby method `cask_dir` at line 980.
-pub fn ruby_tap_l980_d54_cask_dir(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask_dir', ...args)
+pub fn ruby_tap_l980_d54_cask_dir(path string) string {
+	return os.join_path(path, 'Casks')
 }
 
 // Ruby method `new_cask_path(token)` at line 985.
-pub fn ruby_tap_l985_d55_new_cask_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('new_cask_path', ...args)
+pub fn ruby_tap_l985_d55_new_cask_path(path string, token string) string {
+	return os.join_path(path, 'Casks', '${token.to_lower()}.rb')
 }
 
 // Ruby method `relative_cask_path(token)` at line 990.
-pub fn ruby_tap_l990_d56_relative_cask_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('relative_cask_path', ...args)
+pub fn ruby_tap_l990_d56_relative_cask_path(path string, token string) string {
+	return os.join_path('Casks', '${token.to_lower()}.rb')
 }
 
 // Ruby method `contents` at line 996.
-pub fn ruby_tap_l996_d57_contents(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('contents', ...args)
+pub fn ruby_tap_l996_d57_contents(command_files []string, cask_files []string,
+	formula_files []string) []string {
+	return tap_contents(command_files, cask_files, formula_files)
 }
 
 // Ruby method `formula_files` at line 1016.
-pub fn ruby_tap_l1016_d58_formula_files(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_files', ...args)
+pub fn ruby_tap_l1016_d58_formula_files(tap TapReference, path string) []string {
+	return tap_formula_files(tap, path)
 }
 
 // Ruby method `formula_files_by_name` at line 1035.
-pub fn ruby_tap_l1035_d59_formula_files_by_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_files_by_name', ...args)
+pub fn ruby_tap_l1035_d59_formula_files_by_name(files []string) map[string]string {
+	return tap_files_by_name(files)
 }
 
 // Ruby method `cask_files` at line 1046.
-pub fn ruby_tap_l1046_d60_cask_files(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask_files', ...args)
+pub fn ruby_tap_l1046_d60_cask_files(path string) []string {
+	return tap_cask_files(path)
 }
 
 // Ruby method `cask_files_by_name` at line 1059.
-pub fn ruby_tap_l1059_d61_cask_files_by_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask_files_by_name', ...args)
+pub fn ruby_tap_l1059_d61_cask_files_by_name(files []string) map[string]string {
+	return tap_files_by_name(files)
 }
 
 // Ruby method `formula_file_regex` at line 1075.
-pub fn ruby_tap_l1075_d62_formula_file_regex(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_file_regex', ...args)
+pub fn ruby_tap_l1075_d62_formula_file_regex(tap TapReference, path string) !string {
+	directory := tap_formula_dir(tap, path)
+	return if os.norm_path(directory) == os.norm_path(os.join_path(path, 'Formula')) {
+		'^Formula/(?:[^/]+/)*[^/]+\\.rb\$'
+	} else if os.norm_path(directory) == os.norm_path(os.join_path(path, 'HomebrewFormula')) {
+		'^HomebrewFormula/(?:[^/]+/)*[^/]+\\.rb\$'
+	} else if os.norm_path(directory) == os.norm_path(path) {
+		'^[^/]+\\.rb\$'
+	} else {
+		return error('Unexpected formula_dir: ${directory}')
+	}
 }
 
 // Ruby method `formula_file?(file)` at line 1094.
-pub fn ruby_tap_l1094_d63_formula_file(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_file?', ...args)
+pub fn ruby_tap_l1094_d63_formula_file(tap TapReference, path string, file string) !bool {
+	return tap_formula_file(tap, path, file)
 }
 
 // Ruby method `cask_file?(file)` at line 1103.
-pub fn ruby_tap_l1103_d64_cask_file(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask_file?', ...args)
+pub fn ruby_tap_l1103_d64_cask_file(file string) bool {
+	return tap_cask_file(file)
 }
 
 // Ruby method `formula_names` at line 1109.
-pub fn ruby_tap_l1109_d65_formula_names(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_names', ...args)
+pub fn ruby_tap_l1109_d65_formula_names(tap TapReference, files []string) []string {
+	return tap_formula_names(tap, files)
 }
 
 // Ruby method `prefix_to_versioned_formulae_names` at line 1115.
-pub fn ruby_tap_l1115_d66_prefix_to_versioned_formulae_names(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prefix_to_versioned_formulae_names', ...args)
+pub fn ruby_tap_l1115_d66_prefix_to_versioned_formulae_names(names []string) map[string][]string {
+	return tap_prefix_to_versioned_formulae_names(names)
 }
 
 // Ruby method `cask_tokens` at line 1125.
-pub fn ruby_tap_l1125_d67_cask_tokens(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask_tokens', ...args)
+pub fn ruby_tap_l1125_d67_cask_tokens(tap TapReference, files []string) []string {
+	return tap_formula_names(tap, files)
 }
 
 // Ruby method `alias_dir` at line 1131.
-pub fn ruby_tap_l1131_d68_alias_dir(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('alias_dir', ...args)
+pub fn ruby_tap_l1131_d68_alias_dir(path string) string {
+	return os.join_path(path, 'Aliases')
 }
 
 // Ruby method `alias_files` at line 1137.
-pub fn ruby_tap_l1137_d69_alias_files(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('alias_files', ...args)
+pub fn ruby_tap_l1137_d69_alias_files(path string) []string {
+	return tap_alias_files(path)
 }
 
 // Ruby method `aliases` at line 1143.
-pub fn ruby_tap_l1143_d70_aliases(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('aliases', ...args)
+pub fn ruby_tap_l1143_d70_aliases(table map[string]string) []string {
+	return table.keys()
 }
 
 // Ruby method `alias_table` at line 1149.
-pub fn ruby_tap_l1149_d71_alias_table(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('alias_table', ...args)
+pub fn ruby_tap_l1149_d71_alias_table(tap TapReference, files []string) map[string]string {
+	return tap_alias_table(tap, files)
 }
 
 // Ruby method `alias_reverse_table` at line 1157.
-pub fn ruby_tap_l1157_d72_alias_reverse_table(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('alias_reverse_table', ...args)
+pub fn ruby_tap_l1157_d72_alias_reverse_table(table map[string]string) map[string][]string {
+	return tap_reverse_table(table)
 }
 
 // Ruby method `command_dir` at line 1168.
-pub fn ruby_tap_l1168_d73_command_dir(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('command_dir', ...args)
+pub fn ruby_tap_l1168_d73_command_dir(path string) string {
+	return os.join_path(path, 'cmd')
 }
 
 // Ruby method `command_files` at line 1174.
-pub fn ruby_tap_l1174_d74_command_files(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('command_files', ...args)
+pub fn ruby_tap_l1174_d74_command_files(path string) []string {
+	return tap_command_files(path)
 }
 
 // Ruby method `to_hash` at line 1186.
-pub fn ruby_tap_l1186_d75_to_hash(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_hash', ...args)
+pub fn ruby_tap_l1186_d75_to_hash(tap TapReference, path string, installed bool, trusted bool,
+	private_value bool, formula_names []string, cask_tokens []string, formula_files []string,
+	cask_files []string, command_files []string, head ?string, last_commit ?string,
+	branch ?string) TapHash {
+	return tap_hash(tap, path, installed, trusted, private_value, formula_names, cask_tokens, formula_files, cask_files, command_files, head, last_commit, branch)
 }
 
 // Ruby method `cask_renames` at line 1219.
-pub fn ruby_tap_l1219_d76_cask_renames(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask_renames', ...args)
+pub fn ruby_tap_l1219_d76_cask_renames(path string) map[string]string {
+	return tap_read_string_map(os.join_path(path, 'cask_renames.json'))
 }
 
 // Ruby method `cask_reverse_renames` at line 1232.
-pub fn ruby_tap_l1232_d77_cask_reverse_renames(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask_reverse_renames', ...args)
+pub fn ruby_tap_l1232_d77_cask_reverse_renames(renames map[string]string) map[string][]string {
+	return tap_reverse_table(renames)
 }
 
 // Ruby method `formula_renames` at line 1241.
-pub fn ruby_tap_l1241_d78_formula_renames(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_renames', ...args)
+pub fn ruby_tap_l1241_d78_formula_renames(path string) map[string]string {
+	return tap_read_string_map(os.join_path(path, 'formula_renames.json'))
 }
 
 // Ruby method `formula_reverse_renames` at line 1254.
-pub fn ruby_tap_l1254_d79_formula_reverse_renames(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_reverse_renames', ...args)
+pub fn ruby_tap_l1254_d79_formula_reverse_renames(renames map[string]string) map[string][]string {
+	return tap_reverse_table(renames)
 }
 
 // Ruby method `tap_migrations` at line 1263.
-pub fn ruby_tap_l1263_d80_tap_migrations(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tap_migrations', ...args)
+pub fn ruby_tap_l1263_d80_tap_migrations(path string) map[string]string {
+	return tap_read_string_map(os.join_path(path, 'tap_migrations.json'))
 }
 
 // Ruby method `reverse_tap_migrations_renames` at line 1274.
-pub fn ruby_tap_l1274_d81_reverse_tap_migrations_renames(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reverse_tap_migrations_renames', ...args)
+pub fn ruby_tap_l1274_d81_reverse_tap_migrations_renames(migrations map[string]string) map[string][]string {
+	return tap_reverse_migration_renames(migrations)
 }
 
 // Ruby method `self.tap_migration_oldnames(current_tap, name_or_token)` at line 1291.
-pub fn ruby_tap_l1291_d82_self_tap_migration_oldnames(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.tap_migration_oldnames', ...args)
+pub fn ruby_tap_l1291_d82_self_tap_migration_oldnames(taps []map[string][]string,
+	current_tap TapReference, name_or_token string) []string {
+	return tap_migration_oldnames(taps, current_tap, name_or_token)
 }
 
 // Ruby method `autobump` at line 1303.
-pub fn ruby_tap_l1303_d83_autobump(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('autobump', ...args)
+pub fn ruby_tap_l1303_d83_autobump(core_tap bool, core_cask_tap bool,
+	formula_packages map[string]TapPackageMetadata, cask_packages map[string]TapPackageMetadata,
+	autobump_file string) []string {
+	return tap_autobump_for_tap(core_tap, core_cask_tap, formula_packages, cask_packages, autobump_file)
 }
 
 // Ruby method `allow_bump?(formula_or_cask_name)` at line 1335.
-pub fn ruby_tap_l1335_d84_allow_bump(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allow_bump?', ...args)
+pub fn ruby_tap_l1335_d84_allow_bump(tap TapReference, autobump []string,
+	formula_or_cask_name string, test_bot_autobump bool) bool {
+	return tap_allow_bump(tap, autobump, formula_or_cask_name, test_bot_autobump)
 }
 
 // Ruby method `audit_exceptions` at line 1341.
-pub fn ruby_tap_l1341_d85_audit_exceptions(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('audit_exceptions', ...args)
+pub fn ruby_tap_l1341_d85_audit_exceptions(path string) map[string]json2.Any {
+	return tap_read_formula_list_directory(path, os.join_path('audit_exceptions', '*'))
 }
 
 // Ruby method `style_exceptions` at line 1348.
-pub fn ruby_tap_l1348_d86_style_exceptions(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('style_exceptions', ...args)
+pub fn ruby_tap_l1348_d86_style_exceptions(path string) map[string]json2.Any {
+	return tap_read_formula_list_directory(path, os.join_path('style_exceptions', '*'))
 }
 
 // Ruby method `synced_versions_formulae` at line 1355.
-pub fn ruby_tap_l1355_d87_synced_versions_formulae(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('synced_versions_formulae', ...args)
+pub fn ruby_tap_l1355_d87_synced_versions_formulae(path string) [][]string {
+	return tap_read_string_arrays(os.join_path(path, 'synced_versions_formulae.json'))
 }
 
 // Ruby method `disabled_new_usr_local_relocation_formulae` at line 1368.
-pub fn ruby_tap_l1368_d88_disabled_new_usr_local_relocation_formulae(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('disabled_new_usr_local_relocation_formulae', ...args)
+pub fn ruby_tap_l1368_d88_disabled_new_usr_local_relocation_formulae(path string) []string {
+	return tap_read_string_array(os.join_path(path, 'disabled_new_usr_local_relocation_formulae.json'))
 }
 
 // Ruby method `should_report_analytics?` at line 1380.
-pub fn ruby_tap_l1380_d89_should_report_analytics(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('should_report_analytics?', ...args)
+pub fn ruby_tap_l1380_d89_should_report_analytics(installed bool, private_value bool) bool {
+	return installed && !private_value
 }
 
 // Ruby method `==(other)` at line 1385.
-pub fn ruby_tap_l1385_d90_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('==', ...args)
+pub fn ruby_tap_l1385_d90_anonymous(tap TapReference, other ?TapComparable) bool {
+	return tap_equal(tap, other)
 }
 
 // Ruby alias `alias eql? ==` at line 1389.
-pub fn ruby_tap_l1389_d91_eql(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('eql?', ...args)
+pub fn ruby_tap_l1389_d91_eql(tap TapReference, other ?TapComparable) bool {
+	return tap_equal(tap, other)
 }
 
 // Ruby method `hash` at line 1392.
-pub fn ruby_tap_l1392_d92_hash(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('hash', ...args)
+pub fn ruby_tap_l1392_d92_hash(tap TapReference) u64 {
+	return fnv1a.sum64_string('Tap:${tap.name}')
 }
 
 // Ruby method `self.installed` at line 1400.
-pub fn ruby_tap_l1400_d93_self_installed(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.installed', ...args)
+pub fn ruby_tap_l1400_d93_self_installed(tap_directory string) []TapReference {
+	return tap_installed(tap_directory)
 }
 
 // Ruby method `self.all` at line 1410.
-pub fn ruby_tap_l1410_d94_self_all(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.all', ...args)
+pub fn ruby_tap_l1410_d94_self_all(installed []TapReference) []TapReference {
+	return tap_union(installed, tap_core_taps())
 }
 
 // Ruby method `self.core_taps` at line 1415.
-pub fn ruby_tap_l1415_d95_self_core_taps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.core_taps', ...args)
+pub fn ruby_tap_l1415_d95_self_core_taps() []TapReference {
+	return tap_core_taps()
 }
 
 // Ruby method `self.each(&block)` at line 1423.
-pub fn ruby_tap_l1423_d96_self_each(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.each', ...args)
+pub fn ruby_tap_l1423_d96_self_each(installed []TapReference, no_install_from_api bool,
+	block_given bool) TapEachResult {
+	if !block_given {
+		return TapEachResult{ enumerator: true }
+	}
+	return TapEachResult{
+		taps: if no_install_from_api { installed } else { tap_union(installed, tap_core_taps()) }
+	}
 }
 
 // Ruby method `self.untapped_official_taps` at line 1435.
-pub fn ruby_tap_l1435_d97_self_untapped_official_taps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.untapped_official_taps', ...args)
+pub fn ruby_tap_l1435_d97_self_untapped_official_taps(setting ?string) []string {
+	return if value := setting { value.split(';') } else { [] }
 }
 
 // Ruby method `formula_file_to_name(file)` at line 1440.
-pub fn ruby_tap_l1440_d98_formula_file_to_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_file_to_name', ...args)
+pub fn ruby_tap_l1440_d98_formula_file_to_name(tap TapReference, file string) string {
+	return tap_formula_file_to_name(tap, file)
 }
 
 // Ruby method `alias_file_to_name(file)` at line 1445.
-pub fn ruby_tap_l1445_d99_alias_file_to_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('alias_file_to_name', ...args)
+pub fn ruby_tap_l1445_d99_alias_file_to_name(tap TapReference, file string) string {
+	return tap_alias_file_to_name(tap, file)
 }
 
 // Ruby method `audit_exception(list, formula_or_cask, value = nil)` at line 1453.
-pub fn ruby_tap_l1453_d100_audit_exception(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('audit_exception', ...args)
+pub fn ruby_tap_l1453_d100_audit_exception(exceptions map[string]TapAuditList, list string,
+	formula_or_cask string, value ?string) TapAuditResult {
+	return tap_audit_exception(exceptions, list, formula_or_cask, value)
 }
 
 // Ruby method `allowed_by_env?(remote: self.remote)` at line 1473.
-pub fn ruby_tap_l1473_d101_allowed_by_env(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allowed_by_env?', ...args)
+pub fn ruby_tap_l1473_d101_allowed_by_env(tap TapReference, allowed []string) bool {
+	return tap.allowed_by_references(allowed)
 }
 
 // Ruby method `forbidden_by_env?(remote: self.remote)` at line 1481.
-pub fn ruby_tap_l1481_d102_forbidden_by_env(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('forbidden_by_env?', ...args)
+pub fn ruby_tap_l1481_d102_forbidden_by_env(tap TapReference, forbidden []string) bool {
+	return tap.forbidden_by_references(forbidden)
 }
 
 // Ruby method `implicitly_trusted?(remote: self.remote)` at line 1489.
-pub fn ruby_tap_l1489_d103_implicitly_trusted(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('implicitly_trusted?', ...args)
+pub fn ruby_tap_l1489_d103_implicitly_trusted(tap TapReference) bool {
+	return tap.implicitly_trusted()
 }
 
 // Ruby method `canonical_remote?(remote = self.remote)` at line 1494.
-pub fn ruby_tap_l1494_d104_canonical_remote(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('canonical_remote?', ...args)
+pub fn ruby_tap_l1494_d104_canonical_remote(tap TapReference) bool {
+	return tap.canonical_remote()
 }
 
 // Ruby method `read_formula_list(file)` at line 1501.
-pub fn ruby_tap_l1501_d105_read_formula_list(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('read_formula_list', ...args)
+pub fn ruby_tap_l1501_d105_read_formula_list(file string) TapFormulaListResult {
+	return tap_read_formula_list(file)
 }
 
 // Ruby method `read_formula_list_directory(directory)` at line 1511.
-pub fn ruby_tap_l1511_d106_read_formula_list_directory(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('read_formula_list_directory', ...args)
+pub fn ruby_tap_l1511_d106_read_formula_list_directory(path string,
+	directory string) map[string]json2.Any {
+	return tap_read_formula_list_directory(path, directory)
 }
 
 // Original Ruby source (line-for-line):

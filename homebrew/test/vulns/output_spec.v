@@ -1,108 +1,194 @@
 module vulns
 
-import brew_runtime
+import homebrew.vulns as output_core
+import x.json2
 
 // Translated from Homebrew/brew `test/vulns/output_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+fn output_spec_vuln(id string) output_core.OutputVulnerability {
+	return ruby_output_spec_l9_d1_vuln(id, 'HIGH', none, []string{}, []string{})
+}
+
+fn output_spec_finding(name string, version string, open []output_core.OutputVulnerability,
+	patched []output_core.OutputVulnerability) output_core.OutputFinding {
+	return ruby_output_spec_l17_d2_finding(name, version, 'v${version}', 'https://github.com/x/${name}', open, patched)
+}
 
 // Ruby method `vuln(id, severity: "HIGH", summary: nil, aliases: [], fixed: [])` at line 9.
-pub fn ruby_output_spec_l9_d1_vuln(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('vuln', ...args)
+pub fn ruby_output_spec_l9_d1_vuln(id string, severity ?string, summary ?string,
+	aliases []string, fixed []string) output_core.OutputVulnerability {
+	return output_core.new_output_vulnerability(id, severity, summary, aliases, fixed)
 }
 
 // Ruby method `finding(name:, version:, tag: "v#{version}", repo_url: "https://github.com/x/#{name}", open: [], patched: [])` at line 17.
-pub fn ruby_output_spec_l17_d2_finding(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('finding', ...args)
+pub fn ruby_output_spec_l17_d2_finding(name string, version string, tag string, repo_url string,
+	open []output_core.OutputVulnerability,
+	patched []output_core.OutputVulnerability) output_core.OutputFinding {
+	return output_core.new_output_finding(name, version, tag, repo_url, open, patched)
 }
 
 // Ruby method `results(findings, checked: findings.size, skipped: 0)` at line 21.
-pub fn ruby_output_spec_l21_d3_results(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('results', ...args)
+pub fn ruby_output_spec_l21_d3_results(findings []output_core.OutputFinding, checked int,
+	skipped int) output_core.OutputResults {
+	return output_core.new_output_results(findings, checked, skipped)
 }
 
 // Ruby method `render(res, **opts)` at line 26.
-pub fn ruby_output_spec_l26_d4_render(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('render', ...args)
+pub fn ruby_output_spec_l26_d4_render(results output_core.OutputResults, max_summary int) string {
+	return output_core.output_sanitize(output_core.output_text(results, max_summary))
 }
 
 // Ruby it `it "prints a clean message when there are no findings" do` at line 32.
-pub fn ruby_output_spec_l32_d5_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+pub fn ruby_output_spec_l32_d5_prints() bool {
+	results := ruby_output_spec_l21_d3_results([]output_core.OutputFinding{}, 0, 0)
+	return ruby_output_spec_l26_d4_render(results, output_core.output_default_max_summary).contains('No vulnerabilities found.')
 }
 
 // Ruby it `it "distinguishes the clean message when only patched findings exist" do` at line 36.
-pub fn ruby_output_spec_l36_d6_distinguishes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('distinguishes', ...args)
+pub fn ruby_output_spec_l36_d6_distinguishes() bool {
+	finding := output_spec_finding('libquicktime', '1.2.4', [], [
+		output_spec_vuln('CVE-2016-2399'),
+	])
+	output := ruby_output_spec_l26_d4_render(ruby_output_spec_l21_d3_results([finding], 1, 0), output_core.output_default_max_summary)
+	return output.contains('No open vulnerabilities found.') && !output.contains('No vulnerabilities found.\n')
 }
 
 // Ruby it `it "prints formula, version, vuln id, severity and summary" do` at line 43.
-pub fn ruby_output_spec_l43_d7_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+pub fn ruby_output_spec_l43_d7_prints() bool {
+	vulnerability := ruby_output_spec_l9_d1_vuln('CVE-2024-1234', 'HIGH', 'Heap overflow', [], [])
+	finding := output_spec_finding('vim', '9.1.2050', [vulnerability], [])
+	output := ruby_output_spec_l26_d4_render(ruby_output_spec_l21_d3_results([finding], 1, 0), output_core.output_default_max_summary)
+	return output.contains('vim (9.1.2050)') && output.contains('CVE-2024-1234 (HIGH) - Heap overflow')
 }
 
 // Ruby it `it "prints fixed versions when present" do` at line 51.
-pub fn ruby_output_spec_l51_d8_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+pub fn ruby_output_spec_l51_d8_prints() bool {
+	vulnerability := ruby_output_spec_l9_d1_vuln('CVE-2024-1234', 'HIGH', none, [], [
+		'v9.1.3000',
+		'v10.0.0',
+	])
+	finding := output_spec_finding('vim', '9.1.2050', [vulnerability], [])
+	return ruby_output_spec_l26_d4_render(ruby_output_spec_l21_d3_results([finding], 1, 0), output_core.output_default_max_summary).contains('Fixed in: v9.1.3000, v10.0.0')
 }
 
 // Ruby it `it "prints a totals line" do` at line 57.
-pub fn ruby_output_spec_l57_d9_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+pub fn ruby_output_spec_l57_d9_prints() bool {
+	finding := output_spec_finding('vim', '9.1.2050', [
+		output_spec_vuln('CVE-2024-1111'),
+		output_spec_vuln('CVE-2024-2222'),
+	], [])
+	return ruby_output_spec_l26_d4_render(ruby_output_spec_l21_d3_results([finding], 1, 0), output_core.output_default_max_summary).contains('Found 2 vulnerabilities in 1 package')
 }
 
 // Ruby it `it "truncates summaries at max_summary" do` at line 63.
-pub fn ruby_output_spec_l63_d10_truncates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('truncates', ...args)
+pub fn ruby_output_spec_l63_d10_truncates() bool {
+	long_summary := 'A'.repeat(100)
+	vulnerability := ruby_output_spec_l9_d1_vuln('CVE-1', 'HIGH', long_summary, [], [])
+	finding := output_spec_finding('vim', '9.1', [vulnerability], [])
+	output := ruby_output_spec_l26_d4_render(ruby_output_spec_l21_d3_results([finding], 1, 0), 60)
+	return output.contains('${'A'.repeat(60)}...') && !output.contains(long_summary)
 }
 
 // Ruby it `it "disables truncation when max_summary is 0" do` at line 70.
-pub fn ruby_output_spec_l70_d11_disables(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('disables', ...args)
+pub fn ruby_output_spec_l70_d11_disables() bool {
+	long_summary := 'A'.repeat(100)
+	vulnerability := ruby_output_spec_l9_d1_vuln('CVE-1', 'HIGH', long_summary, [], [])
+	finding := output_spec_finding('vim', '9.1', [vulnerability], [])
+	output := ruby_output_spec_l26_d4_render(ruby_output_spec_l21_d3_results([finding], 1, 0), 0)
+	return output.contains(long_summary) && !output.contains('A...')
 }
 
 // Ruby it `it "omits the summary segment when the summary is nil" do` at line 77.
-pub fn ruby_output_spec_l77_d12_omits(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('omits', ...args)
+pub fn ruby_output_spec_l77_d12_omits() bool {
+	vulnerability := ruby_output_spec_l9_d1_vuln('CVE-2024-1234', none, none, [], [])
+	finding := output_spec_finding('vim', '9.1', [vulnerability], [])
+	output := ruby_output_spec_l26_d4_render(ruby_output_spec_l21_d3_results([finding], 1, 0), output_core.output_default_max_summary)
+	return output.contains('CVE-2024-1234 (UNKNOWN)') && !output.contains('CVE-2024-1234 (UNKNOWN) - ')
 }
 
 // Ruby it `it "strips terminal escape sequences from OSV-sourced fields" do` at line 84.
-pub fn ruby_output_spec_l84_d13_strips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('strips', ...args)
+pub fn ruby_output_spec_l84_d13_strips() bool {
+	csi8 := rune(0x9b).str()
+	osc8 := rune(0x9d).str()
+	summary := 'safe \x1b[2J\x1b[31mred\x1b[0m \x1b]0;pwned\a c1 ${csi8}2Jblue${osc8}0;owned\a \rhidden\b text'
+	vulnerability := ruby_output_spec_l9_d1_vuln('CVE-2024-1234\x1b[2J', 'HIGH', summary, [], [
+		'1.2.3\x1b[31m',
+	])
+	finding := output_spec_finding('vim', '9.1', [vulnerability], [])
+	output := output_core.output_text(ruby_output_spec_l21_d3_results([finding], 1, 0), 0)
+	return output.contains('safe red  c1 blue hidden text') && output.contains('CVE-2024-1234 (') && output.contains('Fixed in: 1.2.3') && !output.contains('\x1b[2J') && !output.contains(csi8) && !output.contains(osc8) && !output.contains('\r') && !output.contains('\b') && !output.contains('pwned') && !output.contains('owned')
 }
 
 // Ruby it `it "prints a patched summary section" do` at line 102.
-pub fn ruby_output_spec_l102_d14_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+pub fn ruby_output_spec_l102_d14_prints() bool {
+	finding := output_spec_finding('libquicktime', '1.2.4', [
+		ruby_output_spec_l9_d1_vuln('CVE-2024-9999', 'CRITICAL', none, [], []),
+	], [output_spec_vuln('CVE-2016-2399'), output_spec_vuln('GHSA-aaaa-bbbb-cccc')])
+	output := ruby_output_spec_l26_d4_render(ruby_output_spec_l21_d3_results([finding], 1, 0), output_core.output_default_max_summary)
+	return output.contains('Found 1 vulnerability in 1 package') && output.contains('2 resolved by formula patches') && output.contains('libquicktime: CVE-2016-2399, GHSA-aaaa-bbbb-cccc')
 }
 
 // Ruby it `it "sorts formulae by highest severity first, and vulns within each formula the same" do` at line 112.
-pub fn ruby_output_spec_l112_d15_sorts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sorts', ...args)
+pub fn ruby_output_spec_l112_d15_sorts() bool {
+	low := output_spec_finding('aa', '1', [
+		ruby_output_spec_l9_d1_vuln('CVE-LOW', 'LOW', none, [], []),
+	], [])
+	critical := output_spec_finding('zz', '1', [
+		ruby_output_spec_l9_d1_vuln('CVE-MED', 'MEDIUM', none, [], []),
+		ruby_output_spec_l9_d1_vuln('CVE-CRIT', 'CRITICAL', none, [], []),
+	], [])
+	output := ruby_output_spec_l26_d4_render(ruby_output_spec_l21_d3_results([
+		low,
+		critical,
+	], 2, 0), output_core.output_default_max_summary)
+	return output.index('zz (1)') or { -1 } < output.index('aa (1)') or { -1 } && output.index('CVE-CRIT') or {
+		-1
+	} < output.index('CVE-MED') or { -1 }
 }
 
 // Ruby it `it "reports checked and skipped counts" do` at line 121.
-pub fn ruby_output_spec_l121_d16_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_output_spec_l121_d16_reports() bool {
+	output := ruby_output_spec_l26_d4_render(ruby_output_spec_l21_d3_results([], 5, 2), output_core.output_default_max_summary)
+	return output.contains('Checking 5 packages for vulnerabilities') && output.contains('(2 packages skipped - no supported source URL)')
 }
 
 // Ruby method `render(res)` at line 129.
-pub fn ruby_output_spec_l129_d17_render(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('render', ...args)
+pub fn ruby_output_spec_l129_d17_render(results output_core.OutputResults) string {
+	return output_core.output_json(results)
 }
 
 // Ruby it `it "emits an empty array when there are no findings" do` at line 135.
-pub fn ruby_output_spec_l135_d18_emits(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('emits', ...args)
+pub fn ruby_output_spec_l135_d18_emits() !bool {
+	data := json2.decode[[]output_core.OutputFindingJson](ruby_output_spec_l129_d17_render(ruby_output_spec_l21_d3_results([], 0, 0)))!
+	return data.len == 0
 }
 
 // Ruby it `it "emits one object per finding with vulnerabilities and patched arrays" do` at line 139.
-pub fn ruby_output_spec_l139_d19_emits(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('emits', ...args)
+pub fn ruby_output_spec_l139_d19_emits() !bool {
+	open := ruby_output_spec_l9_d1_vuln('CVE-2024-1234', 'HIGH', 'Heap overflow', [
+		'GHSA-x',
+	], ['v10.0.0'])
+	patched := output_spec_vuln('CVE-2016-2399')
+	finding := ruby_output_spec_l17_d2_finding('vim', '9.1.2050', 'v9.1.2050', 'https://github.com/vim/vim', [
+		open,
+	], [patched])
+	data := json2.decode[[]output_core.OutputFindingJson](ruby_output_spec_l129_d17_render(ruby_output_spec_l21_d3_results([
+		finding,
+	], 1, 0)))!
+	return data.len == 1 && data[0].formula == 'vim' && data[0].version == '9.1.2050' && data[0].tag == 'v9.1.2050' && data[0].repo_url == 'https://github.com/vim/vim' && data[0].vulnerabilities.len == 1 && data[0].vulnerabilities[0].id == 'CVE-2024-1234' && data[0].vulnerabilities[0].severity == 'HIGH' && data[0].vulnerabilities[0].summary or {
+		''
+	} == 'Heap overflow' && data[0].vulnerabilities[0].aliases == ['GHSA-x'] && data[0].vulnerabilities[0].fixed_versions == [
+		'v10.0.0',
+	] && data[0].patched.len == 1 && data[0].patched[0].id == 'CVE-2016-2399' && data[0].patched[0].summary == none
 }
 
 // Ruby it `it "emits an empty patched array when nothing is resolved" do` at line 164.
-pub fn ruby_output_spec_l164_d20_emits(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('emits', ...args)
+pub fn ruby_output_spec_l164_d20_emits() !bool {
+	finding := output_spec_finding('vim', '9.1', [output_spec_vuln('CVE-2024-1234')], [])
+	data := json2.decode[[]output_core.OutputFindingJson](ruby_output_spec_l129_d17_render(ruby_output_spec_l21_d3_results([
+		finding,
+	], 1, 0)))!
+	return data.len == 1 && data[0].patched.len == 0
 }
 
 // Original Ruby source (line-for-line):

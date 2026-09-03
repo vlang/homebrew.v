@@ -1,43 +1,193 @@
 module utils
 
 import brew_runtime
+import os
 
 // Translated from Homebrew/brew `utils/link.rb`.
 // The original source is retained below until every stub has a typed V body.
+fn link_relative_path(target string, base string) string {
+	target_parts := os.norm_path(os.abs_path(target)).split('/').filter(it != '')
+	base_parts := os.norm_path(os.abs_path(base)).split('/').filter(it != '')
+	mut common := 0
+	for common < target_parts.len && common < base_parts.len && target_parts[common] == base_parts[common] {
+		common++
+	}
+	mut relative := []string{}
+	for _ in common .. base_parts.len {
+		relative << '..'
+	}
+	relative << target_parts[common..]
+	return if relative.len == 0 { '.' } else { relative.join('/') }
+}
+
+fn link_resolved_path(path string) !string {
+	target := os.readlink(path)!
+	return os.norm_path(if os.is_abs_path(target) {
+		target
+	} else {
+		os.join_path(os.dir(path), target)
+	})
+}
+
+fn link_source_paths(root string, link_dir bool) ![]string {
+	if !os.exists(root) && !os.is_link(root) {
+		return []
+	}
+	if link_dir {
+		return [root]
+	}
+	mut paths := []string{}
+	mut entries := os.ls(root)!
+	entries.sort()
+	for entry in entries {
+		path := os.join_path(root, entry)
+		if os.is_dir(path) && !os.is_link(path) {
+			paths << link_source_paths(path, false)!
+		} else if !os.is_dir(path) {
+			paths << path
+		}
+	}
+	return paths
+}
+
+fn link_destination(source string, source_root string, destination_root string,
+	link_dir bool) string {
+	if link_dir {
+		return destination_root
+	}
+	relative := source[source_root.len + 1..]
+	return os.join_path(destination_root, relative)
+}
+
+pub fn link_src_dst_dirs(source_root string, destination_root string, command string,
+	link_dir bool) ![]string {
+	mut conflicts := []string{}
+	for source in link_source_paths(source_root, link_dir)! {
+		destination := link_destination(source, source_root, destination_root, link_dir)
+		if os.is_link(destination) {
+			resolved := link_resolved_path(destination) or { '' }
+			if resolved == os.norm_path(os.abs_path(source)) {
+				continue
+			}
+			os.rm(destination)!
+		}
+		if os.exists(destination) {
+			conflicts << destination
+			continue
+		}
+		os.mkdir_all(os.dir(destination))!
+		os.symlink(link_relative_path(source, os.dir(destination)), destination)!
+	}
+	return conflicts
+}
+
+pub fn unlink_src_dst_dirs(source_root string, destination_root string, unlink_dir bool) ! {
+	for source in link_source_paths(source_root, unlink_dir)! {
+		destination := link_destination(source, source_root, destination_root, unlink_dir)
+		if os.is_link(destination) {
+			resolved := link_resolved_path(destination) or { '' }
+			if resolved == os.norm_path(os.abs_path(source)) {
+				os.rm(destination)!
+			}
+		}
+		os.rmdir(os.dir(destination)) or {}
+	}
+}
+
+pub fn link_manpages(path string, prefix string, command string) ![]string {
+	return link_src_dst_dirs(os.join_path(path, 'manpages'), os.join_path(prefix, 'share', 'man', 'man1'), command, false)
+}
+
+pub fn unlink_manpages(path string, prefix string) ! {
+	unlink_src_dst_dirs(os.join_path(path, 'manpages'), os.join_path(prefix, 'share', 'man', 'man1'), false)!
+}
+
+pub fn link_completions(path string, prefix string, command string) ![]string {
+	mut conflicts := []string{}
+	for mapping in [
+		['bash', os.join_path(prefix, 'etc', 'bash_completion.d')],
+		['zsh', os.join_path(prefix, 'share', 'zsh', 'site-functions')],
+		['fish', os.join_path(prefix, 'share', 'fish', 'vendor_completions.d')],
+	] {
+		conflicts << link_src_dst_dirs(os.join_path(path, 'completions', mapping[0]), mapping[1], command, false)!
+	}
+	return conflicts
+}
+
+pub fn unlink_completions(path string, prefix string) ! {
+	for mapping in [
+		['bash', os.join_path(prefix, 'etc', 'bash_completion.d')],
+		['zsh', os.join_path(prefix, 'share', 'zsh', 'site-functions')],
+		['fish', os.join_path(prefix, 'share', 'fish', 'vendor_completions.d')],
+	] {
+		unlink_src_dst_dirs(os.join_path(path, 'completions', mapping[0]), mapping[1], false)!
+	}
+}
+
+pub fn link_docs(path string, prefix string, command string) ![]string {
+	return link_src_dst_dirs(os.join_path(path, 'docs'), os.join_path(prefix, 'share', 'doc', 'homebrew'), command, true)
+}
 
 // Ruby method `self.link_src_dst_dirs(src_dir, dst_dir, command, link_dir: false)` at line 12.
 pub fn ruby_link_l12_d1_self_link_src_dst_dirs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.link_src_dst_dirs', ...args)
+	if args.len < 3 {
+		panic('link_src_dst_dirs requires source, destination, and command')
+	}
+	link_dir := if args.len > 3 { args[3].as_bool() or { false } } else { false }
+	conflicts := link_src_dst_dirs(args[0].as_string(), args[1].as_string(), args[2].as_string(), link_dir) or { panic(err) }
+	return brew_runtime.string_array_value(conflicts)
 }
 
 // Ruby method `self.unlink_src_dst_dirs(src_dir, dst_dir, unlink_dir: false)` at line 47.
 pub fn ruby_link_l47_d2_self_unlink_src_dst_dirs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.unlink_src_dst_dirs', ...args)
+	if args.len < 2 {
+		panic('unlink_src_dst_dirs requires source and destination')
+	}
+	unlink_dir := if args.len > 2 { args[2].as_bool() or { false } } else { false }
+	unlink_src_dst_dirs(args[0].as_string(), args[1].as_string(), unlink_dir) or { panic(err) }
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Ruby method `self.link_manpages(path, command)` at line 62.
 pub fn ruby_link_l62_d3_self_link_manpages(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.link_manpages', ...args)
+	if args.len < 3 {
+		panic('link_manpages requires path, command, and prefix')
+	}
+	return brew_runtime.string_array_value(link_manpages(args[0].as_string(), args[2].as_string(), args[1].as_string()) or { panic(err) })
 }
 
 // Ruby method `self.unlink_manpages(path)` at line 67.
 pub fn ruby_link_l67_d4_self_unlink_manpages(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.unlink_manpages', ...args)
+	if args.len < 2 {
+		panic('unlink_manpages requires path and prefix')
+	}
+	unlink_manpages(args[0].as_string(), args[1].as_string()) or { panic(err) }
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Ruby method `self.link_completions(path, command)` at line 72.
 pub fn ruby_link_l72_d5_self_link_completions(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.link_completions', ...args)
+	if args.len < 3 {
+		panic('link_completions requires path, command, and prefix')
+	}
+	return brew_runtime.string_array_value(link_completions(args[0].as_string(), args[2].as_string(), args[1].as_string()) or { panic(err) })
 }
 
 // Ruby method `self.unlink_completions(path)` at line 79.
 pub fn ruby_link_l79_d6_self_unlink_completions(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.unlink_completions', ...args)
+	if args.len < 2 {
+		panic('unlink_completions requires path and prefix')
+	}
+	unlink_completions(args[0].as_string(), args[1].as_string()) or { panic(err) }
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Ruby method `self.link_docs(path, command)` at line 86.
 pub fn ruby_link_l86_d7_self_link_docs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.link_docs', ...args)
+	if args.len < 3 {
+		panic('link_docs requires path, command, and prefix')
+	}
+	return brew_runtime.string_array_value(link_docs(args[0].as_string(), args[2].as_string(), args[1].as_string()) or { panic(err) })
 }
 
 // Original Ruby source (line-for-line):

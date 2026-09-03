@@ -3,56 +3,134 @@ module homebrew
 import brew_runtime
 
 // Translated from Homebrew/brew `embedded_patch.rb`.
-// The original source is retained below until every stub has a typed V body.
+// The original source is retained below.
+
+// EmbeddedPatch contains the concrete state and behavior shared by embedded
+// string and DATA patches. Ruby inheritance is represented by composition in V.
+pub struct EmbeddedPatch {
+pub:
+	strip         string
+	has_directory bool
+	directory     string
+	owner         ?string
+}
+
+pub struct EmbeddedPatchSource {
+pub:
+	patch    EmbeddedPatch
+	filename string
+	contents string
+}
+
+// new_embedded_patch translates EmbeddedPatch#initialize.
+pub fn new_embedded_patch(strip string) EmbeddedPatch {
+	return EmbeddedPatch{
+		strip: strip
+	}
+}
+
+// with_directory translates the directory writer while retaining V value
+// semantics. An empty directory has the same effect as Ruby's presence check.
+pub fn (patch EmbeddedPatch) with_directory(directory string) EmbeddedPatch {
+	return EmbeddedPatch{
+		strip: patch.strip
+		has_directory: true
+		directory: directory
+		owner: patch.owner
+	}
+}
+
+pub fn (patch EmbeddedPatch) without_directory() EmbeddedPatch {
+	return EmbeddedPatch{
+		strip: patch.strip
+		owner: patch.owner
+	}
+}
+
+pub fn (patch EmbeddedPatch) with_owner(owner ?string) EmbeddedPatch {
+	return EmbeddedPatch{
+		strip: patch.strip
+		has_directory: patch.has_directory
+		directory: patch.directory
+		owner: owner
+	}
+}
+
+pub fn (patch EmbeddedPatch) external() bool {
+	return false
+}
+
+// target_directory translates Pathname.pwd followed by the optional directory.
+pub fn (patch EmbeddedPatch) target_directory(current_directory string) string {
+	if patch.has_directory && patch.directory != '' {
+		return brew_runtime.join_path(current_directory, patch.directory)
+	}
+	return current_directory
+}
+
+// apply translates EmbeddedPatch#apply. V passes the abstract filename and
+// contents explicitly because the translated descendants use composition.
+pub fn (patch EmbeddedPatch) apply(filename string, contents string, current_directory string, homebrew_prefix string) ! {
+	_ = filename
+	apply_patch_text(contents, patch.strip, patch.target_directory(current_directory), homebrew_prefix)!
+}
+
+pub fn (patch EmbeddedPatch) inspect(class_name ...string) string {
+	name := if class_name.len == 0 { 'EmbeddedPatch' } else { class_name[0] }
+	return '#<${name}: :${patch.strip}>'
+}
 
 // Ruby attr_writer `attr_writer :owner` at line 15.
-pub fn ruby_embedded_patch_l15_d1_owner(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('owner=', ...args)
+pub fn ruby_embedded_patch_l15_d1_owner(patch EmbeddedPatch, owner ?string) EmbeddedPatch {
+	return patch.with_owner(owner)
 }
 
 // Ruby attr_reader `attr_reader :strip` at line 18.
-pub fn ruby_embedded_patch_l18_d2_strip(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('strip', ...args)
+pub fn ruby_embedded_patch_l18_d2_strip(patch EmbeddedPatch) string {
+	return patch.strip
 }
 
 // Ruby attr_accessor `attr_accessor :directory` at line 21.
-pub fn ruby_embedded_patch_l21_d3_directory(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('directory', ...args)
+pub fn ruby_embedded_patch_l21_d3_directory(patch EmbeddedPatch) ?string {
+	if patch.has_directory {
+		return patch.directory
+	}
+	return none
 }
 
 // Ruby attr_accessor `attr_accessor :directory` at line 21.
-pub fn ruby_embedded_patch_l21_d4_directory(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('directory=', ...args)
+pub fn ruby_embedded_patch_l21_d4_directory(patch EmbeddedPatch, directory string) EmbeddedPatch {
+	return patch.with_directory(directory)
 }
 
 // Ruby method `initialize(strip)` at line 24.
-pub fn ruby_embedded_patch_l24_d5_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+pub fn ruby_embedded_patch_l24_d5_initialize(strip string) EmbeddedPatch {
+	return new_embedded_patch(strip)
 }
 
 // Ruby method `external?` at line 31.
-pub fn ruby_embedded_patch_l31_d6_external(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('external?', ...args)
+pub fn ruby_embedded_patch_l31_d6_external(patch EmbeddedPatch) bool {
+	return patch.external()
 }
 
 // Ruby method `filename; end` at line 36.
-pub fn ruby_embedded_patch_l36_d7_filename(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('filename', ...args)
+pub fn ruby_embedded_patch_l36_d7_filename(source EmbeddedPatchSource) string {
+	return source.filename
 }
 
 // Ruby method `contents; end` at line 39.
-pub fn ruby_embedded_patch_l39_d8_contents(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('contents', ...args)
+pub fn ruby_embedded_patch_l39_d8_contents(source EmbeddedPatchSource) string {
+	return source.contents
 }
 
 // Ruby method `apply` at line 42.
-pub fn ruby_embedded_patch_l42_d9_apply(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('apply', ...args)
+pub fn ruby_embedded_patch_l42_d9_apply(patch EmbeddedPatch, filename string, contents string, current_directory string, homebrew_prefix string) ! {
+	patch.apply(filename, contents, current_directory, homebrew_prefix)!
 }
 
 // Ruby method `inspect` at line 57.
-pub fn ruby_embedded_patch_l57_d10_inspect(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('inspect', ...args)
+pub fn ruby_embedded_patch_l57_d10_inspect(patch EmbeddedPatch) string {
+	return patch.inspect()
 }
 
 // Original Ruby source (line-for-line):

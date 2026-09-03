@@ -1,28 +1,34 @@
 module language
 
 import brew_runtime
+import homebrew.language as python_language
 
 // Translated from Homebrew/brew `test/language/python_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "returns a Version for Python 2" do` at line 8.
 pub fn ruby_python_spec_l8_d1_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	version := python_language.ruby_python_l16_d1_self_major_minor_version(brew_runtime.string_value('python'), brew_runtime.string_value('Python 2.7.18'))
+	return brew_runtime.bool_value(version.type_name == 'Version' && version.as_string() == '2.7')
 }
 
 // Ruby it `it "gives a different location between PyPy and Python 2" do` at line 15.
 pub fn ruby_python_spec_l15_d2_gives(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('gives', ...args)
+	python := python_language.ruby_python_l29_d3_self_site_packages(brew_runtime.string_value('python'), brew_runtime.string_value('Python 2.7.18')).as_string()
+	pypy := python_language.ruby_python_l29_d3_self_site_packages(brew_runtime.string_value('pypy'), brew_runtime.string_value('Python 2.7.18')).as_string()
+	return brew_runtime.bool_value(python != pypy)
 }
 
 // Ruby it `it "returns the Homebrew site packages location" do` at line 21.
 pub fn ruby_python_spec_l21_d3_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	location := python_language.ruby_python_l24_d2_self_homebrew_site_packages(brew_runtime.string_value('python'), brew_runtime.string_value('/opt/homebrew'), brew_runtime.string_value('Python 2.7.18'))
+	return brew_runtime.bool_value(location.as_string() == '/opt/homebrew/lib/python2.7/site-packages')
 }
 
 // Ruby it `it "can determine user site packages location" do` at line 28.
 pub fn ruby_python_spec_l28_d4_can(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('can', ...args)
+	location := python_language.ruby_python_l78_d6_self_user_site_packages(brew_runtime.string_value('python'), brew_runtime.string_value('/Users/brew/Library/Python/3.13/lib/python/site-packages\n'))
+	return brew_runtime.bool_value(location.as_string() == '/Users/brew/Library/Python/3.13/lib/python/site-packages')
 }
 
 // Original Ruby source (line-for-line):

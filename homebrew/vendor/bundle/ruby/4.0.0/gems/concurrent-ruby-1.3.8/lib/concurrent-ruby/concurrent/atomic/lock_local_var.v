@@ -5,9 +5,15 @@ import brew_runtime
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/atomic/lock_local_var.rb`.
 // The original source is retained below until every stub has a typed V body.
 
+// V has no Ruby Fiber scheduler; mutex ownership is therefore not exposed as a
+// Ruby-thread-local property.
+pub fn mutex_owned_per_thread() bool {
+	return false
+}
+
 // Ruby method `self.mutex_owned_per_thread?` at line 7.
 pub fn ruby_lock_local_var_l7_d1_self_mutex_owned_per_thread(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.mutex_owned_per_thread?', ...args)
+	return brew_runtime.bool_value(mutex_owned_per_thread())
 }
 
 // Original Ruby source (line-for-line):

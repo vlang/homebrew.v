@@ -1,278 +1,560 @@
 module livecheck
 
-import brew_runtime
+import homebrew.livecheck as livecheck_core
 
 // Translated from Homebrew/brew `test/livecheck/skip_conditions_spec.rb`.
-// The original source is retained below until every stub has a typed V body.
+pub type SkipConditionsPackage = livecheck_core.SkipConditionsPackage
+
+pub type SkipConditionsPackageKind = livecheck_core.SkipConditionsPackageKind
+
+pub type SkipConditionsMeta = livecheck_core.SkipConditionsMeta
+
+pub type SkipConditionsOutput = livecheck_core.SkipConditionsOutput
+
+pub type SkipInformation = livecheck_core.SkipInformation
+
+fn skip_spec_formulae() map[string]SkipConditionsPackage {
+	return {
+		'basic':               SkipConditionsPackage{
+			kind: .formula
+			name: 'test'
+			full_name: 'test'
+			stable_url: 'https://brew.sh/test-0.0.1.tgz'
+			livecheck_defined: true
+			present: true
+		}
+		'deprecated':          SkipConditionsPackage{
+			kind: .formula
+			name: 'test_deprecated'
+			full_name: 'test_deprecated'
+			stable_url: 'https://brew.sh/test-0.0.1.tgz'
+			deprecated: true
+			present: true
+		}
+		'disabled':            SkipConditionsPackage{
+			kind: .formula
+			name: 'test_disabled'
+			full_name: 'test_disabled'
+			stable_url: 'https://brew.sh/test-0.0.1.tgz'
+			disabled: true
+			present: true
+		}
+		'head_only':           SkipConditionsPackage{
+			kind: .formula
+			name: 'test_head_only'
+			full_name: 'test_head_only'
+			head_only: true
+			present: true
+		}
+		'gist':                SkipConditionsPackage{
+			kind: .formula
+			name: 'test_gist'
+			full_name: 'test_gist'
+			stable_url: 'https://gist.github.com/Homebrew/0000000000'
+			present: true
+		}
+		'google_code_archive': SkipConditionsPackage{
+			kind: .formula
+			name: 'test_google_code_archive'
+			full_name: 'test_google_code_archive'
+			stable_url: 'https://storage.googleapis.com/google-code-archive-downloads/v2/code.google.com/brew/brew-1.0.0.tar.gz'
+			present: true
+		}
+		'internet_archive':    SkipConditionsPackage{
+			kind: .formula
+			name: 'test_internet_archive'
+			full_name: 'test_internet_archive'
+			stable_url: 'https://web.archive.org/web/20200101000000/https://brew.sh/test-0.0.1.tgz'
+			present: true
+		}
+		'skip':                SkipConditionsPackage{
+			kind: .formula
+			name: 'test_skip'
+			full_name: 'test_skip'
+			stable_url: 'https://brew.sh/test-0.0.1.tgz'
+			livecheck_defined: true
+			livecheck_skip: true
+			present: true
+		}
+		'skip_with_message':   SkipConditionsPackage{
+			kind: .formula
+			name: 'test_skip_with_message'
+			full_name: 'test_skip_with_message'
+			stable_url: 'https://brew.sh/test-0.0.1.tgz'
+			livecheck_defined: true
+			livecheck_skip: true
+			livecheck_skip_message: 'Not maintained'
+			present: true
+		}
+		'versioned':           SkipConditionsPackage{
+			kind: .formula
+			name: 'test@0.0.1'
+			full_name: 'test@0.0.1'
+			stable_url: 'https://brew.sh/test-0.0.1.tgz'
+			versioned: true
+			present: true
+		}
+	}
+}
+
+fn skip_spec_casks() map[string]SkipConditionsPackage {
+	return {
+		'basic':                                 SkipConditionsPackage{
+			kind: .cask
+			name: 'test'
+			full_name: 'test'
+			livecheck_defined: true
+			present: true
+		}
+		'deprecated':                            SkipConditionsPackage{
+			kind: .cask
+			name: 'test_deprecated'
+			full_name: 'test_deprecated'
+			deprecated: true
+			present: true
+		}
+		'disabled':                              SkipConditionsPackage{
+			kind: .cask
+			name: 'test_disabled'
+			full_name: 'test_disabled'
+			disabled: true
+			present: true
+		}
+		'future_disable_fails_gatekeeper_check': SkipConditionsPackage{
+			kind: .cask
+			name: 'test_future_disable_fails_gatekeeper_check'
+			full_name: 'test_future_disable_fails_gatekeeper_check'
+			deprecated: true
+			has_disable_date: true
+			deprecation_reason: 'fails_gatekeeper_check'
+			present: true
+		}
+		'extract_plist':                         SkipConditionsPackage{
+			kind: .cask
+			name: 'test_extract_plist_skip'
+			full_name: 'test_extract_plist_skip'
+			livecheck_defined: true
+			livecheck_strategy: 'extract_plist'
+			present: true
+		}
+		'latest':                                SkipConditionsPackage{
+			kind: .cask
+			name: 'test_latest'
+			full_name: 'test_latest'
+			present: true
+			version_latest: true
+		}
+		'unversioned':                           SkipConditionsPackage{
+			kind: .cask
+			name: 'test_unversioned'
+			full_name: 'test_unversioned'
+			present: true
+			url_unversioned: true
+		}
+		'skip':                                  SkipConditionsPackage{
+			kind: .cask
+			name: 'test_skip'
+			full_name: 'test_skip'
+			livecheck_defined: true
+			livecheck_skip: true
+			present: true
+		}
+		'skip_with_message':                     SkipConditionsPackage{
+			kind: .cask
+			name: 'test_skip_with_message'
+			full_name: 'test_skip_with_message'
+			livecheck_defined: true
+			livecheck_skip: true
+			livecheck_skip_message: 'Not maintained'
+			present: true
+		}
+	}
+}
+
+fn skip_spec_status(kind SkipConditionsPackageKind, name string, status string, messages []string,
+	livecheck_defined bool, head_only bool) SkipInformation {
+	return SkipInformation{
+		present: true
+		package_kind: kind
+		package_name: name
+		status: status
+		messages: messages.clone()
+		has_messages: messages.len > 0
+		meta: SkipConditionsMeta{
+			livecheck_defined: livecheck_defined
+			head_only: head_only
+		}
+	}
+}
+
+fn skip_spec_status_hashes() map[string]SkipInformation {
+	return {
+		'formula.deprecated':          skip_spec_status(.formula, 'test_deprecated', 'deprecated', [], false, false)
+		'formula.disabled':            skip_spec_status(.formula, 'test_disabled', 'disabled', [], false, false)
+		'formula.versioned':           skip_spec_status(.formula, 'test@0.0.1', 'versioned', [], false, false)
+		'formula.head_only':           skip_spec_status(.formula, 'test_head_only', 'error', [
+			'HEAD only formula must be installed to be checkable',
+		], false, true)
+		'formula.gist':                skip_spec_status(.formula, 'test_gist', 'skipped', [
+			'Stable URL is a GitHub Gist',
+		], false, false)
+		'formula.google_code_archive': skip_spec_status(.formula, 'test_google_code_archive', 'skipped', [
+			'Stable URL is from Google Code Archive',
+		], false, false)
+		'formula.internet_archive':    skip_spec_status(.formula, 'test_internet_archive', 'skipped', [
+			'Stable URL is from Internet Archive',
+		], false, false)
+		'formula.skip':                skip_spec_status(.formula, 'test_skip', 'skipped', [], true, false)
+		'formula.skip_with_message':   skip_spec_status(.formula, 'test_skip_with_message', 'skipped', [
+			'Not maintained',
+		], true, false)
+		'formula.skip_with_messages':  skip_spec_status(.formula, 'test_skip_with_messages', 'skipped', [
+			'First message',
+			'Second message',
+		], true, false)
+		'formula.error_with_messages': skip_spec_status(.formula, 'test_error_with_messages', 'error', [
+			'First error',
+			'Second error',
+		], true, false)
+		'cask.deprecated':             skip_spec_status(.cask, 'test_deprecated', 'deprecated', [], false, false)
+		'cask.disabled':               skip_spec_status(.cask, 'test_disabled', 'disabled', [], false, false)
+		'cask.extract_plist':          skip_spec_status(.cask, 'test_extract_plist_skip', 'skipped', [
+			'Use `--extract-plist` to enable checking multiple casks with ExtractPlist strategy',
+		], true, false)
+		'cask.latest':                 skip_spec_status(.cask, 'test_latest', 'latest', [], false, false)
+		'cask.unversioned':            skip_spec_status(.cask, 'test_unversioned', 'unversioned', [], false, false)
+		'cask.skip':                   skip_spec_status(.cask, 'test_skip', 'skipped', [], true, false)
+		'cask.skip_with_message':      skip_spec_status(.cask, 'test_skip_with_message', 'skipped', [
+			'Not maintained',
+		], true, false)
+		'cask.skip_with_messages':     skip_spec_status(.cask, 'test_skip_with_messages', 'skipped', [
+			'First message',
+			'Second message',
+		], true, false)
+		'cask.error_with_messages':    skip_spec_status(.cask, 'test_error_with_messages', 'error', [
+			'First error',
+			'Second error',
+		], true, false)
+	}
+}
+
+fn skip_spec_information(package SkipConditionsPackage, expected SkipInformation,
+	extract_plist bool) bool {
+	actual := livecheck_core.ruby_skip_conditions_l235_d11_self_skip_information(package, false, false, extract_plist)
+	return livecheck_core.skip_information_equal(actual, expected)
+}
+
+fn skip_spec_reference_error(package SkipConditionsPackage, expected string,
+	extract_plist bool) bool {
+	mut message := ''
+	livecheck_core.ruby_skip_conditions_l273_d12_self_referenced_skip_information(package, 'original', false, false, extract_plist) or { message = err.msg() }
+	return message == expected
+}
+
+fn skip_spec_referenced(package SkipConditionsPackage, expected SkipInformation,
+	extract_plist bool) bool {
+	result := livecheck_core.ruby_skip_conditions_l273_d12_self_referenced_skip_information(package, 'original', false, false, extract_plist) or { return false }
+	return result.has_information && livecheck_core.skip_information_equal(result.information, expected)
+}
+
+fn skip_spec_print(information SkipInformation, expected string) bool {
+	mut output := SkipConditionsOutput{}
+	livecheck_core.ruby_skip_conditions_l315_d13_self_print_skip_information(information, mut output)
+	return output.text() == expected
+}
 
 // Ruby subject `subject(:skip_conditions) { described_class }` at line 8.
-pub fn ruby_skip_conditions_spec_l8_d1_skip_conditions(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skip_conditions', ...args)
+pub fn ruby_skip_conditions_spec_l8_d1_skip_conditions() string {
+	return 'Homebrew::Livecheck::SkipConditions'
 }
 
 // Ruby let `let(:formulae) do` at line 10.
-pub fn ruby_skip_conditions_spec_l10_d2_formulae(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formulae', ...args)
+pub fn ruby_skip_conditions_spec_l10_d2_formulae() map[string]SkipConditionsPackage {
+	return skip_spec_formulae()
 }
 
 // Ruby let `let(:casks) do` at line 90.
-pub fn ruby_skip_conditions_spec_l90_d3_casks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('casks', ...args)
+pub fn ruby_skip_conditions_spec_l90_d3_casks() map[string]SkipConditionsPackage {
+	return skip_spec_casks()
 }
 
 // Ruby let `let(:status_hashes) do` at line 193.
-pub fn ruby_skip_conditions_spec_l193_d4_status_hashes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('status_hashes', ...args)
+pub fn ruby_skip_conditions_spec_l193_d4_status_hashes() map[string]SkipInformation {
+	return skip_spec_status_hashes()
 }
 
 // Ruby it `it "skips" do` at line 356.
-pub fn ruby_skip_conditions_spec_l356_d5_skips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skips', ...args)
+pub fn ruby_skip_conditions_spec_l356_d5_skips() bool {
+	return skip_spec_information(skip_spec_formulae()['deprecated'], skip_spec_status_hashes()['formula.deprecated'], true)
 }
 
 // Ruby it `it "skips" do` at line 363.
-pub fn ruby_skip_conditions_spec_l363_d6_skips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skips', ...args)
+pub fn ruby_skip_conditions_spec_l363_d6_skips() bool {
+	return skip_spec_information(skip_spec_formulae()['disabled'], skip_spec_status_hashes()['formula.disabled'], true)
 }
 
 // Ruby it `it "skips" do` at line 370.
-pub fn ruby_skip_conditions_spec_l370_d7_skips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skips', ...args)
+pub fn ruby_skip_conditions_spec_l370_d7_skips() bool {
+	return skip_spec_information(skip_spec_formulae()['versioned'], skip_spec_status_hashes()['formula.versioned'], true)
 }
 
 // Ruby it `it "skips" do` at line 377.
-pub fn ruby_skip_conditions_spec_l377_d8_skips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skips', ...args)
+pub fn ruby_skip_conditions_spec_l377_d8_skips() bool {
+	return skip_spec_information(skip_spec_formulae()['head_only'], skip_spec_status_hashes()['formula.head_only'], true)
 }
 
 // Ruby it `it "skips" do` at line 384.
-pub fn ruby_skip_conditions_spec_l384_d9_skips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skips', ...args)
+pub fn ruby_skip_conditions_spec_l384_d9_skips() bool {
+	return skip_spec_information(skip_spec_formulae()['gist'], skip_spec_status_hashes()['formula.gist'], true)
 }
 
 // Ruby it `it "skips" do` at line 391.
-pub fn ruby_skip_conditions_spec_l391_d10_skips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skips', ...args)
+pub fn ruby_skip_conditions_spec_l391_d10_skips() bool {
+	return skip_spec_information(skip_spec_formulae()['google_code_archive'], skip_spec_status_hashes()['formula.google_code_archive'], true)
 }
 
 // Ruby it `it "skips" do` at line 398.
-pub fn ruby_skip_conditions_spec_l398_d11_skips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skips', ...args)
+pub fn ruby_skip_conditions_spec_l398_d11_skips() bool {
+	return skip_spec_information(skip_spec_formulae()['internet_archive'], skip_spec_status_hashes()['formula.internet_archive'], true)
 }
 
 // Ruby it `it "skips" do` at line 405.
-pub fn ruby_skip_conditions_spec_l405_d12_skips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skips', ...args)
+pub fn ruby_skip_conditions_spec_l405_d12_skips() bool {
+	formulae := skip_spec_formulae()
+	statuses := skip_spec_status_hashes()
+	return skip_spec_information(formulae['skip'], statuses['formula.skip'], true) && skip_spec_information(formulae['skip_with_message'], statuses['formula.skip_with_message'], true)
 }
 
 // Ruby it `it "skips" do` at line 415.
-pub fn ruby_skip_conditions_spec_l415_d13_skips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skips', ...args)
+pub fn ruby_skip_conditions_spec_l415_d13_skips() bool {
+	return skip_spec_information(skip_spec_casks()['deprecated'], skip_spec_status_hashes()['cask.deprecated'], true)
 }
 
 // Ruby it `it "skips" do` at line 422.
-pub fn ruby_skip_conditions_spec_l422_d14_skips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skips', ...args)
+pub fn ruby_skip_conditions_spec_l422_d14_skips() bool {
+	return skip_spec_information(skip_spec_casks()['disabled'], skip_spec_status_hashes()['cask.disabled'], true)
 }
 
 // Ruby it `it "does not skip" do` at line 430.
-pub fn ruby_skip_conditions_spec_l430_d15_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_skip_conditions_spec_l430_d15_does() bool {
+	return !livecheck_core.ruby_skip_conditions_l235_d11_self_skip_information(skip_spec_casks()['future_disable_fails_gatekeeper_check'], false, false, true).present
 }
 
 // Ruby it `it "skips" do` at line 436.
-pub fn ruby_skip_conditions_spec_l436_d16_skips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skips', ...args)
+pub fn ruby_skip_conditions_spec_l436_d16_skips() bool {
+	return skip_spec_information(skip_spec_casks()['extract_plist'], skip_spec_status_hashes()['cask.extract_plist'], false)
 }
 
 // Ruby it `it "skips" do` at line 443.
-pub fn ruby_skip_conditions_spec_l443_d17_skips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skips', ...args)
+pub fn ruby_skip_conditions_spec_l443_d17_skips() bool {
+	return skip_spec_information(skip_spec_casks()['latest'], skip_spec_status_hashes()['cask.latest'], true)
 }
 
 // Ruby it `it "skips" do` at line 450.
-pub fn ruby_skip_conditions_spec_l450_d18_skips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skips', ...args)
+pub fn ruby_skip_conditions_spec_l450_d18_skips() bool {
+	return skip_spec_information(skip_spec_casks()['unversioned'], skip_spec_status_hashes()['cask.unversioned'], true)
 }
 
 // Ruby it `it "skips" do` at line 457.
-pub fn ruby_skip_conditions_spec_l457_d19_skips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skips', ...args)
+pub fn ruby_skip_conditions_spec_l457_d19_skips() bool {
+	casks := skip_spec_casks()
+	statuses := skip_spec_status_hashes()
+	return skip_spec_information(casks['skip'], statuses['cask.skip'], true) && skip_spec_information(casks['skip_with_message'], statuses['cask.skip_with_message'], true)
 }
 
 // Ruby it `it "returns an empty hash for a non-skippable formula" do` at line 466.
-pub fn ruby_skip_conditions_spec_l466_d20_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_skip_conditions_spec_l466_d20_returns() bool {
+	return !livecheck_core.ruby_skip_conditions_l235_d11_self_skip_information(skip_spec_formulae()['basic'], false, false, true).present
 }
 
 // Ruby it `it "returns an empty hash for a non-skippable cask" do` at line 470.
-pub fn ruby_skip_conditions_spec_l470_d21_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_skip_conditions_spec_l470_d21_returns() bool {
+	return !livecheck_core.ruby_skip_conditions_l235_d11_self_skip_information(skip_spec_casks()['basic'], false, false, true).present
 }
 
 // Ruby let `let(:original_name) { "original" }` at line 476.
-pub fn ruby_skip_conditions_spec_l476_d22_original_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('original_name', ...args)
+pub fn ruby_skip_conditions_spec_l476_d22_original_name() string {
+	return 'original'
 }
 
 // Ruby it `it "errors" do` at line 479.
-pub fn ruby_skip_conditions_spec_l479_d23_errors(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('errors', ...args)
+pub fn ruby_skip_conditions_spec_l479_d23_errors() bool {
+	return skip_spec_reference_error(skip_spec_formulae()['deprecated'], 'Referenced formula (test_deprecated) is skipped as deprecated', true)
 }
 
 // Ruby it `it "errors" do` at line 486.
-pub fn ruby_skip_conditions_spec_l486_d24_errors(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('errors', ...args)
+pub fn ruby_skip_conditions_spec_l486_d24_errors() bool {
+	return skip_spec_reference_error(skip_spec_formulae()['disabled'], 'Referenced formula (test_disabled) is skipped as disabled', true)
 }
 
 // Ruby it `it "errors" do` at line 493.
-pub fn ruby_skip_conditions_spec_l493_d25_errors(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('errors', ...args)
+pub fn ruby_skip_conditions_spec_l493_d25_errors() bool {
+	return skip_spec_reference_error(skip_spec_formulae()['versioned'], 'Referenced formula (test@0.0.1) is skipped as versioned', true)
 }
 
 // Ruby it `it "skips" do` at line 500.
-pub fn ruby_skip_conditions_spec_l500_d26_skips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skips', ...args)
+pub fn ruby_skip_conditions_spec_l500_d26_skips() bool {
+	mut expected := skip_spec_status_hashes()['formula.head_only']
+	expected.package_name = 'original'
+	return skip_spec_referenced(skip_spec_formulae()['head_only'], expected, true)
 }
 
 // Ruby it `it "errors" do` at line 507.
-pub fn ruby_skip_conditions_spec_l507_d27_errors(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('errors', ...args)
+pub fn ruby_skip_conditions_spec_l507_d27_errors() bool {
+	return skip_spec_reference_error(skip_spec_formulae()['gist'], 'Referenced formula (test_gist) is automatically skipped', true)
 }
 
 // Ruby it `it "errors" do` at line 514.
-pub fn ruby_skip_conditions_spec_l514_d28_errors(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('errors', ...args)
+pub fn ruby_skip_conditions_spec_l514_d28_errors() bool {
+	return skip_spec_reference_error(skip_spec_formulae()['google_code_archive'], 'Referenced formula (test_google_code_archive) is automatically skipped', true)
 }
 
 // Ruby it `it "errors" do` at line 521.
-pub fn ruby_skip_conditions_spec_l521_d29_errors(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('errors', ...args)
+pub fn ruby_skip_conditions_spec_l521_d29_errors() bool {
+	return skip_spec_reference_error(skip_spec_formulae()['internet_archive'], 'Referenced formula (test_internet_archive) is automatically skipped', true)
 }
 
 // Ruby it `it "skips" do` at line 528.
-pub fn ruby_skip_conditions_spec_l528_d30_skips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skips', ...args)
+pub fn ruby_skip_conditions_spec_l528_d30_skips() bool {
+	formulae := skip_spec_formulae()
+	statuses := skip_spec_status_hashes()
+	mut expected_skip := statuses['formula.skip']
+	expected_skip.package_name = 'original'
+	mut expected_message := statuses['formula.skip_with_message']
+	expected_message.package_name = 'original'
+	return skip_spec_referenced(formulae['skip'], expected_skip, true) && skip_spec_referenced(formulae['skip_with_message'], expected_message, true)
 }
 
 // Ruby it `it "errors" do` at line 538.
-pub fn ruby_skip_conditions_spec_l538_d31_errors(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('errors', ...args)
+pub fn ruby_skip_conditions_spec_l538_d31_errors() bool {
+	return skip_spec_reference_error(skip_spec_casks()['deprecated'], 'Referenced cask (test_deprecated) is skipped as deprecated', true)
 }
 
 // Ruby it `it "errors" do` at line 545.
-pub fn ruby_skip_conditions_spec_l545_d32_errors(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('errors', ...args)
+pub fn ruby_skip_conditions_spec_l545_d32_errors() bool {
+	return skip_spec_reference_error(skip_spec_casks()['disabled'], 'Referenced cask (test_disabled) is skipped as disabled', true)
 }
 
 // Ruby it `it "skips" do` at line 552.
-pub fn ruby_skip_conditions_spec_l552_d33_skips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skips', ...args)
+pub fn ruby_skip_conditions_spec_l552_d33_skips() bool {
+	return skip_spec_reference_error(skip_spec_casks()['extract_plist'], 'Referenced cask (test_extract_plist_skip) is automatically skipped', false)
 }
 
 // Ruby it `it "errors" do` at line 561.
-pub fn ruby_skip_conditions_spec_l561_d34_errors(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('errors', ...args)
+pub fn ruby_skip_conditions_spec_l561_d34_errors() bool {
+	return skip_spec_reference_error(skip_spec_casks()['latest'], 'Referenced cask (test_latest) is skipped as latest', true)
 }
 
 // Ruby it `it "errors" do` at line 568.
-pub fn ruby_skip_conditions_spec_l568_d35_errors(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('errors', ...args)
+pub fn ruby_skip_conditions_spec_l568_d35_errors() bool {
+	return skip_spec_reference_error(skip_spec_casks()['unversioned'], 'Referenced cask (test_unversioned) is skipped as unversioned', true)
 }
 
 // Ruby it `it "skips" do` at line 575.
-pub fn ruby_skip_conditions_spec_l575_d36_skips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skips', ...args)
+pub fn ruby_skip_conditions_spec_l575_d36_skips() bool {
+	casks := skip_spec_casks()
+	statuses := skip_spec_status_hashes()
+	mut expected_skip := statuses['cask.skip']
+	expected_skip.package_name = 'original'
+	mut expected_message := statuses['cask.skip_with_message']
+	expected_message.package_name = 'original'
+	return skip_spec_referenced(casks['skip'], expected_skip, true) && skip_spec_referenced(casks['skip_with_message'], expected_message, true)
 }
 
 // Ruby it `it "returns an empty hash for a non-skippable formula" do` at line 584.
-pub fn ruby_skip_conditions_spec_l584_d37_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_skip_conditions_spec_l584_d37_returns() bool {
+	result := livecheck_core.ruby_skip_conditions_l273_d12_self_referenced_skip_information(skip_spec_formulae()['basic'], 'original', false, false, true) or { return false }
+	return !result.has_information
 }
 
 // Ruby it `it "returns an empty hash for a non-skippable cask" do` at line 588.
-pub fn ruby_skip_conditions_spec_l588_d38_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_skip_conditions_spec_l588_d38_returns() bool {
+	result := livecheck_core.ruby_skip_conditions_l273_d12_self_referenced_skip_information(skip_spec_casks()['basic'], 'original', false, false, true) or { return false }
+	return !result.has_information
 }
 
 // Ruby it `it "prints skip information" do` at line 595.
-pub fn ruby_skip_conditions_spec_l595_d39_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+pub fn ruby_skip_conditions_spec_l595_d39_prints() bool {
+	return skip_spec_print(skip_spec_status_hashes()['formula.deprecated'], 'test_deprecated: deprecated\n')
 }
 
 // Ruby it `it "prints skip information" do` at line 603.
-pub fn ruby_skip_conditions_spec_l603_d40_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+pub fn ruby_skip_conditions_spec_l603_d40_prints() bool {
+	return skip_spec_print(skip_spec_status_hashes()['formula.disabled'], 'test_disabled: disabled\n')
 }
 
 // Ruby it `it "prints skip information" do` at line 611.
-pub fn ruby_skip_conditions_spec_l611_d41_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+pub fn ruby_skip_conditions_spec_l611_d41_prints() bool {
+	return skip_spec_print(skip_spec_status_hashes()['formula.versioned'], 'test@0.0.1: versioned\n')
 }
 
 // Ruby it `it "prints skip information" do` at line 619.
-pub fn ruby_skip_conditions_spec_l619_d42_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+pub fn ruby_skip_conditions_spec_l619_d42_prints() bool {
+	return skip_spec_print(skip_spec_status_hashes()['formula.head_only'], 'test_head_only: HEAD only formula must be installed to be checkable\n')
 }
 
 // Ruby it `it "prints skip information" do` at line 627.
-pub fn ruby_skip_conditions_spec_l627_d43_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+pub fn ruby_skip_conditions_spec_l627_d43_prints() bool {
+	return skip_spec_print(skip_spec_status_hashes()['formula.gist'], 'test_gist: skipped - Stable URL is a GitHub Gist\n')
 }
 
 // Ruby it `it "prints skip information" do` at line 635.
-pub fn ruby_skip_conditions_spec_l635_d44_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+pub fn ruby_skip_conditions_spec_l635_d44_prints() bool {
+	return skip_spec_print(skip_spec_status_hashes()['formula.google_code_archive'], 'test_google_code_archive: skipped - Stable URL is from Google Code Archive\n')
 }
 
 // Ruby it `it "prints skip information" do` at line 643.
-pub fn ruby_skip_conditions_spec_l643_d45_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+pub fn ruby_skip_conditions_spec_l643_d45_prints() bool {
+	return skip_spec_print(skip_spec_status_hashes()['formula.internet_archive'], 'test_internet_archive: skipped - Stable URL is from Internet Archive\n')
 }
 
 // Ruby it `it "prints skip information" do` at line 651.
-pub fn ruby_skip_conditions_spec_l651_d46_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+pub fn ruby_skip_conditions_spec_l651_d46_prints() bool {
+	statuses := skip_spec_status_hashes()
+	return skip_spec_print(statuses['formula.skip'], 'test_skip: skipped\n') && skip_spec_print(statuses['formula.skip_with_message'], 'test_skip_with_message: skipped - Not maintained\n')
 }
 
 // Ruby it `it "prints skip information" do` at line 663.
-pub fn ruby_skip_conditions_spec_l663_d47_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+pub fn ruby_skip_conditions_spec_l663_d47_prints() bool {
+	statuses := skip_spec_status_hashes()
+	return skip_spec_print(statuses['formula.skip_with_messages'], 'test_skip_with_messages: skipped - First message; Second message\n') && skip_spec_print(statuses['formula.error_with_messages'], 'test_error_with_messages: First error; Second error\n')
 }
 
 // Ruby it `it "prints skip information" do` at line 679.
-pub fn ruby_skip_conditions_spec_l679_d48_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+pub fn ruby_skip_conditions_spec_l679_d48_prints() bool {
+	return skip_spec_print(skip_spec_status_hashes()['cask.deprecated'], 'test_deprecated: deprecated\n')
 }
 
 // Ruby it `it "prints skip information" do` at line 687.
-pub fn ruby_skip_conditions_spec_l687_d49_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+pub fn ruby_skip_conditions_spec_l687_d49_prints() bool {
+	return skip_spec_print(skip_spec_status_hashes()['cask.disabled'], 'test_disabled: disabled\n')
 }
 
 // Ruby it `it "prints skip information" do` at line 695.
-pub fn ruby_skip_conditions_spec_l695_d50_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+pub fn ruby_skip_conditions_spec_l695_d50_prints() bool {
+	return skip_spec_print(skip_spec_status_hashes()['cask.latest'], 'test_latest: latest\n')
 }
 
 // Ruby it `it "prints skip information" do` at line 703.
-pub fn ruby_skip_conditions_spec_l703_d51_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+pub fn ruby_skip_conditions_spec_l703_d51_prints() bool {
+	return skip_spec_print(skip_spec_status_hashes()['cask.unversioned'], 'test_unversioned: unversioned\n')
 }
 
 // Ruby it `it "prints skip information" do` at line 711.
-pub fn ruby_skip_conditions_spec_l711_d52_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+pub fn ruby_skip_conditions_spec_l711_d52_prints() bool {
+	statuses := skip_spec_status_hashes()
+	return skip_spec_print(statuses['cask.skip'], 'test_skip: skipped\n') && skip_spec_print(statuses['cask.skip_with_message'], 'test_skip_with_message: skipped - Not maintained\n')
 }
 
 // Ruby it `it "prints skip information" do` at line 723.
-pub fn ruby_skip_conditions_spec_l723_d53_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+pub fn ruby_skip_conditions_spec_l723_d53_prints() bool {
+	statuses := skip_spec_status_hashes()
+	return skip_spec_print(statuses['cask.skip_with_messages'], 'test_skip_with_messages: skipped - First message; Second message\n') && skip_spec_print(statuses['cask.error_with_messages'], 'test_error_with_messages: First error; Second error\n')
 }
 
 // Ruby it `it "prints nothing" do` at line 739.
-pub fn ruby_skip_conditions_spec_l739_d54_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+pub fn ruby_skip_conditions_spec_l739_d54_prints() bool {
+	return skip_spec_print(SkipInformation{}, '')
 }
 
 // Original Ruby source (line-for-line):

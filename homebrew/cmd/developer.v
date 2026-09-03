@@ -1,13 +1,14 @@
 module cmd
 
-import brew_runtime
+import homebrew.developer
+import homebrew.developer.subcommand
 
 // Translated from Homebrew/brew `cmd/developer.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `run` at line 24.
-pub fn ruby_developer_l24_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('run', ...args)
+pub fn ruby_developer_l24_d1_run(arguments []string, mut state subcommand.DeveloperState) !string {
+	return developer.ruby_subcommand_l16_d1_dispatch(arguments, mut state)
 }
 
 // Original Ruby source (line-for-line):

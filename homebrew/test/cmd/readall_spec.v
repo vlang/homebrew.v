@@ -1,58 +1,173 @@
 module cmd
 
-import brew_runtime
+import homebrew
+import homebrew.cmd as readall_cmd
+import homebrew.readall as readall_core
 
 // Translated from Homebrew/brew `test/cmd/readall_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+fn readall_spec_linux_cask(path string, arm_sha bool, intel_sha bool,
+	excluded []readall_core.SystemArch) readall_core.CaskFile {
+	return readall_core.CaskFile{
+		path: path
+		supports_linux: true
+		sha256_by_arch: {
+			'arm':   arm_sha
+			'intel': intel_sha
+		}
+		excluded_linux_arches: excluded.clone()
+	}
+}
+
+fn readall_spec_tap(casks []readall_core.CaskFile) readall_core.Tap {
+	return readall_core.Tap{
+		name: 'homebrew/core'
+		cask_files: casks.clone()
+	}
+}
 
 // Ruby it `it "imports all Formulae for a given Tap", :integration_test do` at line 10.
-pub fn ruby_readall_spec_l10_d1_imports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('imports', ...args)
+pub fn ruby_readall_spec_l10_d1_imports() bool {
+	tap := readall_core.Tap{
+		name: 'homebrew/core'
+		alias_dir_exists: true
+		aliases: [readall_core.AliasEntry{
+			path: '/tap/Aliases/foobar'
+			name: 'foobar'
+			symlink: true
+			file: true
+		}]
+		formula_files: [readall_core.FormulaFile{ path: '/tap/Formula/testball.rb' }]
+	}
+	result := readall_cmd.ruby_readall_l37_d1_run(['--aliases', '--syntax', 'homebrew/core'], readall_cmd.ReadallCommandConfig{
+		named_taps: {
+			'homebrew/core': tap
+		}
+	}) or { return false }
+	return !result.failed && result.selected_taps == ['homebrew/core'] && result.stdout == '' && result.stderr == '' && result.no_api_environment
 }
 
 // Ruby it `it "skips macOS-only casks when loading tap casks on Linux" do` at line 24.
-pub fn ruby_readall_spec_l24_d2_skips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skips', ...args)
+pub fn ruby_readall_spec_l24_d2_skips() bool {
+	macos_only := readall_core.CaskFile{
+		path: '/tap/Casks/macos-only-example.rb'
+		supports_linux: false
+	}
+	linux := readall_spec_linux_cask('/tap/Casks/linux-example.rb', false, true, [])
+	mut state := readall_core.new_state()
+	result := homebrew.ruby_readall_l184_d8_self_valid_tap(mut state, readall_spec_tap([
+		macos_only,
+		linux,
+	]), readall_core.TapValidationOptions{
+		os_arch_combinations: [
+			readall_core.SystemCombination{ os: .linux, arch: .arm },
+		]
+		current_os: .linux
+	})
+	return !result.valid && result.stderr.contains('linux-example') && !result.stderr.contains('macos-only-example')
 }
 
 // Ruby it `it "returns true for valid Ruby files" do` at line 69.
-pub fn ruby_readall_spec_l69_d3_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_readall_spec_l69_d3_returns() bool {
+	result := homebrew.ruby_readall_l42_d4_self_valid_ruby_syntax([
+		readall_core.RubyFile{ path: '/tmp/valid.rb', contents: 'puts 1\n' },
+	], 4, readall_core.compile_ruby_file)
+	return result.valid && result.stderr == ''
 }
 
 // Ruby it `it "prints errors for files with invalid syntax" do` at line 78.
-pub fn ruby_readall_spec_l78_d4_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+pub fn ruby_readall_spec_l78_d4_prints() bool {
+	result := homebrew.ruby_readall_l42_d4_self_valid_ruby_syntax([
+		readall_core.RubyFile{ path: '/tmp/invalid.rb', contents: 'def foo(\n' },
+	], 4, readall_core.compile_ruby_file)
+	return !result.valid && result.stderr.contains('syntax error')
 }
 
 // Ruby it `it "prints warnings for files with questionable syntax" do` at line 87.
-pub fn ruby_readall_spec_l87_d5_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+pub fn ruby_readall_spec_l87_d5_prints() bool {
+	result := homebrew.ruby_readall_l42_d4_self_valid_ruby_syntax([
+		readall_core.RubyFile{
+			path: '/tmp/warning.rb'
+			contents: 'def foo\n  bar = 1\n  nil\nend\n'
+		},
+	], 4, readall_core.compile_ruby_file)
+	return !result.valid && result.stderr.contains('unused variable')
 }
 
 // Ruby it `it "aggregates failures across parallel worker processes" do` at line 96.
-pub fn ruby_readall_spec_l96_d6_aggregates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('aggregates', ...args)
+pub fn ruby_readall_spec_l96_d6_aggregates() bool {
+	mut files := []readall_core.RubyFile{}
+	for index in 1 .. 10 {
+		files << readall_core.RubyFile{
+			path: '/tmp/valid${index}.rb'
+			contents: 'puts ${index}\n'
+		}
+	}
+	files << readall_core.RubyFile{ path: '/tmp/invalid.rb', contents: 'def foo(\n' }
+	result := homebrew.ruby_readall_l42_d4_self_valid_ruby_syntax(files, 8, readall_core.compile_ruby_file)
+	return !result.valid && result.worker_count == 2 && result.processed.len == 10 && result.stderr.contains('syntax error')
 }
 
 // Ruby it `it "validates tap files in parallel worker processes" do` at line 113.
-pub fn ruby_readall_spec_l113_d7_validates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('validates', ...args)
+pub fn ruby_readall_spec_l113_d7_validates() bool {
+	mut casks := []readall_core.CaskFile{}
+	for index in 1 .. 9 {
+		casks << readall_spec_linux_cask('/tap/Casks/linux-example${index}.rb', false, false, [])
+	}
+	mut state := readall_core.new_state()
+	result := homebrew.ruby_readall_l184_d8_self_valid_tap(mut state, readall_spec_tap(casks), readall_core.TapValidationOptions{
+		os_arch_combinations: [
+			readall_core.SystemCombination{ os: .linux, arch: .arm },
+		]
+		cores: 8
+		current_os: .linux
+	})
+	return !result.valid && result.worker_count == 2 && result.stderr.contains('linux-example1.rb') && result.stderr.contains('linux-example8.rb')
 }
 
 // Ruby it `it "explains nil sha256 values when loading tap casks on Linux" do` at line 145.
-pub fn ruby_readall_spec_l145_d8_explains(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('explains', ...args)
+pub fn ruby_readall_spec_l145_d8_explains() bool {
+	mut state := readall_core.new_state()
+	result := homebrew.ruby_readall_l184_d8_self_valid_tap(mut state, readall_spec_tap([
+		readall_spec_linux_cask('/tap/Casks/linux-example.rb', false, false, []),
+	]), readall_core.TapValidationOptions{
+		os_arch_combinations: [
+			readall_core.SystemCombination{ os: .linux, arch: .arm },
+		]
+		current_os: .linux
+	})
+	return !result.valid && result.stderr.contains('Missing Linux stanzas') && result.stderr.contains('`depends_on :macos`')
 }
 
 // Ruby it `it "reports Linux architectures missing a checksum despite an `on_macos` macOS dependency" do` at line 174.
-pub fn ruby_readall_spec_l174_d9_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_readall_spec_l174_d9_reports() bool {
+	mut state := readall_core.new_state()
+	result := homebrew.ruby_readall_l184_d8_self_valid_tap(mut state, readall_spec_tap([
+		readall_spec_linux_cask('/tap/Casks/cross-os-example.rb', false, true, []),
+	]), readall_core.TapValidationOptions{
+		os_arch_combinations: [
+			readall_core.SystemCombination{ os: .linux, arch: .arm },
+		]
+		current_os: .linux
+	})
+	return !result.valid && result.stderr.contains('Missing Linux stanzas')
 }
 
 // Ruby it `it "allows Linux architectures excluded by `depends_on arch:`" do` at line 210.
-pub fn ruby_readall_spec_l210_d10_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+pub fn ruby_readall_spec_l210_d10_allows() bool {
+	mut state := readall_core.new_state()
+	result := homebrew.ruby_readall_l184_d8_self_valid_tap(mut state, readall_spec_tap([
+		readall_spec_linux_cask('/tap/Casks/linux-intel-example.rb', false, true, [
+			.arm,
+		]),
+	]), readall_core.TapValidationOptions{
+		os_arch_combinations: [
+			readall_core.SystemCombination{ os: .linux, arch: .arm },
+			readall_core.SystemCombination{ os: .linux, arch: .intel },
+		]
+		current_os: .linux
+	})
+	return result.valid && result.stderr == ''
 }
 
 // Original Ruby source (line-for-line):

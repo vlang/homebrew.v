@@ -1,13 +1,16 @@
 module linux
 
-import brew_runtime
-
 // Translated from Homebrew/brew `extend/os/linux/formula_installer.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub fn linux_fresh_install(developer bool, installed_on_request bool,
+	any_version_installed bool) bool {
+	return !developer && (installed_on_request || !any_version_installed)
+}
 
 // Ruby method `fresh_install?(formula)` at line 6.
-pub fn ruby_formula_installer_l6_d1_fresh_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fresh_install?', ...args)
+pub fn ruby_formula_installer_l6_d1_fresh_install(developer bool, installed_on_request bool,
+	any_version_installed bool) bool {
+	return linux_fresh_install(developer, installed_on_request, any_version_installed)
 }
 
 // Original Ruby source (line-for-line):

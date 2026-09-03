@@ -1,258 +1,617 @@
 module livecheck
 
-import brew_runtime
+import homebrew.livecheck as strategy_core
+import homebrew.utils
+import json2
 
 // Translated from Homebrew/brew `test/livecheck/strategy_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub struct StrategySpecResponses {
+pub:
+	ok          utils.CurlResponse
+	redirection utils.CurlResponse
+}
+
+fn strategy_spec_http_match(url string) bool {
+	lower := url.to_lower()
+	return lower.starts_with('http://') || lower.starts_with('https://')
+}
+
+fn strategy_spec_sourceforge_match(url string) bool {
+	lower := url.to_lower()
+	return (lower.starts_with('http://') || lower.starts_with('https://')) && (lower.contains('sourceforge.net/projects/') || lower.contains('sf.net/projects/'))
+}
+
+fn strategy_spec_registry() strategy_core.StrategyRegistry {
+	return strategy_core.ruby_strategy_l106_d1_self_strategies([
+		strategy_core.StrategyConstant{ name: 'DEFAULT_PRIORITY' },
+		strategy_core.StrategyConstant{
+			name: 'Json'
+			is_class: true
+			kind: .json
+			priority: 0
+			has_priority: true
+			has_matcher: true
+			matcher: strategy_spec_http_match
+		},
+		strategy_core.StrategyConstant{
+			name: 'PageMatch'
+			is_class: true
+			kind: .page_match
+			priority: 0
+			has_priority: true
+			has_matcher: true
+			matcher: strategy_spec_http_match
+		},
+		strategy_core.StrategyConstant{
+			name: 'Sourceforge'
+			is_class: true
+			has_matcher: true
+			matcher: strategy_spec_sourceforge_match
+		},
+		strategy_core.StrategyConstant{
+			name: 'Xml'
+			is_class: true
+			kind: .xml
+			priority: 0
+			has_priority: true
+			has_matcher: true
+			matcher: strategy_spec_http_match
+		},
+		strategy_core.StrategyConstant{
+			name: 'Yaml'
+			is_class: true
+			kind: .yaml
+			priority: 0
+			has_priority: true
+			has_matcher: true
+			matcher: strategy_spec_http_match
+		},
+	])
+}
+
+fn strategy_spec_names(strategies []strategy_core.StrategyDefinition) []string {
+	return strategies.map(it.name)
+}
+
+fn strategy_spec_post_form() strategy_core.StrategyPostForm {
+	values := ruby_strategy_spec_l11_d4_post_hash()
+	return strategy_core.StrategyPostForm{
+		present: true
+		values: values
+		order: ['empty', 'boolean', 'number', 'string']
+	}
+}
+
+fn strategy_spec_post_json() strategy_core.StrategyPostJson {
+	mut values := map[string]json2.Any{}
+	for key, value in ruby_strategy_spec_l11_d4_post_hash() {
+		values[key] = json2.Any(value)
+	}
+	return strategy_core.StrategyPostJson{
+		present: true
+		values: values
+		order: ['empty', 'boolean', 'number', 'string']
+	}
+}
+
+fn strategy_spec_headers_fetcher(_ strategy_core.StrategyCurlRequest) !utils.CurlParsedOutput {
+	return utils.CurlParsedOutput{
+		responses: [ruby_strategy_spec_l21_d7_response_hash().ok]
+		body: ruby_strategy_spec_l59_d8_body()
+	}
+}
+
+fn strategy_spec_headers_exact_fetcher(request strategy_core.StrategyCurlRequest) !utils.CurlParsedOutput {
+	expected_arguments := ['--max-redirs', '5', '--proto-redir', '=https',
+		ruby_strategy_spec_l9_d2_url()]
+	if request.arguments != expected_arguments || request.wanted_headers != ['location',
+		'content-disposition'] || request.use_homebrew_curl || request.has_cookies || request.has_headers || request.referer != '' || request.user_agent != 'default' || request.print_stdout || request.print_stderr || request.debug || request.verbose || request.timeout != 20 || request.connect_timeout != 10 || request.max_time != 15 || request.retries != 0 {
+		return error('unexpected page_headers curl request')
+	}
+	return strategy_spec_headers_fetcher(request)
+}
+
+fn strategy_spec_headers_error(_ strategy_core.StrategyCurlRequest) !utils.CurlParsedOutput {
+	return error('curl headers failed')
+}
+
+fn strategy_spec_content_result(content string, exit_status int) utils.CurlCommandResult {
+	return utils.CurlCommandResult{
+		stdout: content
+		exit_status: exit_status
+	}
+}
+
+fn strategy_spec_content_fetcher(_ strategy_core.StrategyCurlRequest) !utils.CurlCommandResult {
+	return strategy_spec_content_result(ruby_strategy_spec_l75_d9_response_text()['ok'], 0)
+}
+
+fn strategy_spec_content_exact_fetcher(request strategy_core.StrategyCurlRequest) !utils.CurlCommandResult {
+	expected_arguments := ['--fail-with-body', '--include', '--location', '--max-redirs', '5',
+		'--proto-redir', '=https', '--silent', '--compressed', ruby_strategy_spec_l9_d2_url()]
+	if request.arguments != expected_arguments || request.use_homebrew_curl || request.has_cookies || request.has_headers || request.referer != '' || request.user_agent != 'default' || request.print_stdout || request.print_stderr || request.debug || request.verbose || request.timeout != 20 || request.connect_timeout != 10 || request.max_time != 15 || request.retries != 0 {
+		return error('unexpected page_content curl request')
+	}
+	return strategy_spec_content_fetcher(request)
+}
+
+fn strategy_spec_content_uncompressed_fetcher(request strategy_core.StrategyCurlRequest) !utils.CurlCommandResult {
+	expected_arguments := ['--fail-with-body', '--include', '--location', '--max-redirs', '5',
+		'--proto-redir', '=https', '--silent', ruby_strategy_spec_l9_d2_url()]
+	if request.arguments != expected_arguments || request.use_homebrew_curl || request.has_cookies || request.has_headers || request.referer != '' || request.user_agent != 'default' || request.print_stdout || request.print_stderr || request.debug || request.verbose || request.timeout != 20 || request.connect_timeout != 10 || request.max_time != 15 || request.retries != 0 {
+		return error('unexpected uncompressed page_content curl request')
+	}
+	return strategy_spec_content_fetcher(request)
+}
+
+fn strategy_spec_content_failure(_ strategy_core.StrategyCurlRequest) !utils.CurlCommandResult {
+	return utils.CurlCommandResult{
+		stderr: 'curl: (6) Could not resolve host: brew.sh'
+		exit_status: 6
+	}
+}
+
+fn strategy_spec_content_default_failure(_ strategy_core.StrategyCurlRequest) !utils.CurlCommandResult {
+	return utils.CurlCommandResult{ exit_status: 1 }
+}
+
+fn strategy_spec_content_redirection(_ strategy_core.StrategyCurlRequest) !utils.CurlCommandResult {
+	return strategy_spec_content_result(ruby_strategy_spec_l75_d9_response_text()['redirection_to_ok'], 0)
+}
+
+fn strategy_spec_content_matches(data strategy_core.StrategyContentData) bool {
+	return data.has_content && data.content == ruby_strategy_spec_l59_d8_body()
+}
 
 // Ruby subject `subject(:strategy) { described_class }` at line 7.
-pub fn ruby_strategy_spec_l7_d1_strategy(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('strategy', ...args)
+pub fn ruby_strategy_spec_l7_d1_strategy() string {
+	return 'Strategy'
 }
 
 // Ruby let `let(:url) { "https://brew.sh/" }` at line 9.
-pub fn ruby_strategy_spec_l9_d2_url(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('url', ...args)
+pub fn ruby_strategy_spec_l9_d2_url() string {
+	return 'https://brew.sh/'
 }
 
 // Ruby let `let(:redirection_url) { "https://brew.sh/redirection" }` at line 10.
-pub fn ruby_strategy_spec_l10_d3_redirection_url(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('redirection_url', ...args)
+pub fn ruby_strategy_spec_l10_d3_redirection_url() string {
+	return 'https://brew.sh/redirection'
 }
 
 // Ruby let `let(:post_hash) do` at line 11.
-pub fn ruby_strategy_spec_l11_d4_post_hash(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('post_hash', ...args)
+pub fn ruby_strategy_spec_l11_d4_post_hash() map[string]string {
+	return {
+		'empty':   ''
+		'boolean': 'true'
+		'number':  '1'
+		'string':  'a + b = c'
+	}
 }
 
 // Ruby let `let(:form_string) { "empty=&boolean=true&number=1&string=a+%2B+b+%3D+c" }` at line 19.
-pub fn ruby_strategy_spec_l19_d5_form_string(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('form_string', ...args)
+pub fn ruby_strategy_spec_l19_d5_form_string() string {
+	return 'empty=&boolean=true&number=1&string=a+%2B+b+%3D+c'
 }
 
 // Ruby let `let(:json_string) { '{"empty":"","boolean":"true","number":"1","string":"a + b = c"}' }` at line 20.
-pub fn ruby_strategy_spec_l20_d6_json_string(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('json_string', ...args)
+pub fn ruby_strategy_spec_l20_d6_json_string() string {
+	return '{"empty":"","boolean":"true","number":"1","string":"a + b = c"}'
 }
 
 // Ruby let `let(:response_hash) do` at line 21.
-pub fn ruby_strategy_spec_l21_d7_response_hash(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('response_hash', ...args)
+pub fn ruby_strategy_spec_l21_d7_response_hash() StrategySpecResponses {
+	common := {
+		'cache-control':  ['max-age=604800, must-revalidate', 'public, no-transform']
+		'content-type':   ['text/html; charset=UTF-8']
+		'date':           ['Wed, 1 Jan 2020 01:23:45 GMT']
+		'expires':        ['Wed, 31 Jan 2020 01:23:45 GMT']
+		'last-modified':  ['Thu, 1 Jan 2019 01:23:45 GMT']
+		'content-length': ['123']
+	}
+	mut redirected := common.clone()
+	redirected['location'] = [ruby_strategy_spec_l10_d3_redirection_url()]
+	return StrategySpecResponses{
+		ok: utils.CurlResponse{
+			status_code: '200'
+			status_text: 'OK'
+			headers: common
+		}
+		redirection: utils.CurlResponse{
+			status_code: '301'
+			status_text: 'Moved Permanently'
+			headers: redirected
+		}
+	}
 }
 
 // Ruby let `let(:body) do` at line 59.
-pub fn ruby_strategy_spec_l59_d8_body(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('body', ...args)
+pub fn ruby_strategy_spec_l59_d8_body() string {
+	return [
+		'<!DOCTYPE html>',
+		'<html>',
+		'  <head>',
+		'    <meta charset="utf-8">',
+		'    <title>Thank you!</title>',
+		'  </head>',
+		'  <body>',
+		'    <h1>Download</h1>',
+		'    <p>This download link could have been made publicly available in a reasonable fashion but we appreciate that you jumped through the hoops that we carefully set up!: <a href="https://brew.sh/example-1.2.3.tar.gz">Example v1.2.3</a></p>',
+		'    <p>The current legacy version is: <a href="https://brew.sh/example-0.1.2.tar.gz">Example v0.1.2</a></p>',
+		'  </body>',
+		'</html>',
+	].join('\n') + '\n'
 }
 
 // Ruby let `let(:response_text) do` at line 75.
-pub fn ruby_strategy_spec_l75_d9_response_text(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('response_text', ...args)
+pub fn ruby_strategy_spec_l75_d9_response_text() map[string]string {
+	ok := ['HTTP/1.1 200 OK\r',
+		'Cache-Control: ["max-age=604800, must-revalidate", "public, no-transform"]\r',
+		'Content-Type: text/html; charset=UTF-8\r', 'Date: Wed, 1 Jan 2020 01:23:45 GMT\r',
+		'Expires: Wed, 31 Jan 2020 01:23:45 GMT\r', 'Last-Modified: Thu, 1 Jan 2019 01:23:45 GMT\r',
+		'Content-Length: 123\r', '\r', ruby_strategy_spec_l59_d8_body().trim_string_right('\n')].join('\n') + '\n'
+	redirected := ok.replace_once('HTTP/1.1 200 OK\r', 'HTTP/1.1 301 Moved Permanently\r\nLocation: ${ruby_strategy_spec_l10_d3_redirection_url()}\r')
+	return {
+		'ok':                ok
+		'redirection_to_ok': redirected
+	}
 }
 
 // Ruby it `it "returns the Strategy module represented by the Symbol argument" do` at line 100.
-pub fn ruby_strategy_spec_l100_d10_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_strategy_spec_l100_d10_returns() bool {
+	strategy := strategy_core.ruby_strategy_l127_d2_self_from_symbol(strategy_spec_registry(), 'page_match') or { return false }
+	return strategy.name == 'PageMatch'
 }
 
 // Ruby it `it "returns `nil` if the argument is `nil`" do` at line 104.
-pub fn ruby_strategy_spec_l104_d11_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_strategy_spec_l104_d11_returns() bool {
+	if _ := strategy_core.ruby_strategy_l127_d2_self_from_symbol(strategy_spec_registry(), none) {
+		return false
+	}
+	return true
 }
 
 // Ruby let `let(:sourceforge_url) { "https://sourceforge.net/projects/test" }` at line 110.
-pub fn ruby_strategy_spec_l110_d12_sourceforge_url(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sourceforge_url', ...args)
+pub fn ruby_strategy_spec_l110_d12_sourceforge_url() string {
+	return 'https://sourceforge.net/projects/test'
 }
 
 // Ruby it `it "returns an array of usable strategies which doesn't include PageMatch" do` at line 113.
-pub fn ruby_strategy_spec_l113_d13_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_strategy_spec_l113_d13_returns() bool {
+	strategies := strategy_core.ruby_strategy_l149_d3_self_from_url(strategy_spec_registry(), strategy_core.StrategyFromUrlRequest{ url: ruby_strategy_spec_l110_d12_sourceforge_url() })
+	return strategy_spec_names(strategies) == ['Sourceforge']
 }
 
 // Ruby it `it "returns an array of usable strategies including PageMatch, sorted in descending order by priority" do` at line 119.
-pub fn ruby_strategy_spec_l119_d14_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_strategy_spec_l119_d14_returns() bool {
+	strategies := strategy_core.ruby_strategy_l149_d3_self_from_url(strategy_spec_registry(), strategy_core.StrategyFromUrlRequest{
+		url: ruby_strategy_spec_l110_d12_sourceforge_url()
+		regex_provided: true
+	})
+	return strategy_spec_names(strategies) == ['Sourceforge', 'PageMatch']
 }
 
 // Ruby it `it "returns an array of usable strategies including the specified strategy" do` at line 128.
-pub fn ruby_strategy_spec_l128_d15_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_strategy_spec_l128_d15_returns() bool {
+	registry := strategy_spec_registry()
+	url := ruby_strategy_spec_l9_d2_url()
+	json_strategies := strategy_core.ruby_strategy_l149_d3_self_from_url(registry, strategy_core.StrategyFromUrlRequest{
+		url: url
+		livecheck_strategy: 'json'
+		block_provided: true
+	})
+	xml_strategies := strategy_core.ruby_strategy_l149_d3_self_from_url(registry, strategy_core.StrategyFromUrlRequest{
+		url: url
+		livecheck_strategy: 'xml'
+		block_provided: true
+	})
+	yaml_strategies := strategy_core.ruby_strategy_l149_d3_self_from_url(registry, strategy_core.StrategyFromUrlRequest{
+		url: url
+		livecheck_strategy: 'yaml'
+		block_provided: true
+	})
+	return strategy_spec_names(json_strategies) == ['Json', 'PageMatch'] && strategy_spec_names(xml_strategies) == [
+		'PageMatch',
+		'Xml',
+	] && strategy_spec_names(yaml_strategies) == ['PageMatch', 'Yaml']
 }
 
 // Ruby it `it "returns an array of usable strategies not including the specified strategy" do` at line 141.
-pub fn ruby_strategy_spec_l141_d16_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_strategy_spec_l141_d16_returns() bool {
+	registry := strategy_spec_registry()
+	for symbol in ['json', 'xml', 'yaml'] {
+		if strategy_core.ruby_strategy_l149_d3_self_from_url(registry, strategy_core.StrategyFromUrlRequest{
+			url: ruby_strategy_spec_l9_d2_url()
+			livecheck_strategy: symbol
+		}).len != 0 {
+			return false
+		}
+	}
+	return true
 }
 
 // Ruby let `let(:form_string_content_length) { "Content-Length:` at line 150.
-pub fn ruby_strategy_spec_l150_d17_form_string_content_length(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('form_string_content_length', ...args)
+pub fn ruby_strategy_spec_l150_d17_form_string_content_length() string {
+	return 'Content-Length: ${ruby_strategy_spec_l19_d5_form_string().len}'
 }
 
 // Ruby let `let(:json_string_content_length) { "Content-Length:` at line 151.
-pub fn ruby_strategy_spec_l151_d18_json_string_content_length(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('json_string_content_length', ...args)
+pub fn ruby_strategy_spec_l151_d18_json_string_content_length() string {
+	return 'Content-Length: ${ruby_strategy_spec_l20_d6_json_string().len}'
 }
 
 // Ruby it `it "returns an array including `--data` and an encoded form data string" do` at line 153.
-pub fn ruby_strategy_spec_l153_d19_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_strategy_spec_l153_d19_returns() bool {
+	form := strategy_spec_post_form()
+	expected := ['--data', ruby_strategy_spec_l19_d5_form_string(), '--header',
+		ruby_strategy_spec_l150_d17_form_string_content_length()]
+	form_only := strategy_core.ruby_strategy_l195_d4_self_post_args(strategy_core.StrategyPostRequest{
+		form: form
+	})
+	both := strategy_core.ruby_strategy_l195_d4_self_post_args(strategy_core.StrategyPostRequest{
+		form: form
+		json: strategy_spec_post_json()
+	})
+	return form_only == expected && both == expected
 }
 
 // Ruby it `it "returns an array including `--json` and a JSON string" do` at line 163.
-pub fn ruby_strategy_spec_l163_d20_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_strategy_spec_l163_d20_returns() bool {
+	return strategy_core.ruby_strategy_l195_d4_self_post_args(strategy_core.StrategyPostRequest{
+		json: strategy_spec_post_json()
+	}) == ['--json', ruby_strategy_spec_l20_d6_json_string(), '--header',
+		ruby_strategy_spec_l151_d18_json_string_content_length()]
 }
 
 // Ruby it `it "returns an empty array if `post_form` value is blank" do` at line 168.
-pub fn ruby_strategy_spec_l168_d21_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_strategy_spec_l168_d21_returns() bool {
+	return strategy_core.ruby_strategy_l195_d4_self_post_args(strategy_core.StrategyPostRequest{
+		form: strategy_core.StrategyPostForm{ present: true }
+	}).len == 0
 }
 
 // Ruby it `it "returns an empty array if `post_json` value is blank" do` at line 172.
-pub fn ruby_strategy_spec_l172_d22_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_strategy_spec_l172_d22_returns() bool {
+	return strategy_core.ruby_strategy_l195_d4_self_post_args(strategy_core.StrategyPostRequest{
+		json: strategy_core.StrategyPostJson{ present: true }
+	}).len == 0
 }
 
 // Ruby it `it "returns an empty array if hash argument doesn't have a `post_form` or `post_json` value" do` at line 176.
-pub fn ruby_strategy_spec_l176_d23_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_strategy_spec_l176_d23_returns() bool {
+	return strategy_core.ruby_strategy_l195_d4_self_post_args(strategy_core.StrategyPostRequest{}).len == 0
 }
 
 // Ruby let `let(:responses) { [response_hash[:ok]] }` at line 182.
-pub fn ruby_strategy_spec_l182_d24_responses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('responses', ...args)
+pub fn ruby_strategy_spec_l182_d24_responses() []utils.CurlResponse {
+	return [ruby_strategy_spec_l21_d7_response_hash().ok]
 }
 
 // Ruby it `it "returns headers from fetched content" do` at line 184.
-pub fn ruby_strategy_spec_l184_d25_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_strategy_spec_l184_d25_returns() bool {
+	headers := strategy_core.ruby_strategy_l226_d5_self_page_headers(ruby_strategy_spec_l9_d2_url(), strategy_core.StrategyOptions{}, strategy_spec_headers_fetcher)
+	return headers == [ruby_strategy_spec_l21_d7_response_hash().ok.headers]
 }
 
 // Ruby it `it "only allows HTTPS redirects" do` at line 190.
-pub fn ruby_strategy_spec_l190_d26_only(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('only', ...args)
+pub fn ruby_strategy_spec_l190_d26_only() bool {
+	headers := strategy_core.ruby_strategy_l226_d5_self_page_headers(ruby_strategy_spec_l9_d2_url(), strategy_core.StrategyOptions{}, strategy_spec_headers_exact_fetcher)
+	return headers == [ruby_strategy_spec_l21_d7_response_hash().ok.headers]
 }
 
 // Ruby it `it "handles `cookies` `url` options" do` at line 209.
-pub fn ruby_strategy_spec_l209_d27_handles(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('handles', ...args)
+pub fn ruby_strategy_spec_l209_d27_handles() bool {
+	headers := strategy_core.ruby_strategy_l226_d5_self_page_headers(ruby_strategy_spec_l9_d2_url(), strategy_core.StrategyOptions{
+		cookies: {
+			'cookie_key': 'cookie_value'
+		}
+		has_cookies: true
+	}, strategy_spec_headers_fetcher)
+	return headers.len == 1
 }
 
 // Ruby it `it "handles `header` `url` options" do` at line 222.
-pub fn ruby_strategy_spec_l222_d28_handles(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('handles', ...args)
+pub fn ruby_strategy_spec_l222_d28_handles() bool {
+	for headers in [['Accept: */*'], ['Accept: */*', 'X-Requested-With: XMLHttpRequest']] {
+		if strategy_core.ruby_strategy_l226_d5_self_page_headers(ruby_strategy_spec_l9_d2_url(), strategy_core.StrategyOptions{ headers: headers, has_headers: true }, strategy_spec_headers_fetcher).len != 1 {
+			return false
+		}
+	}
+	return true
 }
 
 // Ruby it `it "handles `post_form` `url` options" do` at line 242.
-pub fn ruby_strategy_spec_l242_d29_handles(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('handles', ...args)
+pub fn ruby_strategy_spec_l242_d29_handles() bool {
+	return strategy_core.ruby_strategy_l226_d5_self_page_headers(ruby_strategy_spec_l9_d2_url(), strategy_core.StrategyOptions{ post_form: strategy_spec_post_form() }, strategy_spec_headers_fetcher).len == 1
 }
 
 // Ruby it `it "handles `post_json` `url` options" do` at line 253.
-pub fn ruby_strategy_spec_l253_d30_handles(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('handles', ...args)
+pub fn ruby_strategy_spec_l253_d30_handles() bool {
+	return strategy_core.ruby_strategy_l226_d5_self_page_headers(ruby_strategy_spec_l9_d2_url(), strategy_core.StrategyOptions{ post_json: strategy_spec_post_json() }, strategy_spec_headers_fetcher).len == 1
 }
 
 // Ruby it `it "handles `referer` `url` option" do` at line 264.
-pub fn ruby_strategy_spec_l264_d31_handles(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('handles', ...args)
+pub fn ruby_strategy_spec_l264_d31_handles() bool {
+	return strategy_core.ruby_strategy_l226_d5_self_page_headers(ruby_strategy_spec_l9_d2_url(), strategy_core.StrategyOptions{ referer: 'https://brew.sh/' }, strategy_spec_headers_fetcher).len == 1
 }
 
 // Ruby it `it "handles `user_agent` `url` option" do` at line 275.
-pub fn ruby_strategy_spec_l275_d32_handles(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('handles', ...args)
+pub fn ruby_strategy_spec_l275_d32_handles() bool {
+	return strategy_core.ruby_strategy_l226_d5_self_page_headers(ruby_strategy_spec_l9_d2_url(), strategy_core.StrategyOptions{ user_agent: 'browser' }, strategy_spec_headers_fetcher).len == 1
 }
 
 // Ruby it `it "returns an empty array if `curl_headers` only raises an `ErrorDuringExecution` error" do` at line 286.
-pub fn ruby_strategy_spec_l286_d33_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_strategy_spec_l286_d33_returns() bool {
+	return strategy_core.ruby_strategy_l226_d5_self_page_headers(ruby_strategy_spec_l9_d2_url(), strategy_core.StrategyOptions{}, strategy_spec_headers_error).len == 0
 }
 
 // Ruby let `let(:curl_version) { Version.new("8.7.1") }` at line 294.
-pub fn ruby_strategy_spec_l294_d34_curl_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('curl_version', ...args)
+pub fn ruby_strategy_spec_l294_d34_curl_version() string {
+	return '8.7.1'
 }
 
 // Ruby let `let(:success_status) { instance_double(Process::Status, success?: true, exitstatus: 0) }` at line 295.
-pub fn ruby_strategy_spec_l295_d35_success_status(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('success_status', ...args)
+pub fn ruby_strategy_spec_l295_d35_success_status() utils.CurlCommandResult {
+	return utils.CurlCommandResult{ exit_status: 0 }
 }
 
 // Ruby it `it "returns hash including fetched content" do` at line 297.
-pub fn ruby_strategy_spec_l297_d36_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_strategy_spec_l297_d36_returns() bool {
+	data := strategy_core.ruby_strategy_l276_d6_self_page_content(ruby_strategy_spec_l9_d2_url(), strategy_core.StrategyOptions{}, strategy_spec_content_fetcher) or { return false }
+	return strategy_spec_content_matches(data)
 }
 
 // Ruby it `it "only allows HTTPS redirects" do` at line 304.
-pub fn ruby_strategy_spec_l304_d37_only(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('only', ...args)
+pub fn ruby_strategy_spec_l304_d37_only() bool {
+	data := strategy_core.ruby_strategy_l276_d6_self_page_content(ruby_strategy_spec_l9_d2_url(), strategy_core.StrategyOptions{}, strategy_spec_content_exact_fetcher) or { return false }
+	return strategy_spec_content_matches(data)
 }
 
 // Ruby it `it "handles `compressed` `url` option" do` at line 329.
-pub fn ruby_strategy_spec_l329_d38_handles(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('handles', ...args)
+pub fn ruby_strategy_spec_l329_d38_handles() bool {
+	data := strategy_core.ruby_strategy_l276_d6_self_page_content(ruby_strategy_spec_l9_d2_url(), strategy_core.StrategyOptions{ compressed: false }, strategy_spec_content_uncompressed_fetcher) or {
+		return false
+	}
+	return strategy_spec_content_matches(data)
 }
 
 // Ruby it `it "handles `cookies` `url` option" do` at line 353.
-pub fn ruby_strategy_spec_l353_d39_handles(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('handles', ...args)
+pub fn ruby_strategy_spec_l353_d39_handles() bool {
+	data := strategy_core.ruby_strategy_l276_d6_self_page_content(ruby_strategy_spec_l9_d2_url(), strategy_core.StrategyOptions{
+		cookies: {
+			'cookie_key': 'cookie_value'
+		}
+		has_cookies: true
+	}, strategy_spec_content_fetcher) or { return false }
+	return strategy_spec_content_matches(data)
 }
 
 // Ruby it `it "handles `header` `url` option" do` at line 367.
-pub fn ruby_strategy_spec_l367_d40_handles(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('handles', ...args)
+pub fn ruby_strategy_spec_l367_d40_handles() bool {
+	for headers in [['Accept: */*'], ['Accept: */*', 'X-Requested-With: XMLHttpRequest']] {
+		data := strategy_core.ruby_strategy_l276_d6_self_page_content(ruby_strategy_spec_l9_d2_url(), strategy_core.StrategyOptions{ headers: headers, has_headers: true }, strategy_spec_content_fetcher) or { return false }
+		if !strategy_spec_content_matches(data) {
+			return false
+		}
+	}
+	return true
 }
 
 // Ruby it `it "handles `post_form` `url` option" do` at line 388.
-pub fn ruby_strategy_spec_l388_d41_handles(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('handles', ...args)
+pub fn ruby_strategy_spec_l388_d41_handles() bool {
+	data := strategy_core.ruby_strategy_l276_d6_self_page_content(ruby_strategy_spec_l9_d2_url(), strategy_core.StrategyOptions{ post_form: strategy_spec_post_form() }, strategy_spec_content_fetcher) or { return false }
+	return strategy_spec_content_matches(data)
 }
 
 // Ruby it `it "handles `post_json` `url` option" do` at line 400.
-pub fn ruby_strategy_spec_l400_d42_handles(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('handles', ...args)
+pub fn ruby_strategy_spec_l400_d42_handles() bool {
+	data := strategy_core.ruby_strategy_l276_d6_self_page_content(ruby_strategy_spec_l9_d2_url(), strategy_core.StrategyOptions{ post_json: strategy_spec_post_json() }, strategy_spec_content_fetcher) or { return false }
+	return strategy_spec_content_matches(data)
 }
 
 // Ruby it `it "handles `referer` `url` option" do` at line 412.
-pub fn ruby_strategy_spec_l412_d43_handles(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('handles', ...args)
+pub fn ruby_strategy_spec_l412_d43_handles() bool {
+	data := strategy_core.ruby_strategy_l276_d6_self_page_content(ruby_strategy_spec_l9_d2_url(), strategy_core.StrategyOptions{ referer: 'https://brew.sh/' }, strategy_spec_content_fetcher) or { return false }
+	return strategy_spec_content_matches(data)
 }
 
 // Ruby it `it "handles `user_agent` `url` option" do` at line 424.
-pub fn ruby_strategy_spec_l424_d44_handles(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('handles', ...args)
+pub fn ruby_strategy_spec_l424_d44_handles() bool {
+	data := strategy_core.ruby_strategy_l276_d6_self_page_content(ruby_strategy_spec_l9_d2_url(), strategy_core.StrategyOptions{ user_agent: 'browser' }, strategy_spec_content_fetcher) or {
+		return false
+	}
+	return strategy_spec_content_matches(data)
 }
 
 // Ruby it `it "returns error `messages` from `stderr` in the return hash on failure when `stderr` is not `nil`" do` at line 436.
-pub fn ruby_strategy_spec_l436_d45_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_strategy_spec_l436_d45_returns() bool {
+	data := strategy_core.ruby_strategy_l276_d6_self_page_content(ruby_strategy_spec_l9_d2_url(), strategy_core.StrategyOptions{}, strategy_spec_content_failure) or { return false }
+	return data.has_messages && data.messages == [
+		'curl: (6) Could not resolve host: brew.sh',
+	]
 }
 
 // Ruby it `it "returns default error `messages` in the return hash on failure when `stderr` is `nil`" do` at line 448.
-pub fn ruby_strategy_spec_l448_d46_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_strategy_spec_l448_d46_returns() bool {
+	data := strategy_core.ruby_strategy_l276_d6_self_page_content(ruby_strategy_spec_l9_d2_url(), strategy_core.StrategyOptions{}, strategy_spec_content_default_failure) or { return false }
+	return data.has_messages && data.messages == [
+		'cURL failed without a detectable error',
+	]
 }
 
 // Ruby it `it "returns hash including `final_url` if it differs from initial `url`" do` at line 459.
-pub fn ruby_strategy_spec_l459_d47_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_strategy_spec_l459_d47_returns() bool {
+	data := strategy_core.ruby_strategy_l276_d6_self_page_content(ruby_strategy_spec_l9_d2_url(), strategy_core.StrategyOptions{}, strategy_spec_content_redirection) or { return false }
+	return strategy_spec_content_matches(data) && data.has_final_url && data.final_url == ruby_strategy_spec_l10_d3_redirection_url()
 }
 
 // Ruby it `it "returns an array of version strings when given a valid value" do` at line 468.
-pub fn ruby_strategy_spec_l468_d48_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_strategy_spec_l468_d48_returns() bool {
+	values := [
+		strategy_core.StrategyBlockValue{ kind: .string_value, value: '1.2.3' },
+		strategy_core.StrategyBlockValue{
+			kind: .array
+			values: [
+				strategy_core.StrategyBlockItem{ kind: .string_value, value: '1.2.3' },
+				strategy_core.StrategyBlockItem{ kind: .string_value, value: '1.2.4' },
+			]
+		},
+		strategy_core.StrategyBlockValue{
+			kind: .array
+			values: [
+				strategy_core.StrategyBlockItem{ kind: .version_value, value: '1.2.3' },
+				strategy_core.StrategyBlockItem{ kind: .string_value, value: '1.2.4' },
+			]
+		},
+		strategy_core.StrategyBlockValue{
+			kind: .array
+			values: [
+				strategy_core.StrategyBlockItem{ kind: .version_value, value: '1.2.3' },
+				strategy_core.StrategyBlockItem{ kind: .nil_value },
+				strategy_core.StrategyBlockItem{ kind: .string_value, value: '1.2.4' },
+			]
+		},
+		strategy_core.StrategyBlockValue{
+			kind: .array
+			values: [
+				strategy_core.StrategyBlockItem{ kind: .version_value, value: '1.2.3' },
+				strategy_core.StrategyBlockItem{ kind: .string_value, value: '1.2.3' },
+				strategy_core.StrategyBlockItem{ kind: .nil_value },
+				strategy_core.StrategyBlockItem{ kind: .string_value, value: '1.2.4' },
+			]
+		},
+	]
+	for index, value in values {
+		result := strategy_core.ruby_strategy_l337_d7_self_handle_block_return(value) or {
+			return false
+		}
+		if index == 0 {
+			if result != ['1.2.3'] {
+				return false
+			}
+		} else if result != ['1.2.3', '1.2.4'] {
+			return false
+		}
+	}
+	return true
 }
 
 // Ruby it `it "returns an empty array when given a nil value" do` at line 476.
-pub fn ruby_strategy_spec_l476_d49_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_strategy_spec_l476_d49_returns() bool {
+	result := strategy_core.ruby_strategy_l337_d7_self_handle_block_return(strategy_core.StrategyBlockValue{
+		kind: .nil_value
+	}) or { return false }
+	return result.len == 0
 }
 
 // Ruby it `it "errors when given an invalid value" do` at line 480.
-pub fn ruby_strategy_spec_l480_d50_errors(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('errors', ...args)
+pub fn ruby_strategy_spec_l480_d50_errors() bool {
+	strategy_core.ruby_strategy_l337_d7_self_handle_block_return(strategy_core.StrategyBlockValue{
+		kind: .invalid
+	}) or {
+		return err.msg() == 'Return value of a strategy block must be a string or array of strings.'
+	}
+	return false
 }
 
 // Original Ruby source (line-for-line):

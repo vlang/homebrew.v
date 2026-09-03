@@ -1,33 +1,101 @@
 module util
 
 import brew_runtime
+import sync
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/thread_safe/util/adder.rb`.
 // The original source is retained below until every stub has a typed V body.
+@[heap]
+pub struct Adder {
+mut:
+	lock sync.Mutex
+	sum  i64
+}
+
+pub fn new_adder() &Adder {
+	return &Adder{}
+}
+
+pub fn (mut adder Adder) add(value i64) {
+	adder.lock.lock()
+	adder.sum += value
+	adder.lock.unlock()
+}
+
+pub fn (mut adder Adder) increment() {
+	adder.add(1)
+}
+
+pub fn (mut adder Adder) decrement() {
+	adder.add(-1)
+}
+
+pub fn (mut adder Adder) value() i64 {
+	adder.lock.lock()
+	defer {
+		adder.lock.unlock()
+	}
+	return adder.sum
+}
+
+pub fn (mut adder Adder) reset() {
+	adder.lock.lock()
+	adder.sum = 0
+	adder.lock.unlock()
+}
+
+pub fn new_adder_boundary_value() brew_runtime.Value {
+	adder := new_adder()
+	return brew_runtime.structured_value('Concurrent::ThreadSafe::Util::Adder', '#<Concurrent::ThreadSafe::Util::Adder>', {
+		'adder_address': u64(voidptr(adder)).str()
+	})
+}
+
+fn adder_boundary_receiver(args []brew_runtime.Value) &Adder {
+	if args.len == 0 {
+		panic('Adder method requires a receiver')
+	}
+	address := (args[0].attribute('adder_address') or {
+		panic('${args[0].type_name} has no translated Adder state')
+	}).u64()
+	return unsafe { &Adder(voidptr(address)) }
+}
 
 // Ruby method `add(x)` at line 35.
 pub fn ruby_adder_l35_d1_add(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('add', ...args)
+	if args.len < 2 {
+		panic('Adder#add requires value')
+	}
+	mut adder := adder_boundary_receiver(args)
+	adder.add(args[1].as_int() or { panic(err) })
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Ruby method `increment` at line 45.
 pub fn ruby_adder_l45_d2_increment(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('increment', ...args)
+	mut adder := adder_boundary_receiver(args)
+	adder.increment()
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Ruby method `decrement` at line 49.
 pub fn ruby_adder_l49_d3_decrement(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('decrement', ...args)
+	mut adder := adder_boundary_receiver(args)
+	adder.decrement()
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Ruby method `sum` at line 58.
 pub fn ruby_adder_l58_d4_sum(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sum', ...args)
+	mut adder := adder_boundary_receiver(args)
+	return brew_runtime.int_value(adder.value())
 }
 
 // Ruby method `reset` at line 68.
 pub fn ruby_adder_l68_d5_reset(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reset', ...args)
+	mut adder := adder_boundary_receiver(args)
+	adder.reset()
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Original Ruby source (line-for-line):

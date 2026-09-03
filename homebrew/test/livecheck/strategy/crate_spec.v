@@ -1,98 +1,316 @@
 module strategy
 
 import brew_runtime
+import homebrew.livecheck
+import homebrew.livecheck.strategy as crate_core
+import homebrew.utils
+import regex
+import x.json2
 
 // Translated from Homebrew/brew `test/livecheck/strategy/crate_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub struct CrateSpecMatchData {
+pub:
+	fetched        crate_core.JsonMatchData
+	cached         crate_core.JsonMatchData
+	cached_default crate_core.JsonMatchData
+}
+
+fn crate_spec_content() string {
+	return '{\n  "versions": [\n    {"crate":"example","created_at":"2023-01-03T00:00:00.000000+00:00","num":"1.0.2","updated_at":"2023-01-03T00:00:00.000000+00:00","yanked":true},\n    {"crate":"example","created_at":"2023-01-02T00:00:00.000000+00:00","num":"1.0.1","updated_at":"2023-01-02T00:00:00.000000+00:00","yanked":false},\n    {"crate":"example","created_at":"2023-01-01T00:00:00.000000+00:00","num":"1.0.0","updated_at":"2023-01-01T00:00:00.000000+00:00","yanked":false}\n  ]\n}\n'
+}
+
+fn crate_spec_capture(value string, provided crate_core.JsonRegex) ?string {
+	mut expression := regex.regex_opt(provided.pattern) or { return none }
+	if provided.case_insensitive {
+		expression.flag |= regex.f_ci
+	}
+	start, _ := expression.find(value)
+	if start < 0 {
+		return none
+	}
+	capture := expression.get_group_by_id(value, 0)
+	return if capture == '' { none } else { capture }
+}
+
+fn crate_spec_versions(document json2.Any,
+	provided crate_core.JsonRegex) livecheck.StrategyBlockValue {
+	mut versions := []string{}
+	if document is map[string]json2.Any {
+		raw_versions := document['versions'] or {
+			return livecheck.StrategyBlockValue{ kind: .nil_value }
+		}
+		if raw_versions is []json2.Any {
+			for raw_version in raw_versions {
+				if raw_version is map[string]json2.Any {
+					yanked := raw_version['yanked'] or { json2.Any(false) }
+					if yanked is bool {
+						if yanked {
+							continue
+						}
+					}
+					num := raw_version['num'] or { continue }
+					if num is string {
+						if captured := crate_spec_capture(num, provided) {
+							versions << captured
+						}
+					}
+				}
+			}
+		}
+	}
+	return if versions.len == 0 {
+		livecheck.StrategyBlockValue{ kind: .nil_value }
+	} else {
+		livecheck.StrategyBlockValue{
+			kind: .array
+			values: versions.map(livecheck.StrategyBlockItem{
+				kind: .string_value
+				value: it
+			})
+		}
+	}
+}
+
+fn crate_spec_two_arg_block(document json2.Any,
+	provided ?crate_core.JsonRegex) !livecheck.StrategyBlockValue {
+	match_regex := provided or { return livecheck.StrategyBlockValue{ kind: .nil_value } }
+	return crate_spec_versions(document, match_regex)
+}
+
+fn crate_spec_one_arg_block(document json2.Any,
+	_ ?crate_core.JsonRegex) !livecheck.StrategyBlockValue {
+	return crate_spec_versions(document, ruby_crate_spec_l13_d4_regex())
+}
+
+fn crate_spec_fetched(_ livecheck.StrategyCurlRequest) !utils.CurlCommandResult {
+	return utils.CurlCommandResult{
+		stdout: 'HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n${crate_spec_content()}'
+		exit_status: 0
+	}
+}
+
+fn crate_spec_unused_fetcher(_ livecheck.StrategyCurlRequest) !utils.CurlCommandResult {
+	return error('cached crate content unexpectedly fetched')
+}
+
+fn crate_spec_regex_equal(left ?crate_core.JsonRegex, right ?crate_core.JsonRegex) bool {
+	left_value := left or { crate_core.JsonRegex{} }
+	right_value := right or { crate_core.JsonRegex{} }
+	return left_value == right_value
+}
+
+fn crate_spec_match_data_equal(left crate_core.JsonMatchData,
+	right crate_core.JsonMatchData) bool {
+	return left.matches == right.matches && crate_spec_regex_equal(left.regex, right.regex) && left.url == right.url && left.cached == right.cached && left.has_cached == right.has_cached && left.content == right.content && left.has_content == right.has_content && left.final_url == right.final_url && left.has_final_url == right.has_final_url && left.messages == right.messages && left.has_messages == right.has_messages
+}
 
 // Ruby subject `subject(:crate) { described_class }` at line 7.
-pub fn ruby_crate_spec_l7_d1_crate(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('crate', ...args)
+pub fn ruby_crate_spec_l7_d1_crate() brew_runtime.Value {
+	return brew_runtime.object_value('Class', 'Homebrew::Livecheck::Strategy::Crate')
 }
 
 // Ruby let `let(:crate_url) { "https://static.crates.io/crates/example/example-0.1.0.crate" }` at line 9.
-pub fn ruby_crate_spec_l9_d2_crate_url(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('crate_url', ...args)
+pub fn ruby_crate_spec_l9_d2_crate_url() string {
+	return 'https://static.crates.io/crates/example/example-0.1.0.crate'
 }
 
 // Ruby let `let(:non_crate_url) { "https://brew.sh/test" }` at line 10.
-pub fn ruby_crate_spec_l10_d3_non_crate_url(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('non_crate_url', ...args)
+pub fn ruby_crate_spec_l10_d3_non_crate_url() string {
+	return 'https://brew.sh/test'
 }
 
 // Ruby let `let(:regex) { /v?(\d+(?:\.\d+)+)/i }` at line 13.
-pub fn ruby_crate_spec_l13_d4_regex(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('regex', ...args)
+pub fn ruby_crate_spec_l13_d4_regex() crate_core.JsonRegex {
+	return crate_core.JsonRegex{
+		pattern: r'v?(\d+(?:\.\d+)+)'
+		case_insensitive: true
+	}
 }
 
 // Ruby let `let(:generated) do` at line 14.
-pub fn ruby_crate_spec_l14_d5_generated(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('generated', ...args)
+pub fn ruby_crate_spec_l14_d5_generated() crate_core.CrateInputValues {
+	return crate_core.CrateInputValues{
+		present: true
+		url: 'https://crates.io/api/v1/crates/example/versions'
+	}
 }
 
 // Ruby let `let(:content) do` at line 19.
-pub fn ruby_crate_spec_l19_d6_content(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('content', ...args)
+pub fn ruby_crate_spec_l19_d6_content() string {
+	return crate_spec_content()
 }
 
 // Ruby let `let(:matches) { ["1.0.0", "1.0.1"] }` at line 48.
-pub fn ruby_crate_spec_l48_d7_matches(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('matches', ...args)
+pub fn ruby_crate_spec_l48_d7_matches() []string {
+	return ['1.0.0', '1.0.1']
 }
 
 // Ruby it `it "returns true for a crate URL" do` at line 51.
-pub fn ruby_crate_spec_l51_d8_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_crate_spec_l51_d8_returns() bool {
+	return crate_core.crate_matches_url(ruby_crate_spec_l9_d2_crate_url())
 }
 
 // Ruby it `it "returns false for a non-crate URL" do` at line 55.
-pub fn ruby_crate_spec_l55_d9_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_crate_spec_l55_d9_returns() bool {
+	return !crate_core.crate_matches_url(ruby_crate_spec_l10_d3_non_crate_url())
 }
 
 // Ruby it `it "returns a hash containing url for a crate URL" do` at line 61.
-pub fn ruby_crate_spec_l61_d10_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_crate_spec_l61_d10_returns() bool {
+	return crate_core.crate_generate_input_values(ruby_crate_spec_l9_d2_crate_url()) == ruby_crate_spec_l14_d5_generated()
 }
 
 // Ruby it `it "returns an empty hash for a non-crate URL" do` at line 65.
-pub fn ruby_crate_spec_l65_d11_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_crate_spec_l65_d11_returns() bool {
+	return !crate_core.crate_generate_input_values(ruby_crate_spec_l10_d3_non_crate_url()).present
 }
 
 // Ruby let `let(:match_data) do` at line 71.
-pub fn ruby_crate_spec_l71_d12_match_data(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('match_data', ...args)
+pub fn ruby_crate_spec_l71_d12_match_data() CrateSpecMatchData {
+	base := crate_core.JsonMatchData{
+		matches: {
+			'1.0.0': '1.0.0'
+			'1.0.1': '1.0.1'
+		}
+		url: ruby_crate_spec_l14_d5_generated().url
+	}
+	return CrateSpecMatchData{
+		fetched: crate_core.JsonMatchData{
+			...base
+			content: crate_spec_content()
+			has_content: true
+		}
+		cached: crate_core.JsonMatchData{
+			...base
+			cached: true
+			has_cached: true
+		}
+		cached_default: crate_core.JsonMatchData{
+			...base
+			matches: map[string]string{}
+			cached: true
+			has_cached: true
+		}
+	}
 }
 
 // Ruby it `it "finds versions in fetched content" do` at line 85.
-pub fn ruby_crate_spec_l85_d13_finds(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('finds', ...args)
+pub fn ruby_crate_spec_l85_d13_finds() bool {
+	expected := ruby_crate_spec_l71_d12_match_data().fetched
+	with_regex := crate_core.crate_find_versions(crate_core.CrateFindRequest{
+		url: ruby_crate_spec_l9_d2_crate_url()
+		regex: ruby_crate_spec_l13_d4_regex()
+	}, crate_spec_fetched) or { return false }
+	without_regex := crate_core.crate_find_versions(crate_core.CrateFindRequest{
+		url: ruby_crate_spec_l9_d2_crate_url()
+	}, crate_spec_fetched) or { return false }
+	return crate_spec_match_data_equal(with_regex, crate_core.JsonMatchData{
+		...expected
+		regex: ruby_crate_spec_l13_d4_regex()
+	}) && crate_spec_match_data_equal(without_regex, expected)
 }
 
 // Ruby it `it "finds versions in provided content" do` at line 93.
-pub fn ruby_crate_spec_l93_d14_finds(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('finds', ...args)
+pub fn ruby_crate_spec_l93_d14_finds() bool {
+	expected := ruby_crate_spec_l71_d12_match_data().cached
+	with_regex := crate_core.crate_find_versions(crate_core.CrateFindRequest{
+		url: ruby_crate_spec_l9_d2_crate_url()
+		regex: ruby_crate_spec_l13_d4_regex()
+		content: crate_spec_content()
+	}, crate_spec_unused_fetcher) or { return false }
+	without_regex := crate_core.crate_find_versions(crate_core.CrateFindRequest{
+		url: ruby_crate_spec_l9_d2_crate_url()
+		content: crate_spec_content()
+	}, crate_spec_unused_fetcher) or { return false }
+	return crate_spec_match_data_equal(with_regex, crate_core.JsonMatchData{
+		...expected
+		regex: ruby_crate_spec_l13_d4_regex()
+	}) && crate_spec_match_data_equal(without_regex, expected)
 }
 
 // Ruby it `it "finds versions in provided content using a block" do` at line 101.
-pub fn ruby_crate_spec_l101_d15_finds(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('finds', ...args)
+pub fn ruby_crate_spec_l101_d15_finds() bool {
+	expected := ruby_crate_spec_l71_d12_match_data().cached
+	with_regex := crate_core.crate_find_versions(crate_core.CrateFindRequest{
+		url: ruby_crate_spec_l9_d2_crate_url()
+		regex: ruby_crate_spec_l13_d4_regex()
+		content: crate_spec_content()
+		has_block: true
+		block_arity: 2
+		block: crate_spec_two_arg_block
+	}, crate_spec_unused_fetcher) or { return false }
+	without_regex := crate_core.crate_find_versions(crate_core.CrateFindRequest{
+		url: ruby_crate_spec_l9_d2_crate_url()
+		content: crate_spec_content()
+		has_block: true
+		block_arity: 1
+		block: crate_spec_one_arg_block
+	}, crate_spec_unused_fetcher) or { return false }
+	return crate_spec_match_data_equal(with_regex, crate_core.JsonMatchData{
+		...expected
+		regex: ruby_crate_spec_l13_d4_regex()
+	}) && crate_spec_match_data_equal(without_regex, expected)
 }
 
 // Ruby it `it "returns default match_data when block doesn't return version information" do` at line 121.
-pub fn ruby_crate_spec_l121_d16_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_crate_spec_l121_d16_returns() bool {
+	expected := ruby_crate_spec_l71_d12_match_data().cached_default
+	for request in [
+		crate_core.CrateFindRequest{
+			url: ruby_crate_spec_l9_d2_crate_url()
+			content: '{"other":true}'
+		},
+		crate_core.CrateFindRequest{
+			url: ruby_crate_spec_l9_d2_crate_url()
+			content: '{"versions":[{}]}'
+		},
+	] {
+		actual := crate_core.crate_find_versions(request, crate_spec_unused_fetcher) or {
+			return false
+		}
+		if !crate_spec_match_data_equal(actual, expected) {
+			return false
+		}
+	}
+	no_match_regex := crate_core.JsonRegex{
+		pattern: 'will_not_match'
+		case_insensitive: true
+	}
+	actual := crate_core.crate_find_versions(crate_core.CrateFindRequest{
+		url: ruby_crate_spec_l9_d2_crate_url()
+		regex: no_match_regex
+		content: crate_spec_content()
+	}, crate_spec_unused_fetcher) or { return false }
+	return crate_spec_match_data_equal(actual, crate_core.JsonMatchData{
+		...expected
+		regex: no_match_regex
+	})
 }
 
 // Ruby it `it "returns default match_data when url is blank" do` at line 132.
-pub fn ruby_crate_spec_l132_d17_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_crate_spec_l132_d17_returns() bool {
+	actual := crate_core.crate_find_versions(crate_core.CrateFindRequest{}, crate_spec_unused_fetcher) or {
+		return false
+	}
+	return crate_spec_match_data_equal(actual, crate_core.JsonMatchData{
+		matches: map[string]string{}
+	})
 }
 
 // Ruby it `it "returns default match_data when content is blank" do` at line 137.
-pub fn ruby_crate_spec_l137_d18_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_crate_spec_l137_d18_returns() bool {
+	expected := ruby_crate_spec_l71_d12_match_data().cached_default
+	for content in ['{}', ''] {
+		actual := crate_core.crate_find_versions(crate_core.CrateFindRequest{
+			url: ruby_crate_spec_l9_d2_crate_url()
+			content: content
+		}, crate_spec_unused_fetcher) or { return false }
+		if !crate_spec_match_data_equal(actual, expected) {
+			return false
+		}
+	}
+	return true
 }
 
 // Original Ruby source (line-for-line):

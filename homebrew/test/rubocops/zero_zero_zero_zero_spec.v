@@ -1,93 +1,107 @@
 module rubocops
 
 import brew_runtime
+import homebrew.rubocops as zero_zero_zero_zero_core
 
 // Translated from Homebrew/brew `test/rubocops/zero_zero_zero_zero_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:cop) { described_class.new }` at line 7.
-pub fn ruby_zero_zero_zero_zero_spec_l7_d1_cop(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cop', ...args)
+pub fn ruby_zero_zero_zero_zero_spec_l7_d1_cop() brew_runtime.Value {
+	return brew_runtime.object_value('RuboCop::Cop::FormulaAudit::ZeroZeroZeroZero', 'ZeroZeroZeroZero')
 }
 
 // Ruby it `it "reports no offenses when 0.0.0.0 is used inside test do blocks" do` at line 9.
-pub fn ruby_zero_zero_zero_zero_spec_l9_d2_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_zero_zero_zero_zero_spec_l9_d2_reports() bool {
+	source := 'class Foo < Formula\n  url "https://brew.sh/foo-1.0.tgz"\n  desc "A test formula"\n\n  test do\n    system "echo", "0.0.0.0"\n  end\nend\n'
+	return zero_zero_zero_zero_core.audit_zero_zero_zero_zero(source, 'homebrew-core').len == 0
 }
 
 // Ruby it `it "reports no offenses for valid IP ranges like 10.0.0.0" do` at line 22.
-pub fn ruby_zero_zero_zero_zero_spec_l22_d3_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_zero_zero_zero_zero_spec_l22_d3_reports() bool {
+	source := 'class Foo < Formula\n  url "https://brew.sh/foo-1.0.tgz"\n  desc "A test formula"\n\n  def install\n    system "echo", "10.0.0.0"\n  end\nend\n'
+	return zero_zero_zero_zero_core.audit_zero_zero_zero_zero(source, 'homebrew-core').len == 0
 }
 
 // Ruby method `install` at line 28.
-pub fn ruby_zero_zero_zero_zero_spec_l28_d4_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+pub fn ruby_zero_zero_zero_zero_spec_l28_d4_install() string {
+	return 'system "echo", "10.0.0.0"'
 }
 
 // Ruby it `it "reports no offenses for IP range notation like 0.0.0.0-255.255.255.255" do` at line 35.
-pub fn ruby_zero_zero_zero_zero_spec_l35_d5_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_zero_zero_zero_zero_spec_l35_d5_reports() bool {
+	source := 'class Foo < Formula\n  url "https://brew.sh/foo-1.0.tgz"\n  desc "A test formula"\n\n  def install\n    system "echo", "0.0.0.0-255.255.255.255"\n  end\nend\n'
+	return zero_zero_zero_zero_core.audit_zero_zero_zero_zero(source, 'homebrew-core').len == 0
 }
 
 // Ruby method `install` at line 41.
-pub fn ruby_zero_zero_zero_zero_spec_l41_d6_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+pub fn ruby_zero_zero_zero_zero_spec_l41_d6_install() string {
+	return 'system "echo", "0.0.0.0-255.255.255.255"'
 }
 
 // Ruby it `it "reports no offenses for private IP ranges" do` at line 48.
-pub fn ruby_zero_zero_zero_zero_spec_l48_d7_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_zero_zero_zero_zero_spec_l48_d7_reports() bool {
+	source := 'class Foo < Formula\n  url "https://brew.sh/foo-1.0.tgz"\n  desc "A test formula"\n\n  def install\n    system "echo", "192.168.1.1"\n    system "echo", "172.16.0.1"\n    system "echo", "10.0.0.1"\n  end\nend\n'
+	return zero_zero_zero_zero_core.audit_zero_zero_zero_zero(source, 'homebrew-core').len == 0
 }
 
 // Ruby method `install` at line 54.
-pub fn ruby_zero_zero_zero_zero_spec_l54_d8_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+pub fn ruby_zero_zero_zero_zero_spec_l54_d8_install() []string {
+	return ['system "echo", "192.168.1.1"', 'system "echo", "172.16.0.1"', 'system "echo", "10.0.0.1"']
 }
 
 // Ruby it `it "reports no offenses when outside of homebrew-core" do` at line 63.
-pub fn ruby_zero_zero_zero_zero_spec_l63_d9_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_zero_zero_zero_zero_spec_l63_d9_reports() bool {
+	source := 'class Foo < Formula\n  url "https://brew.sh/foo-1.0.tgz"\n  desc "A test formula"\n\n  service do\n    run [bin/"foo", "--host", "0.0.0.0"]\n  end\nend\n'
+	return zero_zero_zero_zero_core.audit_zero_zero_zero_zero(source, '').len == 0
 }
 
 // Ruby it `it "reports offenses when 0.0.0.0 is used in service blocks" do` at line 76.
-pub fn ruby_zero_zero_zero_zero_spec_l76_d10_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_zero_zero_zero_zero_spec_l76_d10_reports() bool {
+	source := 'class Foo < Formula\n  url "https://brew.sh/foo-1.0.tgz"\n  desc "A test formula"\n\n  service do\n    run [bin/"foo", "--host", "0.0.0.0"]\n  end\nend\n'
+	offenses := zero_zero_zero_zero_core.audit_zero_zero_zero_zero(source, 'homebrew-core')
+	return offenses.len == 1 && offenses[0].content == '0.0.0.0' && offenses[0].end_pos - offenses[0].begin_pos == 9 && offenses[0].message == zero_zero_zero_zero_core.zero_zero_zero_zero_message
 }
 
 // Ruby it `it "reports offenses when 0.0.0.0 is used outside of test do blocks" do` at line 90.
-pub fn ruby_zero_zero_zero_zero_spec_l90_d11_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_zero_zero_zero_zero_spec_l90_d11_reports() bool {
+	source := 'class Foo < Formula\n  url "https://brew.sh/foo-1.0.tgz"\n  desc "A test formula"\n\n  def install\n    system "echo", "0.0.0.0"\n  end\nend\n'
+	offenses := zero_zero_zero_zero_core.audit_zero_zero_zero_zero(source, 'homebrew-core')
+	return offenses.len == 1 && offenses[0].content == '0.0.0.0' && offenses[0].end_pos - offenses[0].begin_pos == 9
 }
 
 // Ruby method `install` at line 96.
-pub fn ruby_zero_zero_zero_zero_spec_l96_d12_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+pub fn ruby_zero_zero_zero_zero_spec_l96_d12_install() string {
+	return 'system "echo", "0.0.0.0"'
 }
 
 // Ruby it `it "reports offenses for 0.0.0.0 in method definitions outside test blocks" do` at line 104.
-pub fn ruby_zero_zero_zero_zero_spec_l104_d13_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_zero_zero_zero_zero_spec_l104_d13_reports() bool {
+	source := 'class Foo < Formula\n  url "https://brew.sh/foo-1.0.tgz"\n  desc "A test formula"\n\n  def configure\n    system "./configure", "--bind-address=0.0.0.0"\n  end\nend\n'
+	offenses := zero_zero_zero_zero_core.audit_zero_zero_zero_zero(source, 'homebrew-core')
+	return offenses.len == 1 && offenses[0].content == '--bind-address=0.0.0.0' && offenses[0].end_pos - offenses[0].begin_pos == 24
 }
 
 // Ruby method `configure` at line 110.
-pub fn ruby_zero_zero_zero_zero_spec_l110_d14_configure(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('configure', ...args)
+pub fn ruby_zero_zero_zero_zero_spec_l110_d14_configure() string {
+	return 'system "./configure", "--bind-address=0.0.0.0"'
 }
 
 // Ruby it `it "reports multiple offenses when 0.0.0.0 is used in multiple places" do` at line 118.
-pub fn ruby_zero_zero_zero_zero_spec_l118_d15_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_zero_zero_zero_zero_spec_l118_d15_reports() bool {
+	source := 'class Foo < Formula\n  url "https://brew.sh/foo-1.0.tgz"\n  desc "A test formula"\n\n  def install\n    system "echo", "0.0.0.0"\n  end\n\n  def post_install\n    system "echo", "0.0.0.0"\n  end\nend\n'
+	offenses := zero_zero_zero_zero_core.audit_zero_zero_zero_zero(source, 'homebrew-core')
+	return offenses.len == 2 && offenses.all(it.content == '0.0.0.0' && it.end_pos - it.begin_pos == 9)
 }
 
 // Ruby method `install` at line 124.
-pub fn ruby_zero_zero_zero_zero_spec_l124_d16_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+pub fn ruby_zero_zero_zero_zero_spec_l124_d16_install() string {
+	return ruby_zero_zero_zero_zero_spec_l96_d12_install()
 }
 
 // Ruby method `post_install` at line 129.
-pub fn ruby_zero_zero_zero_zero_spec_l129_d17_post_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('post_install', ...args)
+pub fn ruby_zero_zero_zero_zero_spec_l129_d17_post_install() string {
+	return ruby_zero_zero_zero_zero_spec_l96_d12_install()
 }
 
 // Original Ruby source (line-for-line):

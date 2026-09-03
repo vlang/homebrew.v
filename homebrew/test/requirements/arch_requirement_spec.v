@@ -1,18 +1,18 @@
 module requirements
 
-import brew_runtime
+import homebrew.requirements as requirement_api
 
 // Translated from Homebrew/brew `test/requirements/arch_requirement_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:requirement) { described_class.new([Hardware::CPU.type]) }` at line 7.
-pub fn ruby_arch_requirement_spec_l7_d1_requirement(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('requirement', ...args)
+pub fn ruby_arch_requirement_spec_l7_d1_requirement() requirement_api.ArchRequirement {
+	return requirement_api.new_arch_requirement([requirement_api.current_cpu_type()])
 }
 
 // Ruby it `it "supports architecture symbols" do` at line 10.
-pub fn ruby_arch_requirement_spec_l10_d2_supports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('supports', ...args)
+pub fn ruby_arch_requirement_spec_l10_d2_supports() bool {
+	return ruby_arch_requirement_spec_l7_d1_requirement().satisfied()
 }
 
 // Original Ruby source (line-for-line):

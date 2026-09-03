@@ -1,373 +1,1028 @@
 module cmd
 
 import brew_runtime
+import homebrew.cmd as info_cmd
+import os
+import x.json2
+
+fn info_spec_bool(value bool) brew_runtime.Value {
+	return brew_runtime.bool_value(value)
+}
+
+fn info_spec_tap(name string) brew_runtime.Value {
+	path := os.join_path(os.temp_dir(), name.replace('/', '-'))
+	repository := if name == 'homebrew/core' {
+		'Homebrew/homebrew-core'
+	} else if name == 'homebrew/cask' {
+		'Homebrew/homebrew-cask'
+	} else {
+		name
+	}
+	return brew_runtime.structured_value('Tap', name, {
+		'name':           name
+		'path':           path
+		'remote':         'https://github.com/${repository}'
+		'default_remote': 'https://github.com/${repository}'
+		'official':       name.starts_with('homebrew/').str()
+	})
+}
+
+fn info_spec_tab(installed_on_request ?bool, source_tap string, runtime []string,
+	poured bool) brew_runtime.Value {
+	present := installed_on_request != none
+	return brew_runtime.structured_value('Tab', 'Tab', {
+		'installed_on_request_present': present.str()
+		'installed_on_request':         (installed_on_request or { false }).str()
+		'source_tap':                   source_tap
+		'runtime_dependencies':         runtime.join('\x1f')
+		'poured_from_bottle':           poured.str()
+	})
+}
+
+fn info_spec_keg(name string, version string, size i64, linked bool, binaries []string,
+	tab brew_runtime.Value) brew_runtime.Value {
+	return brew_runtime.Value{
+		type_name: 'Keg'
+		repr: version
+		map_data: {
+			'tab': tab
+		}
+		attributes: {
+			'name':     name
+			'version':  version
+			'size':     size.str()
+			'linked':   linked.str()
+			'binaries': binaries.join('\x1f')
+		}
+	}
+}
+
+fn info_spec_formula(name string, attributes map[string]string,
+	fields map[string]brew_runtime.Value) brew_runtime.Value {
+	mut values := attributes.clone()
+	tap_name := values['tap'] or { 'homebrew/core' }
+	tap := info_spec_tap(tap_name)
+	tap_path := tap.attributes['path'] or { '' }
+	values['kind'] = 'formula'
+	values['name'] = name
+	values['full_name'] = values['full_name'] or {
+		if tap_name == 'homebrew/core' {
+			name
+		} else {
+			'${tap_name}/${name}'
+		}
+	}
+	values['version'] = values['version'] or { '0.1' }
+	values['stable_version'] = values['stable_version'] or { values['version'] }
+	values['has_stable'] = values['has_stable'] or { 'true' }
+	values['pour_bottle'] = values['pour_bottle'] or { 'true' }
+	values['path'] = values['path'] or { os.join_path(tap_path, 'Formula', '${name}.rb') }
+	mut mapped := fields.clone()
+	mapped['tap'] = tap
+	return brew_runtime.Value{
+		type_name: 'Formula'
+		repr: name
+		map_data: mapped
+		attributes: values
+	}
+}
+
+fn info_spec_cask(name string, attributes map[string]string,
+	fields map[string]brew_runtime.Value) brew_runtime.Value {
+	mut values := attributes.clone()
+	tap_name := values['tap'] or { 'homebrew/cask' }
+	tap := info_spec_tap(tap_name)
+	tap_path := tap.attributes['path'] or { '' }
+	values['kind'] = 'cask'
+	values['name'] = name
+	values['full_name'] = values['full_name'] or { name }
+	values['version'] = values['version'] or { '1.0' }
+	values['sourcefile_path'] = values['sourcefile_path'] or {
+		os.join_path(tap_path, 'Casks', '${name}.rb')
+	}
+	mut mapped := fields.clone()
+	mapped['tap'] = tap
+	return brew_runtime.Value{
+		type_name: 'Cask::Cask'
+		repr: name
+		map_data: mapped
+		attributes: values
+	}
+}
+
+fn info_spec_dependency(name string, kind string, installed bool, outdated bool,
+	any_installed bool) brew_runtime.Value {
+	return brew_runtime.structured_value('Dependency', name, {
+		'name':                  name
+		'kind':                  kind
+		'installed':             installed.str()
+		'outdated':              outdated.str()
+		'any_version_installed': any_installed.str()
+	})
+}
+
+fn info_spec_requirement(display string, kind string, satisfied bool,
+	other_os bool) brew_runtime.Value {
+	return brew_runtime.structured_value(if other_os { 'LinuxRequirement' } else { 'Requirement' }, display, {
+		'display':   display
+		'kind':      kind
+		'satisfied': satisfied.str()
+		'other_os':  other_os.str()
+	})
+}
+
+fn info_spec_conflict(name string, resolved string) brew_runtime.Value {
+	return brew_runtime.structured_value('FormulaConflict', name, {
+		'name':               name
+		'resolved_full_name': resolved
+	})
+}
+
+fn info_spec_installed_formula() brew_runtime.Value {
+	tab := info_spec_tab(true, 'homebrew/core', [], false)
+	keg := info_spec_keg('testball', '0.1', 12, false, [], tab)
+	return info_spec_formula('testball', {
+		'description':           'Some test'
+		'version':               '0.1'
+		'any_version_installed': 'true'
+	}, {
+		'installed_kegs': brew_runtime.array_value([keg])
+		'tab':            tab
+	})
+}
+
+fn info_spec_installed_cask() brew_runtime.Value {
+	tab := info_spec_tab(false, 'homebrew/cask', [], false)
+	return info_spec_cask('local-transmission', {
+		'version':           '2.61'
+		'installed_version': '2.61'
+		'display_names':     'Transmission'
+		'description':       'BitTorrent client'
+	}, {
+		'tab': tab
+	})
+}
+
+fn info_spec_formula_with_resolution(qualified bool) brew_runtime.Value {
+	base := info_spec_installed_formula()
+	installed := info_spec_formula('testball', {
+		'tap':                   'ataraxy-labs/tap'
+		'full_name':             'ataraxy-labs/tap/testball'
+		'any_version_installed': 'true'
+	}, {
+		'installed_kegs': base.map_data['installed_kegs'] or { brew_runtime.array_value([]) }
+	})
+	mut attributes := base.attributes.clone()
+	attributes['tap'] = 'homebrew/core'
+	attributes['full_name'] = 'homebrew/core/testball'
+	attributes['installed_tap'] = if qualified { 'homebrew/core' } else { 'ataraxy-labs/tap' }
+	mut fields := base.map_data.clone()
+	fields['tap'] = info_spec_tap('homebrew/core')
+	fields['resolution_formula'] = installed
+	return brew_runtime.Value{
+		type_name: 'Formula'
+		repr: 'testball'
+		attributes: attributes
+		map_data: fields
+	}
+}
+
+fn info_spec_json_valid(value brew_runtime.Value) bool {
+	json2.decode[json2.Any](value.as_string()) or { return false }
+	return true
+}
+
+fn info_spec_json_array_length(value brew_runtime.Value, key string) ?int {
+	decoded := json2.decode[json2.Any](value.as_string()) or { return none }
+	root := decoded.as_map()
+	item := root[key] or { return none }
+	if item !is []json2.Any {
+		return none
+	}
+	return item.as_array().len
+}
+
+fn info_spec_dependency_output(formula_installed bool, dependency brew_runtime.Value,
+	runtime []string, installed_runtime []string) string {
+	mut fields := {
+		'dependencies': brew_runtime.array_value([dependency])
+	}
+	if formula_installed {
+		tab := info_spec_tab(false, 'homebrew/core', runtime, false)
+		fields['installed_kegs'] = brew_runtime.array_value([
+			info_spec_keg('testball', '0.1', 1, false, [], tab),
+		])
+	}
+	formula := info_spec_formula('testball', {
+		'tty':                          'true'
+		'runtime_dependency_installed': installed_runtime.join('\x1f')
+		'any_version_installed':        formula_installed.str()
+	}, fields)
+	return info_cmd.ruby_info_l426_d20_info_formula(formula).as_string()
+}
+
+fn info_spec_with_related(base brew_runtime.Value, related []brew_runtime.Value) brew_runtime.Value {
+	mut fields := base.map_data.clone()
+	fields['related'] = brew_runtime.array_value(related)
+	return brew_runtime.Value{
+		type_name: base.type_name
+		repr: base.repr
+		attributes: base.attributes.clone()
+		map_data: fields
+	}
+}
 
 // Translated from Homebrew/brew `test/cmd/info_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `installed_info_formula` at line 21.
 pub fn ruby_info_spec_l21_d1_installed_info_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('installed_info_formula', ...args)
+	return info_spec_installed_formula()
 }
 
 // Ruby method `installed_info_cask` at line 31.
 pub fn ruby_info_spec_l31_d2_installed_info_cask(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('installed_info_cask', ...args)
+	return info_spec_installed_cask()
 }
 
 // Ruby it `it "prints as json with the --json=v1 flag" do` at line 44.
 pub fn ruby_info_spec_l44_d3_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+	formula := info_spec_formula('testball', {
+		'description': 'Some test'
+	}, {})
+	result := info_cmd.ruby_info_l729_d29_print_json(brew_runtime.map_value({
+		'named_formulae': brew_runtime.array_value([formula])
+	}), brew_runtime.string_value('v1'), brew_runtime.bool_value(false))
+	return info_spec_bool(info_spec_json_valid(result) && result.as_string().contains('testball'))
 }
 
 // Ruby it `it "prints as json with the --json=v2 flag", :integration_test do` at line 58.
 pub fn ruby_info_spec_l58_d4_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+	formula := info_spec_formula('testball', {}, {})
+	result := info_cmd.ruby_info_l729_d29_print_json(brew_runtime.map_value({
+		'named_formulae': brew_runtime.array_value([formula])
+	}), brew_runtime.string_value('v2'), brew_runtime.bool_value(false))
+	return info_spec_bool(info_spec_json_valid(result) && result.as_string().contains('"formulae"'))
 }
 
 // Ruby it `it "does not include installed casks in formula JSON" do` at line 67.
 pub fn ruby_info_spec_l67_d5_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	formula := info_spec_installed_formula()
+	result_with_data := info_cmd.ruby_info_l729_d29_print_json(brew_runtime.Value{
+		type_name: 'InfoContext'
+		attributes: {
+			'installed':    'true'
+			'formula_only': 'true'
+		}
+		map_data: {
+			'installed_formulae': brew_runtime.array_value([formula])
+			'installed_casks':    brew_runtime.array_value([
+				info_spec_installed_cask(),
+			])
+		}
+	}, brew_runtime.string_value('v2'), brew_runtime.bool_value(false))
+	formulae_length := info_spec_json_array_length(result_with_data, 'formulae') or { -1 }
+	casks_length := info_spec_json_array_length(result_with_data, 'casks') or { -1 }
+	return info_spec_bool(formulae_length == 1 && casks_length == 0)
 }
 
 // Ruby it `it "does not include eval-all casks in formula JSON" do` at line 86.
 pub fn ruby_info_spec_l86_d6_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	result := info_cmd.ruby_info_l729_d29_print_json(brew_runtime.Value{
+		type_name: 'InfoContext'
+		attributes: {
+			'formula_only': 'true'
+		}
+		map_data: {
+			'all_formulae': brew_runtime.array_value([info_spec_installed_formula()])
+			'all_casks':    brew_runtime.array_value([info_spec_installed_cask()])
+		}
+	}, brew_runtime.string_value('v2'), brew_runtime.bool_value(true))
+	formulae_length := info_spec_json_array_length(result, 'formulae') or { -1 }
+	casks_length := info_spec_json_array_length(result, 'casks') or { -1 }
+	return info_spec_bool(result.as_string().contains('"testball"') && formulae_length == 1 && casks_length == 0)
 }
 
 // Ruby it `it "prints installed formulae in a human-readable inventory" do` at line 106.
 pub fn ruby_info_spec_l106_d7_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+	output := info_cmd.ruby_info_l404_d19_info_formula_summary(info_spec_installed_formula()).as_string()
+	return info_spec_bool(output == '==> testball: Some test\nFormula from homebrew/core\nInstalled: 0.1 (on request)\n')
 }
 
 // Ruby it `it "prints installed casks in a human-readable inventory" do` at line 129.
 pub fn ruby_info_spec_l129_d8_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+	output := info_cmd.ruby_info_l900_d36_info_cask_summary(info_spec_installed_cask()).as_string()
+	return info_spec_bool(output == '==> local-transmission: (Transmission) BitTorrent client\nCask from homebrew/cask\nInstalled: 2.61 (dependency)\n')
 }
 
 // Ruby it `it "omits missing cask descriptions from the installed inventory" do` at line 152.
 pub fn ruby_info_spec_l152_d9_omits(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('omits', ...args)
+	cask := info_spec_cask('no-description', {
+		'installed_version': '1.0'
+		'display_names':     'No Description'
+	}, {
+		'tab': info_spec_tab(none, 'homebrew/cask', [], false)
+	})
+	output := info_cmd.ruby_info_l900_d36_info_cask_summary(cask).as_string()
+	return info_spec_bool(output.starts_with('==> no-description\n') && !output.contains('No Description'))
 }
 
 // Ruby it `it "omits install reason when receipt intent is unavailable" do` at line 180.
 pub fn ruby_info_spec_l180_d10_omits(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('omits', ...args)
+	tab := info_spec_tab(none, 'homebrew/core', [], false)
+	return info_spec_bool(info_cmd.ruby_info_l192_d6_self_installation_summary(brew_runtime.string_value('0.1'), tab).as_string() == 'Installed: 0.1')
 }
 
 // Ruby it `it "marks installed formulae in interactive inventory output" do` at line 211.
 pub fn ruby_info_spec_l211_d11_marks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('marks', ...args)
+	installed := info_spec_installed_formula()
+	mut attributes := installed.attributes.clone()
+	attributes['tty'] = 'true'
+	output := info_cmd.ruby_info_l404_d19_info_formula_summary(brew_runtime.Value{
+		...installed
+		attributes: attributes
+	}).as_string()
+	return info_spec_bool(output.contains('testball ✔: Some test'))
 }
 
 // Ruby it `it "prints verbose installed inventory as full info" do` at line 230.
 pub fn ruby_info_spec_l230_d12_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+	mut formula_attrs := info_spec_installed_formula().attributes.clone()
+	formula_attrs['verbose'] = 'true'
+	formula := info_spec_formula('testball', formula_attrs, info_spec_installed_formula().map_data)
+	cask := info_spec_cask('local-transmission', {
+		'installed_version': '2.61'
+		'info':              'full cask info'
+	}, {})
+	result := info_cmd.ruby_info_l93_d1_run(brew_runtime.Value{
+		type_name: 'InfoContext'
+		attributes: {
+			'installed': 'true'
+			'verbose':   'true'
+		}
+		map_data: {
+			'installed_packages': brew_runtime.array_value([formula, cask])
+		}
+	})
+	return info_spec_bool(result.as_string().contains('==> testball') && result.as_string().contains('full cask info'))
 }
 
 // Ruby it `it "prints quiet formula information in the slim inventory format" do` at line 245.
 pub fn ruby_info_spec_l245_d13_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+	formula := info_spec_formula('testball', {
+		'description': 'Some test'
+	}, {})
+	output := info_cmd.ruby_info_l404_d19_info_formula_summary(formula).as_string()
+	return info_spec_bool(output.contains('==> testball: Some test') && output.contains('Formula from https://github.com/') && output.contains('Not installed'))
 }
 
 // Ruby it `it "uses slim formula information when quiet is passed" do` at line 264.
 pub fn ruby_info_spec_l264_d14_uses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uses', ...args)
+	formula := info_spec_formula('testball', {
+		'description': 'Some test'
+	}, {})
+	result := info_cmd.ruby_info_l318_d15_print_info(brew_runtime.Value{
+		type_name: 'InfoContext'
+		attributes: {
+			'quiet': 'true'
+		}
+		map_data: {
+			'objects': brew_runtime.array_value([formula])
+		}
+	}, brew_runtime.bool_value(true))
+	return info_spec_bool(result.as_string().contains('Formula from') && !result.as_string().contains('From:'))
 }
 
 // Ruby it `it "prints inline summary information for formulae" do` at line 278.
 pub fn ruby_info_spec_l278_d15_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+	formula := info_spec_formula('testball', {
+		'description':    'Some test'
+		'homepage':       'https://brew.sh/testball'
+		'tty':            'true'
+		'stable_bottled': 'false'
+		'options':        'with-foo'
+	}, {})
+	output := info_cmd.ruby_info_l426_d20_info_formula(formula).as_string()
+	return info_spec_bool(output.contains('Installs from source: yes') && !output.contains('Metadata') && !output.contains('supports macOS and Linux'))
 }
 
 // Ruby it `it "shows a conflict by its resolved full name" do` at line 300.
 pub fn ruby_info_spec_l300_d16_shows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('shows', ...args)
+	formula := info_spec_formula('testball', {}, {
+		'conflicts': brew_runtime.array_value([
+			info_spec_conflict('other', 'someuser/tap/other'),
+		])
+	})
+	return info_spec_bool(info_cmd.ruby_info_l426_d20_info_formula(formula).as_string().contains('Conflicts with:\n  someuser/tap/other'))
 }
 
 // Ruby it `it "omits a stale conflict that resolves to the formula itself" do` at line 316.
 pub fn ruby_info_spec_l316_d17_omits(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('omits', ...args)
+	formula := info_spec_formula('testball', {}, {
+		'conflicts': brew_runtime.array_value([
+			info_spec_conflict('testball', 'testball'),
+		])
+	})
+	return info_spec_bool(!info_cmd.ruby_info_l426_d20_info_formula(formula).as_string().contains('Conflicts with:'))
 }
 
 // Ruby it `it "marks a deprecated formula with `(deprecated)` in the title" do` at line 330.
 pub fn ruby_info_spec_l330_d18_marks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('marks', ...args)
+	formula := info_spec_formula('testball', {
+		'deprecated': 'true'
+		'tty':        'true'
+	}, {})
+	return info_spec_bool(info_cmd.ruby_info_l426_d20_info_formula(formula).as_string().starts_with('==> testball (deprecated):'))
 }
 
 // Ruby it `it "marks a disabled formula with `(disabled)` in the title" do` at line 348.
 pub fn ruby_info_spec_l348_d19_marks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('marks', ...args)
+	formula := info_spec_formula('testball', {
+		'disabled': 'true'
+		'tty':      'true'
+	}, {})
+	return info_spec_bool(info_cmd.ruby_info_l426_d20_info_formula(formula).as_string().starts_with('==> testball (disabled):'))
 }
 
 // Ruby it `it "shows separate blocks for an unqualified and a qualified input that resolve to the same shadowed formula" do` at line 366.
 pub fn ruby_info_spec_l366_d20_shows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('shows', ...args)
+	formula := info_spec_formula_with_resolution(false)
+	result := info_cmd.ruby_info_l318_d15_print_info(brew_runtime.Value{
+		type_name: 'InfoContext'
+		attributes: {
+			'input_names': 'testball\x1fhomebrew/core/testball'
+		}
+		map_data: {
+			'objects': brew_runtime.array_value([formula, formula])
+		}
+	})
+	return info_spec_bool(result.as_string().contains('ataraxy-labs/tap/testball') && result.as_string().contains('homebrew/core/testball'))
 }
 
 // Ruby it `it "reports an unavailable name without raising" do` at line 388.
 pub fn ruby_info_spec_l388_d21_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	error_value := brew_runtime.object_value('FormulaOrCaskUnavailableError', 'No available formula or cask with the name "nonexistent-formula"')
+	result := info_cmd.ruby_info_l318_d15_print_info(brew_runtime.map_value({
+		'objects': brew_runtime.array_value([error_value])
+	}))
+	stderr := result.map_data['stderr'] or { brew_runtime.string_value('') }
+	return info_spec_bool(stderr.as_string().contains('No available formula or cask'))
 }
 
 // Ruby it `it "qualifies the name, reports not installed and shows the shadowing keg when the keg belongs to another tap" do` at line 400.
 pub fn ruby_info_spec_l400_d22_qualifies(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('qualifies', ...args)
+	formula := info_spec_formula_with_resolution(false)
+	output := info_cmd.ruby_info_l426_d20_info_formula(formula).as_string()
+	return info_spec_bool(output.contains('homebrew/core/testball') && info_cmd.ruby_info_l703_d26_shadowing_installed_formula(formula).type_name == 'Formula')
 }
 
 // Ruby it `it "reloads the formula from the install receipt's tap and reports the shadowing tap" do` at line 418.
 pub fn ruby_info_spec_l418_d23_reloads(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reloads', ...args)
+	formula := info_spec_formula_with_resolution(false)
+	resolution := info_cmd.ruby_info_l358_d17_installed_resolution(formula).as_array() or { [] }
+	return info_spec_bool(resolution.len == 2 && resolution[0].attributes['full_name'] == 'ataraxy-labs/tap/testball' && resolution[1].repr == 'homebrew/core')
 }
 
 // Ruby it `it "resolves the keg's own name when it differs from the formula (installed via alias)" do` at line 439.
 pub fn ruby_info_spec_l439_d24_resolves(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('resolves', ...args)
+	installed := info_spec_formula('stripe', {
+		'tap':       'stripe/stripe-cli'
+		'full_name': 'stripe/stripe-cli/stripe'
+	}, {})
+	formula := info_spec_formula('testball', {
+		'installed_tap':      'stripe/stripe-cli'
+		'installed_keg_name': 'stripe'
+	}, {
+		'installed_kegs':     brew_runtime.array_value([
+			info_spec_keg('stripe', '1.0', 1, false, [], info_spec_tab(false, 'stripe/stripe-cli', [], false)),
+		])
+		'resolution_formula': installed
+	})
+	resolution := info_cmd.ruby_info_l358_d17_installed_resolution(formula).as_array() or { [] }
+	return info_spec_bool(resolution.len == 2 && resolution[0].repr == 'stripe')
 }
 
 // Ruby it `it "returns the original formula and no shadowing tap when the install receipt has no tap" do` at line 451.
 pub fn ruby_info_spec_l451_d25_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	formula := info_spec_installed_formula()
+	resolution := info_cmd.ruby_info_l358_d17_installed_resolution(formula).as_array() or { [] }
+	return info_spec_bool(resolution.len == 2 && resolution[0].repr == formula.repr && resolution[1].type_name == 'NilClass')
 }
 
 // Ruby it `it "returns the original formula and no shadowing tap when the install receipt's tap matches" do` at line 463.
 pub fn ruby_info_spec_l463_d26_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	formula := info_spec_formula_with_resolution(true)
+	resolution := info_cmd.ruby_info_l358_d17_installed_resolution(formula).as_array() or { [] }
+	return info_spec_bool(resolution.len == 2 && resolution[0].repr == formula.repr && resolution[1].type_name == 'NilClass')
 }
 
 // Ruby it `it "warns about a shadowing tap when info_formula is given one" do` at line 477.
 pub fn ruby_info_spec_l477_d27_warns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('warns', ...args)
+	formula := info_spec_formula('testball', {}, {})
+	output := info_cmd.ruby_info_l426_d20_info_formula(formula, info_spec_tap('homebrew/core')).as_string()
+	return info_spec_bool(output.contains('Warning: `testball` shadows `homebrew/core/testball`.'))
 }
 
 // Ruby it `it "treats a `tap/name` input as user-qualified" do` at line 491.
 pub fn ruby_info_spec_l491_d28_treats(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('treats', ...args)
+	formula := info_spec_formula('testball', {}, {})
+	return info_cmd.ruby_info_l347_d16_formula_qualified_by_user(formula, brew_runtime.string_array_value([
+		'homebrew/core/testball',
+	]))
 }
 
 // Ruby it `it "treats a bare unqualified input as not user-qualified" do` at line 503.
 pub fn ruby_info_spec_l503_d29_treats(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('treats', ...args)
+	formula := info_spec_formula('testball', {}, {})
+	return info_spec_bool(!info_cmd.ruby_info_l347_d16_formula_qualified_by_user(formula, brew_runtime.string_array_value([])).bool_data)
 }
 
 // Ruby it `it "--json swaps an unqualified-input formula to its installed tap" do` at line 513.
 pub fn ruby_info_spec_l513_d30_json(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('--json', ...args)
+	formula := info_spec_formula_with_resolution(false)
+	output := info_cmd.ruby_info_l729_d29_print_json(brew_runtime.Value{
+		type_name: 'InfoContext'
+		map_data: {
+			'named_formulae': brew_runtime.array_value([formula])
+		}
+	}, brew_runtime.bool_value(true), brew_runtime.bool_value(false)).as_string()
+	return info_spec_bool(output.contains('ataraxy-labs/tap'))
 }
 
 // Ruby it `it "--json honours a tap-qualified input without swapping" do` at line 540.
 pub fn ruby_info_spec_l540_d31_json(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('--json', ...args)
+	formula := info_spec_formula_with_resolution(false)
+	output := info_cmd.ruby_info_l729_d29_print_json(brew_runtime.Value{
+		type_name: 'InfoContext'
+		attributes: {
+			'qualified_inputs': 'homebrew/core/testball'
+		}
+		map_data: {
+			'named_formulae': brew_runtime.array_value([formula])
+		}
+	}, brew_runtime.bool_value(true), brew_runtime.bool_value(false)).as_string()
+	return info_spec_bool(output.contains('homebrew/core'))
 }
 
 // Ruby it `it "prints required, recursive runtime, and dependent counts in the dependencies section" do` at line 561.
 pub fn ruby_info_spec_l561_d32_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+	dep := info_spec_dependency('bar', 'required', true, false, false)
+	tab := info_spec_tab(false, 'homebrew/core', ['installed-dep', 'missing-dep'], false)
+	formula := info_spec_formula('testball', {
+		'tty':                          'true'
+		'any_version_installed':        'true'
+		'runtime_dependency_installed': 'installed-dep'
+		'dependent_names':              'some-dependent'
+	}, {
+		'dependencies':   brew_runtime.array_value([dep])
+		'installed_kegs': brew_runtime.array_value([
+			info_spec_keg('testball', '0.1', 1, false, [], tab),
+		])
+	})
+	output := info_cmd.ruby_info_l426_d20_info_formula(formula).as_string()
+	return info_spec_bool(output.contains('==> Dependencies\nRequired (1): bar ✔') && output.contains('Recursive Runtime (2): 1 installed ✔, 1 missing ✘') && output.contains('Dependents: 1') && !output.contains('Dependencies: '))
 }
 
 // Ruby it `it "lists installed dependents inline under Dependencies with --verbose" do` at line 617.
 pub fn ruby_info_spec_l617_d33_lists(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('lists', ...args)
+	formula := info_spec_formula('testball', {
+		'dependent_names':       'some-dependent\x1fanother-dependent'
+		'any_version_installed': 'true'
+	}, {
+		'installed_kegs': brew_runtime.array_value([
+			info_spec_keg('testball', '0.1', 1, false, [], info_spec_tab(false, 'homebrew/core', [], false)),
+		])
+	})
+	output := info_cmd.ruby_info_l426_d20_info_formula(formula, brew_runtime.object_value('NilClass', 'nil'), brew_runtime.bool_value(true)).as_string()
+	return info_spec_bool(output.contains('Dependents (2): another-dependent, some-dependent') && !output.contains('Dependents: 2'))
 }
 
 // Ruby it `it "summarises recursive runtime dependencies as all installed when none are missing" do` at line 654.
 pub fn ruby_info_spec_l654_d34_summarises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('summarises', ...args)
+	dep := info_spec_dependency('bar', 'required', true, false, false)
+	output := info_spec_dependency_output(true, dep, ['installed-dep'], [
+		'installed-dep',
+	])
+	return info_spec_bool(output.contains('Recursive Runtime (1): all installed ✔'))
 }
 
 // Ruby it `it "marks a tab-listed dep with no installed rack as unsatisfied" do` at line 691.
 pub fn ruby_info_spec_l691_d35_marks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('marks', ...args)
+	output := info_spec_dependency_output(true, info_spec_dependency('bar', 'required', false, false, false), [
+		'bar',
+	], [])
+	return info_spec_bool(output.contains('Required (1): bar ✘'))
 }
 
 // Ruby it `it "marks a tab-listed dep with an installed rack as satisfied when the dep formula is not outdated" do` at line 718.
 pub fn ruby_info_spec_l718_d36_marks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('marks', ...args)
+	output := info_spec_dependency_output(true, info_spec_dependency('bar', 'required', true, false, false), [
+		'bar',
+	], ['bar'])
+	return info_spec_bool(output.contains('Required (1): bar ✔'))
 }
 
 // Ruby it `it "marks a tab-listed dep with an installed rack as outdated when the dep formula is outdated" do` at line 755.
 pub fn ruby_info_spec_l755_d37_marks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('marks', ...args)
+	output := info_spec_dependency_output(true, info_spec_dependency('bar', 'required', true, true, false), [
+		'bar',
+	], ['bar'])
+	return info_spec_bool(output.contains('Required (1): bar ↑'))
 }
 
 // Ruby it `it "marks an installed dep on an uninstalled formula as satisfied" do` at line 792.
 pub fn ruby_info_spec_l792_d38_marks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('marks', ...args)
+	output := info_spec_dependency_output(false, info_spec_dependency('bar', 'required', true, false, false), [], [])
+	return info_spec_bool(output.contains('Required (1): bar ✔'))
 }
 
 // Ruby it `it "marks an outdated installed dep on an uninstalled formula as upgradable" do` at line 822.
 pub fn ruby_info_spec_l822_d39_marks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('marks', ...args)
+	output := info_spec_dependency_output(false, info_spec_dependency('bar', 'required', true, true, false), [], [])
+	return info_spec_bool(output.contains('Required (1): bar ↑'))
 }
 
 // Ruby it `it "marks an aliased dep as installed when the underlying rack exists under a different name" do` at line 852.
 pub fn ruby_info_spec_l852_d40_marks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('marks', ...args)
+	output := info_spec_dependency_output(false, info_spec_dependency('pkg-config', 'required', false, false, true), [], [])
+	return info_spec_bool(output.contains('Required (1): pkg-config ✔'))
 }
 
 // Ruby it `it "does not mark a missing dep on an uninstalled formula" do` at line 882.
 pub fn ruby_info_spec_l882_d41_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	output := info_spec_dependency_output(false, info_spec_dependency('bar', 'required', false, false, false), [], [])
+	return info_spec_bool(output.contains('Required (1): bar\n') && !output.contains('bar ✘'))
 }
 
 // Ruby it `it "marks a dep absent from the installed keg's tab as unsatisfied when its rack is also missing" do` at line 902.
 pub fn ruby_info_spec_l902_d42_marks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('marks', ...args)
+	output := info_spec_dependency_output(true, info_spec_dependency('bar', 'required', false, false, false), [], [])
+	return info_spec_bool(output.contains('Required (1): bar ✘'))
 }
 
 // Ruby it `it "marks a dep absent from the installed keg's tab as installed when its rack exists" do` at line 929.
 pub fn ruby_info_spec_l929_d43_marks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('marks', ...args)
+	output := info_spec_dependency_output(true, info_spec_dependency('bar', 'required', true, true, false), [], [])
+	return info_spec_bool(output.contains('Required (1): bar ↑'))
 }
 
 // Ruby it `it "omits build dependencies when a formula would pour from a bottle" do` at line 962.
 pub fn ruby_info_spec_l962_d44_omits(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('omits', ...args)
+	formula := info_spec_formula('testball', {
+		'stable_bottled': 'true'
+		'pour_bottle':    'true'
+	}, {
+		'dependencies': brew_runtime.array_value([
+			info_spec_dependency('bar', 'build', false, false, false),
+		])
+	})
+	output := info_cmd.ruby_info_l426_d20_info_formula(formula).as_string()
+	return info_spec_bool(!output.contains('Build (1):') && !output.contains('==> Dependencies'))
 }
 
 // Ruby it `it "shows the installed and stable versions in the headline when outdated" do` at line 992.
 pub fn ruby_info_spec_l992_d45_shows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('shows', ...args)
+	formula := info_spec_formula('testball', {
+		'outdated':       'true'
+		'version':        '0.1'
+		'stable_version': '0.1'
+	}, {
+		'installed_kegs': brew_runtime.array_value([
+			info_spec_keg('testball', '0.0.1', 1, false, [], info_spec_tab(false, 'homebrew/core', [], false)),
+		])
+	})
+	return info_spec_bool(info_cmd.ruby_info_l426_d20_info_formula(formula).as_string().starts_with('==> testball: 0.0.1 → stable 0.1\n'))
 }
 
 // Ruby it `it "prints Linux requirements through the requirements section" do` at line 1014.
 pub fn ruby_info_spec_l1014_d46_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+	formula := info_spec_formula('testball', {
+		'tty': 'true'
+	}, {
+		'requirements': brew_runtime.array_value([
+			info_spec_requirement('Linux', 'required', false, true),
+		])
+	})
+	output := info_cmd.ruby_info_l426_d20_info_formula(formula).as_string()
+	return info_spec_bool(output.contains('==> Requirements\nRequired: Linux') && !output.contains('supports Linux'))
 }
 
 // Ruby it `it "hides source install metadata for formulae that only run on another OS" do` at line 1036.
 pub fn ruby_info_spec_l1036_d47_hides(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('hides', ...args)
+	formula := info_spec_formula('testball', {
+		'tty': 'true'
+	}, {
+		'requirements': brew_runtime.array_value([
+			info_spec_requirement('Linux', 'required', false, true),
+		])
+	})
+	return info_spec_bool(!info_cmd.ruby_info_l426_d20_info_formula(formula).as_string().contains('Installs from source: yes'))
 }
 
 // Ruby it `it "prints a Binaries section listing executables in bin and sbin with --verbose" do` at line 1058.
 pub fn ruby_info_spec_l1058_d48_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+	formula := info_spec_formula('testball', {}, {
+		'installed_kegs': brew_runtime.array_value([info_spec_keg('testball', '0.1', 1, false, [
+			'testball',
+			'another',
+			'daemon',
+		], info_spec_tab(false, 'homebrew/core', [], false))])
+	})
+	output := info_cmd.ruby_info_l426_d20_info_formula(formula, brew_runtime.object_value('NilClass', 'nil'), brew_runtime.bool_value(true)).as_string()
+	return info_spec_bool(output.contains('==> Binaries\nanother\ndaemon\ntestball\n'))
 }
 
 // Ruby it `it "prints a Binaries section from the bottle manifest when the formula is not installed with --verbose" do` at line 1087.
 pub fn ruby_info_spec_l1087_d49_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+	formula := info_spec_formula('testball', {
+		'bottle_binaries': 'bin/testball\x1fbin/another\x1fsbin/daemon'
+	}, {})
+	output := info_cmd.ruby_info_l426_d20_info_formula(formula, brew_runtime.object_value('NilClass', 'nil'), brew_runtime.bool_value(true)).as_string()
+	return info_spec_bool(output.contains('==> Binaries\nanother\ndaemon\ntestball\n'))
 }
 
 // Ruby it `it "omits the Binaries section without --verbose" do` at line 1111.
 pub fn ruby_info_spec_l1111_d50_omits(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('omits', ...args)
+	formula := info_spec_formula('testball', {}, {
+		'installed_kegs': brew_runtime.array_value([info_spec_keg('testball', '0.1', 1, false, [
+			'testball',
+		], info_spec_tab(false, 'homebrew/core', [], false))])
+	})
+	return info_spec_bool(!info_cmd.ruby_info_l426_d20_info_formula(formula).as_string().contains('==> Binaries'))
 }
 
 // Ruby it `it "omits the Binaries section when no executables are installed" do` at line 1137.
 pub fn ruby_info_spec_l1137_d51_omits(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('omits', ...args)
+	formula := info_spec_formula('testball', {}, {
+		'installed_kegs': brew_runtime.array_value([
+			info_spec_keg('testball', '0.1', 1, false, [], info_spec_tab(false, 'homebrew/core', [], false)),
+		])
+	})
+	return info_spec_bool(!info_cmd.ruby_info_l426_d20_info_formula(formula, brew_runtime.object_value('NilClass', 'nil'), brew_runtime.bool_value(true)).as_string().contains('==> Binaries'))
 }
 
 // Ruby it `it "prints on-request installs explicitly" do` at line 1161.
 pub fn ruby_info_spec_l1161_d52_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+	return info_spec_bool(info_cmd.ruby_info_l178_d4_self_installation_status(info_spec_tab(true, '', [], false)).as_string() == 'Installed (on request)')
 }
 
 // Ruby it `it "treats non-requested installs as dependency installs" do` at line 1166.
 pub fn ruby_info_spec_l1166_d53_treats(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('treats', ...args)
+	return info_spec_bool(info_cmd.ruby_info_l178_d4_self_installation_status(info_spec_tab(false, '', [], false)).as_string() == 'Installed (as dependency)')
 }
 
 // Ruby it `it "returns summary lines for pinned formulae" do` at line 1175.
 pub fn ruby_info_spec_l1175_d54_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	stamp := i64(1_720_189_900)
+	formula := info_spec_formula('testball', {
+		'pinned':                'true'
+		'pinned_version':        '1.0'
+		'pin_mtime':             stamp.str()
+		'any_version_installed': 'true'
+	}, {})
+	lines := info_cmd.ruby_info_l156_d3_self_metadata_lines(formula, brew_runtime.bool_value(true)).as_string_array() or { [] }
+	expected_time := info_cmd.ruby_info_l257_d11_self_formatted_time(brew_runtime.int_value(stamp)).as_string()
+	return info_spec_bool(lines == ['Pinned: 1.0 on ${expected_time}'])
 }
 
 // Ruby it `it "returns summary lines for pinned casks" do` at line 1195.
 pub fn ruby_info_spec_l1195_d55_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	stamp := i64(1_720_189_900)
+	cask := info_spec_cask('test-cask', {
+		'pinned':         'true'
+		'pinned_version': '1.0'
+		'pin_mtime':      stamp.str()
+	}, {})
+	lines := info_cmd.ruby_info_l156_d3_self_metadata_lines(cask, brew_runtime.bool_value(true)).as_string_array() or { [] }
+	expected_time := info_cmd.ruby_info_l257_d11_self_formatted_time(brew_runtime.int_value(stamp)).as_string()
+	return info_spec_bool(lines == ['Pinned: 1.0 on ${expected_time}'])
 }
 
 // Ruby let `let(:remote) { "https://github.com/Homebrew/homebrew-core" }` at line 1217.
 pub fn ruby_info_spec_l1217_d56_remote(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('remote', ...args)
+	return brew_runtime.string_value('https://github.com/Homebrew/homebrew-core')
 }
 
 // Ruby specify `specify "returns correct URLs" do` at line 1219.
 pub fn ruby_info_spec_l1219_d57_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	remote := ruby_info_spec_l1217_d56_remote()
+	path := brew_runtime.string_value('Formula/git.rb')
+	return info_spec_bool(info_cmd.ruby_info_l147_d2_github_remote_path(remote, path).as_string() == 'https://github.com/Homebrew/homebrew-core/blob/HEAD/Formula/git.rb' && info_cmd.ruby_info_l147_d2_github_remote_path(brew_runtime.string_value('${remote.repr}.git'), path).as_string() == 'https://github.com/Homebrew/homebrew-core/blob/HEAD/Formula/git.rb' && info_cmd.ruby_info_l147_d2_github_remote_path(brew_runtime.string_value('git@github.com:user/repo'), brew_runtime.string_value('foo.rb')).as_string() == 'https://github.com/user/repo/blob/HEAD/foo.rb' && info_cmd.ruby_info_l147_d2_github_remote_path(brew_runtime.string_value('https://mywebsite.com'), brew_runtime.string_value('foo/bar.rb')).as_string() == 'https://mywebsite.com/foo/bar.rb')
 }
 
 // Ruby it `it "lists aliases on their own row when the formula has any" do` at line 1235.
 pub fn ruby_info_spec_l1235_d58_lists(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('lists', ...args)
+	formula := info_spec_formula('testball', {
+		'aliases': 'testball@1.0\x1ftball\x1fgoogleball'
+	}, {})
+	output := info_cmd.ruby_info_l426_d20_info_formula(formula).as_string()
+	return info_spec_bool(output.contains('Aliases: testball@1.0, tball, googleball') && !output.contains('Old Names:'))
 }
 
 // Ruby it `it "renders aliases and old names on separate rows when both exist" do` at line 1250.
 pub fn ruby_info_spec_l1250_d59_renders(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('renders', ...args)
+	formula := info_spec_formula('testball', {
+		'aliases':   'testball@1.0\x1ftball'
+		'old_names': 'foo\x1fbar'
+	}, {})
+	return info_spec_bool(info_cmd.ruby_info_l426_d20_info_formula(formula).as_string().contains('Aliases: testball@1.0, tball\nOld Names: foo, bar'))
 }
 
 // Ruby it `it "renders only an Old Names row when there are no aliases" do` at line 1264.
 pub fn ruby_info_spec_l1264_d60_renders(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('renders', ...args)
+	formula := info_spec_formula('testball', {
+		'old_names': 'foo'
+	}, {})
+	output := info_cmd.ruby_info_l426_d20_info_formula(formula).as_string()
+	return info_spec_bool(output.contains('Old Names: foo') && !output.contains('Aliases:'))
 }
 
 // Ruby it `it "omits both rows when there are none" do` at line 1279.
 pub fn ruby_info_spec_l1279_d61_omits(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('omits', ...args)
+	output := info_cmd.ruby_info_l426_d20_info_formula(info_spec_formula('testball', {}, {})).as_string()
+	return info_spec_bool(!output.contains('Aliases:') && !output.contains('Old Names:'))
 }
 
 // Ruby it `it "lists this formula alongside installed sibling versioned formulae" do` at line 1296.
 pub fn ruby_info_spec_l1296_d62_lists(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('lists', ...args)
+	main := info_spec_formula('testball', {
+		'version': '1.0'
+	}, {
+		'installed_kegs': brew_runtime.array_value([
+			info_spec_keg('testball', '1.0', 10, false, [], info_spec_tab(false, 'homebrew/core', [], false)),
+		])
+	})
+	versioned := info_spec_formula('testball@0.9', {
+		'version':  '0.9'
+		'keg_only': 'true'
+	}, {
+		'installed_kegs': brew_runtime.array_value([
+			info_spec_keg('testball@0.9', '0.9', 9, false, [], info_spec_tab(false, 'homebrew/core', [], false)),
+		])
+	})
+	lines := info_cmd.ruby_info_l799_d31_installed_section_lines(info_spec_with_related(main, [
+		versioned,
+	])).as_string_array() or { [] }
+	return info_spec_bool(lines.any(it.contains('testball 1.0')) && lines.any(it.contains('testball@0.9 0.9')))
 }
 
 // Ruby it `it "shows installed → latest only on the newest installed keg of an outdated formula" do` at line 1332.
 pub fn ruby_info_spec_l1332_d63_shows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('shows', ...args)
+	formula := info_spec_formula('testball', {
+		'version':  '2.0'
+		'outdated': 'true'
+	}, {
+		'installed_kegs': brew_runtime.array_value([
+			info_spec_keg('testball', '1.0', 10, false, [], info_spec_tab(false, 'homebrew/core', [], false)),
+			info_spec_keg('testball', '0.9', 9, false, [], info_spec_tab(false, 'homebrew/core', [], false)),
+		])
+	})
+	lines := info_cmd.ruby_info_l799_d31_installed_section_lines(formula).as_string_array() or { [] }
+	return info_spec_bool(lines.any(it.contains('1.0 → 2.0')) && lines.all(!it.contains('0.9 →')))
 }
 
 // Ruby it `it "hides older non-linked kegs by default" do` at line 1357.
 pub fn ruby_info_spec_l1357_d64_hides(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('hides', ...args)
+	formula := info_spec_formula('testball', {
+		'version': '1.0'
+	}, {
+		'installed_kegs': brew_runtime.array_value([
+			info_spec_keg('testball', '1.0', 10, false, [], info_spec_tab(false, 'homebrew/core', [], false)),
+			info_spec_keg('testball', '0.9', 9, false, [], info_spec_tab(false, 'homebrew/core', [], false)),
+		])
+	})
+	lines := info_cmd.ruby_info_l799_d31_installed_section_lines(formula).as_string_array() or { [] }
+	return info_spec_bool(lines.len == 1 && lines[0].contains('1.0'))
 }
 
 // Ruby it `it "marks the currently linked version with `*`" do` at line 1381.
 pub fn ruby_info_spec_l1381_d65_marks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('marks', ...args)
+	main := info_spec_formula('testball', {
+		'version': '1.0'
+	}, {
+		'installed_kegs': brew_runtime.array_value([
+			info_spec_keg('testball', '1.0', 10, true, [], info_spec_tab(false, 'homebrew/core', [], false)),
+		])
+	})
+	versioned := info_spec_formula('testball@0.9', {
+		'version': '0.9'
+	}, {
+		'installed_kegs': brew_runtime.array_value([
+			info_spec_keg('testball@0.9', '0.9', 9, false, [], info_spec_tab(false, 'homebrew/core', [], false)),
+		])
+	})
+	lines := info_cmd.ruby_info_l799_d31_installed_section_lines(info_spec_with_related(main, [
+		versioned,
+	])).as_string_array() or { [] }
+	return info_spec_bool(lines.any(it.contains('testball 1.0') && it.contains('[Linked]')))
 }
 
 // Ruby it `it "includes the unversioned parent when run on a versioned formula" do` at line 1416.
 pub fn ruby_info_spec_l1416_d66_includes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('includes', ...args)
+	versioned := info_spec_formula('testball@0.9', {
+		'version': '0.9'
+	}, {
+		'installed_kegs': brew_runtime.array_value([
+			info_spec_keg('testball@0.9', '0.9', 9, false, [], info_spec_tab(false, 'homebrew/core', [], false)),
+		])
+	})
+	parent := info_spec_formula('testball', {
+		'version': '1.0'
+	}, {
+		'installed_kegs': brew_runtime.array_value([
+			info_spec_keg('testball', '1.0', 10, false, [], info_spec_tab(false, 'homebrew/core', [], false)),
+		])
+	})
+	lines := info_cmd.ruby_info_l799_d31_installed_section_lines(info_spec_with_related(versioned, [
+		parent,
+	])).as_string_array() or { [] }
+	return info_spec_bool(lines.any(it.contains('testball 1.0')) && lines.any(it.contains('testball@0.9 0.9')))
 }
 
 // Ruby it `it "renders the section even when only the current formula is installed" do` at line 1453.
 pub fn ruby_info_spec_l1453_d67_renders(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('renders', ...args)
+	formula := info_spec_formula('testball', {
+		'version': '1.0'
+	}, {
+		'installed_kegs': brew_runtime.array_value([
+			info_spec_keg('testball', '1.0', 10, false, [], info_spec_tab(false, 'homebrew/core', [], false)),
+		])
+	})
+	return info_spec_bool(info_cmd.ruby_info_l799_d31_installed_section_lines(formula).as_string_array() or {
+		[]
+	}.len > 0)
 }
 
 // Ruby it `it "renders the section when the queried formula is uninstalled but a sibling is installed" do` at line 1474.
 pub fn ruby_info_spec_l1474_d68_renders(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('renders', ...args)
+	versioned := info_spec_formula('testball@0.9', {
+		'version': '0.9'
+	}, {})
+	parent := info_spec_formula('testball', {
+		'version': '1.0'
+	}, {
+		'installed_kegs': brew_runtime.array_value([
+			info_spec_keg('testball', '1.0', 10, false, [], info_spec_tab(false, 'homebrew/core', [], false)),
+		])
+	})
+	lines := info_cmd.ruby_info_l799_d31_installed_section_lines(info_spec_with_related(versioned, [
+		parent,
+	])).as_string_array() or { [] }
+	return info_spec_bool(lines.any(it.contains('testball 1.0')) && lines.all(!it.contains('testball@0.9')))
 }
 
 // Ruby it `it "lists every installed keg of a formula, newest first, with --verbose" do` at line 1502.
 pub fn ruby_info_spec_l1502_d69_lists(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('lists', ...args)
+	formula := info_spec_formula('testball', {
+		'version': '1.0'
+	}, {
+		'installed_kegs': brew_runtime.array_value([
+			info_spec_keg('testball', '0.9', 9, false, [], info_spec_tab(false, 'homebrew/core', [], false)),
+			info_spec_keg('testball', '1.0', 10, false, [], info_spec_tab(false, 'homebrew/core', [], false)),
+			info_spec_keg('testball', '0.10', 10, false, [], info_spec_tab(false, 'homebrew/core', [], false)),
+		])
+	})
+	lines := info_cmd.ruby_info_l799_d31_installed_section_lines(formula, brew_runtime.bool_value(true)).as_string_array() or { [] }
+	return info_spec_bool(lines.len == 3 && lines[0].contains('1.0') && lines[1].contains('0.10') && lines[2].contains('0.9'))
 }
 
 // Ruby it `it "omits the section when nothing in the family is installed" do` at line 1532.
 pub fn ruby_info_spec_l1532_d70_omits(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('omits', ...args)
+	formula := info_spec_formula('testball', {
+		'version': '1.0'
+	}, {})
+	return info_spec_bool((info_cmd.ruby_info_l799_d31_installed_section_lines(formula).as_string_array() or {
+		[]
+	}).len == 0)
 }
 
 // Ruby let `let(:tap) { CoreTap.instance }` at line 1548.
 pub fn ruby_info_spec_l1548_d71_tap(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tap', ...args)
+	return info_spec_tap('homebrew/core')
 }
 
 // Ruby it `it "returns the local path for a formula whose file lives outside its tap" do` at line 1550.
 pub fn ruby_info_spec_l1550_d72_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	tap := ruby_info_spec_l1548_d71_tap()
+	path := os.join_path(os.temp_dir(), 'Cellar', 'testball', '0.1', '.brew', 'testball.rb')
+	formula := info_spec_formula('testball', {
+		'path': path
+	}, {
+		'tap': tap
+	})
+	return info_spec_bool(info_cmd.ruby_info_l371_d18_github_info(formula).as_string() == path)
 }
 
 // Ruby it `it "returns a GitHub URL for a formula whose file lives inside its tap" do` at line 1563.
 pub fn ruby_info_spec_l1563_d73_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	tap := ruby_info_spec_l1548_d71_tap()
+	path := os.join_path(tap.attributes['path'], 'Formula', 'testball.rb')
+	formula := info_spec_formula('testball', {
+		'path': path
+	}, {
+		'tap': tap
+	})
+	return info_spec_bool(info_cmd.ruby_info_l371_d18_github_info(formula).as_string() == 'https://github.com/Homebrew/homebrew-core/blob/HEAD/Formula/testball.rb')
 }
 
 // Original Ruby source (line-for-line):

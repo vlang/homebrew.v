@@ -1,73 +1,205 @@
 module dev_cmd
 
 import brew_runtime
+import homebrew.vulns
+import os
 
 // Translated from Homebrew/brew `test/dev-cmd/generate-vulns-advisories_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
+fn generate_vulns_spec_fetch(_vuln_id string) !vulns.OsvExportUpstream {
+	return vulns.OsvExportUpstream{}
+}
+
+fn generate_vulns_spec_patch(url string, vuln_id string) vulns.OsvExportPatch {
+	mut resolves := []vulns.OsvExportResolve{}
+	if vuln_id != '' {
+		resolves << vulns.OsvExportResolve{
+			resolve_type: 'security'
+			id: vuln_id
+		}
+	}
+	return vulns.OsvExportPatch{
+		url: url
+		resolves: resolves
+	}
+}
+
+fn generate_vulns_spec_options(directory string, dry_run bool) GenerateVulnsAdvisoriesOptions {
+	nvi := GenerateVulnsFormula{
+		name: 'nvi'
+		pkg_version: '1.81.6_6'
+		patches: [
+			generate_vulns_spec_patch('https://deb.debian.org/debian/pool/main/n/nvi/nvi_1.81.6-17.debian.tar.xz', 'CVE-2015-2305'),
+		]
+	}
+	plain := GenerateVulnsFormula{
+		name: 'plain'
+		pkg_version: '1.0'
+	}
+	return GenerateVulnsAdvisoriesOptions{
+		directory: directory
+		dry_run: dry_run
+		formula_names: ['nvi', 'plain']
+		formulas: {
+			'nvi':   nvi
+			'plain': plain
+		}
+		now: '2025-01-02T03:04:05Z'
+		fetch: generate_vulns_spec_fetch
+	}
+}
+
 // Ruby it `it "writes advisories for core formulae with security patch resolves" do` at line 10.
-pub fn ruby_generate_vulns_advisories_spec_l10_d1_writes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('writes', ...args)
+pub fn ruby_generate_vulns_advisories_spec_l10_d1_writes(root string) !bool {
+	out := os.join_path(root, 'advisories')
+	mut command := new_generate_vulns_advisories_command(generate_vulns_spec_options(out, false))
+	result := run_generate_vulns_advisories(mut command)!
+	mut files := os.ls(out)!
+	files.sort()
+	if files != ['BREW-nvi-CVE-2015-2305.json'] || result.written_files.len != 1 {
+		return false
+	}
+	record := brew_runtime.parse_json_value(os.read_file(os.join_path(out, files[0]))!)!.as_map()!
+	affected := record['affected']!.as_array()![0].as_map()!
+	package := affected['package']!.as_map()!
+	events := affected['ranges']!.as_array()![0].as_map()!['events']!.as_array()!
+	return package['ecosystem']!.as_string() == 'Homebrew'
+		&& events[1].as_map()!['fixed']!.as_string() == '1.81.6_6'
 }
 
 // Ruby it `it "writes nothing with --dry-run" do` at line 49.
-pub fn ruby_generate_vulns_advisories_spec_l49_d2_writes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('writes', ...args)
+pub fn ruby_generate_vulns_advisories_spec_l49_d2_writes(root string) !bool {
+	out := os.join_path(root, 'nonexistent')
+	mut command := new_generate_vulns_advisories_command(generate_vulns_spec_options(out, true))
+	result := run_generate_vulns_advisories(mut command)!
+	return result.output_lines == ['BREW-nvi-CVE-2015-2305'] && !os.exists(out)
 }
 
 // Ruby subject `subject(:cmd) { described_class.new(["out"]) }` at line 77.
-pub fn ruby_generate_vulns_advisories_spec_l77_d3_cmd(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cmd', ...args)
+pub fn ruby_generate_vulns_advisories_spec_l77_d3_cmd() GenerateVulnsAdvisoriesCommand {
+	return new_generate_vulns_advisories_command(GenerateVulnsAdvisoriesOptions{
+		directory: 'out'
+	})
 }
 
 // Ruby it `it "unions base patches with every variation's patches, deduplicated" do` at line 79.
-pub fn ruby_generate_vulns_advisories_spec_l79_d4_unions(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('unions', ...args)
+pub fn ruby_generate_vulns_advisories_spec_l79_d4_unions() bool {
+	formula := GenerateVulnsFormula{
+		patches: [generate_vulns_spec_patch('a', ''), generate_vulns_spec_patch('b', '')]
+		variations: [GenerateVulnsVariation{
+			patches: [generate_vulns_spec_patch('a', ''),
+				generate_vulns_spec_patch('linux-only', '')]
+		}, GenerateVulnsVariation{}]
+	}
+	return generate_vulns_all_variation_patches(formula).map(it.url) == ['a', 'b', 'linux-only']
 }
 
 // Ruby it `it "returns base patches when there are no variations" do` at line 94.
-pub fn ruby_generate_vulns_advisories_spec_l94_d5_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_generate_vulns_advisories_spec_l94_d5_returns() bool {
+	formula := GenerateVulnsFormula{
+		patches: [generate_vulns_spec_patch('a', '')]
+	}
+	return generate_vulns_all_variation_patches(formula).map(it.url) == ['a']
 }
 
 // Ruby subject `subject(:cmd) { described_class.new(["out"]) }` at line 105.
-pub fn ruby_generate_vulns_advisories_spec_l105_d6_cmd(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cmd', ...args)
+pub fn ruby_generate_vulns_advisories_spec_l105_d6_cmd() GenerateVulnsAdvisoriesCommand {
+	return ruby_generate_vulns_advisories_spec_l77_d3_cmd()
 }
 
 // Ruby let `let(:current) { formula("x") { url "https://example.com/x-1.2.tar.gz" } }` at line 107.
-pub fn ruby_generate_vulns_advisories_spec_l107_d7_current(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('current', ...args)
+pub fn ruby_generate_vulns_advisories_spec_l107_d7_current() GenerateVulnsFormula {
+	return GenerateVulnsFormula{
+		name: 'x'
+		pkg_version: '1.2'
+	}
 }
 
 // Ruby method `with_history(revisions)` at line 109.
-pub fn ruby_generate_vulns_advisories_spec_l109_d8_with_history(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('with_history', ...args)
+pub fn ruby_generate_vulns_advisories_spec_l109_d8_with_history(revisions []GenerateVulnsRevision) GenerateVulnsAdvisoriesCommand {
+	current := GenerateVulnsFormula{
+		...ruby_generate_vulns_advisories_spec_l107_d7_current()
+		history: revisions
+	}
+	return new_generate_vulns_advisories_command(GenerateVulnsAdvisoriesOptions{
+		directory: 'out'
+		formula_names: ['x']
+		formulas: {
+			'x': current
+		}
+	})
 }
 
 // Ruby method `old_formula(pkg_version:, resolves_ids: [])` at line 121.
-pub fn ruby_generate_vulns_advisories_spec_l121_d9_old_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('old_formula', ...args)
+pub fn ruby_generate_vulns_advisories_spec_l121_d9_old_formula(pkg_version string,
+	resolves_ids []string) GenerateVulnsHistoricalFormula {
+	return GenerateVulnsHistoricalFormula{
+		pkg_version: pkg_version
+		serialized_patches: resolves_ids.map(generate_vulns_spec_patch('', it))
+	}
+}
+
+fn generate_vulns_spec_revision(revision string, pkg_version string,
+	resolves_ids []string) GenerateVulnsRevision {
+	return GenerateVulnsRevision{
+		revision: revision
+		entry: 'Formula/x/x.rb'
+		formula: ruby_generate_vulns_advisories_spec_l121_d9_old_formula(pkg_version, resolves_ids)
+	}
+}
+
+fn generate_vulns_spec_fixed(mut command GenerateVulnsAdvisoriesCommand) ?string {
+	current := command.options.formulas['x'] or { return none }
+	return generate_vulns_first_fixed_version(mut command, current, 'CVE-2024-1')
 }
 
 // Ruby it `it "returns the pkg_version at the oldest revision where the CVE is resolved" do` at line 126.
-pub fn ruby_generate_vulns_advisories_spec_l126_d10_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_generate_vulns_advisories_spec_l126_d10_returns() bool {
+	mut command := ruby_generate_vulns_advisories_spec_l109_d8_with_history([
+		generate_vulns_spec_revision('r3', '1.2_1', ['CVE-2024-1']),
+		generate_vulns_spec_revision('r2', '1.2', ['CVE-2024-1']),
+		generate_vulns_spec_revision('r1', '1.1', []),
+		// Trap: if the walk continued past r1 it would wrongly return 1.0.
+		generate_vulns_spec_revision('r0', '1.0', ['CVE-2024-1']),
+	])
+	return generate_vulns_spec_fixed(mut command) or { return false } == '1.2'
 }
 
 // Ruby it `it "returns the oldest resolved version when the CVE is resolved in every revision" do` at line 138.
-pub fn ruby_generate_vulns_advisories_spec_l138_d11_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_generate_vulns_advisories_spec_l138_d11_returns() bool {
+	mut command := ruby_generate_vulns_advisories_spec_l109_d8_with_history([
+		generate_vulns_spec_revision('r2', '1.1', ['CVE-2024-1']),
+		generate_vulns_spec_revision('r1', '1.0', ['CVE-2024-1']),
+	])
+	return generate_vulns_spec_fixed(mut command) or { return false } == '1.0'
 }
 
 // Ruby it `it "stops at an unloadable revision and returns the last known resolved version" do` at line 147.
-pub fn ruby_generate_vulns_advisories_spec_l147_d12_stops(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('stops', ...args)
+pub fn ruby_generate_vulns_advisories_spec_l147_d12_stops() bool {
+	mut command := ruby_generate_vulns_advisories_spec_l109_d8_with_history([
+		generate_vulns_spec_revision('r3', '1.2', ['CVE-2024-1']),
+		GenerateVulnsRevision{
+			revision: 'r2'
+			entry: 'Formula/x/x.rb'
+			loadable: false
+		},
+		generate_vulns_spec_revision('r1', '1.0', ['CVE-2024-1']),
+	])
+	return generate_vulns_spec_fixed(mut command) or { return false } == '1.2'
 }
 
 // Ruby it `it "returns nil when the CVE is not resolved at the newest revision" do` at line 157.
-pub fn ruby_generate_vulns_advisories_spec_l157_d13_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_generate_vulns_advisories_spec_l157_d13_returns() bool {
+	mut command := ruby_generate_vulns_advisories_spec_l109_d8_with_history([
+		generate_vulns_spec_revision('r2', '1.2', []),
+		// Trap: if the walk continued past r2 it would wrongly return 1.0.
+		generate_vulns_spec_revision('r1', '1.0', ['CVE-2024-1']),
+	])
+	if _ := generate_vulns_spec_fixed(mut command) {
+		return false
+	}
+	return true
 }
 
 // Original Ruby source (line-for-line):

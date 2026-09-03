@@ -7,7 +7,11 @@ import brew_runtime
 
 // Ruby method `activate_extensions!` at line 13.
 pub fn ruby_os_l13_d1_activate_extensions(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('activate_extensions!', ...args)
+	return brew_runtime.string_array_value(active_pathname_extensions())
+}
+
+pub fn active_pathname_extensions() []string {
+	return ['WriteMkpathExtension', 'ELFShim']
 }
 
 // Original Ruby source (line-for-line):

@@ -1,33 +1,110 @@
 module bundle
 
-import brew_runtime
-
 // Translated from Homebrew/brew `bundle/skipper.rb`.
 // The original source is retained below until every stub has a typed V body.
+const bundle_skip_types = ['brew', 'cask', 'mas', 'tap', 'flatpak', 'winget']
+
+pub struct BundleSkipEntry {
+pub:
+	type_name string
+	name      string
+	full_name string
+	id        string
+}
+
+pub struct BundleSkipResult {
+pub:
+	skipped bool
+	warning string
+}
+
+pub struct BundleSkipper {
+pub mut:
+	failed_taps     []string
+	skipped_entries map[string][]string
+pub:
+	initialized bool
+}
+
+pub fn bundle_skip_entries_from_environment(environment map[string]string) map[string][]string {
+	mut entries := map[string][]string{}
+	for entry_type in bundle_skip_types {
+		key := 'HOMEBREW_BUNDLE_${entry_type.to_upper()}_SKIP'
+		if value := environment[key] {
+			entries[entry_type] = value.fields()
+		} else {
+			entries[entry_type] = []
+		}
+	}
+	return entries
+}
+
+fn clone_bundle_skip_entries(entries map[string][]string) map[string][]string {
+	mut cloned := map[string][]string{}
+	for entry_type, values in entries {
+		cloned[entry_type] = values.clone()
+	}
+	return cloned
+}
+
+pub fn new_bundle_skipper(environment map[string]string) BundleSkipper {
+	return BundleSkipper{
+		skipped_entries: bundle_skip_entries_from_environment(environment)
+		initialized: true
+	}
+}
+
+pub fn (skipper &BundleSkipper) skip(entry BundleSkipEntry, silent bool) BundleSkipResult {
+	for failed_tap in skipper.failed_taps {
+		prefix := '${failed_tap}/'
+		if entry.name.starts_with(prefix) || entry.full_name.starts_with(prefix) {
+			return BundleSkipResult{
+				skipped: true
+			}
+		}
+	}
+	type_skips := skipper.skipped_entries[entry.type_name] or { []string{} }
+	if type_skips.len == 0 || (entry.name !in type_skips && (entry.id == '' || entry.id !in type_skips)) {
+		return BundleSkipResult{}
+	}
+	return BundleSkipResult{
+		skipped: true
+		warning: if silent { '' } else { 'Warning: Skipping ${entry.name}' }
+	}
+}
+
+pub fn (mut skipper BundleSkipper) tap_failed(tap_name string) {
+	skipper.failed_taps << tap_name
+}
 
 // Ruby method `skip?(entry, silent: false)` at line 9.
-pub fn ruby_skipper_l9_d1_skip(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skip?', ...args)
+pub fn ruby_skipper_l9_d1_skip(skipper &BundleSkipper, entry BundleSkipEntry,
+	silent bool) BundleSkipResult {
+	return skipper.skip(entry, silent)
 }
 
 // Ruby method `tap_failed!(tap_name)` at line 32.
-pub fn ruby_skipper_l32_d2_tap_failed(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tap_failed!', ...args)
+pub fn ruby_skipper_l32_d2_tap_failed(mut skipper BundleSkipper, tap_name string) {
+	skipper.tap_failed(tap_name)
 }
 
 // Ruby attr_writer `attr_writer :failed_taps` at line 38.
-pub fn ruby_skipper_l38_d3_failed_taps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('failed_taps=', ...args)
+pub fn ruby_skipper_l38_d3_failed_taps(mut skipper BundleSkipper,
+	failed_taps []string) []string {
+	skipper.failed_taps = failed_taps.clone()
+	return skipper.failed_taps.clone()
 }
 
 // Ruby attr_writer `attr_writer :skipped_entries` at line 44.
-pub fn ruby_skipper_l44_d4_skipped_entries(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skipped_entries=', ...args)
+pub fn ruby_skipper_l44_d4_skipped_entries(mut skipper BundleSkipper,
+	skipped_entries map[string][]string) map[string][]string {
+	skipper.skipped_entries = clone_bundle_skip_entries(skipped_entries)
+	return clone_bundle_skip_entries(skipper.skipped_entries)
 }
 
 // Ruby method `skipped_entries` at line 49.
-pub fn ruby_skipper_l49_d5_skipped_entries(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skipped_entries', ...args)
+pub fn ruby_skipper_l49_d5_skipped_entries(skipper &BundleSkipper) map[string][]string {
+	return clone_bundle_skip_entries(skipper.skipped_entries)
 }
 
 // Original Ruby source (line-for-line):

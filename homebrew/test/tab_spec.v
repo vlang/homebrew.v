@@ -1,293 +1,720 @@
 module test
 
 import brew_runtime
+import homebrew
+import homebrew.api
+import time
+import x.json2
+
+fn tab_spec_bool(value bool) brew_runtime.Value {
+	return brew_runtime.bool_value(value)
+}
+
+fn tab_spec_subject() homebrew.Tab {
+	return homebrew.new_tab(homebrew.TabConfig{
+		homebrew_version: '1.2.3'
+		has_homebrew_version: true
+		used_options: ['--with-foo', '--without-bar']
+		unused_options: ['--with-baz', '--without-qux']
+		built_as_bottle: false
+		has_built_as_bottle: true
+		poured_from_bottle: true
+		has_poured_from_bottle: true
+		installed_on_request: true
+		has_installed_on_request: true
+		changed_files: []
+		has_changed_files: true
+		time: 1_720_189_863
+		has_time: true
+		source_modified_time: 0
+		has_source_modified_time: true
+		compiler: 'clang'
+		stdlib: 'libcxx'
+		runtime_dependencies: []
+		has_runtime_dependencies: true
+		loaded_from_api: false
+		has_loaded_from_api: true
+		loaded_from_internal_api: false
+		has_loaded_from_internal_api: true
+		source: {
+			'tap':          json2.Any('homebrew/core')
+			'path':         json2.Any('/usr/local/Homebrew/Library/Taps/homebrew/homebrew-core')
+			'spec':         json2.Any('stable')
+			'scm_revision': json2.Any('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')
+			'versions':     json2.Any({
+				'stable': json2.Any('0.10')
+				'head':   json2.Any('HEAD-1111111')
+			})
+		}
+		arch: 'x86_64'
+		has_arch: true
+		built_on: {
+			'os': json2.Any('macOS')
+		}
+		has_built_on: true
+	})
+}
+
+fn tab_spec_receipt() homebrew.Tab {
+	return homebrew.new_tab(homebrew.TabConfig{
+		homebrew_version: '1.1.6'
+		has_homebrew_version: true
+		used_options: ['--with-foo', '--without-bar']
+		unused_options: ['--with-baz', '--without-qux']
+		built_as_bottle: false
+		has_built_as_bottle: true
+		poured_from_bottle: true
+		has_poured_from_bottle: true
+		loaded_from_api: false
+		has_loaded_from_api: true
+		loaded_from_internal_api: false
+		has_loaded_from_internal_api: true
+		installed_on_request: true
+		has_installed_on_request: true
+		changed_files: ['INSTALL_RECEIPT.json', 'bin/foo']
+		has_changed_files: true
+		time: 1_403_827_774
+		has_time: true
+		source_modified_time: 1_628_303_333
+		has_source_modified_time: true
+		stdlib: 'libcxx'
+		compiler: 'clang'
+		runtime_dependencies: [homebrew.RuntimeDependencyReceipt{
+			full_name: 'foo'
+			version: '1.0'
+		}]
+		has_runtime_dependencies: true
+		source: {
+			'path':     json2.Any('/usr/local/Library/Taps/homebrew/homebrew-core/Formula/foo.rb')
+			'tap':      json2.Any('homebrew/core')
+			'spec':     json2.Any('stable')
+			'versions': json2.Any({
+				'stable': json2.Any('2.14')
+				'head':   json2.Any('HEAD-0000000')
+			})
+		}
+	})
+}
+
+fn tab_spec_old_receipt_json() string {
+	return '{"used_options":["--with-foo","--without-bar"],"unused_options":["--with-baz","--without-qux"],"built_as_bottle":false,"poured_from_bottle":true,"tapped_from":"Homebrew/homebrew","time":1403827774,"stdlib":"libcxx","compiler":"clang"}'
+}
+
+fn tab_spec_formula(name string, version string, root string, alias_path string,
+	dependencies []string, compatibility_version int) !homebrew.Formula {
+	return homebrew.new_formula(homebrew.FormulaConfig{
+		reference: api.PackageReference{
+			kind: .formula
+			name: name
+			full_name: name
+			stable_version: version
+			dependencies: dependencies
+			local_path: brew_runtime.join_path(root, '${name}.rb')
+		}
+		prefix: root
+		cellar: brew_runtime.join_path(root, 'Cellar')
+		alias_path: alias_path
+		compatibility_version: compatibility_version
+		has_compatibility_version: compatibility_version > 0
+	})
+}
+
+fn tab_spec_temp_root(name string) string {
+	return brew_runtime.join_path(brew_runtime.temporary_directory(), 'brew-v-tab-${name}-${brew_runtime.process_id()}')
+}
+
+fn tab_spec_nil() brew_runtime.Value {
+	return brew_runtime.object_value('NilClass', 'nil')
+}
+
+fn tab_spec_json_string(values map[string]json2.Any, key string) string {
+	return (values[key] or { return '' }).str()
+}
+
+fn tab_spec_json_map(values map[string]json2.Any, key string) map[string]json2.Any {
+	return (values[key] or { return map[string]json2.Any{} }).as_map()
+}
 
 // Translated from Homebrew/brew `test/tab_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:tab) do` at line 8.
 pub fn ruby_tab_spec_l8_d1_tab(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tab', ...args)
+	return homebrew.tab_boundary_value(tab_spec_subject())
 }
 
 // Ruby let `let(:time) { Time.now.to_i }` at line 37.
 pub fn ruby_tab_spec_l37_d2_time(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('time', ...args)
+	return brew_runtime.int_value(time.now().unix())
 }
 
 // Ruby let `let(:unused_options) { Options.create(%w[--with-baz --without-qux]) }` at line 38.
 pub fn ruby_tab_spec_l38_d3_unused_options(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('unused_options', ...args)
+	return brew_runtime.string_array_value(['--with-baz', '--without-qux'])
 }
 
 // Ruby let `let(:used_options) { Options.create(%w[--with-foo --without-bar]) }` at line 39.
 pub fn ruby_tab_spec_l39_d4_used_options(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('used_options', ...args)
+	return brew_runtime.string_array_value(['--with-foo', '--without-bar'])
 }
 
 // Ruby let `let(:git_repo) { HOMEBREW_CACHE/"tab-spec-git-repo" }` at line 40.
 pub fn ruby_tab_spec_l40_d5_git_repo(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('git_repo', ...args)
+	return brew_runtime.string_value(tab_spec_temp_root('tab-spec-git-repo'))
 }
 
 // Ruby let `let(:f) do` at line 41.
 pub fn ruby_tab_spec_l41_d6_f(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f', ...args)
+	root := tab_spec_temp_root('formula')
+	formula := tab_spec_formula('foo', '1.0', root, '', [], 0) or {
+		return brew_runtime.structured_value('Error', err.msg(), {
+			'message': err.msg()
+		})
+	}
+	return homebrew.formula_boundary_value(formula)
 }
 
 // Ruby let `let(:f_tab_path) { f.prefix/"INSTALL_RECEIPT.json" }` at line 47.
 pub fn ruby_tab_spec_l47_d7_f_tab_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f_tab_path', ...args)
+	formula := homebrew.formula_from_boundary(ruby_tab_spec_l41_d6_f())
+	return brew_runtime.string_value(brew_runtime.join_path(formula.prefix(), homebrew.tab_filename))
 }
 
 // Ruby let `let(:f_tab_content) { (TEST_FIXTURE_DIR/"receipt.json").read }` at line 48.
 pub fn ruby_tab_spec_l48_d8_f_tab_content(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f_tab_content', ...args)
+	return brew_runtime.string_value(tab_spec_receipt().to_json())
 }
 
 // Ruby alias_matcher `alias_matcher :be_built_with, :be_with` at line 50.
 pub fn ruby_tab_spec_l50_d9_be_built_with(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('be_built_with', ...args)
+	name := if args.len > 0 { args[0].as_string() } else { 'foo' }
+	return tab_spec_bool(tab_spec_subject().with(name))
 }
 
 // Ruby matcher `matcher :be_poured_from_bottle do` at line 52.
 pub fn ruby_tab_spec_l52_d10_be_poured_from_bottle(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('be_poured_from_bottle', ...args)
+	return tab_spec_bool(tab_spec_subject().poured_from_bottle)
 }
 
 // Ruby matcher `matcher :be_built_as_bottle do` at line 58.
 pub fn ruby_tab_spec_l58_d11_be_built_as_bottle(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('be_built_as_bottle', ...args)
+	return tab_spec_bool(tab_spec_subject().built_as_bottle)
 }
 
 // Ruby matcher `matcher :be_installed_on_request do` at line 64.
 pub fn ruby_tab_spec_l64_d12_be_installed_on_request(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('be_installed_on_request', ...args)
+	return tab_spec_bool(tab_spec_subject().installed_on_request)
 }
 
 // Ruby matcher `matcher :be_loaded_from_api do` at line 70.
 pub fn ruby_tab_spec_l70_d13_be_loaded_from_api(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('be_loaded_from_api', ...args)
+	return tab_spec_bool(tab_spec_subject().loaded_from_api)
 }
 
 // Ruby matcher `matcher :be_loaded_from_internal_api do` at line 76.
 pub fn ruby_tab_spec_l76_d14_be_loaded_from_internal_api(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('be_loaded_from_internal_api', ...args)
+	return tab_spec_bool(tab_spec_subject().loaded_from_internal_api)
 }
 
 // Ruby method `git_commit_all` at line 86.
 pub fn ruby_tab_spec_l86_d15_git_commit_all(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('git_commit_all', ...args)
+	path := if args.len > 0 { args[0].as_string() } else { tab_spec_temp_root('git-commit') }
+	result := brew_runtime.run_captured_command(['git', 'add', '--all'], brew_runtime.CapturedCommandOptions{ chdir: path, environment: brew_runtime.environment() }) or {
+		return tab_spec_bool(false)
+	}
+	if result.exit_code != 0 {
+		return tab_spec_bool(false)
+	}
+	commit := brew_runtime.run_captured_command(['git', '-c', 'user.name=Tab Spec', '-c',
+		'user.email=tab@example.com', 'commit', '-m', 'tab spec commit'], brew_runtime.CapturedCommandOptions{ chdir: path, environment: brew_runtime.environment() }) or {
+		return tab_spec_bool(false)
+	}
+	return tab_spec_bool(commit.exit_code == 0)
 }
 
 // Ruby method `setup_git_repo(path)` at line 91.
 pub fn ruby_tab_spec_l91_d16_setup_git_repo(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('setup_git_repo', ...args)
+	path := if args.len > 0 { args[0].as_string() } else { tab_spec_temp_root('git-setup') }
+	brew_runtime.remove_all(path) or {}
+	brew_runtime.make_dir_all(path) or { return tab_spec_bool(false) }
+	defer { brew_runtime.remove_all(path) or {} }
+	initialized := brew_runtime.run_captured_command(['git', '-c', 'init.defaultBranch=master',
+		'init'], brew_runtime.CapturedCommandOptions{ chdir: path, environment: brew_runtime.environment() }) or {
+		return tab_spec_bool(false)
+	}
+	if initialized.exit_code != 0 {
+		return tab_spec_bool(false)
+	}
+	brew_runtime.write_file(brew_runtime.join_path(path, 'README'), '') or {
+		return tab_spec_bool(false)
+	}
+	return ruby_tab_spec_l86_d15_git_commit_all(brew_runtime.string_value(path))
 }
 
 // Ruby specify `specify "defaults" do` at line 101.
 pub fn ruby_tab_spec_l101_d17_defaults(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('defaults', ...args)
+	tab := homebrew.empty_tab()
+	return tab_spec_bool(tab.has_homebrew_version && tab.homebrew_version != '' && tab.unused_options().empty() && tab.used_options().empty() && !tab.has_changed_files && !tab.built_as_bottle && !tab.poured_from_bottle && !tab.installed_on_request && !tab.loaded_from_api && !tab.loaded_from_internal_api && tab.stable() && !tab.head() && tab.tap_name() == '' && !tab.has_time && tab.runtime_dependencies() == none && tab.stable_version() == none && tab.head_version() == none && !tab.cxxstdlib().has_type && tab.cxxstdlib().compiler != '' && (tab.source['path'] or { json2.null }) is json2.Null)
 }
 
 // Ruby specify `specify do` at line 128.
 pub fn ruby_tab_spec_l128_d18_do(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('do', ...args)
+	tab := tab_spec_subject()
+	return tab_spec_bool(tab.includes('with-foo') && tab.includes('without-bar') && tab.with('foo') && tab.with('qux') && !tab.with('bar') && !tab.with('baz') && tab.cxxstdlib().compiler == 'clang' && tab.cxxstdlib().type_symbol() == 'libcxx' && tab.tap_name() == 'homebrew/core' && tab.time == 1_720_189_863 && !tab.built_as_bottle && tab.poured_from_bottle && tab.installed_on_request && !tab.loaded_from_api && !tab.loaded_from_internal_api)
 }
 
 // Ruby specify `specify "#initialize" do` at line 146.
 pub fn ruby_tab_spec_l146_d19_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#initialize', ...args)
+	tab := homebrew.tab_from_json('{"installed_as_dependency":true,"homebrew_version":"1.2.3"}', 'receipt.json') or { return tab_spec_bool(false) }
+	return tab_spec_bool(tab.homebrew_version == '1.2.3')
 }
 
 // Ruby specify `specify "#installed_on_request_present?" do` at line 152.
 pub fn ruby_tab_spec_l152_d20_installed_on_request_present(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#installed_on_request_present?', ...args)
+	missing := homebrew.new_tab(homebrew.TabConfig{})
+	present := homebrew.new_tab(homebrew.TabConfig{
+		installed_on_request: false
+		has_installed_on_request: true
+	})
+	return tab_spec_bool(!missing.installed_on_request_present && present.installed_on_request_present)
 }
 
 // Ruby specify `specify "#parsed_homebrew_version" do` at line 157.
 pub fn ruby_tab_spec_l157_d21_parsed_homebrew_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#parsed_homebrew_version', ...args)
+	missing := homebrew.new_tab(homebrew.TabConfig{})
+	one := homebrew.new_tab(homebrew.TabConfig{
+		homebrew_version: '1.2.3'
+		has_homebrew_version: true
+	}).parsed_homebrew_version()
+	two := homebrew.new_tab(homebrew.TabConfig{
+		homebrew_version: '1.2.4-567-g12789abdf'
+		has_homebrew_version: true
+	}).parsed_homebrew_version()
+	dirty := homebrew.new_tab(homebrew.TabConfig{
+		homebrew_version: '2.0.0-134-gabcdefabc-dirty'
+		has_homebrew_version: true
+	}).parsed_homebrew_version()
+	return tab_spec_bool(missing.parsed_homebrew_version().is_null() && one.to_s() == '1.2.3' && one.compare_to(homebrew.new_version('1.2.3-1-g12789abdf') or { return tab_spec_bool(false) }) < 0 && two.compare_to(homebrew.new_version('1.2.4') or { return tab_spec_bool(false) }) > 0 && two.compare_to(homebrew.new_version('1.2.4-566-g21789abdf') or { return tab_spec_bool(false) }) > 0 && two.compare_to(homebrew.new_version('1.2.4-568-g01789abdf') or { return tab_spec_bool(false) }) < 0 && dirty.compare_to(homebrew.new_version('2.0.0') or { return tab_spec_bool(false) }) > 0 && dirty.compare_to(homebrew.new_version('2.0.0-133-g21789abdf') or { return tab_spec_bool(false) }) > 0 && dirty.compare_to(homebrew.new_version('2.0.0-135-g01789abdf') or { return tab_spec_bool(false) }) < 0)
 }
 
 // Ruby specify `specify "#runtime_dependencies" do` at line 177.
 pub fn ruby_tab_spec_l177_d22_runtime_dependencies(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#runtime_dependencies', ...args)
+	missing := homebrew.new_tab(homebrew.TabConfig{})
+	minimum_without := homebrew.new_tab(homebrew.TabConfig{
+		homebrew_version: '1.1.6'
+		has_homebrew_version: true
+	})
+	minimum_with := homebrew.new_tab(homebrew.TabConfig{
+		homebrew_version: '1.1.6'
+		has_homebrew_version: true
+		runtime_dependencies: []homebrew.RuntimeDependencyReceipt{}
+		has_runtime_dependencies: true
+	})
+	old_with := homebrew.new_tab(homebrew.TabConfig{
+		homebrew_version: '1.1.5'
+		has_homebrew_version: true
+		runtime_dependencies: []homebrew.RuntimeDependencyReceipt{}
+		has_runtime_dependencies: true
+	})
+	new_with := homebrew.new_tab(homebrew.TabConfig{
+		homebrew_version: '1.1.7'
+		has_homebrew_version: true
+		runtime_dependencies: [
+			homebrew.RuntimeDependencyReceipt{ full_name: 'foo', version: '1.0' },
+		]
+		has_runtime_dependencies: true
+	})
+	return tab_spec_bool(missing.runtime_dependencies() == none && minimum_without.runtime_dependencies() == none && minimum_with.runtime_dependencies() != none && old_with.runtime_dependencies() == none && new_with.runtime_dependencies() != none)
 }
 
 // Ruby it `it "handles older Homebrew versions correctly" do` at line 201.
 pub fn ruby_tab_spec_l201_d23_handles(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('handles', ...args)
+	root := tab_spec_temp_root('runtime-old')
+	formula := tab_spec_formula('foo', '1.0', root, '', [], 0) or {
+		return tab_spec_bool(false)
+	}
+	receipt := homebrew.formula_to_runtime_dependency_receipt(formula, [])
+	tab := homebrew.new_tab(homebrew.TabConfig{
+		homebrew_version: '1.1.6'
+		has_homebrew_version: true
+		runtime_dependencies: [receipt]
+		has_runtime_dependencies: true
+	})
+	dependencies := tab.runtime_dependencies() or { return tab_spec_bool(false) }
+	return tab_spec_bool(dependencies.len == 1 && dependencies[0].full_name == 'foo' && dependencies[0].version == '1.0' && dependencies[0].revision == 0 && dependencies[0].pkg_version == '1.0' && !dependencies[0].declared_directly)
 }
 
 // Ruby it `it "include declared dependencies" do` at line 218.
 pub fn ruby_tab_spec_l218_d24_include(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('include', ...args)
+	formula := tab_spec_formula('foo', '1.0', tab_spec_temp_root('declared'), '', [], 0) or {
+		return tab_spec_bool(false)
+	}
+	receipt := homebrew.formula_to_runtime_dependency_receipt(formula, ['foo'])
+	return tab_spec_bool(receipt.full_name == 'foo' && receipt.version == '1.0' && receipt.has_declared_directly && receipt.declared_directly)
 }
 
 // Ruby it `it "includes recursive dependencies" do` at line 240.
 pub fn ruby_tab_spec_l240_d25_includes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('includes', ...args)
+	root := tab_spec_temp_root('recursive')
+	foo := tab_spec_formula('foo', '1.0', root, '', [], 0) or { return tab_spec_bool(false) }
+	bar := tab_spec_formula('bar', '2.0', root, '', [], 0) or { return tab_spec_bool(false) }
+	receipts := [homebrew.formula_to_runtime_dependency_receipt(foo, ['foo']),
+		homebrew.formula_to_runtime_dependency_receipt(bar, ['foo'])]
+	return tab_spec_bool(receipts.len == 2 && receipts[0].declared_directly && !receipts[1].declared_directly && receipts[1].version == '2.0')
 }
 
 // Ruby it `it "includes compatibility_version when set" do` at line 276.
 pub fn ruby_tab_spec_l276_d26_includes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('includes', ...args)
+	formula := tab_spec_formula('foo', '1.0', tab_spec_temp_root('compat'), '', [], 1) or {
+		return tab_spec_bool(false)
+	}
+	receipt := homebrew.formula_to_runtime_dependency_receipt(formula, ['foo'])
+	return tab_spec_bool(receipt.has_compatibility_version && receipt.compatibility_version == 1)
 }
 
 // Ruby it `it "parses a formula Tab from a file" do` at line 303.
 pub fn ruby_tab_spec_l303_d27_parses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('parses', ...args)
+	tab := homebrew.tab_from_json(tab_spec_receipt().to_json(), '/tmp/2.14/INSTALL_RECEIPT.json') or {
+		return tab_spec_bool(false)
+	}
+	dependencies := tab.runtime_dependencies() or { return tab_spec_bool(false) }
+	stable := tab.stable_version() or { return tab_spec_bool(false) }
+	head := tab.head_version() or { return tab_spec_bool(false) }
+	return tab_spec_bool(tab.used_options().as_flags().sorted() == ['--with-foo', '--without-bar'].sorted() && tab.unused_options().as_flags().sorted() == [
+		'--with-baz',
+		'--without-qux',
+	].sorted() && tab.changed_files == ['INSTALL_RECEIPT.json', 'bin/foo'] && !tab.built_as_bottle && tab.poured_from_bottle && tab.installed_on_request && !tab.loaded_from_api && !tab.loaded_from_internal_api && tab.stable() && !tab.head() && tab.tap_name() == 'homebrew/core' && tab.time == 1_403_827_774 && tab.cxxstdlib().compiler == 'clang' && tab.cxxstdlib().type_symbol() == 'libcxx' && dependencies.len == 1 && dependencies[0].full_name == 'foo' && stable.to_s() == '2.14' && head.to_s() == 'HEAD-0000000' && tab_spec_json_string(tab.source, 'path') == '/usr/local/Library/Taps/homebrew/homebrew-core/Formula/foo.rb')
 }
 
 // Ruby it `it "parses a formula Tab from a file" do` at line 333.
 pub fn ruby_tab_spec_l333_d28_parses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('parses', ...args)
+	return ruby_tab_spec_l303_d27_parses()
 }
 
 // Ruby it `it "can parse an old formula Tab file" do` at line 361.
 pub fn ruby_tab_spec_l361_d29_can(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('can', ...args)
+	tab := homebrew.tab_from_json(tab_spec_old_receipt_json(), '/tmp/foo/1.0/INSTALL_RECEIPT.json') or {
+		return tab_spec_bool(false)
+	}
+	return tab_spec_bool(tab.used_options().as_flags().sorted() == ['--with-foo', '--without-bar'].sorted() && tab.unused_options().as_flags().sorted() == [
+		'--with-baz',
+		'--without-qux',
+	].sorted() && !tab.built_as_bottle && tab.poured_from_bottle && !tab.installed_on_request && !tab.loaded_from_api && !tab.loaded_from_internal_api && tab.stable() && !tab.head() && tab.tap_name() == 'homebrew/core' && tab.time == 1_403_827_774 && tab.cxxstdlib().compiler == 'clang' && tab.cxxstdlib().type_symbol() == 'libcxx' && tab.runtime_dependencies() == none)
 }
 
 // Ruby it `it "raises a parse exception message including the Tab filename" do` at line 382.
 pub fn ruby_tab_spec_l382_d30_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+	homebrew.tab_from_json("''", 'receipt.json') or {
+		return tab_spec_bool(err.msg().contains('receipt.json'))
+	}
+	return tab_spec_bool(false)
 }
 
 // Ruby it `it "creates a formula Tab" do` at line 391.
 pub fn ruby_tab_spec_l391_d31_creates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('creates', ...args)
+	root := tab_spec_temp_root('create')
+	formula := tab_spec_formula('formula', '1.0', root, '', ['bar', 'user/repo/from_tap'], 0) or {
+		return tab_spec_bool(false)
+	}
+	bar := tab_spec_formula('bar', '2.0', root, '', [], 0) or { return tab_spec_bool(false) }
+	from_tap := homebrew.new_formula(homebrew.FormulaConfig{
+		reference: api.PackageReference{
+			kind: .formula
+			name: 'from_tap'
+			full_name: 'user/repo/from_tap'
+			tap: 'user/repo'
+			stable_version: '1.0'
+			revision: 1
+			local_path: brew_runtime.join_path(root, 'from_tap.rb')
+		}
+		prefix: root
+		cellar: brew_runtime.join_path(root, 'Cellar')
+	}) or { return tab_spec_bool(false) }
+	mut tab := homebrew.tab_create_for_formula(formula, [bar, from_tap], 'clang', 'libcxx')
+	tab.homebrew_version = '1.1.7'
+	tab.has_homebrew_version = true
+	dependencies := tab.runtime_dependencies() or { return tab_spec_bool(false) }
+	return tab_spec_bool(dependencies.len == 2 && dependencies[0].full_name == 'bar' && dependencies[0].declared_directly && dependencies[1].full_name == 'user/repo/from_tap' && dependencies[1].revision == 1 && dependencies[1].pkg_version == '1.0_1' && dependencies[1].declared_directly && tab_spec_json_string(tab.source, 'path') == formula.path() && 'scm_revision' !in tab.source)
 }
 
 // Ruby it `it "can create a formula Tab from an alias" do` at line 443.
 pub fn ruby_tab_spec_l443_d32_can(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('can', ...args)
+	root := tab_spec_temp_root('alias')
+	alias_path := brew_runtime.join_path(root, 'Aliases/bar')
+	formula := tab_spec_formula('foo', '1.0', root, alias_path, [], 0) or {
+		return tab_spec_bool(false)
+	}
+	tab := homebrew.tab_create_for_formula(formula, [], 'clang', 'libcxx')
+	return tab_spec_bool(tab_spec_json_string(tab.source, 'path') == alias_path)
 }
 
 // Ruby it `it "records the upstream source revision for VCS formulae" do` at line 456.
 pub fn ruby_tab_spec_l456_d33_records(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('records', ...args)
+	formula := tab_spec_formula('tab-spec-git', '1.0', tab_spec_temp_root('revision'), '', [], 0) or { return tab_spec_bool(false) }
+	commit := '0123456789abcdef0123456789abcdef01234567'
+	tab := homebrew.tab_create_for_formula(formula, [], 'clang', 'libcxx', commit)
+	return tab_spec_bool(tab_spec_json_string(tab.source, 'scm_revision') == commit)
 }
 
 // Ruby subject `subject(:tab_for_keg) { described_class.for_keg(f.prefix) }` at line 475.
 pub fn ruby_tab_spec_l475_d34_tab_for_keg(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tab_for_keg', ...args)
+	path := tab_spec_temp_root('for-keg-subject')
+	brew_runtime.remove_all(path) or {}
+	brew_runtime.make_dir_all(path) or { return tab_spec_nil() }
+	defer { brew_runtime.remove_all(path) or {} }
+	tab := homebrew.tab_for_keg(path) or { return tab_spec_nil() }
+	return homebrew.tab_boundary_value(tab)
 }
 
 // Ruby it `it "creates a Tab for a given Keg" do` at line 477.
 pub fn ruby_tab_spec_l477_d35_creates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('creates', ...args)
+	path := tab_spec_temp_root('for-keg-existing')
+	brew_runtime.remove_all(path) or {}
+	brew_runtime.make_dir_all(path) or { return tab_spec_bool(false) }
+	defer { brew_runtime.remove_all(path) or {} }
+	receipt := brew_runtime.join_path(path, homebrew.tab_filename)
+	brew_runtime.write_file(receipt, tab_spec_receipt().to_json()) or {
+		return tab_spec_bool(false)
+	}
+	tab := homebrew.tab_for_keg(path) or { return tab_spec_bool(false) }
+	return tab_spec_bool(tab.tabfile == receipt)
 }
 
 // Ruby it `it "can create a Tab for a non-existent Keg" do` at line 484.
 pub fn ruby_tab_spec_l484_d36_can(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('can', ...args)
+	path := tab_spec_temp_root('for-keg-missing')
+	brew_runtime.remove_all(path) or {}
+	brew_runtime.make_dir_all(path) or { return tab_spec_bool(false) }
+	defer { brew_runtime.remove_all(path) or {} }
+	tab := homebrew.tab_for_keg(path) or { return tab_spec_bool(false) }
+	return tab_spec_bool(tab.tabfile == brew_runtime.join_path(path, homebrew.tab_filename))
 }
 
 // Ruby it `it "creates a Tab for a given Formula" do` at line 492.
 pub fn ruby_tab_spec_l492_d37_creates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('creates', ...args)
+	root := tab_spec_temp_root('for-formula')
+	formula := tab_spec_formula('foo', '1.0', root, '', [], 0) or {
+		return tab_spec_bool(false)
+	}
+	tab := homebrew.tab_for_formula(formula)
+	return tab_spec_bool(tab_spec_json_string(tab.source, 'path') == formula.path())
 }
 
 // Ruby it `it "can create a Tab for for a Formula from an alias" do` at line 497.
 pub fn ruby_tab_spec_l497_d38_can(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('can', ...args)
+	root := tab_spec_temp_root('for-alias')
+	alias_path := brew_runtime.join_path(root, 'Aliases/bar')
+	formula := tab_spec_formula('foo', '1.0', root, alias_path, [], 0) or {
+		return tab_spec_bool(false)
+	}
+	tab := homebrew.tab_for_formula(formula)
+	return tab_spec_bool(tab_spec_json_string(tab.source, 'path') == alias_path)
 }
 
 // Ruby it `it "creates a Tab for a given Formula with existing Tab" do` at line 508.
 pub fn ruby_tab_spec_l508_d39_creates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('creates', ...args)
+	root := tab_spec_temp_root('for-existing')
+	brew_runtime.remove_all(root) or {}
+	defer { brew_runtime.remove_all(root) or {} }
+	formula := tab_spec_formula('foo', '1.0', root, '', [], 0) or {
+		return tab_spec_bool(false)
+	}
+	brew_runtime.make_dir_all(formula.prefix()) or { return tab_spec_bool(false) }
+	receipt := brew_runtime.join_path(formula.prefix(), homebrew.tab_filename)
+	brew_runtime.write_file(receipt, tab_spec_receipt().to_json()) or {
+		return tab_spec_bool(false)
+	}
+	tab := homebrew.tab_for_formula(formula)
+	return tab_spec_bool(tab.tabfile == receipt)
 }
 
 // Ruby it `it "can create a Tab for a non-existent Formula" do` at line 516.
 pub fn ruby_tab_spec_l516_d40_can(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('can', ...args)
+	root := tab_spec_temp_root('for-nonexistent')
+	brew_runtime.remove_all(root) or {}
+	defer { brew_runtime.remove_all(root) or {} }
+	formula := tab_spec_formula('foo', '1.0', root, '', [], 0) or {
+		return tab_spec_bool(false)
+	}
+	brew_runtime.make_dir_all(formula.prefix()) or { return tab_spec_bool(false) }
+	tab := homebrew.tab_for_formula(formula)
+	return tab_spec_bool(tab.tabfile == '')
 }
 
 // Ruby it `it "can create a Tab for a Formula with multiple Kegs" do` at line 523.
 pub fn ruby_tab_spec_l523_d41_can(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('can', ...args)
+	root := tab_spec_temp_root('multiple-kegs')
+	brew_runtime.remove_all(root) or {}
+	defer { brew_runtime.remove_all(root) or {} }
+	formula := tab_spec_formula('foo', '1.0', root, '', [], 0) or {
+		return tab_spec_bool(false)
+	}
+	formula_two := tab_spec_formula('foo', '2.0', root, '', [], 0) or {
+		return tab_spec_bool(false)
+	}
+	brew_runtime.make_dir_all(formula.prefix()) or { return tab_spec_bool(false) }
+	brew_runtime.make_dir_all(formula_two.prefix()) or { return tab_spec_bool(false) }
+	receipt := brew_runtime.join_path(formula.prefix(), homebrew.tab_filename)
+	brew_runtime.write_file(receipt, tab_spec_receipt().to_json()) or {
+		return tab_spec_bool(false)
+	}
+	tab := homebrew.tab_for_formula(formula)
+	return tab_spec_bool(formula.rack() == formula_two.rack() && formula.installed_prefixes().len == 2 && tab.tabfile == receipt)
 }
 
 // Ruby it `it "can create a Tab for a Formula with an outdated Kegs" do` at line 540.
 pub fn ruby_tab_spec_l540_d42_can(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('can', ...args)
+	root := tab_spec_temp_root('outdated-keg')
+	brew_runtime.remove_all(root) or {}
+	defer { brew_runtime.remove_all(root) or {} }
+	formula := tab_spec_formula('foo', '1.0', root, '', [], 0) or {
+		return tab_spec_bool(false)
+	}
+	formula_two := tab_spec_formula('foo', '2.0', root, '', [], 0) or {
+		return tab_spec_bool(false)
+	}
+	brew_runtime.make_dir_all(formula.prefix()) or { return tab_spec_bool(false) }
+	receipt := brew_runtime.join_path(formula.prefix(), homebrew.tab_filename)
+	brew_runtime.write_file(receipt, tab_spec_receipt().to_json()) or {
+		return tab_spec_bool(false)
+	}
+	tab := homebrew.tab_for_formula(formula)
+	return tab_spec_bool(formula.rack() == formula_two.rack() && formula.installed_prefixes().len == 1 && tab.tabfile == receipt)
 }
 
 // Ruby specify `specify "#to_json" do` at line 557.
 pub fn ruby_tab_spec_l557_d43_to_json(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#to_json', ...args)
+	tab := tab_spec_subject()
+	parsed := homebrew.tab_from_json(tab.to_json(), 'receipt.json') or {
+		return tab_spec_bool(false)
+	}
+	stable := parsed.stable_version() or { return tab_spec_bool(false) }
+	head := parsed.head_version() or { return tab_spec_bool(false) }
+	return tab_spec_bool(parsed.homebrew_version == tab.homebrew_version && parsed.used_options().as_flags().sorted() == tab.used_options().as_flags().sorted() && parsed.unused_options().as_flags().sorted() == tab.unused_options().as_flags().sorted() && parsed.built_as_bottle == tab.built_as_bottle && parsed.poured_from_bottle == tab.poured_from_bottle && parsed.changed_files == tab.changed_files && parsed.tap_name() == tab.tap_name() && parsed.spec() == tab.spec() && parsed.time == tab.time && parsed.compiler() == tab.compiler() && parsed.stdlib == tab.stdlib && stable.to_s() == '0.10' && head.to_s() == 'HEAD-1111111' && tab_spec_json_string(parsed.source, 'path') == tab_spec_json_string(tab.source, 'path') && tab_spec_json_string(parsed.source, 'scm_revision') == tab_spec_json_string(tab.source, 'scm_revision') && parsed.arch == tab.arch && tab_spec_json_string(parsed.built_on, 'os') == tab_spec_json_string(tab.built_on, 'os'))
 }
 
 // Ruby specify `specify "#to_bottle_hash" do` at line 579.
 pub fn ruby_tab_spec_l579_d44_to_bottle_hash(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#to_bottle_hash', ...args)
+	tab := tab_spec_subject()
+	attributes := tab.bottle_attributes()
+	source_modified_time := (attributes['source_modified_time'] or { return tab_spec_bool(false) }).i64()
+	built_on := tab_spec_json_map(attributes, 'built_on')
+	source := tab_spec_json_map(attributes, 'source')
+	return tab_spec_bool(tab_spec_json_string(attributes, 'homebrew_version') == tab.homebrew_version && source_modified_time == tab.source_modified_time() && tab_spec_json_string(attributes, 'compiler') == tab.compiler() && tab_spec_json_string(attributes, 'stdlib') == tab.stdlib && tab_spec_json_string(attributes, 'arch') == tab.arch && tab_spec_json_string(built_on, 'os') == tab_spec_json_string(tab.built_on, 'os') && tab_spec_json_string(source, 'scm_revision') == tab_spec_json_string(tab.source, 'scm_revision'))
 }
 
 // Ruby let `let(:time_string) { Time.at(1_720_189_863).strftime("%Y-%m-%d at %H:%M:%S") }` at line 593.
 pub fn ruby_tab_spec_l593_d45_time_string(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('time_string', ...args)
+	return brew_runtime.string_value(time.unix(1_720_189_863).format_ss().replace(' ', ' at '))
 }
 
 // Ruby it `it "returns install information for the Tab" do` at line 595.
 pub fn ruby_tab_spec_l595_d46_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	tab := homebrew.new_tab(homebrew.TabConfig{
+		poured_from_bottle: true
+		has_poured_from_bottle: true
+		loaded_from_api: true
+		has_loaded_from_api: true
+		loaded_from_internal_api: false
+		has_loaded_from_internal_api: true
+		time: 1_720_189_863
+		has_time: true
+		used_options: ['--with-foo', '--without-bar']
+	})
+	expected := 'Poured from bottle using the formulae.brew.sh API on ${time.unix(1_720_189_863).format_ss().replace(' ', ' at ')} with: --with-foo --without-bar'
+	return tab_spec_bool(tab.str() == expected)
 }
 
 // Ruby it `it "includes 'Poured from bottle' if the formula was installed from a bottle" do` at line 608.
 pub fn ruby_tab_spec_l608_d47_includes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('includes', ...args)
+	tab := homebrew.new_tab(homebrew.TabConfig{
+		poured_from_bottle: true
+		has_poured_from_bottle: true
+	})
+	return tab_spec_bool(tab.str().contains('Poured from bottle'))
 }
 
 // Ruby it `it "includes 'Built from source' if the formula was not installed from a bottle" do` at line 613.
 pub fn ruby_tab_spec_l613_d48_includes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('includes', ...args)
+	tab := homebrew.new_tab(homebrew.TabConfig{
+		poured_from_bottle: false
+		has_poured_from_bottle: true
+	})
+	return tab_spec_bool(tab.str().contains('Built from source'))
 }
 
 // Ruby it `it "includes 'using the formulae.brew.sh API' if the formula was installed from the API" do` at line 618.
 pub fn ruby_tab_spec_l618_d49_includes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('includes', ...args)
+	tab := homebrew.new_tab(homebrew.TabConfig{
+		loaded_from_api: true
+		has_loaded_from_api: true
+	})
+	return tab_spec_bool(tab.str().contains('using the formulae.brew.sh API'))
 }
 
 // Ruby it `it "includes 'using the internal formulae.brew.sh API' if the formula was installed from the internal API" do` at line 623.
 pub fn ruby_tab_spec_l623_d50_includes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('includes', ...args)
+	tab := homebrew.new_tab(homebrew.TabConfig{
+		loaded_from_api: true
+		has_loaded_from_api: true
+		loaded_from_internal_api: true
+		has_loaded_from_internal_api: true
+	})
+	return tab_spec_bool(tab.str().contains('using the internal formulae.brew.sh API'))
 }
 
 // Ruby it `it "does not include 'using the formulae.brew.sh API' if the formula was not installed from the API" do` at line 628.
 pub fn ruby_tab_spec_l628_d51_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	tab := homebrew.new_tab(homebrew.TabConfig{
+		loaded_from_api: false
+		has_loaded_from_api: true
+	})
+	return tab_spec_bool(!tab.str().contains('using the formulae.brew.sh API'))
 }
 
 // Ruby it `it "doesn't include 'using the internal formulae.brew.sh API' if the formula wasn't installed via internal API" do` at line 633.
 pub fn ruby_tab_spec_l633_d52_doesn(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('doesn', ...args)
+	tab := homebrew.new_tab(homebrew.TabConfig{
+		loaded_from_api: true
+		has_loaded_from_api: true
+		loaded_from_internal_api: false
+		has_loaded_from_internal_api: true
+	})
+	return tab_spec_bool(!tab.str().contains('using the internal formulae.brew.sh API'))
 }
 
 // Ruby it `it "includes the time value if specified" do` at line 638.
 pub fn ruby_tab_spec_l638_d53_includes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('includes', ...args)
+	tab := homebrew.new_tab(homebrew.TabConfig{ time: 1_720_189_863, has_time: true })
+	return tab_spec_bool(tab.str().contains('on ${time.unix(1_720_189_863).format_ss().replace(' ', ' at ')}'))
 }
 
 // Ruby it `it "does not include the time value if not specified" do` at line 643.
 pub fn ruby_tab_spec_l643_d54_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	tab := homebrew.new_tab(homebrew.TabConfig{})
+	return tab_spec_bool(!tab.str().contains(' on '))
 }
 
 // Ruby it `it "includes options if specified" do` at line 648.
 pub fn ruby_tab_spec_l648_d55_includes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('includes', ...args)
+	tab := homebrew.new_tab(homebrew.TabConfig{
+		used_options: ['--with-foo', '--without-bar']
+	})
+	return tab_spec_bool(tab.str().contains('with: --with-foo --without-bar'))
 }
 
 // Ruby it `it "not to include options if not specified" do` at line 653.
 pub fn ruby_tab_spec_l653_d56_not(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('not', ...args)
+	tab := homebrew.new_tab(homebrew.TabConfig{ used_options: [] })
+	return tab_spec_bool(!tab.str().contains('with: '))
 }
 
 // Ruby specify `specify "::remap_deprecated_options" do` at line 659.
 pub fn ruby_tab_spec_l659_d57_remap_deprecated_options(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('::remap_deprecated_options', ...args)
+	remapped := homebrew.remap_tab_deprecated_options([
+		homebrew.new_deprecated_option('with-foo', 'with-foo-new'),
+	], tab_spec_subject().used_options())
+	return tab_spec_bool(remapped.contains('without-bar') && remapped.contains('with-foo-new'))
 }
 
 // Original Ruby source (line-for-line):

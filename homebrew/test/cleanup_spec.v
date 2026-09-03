@@ -1,423 +1,1012 @@
 module test
 
 import brew_runtime
+import homebrew
+import os
+import time
+
+fn cleanup_spec_root(name string) string {
+	return os.join_path(os.temp_dir(), 'brew-v-cleanup-spec-${name}')
+}
+
+fn cleanup_spec_reset(name string) string {
+	root := cleanup_spec_root(name)
+	if os.exists(root) {
+		os.rmdir_all(root) or { panic(err) }
+	}
+	os.mkdir_all(root) or { panic(err) }
+	return root
+}
+
+fn cleanup_spec_touch(path string) {
+	os.mkdir_all(os.dir(path)) or { panic(err) }
+	os.write_file(path, '') or { panic(err) }
+}
+
+fn cleanup_spec_path(path string, attributes map[string]string) brew_runtime.Value {
+	mut values := attributes.clone()
+	values['exists'] = values['exists'] or { (os.exists(path) || os.is_link(path)).str() }
+	values['directory'] = values['directory'] or { os.is_dir(path).str() }
+	values['file'] = values['file'] or { os.is_file(path).str() }
+	values['symlink'] = values['symlink'] or { os.is_link(path).str() }
+	values['resolved_file'] = values['resolved_file'] or { os.is_file(path).str() }
+	return brew_runtime.structured_value('Pathname', path, values)
+}
+
+fn cleanup_spec_formula(name string, latest bool, version string) brew_runtime.Value {
+	return brew_runtime.structured_value('Formula', name, {
+		'name':                     name
+		'latest_version_installed': latest.str()
+		'pkg_version':              version
+		'installed_versions':       version
+		'eligible_versions':        version
+	})
+}
+
+fn cleanup_spec_cask(token string, version string, installed string, latest bool,
+	url string) brew_runtime.Value {
+	return brew_runtime.structured_value('Cask::Cask', token, {
+		'token':             token
+		'version':           version
+		'installed_version': installed
+		'latest':            latest.str()
+		'url':               url
+		'caskroom_path':     os.join_path(cleanup_spec_root('caskroom'), token)
+	})
+}
+
+fn cleanup_spec_new(cache string, dry_run bool, scrub bool, days ?int) brew_runtime.Value {
+	days_value := if cleanup_days := days {
+		brew_runtime.int_value(cleanup_days)
+	} else {
+		brew_runtime.object_value('NilClass', 'nil')
+	}
+	return homebrew.ruby_cleanup_l271_d16_initialize(brew_runtime.array_value([]), brew_runtime.map_value({
+		'cache':   brew_runtime.object_value('Pathname', cache)
+		'dry_run': brew_runtime.bool_value(dry_run)
+		'scrub':   brew_runtime.bool_value(scrub)
+		'days':    days_value
+	}))
+}
+
+fn cleanup_spec_entry(path brew_runtime.Value, type_name string,
+	additional map[string]brew_runtime.Value) brew_runtime.Value {
+	mut values := additional.clone()
+	values['path'] = path
+	values['type'] = if type_name == '' {
+		brew_runtime.object_value('NilClass', 'nil')
+	} else {
+		brew_runtime.object_value('Symbol', ':${type_name}')
+	}
+	return brew_runtime.Value{
+		type_name: 'Hash'
+		map_data: values
+		attributes: path.attributes.clone()
+	}
+}
+
+fn cleanup_spec_nested_cache(name string) bool {
+	root := cleanup_spec_reset('nested-${name}')
+	path := os.join_path(root, name)
+	os.mkdir_all(path) or { panic(err) }
+	cleanup := cleanup_spec_new(root, false, false, none)
+	homebrew.ruby_cleanup_l666_d44_cleanup_cache(cleanup, brew_runtime.array_value([
+		cleanup_spec_entry(cleanup_spec_path(path, {}), '', {}),
+	]), brew_runtime.bool_value(false))
+	result := !os.exists(path)
+	os.rmdir_all(root) or {}
+	return result
+}
+
+fn cleanup_spec_bool(result bool) brew_runtime.Value {
+	return brew_runtime.bool_value(result)
+}
 
 // Translated from Homebrew/brew `test/cleanup_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:cleanup) { described_class.new }` at line 12.
 pub fn ruby_cleanup_spec_l12_d1_cleanup(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cleanup', ...args)
+	return cleanup_spec_new(brew_runtime.environment_value('HOMEBREW_CACHE'), false, false, none)
 }
 
 // Ruby let `let(:ds_store) { Pathname.new("#{HOMEBREW_CELLAR}/.DS_Store") }` at line 14.
 pub fn ruby_cleanup_spec_l14_d2_ds_store(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ds_store', ...args)
+	return brew_runtime.object_value('Pathname', os.join_path(brew_runtime.environment_value('HOMEBREW_CELLAR'), '.DS_Store'))
 }
 
 // Ruby let `let(:lock_file) { Pathname.new("#{HOMEBREW_LOCKS}/foo") }` at line 15.
 pub fn ruby_cleanup_spec_l15_d3_lock_file(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('lock_file', ...args)
+	return brew_runtime.object_value('Pathname', os.join_path(brew_runtime.environment_value('HOMEBREW_LOCKS'), 'foo'))
 }
 
 // Ruby subject `subject(:path) { HOMEBREW_CACHE/"foo" }` at line 31.
 pub fn ruby_cleanup_spec_l31_d4_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('path', ...args)
+	return brew_runtime.object_value('Pathname', os.join_path(brew_runtime.environment_value('HOMEBREW_CACHE'), 'foo'))
 }
 
 // Ruby it `it "returns true when ctime and mtime < days_default" do` at line 37.
 pub fn ruby_cleanup_spec_l37_d5_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	now := time.now().unix()
+	path := cleanup_spec_path('/cache/foo', {
+		'exists': 'true'
+		'mtime':  (now - 172800).str()
+		'ctime':  (now - 172800).str()
+	})
+	return cleanup_spec_bool(homebrew.ruby_cleanup_l50_d4_prune(path, brew_runtime.int_value(1), brew_runtime.int_value(now)).bool_data)
 }
 
 // Ruby it `it "returns false when ctime and mtime >= days_default" do` at line 43.
 pub fn ruby_cleanup_spec_l43_d6_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	now := time.now().unix()
+	path := cleanup_spec_path('/cache/foo', {
+		'exists': 'true'
+		'mtime':  now.str()
+		'ctime':  now.str()
+	})
+	return cleanup_spec_bool(!homebrew.ruby_cleanup_l50_d4_prune(path, brew_runtime.int_value(2), brew_runtime.int_value(now)).bool_data)
 }
 
 // Ruby it `it "removes .DS_Store and lock files" do` at line 49.
 pub fn ruby_cleanup_spec_l49_d7_removes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('removes', ...args)
+	root := cleanup_spec_reset('clean-files')
+	ds_store := os.join_path(root, 'Cellar', '.DS_Store')
+	lock_path := os.join_path(root, 'locks', 'foo')
+	cleanup_spec_touch(ds_store)
+	cleanup_spec_touch(lock_path)
+	cleanup := cleanup_spec_new(root, false, false, none)
+	homebrew.ruby_cleanup_l810_d51_rm_ds_store(cleanup, brew_runtime.array_value([
+		brew_runtime.object_value('Pathname', os.join_path(root, 'Cellar')),
+	]))
+	homebrew.ruby_cleanup_l711_d46_cleanup_lockfiles(cleanup, cleanup_spec_path(lock_path, {}))
+	result := !os.exists(ds_store) && !os.exists(lock_path)
+	os.rmdir_all(root) or {}
+	return cleanup_spec_bool(result)
 }
 
 // Ruby it `it "doesn't remove anything if `dry_run` is true" do` at line 56.
 pub fn ruby_cleanup_spec_l56_d8_doesn(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('doesn', ...args)
+	root := cleanup_spec_reset('dry-run')
+	ds_store := os.join_path(root, '.DS_Store')
+	lock_path := os.join_path(root, 'foo.lock')
+	cleanup_spec_touch(ds_store)
+	cleanup_spec_touch(lock_path)
+	cleanup := cleanup_spec_new(root, true, false, none)
+	homebrew.ruby_cleanup_l810_d51_rm_ds_store(cleanup, brew_runtime.array_value([
+		brew_runtime.object_value('Pathname', root),
+	]))
+	homebrew.ruby_cleanup_l711_d46_cleanup_lockfiles(cleanup, cleanup_spec_path(lock_path, {}))
+	result := os.exists(ds_store) && os.exists(lock_path)
+	os.rmdir_all(root) or {}
+	return cleanup_spec_bool(result)
 }
 
 // Ruby it `it "removes leftover `.reinstall` kegs in the Cellar" do` at line 63.
 pub fn ruby_cleanup_spec_l63_d9_removes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('removes', ...args)
+	root := cleanup_spec_reset('reinstall')
+	reinstall := os.join_path(root, 'Cellar', 'foo', '1.0.reinstall')
+	os.mkdir_all(reinstall) or { panic(err) }
+	cleanup := cleanup_spec_new(root, false, false, none)
+	homebrew.ruby_cleanup_l582_d40_cleanup_reinstall_kegs(cleanup, brew_runtime.object_value('Pathname', os.join_path(root, 'Cellar')))
+	result := !os.exists(reinstall)
+	os.rmdir_all(root) or {}
+	return cleanup_spec_bool(result)
 }
 
 // Ruby it `it "doesn't remove the lock file if it is locked" do` at line 72.
 pub fn ruby_cleanup_spec_l72_d10_doesn(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('doesn', ...args)
+	root := cleanup_spec_reset('locked')
+	lock_path := os.join_path(root, 'foo')
+	cleanup_spec_touch(lock_path)
+	cleanup := cleanup_spec_new(root, false, false, none)
+	homebrew.ruby_cleanup_l711_d46_cleanup_lockfiles(cleanup, cleanup_spec_path(lock_path, {
+		'locked': 'true'
+	}))
+	result := os.exists(lock_path)
+	os.rmdir_all(root) or {}
+	return cleanup_spec_bool(result)
 }
 
 // Ruby it `it "cleans up unreferenced downloads once, however many formulae are installed" do` at line 80.
 pub fn ruby_cleanup_spec_l80_d11_cleans(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cleans', ...args)
+	root := cleanup_spec_reset('unreferenced-once')
+	download := os.join_path(root, 'downloads', 'orphan')
+	cleanup_spec_touch(download)
+	cleanup := cleanup_spec_new(root, false, false, none)
+	homebrew.ruby_cleanup_l636_d43_cleanup_unreferenced_downloads(cleanup)
+	result := !os.exists(download)
+	os.rmdir_all(root) or {}
+	return cleanup_spec_bool(result)
 }
 
 // Ruby it `it "doesn't load untrusted installed formulae while cleaning the cache" do` at line 92.
 pub fn ruby_cleanup_spec_l92_d12_doesn(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('doesn', ...args)
+	path := cleanup_spec_path('/cache/untrusted--1.0', {
+		'exists':        'true'
+		'file':          'true'
+		'resolved_file': 'true'
+	})
+	formula := brew_runtime.structured_value('Formula', 'untrusted', {
+		'name':      'untrusted'
+		'untrusted': 'true'
+	})
+	return cleanup_spec_bool(!homebrew.ruby_cleanup_l148_d10_stale_formula(path, brew_runtime.bool_value(false), formula, brew_runtime.bool_value(true)).bool_data)
 }
 
 // Ruby let `let(:formula_zero_dot_one) { Class.new(Testball) { version "0.1" }.new }` at line 106.
 pub fn ruby_cleanup_spec_l106_d13_formula_zero_dot_one(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_zero_dot_one', ...args)
+	return cleanup_spec_formula('testball', true, '0.1')
 }
 
 // Ruby let `let(:formula_zero_dot_two) { Class.new(Testball) { version "0.2" }.new }` at line 107.
 pub fn ruby_cleanup_spec_l107_d14_formula_zero_dot_two(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_zero_dot_two', ...args)
+	return cleanup_spec_formula('testball', true, '0.2')
 }
 
 // Ruby it `it "doesn't remove any kegs" do` at line 123.
 pub fn ruby_cleanup_spec_l123_d15_doesn(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('doesn', ...args)
+	root := cleanup_spec_reset('keg-failure')
+	keg := os.join_path(root, 'testball', '0.1')
+	os.mkdir_all(keg) or { panic(err) }
+	cleanup := cleanup_spec_new(root, false, false, none)
+	homebrew.ruby_cleanup_l554_d37_cleanup_keg(cleanup, cleanup_spec_path(keg, {
+		'uninstall_error': 'true'
+	}))
+	result := os.exists(keg)
+	os.rmdir_all(root) or {}
+	return cleanup_spec_bool(result)
 }
 
 // Ruby it `it "lists the unremovable kegs" do` at line 128.
 pub fn ruby_cleanup_spec_l128_d16_lists(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('lists', ...args)
+	cleanup := cleanup_spec_new('/cache', false, false, none)
+	keg := cleanup_spec_path('/Cellar/testball/0.1', {
+		'exists':          'true'
+		'directory':       'true'
+		'uninstall_error': 'true'
+	})
+	homebrew.ruby_cleanup_l554_d37_cleanup_keg(cleanup, keg)
+	actual := (homebrew.ruby_cleanup_l466_d30_unremovable_kegs(cleanup).as_array() or { [] }).map(it.repr)
+	return cleanup_spec_bool(actual == [
+		keg.repr,
+	])
 }
 
 // Ruby let `let(:removable_keg) { instance_double(Keg, name: "libthai") }` at line 136.
 pub fn ruby_cleanup_spec_l136_d17_removable_keg(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('removable_keg', ...args)
+	return brew_runtime.structured_value('Keg', '/Cellar/libthai/1.0', {
+		'name': 'libthai'
+	})
 }
 
 // Ruby let `let(:removable_formula) do` at line 137.
 pub fn ruby_cleanup_spec_l137_d18_removable_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('removable_formula', ...args)
+	return brew_runtime.structured_value('Formula', 'libthai', {
+		'name':              'libthai'
+		'full_name':         'libthai'
+		'any_installed_keg': '/Cellar/libthai/1.0'
+	})
 }
 
 // Ruby it `it "does not print or uninstall formulae required by installed dependents" do` at line 153.
 pub fn ruby_cleanup_spec_l153_d19_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	formula := ruby_cleanup_spec_l137_d18_removable_formula()
+	result := homebrew.ruby_cleanup_l938_d54_self_autoremove(brew_runtime.bool_value(false), brew_runtime.array_value([
+		formula,
+	]), brew_runtime.array_value([]), brew_runtime.array_value([formula]), brew_runtime.string_array_value([
+		'libthai',
+	]), brew_runtime.string_value(''))
+	return cleanup_spec_bool(result.repr == '' && result.array_data.len == 0)
 }
 
 // Ruby let `let(:lib) { HOMEBREW_PREFIX/"lib" }` at line 161.
 pub fn ruby_cleanup_spec_l161_d20_lib(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('lib', ...args)
+	return brew_runtime.object_value('Pathname', os.join_path(brew_runtime.environment_value('HOMEBREW_PREFIX'), 'lib'))
 }
 
 // Ruby it `it "keeps required empty directories" do` at line 167.
 pub fn ruby_cleanup_spec_l167_d21_keeps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('keeps', ...args)
+	root := cleanup_spec_reset('required-empty')
+	lib := os.join_path(root, 'lib')
+	os.mkdir_all(lib) or { panic(err) }
+	cleanup := cleanup_spec_new(root, false, false, none)
+	homebrew.ruby_cleanup_l875_d53_prune_prefix_symlinks_and_directories(cleanup, brew_runtime.array_value([
+		brew_runtime.object_value('Pathname', lib),
+	]))
+	result := os.is_dir(lib) && (os.ls(lib) or { [] }).len == 0
+	os.rmdir_all(root) or {}
+	return cleanup_spec_bool(result)
 }
 
 // Ruby it `it "removes broken symlinks" do` at line 173.
 pub fn ruby_cleanup_spec_l173_d22_removes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('removes', ...args)
+	root := cleanup_spec_reset('broken-link')
+	lib := os.join_path(root, 'lib')
+	os.mkdir_all(lib) or { panic(err) }
+	os.symlink(os.join_path(lib, 'foo'), os.join_path(lib, 'bar')) or { panic(err) }
+	cleanup_spec_touch(os.join_path(lib, 'baz'))
+	cleanup := cleanup_spec_new(root, false, false, none)
+	homebrew.ruby_cleanup_l875_d53_prune_prefix_symlinks_and_directories(cleanup, brew_runtime.array_value([
+		brew_runtime.object_value('Pathname', lib),
+	]))
+	result := !os.is_link(os.join_path(lib, 'bar')) && os.exists(os.join_path(lib, 'baz'))
+	os.rmdir_all(root) or {}
+	return cleanup_spec_bool(result)
 }
 
 // Ruby it `it "removes empty directories" do` at line 182.
 pub fn ruby_cleanup_spec_l182_d23_removes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('removes', ...args)
+	root := cleanup_spec_reset('empty-dir')
+	lib := os.join_path(root, 'lib')
+	empty := os.join_path(lib, 'test')
+	file := os.join_path(lib, 'keep', 'file')
+	os.mkdir_all(empty) or { panic(err) }
+	cleanup_spec_touch(file)
+	cleanup := cleanup_spec_new(root, false, false, none)
+	homebrew.ruby_cleanup_l875_d53_prune_prefix_symlinks_and_directories(cleanup, brew_runtime.array_value([
+		brew_runtime.object_value('Pathname', lib),
+	]))
+	result := !os.exists(empty) && os.exists(file)
+	os.rmdir_all(root) or {}
+	return cleanup_spec_bool(result)
 }
 
 // Ruby let `let(:dir) { HOMEBREW_PREFIX/"lib/foo" }` at line 195.
 pub fn ruby_cleanup_spec_l195_d24_dir(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dir', ...args)
+	return brew_runtime.object_value('Pathname', os.join_path(brew_runtime.environment_value('HOMEBREW_PREFIX'), 'lib', 'foo'))
 }
 
 // Ruby let `let(:child_dir) { dir/"bar" }` at line 196.
 pub fn ruby_cleanup_spec_l196_d25_child_dir(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('child_dir', ...args)
+	return brew_runtime.object_value('Pathname', os.join_path(ruby_cleanup_spec_l195_d24_dir().repr, 'bar'))
 }
 
 // Ruby let `let(:grandchild_dir) { child_dir/"baz" }` at line 197.
 pub fn ruby_cleanup_spec_l197_d26_grandchild_dir(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('grandchild_dir', ...args)
+	return brew_runtime.object_value('Pathname', os.join_path(ruby_cleanup_spec_l196_d25_child_dir().repr, 'baz'))
 }
 
 // Ruby let `let(:broken_link) { dir/"broken" }` at line 198.
 pub fn ruby_cleanup_spec_l198_d27_broken_link(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('broken_link', ...args)
+	return brew_runtime.object_value('Pathname', os.join_path(ruby_cleanup_spec_l195_d24_dir().repr, 'broken'))
 }
 
 // Ruby let `let(:link_to_broken_link) { child_dir/"another-broken" }` at line 199.
 pub fn ruby_cleanup_spec_l199_d28_link_to_broken_link(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('link_to_broken_link', ...args)
+	return brew_runtime.object_value('Pathname', os.join_path(ruby_cleanup_spec_l196_d25_child_dir().repr, 'another-broken'))
 }
 
 // Ruby it `it "removes broken symlinks and resulting empty directories" do` at line 207.
 pub fn ruby_cleanup_spec_l207_d29_removes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('removes', ...args)
+	root := cleanup_spec_reset('nested-broken')
+	dir := os.join_path(root, 'lib', 'foo')
+	child := os.join_path(dir, 'bar')
+	os.mkdir_all(os.join_path(child, 'baz')) or { panic(err) }
+	os.symlink(os.join_path(dir, 'missing'), os.join_path(dir, 'broken')) or { panic(err) }
+	os.symlink(os.join_path(dir, 'broken'), os.join_path(child, 'another-broken')) or { panic(err) }
+	cleanup := cleanup_spec_new(root, false, false, none)
+	homebrew.ruby_cleanup_l875_d53_prune_prefix_symlinks_and_directories(cleanup, brew_runtime.array_value([
+		brew_runtime.object_value('Pathname', os.join_path(root, 'lib')),
+	]))
+	result := !os.exists(dir)
+	os.rmdir_all(root) or {}
+	return cleanup_spec_bool(result)
 }
 
 // Ruby it `it "doesn't remove anything and only prints removal steps if `dry_run` is true" do` at line 212.
 pub fn ruby_cleanup_spec_l212_d30_doesn(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('doesn', ...args)
+	root := cleanup_spec_reset('nested-broken-dry')
+	dir := os.join_path(root, 'lib', 'foo')
+	child := os.join_path(dir, 'bar')
+	grandchild := os.join_path(child, 'baz')
+	os.mkdir_all(grandchild) or { panic(err) }
+	broken := os.join_path(dir, 'broken')
+	other_broken := os.join_path(child, 'another-broken')
+	os.symlink(os.join_path(dir, 'missing'), broken) or { panic(err) }
+	os.symlink(broken, other_broken) or { panic(err) }
+	cleanup := cleanup_spec_new(root, true, false, none)
+	homebrew.ruby_cleanup_l875_d53_prune_prefix_symlinks_and_directories(cleanup, brew_runtime.array_value([
+		brew_runtime.object_value('Pathname', os.join_path(root, 'lib')),
+	]))
+	result := os.is_link(broken) && os.is_link(other_broken) && os.is_dir(grandchild)
+	os.rmdir_all(root) or {}
+	return cleanup_spec_bool(result)
 }
 
 // Ruby it `it "removes broken symlinks for uninstalled migrated Casks" do` at line 229.
 pub fn ruby_cleanup_spec_l229_d31_removes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('removes', ...args)
+	root := cleanup_spec_reset('migrated-cask')
+	caskroom := os.join_path(root, 'Caskroom')
+	other := os.join_path(caskroom, 'other')
+	os.mkdir_all(other) or { panic(err) }
+	old := os.join_path(caskroom, 'old')
+	os.symlink(os.join_path(caskroom, 'new'), old) or { panic(err) }
+	cleanup := cleanup_spec_new(root, false, false, none)
+	homebrew.ruby_cleanup_l875_d53_prune_prefix_symlinks_and_directories(cleanup, brew_runtime.array_value([]), brew_runtime.object_value('Pathname', caskroom))
+	result := os.exists(other) && !os.is_link(old) && !os.exists(old)
+	os.rmdir_all(root) or {}
+	return cleanup_spec_bool(result)
 }
 
 // Ruby specify `specify "::cleanup_formula" do` at line 244.
 pub fn ruby_cleanup_spec_l244_d32_cleanup_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('::cleanup_formula', ...args)
+	root := cleanup_spec_reset('cleanup-formula')
+	old_one := os.join_path(root, 'Cellar', 'testball', '1.0')
+	old_two := os.join_path(root, 'Cellar', 'testball', '0.2')
+	current := os.join_path(root, 'Cellar', 'testball', '0.3')
+	current_scheme := os.join_path(root, 'Cellar', 'testball', '0.1_2')
+	for path in [old_one, old_two, current, current_scheme] {
+		os.mkdir_all(path) or { panic(err) }
+	}
+	cleanup := cleanup_spec_new(root, false, false, none)
+	homebrew.ruby_cleanup_l554_d37_cleanup_keg(cleanup, cleanup_spec_path(old_one, {}))
+	homebrew.ruby_cleanup_l554_d37_cleanup_keg(cleanup, cleanup_spec_path(old_two, {}))
+	result := !os.exists(old_one) && !os.exists(old_two) && os.exists(current) && os.exists(current_scheme)
+	os.rmdir_all(root) or {}
+	return cleanup_spec_bool(result)
 }
 
 // Ruby let `let(:cache) { mktmpdir/"cache" }` at line 286.
 pub fn ruby_cleanup_spec_l286_d33_cache(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cache', ...args)
+	return brew_runtime.object_value('Pathname', cleanup_spec_root('formula-cache'))
 }
 
 // Ruby let `let(:testball) { instance_double(Formula, name: "testball") }` at line 287.
 pub fn ruby_cleanup_spec_l287_d34_testball(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('testball', ...args)
+	return cleanup_spec_formula('testball', true, '1.0')
 }
 
 // Ruby it `it "returns only the formula's own downloads and bottle manifests" do` at line 293.
 pub fn ruby_cleanup_spec_l293_d35_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	root := cleanup_spec_reset('formula-paths')
+	matching := ['testball--1.0.tar.gz', 'testball--rsrc--1.0.txt',
+		'testball_bottle_manifest--1.0.bottle_manifest.json']
+	for name in matching {
+		cleanup_spec_touch(os.join_path(root, name))
+	}
+	for name in ['.testball--1.0.tar.gz', 'testball-foo--1.0.tar.gz', 'testball_bottle_manifest',
+		'testballs--1.0.tar.gz'] {
+		cleanup_spec_touch(os.join_path(root, name))
+	}
+	cleanup := cleanup_spec_new(root, false, false, none)
+	actual := (homebrew.ruby_cleanup_l490_d33_formula_cache_paths(cleanup, cleanup_spec_formula('testball', true, '1.0')).as_array() or { [] }).map(os.base(it.repr))
+	result := actual == matching
+	os.rmdir_all(root) or {}
+	return cleanup_spec_bool(result)
 }
 
 // Ruby it `it "reads the cache directory only once for multiple formulae" do` at line 310.
 pub fn ruby_cleanup_spec_l310_d36_reads(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reads', ...args)
+	root := cleanup_spec_reset('formula-index')
+	cleanup_spec_touch(os.join_path(root, 'testball--1.0.tar.gz'))
+	cleanup := cleanup_spec_new(root, false, false, none)
+	homebrew.ruby_cleanup_l490_d33_formula_cache_paths(cleanup, cleanup_spec_formula('testball', true, '1.0'))
+	cleanup_spec_touch(os.join_path(root, 'other--1.0.tar.gz'))
+	second := homebrew.ruby_cleanup_l490_d33_formula_cache_paths(cleanup, cleanup_spec_formula('other', true, '1.0'))
+	result := (second.as_array() or { [] }).len == 0
+	os.rmdir_all(root) or {}
+	return cleanup_spec_bool(result)
 }
 
 // Ruby let `let(:cask) { Cask::CaskLoader.load("local-transmission") }` at line 326.
 pub fn ruby_cleanup_spec_l326_d37_cask(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask', ...args)
+	return cleanup_spec_cask('local-transmission', '2.61', '2.61', false, 'https://example.com/transmission-2.61.dmg')
 }
 
 // Ruby it `it "removes the download if it is not for the latest version" do` at line 328.
 pub fn ruby_cleanup_spec_l328_d38_removes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('removes', ...args)
+	root := cleanup_spec_reset('cask-old')
+	path := os.join_path(root, 'Cask', 'local-transmission--7.8.9')
+	cleanup_spec_touch(path)
+	cleanup := cleanup_spec_new(root, false, false, none)
+	homebrew.ruby_cleanup_l517_d35_cleanup_cask(cleanup, ruby_cleanup_spec_l326_d37_cask())
+	result := !os.exists(path)
+	os.rmdir_all(root) or {}
+	return cleanup_spec_bool(result)
 }
 
 // Ruby it `it "removes legacy URL-basename downloads if they are not for the latest version" do` at line 338.
 pub fn ruby_cleanup_spec_l338_d39_removes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('removes', ...args)
+	root := cleanup_spec_reset('legacy-old')
+	path := os.join_path(root, 'Cask', 'transmission-2.61.dmg--7.8.9.dmg')
+	cleanup_spec_touch(path)
+	cleanup := cleanup_spec_new(root, false, false, none)
+	homebrew.ruby_cleanup_l517_d35_cleanup_cask(cleanup, ruby_cleanup_spec_l326_d37_cask())
+	result := !os.exists(path)
+	os.rmdir_all(root) or {}
+	return cleanup_spec_bool(result)
 }
 
 // Ruby it `it "does not remove downloads for the latest version" do` at line 348.
 pub fn ruby_cleanup_spec_l348_d40_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	root := cleanup_spec_reset('cask-current')
+	path := os.join_path(root, 'Cask', 'local-transmission--2.61')
+	cleanup_spec_touch(path)
+	cleanup := cleanup_spec_new(root, false, false, none)
+	homebrew.ruby_cleanup_l517_d35_cleanup_cask(cleanup, ruby_cleanup_spec_l326_d37_cask())
+	result := os.exists(path)
+	os.rmdir_all(root) or {}
+	return cleanup_spec_bool(result)
 }
 
 // Ruby it `it "removes legacy URL-basename downloads when the token-named download exists" do` at line 358.
 pub fn ruby_cleanup_spec_l358_d41_removes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('removes', ...args)
+	root := cleanup_spec_reset('legacy-token')
+	legacy := os.join_path(root, 'Cask', 'transmission-2.61.dmg--2.61.dmg')
+	current := os.join_path(root, 'Cask', 'local-transmission--2.61.dmg')
+	cleanup_spec_touch(legacy)
+	cleanup_spec_touch(current)
+	cleanup := cleanup_spec_new(root, false, false, none)
+	homebrew.ruby_cleanup_l517_d35_cleanup_cask(cleanup, ruby_cleanup_spec_l326_d37_cask())
+	result := !os.exists(legacy) && os.exists(current)
+	os.rmdir_all(root) or {}
+	return cleanup_spec_bool(result)
 }
 
 // Ruby it `it "does not remove downloads when the latest version ends with a comma" do` at line 370.
 pub fn ruby_cleanup_spec_l370_d42_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	root := cleanup_spec_reset('trailing-comma')
+	path := os.join_path(root, 'Cask', 'trailing-comma--7.2,2023.3,.zip')
+	cleanup_spec_touch(path)
+	cask := cleanup_spec_cask('trailing-comma', '7.2,2023.3,', '7.2,2023.3,', false, '')
+	cleanup := cleanup_spec_new(root, false, false, none)
+	homebrew.ruby_cleanup_l517_d35_cleanup_cask(cleanup, cask)
+	result := os.exists(path)
+	os.rmdir_all(root) or {}
+	return cleanup_spec_bool(result)
 }
 
 // Ruby let `let(:cask) { Cask::CaskLoader.load("latest") }` at line 390.
 pub fn ruby_cleanup_spec_l390_d43_cask(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask', ...args)
+	return cleanup_spec_cask('latest', 'latest', 'latest', true, 'https://example.com/latest.zip')
 }
 
 // Ruby it `it "does not remove the download for the latest version" do` at line 392.
 pub fn ruby_cleanup_spec_l392_d44_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	now := time.now().unix()
+	path := cleanup_spec_path('/cache/Cask/latest--latest', {
+		'exists': 'true'
+		'file':   'true'
+		'mtime':  now.str()
+		'ctime':  now.str()
+	})
+	return cleanup_spec_bool(!homebrew.ruby_cleanup_l84_d7_stale_cask_download(path, ruby_cleanup_spec_l390_d43_cask(), brew_runtime.string_value('latest'), brew_runtime.bool_value(false), brew_runtime.int_value(now)).bool_data)
 }
 
 // Ruby it `it "removes the download for the latest version after 30 days" do` at line 402.
 pub fn ruby_cleanup_spec_l402_d45_removes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('removes', ...args)
+	now := time.now().unix()
+	old := now - 30 * 24 * 60 * 60 - 3600
+	path := cleanup_spec_path('/cache/Cask/latest--latest', {
+		'exists': 'true'
+		'file':   'true'
+		'mtime':  old.str()
+		'ctime':  old.str()
+	})
+	return cleanup_spec_bool(homebrew.ruby_cleanup_l84_d7_stale_cask_download(path, ruby_cleanup_spec_l390_d43_cask(), brew_runtime.string_value('latest'), brew_runtime.bool_value(false), brew_runtime.int_value(now)).bool_data)
 }
 
 // Ruby it `it "removes broken legacy URL-basename downloads" do` at line 413.
 pub fn ruby_cleanup_spec_l413_d46_removes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('removes', ...args)
+	root := cleanup_spec_reset('broken-legacy')
+	path := os.join_path(root, 'Cask', 'caffeine.zip--latest.zip')
+	os.mkdir_all(os.dir(path)) or { panic(err) }
+	os.symlink(os.join_path(root, 'Cask', 'missing.zip'), path) or { panic(err) }
+	cask := cleanup_spec_cask('latest-cask', 'latest', '', true, 'file:///fixtures/caffeine.zip')
+	cleanup := cleanup_spec_new(root, false, false, none)
+	homebrew.ruby_cleanup_l517_d35_cleanup_cask(cleanup, cask)
+	result := !os.is_link(path)
+	os.rmdir_all(root) or {}
+	return cleanup_spec_bool(result)
 }
 
 // Ruby let `let(:path) { HOMEBREW_LOGS/"delete_me" }` at line 432.
 pub fn ruby_cleanup_spec_l432_d47_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('path', ...args)
+	return brew_runtime.object_value('Pathname', os.join_path(brew_runtime.environment_value('HOMEBREW_LOGS'), 'delete_me'))
 }
 
 // Ruby it `it "cleans all logs if prune is 0" do` at line 438.
 pub fn ruby_cleanup_spec_l438_d48_cleans(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cleans', ...args)
+	root := cleanup_spec_reset('logs-zero')
+	path := os.join_path(root, 'delete_me')
+	os.mkdir_all(path) or { panic(err) }
+	cleanup := cleanup_spec_new('/cache', false, false, 0)
+	homebrew.ruby_cleanup_l562_d38_cleanup_logs(cleanup, brew_runtime.object_value('Pathname', root))
+	result := !os.exists(path)
+	os.rmdir_all(root) or {}
+	return cleanup_spec_bool(result)
 }
 
 // Ruby it `it "cleans up logs if older than 30 days" do` at line 443.
 pub fn ruby_cleanup_spec_l443_d49_cleans(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cleans', ...args)
+	now := time.now().unix()
+	old := now - 31 * 24 * 60 * 60
+	path := cleanup_spec_path('/logs/delete_me', {
+		'exists':    'true'
+		'directory': 'true'
+		'mtime':     old.str()
+		'ctime':     old.str()
+	})
+	return cleanup_spec_bool(homebrew.ruby_cleanup_l50_d4_prune(path, brew_runtime.int_value(30), brew_runtime.int_value(now)).bool_data)
 }
 
 // Ruby it `it "does not clean up logs less than 30 days old" do` at line 450.
 pub fn ruby_cleanup_spec_l450_d50_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	now := time.now().unix()
+	recent := now - 15 * 24 * 60 * 60
+	path := cleanup_spec_path('/logs/delete_me', {
+		'exists':    'true'
+		'directory': 'true'
+		'mtime':     recent.str()
+		'ctime':     recent.str()
+	})
+	return cleanup_spec_bool(!homebrew.ruby_cleanup_l50_d4_prune(path, brew_runtime.int_value(30), brew_runtime.int_value(now)).bool_data)
 }
 
 // Ruby it `it "removes legacy cask downloads during full cache cleanup", :cask do` at line 459.
 pub fn ruby_cleanup_spec_l459_d51_removes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('removes', ...args)
+	root := cleanup_spec_reset('full-legacy')
+	legacy := os.join_path(root, 'Cask', 'transmission-2.61.dmg--7.8.9.dmg')
+	cleanup_spec_touch(legacy)
+	cleanup := cleanup_spec_new(root, false, false, none)
+	homebrew.ruby_cleanup_l530_d36_cleanup_legacy_cask_downloads(cleanup, brew_runtime.array_value([
+		ruby_cleanup_spec_l326_d37_cask(),
+	]))
+	result := !os.exists(legacy)
+	os.rmdir_all(root) or {}
+	return cleanup_spec_bool(result)
 }
 
 // Ruby it `it "cleans up incomplete downloads" do` at line 472.
 pub fn ruby_cleanup_spec_l472_d52_cleans(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cleans', ...args)
+	root := cleanup_spec_reset('incomplete')
+	path := os.join_path(root, 'something.incomplete')
+	os.mkdir_all(path) or { panic(err) }
+	cleanup := cleanup_spec_new(root, false, false, none)
+	homebrew.ruby_cleanup_l666_d44_cleanup_cache(cleanup, brew_runtime.array_value([
+		cleanup_spec_entry(cleanup_spec_path(path, {}), '', {}),
+	]), brew_runtime.bool_value(false))
+	result := !os.exists(path)
+	os.rmdir_all(root) or {}
+	return cleanup_spec_bool(result)
 }
 
 // Ruby it `it "cleans up 'cargo_cache'" do` at line 481.
 pub fn ruby_cleanup_spec_l481_d53_cleans(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cleans', ...args)
+	return cleanup_spec_bool(cleanup_spec_nested_cache('cargo_cache'))
 }
 
 // Ruby it `it "cleans up 'go_cache'" do` at line 490.
 pub fn ruby_cleanup_spec_l490_d54_cleans(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cleans', ...args)
+	return cleanup_spec_bool(cleanup_spec_nested_cache('go_cache'))
 }
 
 // Ruby it `it "cleans up 'glide_home'" do` at line 499.
 pub fn ruby_cleanup_spec_l499_d55_cleans(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cleans', ...args)
+	return cleanup_spec_bool(cleanup_spec_nested_cache('glide_home'))
 }
 
 // Ruby it `it "cleans up 'java_cache'" do` at line 508.
 pub fn ruby_cleanup_spec_l508_d56_cleans(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cleans', ...args)
+	return cleanup_spec_bool(cleanup_spec_nested_cache('java_cache'))
 }
 
 // Ruby it `it "cleans up 'npm_cache'" do` at line 517.
 pub fn ruby_cleanup_spec_l517_d57_cleans(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cleans', ...args)
+	return cleanup_spec_bool(cleanup_spec_nested_cache('npm_cache'))
 }
 
 // Ruby it `it "cleans up 'gclient_cache'" do` at line 526.
 pub fn ruby_cleanup_spec_l526_d58_cleans(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cleans', ...args)
+	return cleanup_spec_bool(cleanup_spec_nested_cache('gclient_cache'))
 }
 
 // Ruby it `it "cleans up all files and directories" do` at line 535.
 pub fn ruby_cleanup_spec_l535_d59_cleans(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cleans', ...args)
+	root := cleanup_spec_reset('prune-all')
+	git := os.join_path(root, 'gist--git')
+	gist := os.join_path(root, 'gist')
+	svn := os.join_path(root, 'gist--svn')
+	os.mkdir_all(git) or { panic(err) }
+	os.mkdir_all(gist) or { panic(err) }
+	cleanup_spec_touch(svn)
+	cleanup := cleanup_spec_new(root, false, false, 0)
+	entries := [git, gist, svn].map(cleanup_spec_entry(cleanup_spec_path(it, {}), '', {}))
+	homebrew.ruby_cleanup_l666_d44_cleanup_cache(cleanup, brew_runtime.array_value(entries), brew_runtime.bool_value(false))
+	result := !os.exists(git) && os.exists(gist) && !os.exists(svn)
+	os.rmdir_all(root) or {}
+	return cleanup_spec_bool(result)
 }
 
 // Ruby it `it "does not clean up directories that are not VCS checkouts" do` at line 551.
 pub fn ruby_cleanup_spec_l551_d60_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	root := cleanup_spec_reset('plain-directory')
+	git := os.join_path(root, 'git')
+	os.mkdir_all(git) or { panic(err) }
+	cleanup := cleanup_spec_new(root, false, false, 0)
+	homebrew.ruby_cleanup_l666_d44_cleanup_cache(cleanup, brew_runtime.array_value([
+		cleanup_spec_entry(cleanup_spec_path(git, {}), '', {}),
+	]), brew_runtime.bool_value(false))
+	result := os.exists(git)
+	os.rmdir_all(root) or {}
+	return cleanup_spec_bool(result)
 }
 
 // Ruby it `it "cleans up VCS checkout directories with modified time < prune time" do` at line 560.
 pub fn ruby_cleanup_spec_l560_d61_cleans(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cleans', ...args)
+	root := cleanup_spec_reset('old-vcs')
+	path := os.join_path(root, '--foo')
+	os.mkdir_all(path) or { panic(err) }
+	now := time.now().unix()
+	old := now - 2 * 24 * 60 * 60
+	path_value := cleanup_spec_path(path, {
+		'mtime': old.str()
+		'ctime': old.str()
+	})
+	cleanup := cleanup_spec_new(root, false, false, 1)
+	homebrew.ruby_cleanup_l666_d44_cleanup_cache(cleanup, brew_runtime.array_value([
+		cleanup_spec_entry(path_value, '', {}),
+	]), brew_runtime.bool_value(false))
+	result := !os.exists(path)
+	os.rmdir_all(root) or {}
+	return cleanup_spec_bool(result)
 }
 
 // Ruby it `it "does not clean up VCS checkout directories with modified time >= prune time" do` at line 569.
 pub fn ruby_cleanup_spec_l569_d62_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	root := cleanup_spec_reset('recent-vcs')
+	path := os.join_path(root, '--foo')
+	os.mkdir_all(path) or { panic(err) }
+	cleanup := cleanup_spec_new(root, false, false, 1)
+	homebrew.ruby_cleanup_l666_d44_cleanup_cache(cleanup, brew_runtime.array_value([
+		cleanup_spec_entry(cleanup_spec_path(path, {}), '', {}),
+	]), brew_runtime.bool_value(false))
+	result := os.exists(path)
+	os.rmdir_all(root) or {}
+	return cleanup_spec_bool(result)
 }
 
 // Ruby it `it "does not clean up internal package API files without scrub even when pruning" do` at line 576.
 pub fn ruby_cleanup_spec_l576_d63_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	root := cleanup_spec_reset('api-no-scrub')
+	first := os.join_path(root, 'api', 'internal', 'packages.arm64_golden_gate.jws.json')
+	second := os.join_path(root, 'api', 'internal', 'packages.arm64_tahoe.jws.json')
+	cleanup_spec_touch(first)
+	cleanup_spec_touch(second)
+	cleanup := cleanup_spec_new(root, false, false, 0)
+	homebrew.ruby_cleanup_l666_d44_cleanup_cache(cleanup, brew_runtime.object_value('NilClass', 'nil'), brew_runtime.bool_value(false))
+	result := os.exists(first) && os.exists(second)
+	os.rmdir_all(root) or {}
+	return cleanup_spec_bool(result)
 }
 
 // Ruby it `it "cleans up non-current internal package API files with scrub" do` at line 591.
 pub fn ruby_cleanup_spec_l591_d64_cleans(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cleans', ...args)
+	root := cleanup_spec_reset('api-scrub')
+	current := os.join_path(root, 'api', 'internal', 'packages.current.jws.json')
+	stale := os.join_path(root, 'api', 'internal', 'packages.stale.jws.json')
+	cleanup_spec_touch(current)
+	cleanup_spec_touch(stale)
+	cleanup := cleanup_spec_new(root, false, true, none)
+	homebrew.ruby_cleanup_l666_d44_cleanup_cache(cleanup, brew_runtime.array_value([
+		cleanup_spec_entry(cleanup_spec_path(stale, {}), 'api_package', {}),
+	]), brew_runtime.bool_value(false))
+	result := os.exists(current) && !os.exists(stale)
+	os.rmdir_all(root) or {}
+	return cleanup_spec_bool(result)
 }
 
 // Ruby it `it "cleans up non-current internal package API payload sidecars with scrub" do` at line 615.
 pub fn ruby_cleanup_spec_l615_d65_cleans(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cleans', ...args)
+	root := cleanup_spec_reset('api-sidecars')
+	current := os.join_path(root, 'api', 'internal', 'packages.current.jws.json')
+	kept := [current, '${current}.payload', '${current}.payload.index']
+	scrubbed := [
+		os.join_path(root, 'api', 'internal', 'packages.stale.jws.json.payload'),
+		os.join_path(root, 'api', 'internal', 'packages.stale.jws.json.payload.index'),
+		'${current}.payload.tmp',
+	]
+	mut all_files := kept.clone()
+	all_files << scrubbed
+	for path in all_files {
+		cleanup_spec_touch(path)
+	}
+	cleanup := cleanup_spec_new(root, false, true, none)
+	entries := scrubbed.map(cleanup_spec_entry(cleanup_spec_path(it, {}), 'api_package', {}))
+	homebrew.ruby_cleanup_l666_d44_cleanup_cache(cleanup, brew_runtime.array_value(entries), brew_runtime.bool_value(false))
+	result := kept.all(os.exists(it)) && scrubbed.all(!os.exists(it))
+	os.rmdir_all(root) or {}
+	return cleanup_spec_bool(result)
 }
 
 // Ruby it `it "cleans up API source files and symlinks at any depth without cleaning directories" do` at line 639.
 pub fn ruby_cleanup_spec_l639_d66_cleans(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cleans', ...args)
+	root := cleanup_spec_reset('api-source-depth')
+	root_file := os.join_path(root, 'api-source', 'Homebrew', 'homebrew-core', 'abc123', 'README.md')
+	nested := os.join_path(root, 'api-source', 'Homebrew', 'homebrew-core', 'abc123', 'Formula', 'a', 'testball.rb')
+	directory := os.join_path(root, 'api-source', 'Homebrew', 'homebrew-core', 'abc123', 'patches', 'keep')
+	cleanup_spec_touch(root_file)
+	cleanup_spec_touch(nested)
+	os.mkdir_all(directory) or { panic(err) }
+	cleanup := cleanup_spec_new(root, false, false, 0)
+	entries := [root_file, nested].map(cleanup_spec_entry(cleanup_spec_path(it, {}), 'api_source', {}))
+	homebrew.ruby_cleanup_l666_d44_cleanup_cache(cleanup, brew_runtime.array_value(entries), brew_runtime.bool_value(false))
+	result := !os.exists(root_file) && !os.exists(nested) && os.exists(directory)
+	os.rmdir_all(root) or {}
+	return cleanup_spec_bool(result)
 }
 
 // Ruby it `it "does not remove recent API source local patches as stale" do` at line 661.
 pub fn ruby_cleanup_spec_l661_d67_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	path := cleanup_spec_path('/cache/api-source/Homebrew/homebrew-core/abc123/patches/noop-a.diff', {
+		'exists':        'true'
+		'file':          'true'
+		'resolved_file': 'true'
+		'mtime':         time.now().unix().str()
+		'ctime':         time.now().unix().str()
+	})
+	return cleanup_spec_bool(!homebrew.ruby_cleanup_l100_d8_stale_api_source(path, brew_runtime.bool_value(false), brew_runtime.structured_value('Package', '', {
+		'found': 'false'
+	})).bool_data)
 }
 
 // Ruby it `it "keeps current API formula source paths when tap git head matches" do` at line 674.
 pub fn ruby_cleanup_spec_l674_d68_keeps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('keeps', ...args)
+	path := cleanup_spec_path('/cache/api-source/Homebrew/homebrew-core/abc123/Formula/a/testball.rb', {
+		'exists':        'true'
+		'file':          'true'
+		'resolved_file': 'true'
+	})
+	package := brew_runtime.structured_value('Formula', 'testball', {
+		'found':        'true'
+		'tap_git_head': 'abc123'
+	})
+	return cleanup_spec_bool(!homebrew.ruby_cleanup_l100_d8_stale_api_source(path, brew_runtime.bool_value(false), package).bool_data)
 }
 
 // Ruby let `let(:bottle) { HOMEBREW_CACHE/"testball--0.0.1.tag.bottle.tar.gz" }` at line 691.
 pub fn ruby_cleanup_spec_l691_d69_bottle(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('bottle', ...args)
+	return brew_runtime.object_value('Pathname', os.join_path(brew_runtime.environment_value('HOMEBREW_CACHE'), 'testball--0.0.1.tag.bottle.tar.gz'))
 }
 
 // Ruby let `let(:testball) { HOMEBREW_CACHE/"testball--0.0.1" }` at line 692.
 pub fn ruby_cleanup_spec_l692_d70_testball(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('testball', ...args)
+	return brew_runtime.object_value('Pathname', os.join_path(brew_runtime.environment_value('HOMEBREW_CACHE'), 'testball--0.0.1'))
 }
 
 // Ruby let `let(:testball_resource) { HOMEBREW_CACHE/"testball--rsrc--0.0.1.txt" }` at line 693.
 pub fn ruby_cleanup_spec_l693_d71_testball_resource(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('testball_resource', ...args)
+	return brew_runtime.object_value('Pathname', os.join_path(brew_runtime.environment_value('HOMEBREW_CACHE'), 'testball--rsrc--0.0.1.txt'))
 }
 
 // Ruby it `it "cleans up file if outdated" do` at line 705.
 pub fn ruby_cleanup_spec_l705_d72_cleans(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cleans', ...args)
+	path := cleanup_spec_path('/cache/testball--0.0.1', {
+		'exists': 'true'
+		'file':   'true'
+	})
+	formula := brew_runtime.structured_value('Formula', 'testball', {
+		'name':                     'testball'
+		'latest_version_installed': 'true'
+		'pkg_version':              '0.0.1'
+		'installed_versions':       '0.0.1'
+		'eligible_versions':        '0.0.1'
+		'bottle_outdated':          'true'
+	})
+	return cleanup_spec_bool(homebrew.ruby_cleanup_l148_d10_stale_formula(path, brew_runtime.bool_value(false), formula, brew_runtime.bool_value(true)).bool_data)
 }
 
 // Ruby it `it "cleans up file if `scrub` is true and formula not installed" do` at line 713.
 pub fn ruby_cleanup_spec_l713_d73_cleans(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cleans', ...args)
+	path := cleanup_spec_path('/cache/testball--0.0.1', {
+		'exists': 'true'
+		'file':   'true'
+	})
+	formula := cleanup_spec_formula('testball', false, '0.0.1')
+	return cleanup_spec_bool(homebrew.ruby_cleanup_l148_d10_stale_formula(path, brew_runtime.bool_value(true), formula, brew_runtime.bool_value(true)).bool_data)
 }
 
 // Ruby it `it "cleans up file if stale" do` at line 720.
 pub fn ruby_cleanup_spec_l720_d74_cleans(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cleans', ...args)
+	path := cleanup_spec_path('/cache/testball--0.0.1', {
+		'exists': 'true'
+		'file':   'true'
+	})
+	formula := cleanup_spec_formula('testball', true, '0.1')
+	return cleanup_spec_bool(homebrew.ruby_cleanup_l148_d10_stale_formula(path, brew_runtime.bool_value(false), formula, brew_runtime.bool_value(true)).bool_data)
 }
 
 // Ruby let `let(:bottle_manifest_path) { HOMEBREW_CACHE/"testball_bottle_manifest--1.0.bottle_manifest.json" }` at line 729.
 pub fn ruby_cleanup_spec_l729_d75_bottle_manifest_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('bottle_manifest_path', ...args)
+	return brew_runtime.object_value('Pathname', os.join_path(brew_runtime.environment_value('HOMEBREW_CACHE'), 'testball_bottle_manifest--1.0.bottle_manifest.json'))
 }
 
 // Ruby it `it "does not remove the file when bottle resource version is nil" do` at line 738.
 pub fn ruby_cleanup_spec_l738_d76_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	path := cleanup_spec_path('/cache/testball_bottle_manifest--1.0.json', {
+		'exists': 'true'
+		'file':   'true'
+	})
+	formula := brew_runtime.structured_value('Formula', 'testball', {
+		'name':                     'testball'
+		'latest_version_installed': 'true'
+		'pkg_version':              '1.0'
+		'installed_versions':       '1.0'
+		'eligible_versions':        '1.0'
+		'bottle_version':           ''
+	})
+	return cleanup_spec_bool(!homebrew.ruby_cleanup_l148_d10_stale_formula(path, brew_runtime.bool_value(false), formula, brew_runtime.bool_value(true)).bool_data)
 }
 
 // Ruby it `it "removes the file when path version differs from bottle version_rebuild" do` at line 755.
 pub fn ruby_cleanup_spec_l755_d77_removes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('removes', ...args)
+	path := cleanup_spec_path('/cache/testball_bottle_manifest--2.0.json', {
+		'exists': 'true'
+		'file':   'true'
+	})
+	formula := brew_runtime.structured_value('Formula', 'testball', {
+		'name':                     'testball'
+		'latest_version_installed': 'true'
+		'pkg_version':              '1.0'
+		'installed_versions':       '1.0'
+		'eligible_versions':        '1.0'
+		'bottle_version':           '1.0'
+		'bottle_rebuild':           '0'
+	})
+	return cleanup_spec_bool(homebrew.ruby_cleanup_l148_d10_stale_formula(path, brew_runtime.bool_value(false), formula, brew_runtime.bool_value(true)).bool_data)
 }
 
 // Ruby let `let(:foo_module) { HOMEBREW_PREFIX/"lib/python3.99/site-packages/foo" }` at line 778.
 pub fn ruby_cleanup_spec_l778_d78_foo_module(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('foo_module', ...args)
+	return brew_runtime.object_value('Pathname', os.join_path(brew_runtime.environment_value('HOMEBREW_PREFIX'), 'lib', 'python3.99', 'site-packages', 'foo'))
 }
 
 // Ruby let `let(:foo_pycache) { foo_module/"__pycache__" }` at line 779.
 pub fn ruby_cleanup_spec_l779_d79_foo_pycache(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('foo_pycache', ...args)
+	return brew_runtime.object_value('Pathname', os.join_path(ruby_cleanup_spec_l778_d78_foo_module().repr, '__pycache__'))
 }
 
 // Ruby let `let(:foo_pyc) { foo_pycache/"foo.cypthon-399.pyc" }` at line 780.
 pub fn ruby_cleanup_spec_l780_d80_foo_pyc(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('foo_pyc', ...args)
+	return brew_runtime.object_value('Pathname', os.join_path(ruby_cleanup_spec_l779_d79_foo_pycache().repr, 'foo.cypthon-399.pyc'))
 }
 
 // Ruby it `it "cleans up stray `*.pyc` files" do` at line 787.
 pub fn ruby_cleanup_spec_l787_d81_cleans(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cleans', ...args)
+	root := cleanup_spec_reset('pyc-stray')
+	pyc := os.join_path(root, 'lib', 'python3.99', 'site-packages', 'foo', '__pycache__', 'foo.cypthon-399.pyc')
+	cleanup_spec_touch(pyc)
+	cleanup := cleanup_spec_new('/cache', false, false, none)
+	homebrew.ruby_cleanup_l825_d52_cleanup_python_site_packages(cleanup, brew_runtime.object_value('Pathname', root))
+	result := !os.exists(pyc)
+	os.rmdir_all(root) or {}
+	return cleanup_spec_bool(result)
 }
 
 // Ruby it `it "retains `*.pyc` files of installed modules" do` at line 792.
 pub fn ruby_cleanup_spec_l792_d82_retains(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('retains', ...args)
+	root := cleanup_spec_reset('pyc-installed')
+	module_root := os.join_path(root, 'lib', 'python3.99', 'site-packages', 'foo')
+	pyc := os.join_path(module_root, '__pycache__', 'foo.cypthon-399.pyc')
+	cleanup_spec_touch(pyc)
+	cleanup_spec_touch(os.join_path(module_root, '__init__.py'))
+	cleanup := cleanup_spec_new('/cache', false, false, none)
+	homebrew.ruby_cleanup_l825_d52_cleanup_python_site_packages(cleanup, brew_runtime.object_value('Pathname', root))
+	result := os.exists(pyc)
+	os.rmdir_all(root) or {}
+	return cleanup_spec_bool(result)
 }
 
 // Ruby it `it "cleans up stale `*.pyc` files in the top-level `__pycache__`" do` at line 800.
 pub fn ruby_cleanup_spec_l800_d83_cleans(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cleans', ...args)
+	root := cleanup_spec_reset('pyc-top')
+	pyc := os.join_path(root, 'lib', 'python3.99', 'site-packages', '__pycache__', 'foo.cypthon-3.99.pyc')
+	cleanup_spec_touch(pyc)
+	cleanup := cleanup_spec_new('/cache', false, false, 0)
+	homebrew.ruby_cleanup_l825_d52_cleanup_python_site_packages(cleanup, brew_runtime.object_value('Pathname', root))
+	result := !os.exists(pyc)
+	os.rmdir_all(root) or {}
+	return cleanup_spec_bool(result)
 }
 
 // Original Ruby source (line-for-line):

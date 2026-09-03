@@ -4,10 +4,52 @@ import brew_runtime
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/elftools-1.3.1/lib/elftools/sections/sections.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub enum SectionKind {
+	section
+	dynamic
+	null_section
+	note
+	relocation
+	string_table
+	symbol_table
+}
+
+pub fn section_kind(section_type int) SectionKind {
+	return match section_type {
+		6 { .dynamic }
+		0 { .null_section }
+		7 { .note }
+		4, 9 { .relocation }
+		3 { .string_table }
+		2, 11 { .symbol_table }
+		else { .section }
+	}
+}
+
+pub fn (kind SectionKind) class_name() string {
+	return match kind {
+		.section { 'Section' }
+		.dynamic { 'DynamicSection' }
+		.null_section { 'NullSection' }
+		.note { 'NoteSection' }
+		.relocation { 'RelocationSection' }
+		.string_table { 'StrTabSection' }
+		.symbol_table { 'SymTabSection' }
+	}
+}
 
 // Ruby method `create(header, stream, *args, **kwargs)` at line 24.
 pub fn ruby_sections_l24_d1_create(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('create', ...args)
+	if args.len == 0 { panic('Section.create requires a header') }
+	section_type := if args[0].type_name == 'Integer' {
+		int(args[0].as_int() or { panic(err) })
+	} else {
+		(args[0].attribute('sh_type') or { '0' }).int()
+	}
+	kind := section_kind(section_type)
+	return brew_runtime.structured_value(kind.class_name(), kind.class_name(), {
+		'sh_type': section_type.str()
+	})
 }
 
 // Original Ruby source (line-for-line):

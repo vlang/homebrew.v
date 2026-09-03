@@ -1,23 +1,28 @@
 module ffi
 
-import brew_runtime
+import homebrew.os.mac.ffi as mac_ffi
+import os
 
 // Translated from Homebrew/brew `test/os/mac/ffi/native_library_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby let `let(:library) do` at line 7.
-pub fn ruby_native_library_spec_l7_d1_library(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('library', ...args)
+pub fn ruby_native_library_spec_l7_d1_library() &mac_ffi.NativeLibrary {
+	mut library := mac_ffi.new_native_library(map[string]u64{})
+	library.use_library('/usr/lib/libSystem.B.dylib')
+	return library
 }
 
 // Ruby method `self.process_id` at line 13.
-pub fn ruby_native_library_spec_l13_d2_self_process_id(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.process_id', ...args)
+pub fn ruby_native_library_spec_l13_d2_self_process_id() !int {
+	mut library := ruby_native_library_spec_l7_d1_library()
+	function := library.load_function('getpid', []int{}, 1)!
+	return int(function.call()!)
 }
 
 // Ruby it `it "loads native functions from a system library" do` at line 19.
-pub fn ruby_native_library_spec_l19_d3_loads(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('loads', ...args)
+pub fn ruby_native_library_spec_l19_d3_loads() !bool {
+	return ruby_native_library_spec_l13_d2_self_process_id()! == os.getpid()
 }
 
 // Original Ruby source (line-for-line):

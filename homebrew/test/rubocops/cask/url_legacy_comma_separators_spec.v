@@ -1,28 +1,36 @@
 module cask
 
-import brew_runtime
+import homebrew.rubocops.cask as legacy_comma_core
 
 // Translated from Homebrew/brew `test/rubocops/cask/url_legacy_comma_separators_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "accepts a simple `version` interpolation" do` at line 7.
-pub fn ruby_url_legacy_comma_separators_spec_l7_d1_accepts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('accepts', ...args)
+pub fn ruby_url_legacy_comma_separators_spec_l7_d1_accepts() bool {
+	source := "cask 'foo' do\n  version '1.1'\n  url 'https://foo.brew.sh/foo-#{version}.dmg'\nend"
+	return legacy_comma_core.audit_url_legacy_comma_separators(source).len == 0
 }
 
 // Ruby it `it "accepts an interpolation using `version.csv`" do` at line 16.
-pub fn ruby_url_legacy_comma_separators_spec_l16_d2_accepts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('accepts', ...args)
+pub fn ruby_url_legacy_comma_separators_spec_l16_d2_accepts() bool {
+	source := "cask 'foo' do\n  version '1.1,111'\n  url 'https://foo.brew.sh/foo-#{version.csv.first}.dmg'\nend"
+	return legacy_comma_core.audit_url_legacy_comma_separators(source).len == 0
 }
 
 // Ruby it `it "reports an offense for an interpolation using `version.before_comma`" do` at line 25.
-pub fn ruby_url_legacy_comma_separators_spec_l25_d3_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_url_legacy_comma_separators_spec_l25_d3_reports() bool {
+	source := "cask 'foo' do\n  version '1.1,111'\n  url 'https://foo.brew.sh/foo-#{version.before_comma}.dmg'\nend"
+	expected := "cask 'foo' do\n  version '1.1,111'\n  url 'https://foo.brew.sh/foo-#{version.csv.first}.dmg'\nend"
+	offenses := legacy_comma_core.audit_url_legacy_comma_separators(source)
+	return offenses.len == 1 && legacy_comma_core.correct_url_legacy_comma_separators(source) == expected
 }
 
 // Ruby it `it "reports an offense for an interpolation using `version.after_comma`" do` at line 42.
-pub fn ruby_url_legacy_comma_separators_spec_l42_d4_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_url_legacy_comma_separators_spec_l42_d4_reports() bool {
+	source := "cask 'foo' do\n  version '1.1,111'\n  url 'https://foo.brew.sh/foo-#{version.after_comma}.dmg'\nend"
+	expected := "cask 'foo' do\n  version '1.1,111'\n  url 'https://foo.brew.sh/foo-#{version.csv.second}.dmg'\nend"
+	offenses := legacy_comma_core.audit_url_legacy_comma_separators(source)
+	return offenses.len == 1 && legacy_comma_core.correct_url_legacy_comma_separators(source) == expected
 }
 
 // Original Ruby source (line-for-line):

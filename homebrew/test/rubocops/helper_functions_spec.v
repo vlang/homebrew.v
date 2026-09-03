@@ -1,13 +1,25 @@
 module rubocops
 
 import brew_runtime
+import homebrew.rubocops.@shared as helper_shared
 
 // Translated from Homebrew/brew `test/rubocops/helper_functions_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "caches descendant send nodes for the current source" do` at line 7.
 pub fn ruby_helper_functions_spec_l7_d1_caches(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('caches', ...args)
+	_ = args
+	processed_source := helper_shared.helper_processed_source('class Foo; bar; end') or {
+		return brew_runtime.bool_value(false)
+	}
+	mut context := helper_shared.new_helper_functions_context()
+	first := context.descendant_send_nodes(processed_source, processed_source.ast)
+	again := context.descendant_send_nodes(processed_source, processed_source.ast)
+	other_source := helper_shared.helper_processed_source('class Foo; baz; end') or {
+		return brew_runtime.bool_value(false)
+	}
+	other := context.descendant_send_nodes(other_source, other_source.ast)
+	return brew_runtime.bool_value(first.identity == again.identity && first.identity != other.identity)
 }
 
 // Original Ruby source (line-for-line):

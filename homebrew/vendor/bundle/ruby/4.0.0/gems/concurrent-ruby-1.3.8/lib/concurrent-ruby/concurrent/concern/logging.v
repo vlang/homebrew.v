@@ -1,43 +1,230 @@
 module concern
 
 import brew_runtime
+import os
+import time
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/concern/logging.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub const log_debug = 0
+pub const log_info = 1
+pub const log_warn = 2
+pub const log_error = 3
+pub const log_fatal = 4
+pub const log_unknown = 5
+
+const severity_labels = ['DEBUG', 'INFO', 'WARN', 'ERROR', 'FATAL', 'ANY']
+const global_logger_level_env = 'BREW_V_CONCURRENT_LOGGER_LEVEL'
+const global_logger_output_env = 'BREW_V_CONCURRENT_LOGGER_OUTPUT'
+const global_logger_kind_env = 'BREW_V_CONCURRENT_LOGGER_KIND'
+
+pub enum LoggerKind {
+	simple
+	stdlib
+	null
+}
+
+// ConcurrentLogger is the V representation of the callable Ruby logger.
+// `output` accepts stderr, stdout, a filename, or the empty string for a null logger.
+pub struct ConcurrentLogger {
+pub:
+	level  int = log_fatal
+	output string = 'stderr'
+	kind   LoggerKind = .simple
+}
+
+pub fn severity_from_name(value string) !int {
+	return match value.to_upper() {
+		'DEBUG' { log_debug }
+		'INFO' { log_info }
+		'WARN', 'WARNING' { log_warn }
+		'ERROR' { log_error }
+		'FATAL' { log_fatal }
+		'UNKNOWN', 'ANY' { log_unknown }
+		else { error('unknown logging severity `${value}`') }
+	}
+}
+
+pub fn create_simple_logger(level int, output string) ConcurrentLogger {
+	return ConcurrentLogger{
+		level: level
+		output: output
+		kind: .simple
+	}
+}
+
+pub fn create_simple_logger_named(level string, output string) !ConcurrentLogger {
+	return create_simple_logger(severity_from_name(level)!, output)
+}
+
+pub fn create_stdlib_logger(level int, output string) ConcurrentLogger {
+	return ConcurrentLogger{
+		level: level
+		output: output
+		kind: .stdlib
+	}
+}
+
+pub fn null_logger() ConcurrentLogger {
+	return ConcurrentLogger{
+		level: log_unknown + 1
+		output: ''
+		kind: .null
+	}
+}
+
+fn (logger ConcurrentLogger) formatted_line(severity int, progname string, message string) string {
+	label := if severity >= 0 && severity < severity_labels.len {
+		severity_labels[severity]
+	} else {
+		severity_labels[log_unknown]
+	}
+	return '[${time.now().format_ss_milli()}] ${label:5s} -- ${progname}: ${message}\n'
+}
+
+// call implements both source logger lambdas. The bundled stdlib logger uses the
+// same formatter as the simple logger, so their externally visible lines match.
+pub fn (logger ConcurrentLogger) call(severity int, progname string, message string) !bool {
+	if logger.kind == .null || severity < logger.level {
+		return false
+	}
+	line := logger.formatted_line(severity, progname, message)
+	match logger.output {
+		'' {
+			return false
+		}
+		'stderr' { eprint(line) }
+		'stdout' { print(line) }
+		else {
+			mut file := os.open_append(logger.output)!
+			file.write_string(line)!
+			file.close()
+		}
+	}
+	return true
+}
+
+fn logger_as_value(logger ConcurrentLogger) brew_runtime.Value {
+	return brew_runtime.structured_value('Concurrent::Logger', logger.kind.str(), {
+		'level':  logger.level.str()
+		'output': logger.output
+		'kind':   logger.kind.str()
+	})
+}
+
+fn logger_from_value(value brew_runtime.Value) !ConcurrentLogger {
+	level := (value.attribute('level')!).int()
+	output := value.attribute('output')!
+	kind_name := value.attribute('kind')!
+	kind := match kind_name {
+		'simple' { LoggerKind.simple }
+		'stdlib' { LoggerKind.stdlib }
+		'null' { LoggerKind.null }
+		else {
+			return error('unknown logger kind `${kind_name}`')
+		}
+	}
+	return ConcurrentLogger{
+		level: level
+		output: output
+		kind: kind
+	}
+}
+
+pub fn set_global_logger(logger ConcurrentLogger) {
+	os.setenv(global_logger_level_env, logger.level.str(), true)
+	os.setenv(global_logger_output_env, logger.output, true)
+	os.setenv(global_logger_kind_env, logger.kind.str(), true)
+}
+
+pub fn global_logger() ConcurrentLogger {
+	level := os.getenv_opt(global_logger_level_env) or { return create_simple_logger(log_warn, 'stderr') }
+	kind_name := os.getenv(global_logger_kind_env)
+	return ConcurrentLogger{
+		level: level.int()
+		output: os.getenv_opt(global_logger_output_env) or { 'stderr' }
+		kind: match kind_name {
+			'stdlib' { .stdlib }
+			'null' { .null }
+			else { .simple }
+		}
+	}
+}
+
+pub fn use_simple_logger(level int, output string) ConcurrentLogger {
+	logger := create_simple_logger(level, output)
+	set_global_logger(logger)
+	return logger
+}
+
+pub fn use_stdlib_logger(level int, output string) ConcurrentLogger {
+	logger := create_stdlib_logger(level, output)
+	set_global_logger(logger)
+	return logger
+}
 
 // Ruby method `log(level, progname, message = nil, &block)` at line 19.
 pub fn ruby_logging_l19_d1_log(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('log', ...args)
+	if args.len < 2 {
+		panic('log requires severity and progname')
+	}
+	severity := int(args[0].as_int() or { panic(err) })
+	message := if args.len > 2 { args[2].as_string() } else { '' }
+	logged := global_logger().call(severity, args[1].as_string(), message) or {
+		eprintln('`Concurrent.global_logger` failed to log: ${err}')
+		false
+	}
+	return brew_runtime.bool_value(logged)
 }
 
 // Ruby method `self.create_simple_logger(level = :FATAL, output = $stderr)` at line 38.
 pub fn ruby_logging_l38_d2_self_create_simple_logger(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.create_simple_logger', ...args)
+	level := if args.len > 0 {
+		if args[0].type_name == 'Integer' {
+			int(args[0].as_int() or { panic(err) })
+		} else {
+			severity_from_name(args[0].as_string()) or { panic(err) }
+		}
+	} else {
+		log_fatal
+	}
+	output := if args.len > 1 { args[1].as_string() } else { 'stderr' }
+	return logger_as_value(create_simple_logger(level, output))
 }
 
 // Ruby method `self.use_simple_logger(level = :FATAL, output = $stderr)` at line 66.
 pub fn ruby_logging_l66_d3_self_use_simple_logger(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.use_simple_logger', ...args)
+	logger := logger_from_value(ruby_logging_l38_d2_self_create_simple_logger(...args)) or { panic(err) }
+	set_global_logger(logger)
+	return logger_as_value(logger)
 }
 
 // Ruby method `self.create_stdlib_logger(level = :FATAL, output = $stderr)` at line 73.
 pub fn ruby_logging_l73_d4_self_create_stdlib_logger(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.create_stdlib_logger', ...args)
+	simple := logger_from_value(ruby_logging_l38_d2_self_create_simple_logger(...args)) or { panic(err) }
+	return logger_as_value(create_stdlib_logger(simple.level, simple.output))
 }
 
 // Ruby method `self.use_stdlib_logger(level = :FATAL, output = $stderr)` at line 101.
 pub fn ruby_logging_l101_d5_self_use_stdlib_logger(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.use_stdlib_logger', ...args)
+	logger := logger_from_value(ruby_logging_l73_d4_self_create_stdlib_logger(...args)) or { panic(err) }
+	set_global_logger(logger)
+	return logger_as_value(logger)
 }
 
 // Ruby method `self.global_logger` at line 114.
 pub fn ruby_logging_l114_d6_self_global_logger(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.global_logger', ...args)
+	return logger_as_value(global_logger())
 }
 
 // Ruby method `self.global_logger=(value)` at line 118.
 pub fn ruby_logging_l118_d7_self_global_logger(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.global_logger=', ...args)
+	if args.len == 0 {
+		panic('global_logger= requires a logger')
+	}
+	logger := logger_from_value(args[args.len - 1]) or { panic(err) }
+	set_global_logger(logger)
+	return logger_as_value(logger)
 }
 
 // Original Ruby source (line-for-line):

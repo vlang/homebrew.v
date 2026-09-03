@@ -1,48 +1,113 @@
 module utils
 
-import brew_runtime
+import homebrew.utils as inreplace_core
+import os
 
 // Translated from Homebrew/brew `test/utils/inreplace_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+fn inreplace_spec_fixture(name string) !string {
+	path := os.join_path(os.temp_dir(), 'brew-v-inreplace-${os.getpid()}-${name}')
+	os.rm(path) or {}
+	os.write_file(path, 'a\nb\nc\naa\n')!
+	return path
+}
+
+fn inreplace_spec_missing_block(mut buffer inreplace_core.InreplaceBuffer) {
+	buffer.gsub('d', 'f', true)
+}
+
+fn inreplace_spec_missing_make_vars(mut buffer inreplace_core.InreplaceBuffer) {
+	buffer.change_make_var('VAR', 'value')
+	buffer.remove_make_var(['VAR2'])
+}
+
+fn inreplace_spec_pathname_block(mut buffer inreplace_core.InreplaceBuffer) {
+	buffer.gsub('b', 'f', true)
+}
 
 // Ruby let `let(:file) { Tempfile.new("test") }` at line 8.
-pub fn ruby_inreplace_spec_l8_d1_file(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('file', ...args)
+pub fn ruby_inreplace_spec_l8_d1_file() !string {
+	return inreplace_spec_fixture('let')
 }
 
 // Ruby it `it "raises error if there are no files given to replace" do` at line 22.
-pub fn ruby_inreplace_spec_l22_d2_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+pub fn ruby_inreplace_spec_l22_d2_raises() bool {
+	if _ := inreplace_core.inreplace([]string{}, 'd', 'f', inreplace_core.InreplaceOptions{}, none) {
+		return false
+	} else {
+		return err.msg().contains('inreplace failed') && err.msg().contains('`paths` was empty')
+	}
 }
 
 // Ruby it `it "raises error if there is nothing to replace" do` at line 28.
-pub fn ruby_inreplace_spec_l28_d3_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+pub fn ruby_inreplace_spec_l28_d3_raises() !bool {
+	path := inreplace_spec_fixture('missing')!
+	defer {
+		os.rm(path) or {}
+	}
+	if _ := inreplace_core.inreplace([path], 'd', 'f', inreplace_core.InreplaceOptions{}, none) {
+		return false
+	} else {
+		return err.msg().contains('expected replacement of "d" with "f"')
+	}
 }
 
 // Ruby it `it "raises error if there is nothing to replace in block form" do` at line 34.
-pub fn ruby_inreplace_spec_l34_d4_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+pub fn ruby_inreplace_spec_l34_d4_raises() !bool {
+	path := inreplace_spec_fixture('missing-block')!
+	defer {
+		os.rm(path) or {}
+	}
+	if _ := inreplace_core.inreplace([path], none, none, inreplace_core.InreplaceOptions{}, inreplace_spec_missing_block) {
+		return false
+	} else {
+		return err.msg().contains('expected replacement of "d" with "f"')
+	}
 }
 
 // Ruby it `it "raises error if there is no make variables to replace" do` at line 43.
-pub fn ruby_inreplace_spec_l43_d5_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+pub fn ruby_inreplace_spec_l43_d5_raises() !bool {
+	path := inreplace_spec_fixture('missing-make')!
+	defer {
+		os.rm(path) or {}
+	}
+	if _ := inreplace_core.inreplace([path], none, none, inreplace_core.InreplaceOptions{}, inreplace_spec_missing_make_vars) {
+		return false
+	} else {
+		return err.msg().contains('expected to change "VAR" to "value"') && err.msg().contains('expected to remove "VAR2"')
+	}
 }
 
 // Ruby it `it "substitutes pathname within file" do` at line 52.
-pub fn ruby_inreplace_spec_l52_d6_substitutes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('substitutes', ...args)
+pub fn ruby_inreplace_spec_l52_d6_substitutes() !bool {
+	path := inreplace_spec_fixture('pathname')!
+	defer {
+		os.rm(path) or {}
+	}
+	inreplace_core.inreplace([path], none, none, inreplace_core.InreplaceOptions{}, inreplace_spec_pathname_block)!
+	return os.read_file(path)! == 'a\nf\nc\naa\n'
 }
 
 // Ruby it `it "substitutes all occurrences within file when `global: true`" do` at line 65.
-pub fn ruby_inreplace_spec_l65_d7_substitutes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('substitutes', ...args)
+pub fn ruby_inreplace_spec_l65_d7_substitutes() !bool {
+	path := inreplace_spec_fixture('global')!
+	defer {
+		os.rm(path) or {}
+	}
+	inreplace_core.inreplace([path], 'a', 'foo', inreplace_core.InreplaceOptions{}, none)!
+	return os.read_file(path)! == 'foo\nb\nc\nfoofoo\n'
 }
 
 // Ruby it `it "substitutes only the first occurrence when `global: false`" do` at line 75.
-pub fn ruby_inreplace_spec_l75_d8_substitutes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('substitutes', ...args)
+pub fn ruby_inreplace_spec_l75_d8_substitutes() !bool {
+	path := inreplace_spec_fixture('first')!
+	defer {
+		os.rm(path) or {}
+	}
+	inreplace_core.inreplace([path], 'a', 'foo', inreplace_core.InreplaceOptions{
+		global: false
+	}, none)!
+	return os.read_file(path)! == 'foo\nb\nc\naa\n'
 }
 
 // Original Ruby source (line-for-line):

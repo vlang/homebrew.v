@@ -1,38 +1,39 @@
 module test
 
-import brew_runtime
+import homebrew
 
 // Translated from Homebrew/brew `test/checksum_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject { described_class.new("") }` at line 8.
-pub fn ruby_checksum_spec_l8_d1_subject_dynamic(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('subject_dynamic', ...args)
+pub fn ruby_checksum_spec_l8_d1_subject_dynamic() homebrew.Checksum {
+	return homebrew.new_checksum('')
 }
 
 // Ruby it `it { is_expected.to be_empty }` at line 10.
-pub fn ruby_checksum_spec_l10_d2_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('{', ...args)
+pub fn ruby_checksum_spec_l10_d2_anonymous() bool {
+	return ruby_checksum_spec_l8_d1_subject_dynamic().is_empty()
 }
 
 // Ruby subject `subject(:checksum) { described_class.new(TEST_SHA256) }` at line 14.
-pub fn ruby_checksum_spec_l14_d3_checksum(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('checksum', ...args)
+pub fn ruby_checksum_spec_l14_d3_checksum() homebrew.Checksum {
+	return homebrew.new_checksum('deadbeef'.repeat(8))
 }
 
 // Ruby let `let(:other) { described_class.new(TEST_SHA256) }` at line 16.
-pub fn ruby_checksum_spec_l16_d4_other(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('other', ...args)
+pub fn ruby_checksum_spec_l16_d4_other() homebrew.Checksum {
+	return homebrew.new_checksum('deadbeef'.repeat(8))
 }
 
 // Ruby let `let(:other_reversed) { described_class.new(TEST_SHA256.reverse) }` at line 17.
-pub fn ruby_checksum_spec_l17_d5_other_reversed(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('other_reversed', ...args)
+pub fn ruby_checksum_spec_l17_d5_other_reversed() homebrew.Checksum {
+	return homebrew.new_checksum('deadbeef'.repeat(8).reverse())
 }
 
 // Ruby specify `specify(:aggregate_failures) do` at line 19.
-pub fn ruby_checksum_spec_l19_d6_aggregate_failures(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('aggregate_failures', ...args)
+pub fn ruby_checksum_spec_l19_d6_aggregate_failures() bool {
+	checksum := ruby_checksum_spec_l14_d3_checksum()
+	return checksum.equals(ruby_checksum_spec_l16_d4_other()) && !checksum.equals(ruby_checksum_spec_l17_d5_other_reversed())
 }
 
 // Original Ruby source (line-for-line):

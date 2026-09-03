@@ -1,63 +1,201 @@
 module atomic
 
 import brew_runtime
+import sync
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/atomic/mutex_atomic_fixnum.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub type AtomicFixnumUpdate = fn(i64) !i64
+
+const atomic_fixnum_min = i64(-4_611_686_018_427_387_904)
+const atomic_fixnum_max = i64(4_611_686_018_427_387_903)
+
+@[heap]
+pub struct MutexAtomicFixnum {
+mut:
+	lock  sync.Mutex
+	value i64
+}
+
+fn validate_atomic_fixnum(value i64) !i64 {
+	if value < atomic_fixnum_min || value > atomic_fixnum_max {
+		return error('${value} is outside the native integer range')
+	}
+	return value
+}
+
+pub fn new_mutex_atomic_fixnum(initial i64) !&MutexAtomicFixnum {
+	validate_atomic_fixnum(initial)!
+	return &MutexAtomicFixnum{
+		value: initial
+	}
+}
+
+pub fn (mut number MutexAtomicFixnum) get() i64 {
+	number.lock.lock()
+	defer {
+		number.lock.unlock()
+	}
+	return number.value
+}
+
+pub fn (mut number MutexAtomicFixnum) set(value i64) !i64 {
+	validate_atomic_fixnum(value)!
+	number.lock.lock()
+	number.value = value
+	number.lock.unlock()
+	return value
+}
+
+pub fn (mut number MutexAtomicFixnum) increment(delta i64) !i64 {
+	validate_atomic_fixnum(delta)!
+	number.lock.lock()
+	defer {
+		number.lock.unlock()
+	}
+	return number.set_locked(number.value + delta)
+}
+
+pub fn (mut number MutexAtomicFixnum) decrement(delta i64) !i64 {
+	validate_atomic_fixnum(delta)!
+	number.lock.lock()
+	defer {
+		number.lock.unlock()
+	}
+	return number.set_locked(number.value - delta)
+}
+
+fn (mut number MutexAtomicFixnum) set_locked(value i64) !i64 {
+	validate_atomic_fixnum(value)!
+	number.value = value
+	return value
+}
+
+pub fn (mut number MutexAtomicFixnum) compare_and_set(expected i64, update i64) !bool {
+	validate_atomic_fixnum(update)!
+	number.lock.lock()
+	defer {
+		number.lock.unlock()
+	}
+	if number.value != expected {
+		return false
+	}
+	number.value = update
+	return true
+}
+
+pub fn (mut number MutexAtomicFixnum) update(action AtomicFixnumUpdate) !i64 {
+	number.lock.lock()
+	defer {
+		number.lock.unlock()
+	}
+	return number.set_locked(action(number.value)!)
+}
+
+fn atomic_fixnum_boundary_new(initial i64) brew_runtime.Value {
+	number := new_mutex_atomic_fixnum(initial) or { panic(err) }
+	return brew_runtime.structured_value('Concurrent::MutexAtomicFixnum', '#<Concurrent::MutexAtomicFixnum>', {
+		'atomic_fixnum_address': u64(voidptr(number)).str()
+	})
+}
+
+fn atomic_fixnum_boundary_receiver(args []brew_runtime.Value) &MutexAtomicFixnum {
+	if args.len == 0 {
+		panic('MutexAtomicFixnum method requires a receiver')
+	}
+	address := (args[0].attribute('atomic_fixnum_address') or {
+		panic('${args[0].type_name} has no translated atomic fixnum state')
+	}).u64()
+	return unsafe { &MutexAtomicFixnum(voidptr(address)) }
+}
+
+fn atomic_fixnum_boundary_integer(value brew_runtime.Value) i64 {
+	return match value.type_name {
+		'Integer' { value.as_int() or { panic(err) } }
+		'Float' { i64(value.as_float() or { panic(err) }) }
+		else { value.as_string().i64() }
+	}
+}
 
 // Ruby method `initialize(initial = 0)` at line 13.
 pub fn ruby_mutex_atomic_fixnum_l13_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	initial := if args.len > 0 { args[0].as_int() or { panic(err) } } else { i64(0) }
+	return atomic_fixnum_boundary_new(initial)
 }
 
 // Ruby method `value` at line 20.
 pub fn ruby_mutex_atomic_fixnum_l20_d2_value(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('value', ...args)
+	mut number := atomic_fixnum_boundary_receiver(args)
+	return brew_runtime.int_value(number.get())
 }
 
 // Ruby method `value=(value)` at line 25.
 pub fn ruby_mutex_atomic_fixnum_l25_d3_value(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('value=', ...args)
+	if args.len < 2 {
+		panic('MutexAtomicFixnum#value= requires value')
+	}
+	mut number := atomic_fixnum_boundary_receiver(args)
+	return brew_runtime.int_value(number.set(args[1].as_int() or { panic(err) }) or { panic(err) })
 }
 
 // Ruby method `increment(delta = 1)` at line 30.
 pub fn ruby_mutex_atomic_fixnum_l30_d4_increment(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('increment', ...args)
+	mut number := atomic_fixnum_boundary_receiver(args)
+	delta := if args.len > 1 { atomic_fixnum_boundary_integer(args[1]) } else { i64(1) }
+	return brew_runtime.int_value(number.increment(delta) or { panic(err) })
 }
 
 // Ruby alias_method `alias_method :up, :increment` at line 34.
 pub fn ruby_mutex_atomic_fixnum_l34_d5_up(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('up', ...args)
+	return ruby_mutex_atomic_fixnum_l30_d4_increment(...args)
 }
 
 // Ruby method `decrement(delta = 1)` at line 37.
 pub fn ruby_mutex_atomic_fixnum_l37_d6_decrement(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('decrement', ...args)
+	mut number := atomic_fixnum_boundary_receiver(args)
+	delta := if args.len > 1 { atomic_fixnum_boundary_integer(args[1]) } else { i64(1) }
+	return brew_runtime.int_value(number.decrement(delta) or { panic(err) })
 }
 
 // Ruby alias_method `alias_method :down, :decrement` at line 41.
 pub fn ruby_mutex_atomic_fixnum_l41_d7_down(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('down', ...args)
+	return ruby_mutex_atomic_fixnum_l37_d6_decrement(...args)
 }
 
 // Ruby method `compare_and_set(expect, update)` at line 44.
 pub fn ruby_mutex_atomic_fixnum_l44_d8_compare_and_set(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('compare_and_set', ...args)
+	if args.len < 3 {
+		panic('MutexAtomicFixnum#compare_and_set requires expected and update')
+	}
+	mut number := atomic_fixnum_boundary_receiver(args)
+	return brew_runtime.bool_value(number.compare_and_set(atomic_fixnum_boundary_integer(args[1]), atomic_fixnum_boundary_integer(args[2])) or { panic(err) })
 }
 
 // Ruby method `update` at line 56.
 pub fn ruby_mutex_atomic_fixnum_l56_d9_update(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('update', ...args)
+	if args.len < 2 {
+		panic('MutexAtomicFixnum#update requires translated block result')
+	}
+	mut number := atomic_fixnum_boundary_receiver(args)
+	return brew_runtime.int_value(number.set(args[1].as_int() or { panic(err) }) or { panic(err) })
 }
 
 // Ruby method `synchronize` at line 65.
 pub fn ruby_mutex_atomic_fixnum_l65_d10_synchronize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('synchronize', ...args)
+	mut number := atomic_fixnum_boundary_receiver(args)
+	number.lock.lock()
+	value := if args.len > 1 { args[1] } else { brew_runtime.int_value(number.value) }
+	number.lock.unlock()
+	return value
 }
 
 // Ruby method `ns_set(value)` at line 76.
 pub fn ruby_mutex_atomic_fixnum_l76_d11_ns_set(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ns_set', ...args)
+	if args.len < 2 {
+		panic('MutexAtomicFixnum#ns_set requires value')
+	}
+	mut number := atomic_fixnum_boundary_receiver(args)
+	return brew_runtime.int_value(number.set(args[1].as_int() or { panic(err) }) or { panic(err) })
 }
 
 // Original Ruby source (line-for-line):

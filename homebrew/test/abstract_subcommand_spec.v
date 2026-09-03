@@ -1,54 +1,95 @@
 module test
 
 import brew_runtime
+import homebrew
+import homebrew.cli as brew_cli
 
 // Translated from Homebrew/brew `test/abstract_subcommand_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
-
-// Ruby method `run; end` at line 20.
-pub fn ruby_abstract_subcommand_spec_l20_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('run', ...args)
+fn abstract_subcommand_spec_parser(mut parser brew_cli.Parser) ! {
+	parser.set_usage_banner('`brew test`:\nRun the test subcommand.')!
+	parser.add_switch(['--foo'], brew_cli.OptionConfig{})
+	parser.configure_named_args(brew_cli.NamedArgumentConfig{
+		types: ['none']
+	})!
 }
 
+fn abstract_subcommand_spec_named_none(mut parser brew_cli.Parser) ! {
+	parser.configure_named_args(brew_cli.NamedArgumentConfig{
+		types: ['none']
+	})!
+}
+
+fn abstract_subcommand_spec_class() homebrew.AbstractSubcommandClass {
+	mut subcommand := homebrew.new_abstract_subcommand_class('TestSubcommand')
+	homebrew.ruby_abstract_subcommand_l74_d5_subcommand_args(mut subcommand, homebrew.AbstractSubcommandArgsConfig{
+		aliases: ['ts']
+		default: true
+	}, abstract_subcommand_spec_parser)
+	return subcommand
+}
+
+// Ruby method `run; end` at line 20.
+pub fn ruby_abstract_subcommand_spec_l20_d1_run() {}
+
 // Ruby it `it "defines parser metadata from subcommand_args" do` at line 26.
-pub fn ruby_abstract_subcommand_spec_l26_d2_defines(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('defines', ...args)
+pub fn ruby_abstract_subcommand_spec_l26_d2_defines() !bool {
+	mut parser := brew_cli.new_parser('SubcommandTestCmd')
+	homebrew.ruby_abstract_subcommand_l47_d4_define(abstract_subcommand_spec_class(), mut parser)!
+	subcommands := parser.subcommand_list()
+	if subcommands.len != 1 {
+		return false
+	}
+	return subcommands[0].name == 'test' && subcommands[0].aliases == ['ts'] && subcommands[0].default && parser.processed_options_for_subcommand('test').map(it.long).contains('--foo')
 }
 
 // Ruby it `it "allows access to args" do` at line 37.
-pub fn ruby_abstract_subcommand_spec_l37_d3_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+pub fn ruby_abstract_subcommand_spec_l37_d3_allows() bool {
+	argument := brew_runtime.object_value('Symbol', 'args')
+	subcommand := homebrew.ruby_abstract_subcommand_l86_d7_initialize(argument, homebrew.AbstractSubcommandInitOptions{})
+	actual := homebrew.ruby_abstract_subcommand_l83_d6_args(subcommand)
+	return actual.type_name == 'Symbol' && actual.repr == 'args'
 }
 
 // Ruby it `it "finds subcommands nested under a command class" do` at line 41.
-pub fn ruby_abstract_subcommand_spec_l41_d4_finds(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('finds', ...args)
+pub fn ruby_abstract_subcommand_spec_l41_d4_finds() bool {
+	mut nested := homebrew.new_abstract_subcommand_class('SubcommandTestCmd::NestedSubcommand')
+	homebrew.ruby_abstract_subcommand_l74_d5_subcommand_args(mut nested, homebrew.AbstractSubcommandArgsConfig{}, abstract_subcommand_spec_named_none)
+	mut other := homebrew.new_abstract_subcommand_class('OtherSubcommandTestCmd::NestedSubcommand')
+	homebrew.ruby_abstract_subcommand_l74_d5_subcommand_args(mut other, homebrew.AbstractSubcommandArgsConfig{}, abstract_subcommand_spec_named_none)
+	found := homebrew.ruby_abstract_subcommand_l32_d2_subcommands_for('SubcommandTestCmd', [
+		nested,
+		other,
+	])
+	return found.len == 1 && found[0].name == nested.name
 }
 
 // Ruby method `run; end` at line 44.
-pub fn ruby_abstract_subcommand_spec_l44_d5_run(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('run', ...args)
-}
+pub fn ruby_abstract_subcommand_spec_l44_d5_run() {}
 
 // Ruby method `run; end` at line 50.
-pub fn ruby_abstract_subcommand_spec_l50_d6_run(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('run', ...args)
-}
+pub fn ruby_abstract_subcommand_spec_l50_d6_run() {}
 
 // Ruby it `it "defines all subcommands nested under a command class" do` at line 58.
-pub fn ruby_abstract_subcommand_spec_l58_d7_defines(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('defines', ...args)
+pub fn ruby_abstract_subcommand_spec_l58_d7_defines() !bool {
+	mut first := homebrew.new_abstract_subcommand_class('SubcommandTestCmd::FirstSubcommand')
+	homebrew.ruby_abstract_subcommand_l74_d5_subcommand_args(mut first, homebrew.AbstractSubcommandArgsConfig{}, abstract_subcommand_spec_named_none)
+	mut second := homebrew.new_abstract_subcommand_class('SubcommandTestCmd::SecondSubcommand')
+	homebrew.ruby_abstract_subcommand_l74_d5_subcommand_args(mut second, homebrew.AbstractSubcommandArgsConfig{}, abstract_subcommand_spec_named_none)
+	mut parser := brew_cli.new_parser('SubcommandTestCmd')
+	homebrew.ruby_abstract_subcommand_l40_d3_define_all(mut parser, 'SubcommandTestCmd', [
+		first,
+		second,
+	])!
+	names := parser.subcommand_names()
+	return 'first' in names && 'second' in names
 }
 
 // Ruby method `run; end` at line 61.
-pub fn ruby_abstract_subcommand_spec_l61_d8_run(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('run', ...args)
-}
+pub fn ruby_abstract_subcommand_spec_l61_d8_run() {}
 
 // Ruby method `run; end` at line 65.
-pub fn ruby_abstract_subcommand_spec_l65_d9_run(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('run', ...args)
-}
+pub fn ruby_abstract_subcommand_spec_l65_d9_run() {}
 
 // Original Ruby source (line-for-line):
 // 1: # typed: false

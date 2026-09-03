@@ -1,43 +1,56 @@
 module artifact
 
-import brew_runtime
+import homebrew.cask.artifact as zap_core
+import os
 
 // Translated from Homebrew/brew `test/cask/artifact/zap_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:artifact) { cask.artifacts.find { |a| a.is_a?(described_class) } }` at line 11.
-pub fn ruby_zap_spec_l11_d1_artifact(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('artifact', ...args)
+pub fn ruby_zap_spec_l11_d1_artifact() zap_core.ZapArtifact {
+	return zap_core.ZapArtifact{
+		rmdir: [ruby_zap_spec_l15_d4_empty_directory()]
+	}
 }
 
 // Ruby let `let(:fake_system_command) { NeverSudoSystemCommand }` at line 13.
-pub fn ruby_zap_spec_l13_d2_fake_system_command(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fake_system_command', ...args)
+pub fn ruby_zap_spec_l13_d2_fake_system_command() string {
+	return 'NeverSudoSystemCommand'
 }
 
 // Ruby let `let(:cask) { Cask::CaskLoader.load(cask_path("with-zap-rmdir")) }` at line 14.
-pub fn ruby_zap_spec_l14_d3_cask(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask', ...args)
+pub fn ruby_zap_spec_l14_d3_cask() string {
+	return 'with-zap-rmdir'
 }
 
 // Ruby let `let(:empty_directory) { Pathname.new("#{TEST_TMPDIR}/empty_directory_path") }` at line 15.
-pub fn ruby_zap_spec_l15_d4_empty_directory(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('empty_directory', ...args)
+pub fn ruby_zap_spec_l15_d4_empty_directory() string {
+	return os.join_path(os.temp_dir(), 'brew-v-zap-spec-empty-directory')
 }
 
 // Ruby let `let(:empty_directory_tree) { empty_directory.join("nested", "empty_directory_path") }` at line 16.
-pub fn ruby_zap_spec_l16_d5_empty_directory_tree(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('empty_directory_tree', ...args)
+pub fn ruby_zap_spec_l16_d5_empty_directory_tree() string {
+	return os.join_path(ruby_zap_spec_l15_d4_empty_directory(), 'nested', 'empty_directory_path')
 }
 
 // Ruby let `let(:ds_store) { empty_directory.join(".DS_Store") }` at line 17.
-pub fn ruby_zap_spec_l17_d6_ds_store(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ds_store', ...args)
+pub fn ruby_zap_spec_l17_d6_ds_store() string {
+	return os.join_path(ruby_zap_spec_l15_d4_empty_directory(), '.DS_Store')
 }
 
 // Ruby it `it "is supported" do` at line 28.
-pub fn ruby_zap_spec_l28_d7_is(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('is', ...args)
+pub fn ruby_zap_spec_l28_d7_is() !bool {
+	root := ruby_zap_spec_l15_d4_empty_directory()
+	if os.exists(root) {
+		os.rmdir_all(root)!
+	}
+	os.mkdir_all(ruby_zap_spec_l16_d5_empty_directory_tree())!
+	os.write_file(ruby_zap_spec_l17_d6_ds_store(), '')!
+	if !os.is_dir(ruby_zap_spec_l16_d5_empty_directory_tree()) || !os.exists(ruby_zap_spec_l17_d6_ds_store()) {
+		return false
+	}
+	result := zap_core.zap_phase(ruby_zap_spec_l11_d1_artifact())!
+	return !os.exists(ruby_zap_spec_l17_d6_ds_store()) && !os.exists(root) && root in result.removed && result.skipped.len == 0
 }
 
 // Original Ruby source (line-for-line):

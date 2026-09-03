@@ -1,209 +1,607 @@
 module types
 
 import brew_runtime
+import sync
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/sorbet-runtime-0.6.13412/lib/types/configuration.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub type ConfigurationHandler = fn([]brew_runtime.Value) !brew_runtime.Value
+
+struct ConfigurationHandlerEntry {
+	name    string
+	handler ConfigurationHandler @[required]
+}
+
+@[heap]
+pub struct ConfigurationState {
+	mutex &sync.Mutex = sync.new_mutex()
+mut:
+	checking_tests              bool
+	final_checks_on_hooks       bool
+	include_value_in_errors     bool = true
+	default_checked_level       string = 'always'
+	handler_values              map[string]brew_runtime.Value
+	typed_handlers              []ConfigurationHandlerEntry
+	scalar_types_override       ?map[string]bool
+	module_name_mangler         brew_runtime.Value
+	sensitivity_and_pii_handler brew_runtime.Value
+	redaction_handler           brew_runtime.Value
+	legacy_t_enum_mode          bool
+	sealed_whitelist_set        bool
+	sealed_whitelist            []string
+}
+
+pub fn new_configuration_state() &ConfigurationState {
+	return &ConfigurationState{
+		handler_values: map[string]brew_runtime.Value{}
+		module_name_mangler: configuration_nil_value()
+		sensitivity_and_pii_handler: configuration_nil_value()
+		redaction_handler: configuration_nil_value()
+	}
+}
+
+const configuration_global = new_configuration_state()
+
+fn global_configuration() &ConfigurationState {
+	return unsafe { &ConfigurationState(configuration_global) }
+}
+
+fn configuration_nil_value() brew_runtime.Value {
+	return brew_runtime.object_value('NilClass', 'nil')
+}
+
+fn configuration_truthy(value brew_runtime.Value) bool {
+	return value.type_name != 'NilClass' && !(value.type_name == 'Bool' && !value.bool_data)
+}
+
+fn configuration_handler_index(entries []ConfigurationHandlerEntry, name string) int {
+	for index, entry in entries {
+		if entry.name == name {
+			return index
+		}
+	}
+	return -1
+}
+
+pub fn (mut state ConfigurationState) set_typed_handler(name string,
+	handler ConfigurationHandler) {
+	state.mutex.lock()
+	index := configuration_handler_index(state.typed_handlers, name)
+	entry := ConfigurationHandlerEntry{
+		name: name
+		handler: handler
+	}
+	if index >= 0 {
+		state.typed_handlers[index] = entry
+	} else {
+		state.typed_handlers << entry
+	}
+	state.mutex.unlock()
+}
+
+pub fn (mut state ConfigurationState) set_handler_value(name string,
+	value brew_runtime.Value) ! {
+	validate_configuration_callable(value)!
+	state.mutex.lock()
+	if value.type_name == 'NilClass' {
+		state.handler_values.delete(name)
+	} else {
+		state.handler_values[name] = value
+	}
+	state.mutex.unlock()
+}
+
+fn configuration_handler_result(value brew_runtime.Value) brew_runtime.Value {
+	return value.map_data['result'] or { configuration_nil_value() }
+}
+
+pub fn (mut state ConfigurationState) call_handler(name string,
+	arguments []brew_runtime.Value) !brew_runtime.Value {
+	state.mutex.lock()
+	index := configuration_handler_index(state.typed_handlers, name)
+	typed := if index >= 0 {
+		state.typed_handlers[index..index + 1].clone()
+	} else {
+		[]ConfigurationHandlerEntry{}
+	}
+	descriptor := state.handler_values[name] or { configuration_nil_value() }
+	state.mutex.unlock()
+	if typed.len == 1 {
+		return typed[0].handler(arguments)!
+	}
+	if descriptor.type_name != 'NilClass' {
+		return configuration_handler_result(descriptor)
+	}
+	return state.call_default_handler(name, arguments)!
+}
+
+fn configuration_error_message(value brew_runtime.Value) string {
+	return value.attribute('message') or { value.as_string() }
+}
+
+fn configuration_location(value brew_runtime.Value) string {
+	path := value.attribute('path') or { '<unknown>' }
+	line := value.attribute('lineno') or { '0' }
+	return '${path}:${line}'
+}
+
+fn configuration_options(value brew_runtime.Value) map[string]brew_runtime.Value {
+	return if value.type_name == 'Hash' {
+		value.map_data.clone()
+	} else {
+		map[string]brew_runtime.Value{}
+	}
+}
+
+fn (mut state ConfigurationState) call_default_handler(name string,
+	arguments []brew_runtime.Value) !brew_runtime.Value {
+	match name {
+		'inline_type_error', 'sig_validation_error' {
+			if arguments.len == 0 {
+				return error('missing type error')
+			}
+			return error(configuration_error_message(arguments[0]))
+		}
+		'sig_builder_error' {
+			if arguments.len < 2 {
+				return error('missing sig builder error context')
+			}
+			return error('${configuration_location(arguments[1])}: Error interpreting `sig`:\n  ${configuration_error_message(arguments[0])}\n')
+		}
+		'call_validation_error' {
+			options := if arguments.len > 1 {
+				configuration_options(arguments[1])
+			} else {
+				map[string]brew_runtime.Value{}
+			}
+			message := options['pretty_message'] or { options['message'] or { brew_runtime.string_value('Type validation failed') } }
+			return error(message.as_string())
+		}
+		'log_info', 'soft_assert' {
+			message := if arguments.len > 0 { arguments[0].as_string() } else { '' }
+			extra := if arguments.len > 1 { arguments[1].as_string() } else { '{}' }
+			println('${message}, extra: ${extra}')
+			return configuration_nil_value()
+		}
+		else {
+			return configuration_nil_value()
+		}
+	}
+}
+
+pub fn (mut state ConfigurationState) set_include_value(include bool) {
+	state.mutex.lock()
+	state.include_value_in_errors = include
+	state.mutex.unlock()
+}
+
+pub fn (mut state ConfigurationState) includes_value() bool {
+	state.mutex.lock()
+	value := state.include_value_in_errors
+	state.mutex.unlock()
+	return value
+}
+
+pub fn (mut state ConfigurationState) set_checked_level(level string) ! {
+	clean := level.trim_string_left(':')
+	if clean !in ['never', 'tests', 'always'] {
+		return error("Invalid `checked` level '${clean}'. Use one of: ['always', 'tests', 'never'].")
+	}
+	state.mutex.lock()
+	state.default_checked_level = clean
+	state.mutex.unlock()
+}
+
+pub fn (mut state ConfigurationState) set_scalar_types(values brew_runtime.Value) ! {
+	state.mutex.lock()
+	defer {
+		state.mutex.unlock()
+	}
+	if values.type_name == 'NilClass' {
+		state.scalar_types_override = none
+		return
+	}
+	if values.type_name != 'Array' {
+		return error('Provided values must all be class name strings.')
+	}
+	items := if values.array_data.len > 0 {
+		values.array_data.clone()
+	} else {
+		values.string_array_data.map(brew_runtime.string_value(it))
+	}
+	if items.any(it.type_name != 'String') {
+		return error('Provided values must all be class name strings.')
+	}
+	mut scalar := map[string]bool{}
+	for item in items {
+		scalar[item.as_string()] = true
+	}
+	state.scalar_types_override = scalar.clone()
+}
+
+const configuration_default_scalar_types = ['NilClass', 'TrueClass', 'FalseClass', 'Integer', 'Float',
+	'String', 'Symbol', 'Time', 'T::Enum']
+
+pub fn (mut state ConfigurationState) scalar_types() map[string]bool {
+	state.mutex.lock()
+	defer {
+		state.mutex.unlock()
+	}
+	if override := state.scalar_types_override {
+		return override.clone()
+	}
+	mut defaults := map[string]bool{}
+	for name in configuration_default_scalar_types {
+		defaults[name] = true
+	}
+	return defaults
+}
+
+pub fn validate_configuration_callable(value brew_runtime.Value) ! {
+	if value.type_name == 'NilClass' {
+		return
+	}
+	if value.type_name in ['Proc', 'Lambda', 'Method'] {
+		return
+	}
+	if value.attribute('responds_to_call') or { 'false' } == 'true' {
+		return
+	}
+	return error('Provided value must respond to :call')
+}
+
+pub fn (mut state ConfigurationState) set_sealed_whitelist(value brew_runtime.Value) ! {
+	state.mutex.lock()
+	defer {
+		state.mutex.unlock()
+	}
+	if state.sealed_whitelist_set {
+		return error('Cannot overwrite sealed_violation_whitelist after setting it')
+	}
+	if value.type_name != 'Array' {
+		return error('sealed_violation_whitelist= accepts an Array of Regexp')
+	}
+	items := value.array_data
+	if items.any(it.type_name != 'Regexp') {
+		return error('sealed_violation_whitelist accepts an Array of Regexp')
+	}
+	state.sealed_whitelist = items.map(it.as_string())
+	state.sealed_whitelist_set = true
+}
+
+fn configuration_map_bool(values map[string]bool) brew_runtime.Value {
+	mut output := map[string]brew_runtime.Value{}
+	for key, value in values {
+		output[key] = brew_runtime.bool_value(value)
+	}
+	return brew_runtime.map_value(output)
+}
+
+fn configuration_handler_from_args(args []brew_runtime.Value) brew_runtime.Value {
+	if args.len == 0 {
+		return configuration_nil_value()
+	}
+	return args[args.len - 1]
+}
+
+fn configuration_invoke(name string, args []brew_runtime.Value) brew_runtime.Value {
+	mut state := global_configuration()
+	return state.call_handler(name, args) or { panic(err) }
+}
 
 // Ruby method `self.enable_checking_for_sigs_marked_checked_tests` at line 16.
 pub fn ruby_configuration_l16_d1_self_enable_checking_for_sigs_marked_checked_tests(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.enable_checking_for_sigs_marked_checked_tests',
-		...args)
+	mut state := global_configuration()
+	state.mutex.lock()
+	state.checking_tests = true
+	state.mutex.unlock()
+	return configuration_nil_value()
 }
 
 // Ruby method `self.enable_final_checks_on_hooks` at line 35.
 pub fn ruby_configuration_l35_d2_self_enable_final_checks_on_hooks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.enable_final_checks_on_hooks', ...args)
+	mut state := global_configuration()
+	state.mutex.lock()
+	state.final_checks_on_hooks = true
+	state.mutex.unlock()
+	return brew_runtime.bool_value(true)
 }
 
 // Ruby method `self.reset_final_checks_on_hooks` at line 41.
 pub fn ruby_configuration_l41_d3_self_reset_final_checks_on_hooks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.reset_final_checks_on_hooks', ...args)
+	mut state := global_configuration()
+	state.mutex.lock()
+	state.final_checks_on_hooks = false
+	state.mutex.unlock()
+	return brew_runtime.bool_value(false)
 }
 
 // Ruby method `self.include_value_in_type_errors?` at line 52.
 pub fn ruby_configuration_l52_d4_self_include_value_in_type_errors(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.include_value_in_type_errors?', ...args)
+	mut state := global_configuration()
+	return brew_runtime.bool_value(state.includes_value())
 }
 
 // Ruby method `self.exclude_value_in_type_errors` at line 63.
 pub fn ruby_configuration_l63_d5_self_exclude_value_in_type_errors(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.exclude_value_in_type_errors', ...args)
+	mut state := global_configuration()
+	state.set_include_value(false)
+	return brew_runtime.bool_value(false)
 }
 
 // Ruby method `self.include_value_in_type_errors` at line 69.
 pub fn ruby_configuration_l69_d6_self_include_value_in_type_errors(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.include_value_in_type_errors', ...args)
+	mut state := global_configuration()
+	state.set_include_value(true)
+	return brew_runtime.bool_value(true)
 }
 
 // Ruby method `self.default_checked_level=(default_checked_level)` at line 82.
 pub fn ruby_configuration_l82_d7_self_default_checked_level(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.default_checked_level=', ...args)
+	if args.len == 0 {
+		panic('default_checked_level= requires a level')
+	}
+	mut state := global_configuration()
+	state.set_checked_level(args[args.len - 1].as_string()) or { panic(err) }
+	return args[args.len - 1]
 }
 
 // Ruby method `self.inline_type_error_handler=(value)` at line 111.
 pub fn ruby_configuration_l111_d8_self_inline_type_error_handler(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.inline_type_error_handler=', ...args)
+	mut state := global_configuration()
+	value := configuration_handler_from_args(args)
+	state.set_handler_value('inline_type_error', value) or { panic(err) }
+	return value
 }
 
 // Ruby method `self.inline_type_error_handler_default(error, opts)` at line 116.
 pub fn ruby_configuration_l116_d9_self_inline_type_error_handler_default(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.inline_type_error_handler_default', ...args)
+	mut state := global_configuration()
+	return state.call_default_handler('inline_type_error', args) or { panic(err) }
 }
 
 // Ruby method `self.inline_type_error_handler(error, opts={})` at line 120.
 pub fn ruby_configuration_l120_d10_self_inline_type_error_handler(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.inline_type_error_handler', ...args)
+	return configuration_invoke('inline_type_error', args)
 }
 
 // Ruby method `self.sig_builder_error_handler=(value)` at line 157.
 pub fn ruby_configuration_l157_d11_self_sig_builder_error_handler(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.sig_builder_error_handler=', ...args)
+	mut state := global_configuration()
+	value := configuration_handler_from_args(args)
+	state.set_handler_value('sig_builder_error', value) or { panic(err) }
+	return value
 }
 
 // Ruby method `self.sig_builder_error_handler_default(error, location)` at line 162.
 pub fn ruby_configuration_l162_d12_self_sig_builder_error_handler_default(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.sig_builder_error_handler_default', ...args)
+	mut state := global_configuration()
+	return state.call_default_handler('sig_builder_error', args) or { panic(err) }
 }
 
 // Ruby method `self.sig_builder_error_handler(error, location)` at line 166.
 pub fn ruby_configuration_l166_d13_self_sig_builder_error_handler(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.sig_builder_error_handler', ...args)
+	return configuration_invoke('sig_builder_error', args)
 }
 
 // Ruby method `self.sig_validation_error_handler=(value)` at line 208.
 pub fn ruby_configuration_l208_d14_self_sig_validation_error_handler(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.sig_validation_error_handler=', ...args)
+	mut state := global_configuration()
+	value := configuration_handler_from_args(args)
+	state.set_handler_value('sig_validation_error', value) or { panic(err) }
+	return value
 }
 
 // Ruby method `self.sig_validation_error_handler_default(error, opts)` at line 213.
 pub fn ruby_configuration_l213_d15_self_sig_validation_error_handler_default(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.sig_validation_error_handler_default', ...args)
+	mut state := global_configuration()
+	return state.call_default_handler('sig_validation_error', args) or { panic(err) }
 }
 
 // Ruby method `self.sig_validation_error_handler(error, opts={})` at line 217.
 pub fn ruby_configuration_l217_d16_self_sig_validation_error_handler(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.sig_validation_error_handler', ...args)
+	return configuration_invoke('sig_validation_error', args)
 }
 
 // Ruby method `self.call_validation_error_handler=(value)` at line 255.
 pub fn ruby_configuration_l255_d17_self_call_validation_error_handler(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.call_validation_error_handler=', ...args)
+	mut state := global_configuration()
+	value := configuration_handler_from_args(args)
+	state.set_handler_value('call_validation_error', value) or { panic(err) }
+	return value
 }
 
 // Ruby method `self.call_validation_error_handler_default(signature, opts)` at line 260.
 pub fn ruby_configuration_l260_d18_self_call_validation_error_handler_default(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.call_validation_error_handler_default', ...args)
+	mut state := global_configuration()
+	return state.call_default_handler('call_validation_error', args) or { panic(err) }
 }
 
 // Ruby method `self.call_validation_error_handler(signature, opts={})` at line 264.
 pub fn ruby_configuration_l264_d19_self_call_validation_error_handler(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.call_validation_error_handler', ...args)
+	return configuration_invoke('call_validation_error', args)
 }
 
 // Ruby method `self.log_info_handler=(value)` at line 288.
 pub fn ruby_configuration_l288_d20_self_log_info_handler(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.log_info_handler=', ...args)
+	mut state := global_configuration()
+	value := configuration_handler_from_args(args)
+	state.set_handler_value('log_info', value) or { panic(err) }
+	return value
 }
 
 // Ruby method `self.log_info_handler_default(str, extra)` at line 293.
 pub fn ruby_configuration_l293_d21_self_log_info_handler_default(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.log_info_handler_default', ...args)
+	mut state := global_configuration()
+	return state.call_default_handler('log_info', args) or { panic(err) }
 }
 
 // Ruby method `self.log_info_handler(str, extra)` at line 297.
 pub fn ruby_configuration_l297_d22_self_log_info_handler(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.log_info_handler', ...args)
+	return configuration_invoke('log_info', args)
 }
 
 // Ruby method `self.soft_assert_handler=(value)` at line 323.
 pub fn ruby_configuration_l323_d23_self_soft_assert_handler(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.soft_assert_handler=', ...args)
+	mut state := global_configuration()
+	value := configuration_handler_from_args(args)
+	state.set_handler_value('soft_assert', value) or { panic(err) }
+	return value
 }
 
 // Ruby method `self.soft_assert_handler_default(str, extra)` at line 328.
 pub fn ruby_configuration_l328_d24_self_soft_assert_handler_default(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.soft_assert_handler_default', ...args)
+	mut state := global_configuration()
+	return state.call_default_handler('soft_assert', args) or { panic(err) }
 }
 
 // Ruby method `self.soft_assert_handler(str, extra)` at line 332.
 pub fn ruby_configuration_l332_d25_self_soft_assert_handler(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.soft_assert_handler', ...args)
+	return configuration_invoke('soft_assert', args)
 }
 
 // Ruby method `self.scalar_types=(values)` at line 348.
 pub fn ruby_configuration_l348_d26_self_scalar_types(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.scalar_types=', ...args)
+	if args.len == 0 {
+		panic('scalar_types= requires an Array or nil')
+	}
+	mut state := global_configuration()
+	state.set_scalar_types(args[args.len - 1]) or { panic(err) }
+	return args[args.len - 1]
 }
 
 // Ruby method `self.scalar_types` at line 373.
 pub fn ruby_configuration_l373_d27_self_scalar_types(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.scalar_types', ...args)
+	mut state := global_configuration()
+	return configuration_map_bool(state.scalar_types())
 }
 
 // Ruby method `self.module_name_mangler` at line 385.
 pub fn ruby_configuration_l385_d28_self_module_name_mangler(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.module_name_mangler', ...args)
+	mut state := global_configuration()
+	state.mutex.lock()
+	handler := state.module_name_mangler
+	state.mutex.unlock()
+	return if handler.type_name == 'NilClass' {
+		brew_runtime.object_value('Proc', 'Module.instance_method(:name)')
+	} else {
+		handler
+	}
 }
 
 // Ruby method `self.module_name_mangler=(handler)` at line 395.
 pub fn ruby_configuration_l395_d29_self_module_name_mangler(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.module_name_mangler=', ...args)
+	value := configuration_handler_from_args(args)
+	mut state := global_configuration()
+	state.mutex.lock()
+	state.module_name_mangler = value
+	state.mutex.unlock()
+	return value
 }
 
 // Ruby method `self.normalize_sensitivity_and_pii_handler=(handler)` at line 405.
 pub fn ruby_configuration_l405_d30_self_normalize_sensitivity_and_pii_handler(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.normalize_sensitivity_and_pii_handler=', ...args)
+	value := configuration_handler_from_args(args)
+	mut state := global_configuration()
+	state.mutex.lock()
+	state.sensitivity_and_pii_handler = value
+	state.mutex.unlock()
+	return value
 }
 
 // Ruby method `self.normalize_sensitivity_and_pii_handler` at line 409.
 pub fn ruby_configuration_l409_d31_self_normalize_sensitivity_and_pii_handler(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.normalize_sensitivity_and_pii_handler', ...args)
+	mut state := global_configuration()
+	state.mutex.lock()
+	value := state.sensitivity_and_pii_handler
+	state.mutex.unlock()
+	return value
 }
 
 // Ruby method `self.redaction_handler=(handler)` at line 421.
 pub fn ruby_configuration_l421_d32_self_redaction_handler(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.redaction_handler=', ...args)
+	value := configuration_handler_from_args(args)
+	mut state := global_configuration()
+	state.mutex.lock()
+	state.redaction_handler = value
+	state.mutex.unlock()
+	return value
 }
 
 // Ruby method `self.redaction_handler` at line 425.
 pub fn ruby_configuration_l425_d33_self_redaction_handler(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.redaction_handler', ...args)
+	mut state := global_configuration()
+	state.mutex.lock()
+	value := state.redaction_handler
+	state.mutex.unlock()
+	return value
 }
 
 // Ruby method `self.without_ruby_warnings` at line 435.
 pub fn ruby_configuration_l435_d34_self_without_ruby_warnings(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.without_ruby_warnings', ...args)
+	if args.len == 0 {
+		return configuration_nil_value()
+	}
+	block := args[args.len - 1]
+	return block.map_data['result'] or { block }
 }
 
 // Ruby method `self.enable_legacy_t_enum_migration_mode` at line 450.
 pub fn ruby_configuration_l450_d35_self_enable_legacy_t_enum_migration_mode(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.enable_legacy_t_enum_migration_mode', ...args)
+	mut state := global_configuration()
+	state.mutex.lock()
+	state.legacy_t_enum_mode = true
+	state.mutex.unlock()
+	return brew_runtime.bool_value(true)
 }
 
 // Ruby method `self.disable_legacy_t_enum_migration_mode` at line 454.
 pub fn ruby_configuration_l454_d36_self_disable_legacy_t_enum_migration_mode(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.disable_legacy_t_enum_migration_mode', ...args)
+	mut state := global_configuration()
+	state.mutex.lock()
+	state.legacy_t_enum_mode = false
+	state.mutex.unlock()
+	return brew_runtime.bool_value(false)
 }
 
 // Ruby method `self.legacy_t_enum_migration_mode?` at line 457.
 pub fn ruby_configuration_l457_d37_self_legacy_t_enum_migration_mode(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.legacy_t_enum_migration_mode?', ...args)
+	mut state := global_configuration()
+	state.mutex.lock()
+	enabled := state.legacy_t_enum_mode
+	state.mutex.unlock()
+	return brew_runtime.bool_value(enabled)
 }
 
 // Ruby method `self.sealed_violation_whitelist=(sealed_violation_whitelist)` at line 466.
 pub fn ruby_configuration_l466_d38_self_sealed_violation_whitelist(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.sealed_violation_whitelist=', ...args)
+	if args.len == 0 {
+		panic('sealed_violation_whitelist= requires an Array of Regexp')
+	}
+	mut state := global_configuration()
+	state.set_sealed_whitelist(args[args.len - 1]) or { panic(err) }
+	return args[args.len - 1]
 }
 
 // Ruby method `self.sealed_violation_whitelist` at line 485.
 pub fn ruby_configuration_l485_d39_self_sealed_violation_whitelist(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.sealed_violation_whitelist', ...args)
+	mut state := global_configuration()
+	state.mutex.lock()
+	set := state.sealed_whitelist_set
+	values := state.sealed_whitelist.clone()
+	state.mutex.unlock()
+	return if set {
+		brew_runtime.array_value(values.map(brew_runtime.object_value('Regexp', it)))
+	} else {
+		configuration_nil_value()
+	}
 }
 
 // Ruby method `self.validate_lambda_given!(value)` at line 489.
 pub fn ruby_configuration_l489_d40_self_validate_lambda_given(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.validate_lambda_given!', ...args)
+	value := configuration_handler_from_args(args)
+	validate_configuration_callable(value) or { panic(err) }
+	return configuration_nil_value()
 }
 
 // Original Ruby source (line-for-line):

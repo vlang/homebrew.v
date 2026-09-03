@@ -1,78 +1,150 @@
 module mac
 
-import brew_runtime
+import homebrew
+import os
 
 // Translated from Homebrew/brew `extend/os/mac/sandbox.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `allow_write_temp_and_cache` at line 47.
-pub fn ruby_sandbox_l47_d1_allow_write_temp_and_cache(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allow_write_temp_and_cache', ...args)
+pub struct MacSandboxCheckContext {
+pub:
+	function_available bool = true
+	result             int
+}
+
+pub struct MacSandboxLogResult {
+pub:
+	syslog_arguments []string
+	logs             string
+	displayed        bool
+}
+
+pub fn ruby_sandbox_l47_d1_allow_write_temp_and_cache(mut value homebrew.Sandbox) ! {
+	homebrew.ruby_sandbox_l473_d42_allow_write_path(mut value, '/private/tmp')!
+	homebrew.ruby_sandbox_l473_d42_allow_write_path(mut value, '/private/var/tmp')!
+	homebrew.ruby_sandbox_l461_d40_allow_write(mut value, '^/private/var/folders/[^/]+/[^/]+/[C,T]/', .regex)!
+	homebrew.ruby_sandbox_l491_d45_allow_write_temp_and_cache(mut value)!
 }
 
 // Ruby method `allow_write_xcode` at line 56.
-pub fn ruby_sandbox_l56_d2_allow_write_xcode(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allow_write_xcode', ...args)
+pub fn ruby_sandbox_l56_d2_allow_write_xcode(mut value homebrew.Sandbox, user_home string) ! {
+	for path in ruby_sandbox_l95_d6_home_write_paths(user_home) {
+		homebrew.ruby_sandbox_l473_d42_allow_write_path(mut value, path)!
+	}
 }
 
 // Ruby method `available?` at line 66.
-pub fn ruby_sandbox_l66_d3_available(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('available?', ...args)
+pub fn ruby_sandbox_l66_d3_available(sandbox_exec string) bool {
+	return os.is_executable(sandbox_exec)
 }
 
 // Ruby method `nested_sandbox?` at line 75.
-pub fn ruby_sandbox_l75_d4_nested_sandbox(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('nested_sandbox?', ...args)
+pub fn ruby_sandbox_l75_d4_nested_sandbox(context MacSandboxCheckContext) bool {
+	return context.function_available && context.result == 1
 }
 
 // Ruby method `terminal_ioctl_request` at line 87.
-pub fn ruby_sandbox_l87_d5_terminal_ioctl_request(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('terminal_ioctl_request', ...args)
+pub fn ruby_sandbox_l87_d5_terminal_ioctl_request() int {
+	return 0x20007461
 }
 
 // Ruby method `home_write_paths` at line 95.
-pub fn ruby_sandbox_l95_d6_home_write_paths(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('home_write_paths', ...args)
+pub fn ruby_sandbox_l95_d6_home_write_paths(user_home string) []string {
+	return [os.join_path(user_home, 'Library/Developer'),
+		os.join_path(user_home, 'Library/Caches/org.swift.swiftpm')]
 }
 
 // Ruby method `sandbox_command(args, tmpdir)` at line 101.
-pub fn ruby_sandbox_l101_d7_sandbox_command(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sandbox_command', ...args)
+pub fn ruby_sandbox_l101_d7_sandbox_command(value homebrew.Sandbox, args []string, tmpdir string, sandbox_exec string) ![]string {
+	seatbelt_path := os.join_path(tmpdir, 'homebrew.sb')
+	if os.exists(seatbelt_path) {
+		return error('${seatbelt_path} already exists')
+	}
+	os.write_file(seatbelt_path, ruby_sandbox_l156_d11_seatbelt_profile(value.profile))!
+	mut command := [sandbox_exec, '-f', seatbelt_path]
+	command << args
+	return command
 }
 
 // Ruby method `allow_network_for_error_pipe?` at line 110.
-pub fn ruby_sandbox_l110_d8_allow_network_for_error_pipe(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allow_network_for_error_pipe?', ...args)
+pub fn ruby_sandbox_l110_d8_allow_network_for_error_pipe() bool {
+	return true
 }
 
 // Ruby method `ensure_child_tty_available` at line 115.
-pub fn ruby_sandbox_l115_d9_ensure_child_tty_available(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ensure_child_tty_available', ...args)
+pub fn ruby_sandbox_l115_d9_ensure_child_tty_available(device string) ! {
+	mut tty := os.open_file(device, 'w')!
+	tty.close()
 }
 
 // Ruby method `record_sandbox_log` at line 123.
-pub fn ruby_sandbox_l123_d10_record_sandbox_log(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('record_sandbox_log', ...args)
+pub fn ruby_sandbox_l123_d10_record_sandbox_log(value homebrew.Sandbox, raw_logs string, verbose bool) !MacSandboxLogResult {
+	arguments := ['-F', '\$((Time)(local)) \$(Sender)[\$(PID)]: \$(Message)', '-k', 'Time', 'ge',
+		value.start.str(), '-k', 'Message', 'S', 'deny', '-k', 'Sender', 'kernel', '-o', '-k', 'Time',
+		'ge', value.start.str(), '-k', 'Message', 'S', 'deny', '-k', 'Sender', 'sandboxd']
+	mut retained := []string{}
+	for line in raw_logs.split_into_lines() {
+		if mac_python_pyc_denial(line) {
+			continue
+		}
+		retained << line
+	}
+	logs := if retained.len == 0 {
+		''
+	} else {
+		retained.join('\n') + if raw_logs.ends_with('\n') { '\n' } else { '' }
+	}
+	if logs == '' {
+		return MacSandboxLogResult{ syslog_arguments: arguments }
+	}
+	if value.logfile != '' {
+		os.write_file(value.logfile, logs + '\nWe use time to filter sandbox log. Therefore, unrelated logs may be recorded.\n')!
+	}
+	return MacSandboxLogResult{ syslog_arguments: arguments, logs: logs, displayed: value.failed && verbose }
 }
 
 // Ruby method `seatbelt_profile` at line 156.
-pub fn ruby_sandbox_l156_d11_seatbelt_profile(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('seatbelt_profile', ...args)
+pub fn ruby_sandbox_l156_d11_seatbelt_profile(profile homebrew.SandboxProfile) string {
+	mut rules := []string{}
+	for rule in profile.rules {
+		rules << ruby_sandbox_l161_d12_seatbelt_rule(rule)
+	}
+	return '(version 1)\n(debug deny) ; log all denied operations to /var/log/system.log\n${rules.join('\n')}\n(allow file-write*\n    (literal "/dev/ptmx")\n    (literal "/dev/dtracehelper")\n    (literal "/dev/null")\n    (literal "/dev/random")\n    (literal "/dev/zero")\n    (regex #"^/dev/fd/[0-9]+\$")\n    (regex #"^/dev/tty[a-z0-9]*\$")\n    )\n(deny file-write*) ; deny non-allowlist file write operations\n(deny file-write-setugid) ; deny non-allowlist file write SUID/SGID operations\n(deny file-write-mode) ; deny non-allowlist file write mode operations\n(allow process-exec\n    (literal "/bin/ps")\n    (with no-sandbox)\n    ) ; allow certain processes running without sandbox\n(allow default) ; allow everything else\n'
 }
 
 // Ruby method `seatbelt_rule(rule)` at line 161.
-pub fn ruby_sandbox_l161_d12_seatbelt_rule(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('seatbelt_rule', ...args)
+pub fn ruby_sandbox_l161_d12_seatbelt_rule(rule homebrew.SandboxRule) string {
+	mut value := '(' + if rule.allow { 'allow' } else { 'deny' }
+	value += ' ${rule.operation}'
+	if rule.has_filter {
+		value += ' (${ruby_sandbox_l172_d13_seatbelt_path_filter(rule.filter)})'
+	}
+	if rule.modifier != '' {
+		value += ' (with ${rule.modifier})'
+	}
+	return value + ')'
 }
 
 // Ruby method `seatbelt_path_filter(filter)` at line 172.
-pub fn ruby_sandbox_l172_d13_seatbelt_path_filter(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('seatbelt_path_filter', ...args)
+pub fn ruby_sandbox_l172_d13_seatbelt_path_filter(filter homebrew.SandboxPathFilter) string {
+	return match filter.type_name {
+		.regex { 'regex #"${filter.path}"' }
+		.subpath { 'subpath "${ruby_sandbox_l185_d14_seatbelt_quote(filter.path)}"' }
+		.literal { 'literal "${ruby_sandbox_l185_d14_seatbelt_quote(filter.path)}"' }
+	}
 }
 
 // Ruby method `seatbelt_quote(path)` at line 185.
-pub fn ruby_sandbox_l185_d14_seatbelt_quote(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('seatbelt_quote', ...args)
+pub fn ruby_sandbox_l185_d14_seatbelt_quote(path string) string {
+	return path.replace('\\', '\\\\').replace('"', '\\"')
+}
+
+fn mac_python_pyc_denial(line string) bool {
+	python_start := line.index('Python(') or { return false }
+	close := line.index_after(')', python_start + 7) or { return false }
+	pid := line[python_start + 7..close]
+	return pid != '' && pid.bytes().all(it >= `0` && it <= `9`) && line[close + 1..].contains(' deny file-write') && line.ends_with('pyc')
 }
 
 // Original Ruby source (line-for-line):

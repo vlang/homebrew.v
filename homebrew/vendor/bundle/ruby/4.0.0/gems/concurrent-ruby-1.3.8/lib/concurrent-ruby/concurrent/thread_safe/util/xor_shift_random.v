@@ -1,23 +1,48 @@
 module util
 
 import brew_runtime
+import rand
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/thread_safe/util/xor_shift_random.rb`.
 // The original source is retained below until every stub has a typed V body.
+const max_fixnum_32 = u64((u64(1) << 30) - 1)
+const max_fixnum_64 = u64((u64(1) << 62) - 1)
+
+pub fn initial_xorshift_seed() !i64 {
+	return i64(rand.u64n(max_fixnum_64 - 1)! + 1)
+}
+
+pub fn xorshift_32(value i64) i64 {
+	mut shifted := u64(value)
+	shifted ^= shifted >> 3
+	shifted ^= (shifted << 1) & max_fixnum_32
+	shifted ^= shifted >> 14
+	return i64(shifted)
+}
+
+pub fn xorshift_64(value i64) i64 {
+	mut shifted := u64(value)
+	shifted ^= shifted >> 1
+	shifted ^= (shifted << 1) & max_fixnum_64
+	shifted ^= shifted >> 54
+	return i64(shifted)
+}
 
 // Ruby method `get` at line 27.
 pub fn ruby_xor_shift_random_l27_d1_get(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('get', ...args)
+	return brew_runtime.int_value(initial_xorshift_seed() or { panic(err) })
 }
 
 // Ruby method `xorshift(x)` at line 34.
 pub fn ruby_xor_shift_random_l34_d2_xorshift(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('xorshift', ...args)
+	if args.len == 0 { panic('XorShiftRandom.xorshift requires a value') }
+	return brew_runtime.int_value(xorshift_32(args[0].as_int() or { panic(err) }))
 }
 
 // Ruby method `xorshift(x)` at line 41.
 pub fn ruby_xor_shift_random_l41_d3_xorshift(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('xorshift', ...args)
+	if args.len == 0 { panic('XorShiftRandom.xorshift requires a value') }
+	return brew_runtime.int_value(xorshift_64(args[0].as_int() or { panic(err) }))
 }
 
 // Original Ruby source (line-for-line):

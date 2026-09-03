@@ -1,53 +1,151 @@
 module download_strategy
 
-import brew_runtime
+import os
 
 // Translated from Homebrew/brew `download_strategy/cvs_download_strategy.rb`.
-// The original source is retained below until every stub has a typed V body.
+// The original source is retained below for line-for-line traceability.
 
 // Ruby method `initialize(url, name, version, **meta)` at line 9.
-pub fn ruby_cvs_download_strategy_l9_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+pub fn new_cvs_download_strategy(source_url string, name string, version string, meta VCSDownloadMeta) VCSDownloadStrategy {
+	mut url := source_url
+	if url.starts_with('cvs://') {
+		url = url['cvs://'.len..]
+	}
+	mut module_name := meta.module_name
+	if module_name == '' {
+		last_slash := url.last_index('/') or { -1 }
+		last_colon := url.last_index(':') or { -1 }
+		if last_colon > last_slash {
+			module_name, url = cvs_split_url(url)
+		} else {
+			module_name = name
+		}
+	}
+	mut strategy := new_vcs_download_strategy(url, name, version, meta, 'cvs', .cvs)
+	strategy.url = url
+	strategy.module_name = module_name
+	return strategy
 }
 
-// Ruby method `source_modified_time` at line 30.
-pub fn ruby_cvs_download_strategy_l30_d2_source_modified_time(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('source_modified_time', ...args)
+// Ruby method `source_modified_time` at line 30. CVS administrative
+// directories are pruned because CVS sets their mtimes at checkout time.
+pub fn (strategy &VCSDownloadStrategy) cvs_source_modified_time() !i64 {
+	return cvs_latest_source_mtime(strategy.cached_location_value)
+}
+
+fn cvs_latest_source_mtime(directory string) !i64 {
+	mut latest := i64(0)
+	for entry in os.ls(directory)! {
+		path := os.join_path(directory, entry)
+		if os.is_dir(path) && !os.is_link(path) {
+			if entry == 'CVS' {
+				continue
+			}
+			modified := cvs_latest_source_mtime(path)!
+			if modified > latest {
+				latest = modified
+			}
+		} else if os.is_file(path) {
+			modified := os.file_last_mod_unix(path)
+			if modified > latest {
+				latest = modified
+			}
+		}
+	}
+	return latest
 }
 
 // Ruby method `env` at line 47.
-pub fn ruby_cvs_download_strategy_l47_d3_env(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('env', ...args)
+pub fn (strategy &VCSDownloadStrategy) cvs_env() map[string]string {
+	_ = strategy
+	return formula_opt_bin_environment('cvs', true)
 }
 
 // Ruby method `cache_tag` at line 52.
-pub fn ruby_cvs_download_strategy_l52_d4_cache_tag(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cache_tag', ...args)
+pub fn (strategy &VCSDownloadStrategy) cvs_cache_tag() string {
+	_ = strategy
+	return 'cvs'
 }
 
 // Ruby method `repo_valid?` at line 57.
-pub fn ruby_cvs_download_strategy_l57_d5_repo_valid(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('repo_valid?', ...args)
+pub fn (strategy &VCSDownloadStrategy) cvs_repo_valid() bool {
+	return os.is_dir(os.join_path(strategy.cached_location_value, 'CVS'))
 }
 
 // Ruby method `quiet_flag` at line 62.
-pub fn ruby_cvs_download_strategy_l62_d6_quiet_flag(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('quiet_flag', ...args)
+pub fn (strategy &VCSDownloadStrategy) cvs_quiet_flag() ?string {
+	if !strategy.verbose {
+		return '-Q'
+	}
+	return none
+}
+
+fn (strategy &VCSDownloadStrategy) cvs_command_args(arguments []string) []string {
+	mut result := []string{}
+	if quiet_flag := strategy.cvs_quiet_flag() {
+		result << quiet_flag
+	}
+	result << arguments
+	return result
 }
 
 // Ruby method `clone_repo(timeout: nil)` at line 67.
-pub fn ruby_cvs_download_strategy_l67_d7_clone_repo(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('clone_repo', ...args)
+pub fn (mut strategy VCSDownloadStrategy) cvs_clone_repo(deadline ?i64) ! {
+	if strategy.url.contains('pserver') {
+		vcs_command_checked('cvs', strategy.cvs_command_args(['-d', strategy.url, 'login']), '', strategy.cvs_env(), deadline)!
+	}
+	parent := os.dir(strategy.cached_location_value)
+	os.mkdir_all(parent)!
+	vcs_command_checked('cvs', strategy.cvs_command_args(['-d', strategy.url, 'checkout', '-d',
+		os.file_name(strategy.cached_location_value), strategy.module_name]), parent, strategy.cvs_env(), deadline)!
 }
 
 // Ruby method `update(timeout: nil)` at line 81.
-pub fn ruby_cvs_download_strategy_l81_d8_update(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('update', ...args)
+pub fn (mut strategy VCSDownloadStrategy) cvs_update(deadline ?i64) ! {
+	vcs_command_checked('cvs', strategy.cvs_command_args(['update']), strategy.cached_location_value, strategy.cvs_env(), deadline)!
 }
 
 // Ruby method `split_url(in_url)` at line 89.
-pub fn ruby_cvs_download_strategy_l89_d9_split_url(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('split_url', ...args)
+pub fn cvs_split_url(in_url string) (string, string) {
+	colon := in_url.last_index(':') or { return '', in_url }
+	return in_url[colon + 1..], in_url[..colon]
+}
+
+// Source entrypoint translations.
+pub fn ruby_cvs_download_strategy_l9_d1_initialize(url string, name string, version string, meta VCSDownloadMeta) VCSDownloadStrategy {
+	return new_cvs_download_strategy(url, name, version, meta)
+}
+
+pub fn ruby_cvs_download_strategy_l30_d2_source_modified_time(strategy &VCSDownloadStrategy) !i64 {
+	return strategy.cvs_source_modified_time()
+}
+
+pub fn ruby_cvs_download_strategy_l47_d3_env(strategy &VCSDownloadStrategy) map[string]string {
+	return strategy.cvs_env()
+}
+
+pub fn ruby_cvs_download_strategy_l52_d4_cache_tag(strategy &VCSDownloadStrategy) string {
+	return strategy.cvs_cache_tag()
+}
+
+pub fn ruby_cvs_download_strategy_l57_d5_repo_valid(strategy &VCSDownloadStrategy) bool {
+	return strategy.cvs_repo_valid()
+}
+
+pub fn ruby_cvs_download_strategy_l62_d6_quiet_flag(strategy &VCSDownloadStrategy) ?string {
+	return strategy.cvs_quiet_flag()
+}
+
+pub fn ruby_cvs_download_strategy_l67_d7_clone_repo(mut strategy VCSDownloadStrategy, deadline ?i64) ! {
+	strategy.cvs_clone_repo(deadline)!
+}
+
+pub fn ruby_cvs_download_strategy_l81_d8_update(mut strategy VCSDownloadStrategy, deadline ?i64) ! {
+	strategy.cvs_update(deadline)!
+}
+
+pub fn ruby_cvs_download_strategy_l89_d9_split_url(in_url string) (string, string) {
+	return cvs_split_url(in_url)
 }
 
 // Original Ruby source (line-for-line):

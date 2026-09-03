@@ -1,78 +1,170 @@
 module strategy
 
-import brew_runtime
+import homebrew.livecheck.strategy as electron_core
 
 // Translated from Homebrew/brew `test/livecheck/strategy/electron_builder_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub struct ElectronBuilderSpecMatchData {
+pub:
+	cached         electron_core.ElectronBuilderMatchData
+	cached_default electron_core.ElectronBuilderMatchData
+	cached_regex   electron_core.ElectronBuilderMatchData
+}
 
 // Ruby subject `subject(:electron_builder) { described_class }` at line 7.
-pub fn ruby_electron_builder_spec_l7_d1_electron_builder(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('electron_builder', ...args)
+pub fn ruby_electron_builder_spec_l7_d1_electron_builder() string {
+	return 'ElectronBuilder'
 }
 
 // Ruby let `let(:http_url) { "https://www.example.com/example/latest-mac.yml" }` at line 9.
-pub fn ruby_electron_builder_spec_l9_d2_http_url(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('http_url', ...args)
+pub fn ruby_electron_builder_spec_l9_d2_http_url() string {
+	return 'https://www.example.com/example/latest-mac.yml'
 }
 
 // Ruby let `let(:non_http_url) { "ftp://brew.sh/" }` at line 10.
-pub fn ruby_electron_builder_spec_l10_d3_non_http_url(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('non_http_url', ...args)
+pub fn ruby_electron_builder_spec_l10_d3_non_http_url() string {
+	return 'ftp://brew.sh/'
 }
 
 // Ruby let `let(:regex) { /Example[._-]v?(\d+(?:\.\d+)+)[._-]mac\.zip/i }` at line 11.
-pub fn ruby_electron_builder_spec_l11_d4_regex(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('regex', ...args)
+pub fn ruby_electron_builder_spec_l11_d4_regex() string {
+	return r'Example[._-]v?(\d+(?:\.\d+)+)[._-]mac\.zip'
 }
 
 // Ruby let `let(:content) do` at line 12.
-pub fn ruby_electron_builder_spec_l12_d5_content(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('content', ...args)
+pub fn ruby_electron_builder_spec_l12_d5_content() string {
+	return [
+		'version: 1.2.3',
+		'files:',
+		'  - url: Example-1.2.3-mac.zip',
+		'    sha512: MDXR0pxozBJjxxbtUQJOnhiaiiQkryLAwtcVjlnNiz30asm/PtSxlxWKFYN3kV/kl+jriInJrGypuzajTF6XIA==',
+		'    size: 92031237',
+		'    blockMapSize: 96080',
+		'  - url: Example-1.2.3.dmg',
+		'    sha512: k6WRDlZEfZGZHoOfUShpHxXZb5p44DRp+FAO2FXNx2kStZvyW9VuaoB7phPMfZpcMKrzfRfncpP8VEM8OB2y9g==',
+		'    size: 94972630',
+		'path: Example-1.2.3-mac.zip',
+		'sha512: MDXR0pxozBJjxxbtUQJOnhiaiiQkryLAwtcVjlnNiz30asm/PtSxlxWKFYN3kV/kl+jriInJrGypuzajTF6XIA==',
+		"releaseDate: '2000-01-01T00:00:00.000Z'",
+	].join('\n') + '\n'
 }
 
 // Ruby let `let(:content_timestamp) do` at line 28.
-pub fn ruby_electron_builder_spec_l28_d6_content_timestamp(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('content_timestamp', ...args)
+pub fn ruby_electron_builder_spec_l28_d6_content_timestamp() string {
+	return ruby_electron_builder_spec_l12_d5_content().replace("releaseDate: '2000-01-01T00:00:00.000Z'", 'releaseDate: 2000-01-01T00:00:00.000Z')
 }
 
 // Ruby let `let(:matches) { ["1.2.3"] }` at line 35.
-pub fn ruby_electron_builder_spec_l35_d7_matches(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('matches', ...args)
+pub fn ruby_electron_builder_spec_l35_d7_matches() []string {
+	return ['1.2.3']
 }
 
 // Ruby it `it "returns true for a YAML file URL" do` at line 38.
-pub fn ruby_electron_builder_spec_l38_d8_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_electron_builder_spec_l38_d8_returns() bool {
+	return electron_core.electron_builder_matches_url(ruby_electron_builder_spec_l9_d2_http_url())
 }
 
 // Ruby it `it "returns false for non-YAML URL" do` at line 42.
-pub fn ruby_electron_builder_spec_l42_d9_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_electron_builder_spec_l42_d9_returns() bool {
+	return !electron_core.electron_builder_matches_url(ruby_electron_builder_spec_l10_d3_non_http_url())
 }
 
 // Ruby let `let(:match_data) do` at line 48.
-pub fn ruby_electron_builder_spec_l48_d10_match_data(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('match_data', ...args)
+pub fn ruby_electron_builder_spec_l48_d10_match_data() ElectronBuilderSpecMatchData {
+	http_url := ruby_electron_builder_spec_l9_d2_http_url()
+	return ElectronBuilderSpecMatchData{
+		cached: electron_core.ElectronBuilderMatchData{
+			matches: {
+				'1.2.3': '1.2.3'
+			}
+			url: http_url
+			cached: true
+		}
+		cached_default: electron_core.ElectronBuilderMatchData{
+			matches: map[string]string{}
+			url: http_url
+			cached: true
+		}
+		cached_regex: electron_core.ElectronBuilderMatchData{
+			matches: {
+				'1.2.3': '1.2.3'
+			}
+			regex: ruby_electron_builder_spec_l11_d4_regex()
+			url: http_url
+			cached: true
+		}
+	}
+}
+
+fn electron_builder_spec_equal(left electron_core.ElectronBuilderMatchData,
+	right electron_core.ElectronBuilderMatchData) bool {
+	left_regex := left.regex or { '' }
+	right_regex := right.regex or { '' }
+	return left.matches == right.matches && left_regex == right_regex && left.url == right.url && left.cached == right.cached
 }
 
 // Ruby it `it "finds versions in content using a block" do` at line 63.
-pub fn ruby_electron_builder_spec_l63_d11_finds(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('finds', ...args)
+pub fn ruby_electron_builder_spec_l63_d11_finds() bool {
+	fixture := ruby_electron_builder_spec_l48_d10_match_data()
+	url := ruby_electron_builder_spec_l9_d2_http_url()
+	content := ruby_electron_builder_spec_l12_d5_content()
+	default_result := electron_core.electron_builder_find_versions(electron_core.ElectronBuilderRequest{
+		url: url
+		content: content
+	}) or { return false }
+	path_result := electron_core.electron_builder_find_versions(electron_core.ElectronBuilderRequest{
+		url: url
+		regex: ruby_electron_builder_spec_l11_d4_regex()
+		content: content
+		selector: .path_regex
+	}) or { return false }
+	timestamp_result := electron_core.electron_builder_find_versions(electron_core.ElectronBuilderRequest{
+		url: url
+		regex: ruby_electron_builder_spec_l11_d4_regex()
+		content: ruby_electron_builder_spec_l28_d6_content_timestamp()
+		selector: .path_regex
+	}) or { return false }
+	version_result := electron_core.electron_builder_find_versions(electron_core.ElectronBuilderRequest{
+		url: url
+		content: content
+		selector: .version_regex
+	}) or { return false }
+	return electron_builder_spec_equal(default_result, fixture.cached) && electron_builder_spec_equal(path_result, fixture.cached_regex) && electron_builder_spec_equal(timestamp_result, fixture.cached_regex) && electron_builder_spec_equal(version_result, fixture.cached)
 }
 
 // Ruby it `it "errors if a block is not provided" do` at line 85.
-pub fn ruby_electron_builder_spec_l85_d12_errors(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('errors', ...args)
+pub fn ruby_electron_builder_spec_l85_d12_errors() bool {
+	electron_core.electron_builder_find_versions(electron_core.ElectronBuilderRequest{
+		url: ruby_electron_builder_spec_l9_d2_http_url()
+		regex: ruby_electron_builder_spec_l11_d4_regex()
+		content: ruby_electron_builder_spec_l12_d5_content()
+	}) or {
+		return err.msg() == 'ElectronBuilder only supports a regex when using a `strategy` block'
+	}
+	return false
 }
 
 // Ruby it `it "returns default match_data when url is blank" do` at line 90.
-pub fn ruby_electron_builder_spec_l90_d13_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_electron_builder_spec_l90_d13_returns() bool {
+	mut expected := ruby_electron_builder_spec_l48_d10_match_data().cached_default
+	expected = electron_core.ElectronBuilderMatchData{
+		...expected
+		url: ''
+	}
+	actual := electron_core.electron_builder_find_versions(electron_core.ElectronBuilderRequest{
+		url: ''
+		content: ruby_electron_builder_spec_l12_d5_content()
+	}) or { return false }
+	return electron_builder_spec_equal(actual, expected)
 }
 
 // Ruby it `it "returns default match_data when content is blank" do` at line 95.
-pub fn ruby_electron_builder_spec_l95_d14_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_electron_builder_spec_l95_d14_returns() bool {
+	actual := electron_core.electron_builder_find_versions(electron_core.ElectronBuilderRequest{
+		url: ruby_electron_builder_spec_l9_d2_http_url()
+		content: ''
+	}) or { return false }
+	return electron_builder_spec_equal(actual, ruby_electron_builder_spec_l48_d10_match_data().cached_default)
 }
 
 // Original Ruby source (line-for-line):

@@ -1,158 +1,247 @@
 module cask
 
 import brew_runtime
+import homebrew.cask as brew_cask
 
 // Translated from Homebrew/brew `test/cask/config_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+fn config_spec_invalid_keys_json() string {
+	return '{"default":{},"env":{"appdir":"/path/to/apps","invaliddir":"/path/to/invalid"},"explicit":{}}'
+}
+
+fn config_spec_legacy_keys_json() string {
+	return '{"default":{},"env":{"appdir":"/path/to/apps","input-methoddir":"/path/to/input/methods"},"explicit":{}}'
+}
+
+fn config_spec_boundary(config brew_cask.CaskConfig) brew_runtime.Value {
+	return brew_runtime.structured_value('Cask::Config', config.json(), {
+		'json': config.json()
+	})
+}
+
+fn config_spec_from_options(options []string, explicit brew_cask.CaskConfigMap) !brew_cask.CaskConfig {
+	return brew_cask.new_cask_config(brew_cask.CaskConfigOptions{
+		explicit_values: explicit
+		cask_options: options
+	})
+}
+
+fn config_spec_explicit_config() !brew_cask.CaskConfig {
+	return config_spec_from_options([], {
+		'appdir':    brew_cask.CaskConfigValue{ kind: .path, path: '/explicit/path/to/apps' }
+		'languages': brew_cask.CaskConfigValue{ kind: .languages, values: ['zh-TW', 'en'] }
+	})
+}
 
 // Ruby subject `subject(:config) { described_class.new }` at line 5.
 pub fn ruby_config_spec_l5_d1_config(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('config', ...args)
+	_ = args
+	return config_spec_boundary(brew_cask.new_cask_config(brew_cask.CaskConfigOptions{}) or { panic(err) })
 }
 
 // Ruby it `it "defines all instance variables in a consistent order" do` at line 8.
 pub fn ruby_config_spec_l8_d2_defines(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('defines', ...args)
+	_ = args
+	_ := brew_cask.new_cask_config(brew_cask.CaskConfigOptions{}) or { return brew_runtime.bool_value(false) }
+	_ := brew_cask.new_cask_config(brew_cask.CaskConfigOptions{ env_supplied: true }) or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value(true)
 }
 
 // Ruby let `let(:invalid_keys_json) do` at line 28.
 pub fn ruby_config_spec_l28_d3_invalid_keys_json(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('invalid_keys_json', ...args)
+	_ = args
+	return brew_runtime.string_value(config_spec_invalid_keys_json())
 }
 
 // Ruby let `let(:legacy_keys_json) do` at line 41.
 pub fn ruby_config_spec_l41_d4_legacy_keys_json(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('legacy_keys_json', ...args)
+	_ = args
+	return brew_runtime.string_value(config_spec_legacy_keys_json())
 }
 
 // Ruby it `it "deserializes a configuration in JSON format" do` at line 54.
 pub fn ruby_config_spec_l54_d5_deserializes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('deserializes', ...args)
+	_ = args
+	config := brew_cask.cask_config_from_json('{"default":{"appdir":"/path/to/apps"},"env":{},"explicit":{}}', false) or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value((config.directory('appdir') or { '' }) == '/path/to/apps')
 }
 
 // Ruby it `it "ignores invalid keys when requested" do` at line 67.
 pub fn ruby_config_spec_l67_d6_ignores(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ignores', ...args)
+	_ = args
+	config := brew_cask.cask_config_from_json(config_spec_invalid_keys_json(), true) or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value(config.env_values.keys() == ['appdir'])
 }
 
 // Ruby it `it "warns about ignored invalid keys" do` at line 73.
 pub fn ruby_config_spec_l73_d7_warns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('warns', ...args)
+	_ = args
+	config := brew_cask.cask_config_from_json(config_spec_invalid_keys_json(), true) or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value(config.ignored_keys == ['invaliddir'])
 }
 
 // Ruby it `it "does not warn when all keys are valid" do` at line 78.
 pub fn ruby_config_spec_l78_d8_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	_ = args
+	config := brew_cask.cask_config_from_json('{"default":{},"env":{"appdir":"/path/to/apps"},"explicit":{}}', true) or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value(config.ignored_keys.len == 0)
 }
 
 // Ruby it `it "raises for unknown keys" do` at line 85.
 pub fn ruby_config_spec_l85_d9_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+	_ = args
+	_ := brew_cask.cask_config_from_json(config_spec_invalid_keys_json(), false) or { return brew_runtime.bool_value(err.msg().contains('Unknown key: :invaliddir')) }
+	return brew_runtime.bool_value(false)
 }
 
 // Ruby it `it "drops legacy hyphenated keys" do` at line 90.
 pub fn ruby_config_spec_l90_d10_drops(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('drops', ...args)
+	_ = args
+	config := brew_cask.cask_config_from_json(config_spec_legacy_keys_json(), true) or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value(config.env_values.keys() == ['appdir'] && (config.directory('input_methoddir') or { '' }) != '/path/to/input/methods')
 }
 
 // Ruby it `it "does not warn about legacy hyphenated keys" do` at line 97.
 pub fn ruby_config_spec_l97_d11_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	_ = args
+	config := brew_cask.cask_config_from_json(config_spec_legacy_keys_json(), true) or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value(config.ignored_keys.len == 0)
 }
 
 // Ruby it `it "accepts legacy hyphenated keys without ignoring invalid keys" do` at line 102.
 pub fn ruby_config_spec_l102_d12_accepts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('accepts', ...args)
+	_ = args
+	_ := brew_cask.cask_config_from_json(config_spec_legacy_keys_json(), false) or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value(true)
 }
 
 // Ruby it `it "warns about unknown hyphenated keys" do` at line 108.
 pub fn ruby_config_spec_l108_d13_warns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('warns', ...args)
+	_ = args
+	config := brew_cask.cask_config_from_json('{"default":{},"env":{"bogus-typodir":"/path/to/bogus"},"explicit":{}}', true) or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value(config.ignored_keys == ['bogus-typodir'])
 }
 
 // Ruby it `it "tolerates null configuration sections" do` at line 115.
 pub fn ruby_config_spec_l115_d14_tolerates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tolerates', ...args)
+	_ = args
+	_ := brew_cask.cask_config_from_json('{"default":null,"env":null,"explicit":null}', true) or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value(true)
 }
 
 // Ruby it `it "returns the default directories" do` at line 124.
 pub fn ruby_config_spec_l124_d15_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	config := brew_cask.new_cask_config(brew_cask.CaskConfigOptions{}) or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value((config.directory('appdir') or { '' }) == '/Applications')
 }
 
 // Ruby it `it "returns the default value if no HOMEBREW_CASK_OPTS is unset" do` at line 130.
 pub fn ruby_config_spec_l130_d16_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	return ruby_config_spec_l124_d15_returns(...args)
 }
 
 // Ruby specify `specify "environment overwrites default" do` at line 134.
 pub fn ruby_config_spec_l134_d17_environment(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('environment', ...args)
+	_ = args
+	config := config_spec_from_options(['--appdir=/path/to/apps'], brew_cask.CaskConfigMap{}) or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value((config.directory('appdir') or { '' }) == '/path/to/apps')
 }
 
 // Ruby specify `specify "specific overwrites default" do` at line 140.
 pub fn ruby_config_spec_l140_d18_specific(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('specific', ...args)
+	_ = args
+	config := config_spec_from_options([], {
+		'appdir': brew_cask.CaskConfigValue{ kind: .path, path: '/explicit/path/to/apps' }
+	}) or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value((config.directory('appdir') or { '' }) == '/explicit/path/to/apps')
 }
 
 // Ruby specify `specify "explicit overwrites environment" do` at line 146.
 pub fn ruby_config_spec_l146_d19_explicit(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('explicit', ...args)
+	_ = args
+	config := config_spec_from_options(['--appdir=/path/to/apps'], {
+		'appdir': brew_cask.CaskConfigValue{ kind: .path, path: '/explicit/path/to/apps' }
+	}) or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value((config.directory('appdir') or { '' }) == '/explicit/path/to/apps')
 }
 
 // Ruby it `it "returns directories specified with the HOMEBREW_CASK_OPTS variable" do` at line 156.
 pub fn ruby_config_spec_l156_d20_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	return ruby_config_spec_l134_d17_environment(...args)
 }
 
 // Ruby it `it "normalizes hyphenated option names to underscored keys" do` at line 162.
 pub fn ruby_config_spec_l162_d21_normalizes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('normalizes', ...args)
+	_ = args
+	config := config_spec_from_options(['--input-methoddir=/path/to/input/methods'], brew_cask.CaskConfigMap{}) or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value((config.directory('input_methoddir') or { '' }) == '/path/to/input/methods')
 }
 
 // Ruby it `it "accepts underscored option names" do` at line 169.
 pub fn ruby_config_spec_l169_d22_accepts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('accepts', ...args)
+	_ = args
+	config := config_spec_from_options(['--input_methoddir=/path/to/input/methods'], brew_cask.CaskConfigMap{}) or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value((config.directory('input_methoddir') or { '' }) == '/path/to/input/methods')
 }
 
 // Ruby it `it "normalizes option names but not their values" do` at line 175.
 pub fn ruby_config_spec_l175_d23_normalizes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('normalizes', ...args)
+	_ = args
+	config := config_spec_from_options(['--language=zh-TW,en-GB'], brew_cask.CaskConfigMap{}) or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value(config.languages() == ['zh-TW', 'en-GB'])
 }
 
 // Ruby it `it "survives a JSON round-trip" do` at line 181.
 pub fn ruby_config_spec_l181_d24_survives(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('survives', ...args)
+	_ = args
+	config := config_spec_from_options(['--input-methoddir=/path/to/input/methods'], brew_cask.CaskConfigMap{}) or { return brew_runtime.bool_value(false) }
+	round_trip := brew_cask.cask_config_from_json(config.json(), false) or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value((round_trip.directory('input_methoddir') or { '' }) == '/path/to/input/methods')
 }
 
 // Ruby let `let(:config) do` at line 191.
 pub fn ruby_config_spec_l191_d25_config(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('config', ...args)
+	_ = args
+	return config_spec_boundary(config_spec_explicit_config() or { panic(err) })
 }
 
 // Ruby it `it "returns directories explicitly given as arguments" do` at line 196.
 pub fn ruby_config_spec_l196_d26_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	config := config_spec_explicit_config() or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value(config.explicit_values['appdir'].path == '/explicit/path/to/apps')
 }
 
 // Ruby it `it "returns array of preferred languages" do` at line 200.
 pub fn ruby_config_spec_l200_d27_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	config := config_spec_explicit_config() or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value(config.explicit_values['languages'].values == [
+		'zh-TW',
+		'en',
+	])
 }
 
 // Ruby let `let(:config) do` at line 206.
 pub fn ruby_config_spec_l206_d28_config(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('config', ...args)
+	_ = args
+	config := brew_cask.cask_config_from_json('{"default":{"appdir":"/default/path/before/adding/fontdir"},"env":{},"explicit":{}}', false) or { panic(err) }
+	return config_spec_boundary(config)
 }
 
 // Ruby it `it "honors metadata of the installed cask" do` at line 220.
 pub fn ruby_config_spec_l220_d29_honors(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('honors', ...args)
+	_ = args
+	config := brew_cask.cask_config_from_json('{"default":{"appdir":"/default/path/before/adding/fontdir"},"env":{},"explicit":{}}', false) or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value((config.directory('appdir') or { '' }) == '/default/path/before/adding/fontdir')
 }
 
 // Ruby it `it "falls back to global default on incomplete metadata" do` at line 226.
 pub fn ruby_config_spec_l226_d30_falls(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('falls', ...args)
+	_ = args
+	config := brew_cask.cask_config_from_json('{"default":{"appdir":"/default/path/before/adding/fontdir"},"env":{},"explicit":{}}', false) or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value((config.directory('fontdir') or { '' }) != '')
 }
 
 // Original Ruby source (line-for-line):

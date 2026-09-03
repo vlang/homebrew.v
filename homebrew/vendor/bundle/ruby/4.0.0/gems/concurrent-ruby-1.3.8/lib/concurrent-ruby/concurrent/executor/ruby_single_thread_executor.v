@@ -4,10 +4,19 @@ import brew_runtime
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/executor/ruby_single_thread_executor.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub fn single_thread_pool_options(options map[string]brew_runtime.Value) ThreadPoolOptions {
+	return ThreadPoolOptions{
+		min_threads: 1
+		max_threads: 1
+		max_queue: 0
+		idletime: default_thread_idletimeout
+		fallback_policy: option_string(options, 'fallback_policy', 'discard')
+	}
+}
 
 // Ruby method `initialize(opts = {})` at line 13.
 pub fn ruby_ruby_single_thread_executor_l13_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	return thread_pool_value('Concurrent::RubySingleThreadExecutor', single_thread_pool_options(thread_pool_arguments(args)))
 }
 
 // Original Ruby source (line-for-line):

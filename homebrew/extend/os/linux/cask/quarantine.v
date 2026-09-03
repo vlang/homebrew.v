@@ -7,7 +7,11 @@ import brew_runtime
 
 // Ruby method `available? = false` at line 14.
 pub fn ruby_quarantine_l14_d1_available(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('available?', ...args)
+	return brew_runtime.bool_value(quarantine_available())
+}
+
+pub fn quarantine_available() bool {
+	return false
 }
 
 // Original Ruby source (line-for-line):

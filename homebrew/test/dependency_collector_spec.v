@@ -1,113 +1,211 @@
 module test
 
 import brew_runtime
+import homebrew
+
+fn dependency_collector_spec_bool(value bool) brew_runtime.Value {
+	return brew_runtime.bool_value(value)
+}
+
+fn dependency_collector_spec_dependency(name string, tags []string) brew_runtime.Value {
+	dependency := homebrew.new_dependency(name, tags)
+	return brew_runtime.structured_value('Dependency', dependency.name, {
+		'name': dependency.name
+		'tags': dependency.tags.map(it.boundary_string()).join(',')
+	})
+}
+
+fn dependency_collector_spec_resource(url string, strategy string) homebrew.CollectorResource {
+	return homebrew.CollectorResource{ url: url, strategy: strategy }
+}
 
 // Translated from Homebrew/brew `test/dependency_collector_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:collector) { described_class.new }` at line 7.
 pub fn ruby_dependency_collector_spec_l7_d1_collector(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('collector', ...args)
+	return homebrew.dependency_collector_value(homebrew.new_dependency_collector(false, map[string]bool{}))
 }
 
 // Ruby alias_matcher `alias_matcher :be_a_build_requirement, :be_build` at line 9.
 pub fn ruby_dependency_collector_spec_l9_d2_be_a_build_requirement(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('be_a_build_requirement', ...args)
+	if args.len == 0 {
+		return dependency_collector_spec_bool(false)
+	}
+	return dependency_collector_spec_bool((args[0].attributes['tags'] or { '' }).split(',').any(it == ':build'))
 }
 
 // Ruby method `find_dependency(name)` at line 11.
 pub fn ruby_dependency_collector_spec_l11_d3_find_dependency(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('find_dependency', ...args)
+	if args.len < 2 {
+		return brew_runtime.object_value('NilClass', 'nil')
+	}
+	collector := unsafe { &homebrew.DependencyCollectorState(voidptr(args[0].attributes['collector_address'].u64())) }
+	name := args[1].as_string()
+	for dependency in collector.deps {
+		if dependency.name == name {
+			return dependency_collector_spec_dependency(dependency.name, dependency.tags.map(it.boundary_string()))
+		}
+	}
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Ruby method `find_requirement(klass)` at line 15.
 pub fn ruby_dependency_collector_spec_l15_d4_find_requirement(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('find_requirement', ...args)
+	if args.len < 2 {
+		return brew_runtime.object_value('NilClass', 'nil')
+	}
+	collector := unsafe { &homebrew.DependencyCollectorState(voidptr(args[0].attributes['collector_address'].u64())) }
+	name := args[1].as_string()
+	for requirement in collector.requirements {
+		if requirement.name == name {
+			return brew_runtime.structured_value('${name.capitalize()}Requirement', name, {
+				'name': name
+				'tags': requirement.tags.join(',')
+			})
+		}
+	}
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Ruby specify `specify "dependency creation" do` at line 20.
 pub fn ruby_dependency_collector_spec_l20_d5_dependency(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dependency', ...args)
+	mut collector := homebrew.new_dependency_collector(false, map[string]bool{})
+	homebrew.collector_add_dependency(mut collector, 'foo', [':build']) or { return dependency_collector_spec_bool(false) }
+	homebrew.collector_add_dependency(mut collector, 'bar', ['--universal', ':optional']) or { return dependency_collector_spec_bool(false) }
+	return dependency_collector_spec_bool(collector.deps.len == 2 && collector.deps[0].name == 'foo' && collector.deps[1].tags.len == 2)
 }
 
 // Ruby it `it "returns the created dependency" do` at line 27.
 pub fn ruby_dependency_collector_spec_l27_d6_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	mut collector := homebrew.new_dependency_collector(false, map[string]bool{})
+	result := homebrew.collector_add_dependency(mut collector, 'foo', []string{}) or {
+		return dependency_collector_spec_bool(false)
+	}
+	return dependency_collector_spec_bool(result.dependency.equal(homebrew.new_dependency('foo', []string{})))
 }
 
 // Ruby specify `specify "requirement creation" do` at line 31.
 pub fn ruby_dependency_collector_spec_l31_d7_requirement(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('requirement', ...args)
+	mut collector := homebrew.new_dependency_collector(false, map[string]bool{})
+	homebrew.collector_add_requirement(mut collector, 'xcode', []string{}) or { return dependency_collector_spec_bool(false) }
+	return dependency_collector_spec_bool(collector.requirements.len == 1 && collector.requirements[0].name == 'xcode')
 }
 
 // Ruby it `it "deduplicates requirements" do` at line 36.
 pub fn ruby_dependency_collector_spec_l36_d8_deduplicates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('deduplicates', ...args)
+	mut collector := homebrew.new_dependency_collector(false, map[string]bool{})
+	for _ in 0 .. 2 {
+		homebrew.collector_add_requirement(mut collector, 'xcode', []string{}) or {
+			return dependency_collector_spec_bool(false)
+		}
+	}
+	return dependency_collector_spec_bool(collector.requirements.len == 1)
 }
 
 // Ruby specify `specify "requirement tags" do` at line 41.
 pub fn ruby_dependency_collector_spec_l41_d9_requirement(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('requirement', ...args)
+	mut collector := homebrew.new_dependency_collector(false, map[string]bool{})
+	homebrew.collector_add_requirement(mut collector, 'xcode', [':build']) or { return dependency_collector_spec_bool(false) }
+	return dependency_collector_spec_bool(collector.requirements[0].tags == [':build'])
 }
 
 // Ruby it `it "doesn't mutate the dependency spec" do` at line 46.
 pub fn ruby_dependency_collector_spec_l46_d10_doesn(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('doesn', ...args)
+	mut collector := homebrew.new_dependency_collector(false, map[string]bool{})
+	tags := [':optional']
+	copy := tags.clone()
+	homebrew.collector_add_dependency(mut collector, 'foo', tags) or { return dependency_collector_spec_bool(false) }
+	return dependency_collector_spec_bool(tags == copy)
 }
 
 // Ruby it `it "creates a resource dependency from a CVS URL" do` at line 53.
 pub fn ruby_dependency_collector_spec_l53_d11_creates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('creates', ...args)
+	mut collector := homebrew.new_dependency_collector(false, {
+		'cvs': false
+	})
+	result := homebrew.collector_add_resource(mut collector, dependency_collector_spec_resource(':pserver:anonymous:@brew.sh:/cvsroot/foo/bar', 'cvs'), []string{}) or { return dependency_collector_spec_bool(false) }
+	return dependency_collector_spec_bool(result.kind == .dependency && result.dependency.equal(homebrew.new_dependency('cvs', [
+		':build',
+		':test',
+		':implicit',
+	])))
 }
 
 // Ruby it `it "creates a resource dependency from a '.7z' URL" do` at line 59.
 pub fn ruby_dependency_collector_spec_l59_d12_creates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('creates', ...args)
+	return dependency_collector_spec_resource_expect('https://brew.sh/foo.7z', 'p7zip')
 }
 
 // Ruby it `it "creates a resource dependency from a '.gz' URL" do` at line 65.
 pub fn ruby_dependency_collector_spec_l65_d13_creates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('creates', ...args)
+	return dependency_collector_spec_resource_expect('https://brew.sh/foo.tar.gz', '')
 }
 
 // Ruby it `it "creates a resource dependency from a '.lz' URL" do` at line 71.
 pub fn ruby_dependency_collector_spec_l71_d14_creates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('creates', ...args)
+	return dependency_collector_spec_resource_expect('https://brew.sh/foo.lz', 'lzip')
 }
 
 // Ruby it `it "creates a resource dependency from a '.lha' URL" do` at line 77.
 pub fn ruby_dependency_collector_spec_l77_d15_creates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('creates', ...args)
+	return dependency_collector_spec_resource_expect('https://brew.sh/foo.lha', 'lha')
 }
 
 // Ruby it `it "creates a resource dependency from a '.lzh' URL" do` at line 83.
 pub fn ruby_dependency_collector_spec_l83_d16_creates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('creates', ...args)
+	return dependency_collector_spec_resource_expect('https://brew.sh/foo.lzh', 'lha')
 }
 
 // Ruby it `it "creates a resource dependency from a '.rar' URL" do` at line 89.
 pub fn ruby_dependency_collector_spec_l89_d17_creates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('creates', ...args)
+	return dependency_collector_spec_resource_expect('https://brew.sh/foo.rar', 'libarchive')
 }
 
 // Ruby it `it "raises a TypeError for unknown classes" do` at line 95.
 pub fn ruby_dependency_collector_spec_l95_d18_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+	if _ := homebrew.collector_parse_class_spec('#<Class>', false, []string{}) {
+		return dependency_collector_spec_bool(false)
+	} else {
+		return dependency_collector_spec_bool(err.msg().contains('not a Requirement subclass'))
+	}
 }
 
 // Ruby it `it "raises an ArgumentError for a removed codesign requirement" do` at line 99.
 pub fn ruby_dependency_collector_spec_l99_d19_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+	mut collector := homebrew.new_dependency_collector(false, map[string]bool{})
+	if _ := homebrew.collector_add_requirement(mut collector, 'codesign', []string{}) {
+		return dependency_collector_spec_bool(false)
+	} else {
+		return dependency_collector_spec_bool(err.msg() == 'Unsupported special dependency: :codesign')
+	}
 }
 
 // Ruby it `it "raises a TypeError for a Resource with an unknown download strategy" do` at line 103.
 pub fn ruby_dependency_collector_spec_l103_d20_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+	mut collector := homebrew.new_dependency_collector(false, map[string]bool{})
+	if _ := homebrew.collector_add_resource(mut collector, dependency_collector_spec_resource('https://brew.sh/foo', 'unknown'), []string{}) {
+		return dependency_collector_spec_bool(false)
+	} else {
+		return dependency_collector_spec_bool(err.msg().contains('not an AbstractDownloadStrategy subclass'))
+	}
 }
 
 // Ruby it `it "is empty when nothing needs to be silently installed" do` at line 111.
 pub fn ruby_dependency_collector_spec_l111_d21_is(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('is', ...args)
+	collector := homebrew.new_dependency_collector(false, map[string]bool{})
+	return dependency_collector_spec_bool(collector.deps.len == 0)
+}
+
+fn dependency_collector_spec_resource_expect(url string, expected string) brew_runtime.Value {
+	mut collector := homebrew.new_dependency_collector(false, map[string]bool{})
+	result := homebrew.collector_add_resource(mut collector, dependency_collector_spec_resource(url, 'curl'), []string{}) or {
+		return dependency_collector_spec_bool(false)
+	}
+	if expected == '' {
+		return dependency_collector_spec_bool(result.kind == .nil_value)
+	}
+	return dependency_collector_spec_bool(result.kind == .dependency && result.dependency.name == expected)
 }
 
 // Original Ruby source (line-for-line):

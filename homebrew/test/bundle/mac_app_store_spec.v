@@ -1,123 +1,272 @@
 module bundle
 
 import brew_runtime
+import homebrew.bundle.extensions
 
 // Translated from Homebrew/brew `test/bundle/mac_app_store_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:dumper) { described_class }` at line 10.
 pub fn ruby_mac_app_store_spec_l10_d1_dumper(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dumper', ...args)
+	return brew_runtime.object_value('Homebrew::Bundle::MacAppStore', 'Homebrew::Bundle::MacAppStore')
 }
 
 // Ruby specify `specify do` at line 18.
 pub fn ruby_mac_app_store_spec_l18_d2_do(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('do', ...args)
+	mut state := extensions.MacAppStoreState{}
+	return brew_runtime.bool_value(extensions.mac_app_store_apps(mut state).len == 0 && extensions.mac_app_store_dump(mut state) == '')
 }
 
 // Ruby specify `specify do` at line 31.
 pub fn ruby_mac_app_store_spec_l31_d3_do(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('do', ...args)
+	mut state := extensions.MacAppStoreState{ executable: 'mas' }
+	return brew_runtime.bool_value(extensions.mac_app_store_apps(mut state).len == 0 && extensions.mac_app_store_dump(mut state) == '')
 }
 
 // Ruby it `it "returns list %w[foo bar baz]" do` at line 48.
 pub fn ruby_mac_app_store_spec_l48_d4_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	mut state := extensions.MacAppStoreState{ executable: 'mas', list_output: '123 foo (1.0)\n456 bar (2.0)\n789 baz (3.0)' }
+	return brew_runtime.bool_value(extensions.mac_app_store_apps(mut state) == [
+		extensions.MacAppStoreApp{ id: '123', name: 'foo' },
+		extensions.MacAppStoreApp{ id: '456', name: 'bar' },
+		extensions.MacAppStoreApp{ id: '789', name: 'baz' },
+	])
 }
 
 // Ruby it `it "returns list %w[foo bar baz qux]" do` at line 61.
 pub fn ruby_mac_app_store_spec_l61_d5_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	mut state := extensions.MacAppStoreState{ executable: 'mas', list_output: '123 foo (1.0)\n456 bar (2.0)\n789 baz (3.0)\n 10 qux (4.0)' }
+	return brew_runtime.bool_value(extensions.mac_app_store_apps(mut state).map(it.name) == [
+		'foo',
+		'bar',
+		'baz',
+		'qux',
+	])
 }
 
 // Ruby let `let(:invalid_mas_output) do` at line 67.
 pub fn ruby_mac_app_store_spec_l67_d6_invalid_mas_output(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('invalid_mas_output', ...args)
+	return brew_runtime.string_value(mac_app_store_spec_invalid_output())
 }
 
 // Ruby let `let(:expected_app_details_array) do` at line 91.
 pub fn ruby_mac_app_store_spec_l91_d7_expected_app_details_array(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('expected_app_details_array', ...args)
+	return brew_runtime.array_value(mac_app_store_spec_expected_apps().map(brew_runtime.string_array_value([
+		it.id,
+		it.name,
+	])))
 }
 
 // Ruby let `let(:expected_mas_dumped_output) do` at line 115.
 pub fn ruby_mac_app_store_spec_l115_d8_expected_mas_dumped_output(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('expected_mas_dumped_output', ...args)
+	mut state := extensions.MacAppStoreState{ executable: 'mas', list_output: mac_app_store_spec_invalid_output() }
+	return brew_runtime.string_value(extensions.mac_app_store_dump(mut state))
 }
 
 // Ruby specify `specify do` at line 145.
 pub fn ruby_mac_app_store_spec_l145_d9_do(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('do', ...args)
+	mut state := extensions.MacAppStoreState{ executable: 'mas', list_output: mac_app_store_spec_invalid_output() }
+	apps := extensions.mac_app_store_apps(mut state)
+	dump_text := extensions.mac_app_store_dump(mut state)
+	return brew_runtime.bool_value(apps == mac_app_store_spec_expected_apps() && dump_text == mac_app_store_spec_expected_dump())
 }
 
 // Ruby let `let(:new_mas_output) do` at line 152.
 pub fn ruby_mac_app_store_spec_l152_d10_new_mas_output(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('new_mas_output', ...args)
+	return brew_runtime.string_value(mac_app_store_spec_new_output())
 }
 
 // Ruby let `let(:expected_app_details_array) do` at line 160.
 pub fn ruby_mac_app_store_spec_l160_d11_expected_app_details_array(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('expected_app_details_array', ...args)
+	return brew_runtime.array_value(mac_app_store_spec_new_apps().map(brew_runtime.string_array_value([
+		it.id,
+		it.name,
+	])))
 }
 
 // Ruby it `it "parses the app names without trailing whitespace" do` at line 174.
 pub fn ruby_mac_app_store_spec_l174_d12_parses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('parses', ...args)
+	return brew_runtime.bool_value(extensions.mac_app_store_parse_apps(mac_app_store_spec_new_output()) == mac_app_store_spec_new_apps())
 }
 
 // Ruby it `it "shells out" do` at line 189.
 pub fn ruby_mac_app_store_spec_l189_d13_shells(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('shells', ...args)
+	mut state := extensions.MacAppStoreState{ executable: 'mas', list_output: '123 foo (1.0)' }
+	return brew_runtime.bool_value(extensions.mac_app_store_installed_app_ids(mut state) == [
+		'123',
+	])
 }
 
 // Ruby it `it "returns result" do` at line 195.
 pub fn ruby_mac_app_store_spec_l195_d14_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	mut state := extensions.MacAppStoreState{
+		executable: 'mas'
+		installed_app_ids: [
+			'123',
+			'456',
+		]
+		installed_ids_loaded: true
+		outdated_app_ids: ['456']
+		outdated_ids_loaded: true
+	}
+	return brew_runtime.bool_value(extensions.mac_app_store_app_id_installed_and_up_to_date(mut state, 123, false) && !extensions.mac_app_store_app_id_installed_and_up_to_date(mut state, 456, false))
 }
 
 // Ruby it `it "tries to install mas" do` at line 208.
 pub fn ruby_mac_app_store_spec_l208_d15_tries(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tries', ...args)
+	mut state := extensions.MacAppStoreState{ brew_file: '/brew', manager_install_succeeds: true }
+	_ := extensions.mac_app_store_preinstall(mut state, 'foo', 123, false, false) or {
+		return brew_runtime.bool_value(state.commands == [['/brew', 'install', 'mas']] && err.msg().contains('mas installation failed'))
+	}
+	return brew_runtime.bool_value(false)
 }
 
 // Ruby it `it "does not shell out" do` at line 215.
 pub fn ruby_mac_app_store_spec_l215_d16_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	mut state := extensions.MacAppStoreState{}
+	return brew_runtime.bool_value(extensions.mac_app_store_outdated_app_ids(mut state).len == 0)
 }
 
 // Ruby it `it "returns app ids" do` at line 229.
 pub fn ruby_mac_app_store_spec_l229_d17_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	mut state := extensions.MacAppStoreState{ executable: 'mas', outdated_output: 'foo 123' }
+	return brew_runtime.bool_value(extensions.mac_app_store_outdated_app_ids(mut state) == [
+		'foo',
+	])
 }
 
 // Ruby it `it "skips" do` at line 241.
 pub fn ruby_mac_app_store_spec_l241_d18_skips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skips', ...args)
+	mut state := extensions.MacAppStoreState{
+		executable: 'mas'
+		installed_app_ids: [
+			'123',
+		]
+		installed_ids_loaded: true
+		outdated_ids_loaded: true
+	}
+	result := extensions.mac_app_store_preinstall(mut state, 'foo', 123, false, false) or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value(!result && state.commands.len == 0)
 }
 
 // Ruby it `it "upgrades" do` at line 252.
 pub fn ruby_mac_app_store_spec_l252_d19_upgrades(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('upgrades', ...args)
+	mut state := extensions.MacAppStoreState{
+		executable: 'mas'
+		installed_app_ids: [
+			'123',
+		]
+		installed_ids_loaded: true
+		outdated_app_ids: ['123']
+		outdated_ids_loaded: true
+		upgrade_succeeds: true
+	}
+	preinstall := extensions.mac_app_store_preinstall(mut state, 'foo', 123, false, false) or { return brew_runtime.bool_value(false) }
+	installed := extensions.mac_app_store_install(mut state, 'foo', 123, true, false) or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value(preinstall && installed && state.commands == [
+		['mas', 'upgrade', '123'],
+	])
 }
 
 // Ruby it `it "installs app" do` at line 265.
 pub fn ruby_mac_app_store_spec_l265_d20_installs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('installs', ...args)
+	mut state := extensions.MacAppStoreState{ executable: 'mas', installed_ids_loaded: true, install_succeeds: true }
+	preinstall := extensions.mac_app_store_preinstall(mut state, 'foo', 123, false, false) or { return brew_runtime.bool_value(false) }
+	installed := extensions.mac_app_store_install(mut state, 'foo', 123, true, false) or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value(preinstall && installed && state.commands == [
+		['mas', 'install', '123'],
+	])
 }
 
 // Ruby it `it "falls back to `mas get` when `mas install` fails" do` at line 272.
 pub fn ruby_mac_app_store_spec_l272_d21_falls(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('falls', ...args)
+	mut state := extensions.MacAppStoreState{ executable: 'mas', installed_ids_loaded: true, get_succeeds: true }
+	preinstall := extensions.mac_app_store_preinstall(mut state, 'foo', 123, false, false) or { return brew_runtime.bool_value(false) }
+	installed := extensions.mac_app_store_install(mut state, 'foo', 123, true, false) or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value(preinstall && installed && state.commands == [
+		['mas', 'install', '123'],
+		['mas', 'get', '123'],
+	])
 }
 
 // Ruby it `it "returns apps not in Brewfile entries by ID" do` at line 294.
 pub fn ruby_mac_app_store_spec_l294_d22_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	mut state := mac_app_store_spec_cleanup_state()
+	entry := extensions.mac_app_store_entry('renamed foo', {
+		'id': brew_runtime.int_value(123)
+	}) or { return brew_runtime.bool_value(false) }
+	items := extensions.mac_app_store_cleanup_items(mut state, [entry])
+	if items.len != 1 {
+		return brew_runtime.bool_value(false)
+	}
+	name := extensions.mac_app_store_cleanup_item_name(items[0]) or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value(name == 'bar (456)')
 }
 
 // Ruby it `it "uninstalls apps by ID" do` at line 301.
 pub fn ruby_mac_app_store_spec_l301_d23_uninstalls(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uninstalls', ...args)
+	mut state := mac_app_store_spec_cleanup_state()
+	entry := extensions.mac_app_store_entry('foo', {
+		'id': brew_runtime.int_value(123)
+	}) or { return brew_runtime.bool_value(false) }
+	items := extensions.mac_app_store_cleanup_items(mut state, [entry])
+	extensions.mac_app_store_cleanup(mut state, items) or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value(state.commands == [['mas', 'uninstall', '456']] && state.output == [
+		'Uninstalled 1 Mac App Store app',
+	])
+}
+
+fn mac_app_store_spec_invalid_output() string {
+	return '497799835 Xcode (9.2)\n425424353 The Unarchiver (4.0.0)\n08981434 iMovie (10.1.8)\n409201541 Pages (7.1)\n123456789 123AppNameWithNumbers (1.0)\n409203825 Numbers (5.1)\n944924917 Pastebin It! (1.0)\n123456789 My (cool) app (1.0)\n987654321 an-app-i-use (2.1)\n123457867 App name with many spaces (1.0)\n893489734 my,comma,app (2.2)\n832423434 another_app_name (1.0)\n543213432 My App? (1.0)\n688963445 app;with;semicolons (1.0)\n123345384 my 😊 app (2.0)\n896732467 你好 (1.1)\n634324555 مرحبا (1.0)\n234324325 áéíóú (1.0)\n310633997 non>‎<printing>⁣<characters (1.0)\n'
+}
+
+fn mac_app_store_spec_expected_apps() []extensions.MacAppStoreApp {
+	return [extensions.MacAppStoreApp{ id: '497799835', name: 'Xcode' },
+		extensions.MacAppStoreApp{ id: '425424353', name: 'The Unarchiver' },
+		extensions.MacAppStoreApp{ id: '08981434', name: 'iMovie' },
+		extensions.MacAppStoreApp{ id: '409201541', name: 'Pages' },
+		extensions.MacAppStoreApp{ id: '123456789', name: '123AppNameWithNumbers' },
+		extensions.MacAppStoreApp{ id: '409203825', name: 'Numbers' },
+		extensions.MacAppStoreApp{ id: '944924917', name: 'Pastebin It!' },
+		extensions.MacAppStoreApp{ id: '123456789', name: 'My (cool) app' },
+		extensions.MacAppStoreApp{ id: '987654321', name: 'an-app-i-use' },
+		extensions.MacAppStoreApp{ id: '123457867', name: 'App name with many spaces' },
+		extensions.MacAppStoreApp{ id: '893489734', name: 'my,comma,app' },
+		extensions.MacAppStoreApp{ id: '832423434', name: 'another_app_name' },
+		extensions.MacAppStoreApp{ id: '543213432', name: 'My App?' },
+		extensions.MacAppStoreApp{ id: '688963445', name: 'app;with;semicolons' },
+		extensions.MacAppStoreApp{ id: '123345384', name: 'my 😊 app' },
+		extensions.MacAppStoreApp{ id: '896732467', name: '你好' },
+		extensions.MacAppStoreApp{ id: '634324555', name: 'مرحبا' },
+		extensions.MacAppStoreApp{ id: '234324325', name: 'áéíóú' },
+		extensions.MacAppStoreApp{ id: '310633997', name: 'non><printing><characters' }]
+}
+
+fn mac_app_store_spec_expected_dump() string {
+	mut state := extensions.MacAppStoreState{ executable: 'mas', apps: mac_app_store_spec_expected_apps(), apps_loaded: true }
+	return extensions.mac_app_store_dump(mut state)
+}
+
+fn mac_app_store_spec_new_output() string {
+	return '1440147259  AdGuard for Safari  (1.9.13)\n497799835   Xcode               (12.5)\n425424353   The Unarchiver      (4.3.1)\n'
+}
+
+fn mac_app_store_spec_new_apps() []extensions.MacAppStoreApp {
+	return [extensions.MacAppStoreApp{ id: '1440147259', name: 'AdGuard for Safari' },
+		extensions.MacAppStoreApp{ id: '497799835', name: 'Xcode' },
+		extensions.MacAppStoreApp{ id: '425424353', name: 'The Unarchiver' }]
+}
+
+fn mac_app_store_spec_cleanup_state() extensions.MacAppStoreState {
+	return extensions.MacAppStoreState{
+		executable: 'mas'
+		packages: [
+			extensions.MacAppStoreApp{ id: '123', name: 'foo' },
+			extensions.MacAppStoreApp{ id: '456', name: 'bar' },
+			extensions.MacAppStoreApp{ id: '0', name: 'testflight' },
+		]
+		packages_loaded: true
+	}
 }
 
 // Original Ruby source (line-for-line):

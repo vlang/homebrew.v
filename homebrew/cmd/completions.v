@@ -1,13 +1,14 @@
 module cmd
 
-import brew_runtime
+import homebrew.completions
+import homebrew.completions.subcommand
 
 // Translated from Homebrew/brew `cmd/completions.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `run` at line 24.
-pub fn ruby_completions_l24_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('run', ...args)
+pub fn ruby_completions_l24_d1_run(arguments []string, mut state subcommand.CompletionsState) !string {
+	return completions.ruby_subcommand_l16_dispatch(arguments, mut state)
 }
 
 // Original Ruby source (line-for-line):

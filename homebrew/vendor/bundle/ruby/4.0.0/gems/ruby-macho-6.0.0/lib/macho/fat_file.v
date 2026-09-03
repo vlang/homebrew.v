@@ -1,248 +1,762 @@
 module macho
 
 import brew_runtime
+import encoding.binary
+import os
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/ruby-macho-6.0.0/lib/macho/fat_file.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub struct FatFileModificationOptions {
+pub:
+	strict bool = true
+	uniq   bool
+	last   bool
+}
+
+@[heap]
+pub struct FatFile {
+pub mut:
+	filename     string
+	has_filename bool
+	options      MachoFileOptions
+	header       &MachoHeaderRecord = unsafe { nil }
+	fat_archs    []&MachoHeaderRecord
+	machos       []&MachoFile
+	raw_data     []u8
+}
+
+fn fat_file_options_value(options MachoFileOptions) brew_runtime.Value {
+	return macho_file_options_value(options)
+}
+
+fn fat_file_modification_options_from_value(value brew_runtime.Value) FatFileModificationOptions {
+	values := value.as_map() or { return FatFileModificationOptions{} }
+	return FatFileModificationOptions{
+		strict: (values['strict'] or { brew_runtime.bool_value(true) }).as_bool() or { true }
+		uniq: (values['uniq'] or { brew_runtime.bool_value(false) }).as_bool() or { false }
+		last: (values['last'] or { brew_runtime.bool_value(false) }).as_bool() or { false }
+	}
+}
+
+fn fat_file_boundary(file &FatFile) brew_runtime.Value {
+	return brew_runtime.structured_value('MachO::FatFile', '#<MachO::FatFile>', {
+		'fat_file_address': u64(voidptr(file)).str()
+	})
+}
+
+fn fat_file_from_args(args []brew_runtime.Value) &FatFile {
+	if args.len == 0 {
+		panic('FatFile method requires a receiver')
+	}
+	address := (args[0].attribute('fat_file_address') or {
+		panic('${args[0].type_name} has no translated FatFile state')
+	}).u64()
+	return unsafe { &FatFile(voidptr(address)) }
+}
+
+fn fat_file_u32(data []u8, offset int) !u32 {
+	if offset < 0 || offset + 4 > data.len {
+		return truncated_file_error()
+	}
+	return binary.big_endian_u32_at(data, offset)
+}
+
+fn fat_file_u64(data []u8, offset int) !u64 {
+	if offset < 0 || offset + 8 > data.len {
+		return truncated_file_error()
+	}
+	return binary.big_endian_u64_at(data, offset)
+}
+
+fn fat_arch_bytesize(fat64 bool) int {
+	return if fat64 { 32 } else { 20 }
+}
+
+fn fat_alignment(align u32) !i64 {
+	if align > 62 {
+		return error('Fat architecture alignment exponent ${align} is too large')
+	}
+	return i64(u64(1) << align)
+}
+
+fn parse_fat_arch(data []u8, offset int, fat64 bool) !&MachoHeaderRecord {
+	bytesize := fat_arch_bytesize(fat64)
+	if offset < 0 || offset + bytesize > data.len {
+		return truncated_file_error()
+	}
+	cputype := fat_file_u32(data, offset)!
+	cpusubtype := fat_file_u32(data, offset + 4)!
+	if fat64 {
+		return new_fat_arch64(cputype, cpusubtype, fat_file_u64(data, offset + 8)!, fat_file_u64(data, offset + 16)!, fat_file_u32(data, offset + 24)!, fat_file_u32(data, offset + 28)!)
+	}
+	return new_fat_arch(cputype, cpusubtype, fat_file_u32(data, offset + 8)!, fat_file_u32(data, offset + 12)!, fat_file_u32(data, offset + 16)!)
+}
+
+pub fn new_fat_file_from_machos(machos []&MachoFile, fat64 bool) !&FatFile {
+	if machos.len == 0 {
+		return error('expected at least one Mach-O')
+	}
+	mut sorted := machos.clone()
+	for index := 1; index < sorted.len; index++ {
+		mut cursor := index
+		for cursor > 0 && sorted[cursor - 1].calculate_segment_alignment() > sorted[cursor].calculate_segment_alignment() {
+			sorted[cursor - 1], sorted[cursor] = sorted[cursor], sorted[cursor - 1]
+			cursor--
+		}
+	}
+	header := new_fat_header(if fat64 { fat_magic_64 } else { fat_magic }, u32(sorted.len))
+	mut data := header.serialize()!
+	mut offset := i64(8 + sorted.len * fat_arch_bytesize(fat64))
+	mut pads := []int{cap: sorted.len}
+	for macho in sorted {
+		alignment := fat_alignment(u32(macho.calculate_segment_alignment()))!
+		macho_offset := macho_round(offset, alignment)
+		if !fat64 && macho_offset > i64(0xffff_ffff) {
+			return fat_arch_offset_overflow_error(macho_offset)
+		}
+		pads << int(macho_padding_for(offset, alignment))
+		arch := if fat64 {
+			new_fat_arch64(macho.header.cputype, macho.header.cpusubtype, u64(macho_offset), u64(macho.raw_data.len), u32(macho.calculate_segment_alignment()), 0)
+		} else {
+			new_fat_arch(macho.header.cputype, macho.header.cpusubtype, u64(macho_offset), u64(macho.raw_data.len), u32(macho.calculate_segment_alignment()))
+		}
+		data << arch.serialize()!
+		offset += macho.raw_data.len + pads.last()
+	}
+	for index, macho in sorted {
+		data << []u8{len: pads[index]}
+		data << macho.serialize()
+	}
+	return new_fat_file_from_bin(data, MachoFileOptions{})
+}
+
+pub fn new_fat_file_from_bin(data []u8, options MachoFileOptions) !&FatFile {
+	mut file := &FatFile{
+		options: options
+		raw_data: data.clone()
+	}
+	file.populate_fields()!
+	return file
+}
+
+pub fn new_fat_file(filename string, options MachoFileOptions) !&FatFile {
+	if !os.is_file(filename) {
+		return error('${filename}: no such file')
+	}
+	data := os.read_bytes(filename)!
+	mut file := new_fat_file_from_bin(data, options)!
+	file.filename = filename
+	file.has_filename = true
+	return file
+}
+
+pub fn (file &FatFile) serialize() []u8 {
+	return file.raw_data.clone()
+}
+
+pub fn (file &FatFile) magic_string() string {
+	return header_magic_symbol(file.header.magic)
+}
+
+pub fn (mut file FatFile) populate_fields() ! {
+	file.header = file.populate_fat_header()!
+	file.fat_archs = file.populate_fat_archs()!
+	file.machos = file.populate_machos()!
+}
+
+pub fn (file &FatFile) populate_fat_header() !&MachoHeaderRecord {
+	if file.raw_data.len < 8 {
+		return truncated_file_error()
+	}
+	header := new_fat_header(fat_file_u32(file.raw_data, 0)!, fat_file_u32(file.raw_data, 4)!)
+	if !macho_magic(header.magic) {
+		return magic_error(header.magic)
+	}
+	if !macho_fat_magic(header.magic) {
+		return macho_binary_error()
+	}
+	if header.nfat_arch > 30 {
+		return java_class_file_error()
+	}
+	if header.nfat_arch == 0 {
+		return zero_architecture_error()
+	}
+	return header
+}
+
+pub fn (file &FatFile) populate_fat_archs() ![]&MachoHeaderRecord {
+	fat64 := macho_fat_magic64(file.header.magic)
+	bytesize := fat_arch_bytesize(fat64)
+	table_size := u64(8) + u64(file.header.nfat_arch) * u64(bytesize)
+	if table_size > u64(file.raw_data.len) {
+		return truncated_file_error()
+	}
+	mut archs := []&MachoHeaderRecord{cap: int(file.header.nfat_arch)}
+	for index in 0 .. int(file.header.nfat_arch) {
+		archs << parse_fat_arch(file.raw_data, 8 + index * bytesize, fat64)!
+	}
+	return archs
+}
+
+pub fn (file &FatFile) populate_machos() ![]&MachoFile {
+	mut machos := []&MachoFile{cap: file.fat_archs.len}
+	for arch in file.fat_archs {
+		if arch.offset > u64(file.raw_data.len) || arch.size > u64(file.raw_data.len) - arch.offset {
+			return truncated_file_error()
+		}
+		start := int(arch.offset)
+		end := start + int(arch.size)
+		macho := new_macho_file_from_bin(file.raw_data[start..end], file.options)!
+		machos << macho
+		if macho.header.cputype != arch.cputype || macho.header.cpusubtype != arch.cpusubtype {
+			return cpu_type_mismatch_error(arch.cputype, arch.cpusubtype, macho.header.cputype, macho.header.cpusubtype)
+		}
+	}
+	return machos
+}
+
+pub fn (file &FatFile) canonical_macho() &MachoFile {
+	return file.machos[0]
+}
+
+pub fn (file &FatFile) dylib_load_commands() []&LoadCommandRecord {
+	mut commands := []&LoadCommandRecord{}
+	for macho in file.machos {
+		commands << macho.dylib_load_commands()
+	}
+	return commands
+}
+
+pub fn (file &FatFile) linked_dylibs() []string {
+	mut dylibs := []string{}
+	for macho in file.machos {
+		for dylib in macho.linked_dylibs() {
+			if dylib !in dylibs {
+				dylibs << dylib
+			}
+		}
+	}
+	return dylibs
+}
+
+pub fn (file &FatFile) rpaths() []string {
+	mut paths := []string{}
+	for macho in file.machos {
+		for path in macho.rpaths() {
+			if path !in paths {
+				paths << path
+			}
+		}
+	}
+	return paths
+}
+
+fn fat_file_recoverable_error(message string) bool {
+	return message.starts_with('Mach-O dylib is missing LC_ID_DYLIB') || message.starts_with('Unknown linked dylib:') || message.starts_with('Unknown rpath:') || message.starts_with('Rpath already exists:')
+}
+
+fn fat_file_slice_error(message string, index int) &MachoErrorInfo {
+	mut error_info := new_macho_error(.recoverable_modification, message)
+	error_info.set_macho_slice(index)
+	return error_info
+}
+
+pub fn (mut file FatFile) each_macho(options FatFileModificationOptions, operation fn(mut MachoFile) !) ! {
+	mut errors := []&MachoErrorInfo{}
+	for index, _ in file.machos {
+		operation(mut file.machos[index]) or {
+			if !fat_file_recoverable_error(err.msg()) {
+				return err
+			}
+			slice_error := fat_file_slice_error(err.msg(), index)
+			if options.strict {
+				return slice_error
+			}
+			errors << slice_error
+		}
+	}
+	if errors.len == file.machos.len {
+		return errors[0]
+	}
+}
+
+pub fn (mut file FatFile) repopulate_raw_machos() ! {
+	for index, macho in file.machos {
+		arch := file.fat_archs[index]
+		start := int(arch.offset)
+		end := start + int(arch.size)
+		mut replaced := []u8{cap: file.raw_data.len - int(arch.size) + macho.raw_data.len}
+		replaced << file.raw_data[..start]
+		replaced << macho.serialize()
+		replaced << file.raw_data[end..]
+		file.raw_data = replaced
+	}
+}
+
+pub fn (mut file FatFile) repopulate_resized_raw_machos() ! {
+	fat64 := macho_fat_magic64(file.header.magic)
+	arch_bytesize := fat_arch_bytesize(fat64)
+	header_size := 8 + file.fat_archs.len * arch_bytesize
+	if header_size > file.raw_data.len {
+		return truncated_file_error()
+	}
+	mut header_data := file.raw_data[..header_size].clone()
+	mut slices := []u8{}
+	mut offset := i64(header_size)
+	for index, arch in file.fat_archs {
+		macho := file.machos[index]
+		alignment := fat_alignment(arch.align)!
+		macho_offset := macho_round(offset, alignment)
+		if !fat64 && macho_offset > i64(0xffff_ffff) {
+			return fat_arch_offset_overflow_error(macho_offset)
+		}
+		slices << []u8{len: int(macho_offset - offset)}
+		slices << macho.serialize()
+		arch_offset := 8 + index * arch_bytesize
+		if fat64 {
+			binary.big_endian_put_u64_at(mut header_data, u64(macho_offset), arch_offset + 8)
+			binary.big_endian_put_u64_at(mut header_data, u64(macho.raw_data.len), arch_offset + 16)
+		} else {
+			binary.big_endian_put_u32_at(mut header_data, u32(macho_offset), arch_offset + 8)
+			binary.big_endian_put_u32_at(mut header_data, u32(macho.raw_data.len), arch_offset + 12)
+		}
+		offset = macho_offset + macho.raw_data.len
+	}
+	file.raw_data = header_data
+	file.raw_data << slices
+	file.populate_fields()!
+}
+
+pub fn (mut file FatFile) change_dylib_id(new_id string, options FatFileModificationOptions) ! {
+	for macho in file.machos {
+		if macho.header.filetype != mh_dylib {
+			return
+		}
+	}
+	file.each_macho(options, fn [new_id] (mut macho MachoFile) ! {
+		macho.change_dylib_id(new_id)!
+	})!
+	file.repopulate_raw_machos()!
+}
+
+pub fn (mut file FatFile) change_install_name(old_name string, new_name string, options FatFileModificationOptions) ! {
+	file.each_macho(options, fn [old_name, new_name] (mut macho MachoFile) ! {
+		macho.change_install_name(old_name, new_name)!
+	})!
+	file.repopulate_raw_machos()!
+}
+
+pub fn (mut file FatFile) change_rpath(old_path string, new_path string, options FatFileModificationOptions) ! {
+	file.each_macho(options, fn [old_path, new_path, options] (mut macho MachoFile) ! {
+		macho.change_rpath(old_path, new_path, DeleteRpathOptions{
+			uniq: options.uniq
+			last: options.last
+		})!
+	})!
+	file.repopulate_raw_machos()!
+}
+
+pub fn (mut file FatFile) add_rpath(path string, options FatFileModificationOptions) ! {
+	file.each_macho(options, fn [path] (mut macho MachoFile) ! {
+		macho.add_rpath(path)!
+	})!
+	file.repopulate_raw_machos()!
+}
+
+pub fn (mut file FatFile) delete_rpath(path string, options FatFileModificationOptions) ! {
+	file.each_macho(options, fn [path, options] (mut macho MachoFile) ! {
+		macho.delete_rpath(path, DeleteRpathOptions{
+			uniq: options.uniq
+			last: options.last
+		})!
+	})!
+	file.repopulate_raw_machos()!
+}
+
+pub fn (mut file FatFile) codesign(identifier string) ! {
+	actual_identifier := if identifier == '' {
+		code_signing_identifier(macho_file_code_signing_adapter(file.canonical_macho()), if file.has_filename {
+			file.filename
+		} else {
+			''
+		})
+	} else {
+		identifier
+	}
+	for index, _ in file.machos {
+		file.machos[index].codesign(actual_identifier)!
+	}
+	file.repopulate_resized_raw_machos()!
+}
+
+pub fn (file &FatFile) extract(cputype string) ?&MachoFile {
+	name := cputype.trim_string_left(':')
+	for macho in file.machos {
+		if macho.cputype_symbol() == name {
+			return macho
+		}
+	}
+	return none
+}
+
+pub fn (file &FatFile) write(filename string) ! {
+	os.write_file_array(filename, file.raw_data)!
+}
+
+pub fn (file &FatFile) write_initial() ! {
+	if !file.has_filename {
+		return error('no initial file to write to')
+	}
+	file.write(file.filename)!
+}
+
+pub fn (file &FatFile) to_h() brew_runtime.Value {
+	return brew_runtime.map_value({
+		'header':    file.header.to_h()
+		'fat_archs': brew_runtime.array_value(file.fat_archs.map(it.to_h()))
+		'machos':    brew_runtime.array_value(file.machos.map(it.to_h()))
+	})
+}
 
 // Ruby attr_accessor `attr_accessor :filename` at line 14.
 pub fn ruby_fat_file_l14_d1_filename(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('filename', ...args)
+	file := fat_file_from_args(args)
+	return if file.has_filename {
+		brew_runtime.string_value(file.filename)
+	} else {
+		nil_macho_value()
+	}
 }
 
 // Ruby attr_accessor `attr_accessor :filename` at line 14.
 pub fn ruby_fat_file_l14_d2_filename(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('filename=', ...args)
+	if args.len < 2 { panic('filename= requires a filename') }
+	mut file := fat_file_from_args(args)
+	file.filename = args[1].as_string()
+	file.has_filename = args[1].type_name != 'NilClass'
+	return args[1]
 }
 
 // Ruby attr_reader `attr_reader :options` at line 18.
 pub fn ruby_fat_file_l18_d3_options(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('options', ...args)
+	return fat_file_options_value(fat_file_from_args(args).options)
 }
 
 // Ruby attr_reader `attr_reader :header` at line 21.
 pub fn ruby_fat_file_l21_d4_header(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('header', ...args)
+	return macho_header_boundary(fat_file_from_args(args).header)
 }
 
 // Ruby attr_reader `attr_reader :fat_archs` at line 24.
 pub fn ruby_fat_file_l24_d5_fat_archs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fat_archs', ...args)
+	return brew_runtime.array_value(fat_file_from_args(args).fat_archs.map(macho_header_boundary(it)))
 }
 
 // Ruby attr_reader `attr_reader :machos` at line 27.
 pub fn ruby_fat_file_l27_d6_machos(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('machos', ...args)
+	return brew_runtime.array_value(fat_file_from_args(args).machos.map(macho_file_boundary(it)))
 }
 
 // Ruby method `self.new_from_machos(*machos, fat64: false)` at line 36.
 pub fn ruby_fat_file_l36_d7_self_new_from_machos(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.new_from_machos', ...args)
+	mut values := args.clone()
+	mut fat64 := false
+	if values.len > 0 && values.last().type_name == 'Hash' {
+		options := values.last().as_map() or { map[string]brew_runtime.Value{} }
+		fat64 = (options['fat64'] or { brew_runtime.bool_value(false) }).as_bool() or { false }
+		values = values[..values.len - 1].clone()
+	}
+	mut machos := []&MachoFile{cap: values.len}
+	for value in values {
+		machos << macho_file_from_args([value])
+	}
+	return fat_file_boundary(new_fat_file_from_machos(machos, fat64) or { panic(err) })
 }
 
 // Ruby method `self.new_from_bin(bin, **opts)` at line 82.
 pub fn ruby_fat_file_l82_d8_self_new_from_bin(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.new_from_bin', ...args)
+	if args.len == 0 { panic('new_from_bin requires binary data') }
+	options := if args.len > 1 {
+		macho_file_options_from_value(args[1])
+	} else {
+		MachoFileOptions{}
+	}
+	return fat_file_boundary(new_fat_file_from_bin(args[0].as_string().bytes(), options) or { panic(err) })
 }
 
 // Ruby method `initialize(filename, **opts)` at line 94.
 pub fn ruby_fat_file_l94_d9_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	if args.len == 0 { panic('initialize requires a filename') }
+	options := if args.len > 1 {
+		macho_file_options_from_value(args[1])
+	} else {
+		MachoFileOptions{}
+	}
+	return fat_file_boundary(new_fat_file(args[0].as_string(), options) or { panic(err) })
 }
 
 // Ruby method `initialize_from_bin(bin, opts)` at line 111.
 pub fn ruby_fat_file_l111_d10_initialize_from_bin(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize_from_bin', ...args)
+	return ruby_fat_file_l82_d8_self_new_from_bin(...args)
 }
 
 // Ruby method `serialize` at line 120.
 pub fn ruby_fat_file_l120_d11_serialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('serialize', ...args)
+	return brew_runtime.string_value(fat_file_from_args(args).serialize().bytestr())
 }
 
 // Ruby def_delegators `def_delegators :canonical_macho, :object?, :executable?, :fvmlib?, :core?, :preload?, :dylib?, :dylinker?, :bundle?, :dsym?, :kext?, :filetype, :dylib_id` at line 148.
 pub fn ruby_fat_file_l148_d12_object(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('object?', ...args)
+	return brew_runtime.bool_value(fat_file_from_args(args).canonical_macho().header.filetype == mh_object)
 }
 
 // Ruby def_delegators `def_delegators :canonical_macho, :object?, :executable?, :fvmlib?, :core?, :preload?, :dylib?, :dylinker?, :bundle?, :dsym?, :kext?, :filetype, :dylib_id` at line 148.
 pub fn ruby_fat_file_l148_d13_executable(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('executable?', ...args)
+	return brew_runtime.bool_value(fat_file_from_args(args).canonical_macho().header.filetype == mh_execute)
 }
 
 // Ruby def_delegators `def_delegators :canonical_macho, :object?, :executable?, :fvmlib?, :core?, :preload?, :dylib?, :dylinker?, :bundle?, :dsym?, :kext?, :filetype, :dylib_id` at line 148.
 pub fn ruby_fat_file_l148_d14_fvmlib(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fvmlib?', ...args)
+	return brew_runtime.bool_value(fat_file_from_args(args).canonical_macho().header.filetype == mh_fvmlib)
 }
 
 // Ruby def_delegators `def_delegators :canonical_macho, :object?, :executable?, :fvmlib?, :core?, :preload?, :dylib?, :dylinker?, :bundle?, :dsym?, :kext?, :filetype, :dylib_id` at line 148.
 pub fn ruby_fat_file_l148_d15_core(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('core?', ...args)
+	return brew_runtime.bool_value(fat_file_from_args(args).canonical_macho().header.filetype == mh_core)
 }
 
 // Ruby def_delegators `def_delegators :canonical_macho, :object?, :executable?, :fvmlib?, :core?, :preload?, :dylib?, :dylinker?, :bundle?, :dsym?, :kext?, :filetype, :dylib_id` at line 148.
 pub fn ruby_fat_file_l148_d16_preload(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('preload?', ...args)
+	return brew_runtime.bool_value(fat_file_from_args(args).canonical_macho().header.filetype == mh_preload)
 }
 
 // Ruby def_delegators `def_delegators :canonical_macho, :object?, :executable?, :fvmlib?, :core?, :preload?, :dylib?, :dylinker?, :bundle?, :dsym?, :kext?, :filetype, :dylib_id` at line 148.
 pub fn ruby_fat_file_l148_d17_dylib(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dylib?', ...args)
+	return brew_runtime.bool_value(fat_file_from_args(args).canonical_macho().header.filetype == mh_dylib)
 }
 
 // Ruby def_delegators `def_delegators :canonical_macho, :object?, :executable?, :fvmlib?, :core?, :preload?, :dylib?, :dylinker?, :bundle?, :dsym?, :kext?, :filetype, :dylib_id` at line 148.
 pub fn ruby_fat_file_l148_d18_dylinker(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dylinker?', ...args)
+	return brew_runtime.bool_value(fat_file_from_args(args).canonical_macho().header.filetype == mh_dylinker)
 }
 
 // Ruby def_delegators `def_delegators :canonical_macho, :object?, :executable?, :fvmlib?, :core?, :preload?, :dylib?, :dylinker?, :bundle?, :dsym?, :kext?, :filetype, :dylib_id` at line 148.
 pub fn ruby_fat_file_l148_d19_bundle(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('bundle?', ...args)
+	return brew_runtime.bool_value(fat_file_from_args(args).canonical_macho().header.filetype == mh_bundle)
 }
 
 // Ruby def_delegators `def_delegators :canonical_macho, :object?, :executable?, :fvmlib?, :core?, :preload?, :dylib?, :dylinker?, :bundle?, :dsym?, :kext?, :filetype, :dylib_id` at line 148.
 pub fn ruby_fat_file_l148_d20_dsym(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dsym?', ...args)
+	return brew_runtime.bool_value(fat_file_from_args(args).canonical_macho().header.filetype == mh_dsym)
 }
 
 // Ruby def_delegators `def_delegators :canonical_macho, :object?, :executable?, :fvmlib?, :core?, :preload?, :dylib?, :dylinker?, :bundle?, :dsym?, :kext?, :filetype, :dylib_id` at line 148.
 pub fn ruby_fat_file_l148_d21_kext(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('kext?', ...args)
+	return brew_runtime.bool_value(fat_file_from_args(args).canonical_macho().header.filetype == mh_kext_bundle)
 }
 
 // Ruby def_delegators `def_delegators :canonical_macho, :object?, :executable?, :fvmlib?, :core?, :preload?, :dylib?, :dylinker?, :bundle?, :dsym?, :kext?, :filetype, :dylib_id` at line 148.
 pub fn ruby_fat_file_l148_d22_filetype(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('filetype', ...args)
+	return brew_runtime.object_value('Symbol', ':${fat_file_from_args(args).canonical_macho().filetype_symbol()}')
 }
 
 // Ruby def_delegators `def_delegators :canonical_macho, :object?, :executable?, :fvmlib?, :core?, :preload?, :dylib?, :dylinker?, :bundle?, :dsym?, :kext?, :filetype, :dylib_id` at line 148.
 pub fn ruby_fat_file_l148_d23_dylib_id(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dylib_id', ...args)
+	return if id := fat_file_from_args(args).canonical_macho().dylib_id() {
+		brew_runtime.string_value(id)
+	} else {
+		nil_macho_value()
+	}
 }
 
 // Ruby def_delegators `def_delegators :header, :magic` at line 154.
 pub fn ruby_fat_file_l154_d24_magic(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('magic', ...args)
+	return brew_runtime.int_value(fat_file_from_args(args).header.magic)
 }
 
 // Ruby method `magic_string` at line 157.
 pub fn ruby_fat_file_l157_d25_magic_string(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('magic_string', ...args)
+	return brew_runtime.string_value(fat_file_from_args(args).magic_string())
 }
 
 // Ruby method `populate_fields` at line 164.
 pub fn ruby_fat_file_l164_d26_populate_fields(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('populate_fields', ...args)
+	mut file := fat_file_from_args(args)
+	file.populate_fields() or { panic(err) }
+	return nil_macho_value()
 }
 
 // Ruby method `dylib_load_commands` at line 172.
 pub fn ruby_fat_file_l172_d27_dylib_load_commands(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dylib_load_commands', ...args)
+	return brew_runtime.array_value(fat_file_from_args(args).dylib_load_commands().map(load_command_boundary(it)))
 }
 
 // Ruby method `change_dylib_id(new_id, options = {})` at line 187.
 pub fn ruby_fat_file_l187_d28_change_dylib_id(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('change_dylib_id', ...args)
+	if args.len < 2 || args[1].type_name != 'String' { panic('argument must be a String') }
+	options := if args.len > 2 {
+		fat_file_modification_options_from_value(args[2])
+	} else {
+		FatFileModificationOptions{}
+	}
+	mut file := fat_file_from_args(args)
+	file.change_dylib_id(args[1].as_string(), options) or { panic(err) }
+	return nil_macho_value()
 }
 
 // Ruby alias `alias dylib_id= change_dylib_id` at line 198.
 pub fn ruby_fat_file_l198_d29_dylib_id(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dylib_id=', ...args)
+	return ruby_fat_file_l187_d28_change_dylib_id(...args)
 }
 
 // Ruby method `linked_dylibs` at line 203.
 pub fn ruby_fat_file_l203_d30_linked_dylibs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('linked_dylibs', ...args)
+	return brew_runtime.string_array_value(fat_file_from_args(args).linked_dylibs())
 }
 
 // Ruby method `change_install_name(old_name, new_name, options = {})` at line 222.
 pub fn ruby_fat_file_l222_d31_change_install_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('change_install_name', ...args)
+	if args.len < 3 { panic('change_install_name requires old and new names') }
+	options := if args.len > 3 {
+		fat_file_modification_options_from_value(args[3])
+	} else {
+		FatFileModificationOptions{}
+	}
+	mut file := fat_file_from_args(args)
+	file.change_install_name(args[1].as_string(), args[2].as_string(), options) or { panic(err) }
+	return nil_macho_value()
 }
 
 // Ruby alias `alias change_dylib change_install_name` at line 230.
 pub fn ruby_fat_file_l230_d32_change_dylib(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('change_dylib', ...args)
+	return ruby_fat_file_l222_d31_change_install_name(...args)
 }
 
 // Ruby method `rpaths` at line 235.
 pub fn ruby_fat_file_l235_d33_rpaths(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('rpaths', ...args)
+	return brew_runtime.string_array_value(fat_file_from_args(args).rpaths())
 }
 
 // Ruby method `change_rpath(old_path, new_path, options = {})` at line 250.
 pub fn ruby_fat_file_l250_d34_change_rpath(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('change_rpath', ...args)
+	if args.len < 3 { panic('change_rpath requires old and new paths') }
+	options := if args.len > 3 {
+		fat_file_modification_options_from_value(args[3])
+	} else {
+		FatFileModificationOptions{}
+	}
+	mut file := fat_file_from_args(args)
+	file.change_rpath(args[1].as_string(), args[2].as_string(), options) or { panic(err) }
+	return nil_macho_value()
 }
 
 // Ruby method `add_rpath(path, options = {})` at line 265.
 pub fn ruby_fat_file_l265_d35_add_rpath(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('add_rpath', ...args)
+	if args.len < 2 { panic('add_rpath requires a path') }
+	options := if args.len > 2 {
+		fat_file_modification_options_from_value(args[2])
+	} else {
+		FatFileModificationOptions{}
+	}
+	mut file := fat_file_from_args(args)
+	file.add_rpath(args[1].as_string(), options) or { panic(err) }
+	return nil_macho_value()
 }
 
 // Ruby method `delete_rpath(path, options = {})` at line 283.
 pub fn ruby_fat_file_l283_d36_delete_rpath(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('delete_rpath', ...args)
+	if args.len < 2 { panic('delete_rpath requires a path') }
+	options := if args.len > 2 {
+		fat_file_modification_options_from_value(args[2])
+	} else {
+		FatFileModificationOptions{}
+	}
+	mut file := fat_file_from_args(args)
+	file.delete_rpath(args[1].as_string(), options) or { panic(err) }
+	return nil_macho_value()
 }
 
 // Ruby method `codesign!(identifier: nil)` at line 294.
 pub fn ruby_fat_file_l294_d37_codesign(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('codesign!', ...args)
+	identifier := if args.len > 1 && args[1].type_name != 'NilClass' {
+		args[1].as_string()
+	} else {
+		''
+	}
+	mut file := fat_file_from_args(args)
+	file.codesign(identifier) or { panic(err) }
+	return nil_macho_value()
 }
 
 // Ruby method `extract(cputype)` at line 306.
 pub fn ruby_fat_file_l306_d38_extract(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('extract', ...args)
+	if args.len < 2 { panic('extract requires a CPU type') }
+	return if macho := fat_file_from_args(args).extract(args[1].as_string()) {
+		macho_file_boundary(macho)
+	} else {
+		nil_macho_value()
+	}
 }
 
 // Ruby method `write(filename)` at line 313.
 pub fn ruby_fat_file_l313_d39_write(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('write', ...args)
+	if args.len < 2 { panic('write requires a filename') }
+	file := fat_file_from_args(args)
+	file.write(args[1].as_string()) or { panic(err) }
+	return brew_runtime.int_value(file.raw_data.len)
 }
 
 // Ruby method `write!` at line 321.
 pub fn ruby_fat_file_l321_d40_write(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('write!', ...args)
+	file := fat_file_from_args(args)
+	file.write_initial() or { panic(err) }
+	return brew_runtime.int_value(file.raw_data.len)
 }
 
 // Ruby method `to_h` at line 328.
 pub fn ruby_fat_file_l328_d41_to_h(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_h', ...args)
+	return fat_file_from_args(args).to_h()
 }
 
 // Ruby method `populate_fat_header` at line 348.
 pub fn ruby_fat_file_l348_d42_populate_fat_header(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('populate_fat_header', ...args)
+	return macho_header_boundary(fat_file_from_args(args).populate_fat_header() or { panic(err) })
 }
 
 // Ruby method `populate_fat_archs` at line 375.
 pub fn ruby_fat_file_l375_d43_populate_fat_archs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('populate_fat_archs', ...args)
+	archs := fat_file_from_args(args).populate_fat_archs() or { panic(err) }
+	return brew_runtime.array_value(archs.map(macho_header_boundary(it)))
 }
 
 // Ruby method `populate_machos` at line 392.
 pub fn ruby_fat_file_l392_d44_populate_machos(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('populate_machos', ...args)
+	machos := fat_file_from_args(args).populate_machos() or { panic(err) }
+	return brew_runtime.array_value(machos.map(macho_file_boundary(it)))
 }
 
 // Ruby method `repopulate_raw_machos` at line 412.
 pub fn ruby_fat_file_l412_d45_repopulate_raw_machos(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('repopulate_raw_machos', ...args)
+	mut file := fat_file_from_args(args)
+	file.repopulate_raw_machos() or { panic(err) }
+	return nil_macho_value()
 }
 
 // Ruby method `repopulate_resized_raw_machos` at line 426.
 pub fn ruby_fat_file_l426_d46_repopulate_resized_raw_machos(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('repopulate_resized_raw_machos', ...args)
+	mut file := fat_file_from_args(args)
+	file.repopulate_resized_raw_machos() or { panic(err) }
+	return nil_macho_value()
 }
 
 // Ruby method `each_macho(options = {})` at line 459.
 pub fn ruby_fat_file_l459_d47_each_macho(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('each_macho', ...args)
+	panic('FatFile#each_macho requires a Ruby block; use the typed V each_macho callback boundary')
 }
 
 // Ruby method `canonical_macho` at line 482.
 pub fn ruby_fat_file_l482_d48_canonical_macho(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('canonical_macho', ...args)
+	return macho_file_boundary(fat_file_from_args(args).canonical_macho())
 }
 
 // Original Ruby source (line-for-line):

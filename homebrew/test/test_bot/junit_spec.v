@@ -1,18 +1,51 @@
 module test_bot
 
 import brew_runtime
+import homebrew.test_bot as junit_core
+import os
 
 // Translated from Homebrew/brew `test/test_bot/junit_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "loads REXML and produces valid JUnit XML without NameError" do` at line 11.
 pub fn ruby_junit_spec_l11_d1_loads(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('loads', ...args)
+	mut junit := junit_core.new_junit([junit_core.JunitTest{
+		steps: [junit_core.JunitStep{
+			command_short: 'audit'
+			status: 'passed'
+			time: '1.5'
+			start_time: '2024-01-15T12:00:00Z'
+			passed: true
+			command: ['brew', 'audit', 'foo']
+		}]
+	}], 'arm64_sonoma')
+	junit.build(['audit'])
+	path := os.join_path(os.temp_dir(), 'brew-v-junit-passed-${os.getpid()}.xml')
+	defer { os.rm(path) or {} }
+	junit.write(path) or { return brew_runtime.bool_value(false) }
+	content := os.read_file(path) or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value(os.exists(path) && content.contains('<?xml')
+		&& content.contains('testsuites') && content.contains('testcase')
+		&& content.contains("name='audit'"))
 }
 
 // Ruby it `it "includes failure element when a step did not pass" do` at line 40.
 pub fn ruby_junit_spec_l40_d2_includes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('includes', ...args)
+	mut junit := junit_core.new_junit([junit_core.JunitTest{
+		steps: [junit_core.JunitStep{
+			command_short: 'test'
+			status: 'failed'
+			time: '2.0'
+			start_time: '2024-01-15T12:00:00Z'
+			command: ['brew', 'test', 'foo']
+		}]
+	}], 'arm64_sonoma')
+	junit.build(['test'])
+	path := os.join_path(os.temp_dir(), 'brew-v-junit-failed-${os.getpid()}.xml')
+	defer { os.rm(path) or {} }
+	junit.write(path) or { return brew_runtime.bool_value(false) }
+	content := os.read_file(path) or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value(content.contains('<failure ') && content.contains('failed'))
 }
 
 // Original Ruby source (line-for-line):

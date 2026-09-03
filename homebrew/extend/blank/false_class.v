@@ -7,12 +7,12 @@ import brew_runtime
 
 // Ruby method `blank? = true` at line 11.
 pub fn ruby_false_class_l11_d1_blank(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('blank?', ...args)
+	return brew_runtime.bool_value(true)
 }
 
 // Ruby method `present? = false # :nodoc:` at line 14.
 pub fn ruby_false_class_l14_d2_present(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('present?', ...args)
+	return brew_runtime.bool_value(false)
 }
 
 // Original Ruby source (line-for-line):

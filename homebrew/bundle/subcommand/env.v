@@ -7,7 +7,49 @@ import brew_runtime
 
 // Ruby method `run` at line 28.
 pub fn ruby_env_l28_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('run', ...args)
+	options := BundleExecSubcommandOptions{
+		check: if args.len > 0 { args[0].as_bool() or { false } } else { false }
+		no_secrets: if args.len > 1 { args[1].as_bool() or { false } } else { false }
+		global: if args.len > 2 { args[2].as_bool() or { false } } else { false }
+		file: if args.len > 3 { args[3].as_string() } else { '' }
+	}
+	return bundle_exec_invocation_value(run_env_subcommand(options))
+}
+
+pub struct BundleExecSubcommandOptions {
+pub:
+	check      bool
+	no_secrets bool
+	services   bool
+	global     bool
+	file       string
+}
+
+pub struct BundleExecSubcommandInvocation {
+pub:
+	command string
+	args    []string
+	options BundleExecSubcommandOptions
+}
+
+pub fn run_env_subcommand(options BundleExecSubcommandOptions) BundleExecSubcommandInvocation {
+	return BundleExecSubcommandInvocation{
+		command: 'env'
+		args: ['env']
+		options: options
+	}
+}
+
+fn bundle_exec_invocation_value(invocation BundleExecSubcommandInvocation) brew_runtime.Value {
+	return brew_runtime.structured_value('Bundle::ExecSubcommand::Invocation', invocation.args.join(' '), {
+		'command':    invocation.command
+		'args':       invocation.args.join('\n')
+		'check':      invocation.options.check.str()
+		'no_secrets': invocation.options.no_secrets.str()
+		'services':   invocation.options.services.str()
+		'global':     invocation.options.global.str()
+		'file':       invocation.options.file
+	})
 }
 
 // Original Ruby source (line-for-line):

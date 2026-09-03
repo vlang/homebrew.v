@@ -1,58 +1,88 @@
 module ast
 
 import brew_runtime
+import homebrew.utils
+
+fn cask_ast_spec_source() string {
+	return 'cask "foo" do\n  version "1.0"\n  sha256 "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"\n\n  url "https://brew.sh/foo-#{version}.dmg"\n  name "Foo"\n\n  on_arm do\n    version "1.1"\n    sha256 :no_check\n  end\nend\n'
+}
+
+fn cask_ast_arch_source() string {
+	return 'cask "foo" do\n  on_arm do\n    version "1.0"\n  end\n  on_intel do\n    version "1.0"\n  end\nend\n'
+}
 
 // Translated from Homebrew/brew `test/utils/ast/cask_ast_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:cask_ast) do` at line 7.
 pub fn ruby_cask_ast_spec_l7_d1_cask_ast(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask_ast', ...args)
+	return utils.ruby_ast_l568_d50_initialize(brew_runtime.string_value(cask_ast_spec_source()))
 }
 
 // Ruby it `it "replaces the first matching stanza argument" do` at line 25.
 pub fn ruby_cask_ast_spec_l25_d2_replaces(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('replaces', ...args)
+	mut cask := utils.CaskAst{ contents: cask_ast_spec_source() }
+	utils.ast_cask_replace_first(mut cask, 'url', brew_runtime.string_value('https://brew.sh/foo-2.0.dmg'))
+	return brew_runtime.bool_value(cask.contents.contains('url "https://brew.sh/foo-2.0.dmg"'))
 }
 
 // Ruby it `it "replaces matching stanza arguments" do` at line 33.
 pub fn ruby_cask_ast_spec_l33_d3_replaces(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('replaces', ...args)
+	mut cask := utils.CaskAst{ contents: cask_ast_spec_source() }
+	utils.ast_cask_replace_value(mut cask, 'version', brew_runtime.string_value('1.0'), brew_runtime.string_value('2.0'), none)
+	utils.ast_cask_replace_value(mut cask, 'sha256', brew_runtime.string_value('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'), brew_runtime.string_value('bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'), none)
+	utils.ast_cask_replace_value(mut cask, 'sha256', brew_runtime.object_value('Symbol', ':no_check'), brew_runtime.string_value('cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc'), none)
+	expected := 'cask "foo" do\n  version "2.0"\n  sha256 "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"\n\n  url "https://brew.sh/foo-#{version}.dmg"\n  name "Foo"\n\n  on_arm do\n    version "1.1"\n    sha256 "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"\n  end\nend\n'
+	return brew_runtime.bool_value(cask.contents == expected)
 }
 
 // Ruby it `it "replaces matching hash argument values" do` at line 56.
 pub fn ruby_cask_ast_spec_l56_d4_replaces(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('replaces', ...args)
+	mut cask := utils.CaskAst{ contents: 'cask "foo" do\n  version "1.0"\n  sha256 arm:   "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",\n         intel: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"\n  url "https://brew.sh/foo.dmg"\nend\n' }
+	count := utils.ast_cask_replace_value(mut cask, 'sha256', brew_runtime.string_value('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'), brew_runtime.string_value('cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc'), none)
+	return brew_runtime.bool_value(count == 1 && cask.contents.contains('arm:   "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"'))
 }
 
 // Ruby it `it "replaces matching stanza arguments only inside on_arm blocks" do` at line 80.
 pub fn ruby_cask_ast_spec_l80_d5_replaces(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('replaces', ...args)
+	mut cask := utils.CaskAst{ contents: cask_ast_arch_source() }
+	count := utils.ast_cask_replace_value(mut cask, 'version', brew_runtime.string_value('1.0'), brew_runtime.string_value('2.0'), 'on_arm')
+	return brew_runtime.bool_value(count == 1 && cask.contents.contains('on_arm do\n    version "2.0"') && cask.contents.contains('on_intel do\n    version "1.0"'))
 }
 
 // Ruby it `it "replaces matching stanza arguments only inside on_intel blocks" do` at line 105.
 pub fn ruby_cask_ast_spec_l105_d6_replaces(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('replaces', ...args)
+	mut cask := utils.CaskAst{ contents: cask_ast_arch_source() }
+	count := utils.ast_cask_replace_value(mut cask, 'version', brew_runtime.string_value('1.0'), brew_runtime.string_value('2.0'), 'on_intel')
+	return brew_runtime.bool_value(count == 1 && cask.contents.contains('on_arm do\n    version "1.0"') && cask.contents.contains('on_intel do\n    version "2.0"'))
 }
 
 // Ruby it `it "keeps replacing all matching stanza arguments without a scope" do` at line 130.
 pub fn ruby_cask_ast_spec_l130_d7_keeps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('keeps', ...args)
+	mut cask := utils.CaskAst{ contents: cask_ast_arch_source() }
+	count := utils.ast_cask_replace_value(mut cask, 'version', brew_runtime.string_value('1.0'), brew_runtime.string_value('2.0'), none)
+	return brew_runtime.bool_value(count == 2 && cask.contents.count('version "2.0"') == 2)
 }
 
 // Ruby it `it "replaces matching stanza values within an on-system block" do` at line 155.
 pub fn ruby_cask_ast_spec_l155_d8_replaces(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('replaces', ...args)
+	mut cask := utils.CaskAst{ contents: 'cask "foo" do\n  on_arm do\n    version "1.0"\n    sha256 "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"\n  end\n\n  on_intel do\n    version "1.0"\n    sha256 "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"\n  end\n\n  url "https://brew.sh/foo.dmg"\nend\n' }
+	version_count := utils.ast_cask_replace_value(mut cask, 'version', brew_runtime.string_value('1.0'), brew_runtime.string_value('2.0'), 'on_arm')
+	sha_count := utils.ast_cask_replace_value(mut cask, 'sha256', brew_runtime.string_value('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'), brew_runtime.string_value('bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'), 'on_arm')
+	return brew_runtime.bool_value(version_count == 1 && sha_count == 1 && cask.contents.contains('on_arm do\n    version "2.0"\n    sha256 "bbbb') && cask.contents.contains('on_intel do\n    version "1.0"\n    sha256 "aaaa'))
 }
 
 // Ruby it `it "detects casks with a macOS dependency" do` at line 197.
 pub fn ruby_cask_ast_spec_l197_d9_detects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('detects', ...args)
+	cask := utils.CaskAst{ contents: 'cask "foo" do\n  version "1.0"\n  sha256 :no_check\n  url "https://brew.sh/foo.dmg"\n  depends_on macos: ">= :ventura"\nend\n' }
+	return brew_runtime.bool_value(utils.ast_cask_depends_on_macos(cask))
 }
 
 // Ruby it `it "returns false without a macOS dependency" do` at line 210.
 pub fn ruby_cask_ast_spec_l210_d10_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	return brew_runtime.bool_value(!utils.ast_cask_depends_on_macos(utils.CaskAst{
+		contents: cask_ast_spec_source()
+	}))
 }
 
 // Original Ruby source (line-for-line):

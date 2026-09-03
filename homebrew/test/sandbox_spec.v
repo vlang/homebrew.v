@@ -1,98 +1,242 @@
 module test
 
-import brew_runtime
+import homebrew
+import homebrew.extend.os.mac
+import os
+
+fn sandbox_spec_paths(root string) !homebrew.SandboxPaths {
+	home := os.join_path(root, 'home')
+	prefix := os.join_path(root, 'prefix')
+	repository := os.join_path(root, 'repository')
+	cache := os.join_path(root, 'cache')
+	logs := os.join_path(root, 'logs')
+	temp := os.join_path(root, 'tmp')
+	for path in [home, prefix, repository, cache, logs, temp] {
+		os.mkdir_all(path)!
+	}
+	return homebrew.SandboxPaths{
+		home: home
+		prefix: prefix
+		repository: repository
+		cache: cache
+		logs: logs
+		temp: temp
+		library: os.join_path(repository, 'Library')
+		original_brew_file: os.join_path(repository, 'bin/brew')
+	}
+}
+
+fn sandbox_spec_new(root string) !homebrew.Sandbox {
+	return homebrew.ruby_sandbox_l283_d31_initialize(sandbox_spec_paths(root)!)
+}
+
+fn sandbox_spec_run_root(root string, context homebrew.SandboxRunContext) homebrew.SandboxRunContext {
+	return homebrew.SandboxRunContext{
+		tmpdir: os.join_path(root, 'run')
+		exit_status: context.exit_status
+		output: context.output
+		sandbox_command: context.sandbox_command
+		allow_network_for_error_pipe: context.allow_network_for_error_pipe
+		operations: context.operations
+	}
+}
 
 // Translated from Homebrew/brew `test/sandbox_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:sandbox) { described_class.new }` at line 7.
-pub fn ruby_sandbox_spec_l7_d1_sandbox(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sandbox', ...args)
+pub fn ruby_sandbox_spec_l7_d1_sandbox(root string) !homebrew.Sandbox {
+	return sandbox_spec_new(root)
 }
 
 // Ruby let `let(:dir) { mktmpdir }` at line 9.
-pub fn ruby_sandbox_spec_l9_d2_dir(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dir', ...args)
+pub fn ruby_sandbox_spec_l9_d2_dir(root string) !string {
+	directory := os.join_path(root, 'dir')
+	os.mkdir_all(directory)!
+	return directory
 }
 
 // Ruby let `let(:file) { dir/"foo" }` at line 10.
-pub fn ruby_sandbox_spec_l10_d3_file(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('file', ...args)
+pub fn ruby_sandbox_spec_l10_d3_file(directory string) string {
+	return os.join_path(directory, 'foo')
 }
 
 // Ruby it `it "skips the sandbox for an unprivileged user in a custom prefix" do` at line 26.
-pub fn ruby_sandbox_spec_l26_d4_skips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skips', ...args)
+pub fn ruby_sandbox_spec_l26_d4_skips() !bool {
+	return homebrew.ruby_sandbox_l98_d15_self_avoid_nested_sandboxing(homebrew.SandboxAvoidContext{
+		opted_in: true
+		nested: true
+		prefix: '/custom'
+	})!
 }
 
 // Ruby it `it "is false when not opted in via the environment" do` at line 30.
-pub fn ruby_sandbox_spec_l30_d5_is(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('is', ...args)
+pub fn ruby_sandbox_spec_l30_d5_is() !bool {
+	return !homebrew.ruby_sandbox_l98_d15_self_avoid_nested_sandboxing(homebrew.SandboxAvoidContext{
+		nested: true
+	})!
 }
 
 // Ruby it `it "is false when not running inside another sandbox" do` at line 35.
-pub fn ruby_sandbox_spec_l35_d6_is(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('is', ...args)
+pub fn ruby_sandbox_spec_l35_d6_is() !bool {
+	return !homebrew.ruby_sandbox_l98_d15_self_avoid_nested_sandboxing(homebrew.SandboxAvoidContext{
+		opted_in: true
+	})!
 }
 
 // Ruby it `it "errors out in the default prefix" do` at line 40.
-pub fn ruby_sandbox_spec_l40_d7_errors(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('errors', ...args)
+pub fn ruby_sandbox_spec_l40_d7_errors() bool {
+	homebrew.ruby_sandbox_l98_d15_self_avoid_nested_sandboxing(homebrew.SandboxAvoidContext{
+		opted_in: true
+		nested: true
+		default_prefix: true
+		prefix: '/opt/homebrew'
+	}) or { return err.msg().contains('default prefix') }
+	return false
 }
 
 // Ruby it `it "errors out for a user in a privileged group" do` at line 45.
-pub fn ruby_sandbox_spec_l45_d8_errors(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('errors', ...args)
+pub fn ruby_sandbox_spec_l45_d8_errors() bool {
+	homebrew.ruby_sandbox_l98_d15_self_avoid_nested_sandboxing(homebrew.SandboxAvoidContext{
+		opted_in: true
+		nested: true
+		prefix: '/custom'
+		privileged_group: 'staff'
+	}) or { return err.msg().contains('privileged `staff` group') }
+	return false
 }
 
 // Ruby specify `specify "#allow_write" do` at line 51.
-pub fn ruby_sandbox_spec_l51_d9_allow_write(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#allow_write', ...args)
+pub fn ruby_sandbox_spec_l51_d9_allow_write(root string) !bool {
+	mut sandbox := sandbox_spec_new(root)!
+	file := os.join_path(root, 'dir', 'foo')
+	homebrew.ruby_sandbox_l461_d40_allow_write(mut sandbox, file, .literal)!
+	homebrew.ruby_sandbox_l552_d55_run(mut sandbox, ['touch', file], sandbox_spec_run_root(root, homebrew.SandboxRunContext{
+		operations: [
+			homebrew.SandboxFileOperation{ operation: 'file-write*', path: file },
+		]
+	}))!
+	return os.exists(file)
 }
 
 // Ruby it `it "writes to a path containing the seatbelt string delimiters \\ and \"" do` at line 58.
-pub fn ruby_sandbox_spec_l58_d10_writes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('writes', ...args)
+pub fn ruby_sandbox_spec_l58_d10_writes(root string) !bool {
+	mut sandbox := sandbox_spec_new(root)!
+	directory := os.join_path(root, 'I:\\ and "quote"')
+	os.mkdir_all(directory)!
+	target := os.join_path(directory, 'foo')
+	homebrew.ruby_sandbox_l461_d40_allow_write(mut sandbox, target, .literal)!
+	homebrew.ruby_sandbox_l552_d55_run(mut sandbox, ['touch', target], sandbox_spec_run_root(root, homebrew.SandboxRunContext{
+		operations: [
+			homebrew.SandboxFileOperation{ operation: 'file-write*', path: target },
+		]
+	}))!
+	return os.exists(target)
 }
 
 // Ruby it `it "fails when writing to file not specified with` at line 69.
-pub fn ruby_sandbox_spec_l69_d11_fails(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fails', ...args)
+pub fn ruby_sandbox_spec_l69_d11_fails(root string) !bool {
+	mut sandbox := sandbox_spec_new(root)!
+	file := os.join_path(root, 'denied', 'foo')
+	homebrew.ruby_sandbox_l552_d55_run(mut sandbox, ['touch', file], sandbox_spec_run_root(root, homebrew.SandboxRunContext{
+		operations: [
+			homebrew.SandboxFileOperation{ operation: 'file-write*', path: file },
+		]
+	})) or {
+		return err.msg().contains('ErrorDuringExecution') && !os.exists(file)
+	}
+	return false
 }
 
 // Ruby it `it "complains on failure" do` at line 77.
-pub fn ruby_sandbox_spec_l77_d12_complains(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('complains', ...args)
+pub fn ruby_sandbox_spec_l77_d12_complains(root string) !bool {
+	mut sandbox := sandbox_spec_new(root)!
+	homebrew.ruby_sandbox_l552_d55_run(mut sandbox, ['false'], sandbox_spec_run_root(root, homebrew.SandboxRunContext{ exit_status: 1 })) or {
+		logs := mac.ruby_sandbox_l123_d10_record_sandbox_log(sandbox, 'foo', true)!
+		return err.msg().contains('ErrorDuringExecution') && logs.displayed && logs.logs == 'foo'
+	}
+	return false
 }
 
 // Ruby it `it "does not raise getcwd EPERM when the parent CWD is sandbox-denied" do` at line 88.
-pub fn ruby_sandbox_spec_l88_d13_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_sandbox_spec_l88_d13_does(root string) !bool {
+	mut sandbox := sandbox_spec_new(root)!
+	denied := os.join_path(root, 'denied')
+	os.mkdir_all(denied)!
+	homebrew.ruby_sandbox_l321_d37_deny_read_path(mut sandbox, denied)!
+	result := homebrew.ruby_sandbox_l552_d55_run(mut sandbox, ['/bin/pwd'], sandbox_spec_run_root(root, homebrew.SandboxRunContext{}))!
+	return result.command == ['/bin/pwd']
 }
 
 // Ruby it `it "ignores bogus Python error" do` at line 97.
-pub fn ruby_sandbox_spec_l97_d14_ignores(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ignores', ...args)
+pub fn ruby_sandbox_spec_l97_d14_ignores(root string) !bool {
+	mut sandbox := sandbox_spec_new(root)!
+	homebrew.ruby_sandbox_l552_d55_run(mut sandbox, ['false'], sandbox_spec_run_root(root, homebrew.SandboxRunContext{ exit_status: 1 })) or {
+		raw := 'foo\nMar 17 02:55:06 sandboxd[342]: Python(49765) deny file-write-unlink /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/distutils/errors.pyc\nbar\n'
+		logs := mac.ruby_sandbox_l123_d10_record_sandbox_log(sandbox, raw, true)!
+		return err.msg().contains('ErrorDuringExecution') && logs.logs.contains('foo') && logs.logs.contains('bar') && !logs.logs.contains('Python')
+	}
+	return false
 }
 
 // Ruby it `it "formula does a chmod to opt" do` at line 115.
-pub fn ruby_sandbox_spec_l115_d15_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula', ...args)
+pub fn ruby_sandbox_spec_l115_d15_formula(root string) !bool {
+	mut sandbox := sandbox_spec_new(root)!
+	prefix := sandbox.paths.prefix
+	homebrew.ruby_sandbox_l552_d55_run(mut sandbox, ['chmod', 'ug-w', prefix], sandbox_spec_run_root(root, homebrew.SandboxRunContext{
+		operations: [
+			homebrew.SandboxFileOperation{ operation: 'file-write-mode', path: prefix, mode: 0o555 },
+		]
+	})) or {
+		return err.msg().contains('ErrorDuringExecution')
+	}
+	return false
 }
 
 // Ruby it `it "allows chmod on a path allowed to write" do` at line 119.
-pub fn ruby_sandbox_spec_l119_d16_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+pub fn ruby_sandbox_spec_l119_d16_allows(root string) !bool {
+	mut sandbox := sandbox_spec_new(root)!
+	directory := os.join_path(root, 'allowed-mode')
+	os.mkdir_all(directory)!
+	file := os.join_path(directory, 'foo')
+	os.write_file(file, '')!
+	homebrew.ruby_sandbox_l473_d42_allow_write_path(mut sandbox, directory)!
+	homebrew.ruby_sandbox_l552_d55_run(mut sandbox, ['chmod', 'ug-w', file], sandbox_spec_run_root(root, homebrew.SandboxRunContext{
+		operations: [
+			homebrew.SandboxFileOperation{ operation: 'file-write-mode', path: file, mode: 0o555 },
+		]
+	}))!
+	return os.exists(file)
 }
 
 // Ruby it `it "formula does a chmod 4000 to opt" do` at line 129.
-pub fn ruby_sandbox_spec_l129_d17_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula', ...args)
+pub fn ruby_sandbox_spec_l129_d17_formula(root string) !bool {
+	mut sandbox := sandbox_spec_new(root)!
+	prefix := sandbox.paths.prefix
+	homebrew.ruby_sandbox_l552_d55_run(mut sandbox, ['chmod', '4000', prefix], sandbox_spec_run_root(root, homebrew.SandboxRunContext{
+		operations: [
+			homebrew.SandboxFileOperation{ operation: 'file-write-setugid', path: prefix, mode: 0o4000 },
+		]
+	})) or {
+		return err.msg().contains('ErrorDuringExecution')
+	}
+	return false
 }
 
 // Ruby it `it "allows chmod 4000 on a path allowed to write" do` at line 133.
-pub fn ruby_sandbox_spec_l133_d18_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+pub fn ruby_sandbox_spec_l133_d18_allows(root string) !bool {
+	mut sandbox := sandbox_spec_new(root)!
+	directory := os.join_path(root, 'allowed-setugid')
+	os.mkdir_all(directory)!
+	file := os.join_path(directory, 'foo')
+	os.write_file(file, '')!
+	homebrew.ruby_sandbox_l473_d42_allow_write_path(mut sandbox, directory)!
+	homebrew.ruby_sandbox_l552_d55_run(mut sandbox, ['chmod', '4000', file], sandbox_spec_run_root(root, homebrew.SandboxRunContext{
+		operations: [
+			homebrew.SandboxFileOperation{ operation: 'file-write-setugid', path: file, mode: 0o4000 },
+		]
+	}))!
+	return os.exists(file)
 }
 
 // Original Ruby source (line-for-line):

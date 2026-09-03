@@ -1,13 +1,12 @@
 module subcommand
 
-import brew_runtime
-
 // Translated from Homebrew/brew `completions/subcommand/link.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `run` at line 20.
-pub fn ruby_link_l20_run(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('run', ...args)
+pub fn ruby_link_l20_run(mut state CompletionsState) string {
+	state.linked = true
+	return 'Completions are now linked.\n'
 }
 
 // Original Ruby source (line-for-line):

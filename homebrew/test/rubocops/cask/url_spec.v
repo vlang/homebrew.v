@@ -1,93 +1,125 @@
 module cask
 
-import brew_runtime
+import homebrew.rubocops.cask as url_core
 
 // Translated from Homebrew/brew `test/rubocops/cask/url_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+const url_spec_homebrew_path = '/homebrew-cask/Casks/f/foo.rb'
+const url_spec_tap_path = '/homebrew-tap/Casks/f/foo.rb'
+
+fn url_spec_source(body string) string {
+	return 'cask "foo" do\n${body}\nend'
+}
 
 // Ruby it `it "allows regular `url` blocks in homebrew-cask" do` at line 7.
-pub fn ruby_url_spec_l7_d1_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+pub fn ruby_url_spec_l7_d1_allows() bool {
+	source := url_spec_source('  url "https://example.com/download/foo-v1.2.0.dmg"')
+	return url_core.audit_cask_url(source, url_spec_homebrew_path).len == 0
 }
 
 // Ruby it `it "does not allow `url do` blocks in homebrew-cask" do` at line 15.
-pub fn ruby_url_spec_l15_d2_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_url_spec_l15_d2_does() bool {
+	source := url_spec_source('  url "https://example.com/download/foo-v1.2.0.dmg" do |url|\n    url\n  end')
+	offenses := url_core.audit_cask_url(source, url_spec_homebrew_path)
+	return offenses.len == 1 && offenses[0].kind == 'url_block' && offenses[0].message == url_core.cask_url_block_message && source[offenses[0].begin_pos..offenses[0].end_pos] == 'url "https://example.com/download/foo-v1.2.0.dmg" do |url|\n    url\n  end'
 }
 
 // Ruby it `it "allows regular `url` blocks in a non-homebrew-cask tap" do` at line 26.
-pub fn ruby_url_spec_l26_d3_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+pub fn ruby_url_spec_l26_d3_allows() bool {
+	source := url_spec_source('  url "https://example.com/download/foo-v1.2.0.dmg"')
+	return url_core.audit_cask_url(source, url_spec_tap_path).len == 0
 }
 
 // Ruby it `it "allows `url do` blocks in a non-homebrew-cask tap" do` at line 34.
-pub fn ruby_url_spec_l34_d4_allows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allows', ...args)
+pub fn ruby_url_spec_l34_d4_allows() bool {
+	source := url_spec_source('  url "https://example.com/download/foo-v1.2.0.dmg" do |url|\n    url\n  end')
+	return url_core.audit_cask_url(source, url_spec_tap_path).len == 0
 }
 
 // Ruby it `it "reports an offense for a keyword parameter on the same line as the URL" do` at line 44.
-pub fn ruby_url_spec_l44_d5_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_url_spec_l44_d5_reports() bool {
+	source := url_spec_source('  url "https://example.com/download/foo-v1.2.0.dmg", header: "Accept: application/octet-stream"')
+	expected := url_spec_source('  url "https://example.com/download/foo-v1.2.0.dmg",\n    header: "Accept: application/octet-stream"')
+	offenses := url_core.audit_cask_url(source, '')
+	return offenses.len == 1 && offenses[0].kind == 'keyword_line' && offenses[0].message == url_core.cask_url_keyword_message && url_core.correct_cask_url(source, '') == expected
 }
 
 // Ruby it `it "reports an offense for a `url` stanza with only keyword arguments" do` at line 60.
-pub fn ruby_url_spec_l60_d6_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_url_spec_l60_d6_reports() bool {
+	source := url_spec_source('  url header: "Accept"')
+	offenses := url_core.audit_cask_url(source, '')
+	return offenses.len == 1 && offenses[0].kind == 'missing_argument' && offenses[0].message == url_core.cask_url_argument_message
 }
 
 // Ruby it `it "accepts a method call URL with a keyword parameter on a new indented line" do` at line 69.
-pub fn ruby_url_spec_l69_d7_accepts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('accepts', ...args)
+pub fn ruby_url_spec_l69_d7_accepts() bool {
+	source := url_spec_source('  version "1.2.0"\n  url Utils.download_url(version),\n    header: "Accept: application/octet-stream"')
+	return url_core.audit_cask_url(source, '').len == 0
 }
 
 // Ruby it `it "reports an offense for a method call URL with a keyword parameter on the same line" do` at line 79.
-pub fn ruby_url_spec_l79_d8_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_url_spec_l79_d8_reports() bool {
+	source := url_spec_source('  version "1.2.0"\n  url Utils.download_url(version), header: "Accept: application/octet-stream"')
+	expected := url_spec_source('  version "1.2.0"\n  url Utils.download_url(version),\n    header: "Accept: application/octet-stream"')
+	offenses := url_core.audit_cask_url(source, '')
+	return offenses.len == 1 && offenses[0].kind == 'keyword_line' && url_core.correct_cask_url(source, '') == expected
 }
 
 // Ruby it `it "reports an offense for an http:// URL in homebrew-cask" do` at line 97.
-pub fn ruby_url_spec_l97_d9_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_url_spec_l97_d9_reports() bool {
+	source := url_spec_source('  url "http://example.com/download/foo-v1.2.0.dmg"')
+	offenses := url_core.audit_cask_url(source, url_spec_homebrew_path)
+	return offenses.len == 1 && offenses[0].kind == 'http' && offenses[0].message == url_core.cask_url_http_message
 }
 
 // Ruby it `it "autocorrects http:// to https:// in homebrew-cask" do` at line 106.
-pub fn ruby_url_spec_l106_d10_autocorrects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('autocorrects', ...args)
+pub fn ruby_url_spec_l106_d10_autocorrects() bool {
+	source := url_spec_source('  url "http://example.com/download/foo-v1.2.0.dmg"')
+	expected := url_spec_source('  url "https://example.com/download/foo-v1.2.0.dmg"')
+	return url_core.correct_cask_url(source, url_spec_homebrew_path) == expected
 }
 
 // Ruby it `it "reports no offense for http:// URL outside homebrew-cask" do` at line 121.
-pub fn ruby_url_spec_l121_d11_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_url_spec_l121_d11_reports() bool {
+	source := url_spec_source('  url "http://example.com/download/foo-v1.2.0.dmg"')
+	return url_core.audit_cask_url(source, '/homebrew-mytap/Casks/f/foo.rb').len == 0
 }
 
 // Ruby it `it "reports an offense for a non-string-literal URL in homebrew-cask" do` at line 129.
-pub fn ruby_url_spec_l129_d12_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_url_spec_l129_d12_reports() bool {
+	source := url_spec_source('  version "1.2.3"\n  url Utils.download_url(version)')
+	offenses := url_core.audit_cask_url(source, url_spec_homebrew_path)
+	return offenses.len == 1 && offenses[0].kind == 'string_literal' && offenses[0].message == url_core.cask_url_literal_message && source[offenses[0].begin_pos..offenses[0].end_pos] == 'Utils.download_url(version)'
 }
 
 // Ruby it `it "accepts an interpolated string URL in homebrew-cask" do` at line 139.
-pub fn ruby_url_spec_l139_d13_accepts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('accepts', ...args)
+pub fn ruby_url_spec_l139_d13_accepts() bool {
+	source := url_spec_source('  version "1.2.3"\n  url "https://example.com/download/foo-v#{version}.dmg"')
+	return url_core.audit_cask_url(source, url_spec_homebrew_path).len == 0
 }
 
 // Ruby it `it "accepts a non-string-literal URL outside homebrew-cask" do` at line 148.
-pub fn ruby_url_spec_l148_d14_accepts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('accepts', ...args)
+pub fn ruby_url_spec_l148_d14_accepts() bool {
+	source := url_spec_source('  version "1.2.3"\n  url Utils.download_url(version)')
+	return url_core.audit_cask_url(source, url_spec_tap_path).len == 0
 }
 
 // Ruby it `it "reports no offense for an https:// URL" do` at line 157.
-pub fn ruby_url_spec_l157_d15_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_url_spec_l157_d15_reports() bool {
+	source := url_spec_source('  url "https://example.com/download/foo-v1.2.0.dmg"')
+	return url_core.audit_cask_url(source, '').len == 0
 }
 
 // Ruby it `it "reports no offense for deprecated casks" do` at line 165.
-pub fn ruby_url_spec_l165_d16_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_url_spec_l165_d16_reports() bool {
+	source := url_spec_source('  url "http://example.com/download/foo-v1.2.0.dmg"\n  deprecate! date: "2024-01-01", because: :unmaintained')
+	return url_core.audit_cask_url(source, url_spec_homebrew_path).len == 0
 }
 
 // Ruby it `it "reports no offense for disabled casks" do` at line 174.
-pub fn ruby_url_spec_l174_d17_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_url_spec_l174_d17_reports() bool {
+	source := url_spec_source('  url "http://example.com/download/foo-v1.2.0.dmg"\n  disable! date: "2024-01-01", because: :unmaintained')
+	return url_core.audit_cask_url(source, url_spec_homebrew_path).len == 0
 }
 
 // Original Ruby source (line-for-line):

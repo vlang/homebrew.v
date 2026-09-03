@@ -1,13 +1,67 @@
 module homebrew
 
 import brew_runtime
+import homebrew.utils as brew_utils
 
 // Translated from Homebrew/brew `ask.rb`.
 // The original source is retained below until every stub has a typed V body.
 
+pub enum ConfirmationKeyAction {
+	accept
+	cancel
+	retry
+}
+
+// confirmation_key_action translates the normalization and key selection in
+// lines 24-31 independently of terminal I/O so every source branch is directly
+// testable.
+pub fn confirmation_key_action(character int) ConfirmationKeyAction {
+	if character < 0 || character in [3, 4, 27] {
+		return .cancel
+	}
+	key := rune(character).str().trim_space().to_lower()
+	return match key {
+		'y' { .accept }
+		'n' { .cancel }
+		else { .retry }
+	}
+}
+
+pub fn confirm(action string) !bool {
+	if !brew_runtime.stdin_is_terminal() || !brew_runtime.stdout_is_terminal() {
+		return false
+	}
+
+	println(brew_utils.output_ohai('Do you want to proceed with the ${action}? [y/n]', [],
+		brew_utils.current_output_options()))
+	for {
+		character := brew_runtime.read_terminal_character() or {
+			return error('confirmation aborted')
+		}
+		match confirmation_key_action(character) {
+			.accept {
+				return true
+			}
+			.cancel {
+				return error('confirmation aborted')
+			}
+			.retry {
+				println("Invalid input. Please press 'y' to proceed, or 'n' to abort.")
+			}
+		}
+	}
+	return false
+}
+
 // Ruby method `self.confirm?(action:)` at line 12.
 pub fn ruby_ask_l12_d1_self_confirm(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.confirm?', ...args)
+	action := if args.len > 0 { args[0].as_string() } else { '' }
+	confirmed := confirm(action) or {
+		return brew_runtime.structured_value('SystemExit', err.msg(), {
+			'exit_code': '1'
+		})
+	}
+	return brew_runtime.bool_value(confirmed)
 }
 
 // Original Ruby source (line-for-line):

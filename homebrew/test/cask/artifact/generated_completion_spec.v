@@ -1,78 +1,156 @@
 module artifact
 
-import brew_runtime
+import homebrew.cask.artifact as brew_artifact
+import os
 
 // Translated from Homebrew/brew `test/cask/artifact/generated_completion_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+fn generated_completion_spec_script() string {
+	return '#!/bin/sh\necho "\$SHELL completion"\n'
+}
+
+fn generated_completion_spec_fixture(staged_path string, prefix string,
+	options brew_artifact.GeneratedCompletionOptions) !brew_artifact.GeneratedCompletionArtifact {
+	os.mkdir_all(os.join_path(staged_path, 'bin'))!
+	executable := os.join_path(staged_path, 'bin/foo')
+	os.write_file(executable, generated_completion_spec_script())!
+	os.chmod(executable, 0o755)!
+	return brew_artifact.new_generated_completion('test-generated-completion', staged_path, [
+		'bin/foo',
+		'completions',
+	], brew_artifact.GeneratedCompletionOptions{
+		...options
+		prefix: prefix
+	})
+}
 
 // Ruby let `let(:staged_path) { Pathname(Dir.mktmpdir) }` at line 5.
-pub fn ruby_generated_completion_spec_l5_d1_staged_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('staged_path', ...args)
+pub fn ruby_generated_completion_spec_l5_d1_staged_path(root string) !string {
+	path := os.join_path(root, 'staged')
+	os.mkdir_all(path)!
+	return path
 }
 
 // Ruby let `let(:cask) do` at line 7.
-pub fn ruby_generated_completion_spec_l7_d2_cask(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask', ...args)
+pub fn ruby_generated_completion_spec_l7_d2_cask(staged_path string,
+	prefix string) !brew_artifact.GeneratedCompletionArtifact {
+	return generated_completion_spec_fixture(staged_path, prefix, brew_artifact.GeneratedCompletionOptions{})
 }
 
 // Ruby let `let(:bash_dir) { cask.config.bash_completion }` at line 16.
-pub fn ruby_generated_completion_spec_l16_d3_bash_dir(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('bash_dir', ...args)
+pub fn ruby_generated_completion_spec_l16_d3_bash_dir(prefix string) string {
+	return os.join_path(prefix, 'etc/bash_completion.d')
 }
 
 // Ruby let `let(:zsh_dir) { cask.config.zsh_completion }` at line 17.
-pub fn ruby_generated_completion_spec_l17_d4_zsh_dir(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('zsh_dir', ...args)
+pub fn ruby_generated_completion_spec_l17_d4_zsh_dir(prefix string) string {
+	return os.join_path(prefix, 'share/zsh/site-functions')
 }
 
 // Ruby let `let(:fish_dir) { cask.config.fish_completion }` at line 18.
-pub fn ruby_generated_completion_spec_l18_d5_fish_dir(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fish_dir', ...args)
+pub fn ruby_generated_completion_spec_l18_d5_fish_dir(prefix string) string {
+	return os.join_path(prefix, 'share/fish/vendor_completions.d')
 }
 
 // Ruby let `let(:run_sandboxed_payload) do` at line 19.
-pub fn ruby_generated_completion_spec_l19_d6_run_sandboxed_payload(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('run_sandboxed_payload', ...args)
+pub fn ruby_generated_completion_spec_l19_d6_run_sandboxed_payload(mut artifact brew_artifact.GeneratedCompletionArtifact) bool {
+	artifact.install_phase(true)
+	return artifact.sandbox_used && artifact.sandbox_runs == 1 && artifact.sandbox_calls == [
+		'add_install_hook_rules',
+		'run',
+	]
 }
 
 // Ruby it `it "generates completion scripts for default shells" do` at line 36.
-pub fn ruby_generated_completion_spec_l36_d7_generates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('generates', ...args)
+pub fn ruby_generated_completion_spec_l36_d7_generates(root string) !bool {
+	staged_path := ruby_generated_completion_spec_l5_d1_staged_path(root)!
+	prefix := os.join_path(root, 'prefix')
+	mut artifact := ruby_generated_completion_spec_l7_d2_cask(staged_path, prefix)!
+	artifact.install_phase(true)
+	bash_path := os.join_path(ruby_generated_completion_spec_l16_d3_bash_dir(prefix), 'foo')
+	zsh_path := os.join_path(ruby_generated_completion_spec_l17_d4_zsh_dir(prefix), '_foo')
+	fish_path := os.join_path(ruby_generated_completion_spec_l18_d5_fish_dir(prefix), 'foo.fish')
+	return os.is_file(bash_path) && os.read_file(bash_path)! == 'bash completion\n' && os.is_file(zsh_path) && os.read_file(zsh_path)! == 'zsh completion\n' && os.is_file(fish_path) && os.read_file(fish_path)! == 'fish completion\n'
 }
 
 // Ruby it `it "sandboxes completion generation without network access" do` at line 61.
-pub fn ruby_generated_completion_spec_l61_d8_sandboxes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sandboxes', ...args)
+pub fn ruby_generated_completion_spec_l61_d8_sandboxes(root string) !bool {
+	staged_path := ruby_generated_completion_spec_l5_d1_staged_path(root)!
+	mut artifact := ruby_generated_completion_spec_l7_d2_cask(staged_path, os.join_path(root, 'prefix'))!
+	artifact.install_phase(true)
+	return artifact.sandbox_used && artifact.sandbox_runs == 1 && !artifact.network_access_allowed && artifact.sandbox_calls == [
+		'add_install_hook_rules',
+		'run',
+	] && artifact.sandbox_home != '' && !os.exists(artifact.sandbox_home)
 }
 
 // Ruby it `it "warns and continues generating other shells" do` at line 94.
-pub fn ruby_generated_completion_spec_l94_d9_warns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('warns', ...args)
+pub fn ruby_generated_completion_spec_l94_d9_warns(root string) !bool {
+	staged_path := ruby_generated_completion_spec_l5_d1_staged_path(root)!
+	prefix := os.join_path(root, 'prefix')
+	mut artifact := ruby_generated_completion_spec_l7_d2_cask(staged_path, prefix)!
+	executable := os.join_path(staged_path, 'bin/foo')
+	os.write_file(executable, '#!/bin/sh\n[ "\$SHELL" = bash ] && exit 1\necho "\$SHELL completion"\n')!
+	artifact.install_phase(true)
+	return artifact.warnings.any(it.contains('Failed to generate bash completions')) && os.is_file(os.join_path(ruby_generated_completion_spec_l17_d4_zsh_dir(prefix), '_foo'))
 }
 
 // Ruby it `it "removes generated completion scripts" do` at line 123.
-pub fn ruby_generated_completion_spec_l123_d10_removes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('removes', ...args)
+pub fn ruby_generated_completion_spec_l123_d10_removes(root string) !bool {
+	staged_path := ruby_generated_completion_spec_l5_d1_staged_path(root)!
+	prefix := os.join_path(root, 'prefix')
+	mut artifact := ruby_generated_completion_spec_l7_d2_cask(staged_path, prefix)!
+	artifact.install_phase(false)
+	paths := [
+		os.join_path(ruby_generated_completion_spec_l16_d3_bash_dir(prefix), 'foo'),
+		os.join_path(ruby_generated_completion_spec_l17_d4_zsh_dir(prefix), '_foo'),
+		os.join_path(ruby_generated_completion_spec_l18_d5_fish_dir(prefix), 'foo.fish'),
+	]
+	if paths.any(!os.exists(it)) {
+		return false
+	}
+	artifact.uninstall_phase()
+	return paths.all(!os.exists(it))
 }
 
 // Ruby let `let(:cask) do` at line 142.
-pub fn ruby_generated_completion_spec_l142_d11_cask(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask', ...args)
+pub fn ruby_generated_completion_spec_l142_d11_cask(staged_path string,
+	prefix string) !brew_artifact.GeneratedCompletionArtifact {
+	return generated_completion_spec_fixture(staged_path, prefix, brew_artifact.GeneratedCompletionOptions{
+		base_name: 'bar'
+		base_name_set: true
+		shell_parameter_format: 'arg'
+		shells: ['zsh']
+		shells_set: true
+	})
 }
 
 // Ruby it `it "generates only for the specified shell with the correct format" do` at line 152.
-pub fn ruby_generated_completion_spec_l152_d12_generates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('generates', ...args)
+pub fn ruby_generated_completion_spec_l152_d12_generates(root string) !bool {
+	staged_path := ruby_generated_completion_spec_l5_d1_staged_path(root)!
+	prefix := os.join_path(root, 'prefix')
+	mut artifact := ruby_generated_completion_spec_l142_d11_cask(staged_path, prefix)!
+	artifact.install_phase(true)
+	if artifact.last_completions.len != 1 || artifact.last_completions[0].parameter.arguments != [
+		'--shell=zsh',
+	] {
+		return false
+	}
+	return os.is_file(os.join_path(ruby_generated_completion_spec_l17_d4_zsh_dir(prefix), '_bar')) && !os.exists(os.join_path(ruby_generated_completion_spec_l16_d3_bash_dir(prefix), 'bar')) && !os.exists(os.join_path(ruby_generated_completion_spec_l18_d5_fish_dir(prefix), 'bar.fish'))
 }
 
 // Ruby let `let(:cask) do` at line 179.
-pub fn ruby_generated_completion_spec_l179_d13_cask(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask', ...args)
+pub fn ruby_generated_completion_spec_l179_d13_cask(staged_path string,
+	prefix string) !brew_artifact.GeneratedCompletionArtifact {
+	return generated_completion_spec_fixture(staged_path, prefix, brew_artifact.GeneratedCompletionOptions{
+		shells: ['bash', 'zsh', 'fish', 'pwsh']
+		shells_set: true
+	})
 }
 
 // Ruby it `it "normalizes shells to symbols" do` at line 189.
-pub fn ruby_generated_completion_spec_l189_d14_normalizes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('normalizes', ...args)
+pub fn ruby_generated_completion_spec_l189_d14_normalizes(artifact brew_artifact.GeneratedCompletionArtifact) bool {
+	return artifact.shells == ['bash', 'zsh', 'fish', 'pwsh']
 }
 
 // Original Ruby source (line-for-line):

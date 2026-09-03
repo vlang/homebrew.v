@@ -6,23 +6,53 @@ import brew_runtime
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `self.extensions` at line 10.
-pub fn ruby_p7zip_l10_d1_self_extensions(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.extensions', ...args)
+pub fn ruby_p7zip_l10_d1_self_extensions() []string {
+	return p7zip_extensions()
 }
 
 // Ruby method `self.can_extract?(path)` at line 15.
-pub fn ruby_p7zip_l15_d2_self_can_extract(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.can_extract?', ...args)
+pub fn ruby_p7zip_l15_d2_self_can_extract(path string) bool {
+	return p7zip_can_extract(path)
 }
 
 // Ruby method `dependencies` at line 20.
-pub fn ruby_p7zip_l20_d3_dependencies(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dependencies', ...args)
+pub fn ruby_p7zip_l20_d3_dependencies() []string {
+	return p7zip_dependencies()
 }
 
 // Ruby method `extract_to_dir(unpack_dir, basename:, verbose:)` at line 27.
-pub fn ruby_p7zip_l27_d4_extract_to_dir(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('extract_to_dir', ...args)
+pub fn ruby_p7zip_l27_d4_extract_to_dir(path string, unpack_dir string, basename string, verbose bool) ! {
+	p7zip_extract_to_dir(path, unpack_dir, basename, verbose)!
+}
+
+pub fn p7zip_extensions() []string {
+	return ['.7z']
+}
+
+pub fn p7zip_can_extract(path string) bool {
+	return file_starts_with(path, [u8(`7`), `z`, 0xbc, 0xaf, 0x27, 0x1c])
+}
+
+pub fn p7zip_dependencies() []string {
+	return ['p7zip']
+}
+
+pub fn p7zip_extract_to_dir(path string, unpack_dir string, basename string, verbose bool) ! {
+	_ = basename
+	_ = verbose
+	seven_zip := command_path('7zr')!
+	listing := checked_command(seven_zip, ['l', '-slt', '--', path])!
+	mut members := []string{}
+	for line in listing.output.split_into_lines() {
+		if line.starts_with('Path = ') {
+			member := line.all_after('Path = ').trim_space()
+			if member != path && member != brew_runtime.real_path(path) {
+				members << member
+			}
+		}
+	}
+	validate_archive_members(members)!
+	checked_command(seven_zip, ['x', '-y', '-bd', '-bso0', path, '-o${unpack_dir}'])!
 }
 
 // Original Ruby source (line-for-line):

@@ -4,15 +4,89 @@ import brew_runtime
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/sorbet-runtime-0.6.13412/lib/types/private/casts.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub struct CastFailure {
+pub:
+	message     string
+	kind        string
+	value       brew_runtime.Value
+	expected    brew_runtime.Value
+	caller_path string
+}
+
+pub type CastErrorHandler = fn(CastFailure)
+
+fn cast_type_name(type_value brew_runtime.Value) string {
+	return type_value.attribute('name') or {
+		type_value.attribute('raw_type') or { type_value.as_string() }
+	}
+}
+
+fn cast_value_matches(value brew_runtime.Value, type_value brew_runtime.Value,
+	recursive bool) bool {
+	if type_value.type_name in ['T::Types::Anything', 'T::Types::Untyped'] {
+		return true
+	}
+	if type_value.type_name == 'T::Private::Types::TypeAlias' {
+		aliased := type_value.map_data['aliased_type'] or { return true }
+		return cast_value_matches(value, aliased, recursive)
+	}
+	if type_value.type_name in ['T::Types::Union', 'T::Private::Types::SimplePairUnion'] {
+		return type_value.array_data.any(cast_value_matches(value, it, recursive))
+	}
+	if recursive && type_value.type_name.starts_with('T::Types::Typed') && value.type_name in [
+		'Array',
+		'Set',
+	] {
+		element_type := type_value.map_data['type'] or { return false }
+		return value.array_data.all(cast_value_matches(it, element_type, true))
+	}
+	expected := if type_value.type_name in ['Class', 'Module'] {
+		type_value.as_string()
+	} else {
+		type_value.attribute('raw_type') or { type_value.as_string() }
+	}
+	if value.type_name == expected {
+		return true
+	}
+	ancestors := value.attribute('ancestors') or { return false }
+	return ancestors.split(',').map(it.trim_space()).any(it == expected)
+}
+
+pub fn cast_value(value brew_runtime.Value, type_value brew_runtime.Value, cast_method string,
+	recursive bool, caller_path string, handler CastErrorHandler) brew_runtime.Value {
+	if cast_value_matches(value, type_value, recursive) {
+		return value
+	}
+	error_message := 'Expected type ${cast_type_name(type_value)}, got type ${value.type_name}'
+	message := '${cast_method}: ${error_message}\nCaller: ${caller_path}'
+	handler(CastFailure{
+		message: message
+		kind: cast_method
+		value: value
+		expected: type_value
+		caller_path: caller_path
+	})
+	return value
+}
+
+fn cast_noop_handler(_ CastFailure) {}
+
+fn cast_from_boundary(args []brew_runtime.Value, recursive bool) brew_runtime.Value {
+	if args.len < 3 {
+		panic('Casts.cast requires value, type, and cast method')
+	}
+	caller_path := if args.len > 3 { args[3].as_string() } else { '<unknown>:0' }
+	return cast_value(args[0], args[1], args[2].as_string(), recursive, caller_path, cast_noop_handler)
+}
 
 // Ruby method `self.cast(value, type, cast_method)` at line 6.
 pub fn ruby_casts_l6_d1_self_cast(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.cast', ...args)
+	return cast_from_boundary(args, false)
 }
 
 // Ruby method `self.cast_recursive(value, type, cast_method)` at line 49.
 pub fn ruby_casts_l49_d2_self_cast_recursive(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.cast_recursive', ...args)
+	return cast_from_boundary(args, true)
 }
 
 // Original Ruby source (line-for-line):

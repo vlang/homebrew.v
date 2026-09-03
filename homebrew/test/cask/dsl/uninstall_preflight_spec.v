@@ -7,22 +7,36 @@ import brew_runtime
 
 // Ruby let `let(:cask) { Cask::CaskLoader.load(cask_path("basic-cask")) }` at line 8.
 pub fn ruby_uninstall_preflight_spec_l8_d1_cask(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask', ...args)
+	path := if args.len > 0 { args[0].as_string() } else { 'basic-cask.rb' }
+	return brew_runtime.structured_value('Cask::Cask', 'basic-cask', {
+		'token': 'basic-cask'
+		'path':  path
+	})
 }
 
 // Ruby let `let(:fake_system_command) { class_double(SystemCommand) }` at line 9.
 pub fn ruby_uninstall_preflight_spec_l9_d2_fake_system_command(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fake_system_command', ...args)
+	return brew_runtime.object_value('Class', 'SystemCommand')
 }
 
 // Ruby let `let(:dsl) { described_class.new(cask, fake_system_command) }` at line 10.
 pub fn ruby_uninstall_preflight_spec_l10_d3_dsl(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dsl', ...args)
+	cask := if args.len > 0 { args[0] } else { ruby_uninstall_preflight_spec_l8_d1_cask() }
+	command := if args.len > 1 {
+		args[1]
+	} else {
+		ruby_uninstall_preflight_spec_l9_d2_fake_system_command()
+	}
+	return brew_runtime.structured_value('Cask::DSL::UninstallPreflight', cask.as_string(), {
+		'cask':           cask.as_string()
+		'system_command': command.as_string()
+		'staged':         'true'
+	})
 }
 
 // Ruby let `let(:staged) { dsl }` at line 15.
 pub fn ruby_uninstall_preflight_spec_l15_d4_staged(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('staged', ...args)
+	return if args.len > 0 { args[0] } else { ruby_uninstall_preflight_spec_l10_d3_dsl() }
 }
 
 // Original Ruby source (line-for-line):

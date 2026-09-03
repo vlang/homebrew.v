@@ -4,20 +4,90 @@ import brew_runtime
 
 // Translated from Homebrew/brew `cask/artifact/keyboard_layout.rb`.
 // The original source is retained below until every stub has a typed V body.
+fn run_refresh_command(command ArtifactCommand, runner ArtifactCommandRunner,
+	mut result MovedOperationResult) {
+	result.commands << command
+	succeeded := runner(command) or {
+		result.success = false
+		result.error = err.msg()
+		return
+	}
+	if !succeeded {
+		result.success = false
+		result.error = 'Command failed: ${command.executable}'
+	}
+}
+
+pub fn delete_keyboard_layout_cache_with_command(runner ArtifactCommandRunner,
+	mut result MovedOperationResult) {
+	run_refresh_command(ArtifactCommand{
+		executable: '/bin/rm'
+		args: ['-f', '--', '/System/Library/Caches/com.apple.IntlDataCache.le*']
+		sudo: true
+		sudo_as_root: true
+	}, runner, mut result)
+}
+
+pub fn install_keyboard_layout_with_command(artifact MovedArtifact,
+	options MovedInstallOptions, runner ArtifactCommandRunner) MovedOperationResult {
+	mut result := move_artifact_with_command(artifact, options, runner)
+	if result.success {
+		delete_keyboard_layout_cache_with_command(runner, mut result)
+	}
+	return result
+}
+
+pub fn install_keyboard_layout(artifact MovedArtifact,
+	options MovedInstallOptions) MovedOperationResult {
+	return install_keyboard_layout_with_command(artifact, options, default_artifact_command_runner)
+}
+
+pub fn uninstall_keyboard_layout_with_command(artifact MovedArtifact,
+	options MovedUninstallOptions, runner ArtifactCommandRunner) MovedOperationResult {
+	mut result := move_back_artifact_with_command(artifact, options, runner)
+	if result.success {
+		delete_keyboard_layout_cache_with_command(runner, mut result)
+	}
+	return result
+}
+
+pub fn uninstall_keyboard_layout(artifact MovedArtifact,
+	options MovedUninstallOptions) MovedOperationResult {
+	return uninstall_keyboard_layout_with_command(artifact, options, default_artifact_command_runner)
+}
 
 // Ruby method `install_phase(adopt: false, auto_updates: false, force: false, verbose: false, predecessor: nil,` at line 22.
 pub fn ruby_keyboard_layout_l22_d1_install_phase(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install_phase', ...args)
+	artifact := moved_adapter_artifact(args) or {
+		return brew_runtime.object_value('ArgumentError', err.msg())
+	}
+	options := if args.len > 1 {
+		moved_install_options_from_value(args[1])
+	} else {
+		MovedInstallOptions{}
+	}
+	return moved_operation_to_value(install_keyboard_layout(artifact, options))
 }
 
 // Ruby method `uninstall_phase(skip: false, force: false, adopt: false, verbose: false, successor: nil, upgrade: false,` at line 40.
 pub fn ruby_keyboard_layout_l40_d2_uninstall_phase(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uninstall_phase', ...args)
+	artifact := moved_adapter_artifact(args) or {
+		return brew_runtime.object_value('ArgumentError', err.msg())
+	}
+	options := if args.len > 1 {
+		moved_uninstall_options_from_value(args[1])
+	} else {
+		MovedUninstallOptions{}
+	}
+	return moved_operation_to_value(uninstall_keyboard_layout(artifact, options))
 }
 
 // Ruby method `delete_keyboard_layout_cache(command: SystemCommand)` at line 49.
 pub fn ruby_keyboard_layout_l49_d3_delete_keyboard_layout_cache(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('delete_keyboard_layout_cache', ...args)
+	_ = args
+	mut result := MovedOperationResult{}
+	delete_keyboard_layout_cache_with_command(default_artifact_command_runner, mut result)
+	return moved_operation_to_value(result)
 }
 
 // Original Ruby source (line-for-line):

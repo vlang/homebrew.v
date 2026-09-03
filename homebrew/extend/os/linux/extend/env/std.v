@@ -4,15 +4,95 @@ import brew_runtime
 
 // Translated from Homebrew/brew `extend/os/linux/extend/ENV/std.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub struct LinuxStdFormula {
+pub:
+	include_path string
+	lib_path     string
+}
+
+@[heap]
+pub struct LinuxStdEnv {
+pub:
+	homebrew_prefix string = '/home/linuxbrew/.linuxbrew'
+	libxml2_include ?string
+pub mut:
+	values      map[string]string
+	super_calls int
+}
+
+fn (mut environment LinuxStdEnv) prepend_path(name string, path string) {
+	current := environment.values[name] or { '' }
+	environment.values[name] = if current == '' {
+		path
+	} else if path in current.split(':') {
+		current
+	} else {
+		'${path}:${current}'
+	}
+}
+
+pub fn (mut environment LinuxStdEnv) setup_build_environment(formula ?LinuxStdFormula) {
+	environment.super_calls++
+	prefix_include := '${environment.homebrew_prefix.trim_right('/')}/include'
+	prefix_lib := '${environment.homebrew_prefix.trim_right('/')}/lib'
+	environment.prepend_path('CPATH', prefix_include)
+	environment.prepend_path('LIBRARY_PATH', prefix_lib)
+	environment.prepend_path('LD_RUN_PATH', prefix_lib)
+	if value := formula {
+		environment.prepend_path('CPATH', value.include_path)
+		environment.prepend_path('LIBRARY_PATH', value.lib_path)
+		environment.prepend_path('LD_RUN_PATH', value.lib_path)
+	}
+}
+
+pub fn (mut environment LinuxStdEnv) libxml2() {
+	include_path := environment.libxml2_include or { return }
+	flag := '-I${include_path.trim_right('/')}/libxml2'
+	current := environment.values['CPPFLAGS'] or { '' }
+	environment.values['CPPFLAGS'] = if current == '' { flag } else { '${current} ${flag}' }
+}
+
+fn linux_std_env_value(environment &LinuxStdEnv) brew_runtime.Value {
+	return brew_runtime.structured_value('OS::Linux::Stdenv', '', {
+		'linux_std_env_address': u64(voidptr(environment)).str()
+	})
+}
+
+fn linux_std_env_from_value(value brew_runtime.Value) &LinuxStdEnv {
+	address := value.attributes['linux_std_env_address'] or { panic('invalid Linux Stdenv') }
+	return unsafe { &LinuxStdEnv(voidptr(address.u64())) }
+}
+
+pub fn linux_std_env_boundary(environment &LinuxStdEnv) brew_runtime.Value {
+	return linux_std_env_value(environment)
+}
 
 // Ruby method `setup_build_environment(formula: nil, cc: nil, build_bottle: false, bottle_arch: nil,` at line 21.
 pub fn ruby_std_l21_d1_setup_build_environment(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('setup_build_environment', ...args)
+	if args.len == 0 {
+		return brew_runtime.object_value('ArgumentError', 'environment is required')
+	}
+	mut environment := linux_std_env_from_value(args[0])
+	formula := if args.len > 1 && args[1].type_name != 'NilClass' {
+		?LinuxStdFormula(LinuxStdFormula{
+			include_path: args[1].attributes['include'] or { '' }
+			lib_path: args[1].attributes['lib'] or { '' }
+		})
+	} else {
+		none
+	}
+	environment.setup_build_environment(formula)
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Ruby method `libxml2` at line 37.
 pub fn ruby_std_l37_d2_libxml2(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('libxml2', ...args)
+	if args.len == 0 {
+		return brew_runtime.object_value('ArgumentError', 'environment is required')
+	}
+	mut environment := linux_std_env_from_value(args[0])
+	environment.libxml2()
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Original Ruby source (line-for-line):

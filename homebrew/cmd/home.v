@@ -4,15 +4,111 @@ import brew_runtime
 
 // Translated from Homebrew/brew `cmd/home.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub enum HomeItemKind {
+	formula
+	cask
+}
+
+pub struct HomeItem {
+pub:
+	kind             HomeItemKind
+	name             string
+	homepage         string
+	inferred_as_cask bool
+	source_path      string
+}
+
+pub struct HomeCommandPlan {
+pub:
+	messages  []string
+	warnings  []string
+	homepages []string
+}
+
+pub fn home_item_name(item HomeItem) string {
+	return match item.kind {
+		.formula { 'Formula ${item.name}' }
+		.cask { 'Cask ${item.name}' }
+	}
+}
+
+pub fn plan_home_command(homebrew_www string, items []HomeItem) HomeCommandPlan {
+	if items.len == 0 {
+		return HomeCommandPlan{
+			homepages: [homebrew_www]
+		}
+	}
+	mut messages := []string{}
+	mut warnings := []string{}
+	mut homepages := []string{}
+	for item in items {
+		messages << 'Opening homepage for ${home_item_name(item)}'
+		if item.inferred_as_cask && item.source_path != '' {
+			warnings << 'Treating ${item.source_path} as a cask'
+		}
+		homepages << item.homepage
+	}
+	return HomeCommandPlan{
+		messages: messages
+		warnings: warnings
+		homepages: homepages
+	}
+}
+
+pub fn home_item_value(item HomeItem) brew_runtime.Value {
+	return brew_runtime.structured_value(if item.kind == .formula { 'Formula' } else { 'Cask' }, item.name, {
+		'name':             item.name
+		'homepage':         item.homepage
+		'kind':             item.kind.str()
+		'inferred_as_cask': item.inferred_as_cask.str()
+		'source_path':      item.source_path
+	})
+}
+
+fn home_item_from_value(value brew_runtime.Value) HomeItem {
+	kind := if (value.attribute('kind') or { value.type_name.to_lower() }) == 'cask' {
+		HomeItemKind.cask
+	} else {
+		HomeItemKind.formula
+	}
+	return HomeItem{
+		kind: kind
+		name: value.attribute('name') or { value.as_string() }
+		homepage: value.attribute('homepage') or { '' }
+		inferred_as_cask: (value.attribute('inferred_as_cask') or { 'false' }) == 'true'
+		source_path: value.attribute('source_path') or { '' }
+	}
+}
+
+pub fn home_command_plan_value(plan HomeCommandPlan) brew_runtime.Value {
+	return brew_runtime.Value{
+		type_name: 'HomeCommandPlan'
+		repr: plan.homepages.join(' ')
+		map_data: {
+			'messages':  brew_runtime.string_array_value(plan.messages)
+			'warnings':  brew_runtime.string_array_value(plan.warnings)
+			'homepages': brew_runtime.string_array_value(plan.homepages)
+		}
+	}
+}
 
 // Ruby method `run` at line 26.
 pub fn ruby_home_l26_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('run', ...args)
+	www := if args.len > 0 { args[0].as_string() } else { 'https://brew.sh' }
+	items := if args.len > 1 {
+		args[1].as_array() or { []brew_runtime.Value{} }
+	} else {
+		[]brew_runtime.Value{}
+	}
+	return home_command_plan_value(plan_home_command(www, items.map(home_item_from_value(it))))
 }
 
 // Ruby method `name_of(formula_or_cask)` at line 45.
 pub fn ruby_home_l45_d2_name_of(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('name_of', ...args)
+	if args.len == 0 {
+		return brew_runtime.object_value('ArgumentError', 'name_of requires a Formula or Cask')
+	}
+	return brew_runtime.string_value(home_item_name(home_item_from_value(args[0])))
 }
 
 // Original Ruby source (line-for-line):

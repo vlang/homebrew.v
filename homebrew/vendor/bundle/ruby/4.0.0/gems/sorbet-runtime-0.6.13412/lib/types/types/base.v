@@ -4,85 +4,708 @@ import brew_runtime
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/sorbet-runtime-0.6.13412/lib/types/types/base.rb`.
 // The original source is retained below until every stub has a typed V body.
+const base_not_implemented_error = 'NotImplementedError'
+
+// BaseTypeKind retains the runtime classes inspected by Base#subtype_of?.
+pub enum BaseTypeKind {
+	abstract_base
+	simple
+	anything
+	untyped
+	no_return
+	self_type
+	attached_class
+	type_variable
+	union_type
+	intersection_type
+	alias_type
+	void_type
+	custom
+}
+
+// BaseSubtypeResult preserves Module#<= returning nil for unrelated plain
+// classes. Composite subtype tests treat both no and unrelated as false.
+pub enum BaseSubtypeResult {
+	no
+	yes
+	unrelated
+}
+
+pub struct BaseOptionalString {
+pub:
+	present bool
+	value   string
+}
+
+// BaseType is the typed runtime adapter used while Sorbet's concrete type
+// classes are translated independently. members contains union/intersection
+// members, or the single resolved member for a type alias.
+@[heap]
+pub struct BaseType {
+pub:
+	kind                    BaseTypeKind = .abstract_base
+	type_name               string = 'T::Types::Base'
+	display_name            string
+	members                 []&BaseType
+	valid_type_names        []string
+	direct_subtype_names    []string
+	direct_supertype_names  []string
+	include_value_in_errors bool = true
+}
+
+pub fn new_base_type() &BaseType {
+	return &BaseType{}
+}
+
+pub fn new_simple_base_type(name string, direct_supertypes []string) &BaseType {
+	return &BaseType{
+		kind: .simple
+		type_name: 'T::Types::Simple'
+		display_name: name
+		valid_type_names: [name]
+		direct_supertype_names: direct_supertypes.clone()
+	}
+}
+
+pub fn new_custom_base_type(type_name string, name string, valid_type_names []string,
+	direct_subtype_names []string) &BaseType {
+	return &BaseType{
+		kind: .custom
+		type_name: type_name
+		display_name: name
+		valid_type_names: valid_type_names.clone()
+		direct_subtype_names: direct_subtype_names.clone()
+	}
+}
+
+pub fn new_union_base_type(members []&BaseType) &BaseType {
+	return &BaseType{
+		kind: .union_type
+		type_name: 'T::Types::Union'
+		display_name: 'T.any(${base_type_names(members).join(', ')})'
+		members: members.clone()
+	}
+}
+
+pub fn new_intersection_base_type(members []&BaseType) &BaseType {
+	return &BaseType{
+		kind: .intersection_type
+		type_name: 'T::Types::Intersection'
+		display_name: 'T.all(${base_type_names(members).join(', ')})'
+		members: members.clone()
+	}
+}
+
+pub fn new_alias_base_type(aliased_type &BaseType) &BaseType {
+	return &BaseType{
+		kind: .alias_type
+		type_name: 'T::Private::Types::TypeAlias'
+		display_name: aliased_type.name() or { '' }
+		members: [aliased_type]
+	}
+}
+
+pub fn new_void_base_type() &BaseType {
+	return &BaseType{
+		kind: .void_type
+		type_name: 'T::Private::Types::Void'
+		display_name: '<VOID>'
+	}
+}
+
+pub fn base_anything_type() &BaseType {
+	type_value := anything_type_value()
+	return &BaseType{
+		kind: .anything
+		type_name: type_value.type_name
+		display_name: new_anything_type().name()
+	}
+}
+
+pub fn base_no_return_type() &BaseType {
+	type_value := no_return_type_value()
+	return &BaseType{
+		kind: .no_return
+		type_name: type_value.type_name
+		display_name: new_no_return_type().name()
+	}
+}
+
+pub fn base_untyped_type() &BaseType {
+	type_value := untyped_type_value()
+	return &BaseType{
+		kind: .untyped
+		type_name: type_value.type_name
+		display_name: new_untyped_type().name()
+	}
+}
+
+pub fn base_self_type() &BaseType {
+	type_value := self_type_value()
+	return &BaseType{
+		kind: .self_type
+		type_name: type_value.type_name
+		display_name: new_self_type().name()
+	}
+}
+
+pub fn base_attached_class_type() &BaseType {
+	type_value := attached_class_type_value()
+	return &BaseType{
+		kind: .attached_class
+		type_name: type_value.type_name
+		display_name: new_attached_class_type().name()
+	}
+}
+
+pub fn base_type_variable(variance string) !&BaseType {
+	variable := new_type_variable(variance)!
+	type_value := type_variable_value(variable)
+	return &BaseType{
+		kind: .type_variable
+		type_name: type_value.type_name
+		display_name: variable.name()
+	}
+}
+
+fn base_type_names(types []&BaseType) []string {
+	mut names := []string{cap: types.len}
+	for type_value in types {
+		names << type_value.name() or { '' }
+	}
+	names.sort()
+	return names
+}
+
+// base_method_added mirrors Base's inheritance hook. V does not permit a
+// derived type to override an existing method, so callers expose the attempted
+// declaring runtime class explicitly.
+pub fn base_method_added(declaring_type string, method_name string) ! {
+	if method_name.trim_string_left(':') == 'subtype_of?' && declaring_type != 'T::Types::Base' {
+		return error('`subtype_of?` should not be overridden. You probably want to override `subtype_of_single?` instead.')
+	}
+}
+
+pub fn (type_value &BaseType) recursively_valid(obj brew_runtime.Value) !bool {
+	return type_value.valid(obj)
+}
+
+pub fn (type_value &BaseType) valid(obj brew_runtime.Value) !bool {
+	return match type_value.kind {
+		.abstract_base { error(base_not_implemented_error) }
+		.anything { new_anything_type().valid(obj) }
+		.untyped { new_untyped_type().valid(obj) }
+		.no_return { new_no_return_type().valid(obj) }
+		.self_type { new_self_type().valid(obj) }
+		.attached_class { new_attached_class_type().valid(obj) }
+		.type_variable { true }
+		.union_type {
+			mut valid := false
+			for member in type_value.members {
+				if member.valid(obj)! {
+					valid = true
+					break
+				}
+			}
+			valid
+		}
+		.intersection_type {
+			mut valid := true
+			for member in type_value.members {
+				if !member.valid(obj)! {
+					valid = false
+					break
+				}
+			}
+			valid
+		}
+		.alias_type {
+			type_value.aliased_type()!.valid(obj)!
+		}
+		.void_type {
+			error('Validation is being done on an `Void`. Please report this bug at https://github.com/sorbet/sorbet/issues')
+		}
+		.simple, .custom {
+			type_value.accepts_object_type(obj)
+		}
+	}
+}
+
+fn (type_value &BaseType) accepts_object_type(obj brew_runtime.Value) bool {
+	if obj.type_name in type_value.valid_type_names {
+		return true
+	}
+	ancestors := obj.attributes['ancestors'] or { return false }
+	for ancestor in ancestors.split(',') {
+		if ancestor.trim_space() in type_value.valid_type_names {
+			return true
+		}
+	}
+	return false
+}
+
+pub fn (type_value &BaseType) subtype_of_single(other &BaseType) !BaseSubtypeResult {
+	return match type_value.kind {
+		.abstract_base { error(base_not_implemented_error) }
+		.anything {
+			if new_anything_type().subtype_of_single(base_type_boundary_value(other)) {
+				BaseSubtypeResult.yes
+			} else {
+				BaseSubtypeResult.no
+			}
+		}
+		.untyped {
+			if new_untyped_type().subtype_of_single(base_type_boundary_value(other)) {
+				BaseSubtypeResult.yes
+			} else {
+				BaseSubtypeResult.no
+			}
+		}
+		.no_return {
+			if new_no_return_type().subtype_of_single(base_type_boundary_value(other)) {
+				BaseSubtypeResult.yes
+			} else {
+				BaseSubtypeResult.no
+			}
+		}
+		.self_type {
+			if new_self_type().subtype_of_single(base_type_boundary_value(other)) {
+				BaseSubtypeResult.yes
+			} else {
+				BaseSubtypeResult.no
+			}
+		}
+		.attached_class {
+			if new_attached_class_type().subtype_of_single(base_type_boundary_value(other)) {
+				BaseSubtypeResult.yes
+			} else {
+				BaseSubtypeResult.no
+			}
+		}
+		.type_variable { BaseSubtypeResult.yes }
+		.union_type, .intersection_type {
+			error("This should never be reached if you're going through `subtype_of?` (and you should be)")
+		}
+		.alias_type {
+			type_value.aliased_type()!.subtype_of_single(other)!
+		}
+		.void_type {
+			error('Validation is being done on an `Void`. Please report this bug at https://github.com/sorbet/sorbet/issues')
+		}
+		.simple {
+			type_value.simple_subtype_of_single(other)
+		}
+		.custom {
+			if type_value.display_name == other.display_name || other.display_name in type_value.direct_subtype_names {
+				BaseSubtypeResult.yes
+			} else {
+				BaseSubtypeResult.no
+			}
+		}
+	}
+}
+
+fn (type_value &BaseType) simple_subtype_of_single(other &BaseType) BaseSubtypeResult {
+	if other.kind != .simple && other.kind != .custom {
+		return .no
+	}
+	if type_value.display_name == other.display_name || other.display_name in type_value.direct_supertype_names || other.display_name in type_value.direct_subtype_names {
+		return .yes
+	}
+	if type_value.display_name in other.direct_supertype_names {
+		return .no
+	}
+	return .unrelated
+}
+
+fn (type_value &BaseType) aliased_type() !&BaseType {
+	if type_value.members.len != 1 {
+		return error('TypeAlias has no aliased type')
+	}
+	return type_value.members[0]
+}
+
+pub fn (type_value &BaseType) build_type() ! {
+	if type_value.kind == .abstract_base {
+		return error(base_not_implemented_error)
+	}
+	if type_value.kind in [.union_type, .intersection_type] {
+		for member in type_value.members {
+			member.build_type()!
+		}
+	}
+}
+
+pub fn (type_value &BaseType) name() !string {
+	if type_value.kind == .abstract_base {
+		return error(base_not_implemented_error)
+	}
+	if type_value.kind == .alias_type {
+		return type_value.aliased_type()!.name()
+	}
+	return type_value.display_name
+}
+
+pub fn (type_value &BaseType) subtype_of(other_type &BaseType) !BaseSubtypeResult {
+	right := if other_type.kind == .alias_type {
+		other_type.aliased_type()!
+	} else {
+		other_type
+	}
+	if type_value.kind == .simple && right.kind == .simple {
+		return type_value.subtype_of_single(right)
+	}
+	if right.kind == .anything {
+		return .yes
+	}
+	if type_value.kind == .alias_type {
+		return type_value.aliased_type()!.subtype_of(right)
+	}
+	if type_value.kind == .type_variable || right.kind == .type_variable {
+		return .yes
+	}
+	if type_value.kind == .union_type {
+		for member in type_value.members {
+			if member.subtype_of(right)! != .yes {
+				return .no
+			}
+		}
+		return .yes
+	}
+	if right.kind == .intersection_type {
+		for member in right.members {
+			if type_value.subtype_of(member)! != .yes {
+				return .no
+			}
+		}
+		return .yes
+	}
+	if right.kind == .union_type {
+		for right_member in right.members {
+			if type_value.subtype_of(right_member)! == .yes {
+				return .yes
+			}
+		}
+		if type_value.kind == .intersection_type {
+			for left_member in type_value.members {
+				if left_member.subtype_of(right)! == .yes {
+					return .yes
+				}
+			}
+		}
+		return .no
+	}
+	if type_value.kind == .intersection_type {
+		for member in type_value.members {
+			if member.subtype_of(right)! == .yes {
+				return .yes
+			}
+		}
+		return .no
+	}
+	if type_value.kind == .void_type {
+		return if right.kind == .void_type { .yes } else { .no }
+	}
+	if type_value.kind == .untyped || right.kind == .untyped {
+		return .yes
+	}
+	return type_value.subtype_of_single(right)
+}
+
+pub fn (type_value &BaseType) to_s() !string {
+	return type_value.name()
+}
+
+pub fn (type_value &BaseType) describe_obj(obj brew_runtime.Value) string {
+	class_name := base_object_class_name(obj)
+	if obj.type_name == 'NilClass' || obj.type_name == 'Bool' || obj.type_name in [
+		'TrueClass',
+		'FalseClass',
+	] {
+		return 'type ${class_name}'
+	}
+	if obj.attributes['unprintable'] or { '' } == 'true' {
+		return 'type ${class_name} with unprintable value'
+	}
+	if base_has_kernel_inspect(obj) {
+		hash_value := obj.attributes['hash'] or { i64(obj.repr.hash()).str() }
+		return 'type ${class_name} with hash ${hash_value}'
+	}
+	if type_value.include_value_in_errors {
+		return 'type ${class_name} with value ${truncate_middle(base_value_inspect(obj), 30, 30)}'
+	}
+	return 'type ${class_name}'
+}
+
+fn base_object_class_name(obj brew_runtime.Value) string {
+	return match obj.type_name {
+		'Bool' {
+			if obj.bool_data { 'TrueClass' } else { 'FalseClass' }
+		}
+		else { obj.type_name }
+	}
+}
+
+fn base_has_kernel_inspect(obj brew_runtime.Value) bool {
+	if inspect_owner := obj.attributes['inspect_owner'] {
+		return inspect_owner == 'Kernel'
+	}
+	return obj.type_name !in ['String', 'Integer', 'Float', 'Bool', 'TrueClass', 'FalseClass',
+		'NilClass', 'Symbol', 'Array', 'Hash']
+}
+
+fn base_value_inspect(obj brew_runtime.Value) string {
+	if inspect := obj.attributes['inspect'] {
+		return inspect
+	}
+	return match obj.type_name {
+		'String' { '"${base_escape_string(obj.repr)}"' }
+		'NilClass' { 'nil' }
+		'Bool' { obj.bool_data.str() }
+		else { obj.repr }
+	}
+}
+
+fn base_escape_string(value string) string {
+	return value.replace('\\', '\\\\').replace('"', '\\"').replace('\n', '\\n').replace('\r', '\\r').replace('\t', '\\t')
+}
+
+fn truncate_middle(value string, start_len int, end_len int) string {
+	runes := value.runes()
+	if runes.len <= start_len + end_len {
+		return value
+	}
+	return runes[..start_len].string() + '...' + runes[runes.len - end_len..].string()
+}
+
+pub fn (type_value &BaseType) error_message_for_obj(obj brew_runtime.Value) !BaseOptionalString {
+	if type_value.valid(obj)! {
+		return BaseOptionalString{}
+	}
+	return BaseOptionalString{
+		present: true
+		value: type_value.error_message(obj)!
+	}
+}
+
+pub fn (type_value &BaseType) error_message_for_obj_recursive(obj brew_runtime.Value) !BaseOptionalString {
+	if type_value.recursively_valid(obj)! {
+		return BaseOptionalString{}
+	}
+	return BaseOptionalString{
+		present: true
+		value: type_value.error_message(obj)!
+	}
+}
+
+pub fn (type_value &BaseType) error_message(obj brew_runtime.Value) !string {
+	return 'Expected type ${type_value.name()!}, got ${type_value.describe_obj(obj)}'
+}
+
+pub fn (type_value &BaseType) validate(obj brew_runtime.Value) ! {
+	message := type_value.error_message_for_obj(obj)!
+	if message.present {
+		return error(message.value)
+	}
+}
+
+pub fn (type_value &BaseType) hash() !int {
+	return type_value.name()!.hash()
+}
+
+pub fn (type_value &BaseType) equals(other &BaseType) !bool {
+	if voidptr(type_value) == voidptr(other) {
+		return true
+	}
+	return type_value.name()! == other.name()!
+}
+
+pub fn (type_value &BaseType) eql(other &BaseType) !bool {
+	return type_value.equals(other)
+}
+
+pub fn base_type_boundary_value(type_value &BaseType) brew_runtime.Value {
+	return brew_runtime.structured_value(type_value.type_name, type_value.name() or {
+		type_value.display_name
+	}, {
+		'base_type_address': u64(voidptr(type_value)).str()
+	})
+}
+
+pub fn base_type_from_value(value brew_runtime.Value) !&BaseType {
+	if address := value.attributes['base_type_address'] {
+		return unsafe { &BaseType(voidptr(address.u64())) }
+	}
+	return match value.type_name {
+		'T::Types::Base' { new_base_type() }
+		'T::Types::Simple' { new_simple_base_type(value.repr, []) }
+		'T::Types::Anything' { base_anything_type() }
+		'T::Types::Untyped' { base_untyped_type() }
+		'T::Types::NoReturn' { base_no_return_type() }
+		'T::Types::SelfType' { base_self_type() }
+		'T::Types::AttachedClassType' { base_attached_class_type() }
+		'T::Types::TypeVariable', 'T::Types::TypeMember', 'T::Types::TypeParameter' {
+			base_type_variable(value.attributes['variance'] or { 'invariant' })!
+		}
+		'T::Private::Types::Void' { new_void_base_type() }
+		else { error('${value.type_name} is not a T::Types::Base') }
+	}
+}
+
+fn base_type_from_args(args []brew_runtime.Value) &BaseType {
+	if args.len == 0 {
+		panic('Base method requires a receiver')
+	}
+	return base_type_from_value(args[0]) or { panic(err) }
+}
+
+fn base_subtype_boundary_value(result BaseSubtypeResult) brew_runtime.Value {
+	return match result {
+		.yes { brew_runtime.bool_value(true) }
+		.no { brew_runtime.bool_value(false) }
+		.unrelated { brew_runtime.object_value('NilClass', 'nil') }
+	}
+}
+
+fn base_optional_string_value(value BaseOptionalString) brew_runtime.Value {
+	if value.present {
+		return brew_runtime.string_value(value.value)
+	}
+	return brew_runtime.object_value('NilClass', 'nil')
+}
 
 // Ruby method `self.method_added(method_name)` at line 6.
 pub fn ruby_base_l6_d1_self_method_added(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.method_added', ...args)
+	if args.len == 0 {
+		panic('Base.method_added requires a method name')
+	}
+	declaring_type := if args.len > 1 { args[0].type_name } else { 'T::Types::Base' }
+	base_method_added(declaring_type, args[args.len - 1].as_string()) or { panic(err) }
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Ruby method `recursively_valid?(obj)` at line 20.
 pub fn ruby_base_l20_d2_recursively_valid(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('recursively_valid?', ...args)
+	if args.len < 2 {
+		panic('Base#recursively_valid? requires an object')
+	}
+	return brew_runtime.bool_value(base_type_from_args(args).recursively_valid(args[1]) or {
+		panic(err)
+	})
 }
 
 // Ruby define_method `define_method(:valid?) do |_obj|` at line 24.
 pub fn ruby_base_l24_d3_valid(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('valid?', ...args)
+	if args.len < 2 {
+		panic('Base#valid? requires an object')
+	}
+	return brew_runtime.bool_value(base_type_from_args(args).valid(args[1]) or { panic(err) })
 }
 
 // Ruby method `subtype_of_single?(type)` at line 32.
 pub fn ruby_base_l32_d4_subtype_of_single(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('subtype_of_single?', ...args)
+	if args.len < 2 {
+		panic('Base#subtype_of_single? requires another type')
+	}
+	receiver := base_type_from_args(args)
+	other := base_type_from_value(args[1]) or { panic(err) }
+	return base_subtype_boundary_value(receiver.subtype_of_single(other) or { panic(err) })
 }
 
 // Ruby define_method `define_method(:build_type) do` at line 38.
 pub fn ruby_base_l38_d5_build_type(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('build_type', ...args)
+	base_type_from_args(args).build_type() or { panic(err) }
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Ruby define_method `define_method(:name) do` at line 43.
 pub fn ruby_base_l43_d6_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('name', ...args)
+	return brew_runtime.string_value(base_type_from_args(args).name() or { panic(err) })
 }
 
 // Ruby method `subtype_of?(t2)` at line 52.
 pub fn ruby_base_l52_d7_subtype_of(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('subtype_of?', ...args)
+	if args.len < 2 {
+		panic('Base#subtype_of? requires another type')
+	}
+	receiver := base_type_from_args(args)
+	other := base_type_from_value(args[1]) or { panic(err) }
+	return base_subtype_boundary_value(receiver.subtype_of(other) or { panic(err) })
 }
 
 // Ruby method `to_s` at line 132.
 pub fn ruby_base_l132_d8_to_s(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_s', ...args)
+	return brew_runtime.string_value(base_type_from_args(args).to_s() or { panic(err) })
 }
 
 // Ruby method `describe_obj(obj)` at line 136.
 pub fn ruby_base_l136_d9_describe_obj(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('describe_obj', ...args)
+	if args.len < 2 {
+		panic('Base#describe_obj requires an object')
+	}
+	return brew_runtime.string_value(base_type_from_args(args).describe_obj(args[1]))
 }
 
 // Ruby method `error_message_for_obj(obj)` at line 158.
 pub fn ruby_base_l158_d10_error_message_for_obj(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('error_message_for_obj', ...args)
+	if args.len < 2 {
+		panic('Base#error_message_for_obj requires an object')
+	}
+	return base_optional_string_value(base_type_from_args(args).error_message_for_obj(args[1]) or {
+		panic(err)
+	})
 }
 
 // Ruby method `error_message_for_obj_recursive(obj)` at line 166.
 pub fn ruby_base_l166_d11_error_message_for_obj_recursive(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('error_message_for_obj_recursive', ...args)
+	if args.len < 2 {
+		panic('Base#error_message_for_obj_recursive requires an object')
+	}
+	return base_optional_string_value(base_type_from_args(args).error_message_for_obj_recursive(args[1]) or {
+		panic(err)
+	})
 }
 
 // Ruby method `error_message(obj)` at line 174.
 pub fn ruby_base_l174_d12_error_message(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('error_message', ...args)
+	if args.len < 2 {
+		panic('Base#error_message requires an object')
+	}
+	return brew_runtime.string_value(base_type_from_args(args).error_message(args[1]) or {
+		panic(err)
+	})
 }
 
 // Ruby method `validate!(obj)` at line 178.
 pub fn ruby_base_l178_d13_validate(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('validate!', ...args)
+	if args.len < 2 {
+		panic('Base#validate! requires an object')
+	}
+	base_type_from_args(args).validate(args[1]) or { panic(err) }
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Ruby method `hash` at line 185.
 pub fn ruby_base_l185_d14_hash(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('hash', ...args)
+	return brew_runtime.int_value(i64(base_type_from_args(args).hash() or { panic(err) }))
 }
 
 // Ruby method `==(other)` at line 191.
 pub fn ruby_base_l191_d15_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('==', ...args)
+	if args.len < 2 {
+		return brew_runtime.bool_value(false)
+	}
+	other := base_type_from_value(args[1]) or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value(base_type_from_args(args).equals(other) or { panic(err) })
 }
 
 // Ruby alias_method `alias_method :eql?, :==` at line 203.
 pub fn ruby_base_l203_d16_eql(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('eql?', ...args)
+	if args.len < 2 {
+		return brew_runtime.bool_value(false)
+	}
+	other := base_type_from_value(args[1]) or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value(base_type_from_args(args).eql(other) or { panic(err) })
 }
 
 // Original Ruby source (line-for-line):

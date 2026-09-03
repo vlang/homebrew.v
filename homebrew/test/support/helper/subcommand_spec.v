@@ -7,7 +7,12 @@ import brew_runtime
 
 // Ruby specify `specify "unknown predicates raise" do` at line 5.
 pub fn ruby_subcommand_spec_l5_d1_unknown(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('unknown', ...args)
+	_ = args
+	parsed := args_for_subcommand(none, [], {})
+	parsed.invoke('formuale?', []) or {
+		return brew_runtime.bool_value(err.msg().contains("undefined method 'formuale?'"))
+	}
+	return brew_runtime.bool_value(false)
 }
 
 // Original Ruby source (line-for-line):

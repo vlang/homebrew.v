@@ -1,18 +1,24 @@
 module cask
 
 import brew_runtime
+import homebrew.cask as brew_cask
 
 // Translated from Homebrew/brew `test/cask/denylist_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby matcher `matcher :disallow do |name|` at line 8.
 pub fn ruby_denylist_spec_l8_d1_disallow(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('disallow', ...args)
+	return brew_runtime.bool_value(args.len > 0
+		&& brew_cask.denylist_reason(args[0].as_string()) != none)
 }
 
 // Ruby specify `specify(:aggregate_failures) do` at line 14.
 pub fn ruby_denylist_spec_l14_d2_aggregate_failures(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('aggregate_failures', ...args)
+	disallowed := ['adobe-after-effects', 'adobe-illustrator', 'adobe-indesign', 'adobe-photoshop',
+		'adobe-premiere', 'pharo']
+	return brew_runtime.bool_value(brew_cask.denylist_reason('adobe-air') == none
+		&& disallowed.all(brew_cask.denylist_reason(it) != none)
+		&& brew_cask.denylist_reason('allowed-cask') == none)
 }
 
 // Original Ruby source (line-for-line):

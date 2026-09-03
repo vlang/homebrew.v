@@ -1,53 +1,66 @@
 module rubocops
 
 import brew_runtime
+import homebrew.rubocops as caveats_core
 
 // Translated from Homebrew/brew `test/rubocops/caveats_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:cop) { described_class.new }` at line 7.
 pub fn ruby_caveats_spec_l7_d1_cop(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cop', ...args)
+	return brew_runtime.object_value('RuboCop::Cop::FormulaAudit::Caveats', 'FormulaAudit/Caveats')
 }
 
 // Ruby it `it "reports an offense if `setuid` is mentioned" do` at line 10.
-pub fn ruby_caveats_spec_l10_d2_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_caveats_spec_l10_d2_reports() bool {
+	return caveats_core.audit_formula_caveats('def caveats\n  "setuid"\nend', '').map(it.kind) == [
+		'setuid',
+	]
 }
 
 // Ruby method `caveats` at line 15.
-pub fn ruby_caveats_spec_l15_d3_caveats(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('caveats', ...args)
+pub fn ruby_caveats_spec_l15_d3_caveats() string {
+	return 'setuid'
 }
 
 // Ruby it `it "reports an offense if an escape character is present" do` at line 23.
-pub fn ruby_caveats_spec_l23_d4_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_caveats_spec_l23_d4_reports() bool {
+	first := caveats_core.audit_formula_caveats('def caveats\n  "\\x1B"\nend', '')
+	second := caveats_core.audit_formula_caveats('def caveats\n  "\\u001b"\nend', '')
+	return first.map(it.kind) == ['ansi_escape'] && second.map(it.kind) == [
+		'ansi_escape',
+	]
 }
 
 // Ruby method `caveats` at line 28.
-pub fn ruby_caveats_spec_l28_d5_caveats(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('caveats', ...args)
+pub fn ruby_caveats_spec_l28_d5_caveats() string {
+	return '\x1b'
 }
 
 // Ruby method `caveats` at line 39.
-pub fn ruby_caveats_spec_l39_d6_caveats(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('caveats', ...args)
+pub fn ruby_caveats_spec_l39_d6_caveats() string {
+	return '\x1b'
 }
 
 // Ruby it `it "reports an offense if dynamic logic (if/else/unless) is used in caveats" do` at line 47.
-pub fn ruby_caveats_spec_l47_d7_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_caveats_spec_l47_d7_reports() bool {
+	if_source := 'def caveats\n  if true\n    "foo"\n  else\n    "bar"\n  end\nend'
+	unless_source := 'def caveats\n  unless false\n    "foo"\n  end\nend'
+	return caveats_core.audit_formula_caveats(if_source, 'homebrew-core').map(it.kind) == [
+		'dynamic_logic',
+	] && caveats_core.audit_formula_caveats(unless_source, 'homebrew-core').map(it.kind) == [
+		'dynamic_logic',
+	]
 }
 
 // Ruby method `caveats` at line 52.
-pub fn ruby_caveats_spec_l52_d8_caveats(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('caveats', ...args)
+pub fn ruby_caveats_spec_l52_d8_caveats() string {
+	return 'if true\n  "foo"\nelse\n  "bar"\nend'
 }
 
 // Ruby method `caveats` at line 67.
-pub fn ruby_caveats_spec_l67_d9_caveats(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('caveats', ...args)
+pub fn ruby_caveats_spec_l67_d9_caveats() string {
+	return 'unless false\n  "foo"\nend'
 }
 
 // Original Ruby source (line-for-line):

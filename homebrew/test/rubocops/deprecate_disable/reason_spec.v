@@ -1,133 +1,187 @@
 module deprecate_disable
 
 import brew_runtime
+import homebrew.rubocops
 
 // Translated from Homebrew/brew `test/rubocops/deprecate_disable/reason_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+fn reason_spec_source(method string, arguments string) string {
+	return "class Foo < Formula\n  url 'https://brew.sh/foo-1.0.tgz'\n  ${method}${arguments}\nend\n"
+}
+
+fn reason_spec_no_offense(method string, arguments string) bool {
+	source := reason_spec_source(method, arguments)
+	analysis := rubocops.analyze_deprecate_disable_reasons(source)
+	return analysis.offenses.len == 0 && analysis.corrected == source
+}
+
+fn reason_spec_missing(method string, arguments string, message string) bool {
+	source := reason_spec_source(method, arguments)
+	analysis := rubocops.analyze_deprecate_disable_reasons(source)
+	call_source := '${method}${arguments}'
+	begin_pos := source.index(call_source) or { return false }
+	return analysis.offenses.len == 1 && analysis.offenses[0].begin_pos == begin_pos && analysis.offenses[0].end_pos == begin_pos + call_source.len && analysis.offenses[0].message == message && analysis.offenses[0].replacement == '' && analysis.corrected == source
+}
+
+fn reason_spec_correction(method string, arguments string, original string, message string,
+	replacement string) bool {
+	source := reason_spec_source(method, arguments)
+	analysis := rubocops.analyze_deprecate_disable_reasons(source)
+	literal := '"${original}"'
+	begin_pos := source.index(literal) or { return false }
+	end_pos := begin_pos + literal.len
+	expected := source[..begin_pos] + replacement + source[end_pos..]
+	return analysis.offenses.len == 1 && analysis.offenses[0].begin_pos == begin_pos && analysis.offenses[0].end_pos == end_pos && analysis.offenses[0].message == message && analysis.offenses[0].replacement == replacement && analysis.corrected == expected
+}
 
 // Ruby subject `subject(:cop) { described_class.new }` at line 7.
 pub fn ruby_reason_spec_l7_d1_cop(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cop', ...args)
+	_ = args
+	return brew_runtime.object_value('RuboCop::Cop::FormulaAudit::DeprecateDisableReason', 'DeprecateDisableReason')
 }
 
 // Ruby it `it "reports no offenses if `reason` is acceptable" do` at line 10.
 pub fn ruby_reason_spec_l10_d2_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	_ = args
+	return brew_runtime.bool_value(reason_spec_no_offense('deprecate!', ' because: "is broken"'))
 }
 
 // Ruby it `it "reports no offenses if `reason` is acceptable as a symbol" do` at line 19.
 pub fn ruby_reason_spec_l19_d3_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	_ = args
+	return brew_runtime.bool_value(reason_spec_no_offense('deprecate!', ' because: :does_not_build'))
 }
 
 // Ruby it `it "reports no offenses if `reason` is acceptable (with `date`)" do` at line 28.
 pub fn ruby_reason_spec_l28_d4_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	_ = args
+	return brew_runtime.bool_value(reason_spec_no_offense('deprecate!', ' date: "2020-08-28", because: "is broken"'))
 }
 
 // Ruby it `it "reports no offenses if `reason` is acceptable as a symbol (with `date`)" do` at line 37.
 pub fn ruby_reason_spec_l37_d5_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	_ = args
+	return brew_runtime.bool_value(reason_spec_no_offense('deprecate!', ' date: "2020-08-28", because: :does_not_build'))
 }
 
 // Ruby it `it "reports an offense if `reason` is absent" do` at line 46.
 pub fn ruby_reason_spec_l46_d6_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	_ = args
+	return brew_runtime.bool_value(reason_spec_missing('deprecate!', '', 'Add a reason for deprecation: `deprecate! because: "..."`'))
 }
 
 // Ruby it `it "reports an offense if `reason` is absent (with `date`)" do` at line 56.
 pub fn ruby_reason_spec_l56_d7_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	_ = args
+	return brew_runtime.bool_value(reason_spec_missing('deprecate!', ' date: "2020-08-28"', 'Add a reason for deprecation: `deprecate! because: "..."`'))
 }
 
 // Ruby it `it "reports and corrects an offense if `reason` starts with 'it'" do` at line 66.
 pub fn ruby_reason_spec_l66_d8_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	_ = args
+	return brew_runtime.bool_value(reason_spec_correction('deprecate!', ' because: "it is broken"', 'it is broken', 'Do not start the reason with `it`', '"is broken"'))
 }
 
 // Ruby it `it "reports and corrects an offense if `reason` starts with 'it' (with `date`)" do` at line 83.
 pub fn ruby_reason_spec_l83_d9_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	_ = args
+	return brew_runtime.bool_value(reason_spec_correction('deprecate!', ' date: "2020-08-28", because: "it is broken"', 'it is broken', 'Do not start the reason with `it`', '"is broken"'))
 }
 
 // Ruby it `it "reports and corrects an offense if `reason` ends with a period" do` at line 100.
 pub fn ruby_reason_spec_l100_d10_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	_ = args
+	return brew_runtime.bool_value(reason_spec_correction('deprecate!', ' because: "is broken."', 'is broken.', 'Do not end the reason with a punctuation mark', '"is broken"'))
 }
 
 // Ruby it `it "reports and corrects an offense if `reason` ends with an exclamation point" do` at line 117.
 pub fn ruby_reason_spec_l117_d11_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	_ = args
+	return brew_runtime.bool_value(reason_spec_correction('deprecate!', ' because: "is broken!"', 'is broken!', 'Do not end the reason with a punctuation mark', '"is broken"'))
 }
 
 // Ruby it `it "reports and corrects an offense if `reason` ends with a question mark" do` at line 134.
 pub fn ruby_reason_spec_l134_d12_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	_ = args
+	return brew_runtime.bool_value(reason_spec_correction('deprecate!', ' because: "is broken?"', 'is broken?', 'Do not end the reason with a punctuation mark', '"is broken"'))
 }
 
 // Ruby it `it "reports and corrects an offense if `reason` ends with a period (with `date`)" do` at line 151.
 pub fn ruby_reason_spec_l151_d13_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	_ = args
+	return brew_runtime.bool_value(reason_spec_correction('deprecate!', ' date: "2020-08-28", because: "is broken."', 'is broken.', 'Do not end the reason with a punctuation mark', '"is broken"'))
 }
 
 // Ruby it `it "reports no offenses if `reason` is acceptable" do` at line 170.
 pub fn ruby_reason_spec_l170_d14_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	_ = args
+	return brew_runtime.bool_value(reason_spec_no_offense('disable!', ' because: "is broken"'))
 }
 
 // Ruby it `it "reports no offenses if `reason` is acceptable as a symbol" do` at line 179.
 pub fn ruby_reason_spec_l179_d15_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	_ = args
+	return brew_runtime.bool_value(reason_spec_no_offense('disable!', ' because: :does_not_build'))
 }
 
 // Ruby it `it "reports no offenses if `reason` is acceptable (with `date`)" do` at line 188.
 pub fn ruby_reason_spec_l188_d16_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	_ = args
+	return brew_runtime.bool_value(reason_spec_no_offense('disable!', ' date: "2020-08-28", because: "is broken"'))
 }
 
 // Ruby it `it "reports no offenses if `reason` is acceptable as a symbol (with `date`)" do` at line 197.
 pub fn ruby_reason_spec_l197_d17_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	_ = args
+	return brew_runtime.bool_value(reason_spec_no_offense('disable!', ' date: "2020-08-28", because: :does_not_build'))
 }
 
 // Ruby it `it "reports an offense if `reason` is absent" do` at line 206.
 pub fn ruby_reason_spec_l206_d18_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	_ = args
+	return brew_runtime.bool_value(reason_spec_missing('disable!', '', 'Add a reason for disabling: `disable! because: "..."`'))
 }
 
 // Ruby it `it "reports an offense if `reason` is absent (with `date`)" do` at line 216.
 pub fn ruby_reason_spec_l216_d19_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	_ = args
+	return brew_runtime.bool_value(reason_spec_missing('disable!', ' date: "2020-08-28"', 'Add a reason for disabling: `disable! because: "..."`'))
 }
 
 // Ruby it `it "reports and corrects an offense if `reason` starts with 'it'" do` at line 226.
 pub fn ruby_reason_spec_l226_d20_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	_ = args
+	return brew_runtime.bool_value(reason_spec_correction('disable!', ' because: "it is broken"', 'it is broken', 'Do not start the reason with `it`', '"is broken"'))
 }
 
 // Ruby it `it "reports and corrects an offense if `reason` starts with 'it' (with `date`)" do` at line 243.
 pub fn ruby_reason_spec_l243_d21_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	_ = args
+	return brew_runtime.bool_value(reason_spec_correction('disable!', ' date: "2020-08-28", because: "it is broken"', 'it is broken', 'Do not start the reason with `it`', '"is broken"'))
 }
 
 // Ruby it `it "reports and corrects an offense if `reason` ends with a period" do` at line 260.
 pub fn ruby_reason_spec_l260_d22_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	_ = args
+	return brew_runtime.bool_value(reason_spec_correction('disable!', ' because: "is broken."', 'is broken.', 'Do not end the reason with a punctuation mark', '"is broken"'))
 }
 
 // Ruby it `it "reports and corrects an offense if `reason` ends with an exclamation point" do` at line 277.
 pub fn ruby_reason_spec_l277_d23_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	_ = args
+	return brew_runtime.bool_value(reason_spec_correction('disable!', ' because: "is broken!"', 'is broken!', 'Do not end the reason with a punctuation mark', '"is broken"'))
 }
 
 // Ruby it `it "reports and corrects an offense if `reason` ends with a question mark" do` at line 294.
 pub fn ruby_reason_spec_l294_d24_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	_ = args
+	return brew_runtime.bool_value(reason_spec_correction('disable!', ' because: "is broken?"', 'is broken?', 'Do not end the reason with a punctuation mark', '"is broken"'))
 }
 
 // Ruby it `it "reports and corrects an offense if `reason` ends with a period (with `date`)" do` at line 311.
 pub fn ruby_reason_spec_l311_d25_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+	_ = args
+	return brew_runtime.bool_value(reason_spec_correction('disable!', ' date: "2020-08-28", because: "is broken."', 'is broken.', 'Do not end the reason with a punctuation mark', '"is broken"'))
 }
 
 // Original Ruby source (line-for-line):

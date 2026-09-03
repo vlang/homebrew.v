@@ -2,52 +2,324 @@ module linux
 
 import brew_runtime
 
+pub const linux_dependency_collector_glibc = 'glibc'
+pub const linux_dependency_collector_gcc = 'gcc'
+
+// LinuxCollectorDependency retains the dependency predicates used while walking
+// the global GCC/glibc trees. A test dependency is ignored unless it is also a
+// build dependency, matching Dependency#test? && !Dependency#build? in Ruby.
+pub struct LinuxCollectorDependency {
+pub:
+	name string
+	tags []string
+}
+
+pub fn (dependency LinuxCollectorDependency) test() bool {
+	return ':test' in dependency.tags || 'test' in dependency.tags
+}
+
+pub fn (dependency LinuxCollectorDependency) build() bool {
+	return ':build' in dependency.tags || 'build' in dependency.tags
+}
+
+pub struct LinuxCollectorFormula {
+pub:
+	name string
+	deps []LinuxCollectorDependency
+}
+
+// LinuxDependencyCollectorState makes Ruby's class-level tree and instance
+// memoization explicit. Callers that need class-variable sharing retain and pass
+// the same state pointer to each translated collector boundary.
+pub struct LinuxDependencyCollectorState {
+pub:
+	needs_build_formulae bool
+	needs_libc_formula   bool
+	gcc_formula          string = linux_dependency_collector_gcc
+	formulae             map[string]LinuxCollectorFormula
+pub mut:
+	global_dep_tree          map[string][]string
+	building_global_dep_tree bool
+	formula_cache            map[string]LinuxCollectorFormula
+	global_deps_cache        map[string][]string
+	resolving_formulae       []string
+}
+
+pub fn new_linux_dependency_collector(needs_build_formulae bool, needs_libc_formula bool,
+	formulae map[string]LinuxCollectorFormula) &LinuxDependencyCollectorState {
+	mut collector := &LinuxDependencyCollectorState{
+		needs_build_formulae: needs_build_formulae
+		needs_libc_formula: needs_libc_formula
+		formulae: formulae.clone()
+	}
+	collector.init_global_dep_tree_if_needed()
+	return collector
+}
+
+pub fn (mut collector LinuxDependencyCollectorState) formula_for(name string) ?LinuxCollectorFormula {
+	if name in collector.formula_cache {
+		return collector.formula_cache[name]
+	}
+	if name !in collector.formulae {
+		return none
+	}
+	formula := collector.formulae[name]
+	collector.formula_cache[name] = formula
+	return formula
+}
+
+fn linux_dependency_collector_append_unique(mut values []string, additions []string) {
+	for addition in additions {
+		if addition !in values {
+			values << addition
+		}
+	}
+}
+
+pub fn (mut collector LinuxDependencyCollectorState) global_deps_for(name string) []string {
+	if name in collector.global_deps_cache {
+		return collector.global_deps_cache[name].clone()
+	}
+	// Homebrew rejects circular formula dependencies elsewhere. Keeping a local
+	// recursion guard makes this boundary total when used independently.
+	if name in collector.resolving_formulae {
+		return []string{}
+	}
+	collector.resolving_formulae << name
+	formula := collector.formula_for(name) or {
+		collector.resolving_formulae.delete(collector.resolving_formulae.len - 1)
+		collector.global_deps_cache[name] = []string{}
+		return []string{}
+	}
+	mut dependencies := []string{}
+	for dependency in formula.deps {
+		if dependency.test() && !dependency.build() {
+			continue
+		}
+		linux_dependency_collector_append_unique(mut dependencies, [dependency.name])
+		transitive := collector.global_deps_for(dependency.name)
+		linux_dependency_collector_append_unique(mut dependencies, transitive)
+	}
+	collector.resolving_formulae.delete(collector.resolving_formulae.len - 1)
+	collector.global_deps_cache[name] = dependencies.clone()
+	return dependencies
+}
+
+pub fn (mut collector LinuxDependencyCollectorState) building_global_dep_tree_start() {
+	collector.building_global_dep_tree = true
+}
+
+pub fn (mut collector LinuxDependencyCollectorState) building_global_dep_tree_finish() {
+	collector.building_global_dep_tree = false
+}
+
+pub fn (collector LinuxDependencyCollectorState) is_building_global_dep_tree() bool {
+	return collector.building_global_dep_tree
+}
+
+pub fn (mut collector LinuxDependencyCollectorState) init_global_dep_tree_if_needed() {
+	if collector.is_building_global_dep_tree() || !collector.needs_build_formulae {
+		return
+	}
+	gcc := if collector.gcc_formula == '' {
+		linux_dependency_collector_gcc
+	} else {
+		collector.gcc_formula
+	}
+	if linux_dependency_collector_glibc in collector.global_dep_tree
+		&& gcc in collector.global_dep_tree {
+		return
+	}
+	collector.building_global_dep_tree_start()
+	glibc_dependencies := collector.global_deps_for(linux_dependency_collector_glibc)
+	collector.global_dep_tree[linux_dependency_collector_glibc] = glibc_dependencies.clone()
+	mut gcc_dependencies := collector.global_deps_for(gcc)
+	linux_dependency_collector_append_unique(mut gcc_dependencies, [
+		linux_dependency_collector_glibc,
+	])
+	linux_dependency_collector_append_unique(mut gcc_dependencies, glibc_dependencies)
+	collector.global_dep_tree[gcc] = gcc_dependencies
+	collector.building_global_dep_tree_finish()
+}
+
+fn linux_dependency_collector_intersects(values []string, related []string) bool {
+	return values.any(it in related)
+}
+
+pub fn (mut collector LinuxDependencyCollectorState) gcc_dep_if_needed(related_formula_names []string) ?LinuxCollectorDependency {
+	if !collector.needs_build_formulae || collector.is_building_global_dep_tree() {
+		return none
+	}
+	gcc := if collector.gcc_formula == '' {
+		linux_dependency_collector_gcc
+	} else {
+		collector.gcc_formula
+	}
+	if gcc in related_formula_names {
+		return none
+	}
+	if gcc in collector.global_dep_tree
+		&& linux_dependency_collector_intersects(collector.global_dep_tree[gcc], related_formula_names) {
+		return none
+	}
+	collector.formula_for(gcc) or { return none }
+	return LinuxCollectorDependency{
+		name: gcc
+		tags: [':implicit']
+	}
+}
+
+pub fn (mut collector LinuxDependencyCollectorState) glibc_dep_if_needed(related_formula_names []string) ?LinuxCollectorDependency {
+	if !collector.needs_libc_formula || collector.is_building_global_dep_tree() {
+		return none
+	}
+	if linux_dependency_collector_glibc in related_formula_names {
+		return none
+	}
+	if linux_dependency_collector_glibc in collector.global_dep_tree
+		&& linux_dependency_collector_intersects(collector.global_dep_tree[linux_dependency_collector_glibc], related_formula_names) {
+		return none
+	}
+	collector.formula_for(linux_dependency_collector_glibc) or { return none }
+	return LinuxCollectorDependency{
+		name: linux_dependency_collector_glibc
+		tags: [':implicit']
+	}
+}
+
+pub fn linux_dependency_collector_value(collector &LinuxDependencyCollectorState) brew_runtime.Value {
+	return brew_runtime.structured_value('LinuxDependencyCollector', 'DependencyCollector', {
+		'collector_address': u64(voidptr(collector)).str()
+	})
+}
+
+fn linux_dependency_collector_from_value(value brew_runtime.Value) &LinuxDependencyCollectorState {
+	address := value.attributes['collector_address'] or { panic('invalid LinuxDependencyCollector') }
+	return unsafe { &LinuxDependencyCollectorState(voidptr(address.u64())) }
+}
+
+fn linux_dependency_collector_from_args(args []brew_runtime.Value) (&LinuxDependencyCollectorState, int) {
+	if args.len > 0 && args[0].type_name == 'LinuxDependencyCollector' {
+		return linux_dependency_collector_from_value(args[0]), 1
+	}
+	return new_linux_dependency_collector(false, false, map[string]LinuxCollectorFormula{}), 0
+}
+
+fn linux_dependency_collector_names(value brew_runtime.Value) []string {
+	if value.type_name == 'Array' {
+		return value.as_array() or { [] }.map(it.as_string())
+	}
+	if value.type_name in ['String', 'Symbol'] {
+		return [value.as_string()]
+	}
+	return []string{}
+}
+
+fn linux_collector_dependency_value(dependency LinuxCollectorDependency) brew_runtime.Value {
+	return brew_runtime.structured_value('Dependency', dependency.name, {
+		'name': dependency.name
+		'tags': dependency.tags.join(',')
+	})
+}
+
+fn linux_collector_formula_value(formula LinuxCollectorFormula) brew_runtime.Value {
+	return brew_runtime.structured_value('Formula', formula.name, {
+		'name': formula.name
+		'deps': formula.deps.map(it.name).join(',')
+	})
+}
+
+fn linux_global_dep_tree_value(tree map[string][]string) brew_runtime.Value {
+	mut values := map[string]brew_runtime.Value{}
+	for name, dependencies in tree {
+		values[name] = brew_runtime.string_array_value(dependencies)
+	}
+	return brew_runtime.map_value(values)
+}
+
 // Translated from Homebrew/brew `extend/os/linux/dependency_collector.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `gcc_dep_if_needed(related_formula_names)` at line 10.
 pub fn ruby_dependency_collector_l10_d1_gcc_dep_if_needed(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('gcc_dep_if_needed', ...args)
+	mut collector, offset := linux_dependency_collector_from_args(args)
+	related := if args.len > offset {
+		linux_dependency_collector_names(args[offset])
+	} else {
+		[]string{}
+	}
+	if dependency := collector.gcc_dep_if_needed(related) {
+		return linux_collector_dependency_value(dependency)
+	}
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Ruby method `glibc_dep_if_needed(related_formula_names)` at line 22.
 pub fn ruby_dependency_collector_l22_d2_glibc_dep_if_needed(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('glibc_dep_if_needed', ...args)
+	mut collector, offset := linux_dependency_collector_from_args(args)
+	related := if args.len > offset {
+		linux_dependency_collector_names(args[offset])
+	} else {
+		[]string{}
+	}
+	if dependency := collector.glibc_dep_if_needed(related) {
+		return linux_collector_dependency_value(dependency)
+	}
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Ruby method `global_dep_tree` at line 33.
 pub fn ruby_dependency_collector_l33_d3_global_dep_tree(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('global_dep_tree', ...args)
+	collector, _ := linux_dependency_collector_from_args(args)
+	return linux_global_dep_tree_value(collector.global_dep_tree)
 }
 
 // Ruby method `init_global_dep_tree_if_needed!` at line 44.
 pub fn ruby_dependency_collector_l44_d4_init_global_dep_tree_if_needed(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('init_global_dep_tree_if_needed!', ...args)
+	mut collector, _ := linux_dependency_collector_from_args(args)
+	collector.init_global_dep_tree_if_needed()
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Ruby method `formula_for(name)` at line 57.
 pub fn ruby_dependency_collector_l57_d5_formula_for(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula_for', ...args)
+	mut collector, offset := linux_dependency_collector_from_args(args)
+	if args.len <= offset {
+		panic('formula_for requires a name')
+	}
+	if formula := collector.formula_for(args[offset].as_string()) {
+		return linux_collector_formula_value(formula)
+	}
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Ruby method `global_deps_for(name)` at line 65.
 pub fn ruby_dependency_collector_l65_d6_global_deps_for(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('global_deps_for', ...args)
+	mut collector, offset := linux_dependency_collector_from_args(args)
+	if args.len <= offset {
+		panic('global_deps_for requires a name')
+	}
+	return brew_runtime.string_array_value(collector.global_deps_for(args[offset].as_string()))
 }
 
 // Ruby method `building_global_dep_tree!` at line 88.
 pub fn ruby_dependency_collector_l88_d7_building_global_dep_tree(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('building_global_dep_tree!', ...args)
+	mut collector, _ := linux_dependency_collector_from_args(args)
+	collector.building_global_dep_tree_start()
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Ruby method `built_global_dep_tree!` at line 93.
 pub fn ruby_dependency_collector_l93_d8_built_global_dep_tree(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('built_global_dep_tree!', ...args)
+	mut collector, _ := linux_dependency_collector_from_args(args)
+	collector.building_global_dep_tree_finish()
+	return brew_runtime.object_value('NilClass', 'nil')
 }
 
 // Ruby method `building_global_dep_tree?` at line 98.
 pub fn ruby_dependency_collector_l98_d9_building_global_dep_tree(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('building_global_dep_tree?', ...args)
+	collector, _ := linux_dependency_collector_from_args(args)
+	return brew_runtime.bool_value(collector.is_building_global_dep_tree())
 }
 
 // Original Ruby source (line-for-line):

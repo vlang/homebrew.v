@@ -4,10 +4,19 @@ import brew_runtime
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/elftools-1.3.1/lib/elftools/segments/interp_segment.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub fn interpreter_name(data []u8) string {
+	if data.len > 0 && data.last() == 0 {
+		return data[..data.len - 1].bytestr()
+	}
+	return data.bytestr()
+}
 
 // Ruby method `interp_name` at line 15.
 pub fn ruby_interp_segment_l15_d1_interp_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('interp_name', ...args)
+	if args.len == 0 {
+		return brew_runtime.string_value('')
+	}
+	return brew_runtime.string_value(interpreter_name(args[0].as_string().bytes()))
 }
 
 // Original Ruby source (line-for-line):

@@ -4,10 +4,247 @@ import brew_runtime
 
 // Translated from Homebrew/brew `cmd/reinstall.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub enum ReinstallCommandItemKind {
+	formula
+	cask
+	unavailable
+}
+
+pub struct ReinstallCommandItem {
+pub:
+	kind         ReinstallCommandItemKind
+	name         string
+	pinned       bool
+	bottled      bool
+	fail_message ?string
+}
+
+pub struct ReinstallCommandOptions {
+pub:
+	no_ask             bool
+	build_from_source  bool
+	devtools_installed bool = true
+	developer          bool = true
+	force              bool
+	force_bottle       bool
+	binaries           bool
+	require_sha        bool
+	skip_cask_deps     bool
+	zap                bool
+	display_times      bool
+}
+
+pub struct ReinstallCommandResult {
+pub:
+	events               []string
+	formulae_reinstalled []string
+	casks_reinstalled    []string
+	errors               []string
+	failed               bool
+	queue_created        bool
+	queue_shutdown       bool
+	casks_prefetched     bool
+}
+
+pub fn run_reinstall_command(items []ReinstallCommandItem,
+	options ReinstallCommandOptions) !ReinstallCommandResult {
+	if items.len == 0 {
+		return error('at least one formula or cask is required')
+	}
+	mut events := ['trust_fully_qualified_items']
+	mut formulae := []ReinstallCommandItem{}
+	mut casks := []ReinstallCommandItem{}
+	mut unavailable := []string{}
+	for item in items {
+		match item.kind {
+			.formula { formulae << item }
+			.cask { casks << item }
+			.unavailable { unavailable << item.name }
+		}
+	}
+	if options.build_from_source && !options.devtools_installed {
+		return error('BuildFlagsError: --build-from-source requires development tools')
+	}
+	if options.build_from_source && !options.developer {
+		events << 'warning: building from source is not supported'
+	}
+	mut errors := []string{}
+	mut eligible_casks := []ReinstallCommandItem{}
+	for cask in casks {
+		if cask.pinned {
+			errors << '${cask.name} is pinned. You must unpin it to reinstall.'
+		} else {
+			eligible_casks << cask
+		}
+	}
+	ask := !options.no_ask
+	if ask && eligible_casks.len > 0 {
+		events << 'ask_casks'
+	}
+	mut eligible_formulae := []ReinstallCommandItem{}
+	if formulae.len > 0 {
+		events << 'perform_preinstall_checks_once'
+		for formula in formulae {
+			if formula.pinned {
+				errors << '${formula.name} is pinned. You must unpin it to reinstall.'
+				continue
+			}
+			events << 'build_install_context:${formula.name}'
+			eligible_formulae << formula
+		}
+	}
+	mut queue_created := false
+	mut queue_shutdown := false
+	if !ask && eligible_formulae.len > 0 {
+		queue_created = true
+		events << 'download_queue_new'
+		for formula in eligible_formulae {
+			events << 'prelude_fetch:${formula.name}'
+		}
+	}
+	if eligible_formulae.len > 0 {
+		events << 'dependants'
+		if ask {
+			events << 'ask_formulae'
+		}
+	}
+	mut casks_prefetched := false
+	if eligible_formulae.len > 0 && eligible_casks.len > 0 {
+		if !queue_created {
+			queue_created = true
+			events << 'download_queue_new'
+		}
+		events << 'enqueue_formulae'
+		events << 'enqueue_cask_installers'
+		events << 'combined_fetch'
+		casks_prefetched = true
+		queue_shutdown = true
+		events << 'download_queue_shutdown'
+	} else if eligible_formulae.len > 0 {
+		if queue_created {
+			events << 'fetch_formulae_shared_queue'
+			queue_shutdown = true
+			events << 'download_queue_shutdown'
+		} else {
+			events << 'fetch_formulae'
+		}
+	}
+	mut reinstalled_formulae := []string{}
+	for formula in eligible_formulae {
+		if failure := formula.fail_message {
+			errors << '${formula.name}: ${failure}'
+			continue
+		}
+		events << 'reinstall_formula:${formula.name}'
+		events << 'cleanup_formula:${formula.name}'
+		reinstalled_formulae << formula.name
+	}
+	if eligible_formulae.len > 0 {
+		events << 'upgrade_dependents'
+	}
+	mut reinstalled_casks := []string{}
+	if eligible_casks.len > 0 {
+		events << 'reinstall_casks:skip_prefetch=${casks_prefetched}'
+		reinstalled_casks = eligible_casks.map(it.name)
+	}
+	for message in unavailable {
+		errors << message
+	}
+	events << 'periodic_clean'
+	events << 'display_messages:${options.display_times}'
+	return ReinstallCommandResult{
+		events: events
+		formulae_reinstalled: reinstalled_formulae
+		casks_reinstalled: reinstalled_casks
+		errors: errors
+		failed: errors.len > 0
+		queue_created: queue_created
+		queue_shutdown: queue_shutdown
+		casks_prefetched: casks_prefetched
+	}
+}
+
+pub fn reinstall_command_item_to_value(item ReinstallCommandItem) brew_runtime.Value {
+	mut attributes := {
+		'kind':    item.kind.str()
+		'name':    item.name
+		'pinned':  item.pinned.str()
+		'bottled': item.bottled.str()
+	}
+	if failure := item.fail_message {
+		attributes['fail_message'] = failure
+	}
+	return brew_runtime.structured_value('ReinstallItem', item.name, attributes)
+}
+
+fn reinstall_command_item_from_value(value brew_runtime.Value) ReinstallCommandItem {
+	failure := if message := value.attributes['fail_message'] { ?string(message) } else { none }
+	return ReinstallCommandItem{
+		kind: match value.attributes['kind'] or { 'formula' } {
+			'cask' { ReinstallCommandItemKind.cask }
+			'unavailable' { ReinstallCommandItemKind.unavailable }
+			else { ReinstallCommandItemKind.formula }
+		}
+		name: value.attributes['name'] or { value.as_string() }
+		pinned: (value.attributes['pinned'] or { 'false' }) == 'true'
+		bottled: (value.attributes['bottled'] or { 'false' }) == 'true'
+		fail_message: failure
+	}
+}
+
+pub fn reinstall_command_result_to_value(result ReinstallCommandResult) brew_runtime.Value {
+	return brew_runtime.map_value({
+		'events':               brew_runtime.string_array_value(result.events)
+		'formulae_reinstalled': brew_runtime.string_array_value(result.formulae_reinstalled)
+		'casks_reinstalled':    brew_runtime.string_array_value(result.casks_reinstalled)
+		'errors':               brew_runtime.string_array_value(result.errors)
+		'failed':               brew_runtime.bool_value(result.failed)
+		'queue_created':        brew_runtime.bool_value(result.queue_created)
+		'queue_shutdown':       brew_runtime.bool_value(result.queue_shutdown)
+		'casks_prefetched':     brew_runtime.bool_value(result.casks_prefetched)
+	})
+}
 
 // Ruby method `run` at line 124.
 pub fn ruby_reinstall_l124_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('run', ...args)
+	if args.len == 0 {
+		return brew_runtime.object_value('ArgumentError', 'at least one formula or cask is required')
+	}
+	values := args[0].as_map() or { return brew_runtime.object_value('ArgumentError', err.msg()) }
+	item_values := if value := values['items'] {
+		value.as_array() or { []brew_runtime.Value{} }
+	} else {
+		[]brew_runtime.Value{}
+	}
+	options := ReinstallCommandOptions{
+		no_ask: if value := values['no_ask'] { value.as_bool() or { false } } else { false }
+		build_from_source: if value := values['build_from_source'] {
+			value.as_bool() or { false }} else {
+			false}
+		devtools_installed: if value := values['devtools_installed'] {
+			value.as_bool() or { true }} else {
+			true}
+		developer: if value := values['developer'] { value.as_bool() or { true } } else { true }
+		force: if value := values['force'] { value.as_bool() or { false } } else { false }
+		force_bottle: if value := values['force_bottle'] {
+			value.as_bool() or { false }} else {
+			false}
+		binaries: if value := values['binaries'] { value.as_bool() or { false } } else { false }
+		require_sha: if value := values['require_sha'] {
+			value.as_bool() or { false }} else {
+			false}
+		skip_cask_deps: if value := values['skip_cask_deps'] {
+			value.as_bool() or { false }} else {
+			false}
+		zap: if value := values['zap'] { value.as_bool() or { false } } else { false }
+		display_times: if value := values['display_times'] {
+			value.as_bool() or { false }} else {
+			false}
+	}
+	result := run_reinstall_command(item_values.map(reinstall_command_item_from_value(it)), options) or {
+		return brew_runtime.object_value('BuildFlagsError', err.msg())
+	}
+	return reinstall_command_result_to_value(result)
 }
 
 // Original Ruby source (line-for-line):

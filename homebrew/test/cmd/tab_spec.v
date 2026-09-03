@@ -1,28 +1,68 @@
 module cmd
 
 import brew_runtime
+import homebrew.cmd as cmd_core
+
+fn tab_spec_formula(installed_on_request bool) cmd_core.TabPackageState {
+	return cmd_core.TabPackageState{
+		kind: .formula
+		name: 'foo'
+		any_version_installed: true
+		tab_exists: true
+		installed_on_request: installed_on_request
+	}
+}
+
+fn tab_spec_cask(installed_on_request bool, tab_exists bool) cmd_core.TabPackageState {
+	return cmd_core.TabPackageState{
+		kind: .cask
+		name: 'local-caffeine'
+		any_version_installed: true
+		tab_exists: tab_exists
+		installed_on_request: installed_on_request
+	}
+}
 
 // Translated from Homebrew/brew `test/cmd/tab_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `installed_on_request?(formula)` at line 9.
 pub fn ruby_tab_spec_l9_d1_installed_on_request(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('installed_on_request?', ...args)
+	formula := if args.len > 0 {
+		args[0]
+	} else {
+		cmd_core.tab_package_value(tab_spec_formula(false))
+	}
+	return brew_runtime.bool_value((formula.attribute('installed_on_request') or { 'false' }) == 'true')
 }
 
 // Ruby method `cask_installed_on_request?(cask)` at line 15.
 pub fn ruby_tab_spec_l15_d2_cask_installed_on_request(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask_installed_on_request?', ...args)
+	cask := if args.len > 0 {
+		args[0]
+	} else {
+		cmd_core.tab_package_value(tab_spec_cask(false, false))
+	}
+	return brew_runtime.bool_value((cask.attribute('installed_on_request') or { 'false' }) == 'true')
 }
 
 // Ruby it `it "marks a formula as installed on request", :integration_test do` at line 23.
 pub fn ruby_tab_spec_l23_d3_marks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('marks', ...args)
+	result := cmd_core.run_tab_command([tab_spec_formula(false)], true) or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value(result.packages[0].installed_on_request && result.messages == [
+		'foo is now marked as installed on request.',
+	])
 }
 
 // Ruby it `it "marks or unmarks a cask as installed on request with a missing tab", :cask do` at line 35.
 pub fn ruby_tab_spec_l35_d4_marks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('marks', ...args)
+	marked := cmd_core.run_tab_command([tab_spec_cask(false, false)], true) or { return brew_runtime.bool_value(false) }
+	unmarked := cmd_core.run_tab_command([tab_spec_cask(false, false)], false) or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value(marked.packages[0].tab_exists && marked.packages[0].installed_on_request && marked.messages == [
+		'local-caffeine is now marked as installed on request.',
+	] && unmarked.packages[0].tab_exists && !unmarked.packages[0].installed_on_request && unmarked.messages == [
+		'local-caffeine is already marked as not installed on request.',
+	])
 }
 
 // Original Ruby source (line-for-line):

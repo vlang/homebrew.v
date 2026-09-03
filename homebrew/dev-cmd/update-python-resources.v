@@ -5,9 +5,217 @@ import brew_runtime
 // Translated from Homebrew/brew `dev-cmd/update-python-resources.rb`.
 // The original source is retained below until every stub has a typed V body.
 
+pub struct UpdatePythonResourcesFormula {
+pub:
+	name         string
+	tap_official bool
+}
+
+pub struct UpdatePythonResourcesOptions {
+pub:
+	formulae                     []UpdatePythonResourcesFormula
+	version                      string
+	version_provided             bool
+	package_name                 string
+	package_name_provided        bool
+	extra_packages               []string
+	extra_packages_provided      bool
+	exclude_packages             []string
+	exclude_packages_provided    bool
+	install_dependencies         bool
+	print_only                   bool
+	quiet                        bool
+	silent                       bool
+	verbose                      bool
+	ignore_errors                bool
+	ignore_non_pypi_packages     bool
+	ignore_main_package_cooldown bool
+}
+
+pub struct UpdatePythonResourcesRequest {
+pub:
+	formula                      UpdatePythonResourcesFormula
+	version                      string
+	version_provided             bool
+	package_name                 string
+	package_name_provided        bool
+	extra_packages               []string
+	extra_packages_provided      bool
+	exclude_packages             []string
+	exclude_packages_provided    bool
+	install_dependencies         bool
+	print_only                   bool
+	quiet                        bool
+	verbose                      bool
+	ignore_errors                bool
+	ignore_non_pypi_packages     bool
+	ignore_main_package_cooldown bool
+}
+
+pub struct UpdatePythonResourcesOutcome {
+pub:
+	updated bool
+	printed bool
+	stdout  string
+	stderr  string
+	failed  bool
+}
+
+pub type UpdatePythonResourcesUpdater = fn (UpdatePythonResourcesRequest) !UpdatePythonResourcesOutcome
+
+pub struct UpdatePythonResourcesResult {
+pub:
+	bundler_groups   []string
+	requests         []UpdatePythonResourcesRequest
+	outcomes         []UpdatePythonResourcesOutcome
+	updated_formulae []string
+	printed_formulae []string
+	stdout           string
+	stderr           string
+	failed           bool
+}
+
+pub fn run_update_python_resources(options UpdatePythonResourcesOptions,
+	updater UpdatePythonResourcesUpdater) !UpdatePythonResourcesResult {
+	if options.formulae.len == 0 {
+		return error('at least 1 named argument is required')
+	}
+
+	mut requests := []UpdatePythonResourcesRequest{cap: options.formulae.len}
+	mut outcomes := []UpdatePythonResourcesOutcome{cap: options.formulae.len}
+	mut updated_formulae := []string{}
+	mut printed_formulae := []string{}
+	mut stdout := ''
+	mut stderr := ''
+	mut failed := false
+	for formula in options.formulae {
+		// These options may only be used on third-party taps.
+		request := UpdatePythonResourcesRequest{
+			formula: formula
+			version: options.version
+			version_provided: options.version_provided
+			package_name: options.package_name
+			package_name_provided: options.package_name_provided
+			extra_packages: options.extra_packages.clone()
+			extra_packages_provided: options.extra_packages_provided
+			exclude_packages: options.exclude_packages.clone()
+			exclude_packages_provided: options.exclude_packages_provided
+			install_dependencies: options.install_dependencies
+			print_only: options.print_only
+			quiet: options.quiet || options.silent
+			verbose: options.verbose
+			ignore_errors: if formula.tap_official { false } else { options.ignore_errors }
+			ignore_non_pypi_packages: options.ignore_non_pypi_packages
+			ignore_main_package_cooldown: if formula.tap_official {
+				false
+			} else {
+				options.ignore_main_package_cooldown
+			}
+		}
+		requests << request
+		outcome := updater(request)!
+		outcomes << outcome
+		if outcome.updated {
+			updated_formulae << formula.name
+		}
+		if outcome.printed {
+			printed_formulae << formula.name
+		}
+		stdout += outcome.stdout
+		stderr += outcome.stderr
+		failed = failed || outcome.failed
+	}
+	return UpdatePythonResourcesResult{
+		bundler_groups: ['ast']
+		requests: requests
+		outcomes: outcomes
+		updated_formulae: updated_formulae
+		printed_formulae: printed_formulae
+		stdout: stdout
+		stderr: stderr
+		failed: failed
+	}
+}
+
+@[heap]
+pub struct UpdatePythonResourcesInput {
+pub:
+	options UpdatePythonResourcesOptions
+	updater UpdatePythonResourcesUpdater @[required]
+}
+
+pub fn update_python_resources_input_boundary(input &UpdatePythonResourcesInput) brew_runtime.Value {
+	return brew_runtime.structured_value('Homebrew::DevCmd::UpdatePythonResources::Input', '', {
+		'update_python_resources_input_address': u64(voidptr(input)).str()
+	})
+}
+
+fn update_python_resources_input_from_value(value brew_runtime.Value) &UpdatePythonResourcesInput {
+	address := value.attributes['update_python_resources_input_address'] or {
+		panic('invalid UpdatePythonResources input')
+	}
+	return unsafe { &UpdatePythonResourcesInput(voidptr(address.u64())) }
+}
+
+fn update_python_resources_request_value(request UpdatePythonResourcesRequest) brew_runtime.Value {
+	return brew_runtime.map_value({
+		'formula':                      brew_runtime.string_value(request.formula.name)
+		'tap_official':                 brew_runtime.bool_value(request.formula.tap_official)
+		'version':                      brew_runtime.string_value(request.version)
+		'version_provided':             brew_runtime.bool_value(request.version_provided)
+		'package_name':                 brew_runtime.string_value(request.package_name)
+		'package_name_provided':        brew_runtime.bool_value(request.package_name_provided)
+		'extra_packages':               brew_runtime.string_array_value(request.extra_packages)
+		'extra_packages_provided':      brew_runtime.bool_value(request.extra_packages_provided)
+		'exclude_packages':             brew_runtime.string_array_value(request.exclude_packages)
+		'exclude_packages_provided':    brew_runtime.bool_value(request.exclude_packages_provided)
+		'install_dependencies':         brew_runtime.bool_value(request.install_dependencies)
+		'print_only':                   brew_runtime.bool_value(request.print_only)
+		'quiet':                        brew_runtime.bool_value(request.quiet)
+		'verbose':                      brew_runtime.bool_value(request.verbose)
+		'ignore_errors':                brew_runtime.bool_value(request.ignore_errors)
+		'ignore_non_pypi_packages':     brew_runtime.bool_value(request.ignore_non_pypi_packages)
+		'ignore_main_package_cooldown': brew_runtime.bool_value(request.ignore_main_package_cooldown)
+	})
+}
+
+fn update_python_resources_outcome_value(outcome UpdatePythonResourcesOutcome) brew_runtime.Value {
+	return brew_runtime.map_value({
+		'updated': brew_runtime.bool_value(outcome.updated)
+		'printed': brew_runtime.bool_value(outcome.printed)
+		'stdout':  brew_runtime.string_value(outcome.stdout)
+		'stderr':  brew_runtime.string_value(outcome.stderr)
+		'failed':  brew_runtime.bool_value(outcome.failed)
+	})
+}
+
+fn update_python_resources_result_value(result UpdatePythonResourcesResult) brew_runtime.Value {
+	return brew_runtime.map_value({
+		'bundler_groups':   brew_runtime.string_array_value(result.bundler_groups)
+		'requests':         brew_runtime.array_value(result.requests.map(update_python_resources_request_value(it)))
+		'outcomes':         brew_runtime.array_value(result.outcomes.map(update_python_resources_outcome_value(it)))
+		'updated_formulae': brew_runtime.string_array_value(result.updated_formulae)
+		'printed_formulae': brew_runtime.string_array_value(result.printed_formulae)
+		'stdout':           brew_runtime.string_value(result.stdout)
+		'stderr':           brew_runtime.string_value(result.stderr)
+		'failed':           brew_runtime.bool_value(result.failed)
+	})
+}
+
 // Ruby method `run` at line 44.
 pub fn ruby_update_python_resources_l44_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('run', ...args)
+	if args.len == 0 {
+		return brew_runtime.object_value('ArgumentError', 'command input is required')
+	}
+	input := update_python_resources_input_from_value(args[0])
+	return update_python_resources_result_value(run_update_python_resources(input.options, input.updater) or {
+		error_type := if input.options.formulae.len == 0 {
+			'Homebrew::CLI::MinNamedArgumentsError'
+		} else {
+			'FatalError'
+		}
+		return brew_runtime.object_value(error_type, err.msg())
+	})
 }
 
 // Original Ruby source (line-for-line):

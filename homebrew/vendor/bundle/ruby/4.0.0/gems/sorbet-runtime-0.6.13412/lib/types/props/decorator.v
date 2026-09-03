@@ -2,212 +2,674 @@ module props
 
 import brew_runtime
 
+pub struct DecoratorProp {
+pub:
+	name  string
+	rules map[string]brew_runtime.Value
+}
+
+pub struct PropsDecorator {
+pub:
+	class_name string
+pub mut:
+	plugins           []string
+	props             map[string]DecoratorProp
+	inherited_methods map[string]bool
+	local_methods     map[string]bool
+	defined_accessors []string
+	redaction_methods []string
+	foreign_methods   []string
+}
+
+pub struct OverrideRules {
+pub:
+	reader              bool
+	reader_incompatible bool
+	writer              bool
+	writer_incompatible bool
+}
+
+const decorator_rule_keys = ['enum', 'foreign', 'ifunset', 'immutable', 'override', 'redaction',
+	'sensitivity', 'without_accessors', 'clobber_existing_method!', 'extra', 'setter_validate',
+	'_tnilable']
+
+pub fn new_props_decorator(class_name string, plugins []string) PropsDecorator {
+	return PropsDecorator{
+		class_name: class_name
+		plugins: plugins.clone()
+		props: map[string]DecoratorProp{}
+		inherited_methods: map[string]bool{}
+		local_methods: map[string]bool{}
+	}
+}
+
+pub fn decorator_valid_rule_key(key string) bool {
+	return key.trim_left(':') in decorator_rule_keys
+}
+
+pub fn validate_decorator_prop_name(name string) ! {
+	if name.len == 0 || !((name[0] >= `A` && name[0] <= `Z`) || (name[0] >= `a` && name[0] <= `z`) || name[0] == `_`) {
+		return error('Invalid prop name: ${name}')
+	}
+	for character in name[1..] {
+		if !((character >= `A` && character <= `Z`) || (character >= `a` && character <= `z`) || (character >= `0` && character <= `9`) || character == `_` || character == `-`) {
+			return error('Invalid prop name: ${name}')
+		}
+	}
+}
+
+fn decorator_rule_bool(rules map[string]brew_runtime.Value, key string) bool {
+	value := rules[key] or { return false }
+	return props_truthy(value)
+}
+
+fn decorator_rule_name(value brew_runtime.Value) string {
+	return value.as_string().trim_left(':')
+}
+
+pub fn decorator_prop_rules(decorator PropsDecorator, prop string) !map[string]brew_runtime.Value {
+	definition := decorator.props[prop.trim_left(':')] or {
+		return error('No such prop: ${prop}')
+	}
+	return definition.rules.clone()
+}
+
+pub fn decorator_add_prop_definition(mut decorator PropsDecorator, name string,
+	rules map[string]brew_runtime.Value) ! {
+	override := decorator_rule_bool(rules, 'override') || (rules['override'] or { props_nil_value() }).type_name in [
+		'Symbol',
+		'Hash',
+	]
+	if name in decorator.props && !override {
+		return error('Attempted to redefine prop `${name}` on class ${decorator.class_name} without specifying override: true')
+	}
+	mut published := rules.clone()
+	published.delete('override')
+	decorator.props[name] = DecoratorProp{
+		name: name
+		rules: published
+	}
+}
+
+pub fn decorator_convert_type_to_class(type_value brew_runtime.Value) string {
+	return match type_value.type_name {
+		'T::Types::TypedArray', 'T::Types::FixedArray' { 'Array' }
+		'T::Types::TypedHash', 'T::Types::FixedHash' { 'Hash' }
+		'T::Types::TypedSet' { 'Set' }
+		'T::Types::Union' {
+			type_value.map_data['underlying_type'] or { return 'Object' }.type_name
+		}
+		'T::Types::Simple' { type_value.attribute('raw_type') or { type_value.as_string() } }
+		else {
+			if type_value.type_name == 'Class' { type_value.as_string() } else { 'Object' }
+		}
+	}
+}
+
+pub fn decorator_prop_nilable(type_value brew_runtime.Value,
+	rules map[string]brew_runtime.Value) bool {
+	if type_value.type_name in ['NilClass', 'T::Types::Nilable', 'T::Types::UnionWithNil'] {
+		return true
+	}
+	if underlying := type_value.map_data['underlying_type'] {
+		return underlying.type_name != ''
+	}
+	if type_value.type_name in ['T.untyped', 'T::Types::Untyped'] && 'default' in rules {
+		return rules['default'].type_name == 'NilClass'
+	}
+	return false
+}
+
+pub fn elaborate_decorator_override(name string, value brew_runtime.Value) !OverrideRules {
+	if value.type_name == 'Bool' {
+		return if value.bool_data {
+			OverrideRules{ reader: true, writer: true }
+		} else {
+			OverrideRules{}
+		}
+	}
+	if value.type_name in ['', 'NilClass'] {
+		return OverrideRules{}
+	}
+	if value.type_name == 'Symbol' {
+		return match value.as_string().trim_left(':') {
+			'reader' { OverrideRules{ reader: true } }
+			'writer' { OverrideRules{ writer: true } }
+			else {
+				return error('override only accepts true, reader, writer, or a Hash in prop ${name}')
+			}
+		}
+	}
+	if value.type_name != 'Hash' {
+		return error('override only accepts true, reader, writer, or a Hash in prop ${name}')
+	}
+	if allow := value.map_data['allow_incompatible'] {
+		return OverrideRules{
+			reader: true
+			reader_incompatible: props_truthy(allow)
+			writer: true
+			writer_incompatible: props_truthy(allow)
+		}
+	}
+	reader := value.map_data['reader'] or { props_nil_value() }
+	writer := value.map_data['writer'] or { props_nil_value() }
+	return OverrideRules{
+		reader: props_truthy(reader)
+		reader_incompatible: if reader.type_name == 'Hash' {
+			decorator_rule_bool(reader.map_data, 'allow_incompatible')} else {
+			false}
+		writer: props_truthy(writer)
+		writer_incompatible: if writer.type_name == 'Hash' {
+			decorator_rule_bool(writer.map_data, 'allow_incompatible')} else {
+			false}
+	}
+}
+
+pub fn decorator_validate_overrides(decorator PropsDecorator, name string,
+	rules map[string]brew_runtime.Value) ! {
+	override := elaborate_decorator_override(name, rules['override'] or { props_nil_value() })!
+	if decorator_rule_bool(rules, 'without_accessors') {
+		return
+	}
+	if override.reader && name !in decorator.inherited_methods && name !in decorator.props {
+		return error('getter `${name}` does not exist to be overridden')
+	}
+	writer := '${name}='
+	if !decorator_rule_bool(rules, 'immutable') && override.writer && writer !in decorator.inherited_methods && name !in decorator.props {
+		return error('setter `${writer}` does not exist to be overridden')
+	}
+}
+
+pub fn decorator_validate_prop_definition(decorator PropsDecorator, name string,
+	rules map[string]brew_runtime.Value) ! {
+	validate_decorator_prop_name(name)!
+	if 'pii' in rules {
+		return error("The 'pii:' option for props has been renamed to 'sensitivity:' (in prop ${decorator.class_name}.${name})")
+	}
+	mut invalid := []string{}
+	for key in rules.keys() {
+		if !decorator_valid_rule_key(key) {
+			invalid << key
+		}
+	}
+	if invalid.len > 0 {
+		return error('Invalid prop args supplied: ${invalid}')
+	}
+	if extra := rules['extra'] {
+		if extra.type_name !in ['NilClass', 'Hash'] {
+			return error('Extra metadata must be a Hash in prop ${decorator.class_name}.${name}')
+		}
+	}
+}
+
+pub fn decorator_define_accessors(mut decorator PropsDecorator, name string,
+	rules map[string]brew_runtime.Value) {
+	if !decorator_rule_bool(rules, 'immutable') {
+		decorator.defined_accessors << '${name}='
+	}
+	decorator.defined_accessors << name
+}
+
+pub fn decorator_define_prop(mut decorator PropsDecorator, name string,
+	type_value brew_runtime.Value, input_rules map[string]brew_runtime.Value) ! {
+	mut rules := input_rules.clone()
+	if decorator_prop_nilable(type_value, rules) {
+		rules['_tnilable'] = brew_runtime.bool_value(true)
+	}
+	decorator_validate_prop_definition(decorator, name, rules)!
+	decorator_validate_overrides(decorator, name, rules)!
+	rules['type'] = type_value
+	rules['type_object'] = type_value
+	rules['accessor_key'] = brew_runtime.object_value('Symbol', '@${name}')
+	if 'sensitivity' !in rules {
+		rules['sensitivity'] = props_nil_value()
+	}
+	decorator_add_prop_definition(mut decorator, name, rules)!
+	if !decorator_rule_bool(rules, 'without_accessors') {
+		decorator_define_accessors(mut decorator, name, rules)
+	}
+	if 'foreign' in rules {
+		decorator_define_foreign_methods(mut decorator, name, decorator_convert_type_to_class(type_value), rules['foreign'])!
+	}
+	if 'redaction' in rules {
+		decorator.redaction_methods << '${name}_redacted'
+	}
+}
+
+pub fn decorator_set_prop(mut instance PropInstance, prop string, value brew_runtime.Value,
+	rules map[string]brew_runtime.Value) ! {
+	type_value := rules['type_object'] or { rules['type'] or { brew_runtime.object_value('T.untyped', 'T.untyped') } }
+	expected := decorator_convert_type_to_class(type_value)
+	if value.type_name == 'NilClass' && !decorator_prop_nilable(type_value, rules) {
+		return error('Expected type ${expected} for prop `${prop}`, got NilClass')
+	}
+	if expected !in ['Object', 'T.untyped'] && value.type_name != 'NilClass' && value.type_name != expected && value.as_string() != expected {
+		return error('Expected type ${expected} for prop `${prop}`, got ${value.type_name}')
+	}
+	instance.values[prop] = value
+}
+
+pub fn decorator_get_prop(instance PropInstance, prop string,
+	rules map[string]brew_runtime.Value, use_ifunset bool) brew_runtime.Value {
+	value := instance.values[prop] or { props_nil_value() }
+	if value.type_name != 'NilClass' || !use_ifunset {
+		return value
+	}
+	if default_value := rules['ifunset'] {
+		return deep_clone(default_value)
+	}
+	return value
+}
+
+pub fn decorator_define_foreign_methods(mut decorator PropsDecorator, prop_name string,
+	prop_class string, foreign brew_runtime.Value) ! {
+	if foreign.type_name in ['String', 'Symbol'] {
+		return error('Using a symbol/string for foreign is no longer supported; use a Proc')
+	}
+	if prop_class != 'String' {
+		return error('foreign can only be used with a prop type of String')
+	}
+	if foreign.type_name == 'Array' {
+		return error('Using an array for foreign is no longer supported')
+	}
+	if foreign.type_name != 'Proc' {
+		return error('Please use a Proc that returns a model class as foreign')
+	}
+	decorator.foreign_methods << '${prop_name}_'
+	decorator.foreign_methods << '${prop_name}_!'
+}
+
+pub fn decorator_model_inherited(parent PropsDecorator, child_name string) PropsDecorator {
+	mut child := new_props_decorator(child_name, parent.plugins)
+	for name, definition in parent.props {
+		child.props[name] = DecoratorProp{ name: name, rules: definition.rules.clone() }
+		if !decorator_rule_bool(definition.rules, 'without_accessors') {
+			decorator_define_accessors(mut child, name, definition.rules)
+		}
+	}
+	return child
+}
+
+fn decorator_value(decorator PropsDecorator) brew_runtime.Value {
+	mut props_map := map[string]brew_runtime.Value{}
+	for name, definition in decorator.props {
+		props_map[name] = brew_runtime.map_value(definition.rules)
+	}
+	return brew_runtime.Value{
+		type_name: 'T::Props::Decorator'
+		repr: decorator.class_name
+		map_data: {
+			'_props': brew_runtime.map_value(props_map)
+		}
+		string_array_data: decorator.plugins.clone()
+		attributes: {
+			'class_name':      decorator.class_name
+			'accessors':       decorator.defined_accessors.join(',')
+			'redactions':      decorator.redaction_methods.join(',')
+			'foreign_methods': decorator.foreign_methods.join(',')
+		}
+	}
+}
+
+fn decorator_from_value(value brew_runtime.Value) PropsDecorator {
+	mut result := new_props_decorator(value.attribute('class_name') or { value.as_string() }, value.string_array_data)
+	props_value := value.map_data['_props'] or { brew_runtime.map_value(map[string]brew_runtime.Value{}) }
+	for name, rules_value in props_value.map_data {
+		result.props[name] = DecoratorProp{ name: name, rules: rules_value.map_data.clone() }
+	}
+	result.defined_accessors = (value.attribute('accessors') or { '' }).split(',').filter(it.len > 0)
+	result.redaction_methods = (value.attribute('redactions') or { '' }).split(',').filter(it.len > 0)
+	result.foreign_methods = (value.attribute('foreign_methods') or { '' }).split(',').filter(it.len > 0)
+	return result
+}
+
+fn method_descriptor(name string, kind string) brew_runtime.Value {
+	return brew_runtime.structured_value('Method', name, {
+		'name': name
+		'kind': kind
+	})
+}
+
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/sorbet-runtime-0.6.13412/lib/types/props/decorator.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `initialize(klass)` at line 42.
 pub fn ruby_decorator_l42_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	if args.len == 0 { panic('initialize requires klass') }
+	return decorator_value(new_props_decorator(args[0].attribute('class_name') or { args[0].as_string() }, args[0].string_array_data))
 }
 
 // Ruby attr_reader `attr_reader :props` at line 52.
 pub fn ruby_decorator_l52_d2_props(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('props', ...args)
+	if args.len == 0 { panic('props requires decorator') }
+	return args[0].map_data['_props'] or { brew_runtime.map_value(map[string]brew_runtime.Value{}) }
 }
 
 // Ruby method `all_props` at line 55.
 pub fn ruby_decorator_l55_d3_all_props(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('all_props', ...args)
+	if args.len == 0 { panic('all_props requires decorator') }
+	mut names := decorator_from_value(args[0]).props.keys()
+	names.sort()
+	return brew_runtime.string_array_value(names)
 }
 
 // Ruby method `prop_rules(prop)` at line 61.
 pub fn ruby_decorator_l61_d4_prop_rules(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prop_rules', ...args)
+	if args.len < 2 { panic('prop_rules requires decorator and prop') }
+	return brew_runtime.map_value(decorator_prop_rules(decorator_from_value(args[0]), decorator_rule_name(args[1])) or { panic(err) })
 }
 
 // Ruby method `add_prop_definition(name, rules)` at line 67.
 pub fn ruby_decorator_l67_d5_add_prop_definition(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('add_prop_definition', ...args)
+	if args.len < 3 { panic('add_prop_definition requires decorator, name, and rules') }
+	mut decorator := decorator_from_value(args[0])
+	decorator_add_prop_definition(mut decorator, decorator_rule_name(args[1]), args[2].as_map() or { panic(err) }) or { panic(err) }
+	return decorator_value(decorator)
 }
 
 // Ruby method `valid_rule_key?(key)` at line 107.
 pub fn ruby_decorator_l107_d6_valid_rule_key(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('valid_rule_key?', ...args)
+	if args.len == 0 { panic('valid_rule_key? requires key') }
+	return brew_runtime.bool_value(decorator_valid_rule_key(decorator_rule_name(args[args.len - 1])))
 }
 
 // Ruby method `decorated_class` at line 113.
 pub fn ruby_decorator_l113_d7_decorated_class(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('decorated_class', ...args)
+	if args.len == 0 { panic('decorated_class requires decorator') }
+	decorator := decorator_from_value(args[0])
+	return brew_runtime.object_value('Class', decorator.class_name)
 }
 
 // Ruby method `validate_prop_value(prop, val)` at line 123.
 pub fn ruby_decorator_l123_d8_validate_prop_value(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('validate_prop_value', ...args)
+	if args.len < 3 { panic('validate_prop_value requires decorator, prop, and value') }
+	decorator := decorator_from_value(args[0])
+	rules := decorator_prop_rules(decorator, decorator_rule_name(args[1])) or { panic(err) }
+	mut instance := PropInstance{ class_name: decorator.class_name, values: map[string]brew_runtime.Value{} }
+	decorator_set_prop(mut instance, decorator_rule_name(args[1]), args[2], rules) or { panic(err) }
+	return props_nil_value()
 }
 
 // Ruby method `prop_set(instance, prop, val, rules=prop_rules(prop))` at line 147.
 pub fn ruby_decorator_l147_d9_prop_set(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prop_set', ...args)
+	if args.len < 4 { panic('prop_set requires decorator, instance, prop, and value') }
+	decorator := decorator_from_value(args[0])
+	prop := decorator_rule_name(args[2])
+	rules := if args.len > 4 {
+		args[4].as_map() or { panic(err) }
+	} else {
+		decorator_prop_rules(decorator, prop) or { panic(err) }
+	}
+	mut instance := prop_instance_from_value(args[1])
+	decorator_set_prop(mut instance, prop, args[3], rules) or { panic(err) }
+	return prop_instance_value(instance)
 }
 
 // Ruby alias_method `alias_method :set, :prop_set` at line 152.
 pub fn ruby_decorator_l152_d10_set(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('set', ...args)
+	return ruby_decorator_l147_d9_prop_set(...args)
 }
 
 // Ruby method `prop_get_logic(instance, prop, value)` at line 165.
 pub fn ruby_decorator_l165_d11_prop_get_logic(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prop_get_logic', ...args)
+	if args.len == 0 { panic('prop_get_logic requires value') }
+	return args[args.len - 1]
 }
 
 // Ruby method `prop_get(instance, prop, rules=prop_rules(prop))` at line 185.
 pub fn ruby_decorator_l185_d12_prop_get(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prop_get', ...args)
+	if args.len < 3 { panic('prop_get requires decorator, instance, and prop') }
+	decorator := decorator_from_value(args[0])
+	prop := decorator_rule_name(args[2])
+	rules := if args.len > 3 {
+		args[3].as_map() or { panic(err) }
+	} else {
+		decorator_prop_rules(decorator, prop) or { panic(err) }
+	}
+	return decorator_get_prop(prop_instance_from_value(args[1]), prop, rules, true)
 }
 
 // Ruby method `prop_get_if_set(instance, prop, rules=prop_rules(prop))` at line 207.
 pub fn ruby_decorator_l207_d13_prop_get_if_set(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prop_get_if_set', ...args)
+	if args.len < 3 { panic('prop_get_if_set requires decorator, instance, and prop') }
+	return decorator_get_prop(prop_instance_from_value(args[1]), decorator_rule_name(args[2]), map[string]brew_runtime.Value{}, false)
 }
 
 // Ruby alias_method `alias_method :get, :prop_get_if_set` at line 212.
 pub fn ruby_decorator_l212_d14_get(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('get', ...args)
+	return ruby_decorator_l207_d13_prop_get_if_set(...args)
 }
 
 // Ruby method `foreign_prop_get(instance, prop, foreign_class, rules=prop_rules(prop), opts={})` at line 226.
 pub fn ruby_decorator_l226_d15_foreign_prop_get(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('foreign_prop_get', ...args)
+	if args.len < 4 { panic('foreign_prop_get requires decorator, instance, prop, and foreign class') }
+	value := ruby_decorator_l185_d12_prop_get(args[0], args[1], args[2])
+	if value.type_name == 'NilClass' {
+		return value
+	}
+	return brew_runtime.Value{ type_name: args[3].as_string(), repr: value.as_string(), map_data: {
+		'id': value
+	} }
 }
 
 // Ruby method `prop_validate_definition!(name, cls, rules, type)` at line 245.
 pub fn ruby_decorator_l245_d16_prop_validate_definition(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prop_validate_definition!', ...args)
+	if args.len < 4 { panic('prop_validate_definition! requires decorator, name, class, and rules') }
+	decorator_validate_prop_definition(decorator_from_value(args[0]), decorator_rule_name(args[1]), args[3].as_map() or { panic(err) }) or { panic(err) }
+	return props_nil_value()
 }
 
 // Ruby method `validate_prop_name(name)` at line 282.
 pub fn ruby_decorator_l282_d17_validate_prop_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('validate_prop_name', ...args)
+	if args.len == 0 { panic('validate_prop_name requires name') }
+	validate_decorator_prop_name(decorator_rule_name(args[args.len - 1])) or { panic(err) }
+	return props_nil_value()
 }
 
 // Ruby method `convert_type_to_class(type)` at line 290.
 pub fn ruby_decorator_l290_d18_convert_type_to_class(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('convert_type_to_class', ...args)
+	if args.len == 0 { panic('convert_type_to_class requires type') }
+	return brew_runtime.object_value('Class', decorator_convert_type_to_class(args[args.len - 1]))
 }
 
 // Ruby method `prop_nilable?(cls, rules)` at line 330.
 pub fn ruby_decorator_l330_d19_prop_nilable(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prop_nilable?', ...args)
+	if args.len < 2 { panic('prop_nilable? requires type and rules') }
+	return brew_runtime.bool_value(decorator_prop_nilable(args[args.len - 2], args[args.len - 1].as_map() or { panic(err) }))
 }
 
 // Ruby method `method_defined_on_ancestor?(name)` at line 337.
 pub fn ruby_decorator_l337_d20_method_defined_on_ancestor(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('method_defined_on_ancestor?', ...args)
+	if args.len < 2 { panic('method_defined_on_ancestor? requires decorator and name') }
+	decorator := decorator_from_value(args[0])
+	return brew_runtime.bool_value(decorator.inherited_methods[decorator_rule_name(args[1])] or { false })
 }
 
 // Ruby method `validate_overrides(name, rules)` at line 345.
 pub fn ruby_decorator_l345_d21_validate_overrides(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('validate_overrides', ...args)
+	if args.len < 3 { panic('validate_overrides requires decorator, name, and rules') }
+	decorator_validate_overrides(decorator_from_value(args[0]), decorator_rule_name(args[1]), args[2].as_map() or { panic(err) }) or { panic(err) }
+	return props_nil_value()
 }
 
 // Ruby method `prop_defined(name, cls, rules={})` at line 370.
 pub fn ruby_decorator_l370_d22_prop_defined(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prop_defined', ...args)
+	if args.len < 3 { panic('prop_defined requires decorator, name, and type') }
+	mut decorator := decorator_from_value(args[0])
+	rules := if args.len > 3 {
+		args[3].as_map() or { panic(err) }
+	} else {
+		map[string]brew_runtime.Value{}
+	}
+	decorator_define_prop(mut decorator, decorator_rule_name(args[1]), args[2], rules) or { panic(err) }
+	return decorator_value(decorator)
 }
 
 // Ruby method `define_getter_and_setter(name, rules)` at line 459.
 pub fn ruby_decorator_l459_d23_define_getter_and_setter(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('define_getter_and_setter', ...args)
+	if args.len < 3 { panic('define_getter_and_setter requires decorator, name, and rules') }
+	mut decorator := decorator_from_value(args[0])
+	decorator_define_accessors(mut decorator, decorator_rule_name(args[1]), args[2].as_map() or { panic(err) })
+	return decorator_value(decorator)
 }
 
 // Ruby define_method `@class.send(:define_method, "#{name}=") do |val|` at line 464.
 pub fn ruby_decorator_l464_d24_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#{name}=', ...args)
+	if args.len < 2 { panic('generated setter requires instance and value') }
+	mut instance := prop_instance_from_value(args[0])
+	name := args[0].attribute('prop_name') or { 'value' }
+	instance.values[name] = args[1]
+	return prop_instance_value(instance)
 }
 
 // Ruby define_method `@class.send(:define_method, "#{name}=", &rules.fetch(:setter_proc))` at line 469.
 pub fn ruby_decorator_l469_d25_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#{name}=', ...args)
+	return ruby_decorator_l464_d24_name(...args)
 }
 
 // Ruby define_method `@class.send(:define_method, name) do` at line 476.
 pub fn ruby_decorator_l476_d26_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('name', ...args)
+	if args.len == 0 { panic('generated getter requires instance') }
+	name := args[0].attribute('prop_name') or { 'value' }
+	return args[0].map_data[name] or { props_nil_value() }
 }
 
 // Ruby attr_reader `@class.send(:attr_reader, name)` at line 481.
 pub fn ruby_decorator_l481_d27_attr_reader_dynamic(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('attr_reader_dynamic', ...args)
+	if args.len == 0 { panic('attr_reader requires name') }
+	return method_descriptor(decorator_rule_name(args[args.len - 1]), 'reader')
 }
 
 // Ruby method `smart_coerce(type, enum:)` at line 491.
 pub fn ruby_decorator_l491_d28_smart_coerce(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('smart_coerce', ...args)
+	if args.len == 0 { panic('smart_coerce requires type') }
+	type_value := args[args.len - 1]
+	return type_value
 }
 
 // Ruby method `handle_redaction_option(prop_name, redaction)` at line 515.
 pub fn ruby_decorator_l515_d29_handle_redaction_option(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('handle_redaction_option', ...args)
+	if args.len < 3 { panic('handle_redaction_option requires decorator, prop, and directive') }
+	mut decorator := decorator_from_value(args[0])
+	decorator.redaction_methods << '${decorator_rule_name(args[1])}_redacted'
+	return decorator_value(decorator)
 }
 
 // Ruby define_method `@class.send(:define_method, redacted_method) do` at line 518.
 pub fn ruby_decorator_l518_d30_redacted_method(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('redacted_method', ...args)
+	if args.len < 2 { panic('redacted method requires value and directive') }
+	return brew_runtime.structured_value('RedactedValue', args[0].as_string(), {
+		'directive': args[1].as_string()
+	})
 }
 
 // Ruby method `validate_foreign_option(option_sym, foreign, valid_type_msg:)` at line 537.
 pub fn ruby_decorator_l537_d31_validate_foreign_option(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('validate_foreign_option', ...args)
+	if args.len < 2 { panic('validate_foreign_option requires option and foreign') }
+	foreign := args[args.len - 2]
+	if foreign.type_name in ['String', 'Symbol'] {
+		panic('Using a symbol/string for foreign is no longer supported; use a Proc')
+	}
+	if foreign.type_name !in ['Proc', 'Array', 'ModelClass'] {
+		panic('foreign must be a model class or Proc')
+	}
+	return props_nil_value()
 }
 
 // Ruby method `define_foreign_method(prop_name, rules, foreign)` at line 560.
 pub fn ruby_decorator_l560_d32_define_foreign_method(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('define_foreign_method', ...args)
+	if args.len < 4 { panic('define_foreign_method requires decorator, prop, rules, and foreign') }
+	mut decorator := decorator_from_value(args[0])
+	decorator.foreign_methods << '${decorator_rule_name(args[1])}_'
+	decorator.foreign_methods << '${decorator_rule_name(args[1])}_!'
+	return decorator_value(decorator)
 }
 
 // Ruby define_method `@class.send(:define_method, fk_method) do |allow_direct_mutation: nil|` at line 568.
 pub fn ruby_decorator_l568_d33_fk_method(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fk_method', ...args)
+	if args.len == 0 { panic('foreign getter requires id') }
+	return brew_runtime.Value{ type_name: 'ForeignModel', repr: args[0].as_string(), map_data: {
+		'id': args[0]
+	} }
 }
 
 // Ruby define_method `@class.send(:define_method, force_fk_method) do |allow_direct_mutation: nil|` at line 591.
 pub fn ruby_decorator_l591_d34_force_fk_method(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('force_fk_method', ...args)
+	result := ruby_decorator_l568_d33_fk_method(...args)
+	if result.type_name == 'NilClass' { panic('Failed to load foreign model') }
+	return result
 }
 
 // Ruby method `handle_foreign_option(prop_name, prop_cls, rules, foreign)` at line 611.
 pub fn ruby_decorator_l611_d35_handle_foreign_option(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('handle_foreign_option', ...args)
+	if args.len < 5 {
+		panic('handle_foreign_option requires decorator, prop, class, rules, and foreign')
+	}
+	mut decorator := decorator_from_value(args[0])
+	decorator_define_foreign_methods(mut decorator, decorator_rule_name(args[1]), args[2].as_string(), args[4]) or { panic(err) }
+	return decorator_value(decorator)
 }
 
 // Ruby method `model_inherited(child)` at line 648.
 pub fn ruby_decorator_l648_d36_model_inherited(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('model_inherited', ...args)
+	if args.len < 2 { panic('model_inherited requires decorator and child') }
+	return decorator_value(decorator_model_inherited(decorator_from_value(args[0]), args[1].as_string()))
 }
 
 // Ruby define_method `child.send(:define_method, name) do` at line 690.
 pub fn ruby_decorator_l690_d37_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('name', ...args)
+	return method_descriptor(if args.len > 0 { args[args.len - 1].as_string() } else { '' }, 'inherited_reader')
 }
 
 // Ruby define_method `child.send(:define_method, "#{name}=") do |val|` at line 696.
 pub fn ruby_decorator_l696_d38_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#{name}=', ...args)
+	return method_descriptor(if args.len > 0 { '${args[args.len - 1].as_string()}=' } else { '=' }, 'inherited_writer')
 }
 
 // Ruby method `elaborate_override_entry(key, d, out)` at line 709.
 pub fn ruby_decorator_l709_d39_elaborate_override_entry(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('elaborate_override_entry', ...args)
+	if args.len < 3 { panic('elaborate_override_entry requires key, descriptor, and output') }
+	key := decorator_rule_name(args[args.len - 3])
+	descriptor := args[args.len - 2]
+	mut out := args[args.len - 1].map_data.clone()
+	if value := descriptor.map_data[key] {
+		if props_truthy(value) {
+			out[key] = brew_runtime.map_value({
+				'allow_incompatible': if value.type_name == 'Hash' {
+					value.map_data['allow_incompatible'] or { brew_runtime.bool_value(false) }
+				} else {
+					brew_runtime.bool_value(false)
+				}
+			})
+		}
+	}
+	return brew_runtime.map_value(out)
 }
 
 // Ruby method `elaborate_override(name, d)` at line 725.
 pub fn ruby_decorator_l725_d40_elaborate_override(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('elaborate_override', ...args)
+	if args.len < 2 { panic('elaborate_override requires name and descriptor') }
+	override := elaborate_decorator_override(decorator_rule_name(args[args.len - 2]), args[args.len - 1]) or { panic(err) }
+	mut result := map[string]brew_runtime.Value{}
+	if override.reader {
+		result['reader'] = brew_runtime.map_value({
+			'allow_incompatible': brew_runtime.bool_value(override.reader_incompatible)
+		})
+	}
+	if override.writer {
+		result['writer'] = brew_runtime.map_value({
+			'allow_incompatible': brew_runtime.bool_value(override.writer_incompatible)
+		})
+	}
+	return brew_runtime.map_value(result)
 }
 
 // Ruby method `plugin(mod)` at line 751.
 pub fn ruby_decorator_l751_d41_plugin(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('plugin', ...args)
+	if args.len < 2 { panic('plugin requires decorator and module') }
+	mut decorator := decorator_from_value(args[0])
+	decorator.plugins << args[1].as_string()
+	return decorator_value(decorator)
 }
 
 // Original Ruby source (line-for-line):

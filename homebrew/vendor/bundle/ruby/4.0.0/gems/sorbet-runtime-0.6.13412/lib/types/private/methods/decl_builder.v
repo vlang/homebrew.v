@@ -4,80 +4,401 @@ import brew_runtime
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/sorbet-runtime-0.6.13412/lib/types/private/methods/decl_builder.rb`.
 // The original source is retained below until every stub has a typed V body.
+fn declaration_missing() brew_runtime.Value {
+	return brew_runtime.object_value('T::Private::Methods::ARG_NOT_PROVIDED', 'ARG_NOT_PROVIDED')
+}
+
+fn declaration_nil() brew_runtime.Value {
+	return brew_runtime.object_value('NilClass', 'nil')
+}
+
+fn declaration_is_missing(value brew_runtime.Value) bool {
+	return value.type_name == 'T::Private::Methods::ARG_NOT_PROVIDED'
+}
+
+@[heap]
+pub struct SignatureDeclaration {
+pub mut:
+	mod                         brew_runtime.Value
+	params                      brew_runtime.Value
+	returns                     brew_runtime.Value
+	bind                        brew_runtime.Value
+	mode                        string
+	checked                     string
+	finalized                   bool
+	on_failure                  brew_runtime.Value
+	override_allow_incompatible string
+	type_parameters             []brew_runtime.Value
+	type_parameters_provided    bool
+	raw                         bool
+}
+
+@[heap]
+pub struct DeclarationBuilder {
+pub mut:
+	decl &SignatureDeclaration
+}
+
+pub fn new_declaration_builder(mod brew_runtime.Value, abstract bool,
+	override_allow_incompatible string, overridable bool) !&DeclarationBuilder {
+	mut builder := &DeclarationBuilder{
+		decl: &SignatureDeclaration{
+			mod: mod
+			params: declaration_missing()
+			returns: declaration_missing()
+			bind: declaration_missing()
+			mode: 'standard'
+			on_failure: declaration_missing()
+			override_allow_incompatible: 'false'
+		}
+	}
+	if abstract {
+		builder.set_abstract()!
+	}
+	if override_allow_incompatible != '' {
+		builder.set_override(override_allow_incompatible)!
+	}
+	if overridable {
+		builder.set_overridable()!
+	}
+	return builder
+}
+
+fn (builder &DeclarationBuilder) check_live() ! {
+	if builder.decl.finalized {
+		return error("You can't modify a signature declaration after it has been used.")
+	}
+}
+
+pub fn (mut builder DeclarationBuilder) set_params(params map[string]brew_runtime.Value,
+	positional_count int) ! {
+	builder.check_live()!
+	if !declaration_is_missing(builder.decl.params) {
+		return error("You can't call .params twice")
+	}
+	if positional_count > 0 {
+		some_or_only := if params.len > 0 { 'some' } else { 'only' }
+		return error("'params' was called with ${some_or_only} positional arguments, but it needs to be called with keyword arguments.\nThe keyword arguments' keys must match the name and order of the method's parameters.\n")
+	}
+	if params.len == 0 {
+		return error("'params' was called without any arguments, but it needs to be called with keyword arguments.\nThe keyword arguments' keys must match the name and order of the method's parameters.\n\nOmit 'params' entirely for methods with no parameters.\n")
+	}
+	builder.decl.params = brew_runtime.map_value(params)
+}
+
+pub fn (mut builder DeclarationBuilder) set_returns(type_value brew_runtime.Value) ! {
+	builder.check_live()!
+	if builder.decl.returns.type_name == 'T::Private::Types::Void' {
+		return error("You can't call .returns after calling .void.")
+	}
+	if !declaration_is_missing(builder.decl.returns) {
+		return error("You can't call .returns multiple times in a signature.")
+	}
+	builder.decl.returns = type_value
+}
+
+pub fn (mut builder DeclarationBuilder) set_void() ! {
+	builder.check_live()!
+	if !declaration_is_missing(builder.decl.returns) {
+		return error("You can't call .void after calling .returns.")
+	}
+	builder.decl.returns = brew_runtime.object_value('T::Private::Types::Void', 'void')
+}
+
+pub fn (mut builder DeclarationBuilder) set_bind(type_value brew_runtime.Value) ! {
+	builder.check_live()!
+	if !declaration_is_missing(builder.decl.bind) {
+		return error("You can't call .bind multiple times in a signature.")
+	}
+	builder.decl.bind = type_value
+}
+
+pub fn (mut builder DeclarationBuilder) set_checked(level string) ! {
+	builder.check_live()!
+	clean := level.trim_string_left(':')
+	if builder.decl.checked != '' {
+		return error("You can't call .checked multiple times in a signature.")
+	}
+	if clean == 'never' && !declaration_is_missing(builder.decl.on_failure) {
+		return error("You can't use .checked(:${clean}) with .on_failure because .on_failure will have no effect.")
+	}
+	if clean !in ['always', 'tests', 'never'] {
+		return error("Invalid `checked` level '${clean}'. Use one of: ['always', 'tests', 'never'].")
+	}
+	builder.decl.checked = clean
+}
+
+pub fn (mut builder DeclarationBuilder) set_on_failure(arguments []brew_runtime.Value,
+	default_checked_level string) ! {
+	builder.check_live()!
+	if !declaration_is_missing(builder.decl.on_failure) {
+		return error("You can't call .on_failure multiple times in a signature.")
+	}
+	effective := if builder.decl.checked == '' {
+		default_checked_level
+	} else {
+		builder.decl.checked
+	}
+	if effective == 'never' {
+		if builder.decl.checked == '' {
+			return error('To use .on_failure you must additionally call .checked(:tests) or .checked(:always), otherwise, the .on_failure has no effect.')
+		}
+		return error("You can't use .on_failure with .checked(:${effective}) because .on_failure will have no effect.")
+	}
+	builder.decl.on_failure = brew_runtime.array_value(arguments)
+}
+
+pub fn (mut builder DeclarationBuilder) set_abstract() ! {
+	builder.check_live()!
+	match builder.decl.mode {
+		'standard' {
+			builder.decl.mode = 'abstract'
+		}
+		'abstract' {
+			return error('.abstract cannot be repeated in a single signature')
+		}
+		else {
+			return error('`.abstract` cannot be combined with `.override` or `.overridable`.')
+		}
+	}
+}
+
+pub fn (mut builder DeclarationBuilder) set_override(allow_incompatible string) ! {
+	builder.check_live()!
+	match builder.decl.mode {
+		'standard' {
+			if allow_incompatible !in ['true', 'false', 'visibility'] {
+				return error('.override(allow_incompatible: ...) only accepts `true`, `false`, or `:visibility`, got: ${allow_incompatible}')
+			}
+			builder.decl.mode = 'override'
+			builder.decl.override_allow_incompatible = allow_incompatible
+		}
+		'override', 'overridable_override' {
+			return error('.override cannot be repeated in a single signature')
+		}
+		'overridable' {
+			builder.decl.mode = 'overridable_override'
+		}
+		else {
+			return error('`.override` cannot be combined with `.abstract`.')
+		}
+	}
+}
+
+pub fn (mut builder DeclarationBuilder) set_overridable() ! {
+	builder.check_live()!
+	match builder.decl.mode {
+		'abstract' {
+			return error('`.overridable` cannot be combined with `.abstract`')
+		}
+		'override' {
+			builder.decl.mode = 'overridable_override'
+		}
+		'standard' {
+			builder.decl.mode = 'overridable'
+		}
+		'overridable', 'overridable_override' {
+			return error('.overridable cannot be repeated in a single signature')
+		}
+		else {}
+	}
+}
+
+pub fn (mut builder DeclarationBuilder) set_type_parameters(names []brew_runtime.Value) ! {
+	builder.check_live()!
+	for name in names {
+		if name.type_name != 'Symbol' {
+			return error('not a symbol: ${name.as_string()}')
+		}
+	}
+	if builder.decl.type_parameters_provided {
+		return error("You can't call .type_parameters multiple times in a signature.")
+	}
+	builder.decl.type_parameters = names.clone()
+	builder.decl.type_parameters_provided = true
+}
+
+pub fn (mut builder DeclarationBuilder) finalize() ! {
+	builder.check_live()!
+	if declaration_is_missing(builder.decl.returns) {
+		return error('You must provide a return type; use the `.returns` or `.void` builder methods.')
+	}
+	if declaration_is_missing(builder.decl.bind) {
+		builder.decl.bind = declaration_nil()
+	}
+	if declaration_is_missing(builder.decl.on_failure) {
+		builder.decl.on_failure = declaration_nil()
+	}
+	if declaration_is_missing(builder.decl.params) {
+		builder.decl.params = brew_runtime.map_value({})
+	}
+	if !builder.decl.type_parameters_provided {
+		builder.decl.type_parameters = []
+		builder.decl.type_parameters_provided = true
+	}
+	builder.decl.finalized = true
+}
+
+fn declaration_value(decl &SignatureDeclaration) brew_runtime.Value {
+	return brew_runtime.Value{
+		type_name: 'T::Private::Methods::Declaration'
+		repr: '#<T::Private::Methods::Declaration>'
+		map_data: {
+			'mod':        decl.mod
+			'params':     decl.params
+			'returns':    decl.returns
+			'bind':       decl.bind
+			'on_failure': decl.on_failure
+		}
+		attributes: {
+			'declaration_address':         u64(voidptr(decl)).str()
+			'mode':                        decl.mode
+			'checked':                     decl.checked
+			'finalized':                   decl.finalized.str()
+			'override_allow_incompatible': decl.override_allow_incompatible
+			'raw':                         decl.raw.str()
+		}
+		array_data: decl.type_parameters.clone()
+	}
+}
+
+fn declaration_from_value(value brew_runtime.Value) &SignatureDeclaration {
+	address := value.attribute('declaration_address') or { panic('invalid Declaration value') }
+	return unsafe { &SignatureDeclaration(voidptr(address.u64())) }
+}
+
+fn declaration_builder_value(builder &DeclarationBuilder) brew_runtime.Value {
+	return brew_runtime.structured_value('T::Private::Methods::DeclBuilder', '#<T::Private::Methods::DeclBuilder>', {
+		'declaration_builder_address': u64(voidptr(builder)).str()
+	})
+}
+
+fn declaration_builder_from_args(args []brew_runtime.Value) &DeclarationBuilder {
+	if args.len == 0 {
+		panic('DeclBuilder method requires a receiver')
+	}
+	address := args[0].attribute('declaration_builder_address') or { panic('invalid DeclBuilder receiver') }
+	return unsafe { &DeclarationBuilder(voidptr(address.u64())) }
+}
 
 // Ruby attr_reader `attr_reader :decl` at line 8.
 pub fn ruby_decl_builder_l8_d1_decl(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('decl', ...args)
+	return declaration_value(declaration_builder_from_args(args).decl)
 }
 
 // Ruby method `check_live!` at line 12.
 pub fn ruby_decl_builder_l12_d2_check_live(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('check_live!', ...args)
+	declaration_builder_from_args(args).check_live() or { panic(err) }
+	return declaration_nil()
 }
 
 // Ruby method `initialize(mod, abstract, override, overridable)` at line 18.
 pub fn ruby_decl_builder_l18_d3_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	if args.len < 4 {
+		panic('DeclBuilder.initialize requires mod, abstract, override, and overridable')
+	}
+	abstract := args[1].as_bool() or { false }
+	override_value := if args[2].type_name == 'NilClass' || (args[2].type_name == 'Bool' && !(args[2].as_bool() or { false })) {
+		''
+	} else {
+		args[2].attribute('allow_incompatible') or { args[2].as_string().trim_string_left(':') }
+	}
+	overridable := args[3].as_bool() or { false }
+	return declaration_builder_value(new_declaration_builder(args[0], abstract, override_value, overridable) or { panic(err) })
 }
 
 // Ruby method `params(*unused_positional_params, **params)` at line 48.
 pub fn ruby_decl_builder_l48_d4_params(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('params', ...args)
+	mut builder := declaration_builder_from_args(args)
+	has_keyword_hash := args.len > 1 && args[args.len - 1].type_name == 'Hash'
+	params := if has_keyword_hash {
+		args[args.len - 1].as_map() or { panic(err) }
+	} else {
+		map[string]brew_runtime.Value{}
+	}
+	positional_count := if has_keyword_hash { args.len - 2 } else { args.len - 1 }
+	builder.set_params(params, positional_count) or { panic(err) }
+	return args[0]
 }
 
 // Ruby method `returns(type)` at line 76.
 pub fn ruby_decl_builder_l76_d5_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	if args.len < 2 { panic('DeclBuilder#returns requires a type') }
+	mut builder := declaration_builder_from_args(args)
+	builder.set_returns(args[1]) or { panic(err) }
+	return args[0]
 }
 
 // Ruby method `void` at line 90.
 pub fn ruby_decl_builder_l90_d6_void(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('void', ...args)
+	mut builder := declaration_builder_from_args(args)
+	builder.set_void() or { panic(err) }
+	return args[0]
 }
 
 // Ruby method `bind(type)` at line 101.
 pub fn ruby_decl_builder_l101_d7_bind(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('bind', ...args)
+	if args.len < 2 { panic('DeclBuilder#bind requires a type') }
+	mut builder := declaration_builder_from_args(args)
+	builder.set_bind(args[1]) or { panic(err) }
+	return args[0]
 }
 
 // Ruby method `checked(level)` at line 112.
 pub fn ruby_decl_builder_l112_d8_checked(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('checked', ...args)
+	if args.len < 2 { panic('DeclBuilder#checked requires a level') }
+	mut builder := declaration_builder_from_args(args)
+	builder.set_checked(args[1].as_string()) or { panic(err) }
+	return args[0]
 }
 
 // Ruby method `on_failure(*args)` at line 130.
 pub fn ruby_decl_builder_l130_d9_on_failure(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('on_failure', ...args)
+	mut builder := declaration_builder_from_args(args)
+	builder.set_on_failure(args[1..], 'always') or { panic(err) }
+	return args[0]
 }
 
 // Ruby method `abstract` at line 150.
 pub fn ruby_decl_builder_l150_d10_abstract(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('abstract', ...args)
+	mut builder := declaration_builder_from_args(args)
+	builder.set_abstract() or { panic(err) }
+	return args[0]
 }
 
 // Ruby method `final` at line 165.
 pub fn ruby_decl_builder_l165_d11_final(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('final', ...args)
+	declaration_builder_from_args(args).check_live() or { panic(err) }
+	panic('The syntax for declaring a method final is `sig(:final) {...}`, not `sig {final. ...}`')
 }
 
 // Ruby method `override(allow_incompatible: false)` at line 170.
 pub fn ruby_decl_builder_l170_d12_override(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('override', ...args)
+	mut builder := declaration_builder_from_args(args)
+	allow := if args.len > 1 { args[1].as_string().trim_string_left(':') } else { 'false' }
+	builder.set_override(allow) or { panic(err) }
+	return args[0]
 }
 
 // Ruby method `overridable` at line 193.
 pub fn ruby_decl_builder_l193_d13_overridable(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('overridable', ...args)
+	mut builder := declaration_builder_from_args(args)
+	builder.set_overridable() or { panic(err) }
+	return args[0]
 }
 
 // Ruby method `type_parameters(*names)` at line 221.
 pub fn ruby_decl_builder_l221_d14_type_parameters(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('type_parameters', ...args)
+	mut builder := declaration_builder_from_args(args)
+	builder.set_type_parameters(args[1..]) or { panic(err) }
+	return args[0]
 }
 
 // Ruby method `finalize!` at line 237.
 pub fn ruby_decl_builder_l237_d15_finalize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('finalize!', ...args)
+	mut builder := declaration_builder_from_args(args)
+	builder.finalize() or { panic(err) }
+	return args[0]
 }
 
 // Original Ruby source (line-for-line):

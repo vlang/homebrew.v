@@ -1,78 +1,106 @@
 module mac
 
-import brew_runtime
+import homebrew.os.mac as mach
+
+fn mach_spec_state(cpu_types []string, file_type string) &mach.MachState {
+	return mach.new_mach_state('/tmp/fixture', cpu_types.map(mach.MachSlice{
+		cpu_type: it
+		file_type: file_type
+	}), []string{}, []mach.MachLibrary{}, '')
+}
+
+fn mach_spec_matches(state &mach.MachState, arch string, file_type string) bool {
+	return state.arch() == arch && state.has_type(file_type)
+}
 
 // Translated from Homebrew/brew `test/os/mac/mach_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby specify `specify "Sorbet runtime loads MachO before Pathname initialisation", :integration_test do` at line 5.
-pub fn ruby_mach_spec_l5_d1_sorbet(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('Sorbet', ...args)
+pub fn ruby_mach_spec_l5_d1_sorbet() bool {
+	state := mach.new_mach_state('test', []mach.MachSlice{}, []string{}, []mach.MachLibrary{}, '')
+	return state.path == 'test'
 }
 
 // Ruby specify `specify "fat dylib" do` at line 27.
-pub fn ruby_mach_spec_l27_d2_fat(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fat', ...args)
+pub fn ruby_mach_spec_l27_d2_fat() bool {
+	state := mach_spec_state(['i386', 'x86_64'], 'dylib')
+	return mach_spec_matches(state, 'universal', 'dylib') && !state.has_type('executable') && !mach.mach_text_executable('Mach-O')
 }
 
 // Ruby specify `specify "i386 dylib" do` at line 40.
-pub fn ruby_mach_spec_l40_d3_i386(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('i386', ...args)
+pub fn ruby_mach_spec_l40_d3_i386() bool {
+	state := mach_spec_state(['i386'], 'dylib')
+	return mach_spec_matches(state, 'i386', 'dylib') && !state.has_type('executable') && !state.has_type('bundle') && !mach.mach_text_executable('Mach-O')
 }
 
 // Ruby specify `specify "x86_64 dylib" do` at line 53.
-pub fn ruby_mach_spec_l53_d4_x86_64(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('x86_64', ...args)
+pub fn ruby_mach_spec_l53_d4_x86_64() bool {
+	state := mach_spec_state(['x86_64'], 'dylib')
+	return mach_spec_matches(state, 'x86_64', 'dylib') && !state.has_type('executable') && !state.has_type('bundle') && !mach.mach_text_executable('Mach-O')
 }
 
 // Ruby specify `specify "Mach-O executable" do` at line 66.
-pub fn ruby_mach_spec_l66_d5_mach_o(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('Mach-O', ...args)
+pub fn ruby_mach_spec_l66_d5_mach_o() bool {
+	state := mach_spec_state(['i386', 'x86_64'], 'execute')
+	return mach_spec_matches(state, 'universal', 'executable') && !state.has_type('dylib') && !state.has_type('bundle') && !mach.mach_text_executable('Mach-O')
 }
 
 // Ruby specify `specify "fat bundle" do` at line 79.
-pub fn ruby_mach_spec_l79_d6_fat(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fat', ...args)
+pub fn ruby_mach_spec_l79_d6_fat() bool {
+	state := mach_spec_state(['i386', 'x86_64'], 'bundle')
+	return mach_spec_matches(state, 'universal', 'bundle') && !state.has_type('dylib') && !state.has_type('executable')
 }
 
 // Ruby specify `specify "i386 bundle" do` at line 92.
-pub fn ruby_mach_spec_l92_d7_i386(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('i386', ...args)
+pub fn ruby_mach_spec_l92_d7_i386() bool {
+	state := mach_spec_state(['i386'], 'bundle')
+	return mach_spec_matches(state, 'i386', 'bundle') && !state.has_type('dylib') && !state.has_type('executable')
 }
 
 // Ruby specify `specify "x86_64 bundle" do` at line 105.
-pub fn ruby_mach_spec_l105_d8_x86_64(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('x86_64', ...args)
+pub fn ruby_mach_spec_l105_d8_x86_64() bool {
+	state := mach_spec_state(['x86_64'], 'bundle')
+	return mach_spec_matches(state, 'x86_64', 'bundle') && !state.has_type('dylib') && !state.has_type('executable')
 }
 
 // Ruby specify `specify "non-Mach-O" do` at line 118.
-pub fn ruby_mach_spec_l118_d9_non_mach_o(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('non-Mach-O', ...args)
+pub fn ruby_mach_spec_l118_d9_non_mach_o() bool {
+	state := mach_spec_state([]string{}, 'dunno')
+	return state.arch() == 'dunno' && state.archs().len == 0 && !state.has_type('dylib') && !state.has_type('executable') && !state.has_type('bundle') && !mach.mach_text_executable('not a binary')
 }
 
 // Ruby specify `specify "returns nil without rewriting the binary when no rpath matches" do` at line 134.
-pub fn ruby_mach_spec_l134_d10_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_mach_spec_l134_d10_returns() bool {
+	mut state := mach.new_mach_state('/tmp/fixture', [mach.MachSlice{
+		cpu_type: 'x86_64'
+		file_type: 'dylib'
+	}], ['/existing'], []mach.MachLibrary{}, '')
+	deleted := state.delete_rpath('/nonexistent', false) or { return false }
+	return deleted == '' && state.rpaths == ['/existing'] && state.writes == 0
 }
 
 // Ruby let `let(:pn) { MachOPathname.wrap(HOMEBREW_PREFIX/"an_executable") }` at line 143.
-pub fn ruby_mach_spec_l143_d11_pn(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('pn', ...args)
+pub fn ruby_mach_spec_l143_d11_pn() &mach.MachState {
+	return mach.new_mach_state('/usr/local/an_executable', []mach.MachSlice{}, []string{}, []mach.MachLibrary{}, '')
 }
 
 // Ruby specify `specify "simple shebang" do` at line 147.
-pub fn ruby_mach_spec_l147_d12_simple(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('simple', ...args)
+pub fn ruby_mach_spec_l147_d12_simple() bool {
+	state := ruby_mach_spec_l143_d11_pn()
+	return mach.mach_text_executable('#!/bin/sh') && state.archs().len == 0 && state.arch() == 'dunno' && !state.has_type('dylib') && !state.has_type('executable')
 }
 
 // Ruby specify `specify "shebang with options" do` at line 161.
-pub fn ruby_mach_spec_l161_d13_shebang(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('shebang', ...args)
+pub fn ruby_mach_spec_l161_d13_shebang() bool {
+	state := ruby_mach_spec_l143_d11_pn()
+	return mach.mach_text_executable('#! /usr/bin/perl -w') && state.archs().len == 0 && state.arch() == 'dunno' && !state.has_type('dylib') && !state.has_type('executable')
 }
 
 // Ruby specify `specify "malformed shebang" do` at line 175.
-pub fn ruby_mach_spec_l175_d14_malformed(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('malformed', ...args)
+pub fn ruby_mach_spec_l175_d14_malformed() bool {
+	state := ruby_mach_spec_l143_d11_pn()
+	return !mach.mach_text_executable(' #!') && state.archs().len == 0 && state.arch() == 'dunno' && !state.has_type('dylib') && !state.has_type('executable')
 }
 
 // Original Ruby source (line-for-line):

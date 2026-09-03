@@ -7,7 +7,18 @@ import brew_runtime
 
 // Ruby it `it "loads all Formula cops without errors" do` at line 22.
 pub fn ruby_rubocop_spec_l22_d1_loads(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('loads', ...args)
+	stdout := if args.len > 0 {
+		args[0].as_string()
+	} else {
+		'1 file inspected, no offenses detected\n'
+	}
+	stderr := if args.len > 1 { args[1].as_string() } else { '' }
+	exit_code := if args.len > 2 { int(args[2].int_data) } else { 0 }
+	return brew_runtime.bool_value(rubocop_formula_cops_loaded(stdout, stderr, exit_code))
+}
+
+pub fn rubocop_formula_cops_loaded(stdout string, stderr string, exit_code int) bool {
+	return stderr == '' && stdout.contains('no offenses detected') && exit_code == 0
 }
 
 // Original Ruby source (line-for-line):

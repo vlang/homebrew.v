@@ -1,78 +1,181 @@
 module bundle
 
 import brew_runtime
+import homebrew.bundle.extensions
 
 // Translated from Homebrew/brew `test/bundle/npm_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+fn npm_spec_packages() []string {
+	return ['vercel', 'typescript', 'prettier']
+}
+
+fn npm_spec_case(line int) bool {
+	packages := npm_spec_packages()
+	match line {
+		19 {
+			mut state := extensions.new_npm_state()
+			listed := state.discover_packages()
+			return listed.len == 0 && extensions.npm_dump(listed) == ''
+		}
+		31 {
+			return extensions.npm_parse_package_list('{"dependencies":{"npm":{"version":"11.11.0"},"vercel":{"version":"39.0.0"},"typescript":{"version":"5.7.3"}}}') == packages[..2]
+		}
+		45 {
+			mut state := extensions.new_npm_state()
+			state.executable = '/opt/homebrew/bin/npm'
+			state.executable_exists = true
+			state.original_path = '/usr/bin:/bin'
+			state.list_output = '{"dependencies":{"eslint":{"version":"10.4.0"}}}'
+			return state.discover_packages() == ['eslint'] && state.last_environment['PATH'].starts_with('/opt/homebrew/bin:')
+		}
+		59 {
+			return extensions.npm_parse_package_list('{"dependencies":{"npm":{"version":"11.11.0"}}}').len == 0
+		}
+		71 {
+			return extensions.npm_parse_package_list('not json').len == 0
+		}
+		77 {
+			return extensions.npm_parse_package_list('').len == 0
+		}
+		83 {
+			return extensions.npm_dump(packages[..2]) == 'npm "vercel"\nnpm "typescript"'
+		}
+		100 {
+			entries := [extensions.ExtensionEntry{
+				entry_type: 'npm'
+				name: 'vercel'
+			}]
+			return extensions.npm_cleanup_items(entries, '/opt/homebrew/bin/npm', packages) == packages[1..]
+		}
+		105 {
+			entries := packages.map(extensions.ExtensionEntry{
+				entry_type: 'npm'
+				name: it
+			})
+			return extensions.npm_cleanup_items(entries, '/opt/homebrew/bin/npm', packages).len == 0
+		}
+		114 {
+			return extensions.npm_cleanup_items([extensions.ExtensionEntry{
+				entry_type: 'npm'
+				name: 'vercel'
+			}], '', packages).len == 0
+		}
+		128 {
+			if _ := extensions.npm_preinstall('', [], 'vercel') {
+				return false
+			}
+			return true
+		}
+		147 {
+			return !(extensions.npm_preinstall('npm', ['vercel'], 'vercel') or { return false })
+		}
+		161 {
+			mut state := extensions.new_npm_state()
+			state.executable = '/opt/homebrew/bin/npm'
+			state.executable_exists = true
+			state.cache_dir = '/homebrew/cache'
+			state.packages_loaded = true
+			state.installed_packages_loaded = true
+			preinstall := extensions.npm_preinstall(state.executable, state.installed_packages, 'vercel') or { return false }
+			installed := state.install('vercel', true, false, true) or { return false }
+			return preinstall && installed && state.commands == [[
+				'/opt/homebrew/bin/npm',
+				'install',
+				'--min-release-age=1',
+				'--cache=/homebrew/cache/npm_cache',
+				'--ignore-scripts',
+				'-g',
+				'vercel',
+			]]
+		}
+		else {
+			return false
+		}
+	}
+}
 
 // Ruby subject `subject(:dumper) { described_class }` at line 11.
 pub fn ruby_npm_spec_l11_d1_dumper(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dumper', ...args)
+	_ = args
+	return brew_runtime.object_value('Homebrew::Bundle::Npm', 'Homebrew::Bundle::Npm')
 }
 
 // Ruby specify `specify do` at line 19.
 pub fn ruby_npm_spec_l19_d2_do(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('do', ...args)
+	_ = args
+	return brew_runtime.bool_value(npm_spec_case(19))
 }
 
 // Ruby it `it "returns package list" do` at line 31.
 pub fn ruby_npm_spec_l31_d3_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	return brew_runtime.bool_value(npm_spec_case(31))
 }
 
 // Ruby it `it "adds npm's directory to PATH when listing packages" do` at line 45.
 pub fn ruby_npm_spec_l45_d4_adds(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('adds', ...args)
+	_ = args
+	return brew_runtime.bool_value(npm_spec_case(45))
 }
 
 // Ruby it `it "excludes npm itself from the package list" do` at line 59.
 pub fn ruby_npm_spec_l59_d5_excludes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('excludes', ...args)
+	_ = args
+	return brew_runtime.bool_value(npm_spec_case(59))
 }
 
 // Ruby it `it "handles invalid JSON" do` at line 71.
 pub fn ruby_npm_spec_l71_d6_handles(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('handles', ...args)
+	_ = args
+	return brew_runtime.bool_value(npm_spec_case(71))
 }
 
 // Ruby it `it "handles empty output" do` at line 77.
 pub fn ruby_npm_spec_l77_d7_handles(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('handles', ...args)
+	_ = args
+	return brew_runtime.bool_value(npm_spec_case(77))
 }
 
 // Ruby it `it "dumps package list" do` at line 83.
 pub fn ruby_npm_spec_l83_d8_dumps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dumps', ...args)
+	_ = args
+	return brew_runtime.bool_value(npm_spec_case(83))
 }
 
 // Ruby it `it "returns packages not in Brewfile entries" do` at line 100.
 pub fn ruby_npm_spec_l100_d9_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	return brew_runtime.bool_value(npm_spec_case(100))
 }
 
 // Ruby it `it "returns empty when all packages are in Brewfile" do` at line 105.
 pub fn ruby_npm_spec_l105_d10_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	return brew_runtime.bool_value(npm_spec_case(105))
 }
 
 // Ruby it `it "returns frozen empty array when npm is not installed" do` at line 114.
 pub fn ruby_npm_spec_l114_d11_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	return brew_runtime.bool_value(npm_spec_case(114))
 }
 
 // Ruby it `it "tries to install node" do` at line 128.
 pub fn ruby_npm_spec_l128_d12_tries(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tries', ...args)
+	_ = args
+	return brew_runtime.bool_value(npm_spec_case(128))
 }
 
 // Ruby it `it "skips" do` at line 147.
 pub fn ruby_npm_spec_l147_d13_skips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skips', ...args)
+	_ = args
+	return brew_runtime.bool_value(npm_spec_case(147))
 }
 
 // Ruby it `it "installs package" do` at line 161.
 pub fn ruby_npm_spec_l161_d14_installs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('installs', ...args)
+	_ = args
+	return brew_runtime.bool_value(npm_spec_case(161))
 }
 
 // Original Ruby source (line-for-line):

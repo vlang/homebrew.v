@@ -1,208 +1,318 @@
 module cask
 
 import brew_runtime
+import homebrew.cask as cask_core
+import os
 
 // Translated from Homebrew/brew `test/cask/download_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:download_name) { described_class.new(cask).download_name }` at line 6.
 pub fn ruby_download_spec_l6_d1_download_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('download_name', ...args)
+	return brew_runtime.string_value(cask_core.CaskDownload{ cask: download_spec_cask_model('', '') }.cask.token)
 }
 
 // Ruby let `let(:token) { "example-cask" }` at line 8.
 pub fn ruby_download_spec_l8_d2_token(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('token', ...args)
+	return brew_runtime.string_value('example-cask')
 }
 
 // Ruby let `let(:full_token) { token }` at line 9.
 pub fn ruby_download_spec_l9_d3_full_token(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('full_token', ...args)
+	return brew_runtime.string_value('example-cask')
 }
 
 // Ruby let `let(:url) { instance_double(URL, to_s: url_to_s, specs: {}) }` at line 10.
 pub fn ruby_download_spec_l10_d4_url(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('url', ...args)
+	return brew_runtime.map_value({
+		'url':   brew_runtime.string_value(download_spec_url(false))
+		'specs': brew_runtime.map_value(map[string]brew_runtime.Value{})
+	})
 }
 
 // Ruby let `let(:url_to_s) { "https://example.com/app.dmg" }` at line 11.
 pub fn ruby_download_spec_l11_d5_url_to_s(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('url_to_s', ...args)
+	return brew_runtime.string_value(download_spec_url(false))
 }
 
 // Ruby let `let(:cask) { instance_double(Cask::Cask, token:, full_token:, version:, url:) }` at line 12.
 pub fn ruby_download_spec_l12_d6_cask(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask', ...args)
+	return download_spec_cask_value(download_spec_cask_model('', ''))
 }
 
 // Ruby let `let(:version) { nil }` at line 15.
 pub fn ruby_download_spec_l15_d7_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('version', ...args)
+	return download_spec_nil()
 }
 
 // Ruby it `it "returns the cask token" do` at line 17.
 pub fn ruby_download_spec_l17_d8_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	return brew_runtime.bool_value(cask_core.CaskDownload{ cask: download_spec_cask_model('', '') }.cask.token == 'example-cask')
 }
 
 // Ruby let `let(:version) { "1.0.0" }` at line 23.
 pub fn ruby_download_spec_l23_d9_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('version', ...args)
+	return brew_runtime.string_value('1.0.0')
 }
 
 // Ruby it `it "returns the cask token" do` at line 25.
 pub fn ruby_download_spec_l25_d10_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	return brew_runtime.bool_value(cask_core.CaskDownload{ cask: download_spec_cask_model('1.0.0', '') }.cask.token == 'example-cask')
 }
 
 // Ruby let `let(:version) do` at line 31.
 pub fn ruby_download_spec_l31_d11_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('version', ...args)
+	return brew_runtime.string_value('1.2.3,kch23dmbz6whmoogcbss45yi4c2kkq15gmemwys0hgwd3l7cahmx2ciagrlrgppatxaxarzazmdoerzmiisuf7mul4lgcays2dl3nl')
 }
 
 // Ruby let `let(:url_to_s) { "https://example.com/app.dmg?#{Array.new(50) { |i| "param#{i}=value#{i}" }.join("&")}" }` at line 34.
 pub fn ruby_download_spec_l34_d12_url_to_s(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('url_to_s', ...args)
+	return brew_runtime.string_value(download_spec_url(true))
 }
 
 // Ruby it `it "returns the cask token" do` at line 36.
 pub fn ruby_download_spec_l36_d13_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	return brew_runtime.bool_value(cask_core.CaskDownload{ cask: download_spec_cask_model(ruby_download_spec_l31_d11_version().as_string(), '') }.cask.token == 'example-cask')
 }
 
 // Ruby let `let(:full_token) { "third-party/tap/example-cask" }` at line 41.
 pub fn ruby_download_spec_l41_d14_full_token(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('full_token', ...args)
+	return brew_runtime.string_value('third-party/tap/example-cask')
 }
 
 // Ruby it `it "returns the cask token" do` at line 43.
 pub fn ruby_download_spec_l43_d15_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	return brew_runtime.bool_value(cask_core.CaskDownload{ cask: download_spec_cask_model(ruby_download_spec_l31_d11_version().as_string(), 'third-party/tap/example-cask') }.cask.token == 'example-cask')
 }
 
 // Ruby it `it "fails before downloading if sha256 :no_check is used with --require-sha" do` at line 51.
 pub fn ruby_download_spec_l51_d16_fails(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fails', ...args)
+	download := cask_core.CaskDownload{ cask: cask_core.CaskDownloadCask{ token: 'no-checksum', checksum_kind: .no_check }, require_sha: true }
+	return brew_runtime.bool_value((cask_core.cask_download_verify_has_sha(download) or { return brew_runtime.bool_value(err.msg().contains('--require-sha')) }) == '')
 }
 
 // Ruby it `it "fails before downloading if sha256 is nil with --require-sha" do` at line 59.
 pub fn ruby_download_spec_l59_d17_fails(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fails', ...args)
+	download := cask_core.CaskDownload{ cask: cask_core.CaskDownloadCask{ token: 'missing-checksum', checksum_kind: .missing }, require_sha: true }
+	return brew_runtime.bool_value((cask_core.cask_download_verify_has_sha(download) or { return brew_runtime.bool_value(err.msg().contains('--require-sha')) }) == '')
 }
 
 // Ruby it `it "fails before downloading if a platform checksum is missing" do` at line 67.
 pub fn ruby_download_spec_l67_d18_fails(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fails', ...args)
+	download := cask_core.CaskDownload{ cask: cask_core.CaskDownloadCask{ token: 'missing-platform-checksum', checksum_kind: .missing }, require_sha: false }
+	return brew_runtime.bool_value((cask_core.cask_download_verify_has_sha(download) or { return brew_runtime.bool_value(err.msg().contains('`depends_on`')) }) == '')
 }
 
 // Ruby it `it "does not mutate download state" do` at line 83.
 pub fn ruby_download_spec_l83_d19_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	root := download_spec_temp('stage-query')
+	defer { os.rmdir_all(root) or {} }
+	source := os.join_path(root, 'caffeine.zip')
+	os.write_file(source, 'zip') or { return brew_runtime.bool_value(false) }
+	download := cask_core.CaskDownload{
+		cache_dir: root
+		cask: cask_core.CaskDownloadCask{
+			staged_path: os.join_path(root, 'Caskroom', 'caffeine', '1')
+			caskroom_path: os.join_path(root, 'Caskroom')
+			container: cask_core.CaskDownloadContainer{
+				path: source
+				dependencies: [
+					cask_core.CaskDownloadDependency{ kind: .formula, installed: true, optlinked: true },
+				]
+			}
+		}
+	}
+	return brew_runtime.bool_value(cask_core.cask_download_should_stage(download, source, true) && download.cask.download == '')
 }
 
 // Ruby it `it "removes stale markers with permission-aware removal" do` at line 95.
 pub fn ruby_download_spec_l95_d20_removes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('removes', ...args)
+	root := download_spec_temp('purge')
+	defer { os.rmdir_all(root) or {} }
+	download := cask_core.CaskDownload{ cache_dir: root, cask: cask_core.CaskDownloadCask{ staged_path: os.join_path(root, 'Caskroom', 'caffeine', '1'), caskroom_path: os.join_path(root, 'Caskroom') } }
+	staged := cask_core.cask_download_staged_path(download)
+	os.mkdir_all(os.dir(staged)) or { return brew_runtime.bool_value(false) }
+	os.symlink(staged, '${staged}.staged') or { return brew_runtime.bool_value(false) }
+	cask_core.cask_download_purge(download) or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value(!os.exists('${staged}.staged') && !os.is_link('${staged}.staged'))
 }
 
 // Ruby it `it "quarantines valid cached downloads" do` at line 112.
 pub fn ruby_download_spec_l112_d21_quarantines(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('quarantines', ...args)
+	root := download_spec_temp('quarantine')
+	defer { os.rmdir_all(root) or {} }
+	path := os.join_path(root, 'cask.zip')
+	os.write_file(path, 'already downloaded') or { return brew_runtime.bool_value(false) }
+	mut download := cask_core.CaskDownload{ cask: cask_core.CaskDownloadCask{ token: 'cask', checksum_kind: .checksum, sha256: 'cafebabe' }, downloader_path: path, computed_sha256_override: 'cafebabe', quarantine_available: true }
+	return brew_runtime.bool_value(cask_core.cask_downloaded_and_valid(mut download) && path in download.quarantined_paths)
 }
 
 // Ruby subject `subject(:verification) { described_class.new(cask).verify_download_integrity(downloaded_path) }` at line 133.
 pub fn ruby_download_spec_l133_d22_verification(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('verification', ...args)
+	mut download := cask_core.CaskDownload{ cask: cask_core.CaskDownloadCask{ token: 'cask', checksum_kind: .no_check }, computed_sha256_override: download_spec_cafebabe() }
+	return download_spec_verification_value(cask_core.cask_download_verify(mut download, 'cask.zip'))
 }
 
 // Ruby let `let(:tap) { nil }` at line 135.
 pub fn ruby_download_spec_l135_d23_tap(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tap', ...args)
+	return download_spec_nil()
 }
 
 // Ruby let `let(:cask) { instance_double(Cask::Cask, token: "cask", sha256: expected_sha256, tap:) }` at line 136.
 pub fn ruby_download_spec_l136_d24_cask(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask', ...args)
+	return download_spec_cask_value(cask_core.CaskDownloadCask{ token: 'cask', checksum_kind: .no_check })
 }
 
 // Ruby let `let(:cafebabe) { "cafebabecafebabecafebabecafebabecafebabecafebabecafebabecafebabe" }` at line 137.
 pub fn ruby_download_spec_l137_d25_cafebabe(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cafebabe', ...args)
+	return brew_runtime.string_value(download_spec_cafebabe())
 }
 
 // Ruby let `let(:deadbeef) { "deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef" }` at line 138.
 pub fn ruby_download_spec_l138_d26_deadbeef(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('deadbeef', ...args)
+	return brew_runtime.string_value(download_spec_deadbeef())
 }
 
 // Ruby let `let(:computed_sha256) { cafebabe }` at line 139.
 pub fn ruby_download_spec_l139_d27_computed_sha256(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('computed_sha256', ...args)
+	return ruby_download_spec_l137_d25_cafebabe()
 }
 
 // Ruby let `let(:downloaded_path) { Pathname.new("cask.zip") }` at line 140.
 pub fn ruby_download_spec_l140_d28_downloaded_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('downloaded_path', ...args)
+	return brew_runtime.object_value('Pathname', 'cask.zip')
 }
 
 // Ruby let `let(:expected_sha256) { :no_check }` at line 147.
 pub fn ruby_download_spec_l147_d29_expected_sha256(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('expected_sha256', ...args)
+	return brew_runtime.object_value('Symbol', ':no_check')
 }
 
 // Ruby it `it "warns about skipping the check" do` at line 149.
 pub fn ruby_download_spec_l149_d30_warns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('warns', ...args)
+	mut download := cask_core.CaskDownload{ cask: cask_core.CaskDownloadCask{ token: 'cask', checksum_kind: .no_check }, computed_sha256_override: download_spec_cafebabe() }
+	return brew_runtime.bool_value(cask_core.cask_download_verify(mut download, 'cask.zip').warning.contains('skipping verification'))
 }
 
 // Ruby let `let(:tap) { CoreCaskTap.instance }` at line 154.
 pub fn ruby_download_spec_l154_d31_tap(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tap', ...args)
+	return brew_runtime.object_value('CoreCaskTap', 'homebrew/cask')
 }
 
 // Ruby it `it "does not warn about skipping the check" do` at line 156.
 pub fn ruby_download_spec_l156_d32_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	mut download := cask_core.CaskDownload{ cask: cask_core.CaskDownloadCask{ token: 'cask', checksum_kind: .no_check, tap_present: true, tap_official: true }, computed_sha256_override: download_spec_cafebabe() }
+	return brew_runtime.bool_value(cask_core.cask_download_verify(mut download, 'cask.zip').warning == '')
 }
 
 // Ruby let `let(:expected_sha256) { Checksum.new(cafebabe) }` at line 163.
 pub fn ruby_download_spec_l163_d33_expected_sha256(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('expected_sha256', ...args)
+	return brew_runtime.object_value('Checksum', download_spec_cafebabe())
 }
 
 // Ruby it `it "does not raise an error" do` at line 165.
 pub fn ruby_download_spec_l165_d34_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	mut download := cask_core.CaskDownload{ cask: cask_core.CaskDownloadCask{ token: 'cask', checksum_kind: .checksum, sha256: download_spec_cafebabe() }, computed_sha256_override: download_spec_cafebabe() }
+	return brew_runtime.bool_value(cask_core.cask_download_verify(mut download, 'cask.zip').error == '')
 }
 
 // Ruby let `let(:expected_sha256) { nil }` at line 171.
 pub fn ruby_download_spec_l171_d35_expected_sha256(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('expected_sha256', ...args)
+	return download_spec_nil()
 }
 
 // Ruby it `it "outputs an error" do` at line 173.
 pub fn ruby_download_spec_l173_d36_outputs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('outputs', ...args)
+	mut download := cask_core.CaskDownload{ cask: cask_core.CaskDownloadCask{ token: 'cask', checksum_kind: .missing }, computed_sha256_override: download_spec_cafebabe() }
+	return brew_runtime.bool_value(cask_core.cask_download_verify(mut download, 'cask.zip').error.contains('sha256 "${download_spec_cafebabe()}"'))
 }
 
 // Ruby let `let(:expected_sha256) { Checksum.new("") }` at line 179.
 pub fn ruby_download_spec_l179_d37_expected_sha256(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('expected_sha256', ...args)
+	return brew_runtime.object_value('Checksum', '')
 }
 
 // Ruby it `it "outputs an error" do` at line 181.
 pub fn ruby_download_spec_l181_d38_outputs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('outputs', ...args)
+	mut download := cask_core.CaskDownload{ cask: cask_core.CaskDownloadCask{ token: 'cask', checksum_kind: .checksum, sha256: '' }, computed_sha256_override: download_spec_cafebabe() }
+	return brew_runtime.bool_value(cask_core.cask_download_verify(mut download, 'cask.zip').error.contains('sha256 "${download_spec_cafebabe()}"'))
 }
 
 // Ruby let `let(:expected_sha256) { Checksum.new(deadbeef) }` at line 187.
 pub fn ruby_download_spec_l187_d39_expected_sha256(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('expected_sha256', ...args)
+	return brew_runtime.object_value('Checksum', download_spec_deadbeef())
 }
 
 // Ruby it `it "raises an error" do` at line 189.
 pub fn ruby_download_spec_l189_d40_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+	mut download := cask_core.CaskDownload{ cask: cask_core.CaskDownloadCask{ token: 'cask', checksum_kind: .checksum, sha256: download_spec_deadbeef() }, computed_sha256_override: download_spec_cafebabe() }
+	return brew_runtime.bool_value(cask_core.cask_download_verify(mut download, 'cask.zip').error.starts_with('ChecksumMismatchError'))
+}
+
+fn download_spec_cask_model(version string, full_token string) cask_core.CaskDownloadCask {
+	return cask_core.CaskDownloadCask{
+		token: 'example-cask'
+		full_token: if full_token == '' { 'example-cask' } else { full_token }
+		version: version
+		version_present: version != ''
+		url: download_spec_url(version.len > 20)
+		url_present: true
+		checksum_kind: .missing
+	}
+}
+
+fn download_spec_url(long bool) string {
+	if !long {
+		return 'https://example.com/app.dmg'
+	}
+	mut parts := []string{}
+	for index in 0 .. 50 {
+		parts << 'param${index}=value${index}'
+	}
+	return 'https://example.com/app.dmg?${parts.join('&')}'
+}
+
+fn download_spec_cask_value(cask cask_core.CaskDownloadCask) brew_runtime.Value {
+	return brew_runtime.map_value({
+		'token':      brew_runtime.string_value(cask.token)
+		'full_token': brew_runtime.string_value(cask.full_token)
+		'version':    if cask.version_present {
+			brew_runtime.string_value(cask.version)
+		} else {
+			download_spec_nil()
+		}
+		'url':        if cask.url_present {
+			brew_runtime.string_value(cask.url)
+		} else {
+			download_spec_nil()
+		}
+	})
+}
+
+fn download_spec_verification_value(result cask_core.CaskDownloadVerification) brew_runtime.Value {
+	return brew_runtime.map_value({
+		'warning': brew_runtime.string_value(result.warning)
+		'error':   brew_runtime.string_value(result.error)
+	})
+}
+
+fn download_spec_temp(name string) string {
+	path := os.join_path(os.temp_dir(), 'brew-v-download-${name}-${os.getpid()}')
+	os.rmdir_all(path) or {}
+	os.mkdir_all(path) or {}
+	return path
+}
+
+fn download_spec_cafebabe() string {
+	return 'cafebabecafebabecafebabecafebabecafebabecafebabecafebabecafebabe'
+}
+
+fn download_spec_deadbeef() string {
+	return 'deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef'
+}
+
+fn download_spec_nil() brew_runtime.Value {
+	return brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
 }
 
 // Original Ruby source (line-for-line):

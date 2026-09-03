@@ -1,213 +1,428 @@
 module test
 
 import brew_runtime
+import homebrew
 
 // Translated from Homebrew/brew `test/livecheck_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+fn livecheck_spec_nil() brew_runtime.Value {
+	return brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
+}
+
+fn livecheck_spec_symbol(name string) brew_runtime.Value {
+	return brew_runtime.object_value('Symbol', ':${name}')
+}
+
+fn livecheck_spec_package(kind string, name string, version string, arch string, operating_system string) brew_runtime.Value {
+	return brew_runtime.Value{
+		type_name: kind
+		repr: name
+		map_data: {
+			'name':    brew_runtime.string_value(name)
+			'version': brew_runtime.string_value(version)
+			'arch':    brew_runtime.string_value(arch)
+			'os':      brew_runtime.string_value(operating_system)
+		}
+	}
+}
+
+fn livecheck_spec_formula() brew_runtime.Value {
+	return livecheck_spec_package('FormulaClass', 'TestFormula', '0.0.1', '', '')
+}
+
+fn livecheck_spec_cask() brew_runtime.Value {
+	return livecheck_spec_package('Cask', 'test', '0.0.1,2', '', '')
+}
+
+fn livecheck_spec_livecheck(package brew_runtime.Value) brew_runtime.Value {
+	return homebrew.ruby_livecheck_l38_d5_initialize(package)
+}
+
+fn livecheck_spec_post_hash() brew_runtime.Value {
+	return brew_runtime.map_value({
+		'empty':   brew_runtime.string_value('')
+		'boolean': brew_runtime.string_value('true')
+		'number':  brew_runtime.string_value('1')
+		'string':  brew_runtime.string_value('a + b = c')
+	})
+}
+
+fn livecheck_spec_bool(value bool) brew_runtime.Value {
+	return brew_runtime.bool_value(value)
+}
+
+fn livecheck_spec_with_version(kind string) brew_runtime.Value {
+	package := livecheck_spec_package(kind, kind.to_lower(), '0.0.1', '', '')
+	mut dsl := livecheck_spec_livecheck(package)
+	version := homebrew.ruby_livecheck_l236_d17_version(dsl).as_string()
+	dsl = homebrew.ruby_livecheck_l199_d13_url(dsl, brew_runtime.string_value('https://brew.sh/${version}'))
+	return dsl
+}
 
 // Ruby let `let(:f) do` at line 8.
 pub fn ruby_livecheck_spec_l8_d1_f(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f', ...args)
+	_ = args
+	return livecheck_spec_formula()
 }
 
 // Ruby let `let(:livecheck_f) { described_class.new(f.class) }` at line 16.
 pub fn ruby_livecheck_spec_l16_d2_livecheck_f(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('livecheck_f', ...args)
+	_ = args
+	return livecheck_spec_livecheck(livecheck_spec_formula())
 }
 
 // Ruby let `let(:c) do` at line 18.
 pub fn ruby_livecheck_spec_l18_d3_c(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('c', ...args)
+	_ = args
+	return livecheck_spec_cask()
 }
 
 // Ruby let `let(:livecheck_c) { described_class.new(c) }` at line 30.
 pub fn ruby_livecheck_spec_l30_d4_livecheck_c(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('livecheck_c', ...args)
+	_ = args
+	return livecheck_spec_livecheck(livecheck_spec_cask())
 }
 
 // Ruby let `let(:post_hash) do` at line 32.
 pub fn ruby_livecheck_spec_l32_d5_post_hash(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('post_hash', ...args)
+	_ = args
+	return livecheck_spec_post_hash()
 }
 
 // Ruby it `it "returns nil if not set" do` at line 42.
 pub fn ruby_livecheck_spec_l42_d6_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	value := homebrew.ruby_livecheck_l82_d7_formula(livecheck_spec_livecheck(livecheck_spec_formula()))
+	return livecheck_spec_bool(value.type_name == 'NilClass')
 }
 
 // Ruby it `it "returns the String if set" do` at line 46.
 pub fn ruby_livecheck_spec_l46_d7_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	updated := homebrew.ruby_livecheck_l82_d7_formula(livecheck_spec_livecheck(livecheck_spec_formula()), brew_runtime.string_value('other-formula'))
+	return livecheck_spec_bool(homebrew.ruby_livecheck_l82_d7_formula(updated).as_string() == 'other-formula')
 }
 
 // Ruby it `it "returns nil if not set" do` at line 53.
 pub fn ruby_livecheck_spec_l53_d8_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	value := homebrew.ruby_livecheck_l63_d6_cask(livecheck_spec_livecheck(livecheck_spec_cask()))
+	return livecheck_spec_bool(value.type_name == 'NilClass')
 }
 
 // Ruby it `it "returns the String if set" do` at line 57.
 pub fn ruby_livecheck_spec_l57_d9_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	updated := homebrew.ruby_livecheck_l63_d6_cask(livecheck_spec_livecheck(livecheck_spec_cask()), brew_runtime.string_value('other-cask'))
+	return livecheck_spec_bool(homebrew.ruby_livecheck_l63_d6_cask(updated).as_string() == 'other-cask')
 }
 
 // Ruby it `it "returns nil if not set" do` at line 64.
 pub fn ruby_livecheck_spec_l64_d10_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	value := homebrew.ruby_livecheck_l99_d8_regex(livecheck_spec_livecheck(livecheck_spec_formula()))
+	return livecheck_spec_bool(value.type_name == 'NilClass')
 }
 
 // Ruby it `it "returns the Regexp if set" do` at line 68.
 pub fn ruby_livecheck_spec_l68_d11_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	pattern := brew_runtime.object_value('Regexp', '/foo/')
+	updated := homebrew.ruby_livecheck_l99_d8_regex(livecheck_spec_livecheck(livecheck_spec_formula()), pattern)
+	result := homebrew.ruby_livecheck_l99_d8_regex(updated)
+	return livecheck_spec_bool(result.type_name == 'Regexp' && result.repr == '/foo/')
 }
 
 // Ruby it `it "sets @skip to true when no argument is provided" do` at line 75.
 pub fn ruby_livecheck_spec_l75_d12_sets(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sets', ...args)
+	_ = args
+	updated := homebrew.ruby_livecheck_l119_d9_skip(livecheck_spec_livecheck(livecheck_spec_formula()))
+	return livecheck_spec_bool(homebrew.ruby_livecheck_l127_d10_skip(updated).as_bool() or { false } && homebrew.ruby_livecheck_l26_d2_skip_msg(updated).type_name == 'NilClass')
 }
 
 // Ruby it `it "sets @skip to true and @skip_msg to the provided String" do` at line 81.
 pub fn ruby_livecheck_spec_l81_d13_sets(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sets', ...args)
+	_ = args
+	updated := homebrew.ruby_livecheck_l119_d9_skip(livecheck_spec_livecheck(livecheck_spec_formula()), brew_runtime.string_value('foo'))
+	return livecheck_spec_bool(homebrew.ruby_livecheck_l127_d10_skip(updated).as_bool() or { false } && homebrew.ruby_livecheck_l26_d2_skip_msg(updated).as_string() == 'foo')
 }
 
 // Ruby it `it "returns the value of @skip" do` at line 89.
 pub fn ruby_livecheck_spec_l89_d14_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	dsl := livecheck_spec_livecheck(livecheck_spec_formula())
+	if homebrew.ruby_livecheck_l127_d10_skip(dsl).as_bool() or { true } {
+		return livecheck_spec_bool(false)
+	}
+	updated := homebrew.ruby_livecheck_l119_d9_skip(dsl)
+	return livecheck_spec_bool(homebrew.ruby_livecheck_l127_d10_skip(updated).as_bool() or { false })
 }
 
 // Ruby let `let(:block) do` at line 98.
 pub fn ruby_livecheck_spec_l98_d15_block(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('block', ...args)
+	_ = args
+	return brew_runtime.object_value('Proc', 'page.scan(regex).map { |match| match[0].tr("_", ".") }')
 }
 
 // Ruby it `it "returns nil if not set" do` at line 102.
 pub fn ruby_livecheck_spec_l102_d16_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	dsl := livecheck_spec_livecheck(livecheck_spec_formula())
+	return livecheck_spec_bool(homebrew.ruby_livecheck_l142_d11_strategy(dsl).type_name == 'NilClass' && homebrew.ruby_livecheck_l30_d3_strategy_block(dsl).type_name == 'NilClass')
 }
 
 // Ruby it `it "returns the Symbol if set" do` at line 107.
 pub fn ruby_livecheck_spec_l107_d17_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	updated := homebrew.ruby_livecheck_l142_d11_strategy(livecheck_spec_livecheck(livecheck_spec_formula()), livecheck_spec_symbol('page_match'))
+	strategy := homebrew.ruby_livecheck_l142_d11_strategy(updated)
+	return livecheck_spec_bool(strategy.type_name == 'Symbol' && strategy.as_string() == ':page_match' && homebrew.ruby_livecheck_l30_d3_strategy_block(updated).type_name == 'NilClass')
 }
 
 // Ruby it `it "sets `strategy_block` when provided" do` at line 113.
 pub fn ruby_livecheck_spec_l113_d18_sets(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sets', ...args)
+	_ = args
+	block := ruby_livecheck_spec_l98_d15_block()
+	updated := homebrew.ruby_livecheck_l142_d11_strategy(livecheck_spec_livecheck(livecheck_spec_formula()), livecheck_spec_symbol('page_match'), block)
+	strategy := homebrew.ruby_livecheck_l142_d11_strategy(updated)
+	stored_block := homebrew.ruby_livecheck_l30_d3_strategy_block(updated)
+	return livecheck_spec_bool(strategy.as_string() == ':page_match' && stored_block.type_name == 'Proc' && stored_block.as_string() == block.as_string())
 }
 
 // Ruby it `it "returns nil if not set" do` at line 121.
 pub fn ruby_livecheck_spec_l121_d19_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	return livecheck_spec_bool(homebrew.ruby_livecheck_l168_d12_throttle(livecheck_spec_livecheck(livecheck_spec_formula())).type_name == 'NilClass')
 }
 
 // Ruby it `it "returns the Integer if set" do` at line 125.
 pub fn ruby_livecheck_spec_l125_d20_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	updated := homebrew.ruby_livecheck_l168_d12_throttle(livecheck_spec_livecheck(livecheck_spec_formula()), brew_runtime.int_value(10))
+	return livecheck_spec_bool(homebrew.ruby_livecheck_l168_d12_throttle(updated).as_int() or { -1 } == 10)
 }
 
 // Ruby it `it "sets @throttle_days to provided Integer" do` at line 130.
 pub fn ruby_livecheck_spec_l130_d21_sets(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sets', ...args)
+	_ = args
+	updated := homebrew.ruby_livecheck_l168_d12_throttle(livecheck_spec_livecheck(livecheck_spec_formula()), brew_runtime.map_value({
+		'days': brew_runtime.int_value(1)
+	}))
+	return livecheck_spec_bool(homebrew.ruby_livecheck_l35_d4_throttle_days(updated).as_int() or { -1 } == 1)
 }
 
 // Ruby let `let(:url_string) { "https://brew.sh" }` at line 137.
 pub fn ruby_livecheck_spec_l137_d22_url_string(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('url_string', ...args)
+	_ = args
+	return brew_runtime.string_value('https://brew.sh')
 }
 
 // Ruby let `let(:referer_url) { "https://example.com/referer" }` at line 138.
 pub fn ruby_livecheck_spec_l138_d23_referer_url(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('referer_url', ...args)
+	_ = args
+	return brew_runtime.string_value('https://example.com/referer')
 }
 
 // Ruby it `it "returns nil if not set" do` at line 140.
 pub fn ruby_livecheck_spec_l140_d24_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	return livecheck_spec_bool(homebrew.ruby_livecheck_l199_d13_url(livecheck_spec_livecheck(livecheck_spec_formula())).type_name == 'NilClass')
 }
 
 // Ruby it `it "returns a string when set to a string" do` at line 144.
 pub fn ruby_livecheck_spec_l144_d25_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	updated := homebrew.ruby_livecheck_l199_d13_url(livecheck_spec_livecheck(livecheck_spec_formula()), ruby_livecheck_spec_l137_d22_url_string())
+	return livecheck_spec_bool(homebrew.ruby_livecheck_l199_d13_url(updated).as_string() == 'https://brew.sh')
 }
 
 // Ruby it `it "returns the URL symbol if valid" do` at line 149.
 pub fn ruby_livecheck_spec_l149_d26_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	for shorthand in ['head', 'homepage', 'stable'] {
+		updated := homebrew.ruby_livecheck_l199_d13_url(livecheck_spec_livecheck(livecheck_spec_formula()), livecheck_spec_symbol(shorthand))
+		if homebrew.ruby_livecheck_l199_d13_url(updated).as_string() != ':${shorthand}' {
+			return livecheck_spec_bool(false)
+		}
+	}
+	cask := homebrew.ruby_livecheck_l199_d13_url(livecheck_spec_livecheck(livecheck_spec_cask()), livecheck_spec_symbol('url'))
+	return livecheck_spec_bool(homebrew.ruby_livecheck_l199_d13_url(cask).as_string() == ':url')
 }
 
 // Ruby it `it "sets `url` options when provided" do` at line 163.
 pub fn ruby_livecheck_spec_l163_d27_sets(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sets', ...args)
+	_ = args
+	post_hash := livecheck_spec_post_hash()
+	cookies := brew_runtime.map_value({
+		'cookie_key': brew_runtime.string_value('cookie_value')
+	})
+	mut dsl := homebrew.ruby_livecheck_l199_d13_url(livecheck_spec_livecheck(livecheck_spec_formula()), brew_runtime.string_value('https://brew.sh'), brew_runtime.map_value({
+		'compressed':    brew_runtime.bool_value(false)
+		'cookies':       cookies
+		'header':        brew_runtime.string_value('Accept: */*')
+		'homebrew_curl': brew_runtime.bool_value(true)
+		'post_form':     post_hash
+		'referer':       brew_runtime.string_value('https://example.com/referer')
+		'user_agent':    livecheck_spec_symbol('browser')
+	}))
+	dsl = homebrew.ruby_livecheck_l199_d13_url(dsl, brew_runtime.string_value('https://brew.sh'), brew_runtime.map_value({
+		'post_json': post_hash
+	}))
+	mut options := homebrew.ruby_livecheck_l21_d1_options(dsl).map_data.clone()
+	if (options['compressed'] or { livecheck_spec_nil() }).type_name != 'Bool' || (options['compressed'] or { brew_runtime.bool_value(true) }).bool_data || (options['cookies'] or { livecheck_spec_nil() }).map_data != cookies.map_data || (options['header'] or { livecheck_spec_nil() }).as_string() != 'Accept: */*' || !(options['homebrew_curl'] or { brew_runtime.bool_value(false) }).bool_data || (options['post_form'] or { livecheck_spec_nil() }).map_data != post_hash.map_data || (options['post_json'] or { livecheck_spec_nil() }).map_data != post_hash.map_data || (options['referer'] or { livecheck_spec_nil() }).as_string() != 'https://example.com/referer' || (options['user_agent'] or { livecheck_spec_nil() }).as_string() != ':browser' {
+		return livecheck_spec_bool(false)
+	}
+	header_array := brew_runtime.string_array_value(['Accept: */*', 'X-Requested-With: XMLHttpRequest'])
+	dsl = homebrew.ruby_livecheck_l199_d13_url(dsl, brew_runtime.string_value('https://brew.sh'), brew_runtime.map_value({
+		'header': header_array
+	}))
+	options = homebrew.ruby_livecheck_l21_d1_options(dsl).map_data.clone()
+	if (options['header'] or { livecheck_spec_nil() }).string_array_data != header_array.string_array_data {
+		return livecheck_spec_bool(false)
+	}
+	dsl = homebrew.ruby_livecheck_l199_d13_url(dsl, brew_runtime.string_value('https://brew.sh'), brew_runtime.map_value({
+		'user_agent': brew_runtime.string_value('Example')
+	}))
+	return livecheck_spec_bool((homebrew.ruby_livecheck_l21_d1_options(dsl).map_data['user_agent'] or {
+		livecheck_spec_nil()
+	}).as_string() == 'Example')
 }
 
 // Ruby it `it "raises an ArgumentError if the argument isn't a valid Symbol" do` at line 200.
 pub fn ruby_livecheck_spec_l200_d28_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+	_ = args
+	result := homebrew.ruby_livecheck_l199_d13_url(livecheck_spec_livecheck(livecheck_spec_formula()), livecheck_spec_symbol('not_a_valid_symbol'))
+	return livecheck_spec_bool(result.type_name == 'ArgumentError')
 }
 
 // Ruby it `it "raises an ArgumentError if `compressed: true` argument is provided" do` at line 206.
 pub fn ruby_livecheck_spec_l206_d29_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+	_ = args
+	result := homebrew.ruby_livecheck_l199_d13_url(livecheck_spec_livecheck(livecheck_spec_formula()), livecheck_spec_symbol('stable'), brew_runtime.map_value({
+		'compressed': brew_runtime.bool_value(true)
+	}))
+	return livecheck_spec_bool(result.type_name == 'ArgumentError')
 }
 
 // Ruby it `it "raises an ArgumentError if `homebrew_curl: false` argument is provided" do` at line 212.
 pub fn ruby_livecheck_spec_l212_d30_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+	_ = args
+	result := homebrew.ruby_livecheck_l199_d13_url(livecheck_spec_livecheck(livecheck_spec_formula()), livecheck_spec_symbol('stable'), brew_runtime.map_value({
+		'homebrew_curl': brew_runtime.bool_value(false)
+	}))
+	return livecheck_spec_bool(result.type_name == 'ArgumentError')
 }
 
 // Ruby it `it "raises an ArgumentError if both `post_form` and `post_json` arguments are provided" do` at line 218.
 pub fn ruby_livecheck_spec_l218_d31_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+	_ = args
+	post_hash := livecheck_spec_post_hash()
+	result := homebrew.ruby_livecheck_l199_d13_url(livecheck_spec_livecheck(livecheck_spec_formula()), livecheck_spec_symbol('stable'), brew_runtime.map_value({
+		'post_form': post_hash
+		'post_json': post_hash
+	}))
+	return livecheck_spec_bool(result.type_name == 'ArgumentError')
 }
 
 // Ruby let `let(:c_arch) do` at line 226.
 pub fn ruby_livecheck_spec_l226_d32_c_arch(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('c_arch', ...args)
+	arch := if args.len > 0 { args[0].as_string() } else { 'arm' }
+	package := livecheck_spec_package('Cask', 'c-arch', '0.0.1', arch, '')
+	mut dsl := livecheck_spec_livecheck(package)
+	delegated := homebrew.ruby_livecheck_l234_d15_arch(dsl).as_string()
+	dsl = homebrew.ruby_livecheck_l199_d13_url(dsl, brew_runtime.string_value('https://brew.sh/${delegated}'))
+	return dsl
 }
 
 // Ruby it `it "delegates `arch` in `livecheck` block to `package_or_resource`", metadata do` at line 247.
 pub fn ruby_livecheck_spec_l247_d33_delegates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('delegates', ...args)
+	_ = args
+	for arch in ['arm', 'intel'] {
+		dsl := ruby_livecheck_spec_l226_d32_c_arch(brew_runtime.string_value(arch))
+		if homebrew.ruby_livecheck_l199_d13_url(dsl).as_string() != 'https://brew.sh/${arch}' {
+			return livecheck_spec_bool(false)
+		}
+	}
+	return livecheck_spec_bool(true)
 }
 
 // Ruby let `let(:c_os) do` at line 254.
 pub fn ruby_livecheck_spec_l254_d34_c_os(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('c_os', ...args)
+	operating_system := if args.len > 0 { args[0].as_string() } else { 'macos' }
+	package := livecheck_spec_package('Cask', 'c-os', '0.0.1', '', operating_system)
+	mut dsl := livecheck_spec_livecheck(package)
+	delegated := homebrew.ruby_livecheck_l235_d16_os(dsl).as_string()
+	dsl = homebrew.ruby_livecheck_l199_d13_url(dsl, brew_runtime.string_value('https://brew.sh/${delegated}'))
+	return dsl
 }
 
 // Ruby it `it "delegates `os` in `livecheck` block to `package_or_resource`", metadata do` at line 275.
 pub fn ruby_livecheck_spec_l275_d35_delegates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('delegates', ...args)
+	_ = args
+	for operating_system in ['macos', 'linux'] {
+		dsl := ruby_livecheck_spec_l254_d34_c_os(brew_runtime.string_value(operating_system))
+		if homebrew.ruby_livecheck_l199_d13_url(dsl).as_string() != 'https://brew.sh/${operating_system}' {
+			return livecheck_spec_bool(false)
+		}
+	}
+	return livecheck_spec_bool(true)
 }
 
 // Ruby let `let(:url_with_version) { "https://brew.sh/0.0.1" }` at line 282.
 pub fn ruby_livecheck_spec_l282_d36_url_with_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('url_with_version', ...args)
+	_ = args
+	return brew_runtime.string_value('https://brew.sh/0.0.1')
 }
 
 // Ruby let `let(:f_version) do` at line 284.
 pub fn ruby_livecheck_spec_l284_d37_f_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f_version', ...args)
+	_ = args
+	return livecheck_spec_with_version('FormulaClass')
 }
 
 // Ruby let `let(:c_version) do` at line 296.
 pub fn ruby_livecheck_spec_l296_d38_c_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('c_version', ...args)
+	_ = args
+	return livecheck_spec_with_version('Cask')
 }
 
 // Ruby let `let(:r_version) do` at line 311.
 pub fn ruby_livecheck_spec_l311_d39_r_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('r_version', ...args)
+	_ = args
+	return livecheck_spec_with_version('Resource')
 }
 
 // Ruby it `it "delegates `version` in `livecheck` block to `package_or_resource`" do` at line 321.
 pub fn ruby_livecheck_spec_l321_d40_delegates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('delegates', ...args)
+	_ = args
+	expected := ruby_livecheck_spec_l282_d36_url_with_version().as_string()
+	for dsl in [
+		ruby_livecheck_spec_l284_d37_f_version(),
+		ruby_livecheck_spec_l296_d38_c_version(),
+		ruby_livecheck_spec_l311_d39_r_version(),
+	] {
+		if homebrew.ruby_livecheck_l199_d13_url(dsl).as_string() != expected {
+			return livecheck_spec_bool(false)
+		}
+	}
+	return livecheck_spec_bool(true)
 }
 
 // Ruby it `it "returns a Hash of all instance variables" do` at line 329.
 pub fn ruby_livecheck_spec_l329_d41_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	result := homebrew.ruby_livecheck_l241_d18_to_hash(livecheck_spec_livecheck(livecheck_spec_formula()))
+	values := result.map_data.clone()
+	if values.len != 10 || (values['options'] or { livecheck_spec_nil() }).map_data.len != 0 || (values['skip'] or { brew_runtime.bool_value(true) }).type_name != 'Bool' || (values['skip'] or { brew_runtime.bool_value(true) }).bool_data {
+		return livecheck_spec_bool(false)
+	}
+	for key in ['cask', 'formula', 'regex', 'skip_msg', 'strategy', 'throttle', 'throttle_days',
+		'url'] {
+		if (values[key] or { brew_runtime.string_value('set') }).type_name != 'NilClass' {
+			return livecheck_spec_bool(false)
+		}
+	}
+	return livecheck_spec_bool(true)
 }
 
 // Original Ruby source (line-for-line):

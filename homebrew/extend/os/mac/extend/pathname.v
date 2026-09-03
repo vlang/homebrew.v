@@ -1,13 +1,21 @@
 module extend
 
-import brew_runtime
-
 // Translated from Homebrew/brew `extend/os/mac/extend/pathname.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub struct MachOShimPath {
+pub:
+	path string
+}
+
+pub fn wrap_macho_path(path string) MachOShimPath {
+	return MachOShimPath{
+		path: path
+	}
+}
 
 // Ruby method `wrap(path)` at line 9.
-pub fn ruby_pathname_l9_d1_wrap(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('wrap', ...args)
+pub fn ruby_pathname_l9_d1_wrap(path string) MachOShimPath {
+	return wrap_macho_path(path)
 }
 
 // Original Ruby source (line-for-line):

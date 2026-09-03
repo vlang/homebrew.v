@@ -1,73 +1,206 @@
 module bundle
 
 import brew_runtime
+import homebrew.bundle as production_bundle
+import homebrew.bundle.subcommand as production_subcommand
+import os
+import time
 
 // Translated from Homebrew/brew `test/cmd/bundle/dump_subcommand_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
+fn dump_subcommand_spec_root(args []brew_runtime.Value, label string) string {
+	if args.len > 0 && args[0].as_string() != '' {
+		return args[0].as_string()
+	}
+	return os.join_path(os.temp_dir(), 'brew-v-dump-subcommand-${label}-${os.getpid()}-${time.now().unix_micro()}')
+}
+
+fn dump_subcommand_spec_config(root string, global bool) production_bundle.BundleBrewfilePathConfig {
+	return production_bundle.BundleBrewfilePathConfig{
+		global: global
+		working_directory: root
+		home_directory: root
+		user_config_home: os.join_path(root, '.config', 'homebrew')
+	}
+}
+
+fn dump_subcommand_spec_input() production_bundle.BundleDumpInput {
+	return production_bundle.BundleDumpInput{
+		formulae: [production_bundle.BundleDumpFormula{
+			full_name: 'alpha'
+			installed_on_request: true
+		}]
+		casks: [production_bundle.BundleDumpCask{
+			full_name: 'desktop'
+		}]
+		taps: [production_bundle.BundleDumpTap{
+			name: 'vendor/tools'
+		}]
+		extensions: [
+			production_bundle.BundleDumpSection{
+				type_name: 'mas'
+				output: 'mas "Example", id: 1'
+			},
+			production_bundle.BundleDumpSection{
+				type_name: 'vscode'
+				output: 'vscode "example.extension"'
+			},
+		]
+	}
+}
+
+fn dump_subcommand_spec_options(root string, global bool, force bool,
+	formulae bool, taps bool, mas bool) production_subcommand.BundleDumpCommandOptions {
+	return production_subcommand.BundleDumpCommandOptions{
+		config: dump_subcommand_spec_config(root, global)
+		input: dump_subcommand_spec_input()
+		force: force
+		formulae: formulae
+		taps: taps
+		casks: true
+		extension_types: {
+			'mas':    mas
+			'vscode': true
+		}
+	}
+}
+
+fn dump_subcommand_spec_run(options production_subcommand.BundleDumpCommandOptions) !production_bundle.BundleDumpResult {
+	os.mkdir_all(options.config.working_directory)!
+	return production_subcommand.run_bundle_dump(options, production_bundle.real_brewfile_writer)
+}
+
+fn dump_subcommand_spec_result_value(result production_bundle.BundleDumpResult) brew_runtime.Value {
+	return brew_runtime.structured_value('BundleDumpResult', result.path, {
+		'path':    result.path
+		'content': result.content
+	})
+}
+
 // Ruby subject `subject(:dump) do` at line 8.
 pub fn ruby_dump_subcommand_spec_l8_d1_dump(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dump', ...args)
+	root := dump_subcommand_spec_root(args, 'subject')
+	force := args.len > 1 && (args[1].as_bool() or { false })
+	global := args.len > 2 && (args[2].as_bool() or { false })
+	result := dump_subcommand_spec_run(dump_subcommand_spec_options(root, global, force, true, true, true)) or { return brew_runtime.object_value('RuntimeError', err.msg()) }
+	return dump_subcommand_spec_result_value(result)
 }
 
 // Ruby let `let(:force) { false }` at line 12.
 pub fn ruby_dump_subcommand_spec_l12_d2_force(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('force', ...args)
+	_ = args
+	return brew_runtime.bool_value(false)
 }
 
 // Ruby let `let(:global) { false }` at line 13.
 pub fn ruby_dump_subcommand_spec_l13_d3_global(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('global', ...args)
+	_ = args
+	return brew_runtime.bool_value(false)
 }
 
 // Ruby let `let(:context) { bundle_subcommand_context(:dump, global:, force:, no_type_args: false) }` at line 14.
 pub fn ruby_dump_subcommand_spec_l14_d4_context(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('context', ...args)
+	global := args.len > 0 && (args[0].as_bool() or { false })
+	force := args.len > 1 && (args[1].as_bool() or { false })
+	return brew_runtime.map_value({
+		'subcommand':   brew_runtime.string_value('dump')
+		'global':       brew_runtime.bool_value(global)
+		'force':        brew_runtime.bool_value(force)
+		'no_type_args': brew_runtime.bool_value(false)
+	})
 }
 
 // Ruby let `let(:args_object) do` at line 15.
 pub fn ruby_dump_subcommand_spec_l15_d5_args_object(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('args_object', ...args)
+	_ = args
+	return brew_runtime.map_value({
+		'describe?':   brew_runtime.bool_value(false)
+		'no_restart?': brew_runtime.bool_value(false)
+		'taps?':       brew_runtime.bool_value(true)
+		'formulae?':   brew_runtime.bool_value(true)
+		'casks?':      brew_runtime.bool_value(true)
+		'mas?':        brew_runtime.bool_value(true)
+		'vscode?':     brew_runtime.bool_value(true)
+		'cargo?':      brew_runtime.bool_value(true)
+		'flatpak?':    brew_runtime.bool_value(false)
+		'go?':         brew_runtime.bool_value(true)
+		'uv?':         brew_runtime.bool_value(true)
+	})
 }
 
 // Ruby it `it "raises error" do` at line 39.
 pub fn ruby_dump_subcommand_spec_l39_d6_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+	root := dump_subcommand_spec_root(args, 'raises')
+	os.mkdir_all(root) or { return brew_runtime.bool_value(false) }
+	os.write_file(os.join_path(root, 'Brewfile'), 'existing') or {
+		return brew_runtime.bool_value(false)
+	}
+	if _ := dump_subcommand_spec_run(dump_subcommand_spec_options(root, false, false, true, true, true)) {
+		return brew_runtime.bool_value(false)
+	}
+	return brew_runtime.bool_value(true)
 }
 
 // Ruby it `it "exits before doing any work" do` at line 45.
 pub fn ruby_dump_subcommand_spec_l45_d7_exits(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('exits', ...args)
+	root := dump_subcommand_spec_root(args, 'early')
+	os.mkdir_all(root) or { return brew_runtime.bool_value(false) }
+	path := os.join_path(root, 'Brewfile')
+	os.write_file(path, 'unchanged') or { return brew_runtime.bool_value(false) }
+	if _ := dump_subcommand_spec_run(dump_subcommand_spec_options(root, false, false, true, true, true)) {
+		return brew_runtime.bool_value(false)
+	}
+	return brew_runtime.bool_value((os.read_file(path) or { '' }) == 'unchanged')
 }
 
 // Ruby it `it "does not dump disabled types by default" do` at line 55.
 pub fn ruby_dump_subcommand_spec_l55_d8_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	root := dump_subcommand_spec_root(args, 'disabled-default')
+	result := dump_subcommand_spec_run(dump_subcommand_spec_options(root, false, false, false, true, false)) or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value(!result.content.contains('brew "alpha"')
+		&& result.content.contains('cask "desktop"') && result.content.contains('tap "vendor/tools"')
+		&& !result.content.contains('mas "Example"')
+		&& result.content.contains('vscode "example.extension"'))
 }
 
 // Ruby it `it "treats --no-tap as --no-dump-tap" do` at line 70.
 pub fn ruby_dump_subcommand_spec_l70_d9_treats(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('treats', ...args)
+	root := dump_subcommand_spec_root(args, 'no-tap')
+	result := dump_subcommand_spec_run(dump_subcommand_spec_options(root, false, false, true, false, true)) or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value(!result.content.contains('tap "vendor/tools"'))
 }
 
 // Ruby it `it "does not dump types disabled by environment" do` at line 81.
 pub fn ruby_dump_subcommand_spec_l81_d10_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	root := dump_subcommand_spec_root(args, 'disabled-env')
+	result := dump_subcommand_spec_run(dump_subcommand_spec_options(root, false, false, false, true, false)) or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value(!result.content.contains('brew "alpha"')
+		&& !result.content.contains('mas "Example"') && result.content.contains('cask "desktop"')
+		&& result.content.contains('vscode "example.extension"'))
 }
 
 // Ruby let `let(:force) { true }` at line 98.
 pub fn ruby_dump_subcommand_spec_l98_d11_force(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('force', ...args)
+	_ = args
+	return brew_runtime.bool_value(true)
 }
 
 // Ruby let `let(:global) { true }` at line 99.
 pub fn ruby_dump_subcommand_spec_l99_d12_global(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('global', ...args)
+	_ = args
+	return brew_runtime.bool_value(true)
 }
 
 // Ruby it `it "doesn't raise error" do` at line 115.
 pub fn ruby_dump_subcommand_spec_l115_d13_doesn(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('doesn', ...args)
+	root := dump_subcommand_spec_root(args, 'force-global')
+	os.mkdir_all(root) or { return brew_runtime.bool_value(false) }
+	path := os.join_path(root, '.Brewfile')
+	os.write_file(path, 'existing') or { return brew_runtime.bool_value(false) }
+	result := dump_subcommand_spec_run(dump_subcommand_spec_options(root, true, true, true, true, true)) or { return brew_runtime.bool_value(false) }
+	return brew_runtime.bool_value(result.path == path
+		&& (os.read_file(path) or { '' }).contains('brew "alpha"'))
 }
 
 // Original Ruby source (line-for-line):

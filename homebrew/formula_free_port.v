@@ -1,13 +1,24 @@
 module homebrew
 
 import brew_runtime
+import net
 
 // Translated from Homebrew/brew `formula_free_port.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `free_port` at line 12.
 pub fn ruby_formula_free_port_l12_d1_free_port(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('free_port', ...args)
+	return brew_runtime.int_value(free_port() or { panic(err) })
+}
+
+// free_port asks the kernel to bind an ephemeral TCP port, reads the assigned
+// port, and closes the listener before returning it.
+pub fn free_port() !int {
+	mut server := net.listen_tcp(.ip, '127.0.0.1:0')!
+	defer {
+		server.close() or {}
+	}
+	return int(server.addr()!.port()!)
 }
 
 // Original Ruby source (line-for-line):

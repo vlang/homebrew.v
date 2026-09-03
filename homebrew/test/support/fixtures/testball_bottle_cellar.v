@@ -7,17 +7,22 @@ import brew_runtime
 
 // Ruby method `initialize(name = "testball_bottle", path = Pathname.new(__FILE__).expand_path, spec = :stable,` at line 7.
 pub fn ruby_testball_bottle_cellar_l7_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	return fixture_formula_value(fixture_formula_from_args(args, 'TestballBottleCellar', 'testball_bottle', false, true))
 }
 
 // Ruby method `self.inherited(other)` at line 25.
 pub fn ruby_testball_bottle_cellar_l25_d2_self_inherited(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.inherited', ...args)
+	other := if args.len > 0 {
+		args[0]
+	} else {
+		brew_runtime.object_value('Class', 'TestballBottleCellarSubclass')
+	}
+	return fixture_inherited_value(other, fixture_formula_from_args([], 'TestballBottleCellar', 'testball_bottle', false, true))
 }
 
 // Ruby method `install` at line 30.
 pub fn ruby_testball_bottle_cellar_l30_d3_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	return fixture_install_value(fixture_install_plan('testball_bottle_cellar', false))
 }
 
 // Original Ruby source (line-for-line):

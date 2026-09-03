@@ -1,98 +1,441 @@
 module patchelf
 
 import brew_runtime
+import os
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/patchelf-1.6.2/lib/patchelf/saver.rb`.
 // The original source is retained below until every stub has a typed V body.
+const saver_dt_needed = i64(1)
+const saver_dt_soname = i64(14)
+const saver_dt_loos = i64(0x6000000d)
+
+@[heap]
+pub struct Saver {
+pub:
+	in_file  string
+	out_file string
+pub mut:
+	set map[string]brew_runtime.Value
+mut:
+	elf               &AltSaver
+	working_tags      []AltDynamicTag
+	working_dynstr    []u8
+	inline_patches    map[int][]u8
+	dynamic_dirty     bool
+	interpreter_dirty bool
+}
+
+fn saver_nil_value() brew_runtime.Value {
+	return brew_runtime.object_value('NilClass', 'nil')
+}
+
+fn saver_value(saver &Saver) brew_runtime.Value {
+	return brew_runtime.structured_value('PatchELF::Saver', 'Saver(${saver.in_file})', {
+		'saver_address': u64(voidptr(saver)).str()
+		'in_file':       saver.in_file
+		'out_file':      saver.out_file
+	})
+}
+
+fn saver_from_args(args []brew_runtime.Value) &Saver {
+	if args.len == 0 {
+		panic('PatchELF::Saver method requires a receiver')
+	}
+	address := args[0].attribute('saver_address') or { panic('invalid PatchELF::Saver receiver') }
+	return unsafe { &Saver(voidptr(address.u64())) }
+}
+
+fn saver_require(args []brew_runtime.Value, count int, name string) {
+	if args.len < count {
+		panic('${name} requires ${count} argument(s), including receiver')
+	}
+}
+
+fn saver_dynstr_bytes(elf &AltSaver) ![]u8 {
+	section := elf.find_section('.dynstr') or { return error('section `.dynstr` not found') }
+	alt_check(elf.buffer, int(section.header.sh_offset), int(section.header.sh_size), '.dynstr')!
+	return elf.buffer[int(section.header.sh_offset)..int(section.header.sh_offset + section.header.sh_size)].clone()
+}
+
+pub fn new_saver_from_bytes(in_file string, out_file string, set map[string]brew_runtime.Value,
+	data []u8) !&Saver {
+	elf := new_alt_saver_from_bytes(in_file, out_file, set, data)!
+	return &Saver{
+		in_file: in_file
+		out_file: out_file
+		set: set.clone()
+		elf: elf
+		working_tags: elf.dynamic_tags()!
+		working_dynstr: saver_dynstr_bytes(elf) or { []u8{} }
+		inline_patches: map[int][]u8{}
+	}
+}
+
+pub fn new_saver(in_file string, out_file string, set map[string]brew_runtime.Value) !&Saver {
+	return new_saver_from_bytes(in_file, out_file, set, os.read_bytes(in_file)!)
+}
+
+fn saver_find_bytes(haystack []u8, needle []u8) ?int {
+	if needle.len == 0 {
+		return 0
+	}
+	if needle.len > haystack.len {
+		return none
+	}
+	for start in 0 .. haystack.len - needle.len + 1 {
+		if haystack[start..start + needle.len] == needle {
+			return start
+		}
+	}
+	return none
+}
+
+fn saver_unique(values []string) []string {
+	mut result := []string{cap: values.len}
+	for value in values {
+		if value !in result {
+			result << value
+		}
+	}
+	return result
+}
+
+fn saver_tag_constant(name string) !i64 {
+	return match name.trim_string_left(':') {
+		'needed' { saver_dt_needed }
+		'soname' { saver_dt_soname }
+		'rpath' { alt_dt_rpath }
+		'runpath' { alt_dt_runpath }
+		else {
+			return error('unknown dynamic tag `${name}`')
+		}
+	}
+}
+
+fn (saver &Saver) dynstr_name(offset u64) ?string {
+	if offset >= u64(saver.working_dynstr.len) {
+		return none
+	}
+	mut finish := int(offset)
+	for finish < saver.working_dynstr.len && saver.working_dynstr[finish] != 0 {
+		finish++
+	}
+	return saver.working_dynstr[int(offset)..finish].bytestr()
+}
+
+pub fn (mut saver Saver) reg_str_table(str string) int {
+	mut terminated := str.bytes()
+	terminated << u8(0)
+	if index := saver_find_bytes(saver.working_dynstr, terminated) {
+		return index
+	}
+	index := saver.working_dynstr.len
+	saver.working_dynstr << terminated
+	return index
+}
+
+pub fn (saver &Saver) strtab_string() string {
+	return saver.working_dynstr.bytestr()
+}
+
+fn (saver &Saver) find_working_tag(kind i64) ?int {
+	for index, tag in saver.working_tags {
+		if tag.d_tag == kind {
+			return index
+		}
+	}
+	return none
+}
+
+pub fn (mut saver Saver) lazy_dyn(name string) !int {
+	tag := AltDynamicTag{
+		d_tag: saver_tag_constant(name)!
+		d_val: 0
+		offset: -1
+	}
+	saver.working_tags << tag
+	saver.dynamic_dirty = true
+	return saver.working_tags.len - 1
+}
+
+pub fn (mut saver Saver) patch_interpreter() ! {
+	value := saver.set['interpreter'] or { return }
+	section := saver.elf.find_section('.interp') or { return error('No interpreter found.') }
+	mut replacement := value.as_string().bytes()
+	replacement << u8(0)
+	alt_check(saver.elf.buffer, int(section.header.sh_offset), int(section.header.sh_size), '.interp')!
+	old := saver.elf.buffer[int(section.header.sh_offset)..int(section.header.sh_offset + section.header.sh_size)]
+	if old == replacement {
+		return
+	}
+	saver.elf.replaced_sections['.interp'] = replacement
+	saver.interpreter_dirty = true
+}
+
+pub fn (mut saver Saver) patch_soname() ! {
+	value := saver.set['soname'] or { return }
+	index := saver.find_working_tag(saver_dt_soname) or {
+		return error('Entry DT_SONAME not found, not a shared library?')
+	}
+	mut tag := saver.working_tags[index]
+	tag.d_val = u64(saver.reg_str_table(value.as_string()))
+	saver.working_tags[index] = tag
+	saver.dynamic_dirty = true
+}
+
+pub fn (mut saver Saver) patch_runpath(name string) ! {
+	clean_name := name.trim_string_left(':')
+	value := saver.set[clean_name] or { return }
+	kind := saver_tag_constant(clean_name)!
+	index := saver.find_working_tag(kind) or { saver.lazy_dyn(clean_name)! }
+	mut tag := saver.working_tags[index]
+	tag.d_val = u64(saver.reg_str_table(value.as_string()))
+	saver.working_tags[index] = tag
+	saver.dynamic_dirty = true
+}
+
+pub fn (mut saver Saver) patch_needed() ! {
+	value := saver.set['needed'] or { return }
+	desired := saver_unique(value.as_string_array()!)
+	mut original := []string{}
+	mut ignored := []int{}
+	for index, source_tag in saver.working_tags {
+		if source_tag.d_tag != saver_dt_needed {
+			continue
+		}
+		name := saver.dynstr_name(source_tag.d_val) or { '' }
+		original << name
+		if name !in desired {
+			mut tag := source_tag
+			tag.d_tag = saver_dt_loos
+			saver.working_tags[index] = tag
+			ignored << index
+		}
+	}
+	for name in desired {
+		if name in original {
+			continue
+		}
+		index := if ignored.len > 0 {
+			ignored[0]
+		} else {
+			saver.lazy_dyn('needed')!
+		}
+		if ignored.len > 0 {
+			ignored.delete(0)
+		}
+		mut tag := saver.working_tags[index]
+		tag.d_tag = saver_dt_needed
+		tag.d_val = u64(saver.reg_str_table(name))
+		saver.working_tags[index] = tag
+	}
+	saver.dynamic_dirty = true
+}
+
+pub fn (mut saver Saver) malloc_strtab() ! {
+	if saver.working_dynstr.len == 0 {
+		return
+	}
+	original := saver_dynstr_bytes(saver.elf) or { []u8{} }
+	if original != saver.working_dynstr {
+		saver.elf.replaced_sections['.dynstr'] = saver.working_dynstr.clone()
+	}
+}
+
+pub fn (mut saver Saver) expand_dynamic() ! {
+	if !saver.dynamic_dirty {
+		return
+	}
+	entry_size := if saver.elf.elf_class == 32 { 8 } else { 16 }
+	mut replacement := []u8{len: (saver.working_tags.len + 1) * entry_size}
+	for index, tag in saver.working_tags {
+		offset := index * entry_size
+		alt_write_uint(mut replacement, offset, entry_size / 2, saver.elf.endian, u64(tag.d_tag))!
+		alt_write_uint(mut replacement, offset + entry_size / 2, entry_size / 2, saver.elf.endian, tag.d_val)!
+	}
+	saver.elf.replaced_sections['.dynamic'] = replacement
+}
+
+pub fn (mut saver Saver) patch_dynamic() ! {
+	if 'soname' in saver.set {
+		saver.patch_soname()!
+	}
+	if 'runpath' in saver.set {
+		saver.patch_runpath('runpath')!
+	}
+	if 'rpath' in saver.set {
+		saver.patch_runpath('rpath')!
+	}
+	if 'needed' in saver.set {
+		saver.patch_needed()!
+	}
+	saver.malloc_strtab()!
+	saver.expand_dynamic()!
+}
+
+pub fn (mut saver Saver) inline_patch(offset int, value string) ! {
+	if offset < 0 {
+		return error('negative patch offset')
+	}
+	saver.inline_patches[offset] = value.bytes()
+}
+
+pub fn (mut saver Saver) patch_out(out_file string) ! {
+	saver.elf.rewrite_sections()!
+	for offset, value in saver.inline_patches {
+		alt_check(saver.elf.buffer, offset, value.len, 'inline patch')!
+		for index, byte in value {
+			saver.elf.buffer[offset + index] = byte
+		}
+	}
+	if out_file != saver.out_file {
+		return error('Saver output path is fixed at initialization')
+	}
+	saver.elf.patch_out()!
+}
+
+pub fn (saver &Saver) section_header(name string) ?AltSectionHeader {
+	section := saver.elf.find_section(name) or { return none }
+	return section.header
+}
+
+pub fn (saver &Saver) dynamic() ?AltSection {
+	return saver.elf.find_section('.dynamic')
+}
+
+pub fn (mut saver Saver) save() ! {
+	saver.patch_interpreter()!
+	saver.patch_dynamic()!
+	saver.patch_out(saver.out_file)!
+	if saver.in_file != '' && os.exists(saver.in_file) {
+		metadata := os.stat(saver.in_file)!
+		os.chmod(saver.out_file, int(metadata.mode))!
+	}
+}
 
 // Ruby attr_reader `attr_reader :in_file` at line 22.
 pub fn ruby_saver_l22_d1_in_file(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('in_file', ...args)
+	return brew_runtime.string_value(saver_from_args(args).in_file)
 }
 
 // Ruby attr_reader `attr_reader :out_file` at line 23.
 pub fn ruby_saver_l23_d2_out_file(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('out_file', ...args)
+	return brew_runtime.string_value(saver_from_args(args).out_file)
 }
 
 // Ruby method `initialize(in_file, out_file, set)` at line 29.
 pub fn ruby_saver_l29_d3_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	saver_require(args, 3, 'Saver#initialize')
+	saver := new_saver(args[0].as_string(), args[1].as_string(), alt_set_from_value(args[2])) or {
+		panic(err)
+	}
+	return saver_value(saver)
 }
 
 // Ruby method `save!` at line 46.
 pub fn ruby_saver_l46_d4_save(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('save!', ...args)
+	mut saver := saver_from_args(args)
+	saver.save() or { panic(err) }
+	return saver_nil_value()
 }
 
 // Ruby method `patch_interpreter` at line 62.
 pub fn ruby_saver_l62_d5_patch_interpreter(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('patch_interpreter', ...args)
+	mut saver := saver_from_args(args)
+	saver.patch_interpreter() or { panic(err) }
+	return saver_nil_value()
 }
 
 // Ruby method `patch_dynamic` at line 97.
 pub fn ruby_saver_l97_d6_patch_dynamic(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('patch_dynamic', ...args)
+	mut saver := saver_from_args(args)
+	saver.patch_dynamic() or { panic(err) }
+	return saver_nil_value()
 }
 
 // Ruby method `patch_soname` at line 112.
 pub fn ruby_saver_l112_d7_patch_soname(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('patch_soname', ...args)
+	mut saver := saver_from_args(args)
+	saver.patch_soname() or { panic(err) }
+	return saver_nil_value()
 }
 
 // Ruby method `patch_runpath(sym = :runpath)` at line 120.
 pub fn ruby_saver_l120_d8_patch_runpath(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('patch_runpath', ...args)
+	mut saver := saver_from_args(args)
+	name := if args.len > 1 { args[1].as_string() } else { 'runpath' }
+	saver.patch_runpath(name) or { panic(err) }
+	return saver_nil_value()
 }
 
 // Ruby method `patch_needed` at line 128.
 pub fn ruby_saver_l128_d9_patch_needed(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('patch_needed', ...args)
+	mut saver := saver_from_args(args)
+	saver.patch_needed() or { panic(err) }
+	return saver_nil_value()
 }
 
 // Ruby method `lazy_dyn(sym)` at line 157.
 pub fn ruby_saver_l157_d10_lazy_dyn(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('lazy_dyn', ...args)
+	saver_require(args, 2, 'Saver#lazy_dyn')
+	mut saver := saver_from_args(args)
+	index := saver.lazy_dyn(args[1].as_string()) or { panic(err) }
+	return alt_dynamic_tag_value(saver.working_tags[index])
 }
 
 // Ruby method `expand_dynamic!` at line 165.
 pub fn ruby_saver_l165_d11_expand_dynamic(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('expand_dynamic!', ...args)
+	mut saver := saver_from_args(args)
+	saver.expand_dynamic() or { panic(err) }
+	return saver_nil_value()
 }
 
 // Ruby method `malloc_strtab!` at line 186.
 pub fn ruby_saver_l186_d12_malloc_strtab(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('malloc_strtab!', ...args)
+	mut saver := saver_from_args(args)
+	saver.malloc_strtab() or { panic(err) }
+	return saver_nil_value()
 }
 
 // Ruby method `reg_str_table(str, &block)` at line 215.
 pub fn ruby_saver_l215_d13_reg_str_table(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reg_str_table', ...args)
+	saver_require(args, 2, 'Saver#reg_str_table')
+	mut saver := saver_from_args(args)
+	return brew_runtime.int_value(saver.reg_str_table(args[1].as_string()))
 }
 
 // Ruby method `strtab_string` at line 224.
 pub fn ruby_saver_l224_d14_strtab_string(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('strtab_string', ...args)
+	return brew_runtime.string_value(saver_from_args(args).strtab_string())
 }
 
 // Ruby method `inline_patch(off, str)` at line 245.
 pub fn ruby_saver_l245_d15_inline_patch(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('inline_patch', ...args)
+	saver_require(args, 3, 'Saver#inline_patch')
+	mut saver := saver_from_args(args)
+	saver.inline_patch(int(args[1].as_int() or { panic(err) }), args[2].as_string()) or { panic(err) }
+	return saver_nil_value()
 }
 
 // Ruby method `patch_out(out_file)` at line 250.
 pub fn ruby_saver_l250_d16_patch_out(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('patch_out', ...args)
+	mut saver := saver_from_args(args)
+	out_file := if args.len > 1 { args[1].as_string() } else { saver.out_file }
+	saver.patch_out(out_file) or { panic(err) }
+	return saver_nil_value()
 }
 
 // Ruby method `section_header(name)` at line 278.
 pub fn ruby_saver_l278_d17_section_header(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('section_header', ...args)
+	saver_require(args, 2, 'Saver#section_header')
+	header := saver_from_args(args).section_header(args[1].as_string()) or { return saver_nil_value() }
+	return alt_section_header_value(header)
 }
 
 // Ruby method `dynamic` at line 285.
 pub fn ruby_saver_l285_d18_dynamic(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dynamic', ...args)
+	section := saver_from_args(args).dynamic() or { return saver_nil_value() }
+	return alt_section_value(section)
 }
 
 // Original Ruby source (line-for-line):

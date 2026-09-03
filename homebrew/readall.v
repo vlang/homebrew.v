@@ -1,58 +1,71 @@
 module homebrew
 
-import brew_runtime
+import homebrew.readall as readall_core
 
 // Translated from Homebrew/brew `readall.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `warn(message, category: nil)` at line 26.
-pub fn ruby_readall_l26_d1_warn(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('warn', ...args)
+pub fn ruby_readall_l26_d1_warn(mut state readall_core.State, message string,
+	category ?string) string {
+	_ = category
+	return readall_core.warning(mut state, message)
 }
 
 // Ruby attr_accessor `attr_accessor :warning_buffer` at line 38.
-pub fn ruby_readall_l38_d2_warning_buffer(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('warning_buffer', ...args)
+pub fn ruby_readall_l38_d2_warning_buffer(state readall_core.State) []string {
+	return readall_core.warning_buffer(state)
 }
 
 // Ruby attr_accessor `attr_accessor :warning_buffer` at line 38.
-pub fn ruby_readall_l38_d3_warning_buffer(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('warning_buffer=', ...args)
+pub fn ruby_readall_l38_d3_warning_buffer(mut state readall_core.State, enabled bool,
+	messages []string) []string {
+	return readall_core.set_warning_buffer(mut state, enabled, messages)
 }
 
 // Ruby method `self.valid_ruby_syntax?(ruby_files)` at line 42.
-pub fn ruby_readall_l42_d4_self_valid_ruby_syntax(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.valid_ruby_syntax?', ...args)
+pub fn ruby_readall_l42_d4_self_valid_ruby_syntax(files []readall_core.RubyFile, cores int,
+	compiler readall_core.SyntaxCompiler) readall_core.ValidationResult {
+	return readall_core.valid_ruby_syntax(files, cores, compiler)
 }
 
 // Ruby method `self.valid_aliases?(alias_dir, formula_dir)` at line 54.
-pub fn ruby_readall_l54_d5_self_valid_aliases(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.valid_aliases?', ...args)
+pub fn ruby_readall_l54_d5_self_valid_aliases(tap readall_core.Tap) readall_core.ValidationResult {
+	return readall_core.valid_aliases(tap)
 }
 
 // Ruby method `self.valid_formulae?(tap, bottle_tag: nil, files: nil)` at line 82.
-pub fn ruby_readall_l82_d6_self_valid_formulae(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.valid_formulae?', ...args)
+pub fn ruby_readall_l82_d6_self_valid_formulae(mut state readall_core.State,
+	tap readall_core.Tap, bottle_tag string, files []readall_core.FormulaFile,
+	evaluator readall_core.FormulaEvaluator) readall_core.ValidationResult {
+	return readall_core.valid_formulae(mut state, tap, bottle_tag, files, evaluator)
 }
 
 // Ruby method `self.valid_casks?(tap, os_name: nil, arch: nil, files: nil)` at line 119.
-pub fn ruby_readall_l119_d7_self_valid_casks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.valid_casks?', ...args)
+pub fn ruby_readall_l119_d7_self_valid_casks(tap readall_core.Tap,
+	os_name ?readall_core.SystemOs, arch ?readall_core.SystemArch,
+	files []readall_core.CaskFile, current_os readall_core.SystemOs,
+	current_arch readall_core.SystemArch,
+	evaluator readall_core.CaskEvaluator) readall_core.ValidationResult {
+	return readall_core.valid_casks(tap, os_name, arch, files, current_os, current_arch, evaluator)
 }
 
 // Ruby method `self.valid_tap?(tap, aliases: false, no_simulate: false,` at line 184.
-pub fn ruby_readall_l184_d8_self_valid_tap(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.valid_tap?', ...args)
+pub fn ruby_readall_l184_d8_self_valid_tap(mut state readall_core.State,
+	tap readall_core.Tap, options readall_core.TapValidationOptions) readall_core.ValidationResult {
+	return readall_core.valid_tap(mut state, tap, options)
 }
 
 // Ruby method `self.syntax_errors_or_warnings?(filename)` at line 223.
-pub fn ruby_readall_l223_d9_self_syntax_errors_or_warnings(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.syntax_errors_or_warnings?', ...args)
+pub fn ruby_readall_l223_d9_self_syntax_errors_or_warnings(file readall_core.RubyFile,
+	compiler readall_core.SyntaxCompiler) readall_core.ValidationResult {
+	return readall_core.syntax_errors_or_warnings(file, compiler)
 }
 
 // Ruby method `self.parallel_slices_valid?(items, &_block)` at line 256.
-pub fn ruby_readall_l256_d10_self_parallel_slices_valid(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.parallel_slices_valid?', ...args)
+pub fn ruby_readall_l256_d10_self_parallel_slices_valid(items []readall_core.ParallelItem,
+	cores int) readall_core.ValidationResult {
+	return readall_core.parallel_slices_valid(items, cores)
 }
 
 // Original Ruby source (line-for-line):

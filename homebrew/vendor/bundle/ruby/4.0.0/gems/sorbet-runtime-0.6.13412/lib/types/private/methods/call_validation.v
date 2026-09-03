@@ -1,68 +1,413 @@
 module methods
 
 import brew_runtime
+import sync
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/sorbet-runtime-0.6.13412/lib/types/private/methods/call_validation.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub enum ValidatorPath {
+	abstract_
+	raw
+	restored
+	simple_method
+	returns_anything
+	simple_procedure
+	procedure_medium
+	skip_return_medium
+	method_medium
+	kwargs
+	required_block
+	optional_args
+	slow_skip_block
+	slow
+}
+
+pub struct CallValidationPlan {
+pub:
+	module_name string
+	method_name string
+	visibility  string
+	path        ValidatorPath
+}
+
+@[heap]
+struct CallValidationConfig {
+	mutex &sync.Mutex = sync.new_mutex()
+mut:
+	fast_path bool = true
+}
+
+fn new_call_validation_config() &CallValidationConfig {
+	return &CallValidationConfig{}
+}
+
+const call_validation_config_global = new_call_validation_config()
+
+pub fn call_validation_fast_path_allowed() bool {
+	mut config := unsafe { &CallValidationConfig(call_validation_config_global) }
+	config.mutex.lock()
+	defer {
+		config.mutex.unlock()
+	}
+	return config.fast_path
+}
+
+pub fn disable_call_validation_fast_path() {
+	mut config := unsafe { &CallValidationConfig(call_validation_config_global) }
+	config.mutex.lock()
+	config.fast_path = false
+	config.mutex.unlock()
+}
+
+pub fn enable_call_validation_fast_path_for_tests() {
+	mut config := unsafe { &CallValidationConfig(call_validation_config_global) }
+	config.mutex.lock()
+	config.fast_path = true
+	config.mutex.unlock()
+}
+
+fn call_value_valid(type_value brew_runtime.Value, value brew_runtime.Value) bool {
+	if validation_is_nil_type(type_value) {
+		return true
+	}
+	type_name := validation_type_name(type_value)
+	if type_value.type_name in ['T::Types::Anything', 'T::Types::Untyped', 'T::Types::TypeParameter',
+		'T::Types::TypeVariable', 'T::Types::SelfType', 'T::Types::AttachedClassType'] {
+		return true
+	}
+	if type_value.type_name in ['T::Types::Union', 'T::Private::Types::SimplePairUnion'] {
+		return type_value.array_data.any(call_value_valid(it, value))
+	}
+	if type_value.type_name == 'T::Types::Proc' {
+		return value.type_name in ['Proc', 'NilClass']
+	}
+	if value.type_name == type_name {
+		return true
+	}
+	ancestors := value.attribute('ancestors') or { '' }.split(',').map(it.trim_space())
+	return type_name in ancestors
+}
+
+fn call_error_message(type_value brew_runtime.Value, value brew_runtime.Value) string {
+	if call_value_valid(type_value, value) {
+		return ''
+	}
+	return 'Expected type ${validation_type_name(type_value)}, got type ${value.type_name}'
+}
+
+fn call_signature_value(signature brew_runtime.Value, key string) brew_runtime.Value {
+	return signature.map_data[key] or { brew_runtime.object_value('NilClass', 'nil') }
+}
+
+fn call_signature_arg_types(signature brew_runtime.Value) []ValidationTypePair {
+	raw_args := signature.map_data['arg_types'] or { return []ValidationTypePair{} }
+	mut result := []ValidationTypePair{}
+	for name, type_value in raw_args.as_map() or { map[string]brew_runtime.Value{} } {
+		result << ValidationTypePair{ name: name, type_value: type_value }
+	}
+	return result
+}
+
+fn call_type_ignorable(type_value brew_runtime.Value) bool {
+	return type_value.type_name in ['T::Types::Untyped', 'T::Types::Anything',
+		'T::Types::AttachedClassType', 'T::Types::SelfType', 'T::Types::TypeParameter',
+		'T::Types::TypeVariable'] || (type_value.type_name == 'T::Types::Simple' && validation_type_name(type_value) == 'BasicObject')
+}
+
+pub fn choose_validator_path(original_method brew_runtime.Value, signature brew_runtime.Value,
+	fast_allowed bool) ValidatorPath {
+	arg_types := call_signature_arg_types(signature)
+	kwargs := signature.map_data['kwarg_types'] or { brew_runtime.map_value({}) }
+	rest_type := call_signature_value(signature, 'rest_type')
+	keyrest_type := call_signature_value(signature, 'keyrest_type')
+	block_type := call_signature_value(signature, 'block_type')
+	bind_type := call_signature_value(signature, 'bind')
+	parameters := original_method.attribute('parameter_kinds') or { '' }.split(',').filter(it != '')
+	has_fixed_arity := kwargs.map_data.len == 0 && validation_is_nil_type(rest_type) && validation_is_nil_type(keyrest_type) && parameters.all(it in [
+		'req',
+		'block',
+	])
+	can_skip_block := validation_is_nil_type(block_type) || call_value_valid(block_type, brew_runtime.object_value('NilClass', 'nil'))
+	ok_fast := has_fixed_arity && can_skip_block && validation_is_nil_type(bind_type) && arg_types.len < 5 && fast_allowed
+	ok_specialized := !ok_fast && validation_is_nil_type(bind_type) && validation_is_nil_type(rest_type) && validation_is_nil_type(keyrest_type) && arg_types.len < 5 && fast_allowed
+	kwargs_path := ok_specialized && can_skip_block && kwargs.map_data.len > 0 && arg_types.len == 0 && parameters.all(it in [
+		'key',
+		'keyreq',
+		'block',
+	])
+	required_block_path := ok_specialized && !can_skip_block && has_fixed_arity
+	optional_path := ok_specialized && can_skip_block && kwargs.map_data.len == 0 && parameters.all(it in [
+		'req',
+		'opt',
+		'block',
+	])
+	all_simple := ok_fast && arg_types.all(it.type_value.type_name == 'T::Types::Simple')
+	return_type := call_signature_value(signature, 'return_type')
+	if all_simple && return_type.type_name == 'T::Types::Simple' {
+		return .simple_method
+	}
+	if all_simple && call_type_ignorable(return_type) {
+		return .returns_anything
+	}
+	if all_simple && return_type.type_name == 'T::Private::Types::Void' {
+		return .simple_procedure
+	}
+	if ok_fast && return_type.type_name == 'T::Private::Types::Void' {
+		return .procedure_medium
+	}
+	if ok_fast && call_type_ignorable(return_type) {
+		return .skip_return_medium
+	}
+	if ok_fast {
+		return .method_medium
+	}
+	if kwargs_path {
+		return .kwargs
+	}
+	if required_block_path {
+		return .required_block
+	}
+	if optional_path {
+		return .optional_args
+	}
+	return if can_skip_block { .slow_skip_block } else { .slow }
+}
+
+pub fn abstract_call(module_name string, method_name string, has_super bool,
+	super_result brew_runtime.Value) !brew_runtime.Value {
+	if has_super {
+		return super_result
+	}
+	return error('The method `${method_name}` on ${module_name} is declared as `abstract`. It does not have an implementation.')
+}
+
+pub fn validate_typed_call(instance brew_runtime.Value, signature brew_runtime.Value,
+	arguments []brew_runtime.Value, block_value brew_runtime.Value, return_value brew_runtime.Value,
+	skip_block_type bool) !brew_runtime.Value {
+	bind_type := call_signature_value(signature, 'bind')
+	if !validation_is_nil_type(bind_type) {
+		message := call_error_message(bind_type, instance)
+		if message != '' {
+			return error('Bind: ${message}')
+		}
+	}
+	arg_types := call_signature_arg_types(signature)
+	for index, pair in arg_types {
+		if index >= arguments.len {
+			break
+		}
+		message := call_error_message(pair.type_value, arguments[index])
+		if message != '' {
+			return error("Parameter '${pair.name}': ${message}")
+		}
+	}
+	if !skip_block_type {
+		block_type := call_signature_value(signature, 'block_type')
+		if !validation_is_nil_type(block_type) && !call_value_valid(block_type, block_value) {
+			return error("Block parameter '${signature.attribute('block_name') or { '' }}': ${call_error_message(block_type, block_value)}")
+		}
+	}
+	return_type := call_signature_value(signature, 'return_type')
+	if return_type.type_name == 'T::Private::Types::Void' {
+		return brew_runtime.object_value('T::Private::Types::Void::VOID', 'VOID')
+	}
+	message := call_error_message(return_type, return_value)
+	if message != '' {
+		return error('Return value: ${message}')
+	}
+	return return_value
+}
+
+pub fn safe_method_owner_to_string(owner brew_runtime.Value) string {
+	if owner.as_string() != '' && owner.as_string() != 'nil' {
+		return owner.as_string()
+	}
+	return '#<${owner.type_name}>'
+}
+
+pub fn call_validation_error(signature brew_runtime.Value, error_message string, kind string,
+	name string, type_value brew_runtime.Value, value brew_runtime.Value, caller_path string,
+	caller_line int) brew_runtime.Value {
+	method_name := signature.attribute('method_name') or { signature.as_string() }
+	owner := signature.map_data['owner'] or { brew_runtime.object_value('Module', '<unknown>') }
+	pretty_owner := if owner.attribute('singleton_class') or { 'false' } == 'true' {
+		attached := owner.map_data['attached_object'] or { owner }
+		'${safe_method_owner_to_string(attached)}.${method_name}'
+	} else {
+		'${safe_method_owner_to_string(owner)}#${method_name}'
+	}
+	definition := signature.attribute('source_location') or { '<unknown>:0' }
+	pretty_name := if name == '' { kind } else { "${kind} '${name}'" }
+	pretty := '${pretty_name}: ${error_message}\nCaller: ${caller_path}:${caller_line}\nDefinition: ${definition} (${pretty_owner})'
+	return brew_runtime.Value{
+		type_name: 'T::Configuration::CallValidationError'
+		repr: pretty
+		map_data: {
+			'signature': signature
+			'type':      type_value
+			'value':     value
+		}
+		attributes: {
+			'message':        error_message
+			'pretty_message': pretty
+			'kind':           kind
+			'name':           name
+			'location':       '${caller_path}:${caller_line}'
+		}
+	}
+}
+
+fn call_validation_plan_value(plan CallValidationPlan) brew_runtime.Value {
+	return brew_runtime.structured_value('T::Private::Methods::CallValidation::Plan', plan.method_name, {
+		'module':      plan.module_name
+		'method_name': plan.method_name
+		'visibility':  plan.visibility
+		'path':        plan.path.str()
+	})
+}
+
+fn call_plan_from_args(args []brew_runtime.Value, forced ?ValidatorPath) brew_runtime.Value {
+	if args.len < 3 {
+		panic('CallValidation wrapper creation requires module, method, and signature')
+	}
+	mod := args[0]
+	original := args[1]
+	signature := args[2]
+	visibility := if args.len > 3 {
+		args[3].as_string().trim_string_left(':')
+	} else {
+		original.attribute('visibility') or { 'public' }
+	}
+	path := forced or { choose_validator_path(original, signature, call_validation_fast_path_allowed()) }
+	return call_validation_plan_value(CallValidationPlan{
+		module_name: mod.as_string()
+		method_name: signature.attribute('method_name') or { signature.as_string() }
+		visibility: visibility
+		path: path
+	})
+}
 
 // Ruby method `self.wrap_method_if_needed(mod, method_sig, original_method)` at line 18.
 pub fn ruby_call_validation_l18_d1_self_wrap_method_if_needed(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.wrap_method_if_needed', ...args)
+	if args.len < 3 {
+		panic('CallValidation.wrap_method_if_needed requires module, signature, and method')
+	}
+	mod := args[0]
+	signature := args[1]
+	original := args[2]
+	mode := signature.attribute('mode') or { 'standard' }
+	path := if mode == 'abstract' {
+		ValidatorPath.abstract_
+	} else if signature.attribute('defined_raw') or { 'false' } == 'true' {
+		ValidatorPath.raw
+	} else {
+		level := signature.attribute('check_level') or { 'always' }
+		tests_enabled := if args.len > 3 { args[3].as_bool() or { false } } else { false }
+		if level == 'always' || (level == 'tests' && tests_enabled) {
+			choose_validator_path(original, signature, call_validation_fast_path_allowed())
+		} else {
+			ValidatorPath.restored
+		}
+	}
+	return call_validation_plan_value(CallValidationPlan{
+		module_name: mod.as_string()
+		method_name: signature.attribute('method_name') or { signature.as_string() }
+		visibility: original.attribute('visibility') or { 'public' }
+		path: path
+	})
 }
 
 // Ruby method `self.is_allowed_to_have_fast_path` at line 44.
 pub fn ruby_call_validation_l44_d2_self_is_allowed_to_have_fast_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.is_allowed_to_have_fast_path', ...args)
+	return brew_runtime.bool_value(call_validation_fast_path_allowed())
 }
 
 // Ruby method `self.disable_fast_path` at line 48.
 pub fn ruby_call_validation_l48_d3_self_disable_fast_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.disable_fast_path', ...args)
+	disable_call_validation_fast_path()
+	return brew_runtime.bool_value(false)
 }
 
 // Ruby method `self.create_abstract_wrapper(mod, method_name, original_visibility)` at line 52.
 pub fn ruby_call_validation_l52_d4_self_create_abstract_wrapper(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.create_abstract_wrapper', ...args)
+	if args.len < 3 {
+		panic('CallValidation.create_abstract_wrapper requires module, method name, and visibility')
+	}
+	return call_validation_plan_value(CallValidationPlan{
+		module_name: args[0].as_string()
+		method_name: args[1].as_string().trim_string_left(':')
+		visibility: args[2].as_string().trim_string_left(':')
+		path: .abstract_
+	})
 }
 
 // Ruby method `#{method_name}(...)` at line 58.
 pub fn ruby_call_validation_l58_d5_method_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('#{method_name}', ...args)
+	if args.len < 2 {
+		panic('abstract method wrapper requires module and method name')
+	}
+	has_super := if args.len > 2 { args[2].as_bool() or { false } } else { false }
+	super_result := if args.len > 3 {
+		args[3]
+	} else {
+		brew_runtime.object_value('NilClass', 'nil')
+	}
+	return abstract_call(args[0].as_string(), args[1].as_string(), has_super, super_result) or {
+		panic(err.msg())
+	}
 }
 
 // Ruby method `self.create_validator_method(mod, original_method, method_sig, original_visibility)` at line 74.
 pub fn ruby_call_validation_l74_d6_self_create_validator_method(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.create_validator_method', ...args)
+	return call_plan_from_args(args, none)
 }
 
 // Ruby method `self.create_validator_slow_skip_block_type(mod, original_method, method_sig, original_visibility)` at line 168.
 pub fn ruby_call_validation_l168_d7_self_create_validator_slow_skip_block_type(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.create_validator_slow_skip_block_type', ...args)
+	return call_plan_from_args(args, ValidatorPath.slow_skip_block)
 }
 
 // Ruby method `self.validate_call_skip_block_type(instance, original_method, method_sig, args, blk)` at line 174.
 pub fn ruby_call_validation_l174_d8_self_validate_call_skip_block_type(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.validate_call_skip_block_type', ...args)
+	if args.len < 6 {
+		panic('CallValidation.validate_call_skip_block_type requires instance, method, signature, args, block, and return value')
+	}
+	return validate_typed_call(args[0], args[2], args[3].as_array() or { panic(err.msg()) }, args[4], args[5], true) or { panic(err.msg()) }
 }
 
 // Ruby method `self.create_validator_slow(mod, original_method, method_sig, original_visibility)` at line 250.
 pub fn ruby_call_validation_l250_d9_self_create_validator_slow(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.create_validator_slow', ...args)
+	return call_plan_from_args(args, ValidatorPath.slow)
 }
 
 // Ruby method `self.validate_call(instance, original_method, method_sig, args, blk)` at line 256.
 pub fn ruby_call_validation_l256_d10_self_validate_call(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.validate_call', ...args)
+	if args.len < 6 {
+		panic('CallValidation.validate_call requires instance, method, signature, args, block, and return value')
+	}
+	return validate_typed_call(args[0], args[2], args[3].as_array() or { panic(err.msg()) }, args[4], args[5], false) or { panic(err.msg()) }
 }
 
 // Ruby method `self.safe_method_owner_to_s(method_owner)` at line 354.
 pub fn ruby_call_validation_l354_d11_self_safe_method_owner_to_s(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.safe_method_owner_to_s', ...args)
+	if args.len == 0 {
+		return brew_runtime.string_value('#<NilClass>')
+	}
+	return brew_runtime.string_value(safe_method_owner_to_string(args[0]))
 }
 
 // Ruby method `self.report_error(method_sig, error_message, kind, name, type, value, caller_offset: 0)` at line 363.
 pub fn ruby_call_validation_l363_d12_self_report_error(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.report_error', ...args)
+	if args.len < 6 {
+		panic('CallValidation.report_error requires signature, message, kind, name, type, and value')
+	}
+	caller_path := if args.len > 6 { args[6].as_string() } else { '<unknown>' }
+	caller_line := if args.len > 7 { int(args[7].as_int() or { 0 }) } else { 0 }
+	return call_validation_error(args[0], args[1].as_string(), args[2].as_string(), if args[3].type_name == 'NilClass' {
+		''
+	} else {
+		args[3].as_string()
+	}, args[4], args[5], caller_path, caller_line)
 }
 
 // Original Ruby source (line-for-line):

@@ -4,10 +4,67 @@ import brew_runtime
 
 // Translated from Homebrew/brew `dev-cmd/install-bundler-gems.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub struct InstallBundlerGemsOptions {
+pub:
+	groups          []string
+	groups_provided bool
+	add_groups      []string
+	valid_groups    []string
+}
+
+pub struct InstallBundlerGemsPlan {
+pub:
+	groups                 []string
+	forget_user_gem_groups bool
+}
+
+pub fn install_bundler_gems_plan(options InstallBundlerGemsOptions) InstallBundlerGemsPlan {
+	mut groups := if options.groups_provided {
+		options.groups.clone()
+	} else {
+		options.add_groups.clone()
+	}
+	mut forget := false
+	if 'all' in groups {
+		groups = groups.filter(it != 'all')
+		for group in options.valid_groups {
+			if group !in groups {
+				groups << group
+			}
+		}
+	} else if options.groups_provided {
+		forget = true
+	}
+	return InstallBundlerGemsPlan{
+		groups: groups
+		forget_user_gem_groups: forget
+	}
+}
 
 // Ruby method `run` at line 26.
 pub fn ruby_install_bundler_gems_l26_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('run', ...args)
+	groups_provided := args.len > 0 && args[0].type_name !in ['Nil', 'NilClass', '']
+	groups := if groups_provided { args[0].as_string_array() or { []string{} } } else { []string{} }
+	add_groups := if args.len > 1 && args[1].type_name !in ['Nil', 'NilClass', ''] {
+		args[1].as_string_array() or { []string{} }
+	} else {
+		[]string{}
+	}
+	valid_groups := if args.len > 2 {
+		args[2].as_string_array() or { []string{} }
+	} else {
+		[]string{}
+	}
+	plan := install_bundler_gems_plan(InstallBundlerGemsOptions{
+		groups: groups
+		groups_provided: groups_provided
+		add_groups: add_groups
+		valid_groups: valid_groups
+	})
+	return brew_runtime.map_value({
+		'groups':                 brew_runtime.string_array_value(plan.groups)
+		'forget_user_gem_groups': brew_runtime.bool_value(plan.forget_user_gem_groups)
+	})
 }
 
 // Original Ruby source (line-for-line):

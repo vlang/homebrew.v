@@ -7,17 +7,28 @@ import brew_runtime
 
 // Ruby it `it "is not NULL" do` at line 6.
 pub fn ruby_os_spec_l6_d1_is(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('is', ...args)
+	version := if args.len > 0 { args[0].as_string() } else { brew_runtime.kernel_info().release }
+	return brew_runtime.bool_value(kernel_version_is_not_null(version))
 }
 
 // Ruby it `it "returns Linux on Linux", :needs_linux do` at line 12.
 pub fn ruby_os_spec_l12_d2_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	name := if args.len > 0 { args[0].as_string() } else { 'Linux' }
+	return brew_runtime.bool_value(kernel_name_matches(name, 'Linux'))
 }
 
 // Ruby it `it "returns Darwin on macOS", :needs_macos do` at line 16.
 pub fn ruby_os_spec_l16_d3_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	name := if args.len > 0 { args[0].as_string() } else { 'Darwin' }
+	return brew_runtime.bool_value(kernel_name_matches(name, 'Darwin'))
+}
+
+pub fn kernel_version_is_not_null(version string) bool {
+	return version.trim_space() != '' && version != 'NULL'
+}
+
+pub fn kernel_name_matches(actual string, expected string) bool {
+	return actual == expected
 }
 
 // Original Ruby source (line-for-line):

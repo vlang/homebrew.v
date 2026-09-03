@@ -1,98 +1,163 @@
 module dev_cmd
 
-import brew_runtime
+import homebrew.dev_tests
 
 // Translated from Homebrew/brew `test/dev-cmd/tests_spec.rb`.
-// The original source is retained below until every stub has a typed V body.
+pub struct DevTestsSpecSubject {
+pub:
+	arguments []string
+}
+
+fn dev_tests_spec_changed_input(changed_file string, files []string,
+	contents map[string]string) dev_tests.ChangedFilesInput {
+	return dev_tests.ChangedFilesInput{
+		changed_files: [changed_file.trim_space()]
+		all_spec_files: files
+		test_file_contents: contents
+		existing_paths: files
+	}
+}
 
 // Ruby subject `subject(:tests) { described_class.new([]) }` at line 11.
-pub fn ruby_tests_spec_l11_d1_tests(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tests', ...args)
+pub fn ruby_tests_spec_l11_d1_tests() DevTestsSpecSubject {
+	return DevTestsSpecSubject{}
 }
 
 // Ruby it `it "does not require the Linux sandbox when Linux sandboxing is disabled" do` at line 21.
-pub fn ruby_tests_spec_l21_d2_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_tests_spec_l21_d2_does() !bool {
+	return !dev_tests.check_linux_environment(dev_tests.LinuxEnvironment{})!
 }
 
 // Ruby it `it "does not fail on GitHub Actions when the Linux sandbox is unavailable" do` at line 29.
-pub fn ruby_tests_spec_l29_d3_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_tests_spec_l29_d3_does() !bool {
+	return !dev_tests.check_linux_environment(dev_tests.LinuxEnvironment{
+		sandbox_linux: true
+		github_actions: true
+	})!
 }
 
 // Ruby it `it "fails outside GitHub Actions when the Linux sandbox is unavailable" do` at line 37.
-pub fn ruby_tests_spec_l37_d4_fails(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fails', ...args)
+pub fn ruby_tests_spec_l37_d4_fails() bool {
+	dev_tests.check_linux_environment(dev_tests.LinuxEnvironment{
+		sandbox_linux: true
+		failure_reason: 'Landlock is not available.'
+	}) or { return err.msg() == 'Landlock is not available.' }
+	return false
 }
 
 // Ruby it `it "passes when the Linux sandbox is available" do` at line 44.
-pub fn ruby_tests_spec_l44_d5_passes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('passes', ...args)
+pub fn ruby_tests_spec_l44_d5_passes() !bool {
+	return dev_tests.check_linux_environment(dev_tests.LinuxEnvironment{
+		sandbox_linux: true
+		sandbox_available: true
+	})
 }
 
 // Ruby subject `subject(:tests) { described_class.new([]) }` at line 52.
-pub fn ruby_tests_spec_l52_d6_tests(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tests', ...args)
+pub fn ruby_tests_spec_l52_d6_tests() DevTestsSpecSubject {
+	return DevTestsSpecSubject{}
 }
 
 // Ruby it `it "keeps generic cache files out of the sandboxed test home" do` at line 60.
-pub fn ruby_tests_spec_l60_d7_keeps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('keeps', ...args)
+pub fn ruby_tests_spec_l60_d7_keeps() bool {
+	result := dev_tests.setup_environment(dev_tests.SetupInput{
+		library_path: '/repo/Library/Homebrew'
+		cache: '/cache'
+		real_home: '/home/brew'
+		username: 'brew'
+	})
+	cache_home := result.environment['XDG_CACHE_HOME'] or { return false }
+	return cache_home == '/cache/tests' && !cache_home.starts_with('/home/brew/')
 }
 
 // Ruby it `it "can disable Sorbet runtime" do` at line 67.
-pub fn ruby_tests_spec_l67_d8_can(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('can', ...args)
+pub fn ruby_tests_spec_l67_d8_can() bool {
+	result := dev_tests.setup_environment(dev_tests.SetupInput{
+		environment: {
+			'HOMEBREW_TESTS_NO_SORBET_RUNTIME': '1'
+			'HOMEBREW_SORBET_RUNTIME':          '1'
+			'HOMEBREW_SORBET_RECURSIVE':        '1'
+		}
+		library_path: '/repo/Library/Homebrew'
+		cache: '/cache'
+		real_home: '/home/brew'
+		username: 'brew'
+	})
+	return result.environment['HOMEBREW_TESTS_NO_SORBET_RUNTIME'] == '1' && 'HOMEBREW_SORBET_RUNTIME' !in result.environment && 'HOMEBREW_SORBET_RECURSIVE' !in result.environment
 }
 
 // Ruby subject `subject(:changed_test_files) { tests.changed_test_files }` at line 80.
-pub fn ruby_tests_spec_l80_d9_changed_test_files(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('changed_test_files', ...args)
+pub fn ruby_tests_spec_l80_d9_changed_test_files(input dev_tests.ChangedFilesInput) []string {
+	return dev_tests.changed_test_files(input)
 }
 
 // Ruby let `let(:tests) { described_class.new([]) }` at line 82.
-pub fn ruby_tests_spec_l82_d10_tests(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tests', ...args)
+pub fn ruby_tests_spec_l82_d10_tests() DevTestsSpecSubject {
+	return DevTestsSpecSubject{}
 }
 
 // Ruby let `let(:changed_file) { "Library/Homebrew/test/cmd/help_spec.rb\n" }` at line 85.
-pub fn ruby_tests_spec_l85_d11_changed_file(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('changed_file', ...args)
+pub fn ruby_tests_spec_l85_d11_changed_file() string {
+	return 'Library/Homebrew/test/cmd/help_spec.rb\n'
 }
 
 // Ruby it `it "includes the changed spec file" do` at line 91.
-pub fn ruby_tests_spec_l91_d12_includes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('includes', ...args)
+pub fn ruby_tests_spec_l91_d12_includes() bool {
+	file := ruby_tests_spec_l85_d11_changed_file()
+	input := dev_tests_spec_changed_input(file, ['test/cmd/help_spec.rb'], {})
+	return 'test/cmd/help_spec.rb' in ruby_tests_spec_l80_d9_changed_test_files(input)
 }
 
 // Ruby let `let(:changed_file) { "Library/Homebrew/cmd/help.rb\n" }` at line 97.
-pub fn ruby_tests_spec_l97_d13_changed_file(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('changed_file', ...args)
+pub fn ruby_tests_spec_l97_d13_changed_file() string {
+	return 'Library/Homebrew/cmd/help.rb\n'
 }
 
 // Ruby it `it "maps the file to its corresponding spec" do` at line 103.
-pub fn ruby_tests_spec_l103_d14_maps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('maps', ...args)
+pub fn ruby_tests_spec_l103_d14_maps() bool {
+	input := dev_tests_spec_changed_input(ruby_tests_spec_l97_d13_changed_file(), [
+		'test/cmd/help_spec.rb',
+	], {})
+	return 'test/cmd/help_spec.rb' in ruby_tests_spec_l80_d9_changed_test_files(input)
 }
 
 // Ruby let `let(:changed_file) do` at line 109.
-pub fn ruby_tests_spec_l109_d15_changed_file(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('changed_file', ...args)
+pub fn ruby_tests_spec_l109_d15_changed_file() string {
+	return 'Library/Homebrew/test/support/helper/spec/shared_context/integration_test.rb\n'
 }
 
 // Ruby it `it "includes integration tests and excludes unrelated tests", :aggregate_failures do` at line 117.
-pub fn ruby_tests_spec_l117_d16_includes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('includes', ...args)
+pub fn ruby_tests_spec_l117_d16_includes() bool {
+	files := ['test/cmd/help_spec.rb', 'test/dev-cmd/tests_spec.rb']
+	input := dev_tests_spec_changed_input(ruby_tests_spec_l109_d15_changed_file(), files, {
+		'test/cmd/help_spec.rb':      'RSpec.describe "help", :integration_test do\nend'
+		'test/dev-cmd/tests_spec.rb': 'RSpec.describe "tests" do\nend'
+	})
+	changed := ruby_tests_spec_l80_d9_changed_test_files(input)
+	return 'test/cmd/help_spec.rb' in changed && 'test/dev-cmd/tests_spec.rb' !in changed
 }
 
 // Ruby let `let(:changed_file) do` at line 124.
-pub fn ruby_tests_spec_l124_d17_changed_file(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('changed_file', ...args)
+pub fn ruby_tests_spec_l124_d17_changed_file() string {
+	return 'Library/Homebrew/test/support/helper/spec/shared_context/homebrew_cask.rb\n'
 }
 
 // Ruby it `it "includes cask tests and excludes non-cask tests", :aggregate_failures do` at line 132.
-pub fn ruby_tests_spec_l132_d18_includes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('includes', ...args)
+pub fn ruby_tests_spec_l132_d18_includes() bool {
+	files := [
+		'test/cmd/outdated_spec.rb',
+		'test/cmd/help_spec.rb',
+		'test/dev-cmd/pr-pull_spec.rb',
+		'test/cmd/bundle/remove_subcommand_spec.rb',
+	]
+	input := dev_tests_spec_changed_input(ruby_tests_spec_l124_d17_changed_file(), files, {
+		'test/cmd/outdated_spec.rb':                 'RSpec.describe "outdated", :cask do\nend'
+		'test/cmd/help_spec.rb':                     'RSpec.describe "help" do\nend'
+		'test/dev-cmd/pr-pull_spec.rb':              'RSpec.describe "pr-pull" do\nend'
+		'test/cmd/bundle/remove_subcommand_spec.rb': 'RSpec.describe "remove" do\nend'
+	})
+	changed := ruby_tests_spec_l80_d9_changed_test_files(input)
+	return 'test/cmd/outdated_spec.rb' in changed && 'test/cmd/help_spec.rb' !in changed && 'test/dev-cmd/pr-pull_spec.rb' !in changed && 'test/cmd/bundle/remove_subcommand_spec.rb' !in changed
 }
 
 // Original Ruby source (line-for-line):

@@ -4,10 +4,27 @@ import brew_runtime
 
 // Translated from Homebrew/brew `extend/pathname/eager_initialize_extension.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub struct EagerPathname {
+pub:
+	path               string
+	magic_number       ?string
+	file_type          ?string
+	zipinfo            ?[]string
+	which_install_info ?string
+	disk_usage         ?i64
+	file_count         ?i64
+}
+
+pub fn new_eager_pathname(path string) EagerPathname {
+	return EagerPathname{ path: path }
+}
 
 // Ruby method `initialize(*args)` at line 23.
 pub fn ruby_eager_initialize_extension_l23_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	path := if args.len > 0 { args[0].as_string() } else { '' }
+	return brew_runtime.structured_value('Pathname', path, {
+		'path': new_eager_pathname(path).path
+	})
 }
 
 // Original Ruby source (line-for-line):

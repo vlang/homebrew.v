@@ -1,13 +1,46 @@
 module subcommand
 
 import brew_runtime
+import homebrew.bundle
 
 // Translated from Homebrew/brew `bundle/subcommand/dump.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `run` at line 77.
 pub fn ruby_dump_l77_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('run', ...args)
+	if args.len < 3 {
+		return brew_runtime.object_value('ArgumentError', 'path config, dump input, and selection are required')
+	}
+	// Dumper owns the Value decoders; its boundary preserves the source-shaped
+	// config/selection/input order. The command adapter accepts config/input/
+	// selection and reorders only at this generic migration edge.
+	force := if args.len > 3 { args[3] } else { brew_runtime.bool_value(false) }
+	return bundle.ruby_dumper_l70_d3_self_dump_brewfile(args[0], args[2], args[1], force)
+}
+
+pub struct BundleDumpCommandOptions {
+pub:
+	config          bundle.BundleBrewfilePathConfig
+	input           bundle.BundleDumpInput
+	describe        bool
+	force           bool
+	no_restart      bool
+	formulae        bool
+	taps            bool
+	casks           bool
+	extension_types map[string]bool
+}
+
+pub fn run_bundle_dump(options BundleDumpCommandOptions,
+	writer bundle.BrewfileWriter) !bundle.BundleDumpResult {
+	return bundle.dump_brewfile(options.config, options.input, bundle.BundleDumpSelection{
+		describe: options.describe
+		no_restart: options.no_restart
+		formulae: options.formulae
+		taps: options.taps
+		casks: options.casks
+		extension_types: options.extension_types
+	}, options.force, writer)
 }
 
 // Original Ruby source (line-for-line):

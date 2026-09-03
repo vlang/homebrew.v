@@ -4,30 +4,128 @@ import brew_runtime
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/atomic/fiber_local_var.rb`.
 // The original source is retained below until every stub has a typed V body.
+@[heap]
+pub struct FiberLocalVar {
+mut:
+	variable &LocalVariable
+}
+
+pub fn new_fiber_local_var(default_value brew_runtime.Value) &FiberLocalVar {
+	mut storage := new_fiber_locals()
+	return new_fiber_local_var_with_storage(mut storage, default_value)
+}
+
+pub fn new_fiber_local_var_with_storage(mut storage LocalStorage, default_value brew_runtime.Value) &FiberLocalVar {
+	return &FiberLocalVar{
+		variable: new_local_variable(mut storage, default_value)
+	}
+}
+
+pub fn new_fiber_local_var_with_default_block(default_value brew_runtime.Value, default_block LocalDefaultBlock) !&FiberLocalVar {
+	mut storage := new_fiber_locals()
+	return new_fiber_local_var_with_storage_and_default_block(mut storage, default_value, default_block)
+}
+
+pub fn new_fiber_local_var_with_storage_and_default_block(mut storage LocalStorage, default_value brew_runtime.Value, default_block LocalDefaultBlock) !&FiberLocalVar {
+	return &FiberLocalVar{
+		variable: new_local_variable_with_default_block(mut storage, default_value, default_block)!
+	}
+}
+
+pub fn (mut local FiberLocalVar) value() !brew_runtime.Value {
+	return local.variable.value()
+}
+
+pub fn (mut local FiberLocalVar) set(value brew_runtime.Value) !brew_runtime.Value {
+	return local.variable.set(value)
+}
+
+pub fn (mut local FiberLocalVar) bind(value brew_runtime.Value, action LocalBindingBlock) !brew_runtime.Value {
+	return local.variable.bind(value, action)
+}
+
+pub fn (mut local FiberLocalVar) default_current() !brew_runtime.Value {
+	return local.variable.default_current()
+}
+
+pub fn (mut local FiberLocalVar) clear_current_context() {
+	local.variable.clear_current_context()
+}
+
+pub fn (mut local FiberLocalVar) free() {
+	local.variable.free()
+}
+
+pub fn (local &FiberLocalVar) slot_index() int {
+	return local.variable.slot_index()
+}
+
+fn fiber_local_var_boundary(local &FiberLocalVar) brew_runtime.Value {
+	return brew_runtime.structured_value('Concurrent::FiberLocalVar', '#<Concurrent::FiberLocalVar>', {
+		'fiber_local_var_address': u64(voidptr(local)).str()
+	})
+}
+
+fn fiber_local_var_boundary_receiver(args []brew_runtime.Value) &FiberLocalVar {
+	if args.len == 0 {
+		panic('FiberLocalVar method requires a receiver')
+	}
+	address := (args[0].attribute('fiber_local_var_address') or {
+		panic('${args[0].type_name} has no translated fiber-local state')
+	}).u64()
+	return unsafe { &FiberLocalVar(voidptr(address)) }
+}
 
 // Ruby method `initialize(default = nil, &default_block)` at line 49.
 pub fn ruby_fiber_local_var_l49_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	default_value := if args.len > 0 { args[0] } else { local_nil_value() }
+	mut storage := new_fiber_locals()
+	local := if args.len > 1 {
+		&FiberLocalVar{
+			variable: new_local_variable_with_boundary_default(mut *storage, default_value, args[1]) or { panic(err) }
+		}
+	} else {
+		new_fiber_local_var_with_storage(mut storage, default_value)
+	}
+	return fiber_local_var_boundary(local)
 }
 
 // Ruby method `value` at line 68.
 pub fn ruby_fiber_local_var_l68_d2_value(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('value', ...args)
+	mut local := fiber_local_var_boundary_receiver(args)
+	return local.value() or { panic(err) }
 }
 
 // Ruby method `value=(value)` at line 76.
 pub fn ruby_fiber_local_var_l76_d3_value(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('value=', ...args)
+	if args.len < 2 {
+		panic('FiberLocalVar#value= requires a value')
+	}
+	mut local := fiber_local_var_boundary_receiver(args)
+	return local.set(args[1]) or { panic(err) }
 }
 
 // Ruby method `bind(value)` at line 86.
 pub fn ruby_fiber_local_var_l86_d4_bind(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('bind', ...args)
+	if args.len < 2 {
+		panic('FiberLocalVar#bind requires a value')
+	}
+	if args.len < 3 {
+		return local_nil_value()
+	}
+	mut local := fiber_local_var_boundary_receiver(args)
+	old_value := local.value() or { panic(err) }
+	local.set(args[1]) or { panic(err) }
+	defer {
+		local.set(old_value) or {}
+	}
+	return args[2]
 }
 
 // Ruby method `default` at line 101.
 pub fn ruby_fiber_local_var_l101_d5_default(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('default', ...args)
+	mut local := fiber_local_var_boundary_receiver(args)
+	return local.default_current() or { panic(err) }
 }
 
 // Original Ruby source (line-for-line):

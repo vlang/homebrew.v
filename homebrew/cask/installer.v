@@ -1,373 +1,1825 @@
 module cask
 
 import brew_runtime
+import crypto.sha256
+import homebrew
+import homebrew.cask.dsl as dsl_types
+import os
+import time
+
+pub struct CaskInstallerOptions {
+pub mut:
+	force                       bool
+	adopt                       bool
+	skip_cask_deps              bool
+	binaries                    bool = true
+	verbose                     bool
+	zap                         bool
+	require_sha                 bool
+	upgrade                     bool
+	reinstall                   bool
+	installed_on_request        bool = true
+	verify_download_integrity   bool = true
+	quiet                       bool
+	defer_fetch                 bool
+	default_uninstall_artifacts []brew_runtime.Value
+	metadata_timestamp          string
+	install_badge               string = '🍺'
+	no_emoji                    bool
+	current_os                  string = 'macOS'
+	current_arch                string = 'arm'
+	current_bits                int = 64
+	current_macos               string = '15'
+	allowed_taps                []string
+	forbidden_taps              []string
+	forbid_casks                bool
+	forbidden_casks             []string
+	forbidden_formulae          []string
+	forbidden_artifacts         []string
+	forbidden_owner             string = 'your system administrator'
+	forbidden_owner_contact     string
+	conflicting_installed       []string
+}
+
+pub struct CaskInstallerDependency {
+pub:
+	name          string
+	full_name     string
+	kind          string
+	tap           string
+	tap_allowed   bool = true
+	tap_forbidden bool
+	installed     bool
+	linked        bool
+}
+
+pub struct CaskInstallerDownloadRequest {
+pub:
+	token                     string
+	url                       string
+	require_sha               bool
+	quiet                     bool
+	timeout                   ?f64
+	verify_download_integrity bool = true
+}
+
+pub struct CaskInstallerArtifactRequest {
+pub:
+	artifact     brew_runtime.Value
+	verbose      bool
+	adopt        bool
+	auto_updates bool
+	force        bool
+	clear        bool
+	quit         bool = true
+	upgrade      bool
+	reinstall    bool
+	predecessor  string
+	successor    string
+}
+
+pub struct CaskInstallerQueueEntry {
+pub:
+	kind string
+	name string
+	url  string
+}
+
+pub type CaskInstallerFetchHook = fn(CaskInstallerDownloadRequest) !string
+
+pub type CaskInstallerExtractHook = fn(string, string, bool) !
+
+pub type CaskInstallerArtifactHook = fn(CaskInstallerArtifactRequest) !
+
+pub type CaskInstallerDependencyHook = fn(CaskInstallerDependency) !
+
+pub type CaskInstallerQueueHook = fn(CaskInstallerQueueEntry) !
+
+pub type CaskInstallerSourceLoader = fn(CaskCore) !CaskCore
+
+pub struct CaskInstallerHooks {
+pub:
+	fetch                  ?CaskInstallerFetchHook
+	extract                ?CaskInstallerExtractHook
+	install_artifact       ?CaskInstallerArtifactHook
+	uninstall_artifact     ?CaskInstallerArtifactHook
+	zap_artifact           ?CaskInstallerArtifactHook
+	install_dependency     ?CaskInstallerDependencyHook
+	enqueue                ?CaskInstallerQueueHook
+	load_source_cask       ?CaskInstallerSourceLoader
+	load_installed_cask    ?CaskInstallerSourceLoader
+	recover_installed_cask ?CaskInstallerSourceLoader
+}
+
+pub struct CaskInstaller {
+pub mut:
+	cask                                  CaskCore
+	options                               CaskInstallerOptions
+	hooks                                 CaskInstallerHooks
+	dependencies                          []CaskInstallerDependency
+	ran_prelude_fetch                     bool
+	ran_prelude                           bool
+	installed_uninstall_artifacts_missing bool
+	metadata_subdir_cache                 string
+	source_download_path                  string
+	source_downloaded                     bool
+	queued_staged_path                    string
+	queued_staged_marker                  string
+	queue_entries                         []CaskInstallerQueueEntry
+	messages                              []string
+}
+
+pub fn new_cask_installer(cask CaskCore, options CaskInstallerOptions,
+	hooks CaskInstallerHooks) CaskInstaller {
+	return CaskInstaller{
+		cask: cask
+		options: options
+		hooks: hooks
+	}
+}
+
+fn installer_nil() brew_runtime.Value {
+	return brew_runtime.object_value('NilClass', 'nil')
+}
+
+fn installer_artifact_key(value brew_runtime.Value) string {
+	return value.attributes['dsl_key'] or {
+		value.type_name.all_after_last('::').replace('Block', '').replace_each([
+			'AppImage',
+			'app_image',
+			'Preflight',
+			'preflight',
+			'Postflight',
+			'postflight',
+		]).to_lower()
+	}
+}
+
+fn installer_artifact_has(value brew_runtime.Value, phase string) bool {
+	if raw := value.map_data[phase] {
+		return raw.type_name != 'Bool' || raw.bool_data
+	}
+	key := installer_artifact_key(value)
+	return match phase {
+		'install_phase' {
+			key !in ['uninstall', 'uninstall_preflight', 'uninstall_postflight', 'zap']
+		}
+		'uninstall_phase' { key !in ['installer', 'pkg', 'stage_only', 'zap'] }
+		'post_uninstall_phase' { key == 'uninstall' }
+		'zap_phase' { key == 'zap' }
+		else { false }
+	}
+}
+
+fn installer_staged_path(cask CaskCore) string {
+	if cask.dsl.staged_path_value != '' {
+		return cask.dsl.staged_path_value
+	}
+	return os.join_path(cask.caskroom_path(), cask.version_text())
+}
+
+fn installer_metadata_versioned_path(cask CaskCore) string {
+	return os.join_path(cask.metadata_main_container_path(), cask.version_text())
+}
+
+fn installer_remove(path string) ! {
+	if path == '' || (!os.exists(path) && !os.is_link(path)) {
+		return
+	}
+	if os.is_dir(path) && !os.is_link(path) {
+		os.rmdir_all(path)!
+	} else {
+		os.rm(path)!
+	}
+}
+
+fn installer_rmdir_if_possible(path string) {
+	if path != '' && os.is_dir(path) && (os.ls(path) or { return }).len == 0 {
+		os.rmdir(path) or {}
+	}
+}
+
+fn installer_copy_tree(source string, destination string) ! {
+	if os.is_file(source) {
+		os.mkdir_all(os.dir(destination))!
+		os.cp(source, destination)!
+		return
+	}
+	os.mkdir_all(destination)!
+	for name in os.ls(source)! {
+		from := os.join_path(source, name)
+		to := os.join_path(destination, name)
+		if os.is_dir(from) && !os.is_link(from) {
+			installer_copy_tree(from, to)!
+		} else if os.is_link(from) {
+			os.symlink(os.readlink(from)!, to)!
+		} else {
+			os.cp(from, to)!
+		}
+	}
+}
+
+fn installer_json_escape(value string) string {
+	return value.replace('\\', '\\\\').replace('"', '\\"').replace('\n', '\\n').replace('\r', '\\r').replace('\t', '\\t')
+}
+
+fn installer_value_json(value brew_runtime.Value) string {
+	return match value.type_name {
+		'NilClass' { 'null' }
+		'Bool' { value.bool_data.str() }
+		'Integer' { value.int_data.str() }
+		'Float' { value.float_data.str() }
+		'Array' {
+			'[${(value.as_array() or { []brew_runtime.Value{} }).map(installer_value_json(it)).join(',')}]'
+		}
+		'Hash' {
+			mut keys := value.map_data.keys()
+			keys.sort()
+			mut pairs := []string{cap: keys.len}
+			for key in keys {
+				pairs << '"${installer_json_escape(key)}":${installer_value_json(value.map_data[key])}'
+			}
+			'{${pairs.join(',')}}'
+		}
+		else { '"${installer_json_escape(value.as_string())}"' }
+	}
+}
+
+fn installer_map_json(values map[string]brew_runtime.Value) string {
+	return installer_value_json(brew_runtime.map_value(values))
+}
+
+pub fn (installer CaskInstaller) caveats() string {
+	caveats := dsl_types.ruby_caveats_l51_d5_to_s(dsl_types.cask_caveats_value(installer.cask.dsl.caveats_value)).as_string()
+	return if caveats.trim_space() == '' { '' } else { '==> Caveats\n${caveats}\n' }
+}
+
+pub fn (installer CaskInstaller) summary() string {
+	mut summary := ''
+	if !installer.options.no_emoji {
+		summary += '${installer.options.install_badge}  '
+	}
+	action := if installer.options.upgrade { 'upgraded' } else { 'installed' }
+	return '${summary}${installer.cask.token} was successfully ${action}!'
+}
+
+pub fn (installer CaskInstaller) artifacts() []brew_runtime.Value {
+	if installer.options.default_uninstall_artifacts.len > 0 {
+		return installer.options.default_uninstall_artifacts.clone()
+	}
+	return installer.cask.dsl.artifacts.to_array()
+}
+
+pub fn (installer CaskInstaller) download_request(quiet bool, timeout ?f64) CaskInstallerDownloadRequest {
+	url := if installer.cask.dsl.has_url { installer.cask.dsl.url_value.uri } else { '' }
+	return CaskInstallerDownloadRequest{
+		token: installer.cask.token
+		url: url
+		require_sha: installer.options.require_sha && !installer.options.force
+		quiet: quiet
+		timeout: timeout
+		verify_download_integrity: installer.options.verify_download_integrity
+	}
+}
+
+pub fn (mut installer CaskInstaller) download(quiet bool, timeout ?f64) !string {
+	request := installer.download_request(quiet, timeout)
+	if request.require_sha && (!installer.cask.dsl.has_sha256 || installer.cask.dsl.sha256_value.as_string() in ['',
+		'no_check']) {
+		return error('Cask ${installer.cask.token} is missing a sha256 checksum and cannot be installed with `--require-sha`.')
+	}
+	if installer.cask.download != '' {
+		installer.verify_download(installer.cask.download)!
+		return installer.cask.download
+	}
+	if request.url.starts_with('file://') {
+		path := request.url.trim_string_left('file://')
+		if !os.exists(path) {
+			return error("Download failed on Cask '${installer.cask.token}': ${path} does not exist")
+		}
+		installer.cask.download = path
+		installer.verify_download(path)!
+		return path
+	}
+	fetch := installer.hooks.fetch or { return error('download collaborator is required for ${request.url}') }
+	path := fetch(request)!
+	if path == '' {
+		return error("Download failed on Cask '${installer.cask.token}': empty download path")
+	}
+	installer.cask.download = path
+	installer.verify_download(path)!
+	return path
+}
+
+fn (mut installer CaskInstaller) verify_download(path string) ! {
+	if !installer.options.verify_download_integrity {
+		return
+	}
+	if !installer.cask.dsl.has_sha256 {
+		installer.messages << "Cannot verify integrity of '${os.base(path)}'."
+		return
+	}
+	expected := installer.cask.dsl.sha256_value.as_string()
+	if expected in ['', 'no_check'] {
+		return
+	}
+	actual := sha256.sum256(os.read_bytes(path)!).hex()
+	if actual != expected {
+		return error('SHA256 mismatch\nExpected: ${expected}\n  Actual: ${actual}')
+	}
+}
+
+pub fn (mut installer CaskInstaller) primary_container() !string {
+	return installer.download(true, none)
+}
+
+pub fn (mut installer CaskInstaller) extract_primary_container(destination string) ! {
+	download := installer.primary_container()!
+	to := if destination == '' { installer_staged_path(installer.cask) } else { destination }
+	if os.is_dir(download) {
+		installer_copy_tree(download, to)!
+		return
+	}
+	extract := installer.hooks.extract or { return error('unpack collaborator is required for ${download}') }
+	extract(download, to, installer.options.verbose)!
+}
+
+pub fn (installer CaskInstaller) process_rename_operations(target_dir string) ! {
+	root := if target_dir == '' { installer_staged_path(installer.cask) } else { target_dir }
+	for rename in installer.cask.dsl.renames {
+		matches := os.glob(os.join_path(root, rename.from)) or { return err }
+		for source in matches {
+			target := os.join_path(root, rename.to)
+			os.mkdir_all(os.dir(target))!
+			os.mv(source, target)!
+		}
+	}
+}
+
+pub fn (installer CaskInstaller) check_deprecate_disable() !string {
+	if installer.cask.dsl.disabled {
+		message := if installer.cask.dsl.disable_reason.as_string() == '' {
+			'disabled'
+		} else {
+			installer.cask.dsl.disable_reason.as_string()
+		}
+		return error('${installer.cask.token} has been ${message}')
+	}
+	if installer.cask.dsl.deprecated {
+		message := if installer.cask.dsl.deprecation_reason.as_string() == '' {
+			'deprecated'
+		} else {
+			installer.cask.dsl.deprecation_reason.as_string()
+		}
+		return '${installer.cask.token} has been ${message}'
+	}
+	return ''
+}
+
+pub fn (installer CaskInstaller) check_conflicts() ! {
+	for token in installer.cask.dsl.conflicts_with_value.conflicts['cask'] {
+		if token in installer.options.conflicting_installed {
+			return error("Cask '${installer.cask.token}' conflicts with '${token}'.")
+		}
+	}
+}
+
+pub fn (installer CaskInstaller) check_stanza_os_requirements() ! {
+	if !installer.cask.supports_macos() {
+		return error('${installer.cask.token}: This cask requires Linux.')
+	}
+}
+
+pub fn (installer CaskInstaller) check_supported_system() ! {
+	if installer.cask.loaded_from_api && !installer.cask.installable_artifact() {
+		return error('${installer.cask.token}: This cask is not available on ${installer.options.current_os}.')
+	}
+}
+
+pub fn (installer CaskInstaller) check_macos_requirements() ! {
+	current := homebrew.new_macos_version(installer.options.current_macos)!
+	if requirement := installer.cask.dsl.depends_on_value.macos {
+		if !requirement.satisfied_on(current, installer.options.current_os == 'macOS') {
+			return error('${installer.cask.token}: ${requirement.message('cask', installer.options.current_os == 'macOS')}')
+		}
+	}
+	if requirement := installer.cask.dsl.depends_on_value.maximum_macos {
+		if !requirement.satisfied_on(current, installer.options.current_os == 'macOS') {
+			return error('${installer.cask.token}: ${requirement.message('cask', installer.options.current_os == 'macOS')}')
+		}
+	}
+}
+
+pub fn (installer CaskInstaller) check_arch_requirements() ! {
+	architectures := installer.cask.dsl.depends_on_value.arch
+	if architectures.len == 0 {
+		return
+	}
+	for arch in architectures {
+		if arch.kind == installer.options.current_arch && arch.bits == installer.options.current_bits {
+			return
+		}
+	}
+	accepted := architectures.map('{ type: ${it.kind}, bits: ${it.bits} }').join(', ')
+	return error('${installer.cask.token}: This cask depends on hardware architecture being one of [${accepted}], but you are running { type: ${installer.options.current_arch}, bits: ${installer.options.current_bits} }.')
+}
+
+pub fn (installer CaskInstaller) check_requirements() ! {
+	installer.check_stanza_os_requirements()!
+	installer.check_supported_system()!
+	installer.check_macos_requirements()!
+	installer.check_arch_requirements()!
+}
+
+pub fn (installer CaskInstaller) cask_and_formula_dependencies() ![]CaskInstallerDependency {
+	for dependency in installer.dependencies {
+		if dependency.kind == 'cask' && dependency.name == installer.cask.token {
+			return error('Cask ${installer.cask.token} contains a self-referencing dependency')
+		}
+	}
+	return installer.dependencies.clone()
+}
+
+pub fn (installer CaskInstaller) missing_cask_and_formula_dependencies() ![]CaskInstallerDependency {
+	return installer.cask_and_formula_dependencies()!.filter(!(it.installed && (it.kind != 'formula' || it.linked)))
+}
+
+pub fn (mut installer CaskInstaller) satisfy_cask_and_formula_dependencies() ! {
+	if !installer.options.installed_on_request {
+		return
+	}
+	dependencies := installer.cask_and_formula_dependencies()!
+	if dependencies.len == 0 {
+		return
+	}
+	missing := installer.missing_cask_and_formula_dependencies()!
+	if missing.len == 0 {
+		installer.messages << 'All dependencies satisfied.'
+		return
+	}
+	installer.messages << 'Installing dependencies: ${missing.map(if it.full_name == '' {
+		it.name
+	} else {
+		it.full_name
+	}).join(', ')}'
+	install_dependency := installer.hooks.install_dependency or {
+		return error('dependency installer collaborator is required')
+	}
+	for dependency in missing {
+		if dependency.kind == 'cask' && installer.options.skip_cask_deps {
+			installer.messages << '`--skip-cask-deps` is set; skipping installation of ${dependency.name}.'
+			continue
+		}
+		install_dependency(dependency)!
+	}
+}
+
+pub fn (mut installer CaskInstaller) metadata_subdir() !string {
+	if installer.metadata_subdir_cache != '' {
+		return installer.metadata_subdir_cache
+	}
+	timestamp := if installer.options.metadata_timestamp != '' {
+		installer.options.metadata_timestamp
+	} else {
+		time.now().format_ss_micro().replace(' ', '-')
+	}
+	path := os.join_path(installer_metadata_versioned_path(installer.cask), timestamp, 'Casks')
+	os.mkdir_all(path)!
+	installer.metadata_subdir_cache = path
+	return path
+}
+
+pub fn (mut installer CaskInstaller) save_caskfile() !string {
+	if installer.cask.source.trim_space() == '' {
+		return ''
+	}
+	directory := installer.metadata_subdir()!
+	mut path := ''
+	if installer.cask.uninstall_flight_blocks() {
+		path = os.join_path(directory, '${installer.cask.token}.rb')
+		os.write_file(path, installer.cask.source)!
+	} else {
+		path = os.join_path(directory, '${installer.cask.token}.json')
+		mut metadata := installer.cask.to_installed_json_hash()
+		if installer.cask.artifacts_list(true).len == 0 {
+			metadata['artifacts'] = brew_runtime.array_value([]brew_runtime.Value{})
+		}
+		os.write_file(path, installer_map_json(metadata))!
+	}
+	return path
+}
+
+pub fn (installer CaskInstaller) save_config_file() ! {
+	path := installer.cask.config_path()
+	os.mkdir_all(os.dir(path))!
+	os.write_file(path, installer.cask.config.json())!
+}
+
+pub fn (mut installer CaskInstaller) save_download_sha() !string {
+	if !installer.cask.checksumable() {
+		return ''
+	}
+	sha := installer.cask.new_download_sha()!
+	path := installer.cask.download_sha_path()
+	os.mkdir_all(os.dir(path))!
+	os.write_file(path, sha)!
+	return path
+}
+
+pub fn (installer CaskInstaller) backup_path() string {
+	staged := installer_staged_path(installer.cask)
+	return if staged == '' { '' } else { '${staged}.upgrading' }
+}
+
+pub fn (installer CaskInstaller) backup_metadata_path() string {
+	metadata := installer_metadata_versioned_path(installer.cask)
+	return if metadata == '' { '' } else { '${metadata}.upgrading' }
+}
+
+pub fn (installer CaskInstaller) gain_permissions_remove(path string) ! {
+	installer_remove(path)!
+}
+
+pub fn (installer CaskInstaller) backup() ! {
+	backup_path := installer.backup_path()
+	backup_metadata := installer.backup_metadata_path()
+	staged := installer_staged_path(installer.cask)
+	metadata := installer_metadata_versioned_path(installer.cask)
+	if os.exists(staged) {
+		installer_remove(backup_path)!
+		os.mv(staged, backup_path)!
+	}
+	if os.exists(metadata) {
+		installer_remove(backup_metadata)!
+		os.mv(metadata, backup_metadata)!
+	}
+}
+
+pub fn (installer CaskInstaller) restore_backup() !bool {
+	backup_path := installer.backup_path()
+	backup_metadata := installer.backup_metadata_path()
+	if !os.is_dir(backup_path) || !os.is_dir(backup_metadata) {
+		return false
+	}
+	installer_remove(installer_staged_path(installer.cask))!
+	installer_remove(installer_metadata_versioned_path(installer.cask))!
+	os.mv(backup_path, installer_staged_path(installer.cask))!
+	os.mv(backup_metadata, installer_metadata_versioned_path(installer.cask))!
+	return true
+}
+
+pub fn (installer CaskInstaller) purge_backed_up_versioned_files() ! {
+	installer.gain_permissions_remove(installer.backup_path())!
+	backup_metadata := installer.backup_metadata_path()
+	if os.is_dir(backup_metadata) {
+		for child in os.ls(backup_metadata)! {
+			installer.gain_permissions_remove(os.join_path(backup_metadata, child))!
+		}
+		installer_rmdir_if_possible(backup_metadata)
+	}
+}
+
+pub fn (installer CaskInstaller) remove_broken_caskroom_symlinks() ![]string {
+	mut removed := []string{}
+	root := installer.cask.caskroom_root
+	if !os.is_dir(root) {
+		return removed
+	}
+	for name in os.ls(root)! {
+		link := os.join_path(root, name)
+		if !os.is_link(link) || os.exists(link) {
+			continue
+		}
+		target := os.readlink(link) or { continue }
+		if os.base(target) == os.base(installer.cask.caskroom_path()) {
+			os.rm(link)!
+			removed << link
+		}
+	}
+	return removed
+}
+
+pub fn (installer CaskInstaller) purge_versioned_files() ! {
+	installer.gain_permissions_remove(installer_staged_path(installer.cask))!
+	metadata := installer_metadata_versioned_path(installer.cask)
+	if os.is_dir(metadata) {
+		for child in os.ls(metadata)! {
+			installer.gain_permissions_remove(os.join_path(metadata, child))!
+		}
+		installer_rmdir_if_possible(metadata)
+	}
+	if !installer.options.upgrade {
+		installer_rmdir_if_possible(installer.cask.metadata_main_container_path())
+		installer_rmdir_if_possible(installer.cask.caskroom_path())
+	}
+	installer.remove_broken_caskroom_symlinks()!
+}
+
+pub fn (installer CaskInstaller) purge_caskroom_path() ! {
+	installer.gain_permissions_remove(installer.cask.caskroom_path())!
+	installer.remove_broken_caskroom_symlinks()!
+}
+
+pub fn (installer CaskInstaller) remove_tabfile() ! {
+	path := os.join_path(installer.cask.metadata_main_container_path(), 'INSTALL_RECEIPT.json')
+	installer_remove(path)!
+	installer_rmdir_if_possible(os.dir(path))
+}
+
+pub fn (installer CaskInstaller) remove_config_file() ! {
+	path := installer.cask.config_path()
+	installer_remove(path)!
+	installer_rmdir_if_possible(os.dir(path))
+}
+
+pub fn (installer CaskInstaller) remove_download_sha() ! {
+	path := installer.cask.download_sha_path()
+	installer_remove(path)!
+	installer_rmdir_if_possible(os.dir(path))
+}
+
+fn installer_policy_contact(options CaskInstallerOptions) string {
+	return if options.forbidden_owner_contact.trim_space() == '' {
+		''
+	} else {
+		'\n${options.forbidden_owner_contact}'
+	}
+}
+
+fn installer_tap_allowed(tap string, options CaskInstallerOptions) bool {
+	return options.allowed_taps.len == 0 || tap in options.allowed_taps
+}
+
+pub fn (installer CaskInstaller) forbidden_tap_check(cask_only bool) ! {
+	if installer.options.allowed_taps.len == 0 && installer.options.forbidden_taps.len == 0 {
+		return
+	}
+	contact := installer_policy_contact(installer.options)
+	tap := installer.cask.tap_name
+	if tap != '' && (!installer_tap_allowed(tap, installer.options) || tap in installer.options.forbidden_taps) {
+		mut reason := 'The installation of ${installer.cask.full_token()} has the tap ${tap}\nbut ${installer.options.forbidden_owner} '
+		if !installer_tap_allowed(tap, installer.options) {
+			reason += 'has not allowed this tap in `\$HOMEBREW_ALLOWED_TAPS`'
+		}
+		if !installer_tap_allowed(tap, installer.options) && tap in installer.options.forbidden_taps {
+			reason += ' and\n'
+		}
+		if tap in installer.options.forbidden_taps {
+			reason += 'has forbidden this tap in `\$HOMEBREW_FORBIDDEN_TAPS`'
+		}
+		return error('${reason}.${contact}')
+	}
+	if cask_only || installer.options.skip_cask_deps {
+		return
+	}
+	for dependency in installer.dependencies {
+		if dependency.tap == '' || (dependency.tap_allowed && !dependency.tap_forbidden) {
+			continue
+		}
+		name := if dependency.full_name == '' { dependency.name } else { dependency.full_name }
+		mut reason := 'The installation of ${installer.cask.token} has a dependency ${name}\nfrom the ${dependency.tap} tap but ${installer.options.forbidden_owner} '
+		if !dependency.tap_allowed {
+			reason += 'has not allowed this tap in `\$HOMEBREW_ALLOWED_TAPS`'
+		}
+		if !dependency.tap_allowed && dependency.tap_forbidden {
+			reason += ' and\n'
+		}
+		if dependency.tap_forbidden {
+			reason += 'has forbidden this tap in `\$HOMEBREW_FORBIDDEN_TAPS`'
+		}
+		return error('${reason}.${contact}')
+	}
+}
+
+pub fn (installer CaskInstaller) forbidden_cask_and_formula_check(cask_only bool) ! {
+	contact := installer_policy_contact(installer.options)
+	mut variable := ''
+	if installer.options.forbid_casks {
+		variable = 'HOMEBREW_FORBID_CASKS'
+	} else if installer.cask.token in installer.options.forbidden_casks || installer.cask.full_token() in installer.options.forbidden_casks {
+		variable = 'HOMEBREW_FORBIDDEN_CASKS'
+	}
+	if variable != '' {
+		return error('forbidden for installation by ${installer.options.forbidden_owner} in `${variable}`.${contact}')
+	}
+	if cask_only || installer.options.skip_cask_deps {
+		return
+	}
+	for dependency in installer.dependencies {
+		name := if dependency.full_name == '' { dependency.name } else { dependency.full_name }
+		if dependency.kind == 'cask' && (dependency.name in installer.options.forbidden_casks || name in installer.options.forbidden_casks) {
+			return error('has a dependency ${name} but the\n${name} cask was forbidden for installation by ${installer.options.forbidden_owner} in `HOMEBREW_FORBIDDEN_CASKS`.${contact}')
+		}
+		if dependency.kind == 'formula' && (dependency.name in installer.options.forbidden_formulae || name in installer.options.forbidden_formulae) {
+			return error('has a dependency ${name} but the\n${name} formula was forbidden for installation by ${installer.options.forbidden_owner} in `HOMEBREW_FORBIDDEN_FORMULAE`.${contact}')
+		}
+	}
+}
+
+pub fn (installer CaskInstaller) forbidden_cask_artifacts_check() ! {
+	if installer.options.forbidden_artifacts.len == 0 {
+		return
+	}
+	contact := installer_policy_contact(installer.options)
+	for value in installer.artifacts() {
+		kind := installer_artifact_key(value)
+		if kind in installer.options.forbidden_artifacts {
+			return error("contains a '${kind}' artifact, which is forbidden for installation by ${installer.options.forbidden_owner} in `HOMEBREW_FORBIDDEN_CASK_ARTIFACTS`.${contact}")
+		}
+	}
+}
+
+pub fn (installer CaskInstaller) source_download_requires_pre_fetch() bool {
+	return installer.cask_from_source_api() && installer.cask.languages().len > 0
+}
+
+pub fn (installer CaskInstaller) cask_from_source_api() bool {
+	return installer.cask.loaded_from_api && installer.cask.caskfile_only()
+}
+
+pub fn (mut installer CaskInstaller) source_download() !string {
+	if installer.source_download_path != '' {
+		return installer.source_download_path
+	}
+	fetch := installer.hooks.fetch or { return error('source download collaborator is required') }
+	installer.source_download_path = fetch(CaskInstallerDownloadRequest{
+		token: installer.cask.token
+		url: 'source-api://${installer.cask.token}'
+		verify_download_integrity: true
+	})!
+	return installer.source_download_path
+}
+
+pub fn (mut installer CaskInstaller) load_cask_from_source_api() ! {
+	load := installer.hooks.load_source_cask or { return error('source cask loader collaborator is required') }
+	installer.cask = load(installer.cask)!
+}
+
+pub fn (mut installer CaskInstaller) check_prelude_requirements() ! {
+	warning := installer.check_deprecate_disable()!
+	if warning != '' {
+		installer.messages << warning
+	}
+	installer.check_conflicts()!
+	installer.check_requirements()!
+	installer.forbidden_tap_check(true)!
+	installer.forbidden_cask_and_formula_check(true)!
+}
+
+pub fn (mut installer CaskInstaller) prelude() ! {
+	if installer.ran_prelude {
+		return
+	}
+	if !installer.ran_prelude_fetch {
+		installer.check_prelude_requirements()!
+	}
+	if installer.cask_from_source_api() {
+		installer.load_cask_from_source_api()!
+	}
+	installer.forbidden_tap_check(false)!
+	installer.forbidden_cask_and_formula_check(false)!
+	installer.forbidden_cask_artifacts_check()!
+	installer.ran_prelude = true
+}
+
+pub fn (mut installer CaskInstaller) prelude_fetch_download() !string {
+	if installer.ran_prelude_fetch {
+		return ''
+	}
+	installer.check_prelude_requirements()!
+	installer.ran_prelude_fetch = true
+	if !installer.source_download_requires_pre_fetch() {
+		return ''
+	}
+	if installer.source_downloaded {
+		return ''
+	}
+	return installer.source_download()!
+}
+
+pub fn (mut installer CaskInstaller) prelude_fetch() ! {
+	download := installer.prelude_fetch_download()!
+	if download == '' {
+		return
+	}
+	entry := CaskInstallerQueueEntry{
+		kind: 'SourceDownload'
+		name: installer.cask.token
+		url: download
+	}
+	installer.queue_entries << entry
+	enqueue := installer.hooks.enqueue or { return error('download queue collaborator is required') }
+	enqueue(entry)!
+}
+
+pub fn (mut installer CaskInstaller) enqueue_downloads() ! {
+	if !installer.ran_prelude_fetch {
+		installer.prelude_fetch()!
+	}
+	if installer.source_download_requires_pre_fetch() {
+		installer.load_cask_from_source_api()!
+	} else if installer.cask_from_source_api() {
+		enqueue := installer.hooks.enqueue or { return error('download queue collaborator is required') }
+		entry := CaskInstallerQueueEntry{
+			kind: 'SourceDownload'
+			name: installer.cask.token
+			url: 'source-api://${installer.cask.token}'
+		}
+		installer.queue_entries << entry
+		enqueue(entry)!
+	}
+	installer.forbidden_tap_check(false)!
+	installer.forbidden_cask_and_formula_check(false)!
+	installer.forbidden_cask_artifacts_check()!
+	enqueue := installer.hooks.enqueue or { return error('download queue collaborator is required') }
+	request := installer.download_request(false, none)
+	entry := CaskInstallerQueueEntry{
+		kind: 'Cask::Download'
+		name: installer.cask.token
+		url: request.url
+	}
+	installer.queue_entries << entry
+	enqueue(entry)!
+}
+
+pub fn (mut installer CaskInstaller) fetch(quiet ?bool, timeout ?f64) ! {
+	installer.prelude()!
+	if !installer.options.defer_fetch {
+		installer.download(quiet or { installer.options.quiet }, timeout)!
+	}
+	installer.satisfy_cask_and_formula_dependencies()!
+}
+
+pub fn (mut installer CaskInstaller) stage() ! {
+	os.mkdir_all(installer.cask.caskroom_root)!
+	staged := installer_staged_path(installer.cask)
+	if installer.options.defer_fetch && os.exists(installer.queued_staged_marker) && !os.exists(staged) {
+		os.mkdir_all(os.dir(staged))!
+		os.mv(installer.queued_staged_path, staged)!
+		installer_remove(installer.queued_staged_marker)!
+	} else {
+		if installer.options.defer_fetch {
+			installer_remove(installer.queued_staged_path)!
+			installer_remove(installer.queued_staged_marker)!
+		}
+		installer.extract_primary_container(staged) or {
+			installer.purge_versioned_files() or {}
+			return err
+		}
+		installer.process_rename_operations(staged) or {
+			installer.purge_versioned_files() or {}
+			return err
+		}
+	}
+	installer.save_caskfile()!
+}
+
+pub fn (mut installer CaskInstaller) install_artifacts(predecessor string) ! {
+	install := installer.hooks.install_artifact
+	uninstall := installer.hooks.uninstall_artifact
+	mut installed := []brew_runtime.Value{}
+	for artifact in installer.artifacts() {
+		if !installer_artifact_has(artifact, 'install_phase') {
+			continue
+		}
+		if installer_artifact_key(artifact) == 'binary' && !installer.options.binaries {
+			continue
+		}
+		operation := install or { return error('artifact install collaborator is required for ${installer_artifact_key(artifact)}') }
+		operation(CaskInstallerArtifactRequest{
+			artifact: artifact
+			verbose: installer.options.verbose
+			adopt: installer.options.adopt
+			auto_updates: installer.cask.dsl.auto_updates_value
+			force: installer.options.force
+			predecessor: predecessor
+		}) or {
+			if rollback := uninstall {
+				for index := installed.len - 1; index >= 0; index-- {
+					rollback(CaskInstallerArtifactRequest{
+						artifact: installed[index]
+						verbose: installer.options.verbose
+						force: installer.options.force
+					}) or {}
+				}
+			}
+			installer.purge_versioned_files() or {}
+			return err
+		}
+		installed.prepend(artifact)
+	}
+	installer.save_config_file()!
+	if installer.cask.version_text() == 'latest' {
+		installer.save_download_sha()!
+	}
+}
+
+pub fn (mut installer CaskInstaller) uninstall_artifacts(clear bool, successor string,
+	quit bool) ! {
+	uninstall := installer.hooks.uninstall_artifact
+	for artifact in installer.artifacts() {
+		if !installer_artifact_has(artifact, 'uninstall_phase') && !installer_artifact_has(artifact, 'post_uninstall_phase') {
+			continue
+		}
+		operation := uninstall or { return error('artifact uninstall collaborator is required for ${installer_artifact_key(artifact)}') }
+		operation(CaskInstallerArtifactRequest{
+			artifact: artifact
+			verbose: installer.options.verbose
+			force: installer.options.force
+			clear: clear
+			quit: quit
+			upgrade: installer.options.upgrade
+			reinstall: installer.options.reinstall
+			successor: successor
+		})!
+	}
+}
+
+pub fn (mut installer CaskInstaller) uninstall(successor string) ! {
+	installer.load_installed_caskfile()!
+	if !installer.options.reinstall && !installer.options.upgrade && installer.installed_uninstall_artifacts_missing && installer.artifacts().len == 0 {
+		installer.messages << "No uninstall artifact metadata is available for Cask '${installer.cask.token}'.\nHomebrew will remove its records, but files installed by the Cask may remain."
+	}
+	installer.uninstall_artifacts(true, successor, true)!
+	if !installer.options.reinstall && !installer.options.upgrade {
+		installer.remove_tabfile()!
+		installer.remove_download_sha()!
+		installer.remove_config_file()!
+	}
+	installer.purge_versioned_files()!
+	if installer.options.force {
+		installer.purge_caskroom_path()!
+	}
+}
+
+pub fn (mut installer CaskInstaller) uninstall_existing_cask() ! {
+	if !installer.cask.installed() {
+		return
+	}
+	mut nested_options := installer.options
+	nested_options.force = true
+	nested_options.reinstall = true
+	mut nested := new_cask_installer(installer.cask, nested_options, installer.hooks)
+	if installer.options.zap {
+		nested.zap()!
+	} else {
+		nested.uninstall(installer.cask.token)!
+	}
+}
+
+pub fn (mut installer CaskInstaller) start_upgrade(successor string, quit bool) ! {
+	installer.uninstall_artifacts(false, successor, quit)!
+	installer.backup()!
+}
+
+pub fn (mut installer CaskInstaller) revert_upgrade(predecessor string) ! {
+	installer.messages << 'Reverting upgrade for Cask ${installer.cask.token}'
+	installer.restore_backup()!
+	installer.install_artifacts(predecessor)!
+}
+
+pub fn (mut installer CaskInstaller) finalize_upgrade() ! {
+	installer.messages << 'Purging files for version ${installer.cask.version_text()} of Cask ${installer.cask.token}'
+	installer.purge_backed_up_versioned_files()!
+	installer.messages << installer.summary()
+}
+
+pub fn (mut installer CaskInstaller) zap() ! {
+	installer.load_installed_caskfile()!
+	installer.uninstall_artifacts(false, '', true)!
+	mut found := false
+	for artifact in installer.artifacts() {
+		if !installer_artifact_has(artifact, 'zap_phase') {
+			continue
+		}
+		found = true
+		operation := installer.hooks.zap_artifact or {
+			return error('artifact zap collaborator is required')
+		}
+		operation(CaskInstallerArtifactRequest{
+			artifact: artifact
+			verbose: installer.options.verbose
+			force: installer.options.force
+		})!
+	}
+	if !found {
+		installer.messages << "No zap stanza present for Cask '${installer.cask.token}'"
+	} else {
+		installer.messages << 'Dispatching zap stanza'
+	}
+	installer.messages << "Removing all staged versions of Cask '${installer.cask.token}'"
+	installer.purge_caskroom_path()!
+}
+
+pub fn (mut installer CaskInstaller) install() ! {
+	predecessor := if installer.options.reinstall && installer.cask.installed() {
+		installer.cask.token
+	} else {
+		''
+	}
+	installer.prelude()!
+	caveats := installer.caveats()
+	if caveats != '' {
+		installer.messages << caveats
+	}
+	installer.fetch(none, none)!
+	if installer.options.reinstall {
+		installer.uninstall_existing_cask()!
+	}
+	if installer.options.force && os.exists(installer_staged_path(installer.cask)) && os.exists(installer_metadata_versioned_path(installer.cask)) {
+		installer.backup()!
+	}
+	installer.messages << 'Installing Cask ${installer.cask.token}'
+	installer.stage() or {
+		installer.restore_backup() or {}
+		return err
+	}
+	installer.install_artifacts(predecessor) or {
+		installer.restore_backup() or {}
+		return err
+	}
+	installer.purge_backed_up_versioned_files()!
+	if !installer.options.quiet {
+		installer.messages << installer.summary()
+	}
+}
+
+pub fn (installer CaskInstaller) installed_uninstall_artifacts_missing(installed_caskfile string,
+	installed_json map[string]brew_runtime.Value, tab_uninstall_artifacts []brew_runtime.Value) bool {
+	return installed_caskfile.ends_with('.json') && 'artifacts' !in installed_json && tab_uninstall_artifacts.len == 0
+}
+
+pub fn (mut installer CaskInstaller) load_installed_caskfile() ! {
+	path := installer.cask.installed_caskfile()
+	if path != '' && path.ends_with('.json') && os.exists(path) {
+		contents := os.read_file(path)!
+		installer.installed_uninstall_artifacts_missing = !contents.contains('"artifacts"')
+		if load := installer.hooks.load_installed_cask {
+			installer.cask = load(installer.cask) or {
+				recover := installer.hooks.recover_installed_cask or { return err }
+				recover(installer.cask)!
+			}
+		}
+		return
+	}
+	if recover := installer.hooks.recover_installed_cask {
+		installer.cask = recover(installer.cask)!
+		return
+	}
+	if installer.cask_from_source_api() {
+		installer.load_cask_from_source_api()!
+	}
+}
+
+fn installer_options_value(options CaskInstallerOptions) brew_runtime.Value {
+	return brew_runtime.map_value({
+		'force':                       brew_runtime.bool_value(options.force)
+		'adopt':                       brew_runtime.bool_value(options.adopt)
+		'skip_cask_deps':              brew_runtime.bool_value(options.skip_cask_deps)
+		'binaries':                    brew_runtime.bool_value(options.binaries)
+		'verbose':                     brew_runtime.bool_value(options.verbose)
+		'zap':                         brew_runtime.bool_value(options.zap)
+		'require_sha':                 brew_runtime.bool_value(options.require_sha)
+		'upgrade':                     brew_runtime.bool_value(options.upgrade)
+		'reinstall':                   brew_runtime.bool_value(options.reinstall)
+		'installed_on_request':        brew_runtime.bool_value(options.installed_on_request)
+		'verify_download_integrity':   brew_runtime.bool_value(options.verify_download_integrity)
+		'quiet':                       brew_runtime.bool_value(options.quiet)
+		'defer_fetch':                 brew_runtime.bool_value(options.defer_fetch)
+		'default_uninstall_artifacts': brew_runtime.array_value(options.default_uninstall_artifacts)
+		'metadata_timestamp':          brew_runtime.string_value(options.metadata_timestamp)
+		'install_badge':               brew_runtime.string_value(options.install_badge)
+		'no_emoji':                    brew_runtime.bool_value(options.no_emoji)
+		'current_os':                  brew_runtime.string_value(options.current_os)
+		'current_arch':                brew_runtime.string_value(options.current_arch)
+		'current_bits':                brew_runtime.int_value(options.current_bits)
+		'current_macos':               brew_runtime.string_value(options.current_macos)
+		'allowed_taps':                brew_runtime.string_array_value(options.allowed_taps)
+		'forbidden_taps':              brew_runtime.string_array_value(options.forbidden_taps)
+		'forbid_casks':                brew_runtime.bool_value(options.forbid_casks)
+		'forbidden_casks':             brew_runtime.string_array_value(options.forbidden_casks)
+		'forbidden_formulae':          brew_runtime.string_array_value(options.forbidden_formulae)
+		'forbidden_artifacts':         brew_runtime.string_array_value(options.forbidden_artifacts)
+		'forbidden_owner':             brew_runtime.string_value(options.forbidden_owner)
+		'forbidden_owner_contact':     brew_runtime.string_value(options.forbidden_owner_contact)
+		'conflicting_installed':       brew_runtime.string_array_value(options.conflicting_installed)
+	})
+}
+
+fn installer_value_bool(values map[string]brew_runtime.Value, key string, fallback bool) bool {
+	raw := values[key] or { return fallback }
+	return if raw.type_name == 'Bool' { raw.bool_data } else { fallback }
+}
+
+fn installer_value_string(values map[string]brew_runtime.Value, key string, fallback string) string {
+	raw := values[key] or { return fallback }
+	return if raw.type_name == 'NilClass' { fallback } else { raw.as_string() }
+}
+
+fn installer_value_strings(values map[string]brew_runtime.Value, key string) []string {
+	return (values[key] or { brew_runtime.string_array_value([]string{}) }).as_string_array() or {
+		[]string{}
+	}
+}
+
+fn installer_options_from_value(value brew_runtime.Value) CaskInstallerOptions {
+	values := value.map_data.clone()
+	return CaskInstallerOptions{
+		force: installer_value_bool(values, 'force', false)
+		adopt: installer_value_bool(values, 'adopt', false)
+		skip_cask_deps: installer_value_bool(values, 'skip_cask_deps', false)
+		binaries: installer_value_bool(values, 'binaries', true)
+		verbose: installer_value_bool(values, 'verbose', false)
+		zap: installer_value_bool(values, 'zap', false)
+		require_sha: installer_value_bool(values, 'require_sha', false)
+		upgrade: installer_value_bool(values, 'upgrade', false)
+		reinstall: installer_value_bool(values, 'reinstall', false)
+		installed_on_request: installer_value_bool(values, 'installed_on_request', true)
+		verify_download_integrity: installer_value_bool(values, 'verify_download_integrity', true)
+		quiet: installer_value_bool(values, 'quiet', false)
+		defer_fetch: installer_value_bool(values, 'defer_fetch', false)
+		default_uninstall_artifacts: (values['default_uninstall_artifacts'] or { brew_runtime.array_value([]brew_runtime.Value{}) }).as_array() or { []brew_runtime.Value{} }
+		metadata_timestamp: installer_value_string(values, 'metadata_timestamp', '')
+		install_badge: installer_value_string(values, 'install_badge', '🍺')
+		no_emoji: installer_value_bool(values, 'no_emoji', false)
+		current_os: installer_value_string(values, 'current_os', 'macOS')
+		current_arch: installer_value_string(values, 'current_arch', 'arm')
+		current_bits: int((values['current_bits'] or { brew_runtime.int_value(64) }).int_data)
+		current_macos: installer_value_string(values, 'current_macos', '15')
+		allowed_taps: installer_value_strings(values, 'allowed_taps')
+		forbidden_taps: installer_value_strings(values, 'forbidden_taps')
+		forbid_casks: installer_value_bool(values, 'forbid_casks', false)
+		forbidden_casks: installer_value_strings(values, 'forbidden_casks')
+		forbidden_formulae: installer_value_strings(values, 'forbidden_formulae')
+		forbidden_artifacts: installer_value_strings(values, 'forbidden_artifacts')
+		forbidden_owner: installer_value_string(values, 'forbidden_owner', 'your system administrator')
+		forbidden_owner_contact: installer_value_string(values, 'forbidden_owner_contact', '')
+		conflicting_installed: installer_value_strings(values, 'conflicting_installed')
+	}
+}
+
+fn installer_dependency_value(dependency CaskInstallerDependency) brew_runtime.Value {
+	return brew_runtime.map_value({
+		'name':          brew_runtime.string_value(dependency.name)
+		'full_name':     brew_runtime.string_value(dependency.full_name)
+		'kind':          brew_runtime.string_value(dependency.kind)
+		'tap':           brew_runtime.string_value(dependency.tap)
+		'tap_allowed':   brew_runtime.bool_value(dependency.tap_allowed)
+		'tap_forbidden': brew_runtime.bool_value(dependency.tap_forbidden)
+		'installed':     brew_runtime.bool_value(dependency.installed)
+		'linked':        brew_runtime.bool_value(dependency.linked)
+	})
+}
+
+fn installer_dependency_from_value(value brew_runtime.Value) CaskInstallerDependency {
+	values := value.map_data.clone()
+	return CaskInstallerDependency{
+		name: installer_value_string(values, 'name', '')
+		full_name: installer_value_string(values, 'full_name', '')
+		kind: installer_value_string(values, 'kind', 'cask')
+		tap: installer_value_string(values, 'tap', '')
+		tap_allowed: installer_value_bool(values, 'tap_allowed', true)
+		tap_forbidden: installer_value_bool(values, 'tap_forbidden', false)
+		installed: installer_value_bool(values, 'installed', false)
+		linked: installer_value_bool(values, 'linked', false)
+	}
+}
+
+pub fn cask_installer_value(installer CaskInstaller) brew_runtime.Value {
+	return brew_runtime.Value{
+		type_name: 'Cask::Installer'
+		repr: installer.cask.token
+		map_data: {
+			'cask':                                  cask_core_value(installer.cask)
+			'options':                               installer_options_value(installer.options)
+			'dependencies':                          brew_runtime.array_value(installer.dependencies.map(installer_dependency_value(it)))
+			'ran_prelude_fetch':                     brew_runtime.bool_value(installer.ran_prelude_fetch)
+			'ran_prelude':                           brew_runtime.bool_value(installer.ran_prelude)
+			'installed_uninstall_artifacts_missing': brew_runtime.bool_value(installer.installed_uninstall_artifacts_missing)
+			'metadata_subdir':                       brew_runtime.string_value(installer.metadata_subdir_cache)
+			'source_download_path':                  brew_runtime.string_value(installer.source_download_path)
+			'source_downloaded':                     brew_runtime.bool_value(installer.source_downloaded)
+			'queued_staged_path':                    brew_runtime.string_value(installer.queued_staged_path)
+			'queued_staged_marker':                  brew_runtime.string_value(installer.queued_staged_marker)
+			'queue_entries':                         brew_runtime.array_value(installer.queue_entries.map(brew_runtime.structured_value('Homebrew::DownloadQueue::Entry', it.name, {
+				'kind': it.kind
+				'name': it.name
+				'url':  it.url
+			})))
+			'messages':                              brew_runtime.string_array_value(installer.messages)
+		}
+	}
+}
+
+pub fn cask_installer_from_value(value brew_runtime.Value) !CaskInstaller {
+	if value.type_name != 'Cask::Installer' {
+		return error('expected Cask::Installer, got ${value.type_name}')
+	}
+	values := value.map_data.clone()
+	cask := cask_core_from_value(values['cask'] or { return error('Cask::Installer has no cask') })!
+	mut installer := new_cask_installer(cask, installer_options_from_value(values['options'] or {
+		brew_runtime.map_value({})
+	}), CaskInstallerHooks{})
+	raw_dependencies := (values['dependencies'] or {
+		brew_runtime.array_value([]brew_runtime.Value{})
+	}).as_array() or { []brew_runtime.Value{} }
+	installer.dependencies = raw_dependencies.map(installer_dependency_from_value(it))
+	installer.ran_prelude_fetch = installer_value_bool(values, 'ran_prelude_fetch', false)
+	installer.ran_prelude = installer_value_bool(values, 'ran_prelude', false)
+	installer.installed_uninstall_artifacts_missing = installer_value_bool(values, 'installed_uninstall_artifacts_missing', false)
+	installer.metadata_subdir_cache = installer_value_string(values, 'metadata_subdir', '')
+	installer.source_download_path = installer_value_string(values, 'source_download_path', '')
+	installer.source_downloaded = installer_value_bool(values, 'source_downloaded', false)
+	installer.queued_staged_path = installer_value_string(values, 'queued_staged_path', '')
+	installer.queued_staged_marker = installer_value_string(values, 'queued_staged_marker', '')
+	for raw in (values['queue_entries'] or { brew_runtime.array_value([]brew_runtime.Value{}) }).as_array() or { []brew_runtime.Value{} } {
+		installer.queue_entries << CaskInstallerQueueEntry{
+			kind: raw.attributes['kind'] or { '' }
+			name: raw.attributes['name'] or { raw.as_string() }
+			url: raw.attributes['url'] or { '' }
+		}
+	}
+	installer.messages = installer_value_strings(values, 'messages')
+	return installer
+}
+
+fn installer_receiver(args []brew_runtime.Value, method string) !CaskInstaller {
+	if args.len == 0 {
+		return error('${method} requires a Cask::Installer receiver')
+	}
+	return cask_installer_from_value(args[0])
+}
+
+fn installer_error(err IError) brew_runtime.Value {
+	return brew_runtime.object_value('Cask::CaskError', err.msg())
+}
 
 // Translated from Homebrew/brew `cask/installer.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby attr_reader `attr_reader :cask` at line 26.
 pub fn ruby_installer_l26_d1_cask(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask', ...args)
+	installer := installer_receiver(args, 'cask') or { return installer_error(err) }
+	return cask_core_value(installer.cask)
 }
 
 // Ruby method `initialize(cask, command: SystemCommand, force: false, adopt: false,` at line 38.
 pub fn ruby_installer_l38_d2_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+	if args.len == 0 {
+		return brew_runtime.object_value('ArgumentError', 'initialize requires a Cask')
+	}
+	cask := cask_core_from_value(args[0]) or { return installer_error(err) }
+	options := if args.len > 1 {
+		installer_options_from_value(args[1])
+	} else {
+		CaskInstallerOptions{}
+	}
+	return cask_installer_value(new_cask_installer(cask, options, CaskInstallerHooks{}))
 }
 
 // Ruby method `adopt? = @adopt` at line 72.
 pub fn ruby_installer_l72_d3_adopt(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('adopt?', ...args)
+	installer := installer_receiver(args, 'adopt?') or { return installer_error(err) }
+	return brew_runtime.bool_value(installer.options.adopt)
 }
 
 // Ruby method `binaries? = @binaries` at line 75.
 pub fn ruby_installer_l75_d4_binaries(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('binaries?', ...args)
+	installer := installer_receiver(args, 'binaries?') or { return installer_error(err) }
+	return brew_runtime.bool_value(installer.options.binaries)
 }
 
 // Ruby method `force? = @force` at line 78.
 pub fn ruby_installer_l78_d5_force(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('force?', ...args)
+	installer := installer_receiver(args, 'force?') or { return installer_error(err) }
+	return brew_runtime.bool_value(installer.options.force)
 }
 
 // Ruby method `installed_on_request? = @installed_on_request` at line 81.
 pub fn ruby_installer_l81_d6_installed_on_request(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('installed_on_request?', ...args)
+	installer := installer_receiver(args, 'installed_on_request?') or { return installer_error(err) }
+	return brew_runtime.bool_value(installer.options.installed_on_request)
 }
 
 // Ruby method `quiet? = @quiet` at line 84.
 pub fn ruby_installer_l84_d7_quiet(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('quiet?', ...args)
+	installer := installer_receiver(args, 'quiet?') or { return installer_error(err) }
+	return brew_runtime.bool_value(installer.options.quiet)
 }
 
 // Ruby method `reinstall? = @reinstall` at line 87.
 pub fn ruby_installer_l87_d8_reinstall(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reinstall?', ...args)
+	installer := installer_receiver(args, 'reinstall?') or { return installer_error(err) }
+	return brew_runtime.bool_value(installer.options.reinstall)
 }
 
 // Ruby method `require_sha? = @require_sha` at line 90.
 pub fn ruby_installer_l90_d9_require_sha(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('require_sha?', ...args)
+	installer := installer_receiver(args, 'require_sha?') or { return installer_error(err) }
+	return brew_runtime.bool_value(installer.options.require_sha)
 }
 
 // Ruby method `skip_cask_deps? = @skip_cask_deps` at line 93.
 pub fn ruby_installer_l93_d10_skip_cask_deps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skip_cask_deps?', ...args)
+	installer := installer_receiver(args, 'skip_cask_deps?') or { return installer_error(err) }
+	return brew_runtime.bool_value(installer.options.skip_cask_deps)
 }
 
 // Ruby method `upgrade? = @upgrade` at line 96.
 pub fn ruby_installer_l96_d11_upgrade(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('upgrade?', ...args)
+	installer := installer_receiver(args, 'upgrade?') or { return installer_error(err) }
+	return brew_runtime.bool_value(installer.options.upgrade)
 }
 
 // Ruby method `verbose? = @verbose` at line 99.
 pub fn ruby_installer_l99_d12_verbose(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('verbose?', ...args)
+	installer := installer_receiver(args, 'verbose?') or { return installer_error(err) }
+	return brew_runtime.bool_value(installer.options.verbose)
 }
 
 // Ruby method `zap? = @zap` at line 102.
 pub fn ruby_installer_l102_d13_zap(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('zap?', ...args)
+	installer := installer_receiver(args, 'zap?') or { return installer_error(err) }
+	return brew_runtime.bool_value(installer.options.zap)
 }
 
 // Ruby method `self.caveats(cask)` at line 105.
 pub fn ruby_installer_l105_d14_self_caveats(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.caveats', ...args)
+	if args.len == 0 {
+		return brew_runtime.object_value('ArgumentError', 'caveats requires a Cask')
+	}
+	cask := cask_core_from_value(args[0]) or { return installer_error(err) }
+	text := new_cask_installer(cask, CaskInstallerOptions{}, CaskInstallerHooks{}).caveats()
+	return if text == '' { installer_nil() } else { brew_runtime.string_value(text) }
 }
 
 // Ruby method `fetch(quiet: nil, timeout: nil)` at line 120.
 pub fn ruby_installer_l120_d15_fetch(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fetch', ...args)
+	mut installer := installer_receiver(args, 'fetch') or { return installer_error(err) }
+	options := if args.len > 1 { args[1].map_data.clone() } else { map[string]brew_runtime.Value{} }
+	quiet := if raw := options['quiet'] { ?bool(raw.bool_data) } else { none }
+	timeout := if raw := options['timeout'] { ?f64(raw.as_float() or { 0.0 }) } else { none }
+	installer.fetch(quiet, timeout) or { return installer_error(err) }
+	return installer_nil()
 }
 
 // Ruby method `stage` at line 131.
 pub fn ruby_installer_l131_d16_stage(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('stage', ...args)
+	mut installer := installer_receiver(args, 'stage') or { return installer_error(err) }
+	installer.stage() or { return installer_error(err) }
+	return installer_nil()
 }
 
 // Ruby method `install` at line 155.
 pub fn ruby_installer_l155_d17_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install', ...args)
+	mut installer := installer_receiver(args, 'install') or { return installer_error(err) }
+	installer.install() or { return installer_error(err) }
+	return installer_nil()
 }
 
 // Ruby method `check_deprecate_disable` at line 199.
 pub fn ruby_installer_l199_d18_check_deprecate_disable(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('check_deprecate_disable', ...args)
+	installer := installer_receiver(args, 'check_deprecate_disable') or { return installer_error(err) }
+	message := installer.check_deprecate_disable() or { return installer_error(err) }
+	return if message == '' { installer_nil() } else { brew_runtime.string_value(message) }
 }
 
 // Ruby method `check_conflicts` at line 216.
 pub fn ruby_installer_l216_d19_check_conflicts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('check_conflicts', ...args)
+	installer := installer_receiver(args, 'check_conflicts') or { return installer_error(err) }
+	installer.check_conflicts() or { return installer_error(err) }
+	return installer_nil()
 }
 
 // Ruby method `uninstall_existing_cask` at line 240.
 pub fn ruby_installer_l240_d20_uninstall_existing_cask(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uninstall_existing_cask', ...args)
+	mut installer := installer_receiver(args, 'uninstall_existing_cask') or { return installer_error(err) }
+	installer.uninstall_existing_cask() or { return installer_error(err) }
+	return installer_nil()
 }
 
 // Ruby method `summary` at line 249.
 pub fn ruby_installer_l249_d21_summary(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('summary', ...args)
+	installer := installer_receiver(args, 'summary') or { return installer_error(err) }
+	return brew_runtime.string_value(installer.summary())
 }
 
 // Ruby method `downloader` at line 257.
 pub fn ruby_installer_l257_d22_downloader(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('downloader', ...args)
+	installer := installer_receiver(args, 'downloader') or { return installer_error(err) }
+	request := installer.download_request(false, none)
+	return brew_runtime.structured_value('Cask::Download', installer.cask.token, {
+		'token':       installer.cask.token
+		'url':         request.url
+		'require_sha': request.require_sha.str()
+	})
 }
 
 // Ruby method `download(quiet: nil, timeout: nil)` at line 272.
 pub fn ruby_installer_l272_d23_download(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('download', ...args)
+	mut installer := installer_receiver(args, 'download') or { return installer_error(err) }
+	options := if args.len > 1 { args[1].map_data.clone() } else { map[string]brew_runtime.Value{} }
+	quiet := installer_value_bool(options, 'quiet', false)
+	timeout := if raw := options['timeout'] { ?f64(raw.as_float() or { 0.0 }) } else { none }
+	return brew_runtime.object_value('Pathname', installer.download(quiet, timeout) or {
+		return installer_error(err)
+	})
 }
 
 // Ruby method `primary_container` at line 279.
 pub fn ruby_installer_l279_d24_primary_container(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('primary_container', ...args)
+	mut installer := installer_receiver(args, 'primary_container') or { return installer_error(err) }
+	return brew_runtime.object_value('UnpackStrategy', installer.primary_container() or {
+		return installer_error(err)
+	})
 }
 
 // Ruby method `artifacts` at line 286.
 pub fn ruby_installer_l286_d25_artifacts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('artifacts', ...args)
+	installer := installer_receiver(args, 'artifacts') or { return installer_error(err) }
+	return brew_runtime.array_value(installer.artifacts())
 }
 
 // Ruby method `extract_primary_container(to: @cask.staged_path)` at line 291.
 pub fn ruby_installer_l291_d26_extract_primary_container(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('extract_primary_container', ...args)
+	mut installer := installer_receiver(args, 'extract_primary_container') or { return installer_error(err) }
+	destination := if args.len > 1 { args[1].as_string() } else { '' }
+	installer.extract_primary_container(destination) or { return installer_error(err) }
+	return installer_nil()
 }
 
 // Ruby method `process_rename_operations(target_dir: nil)` at line 296.
 pub fn ruby_installer_l296_d27_process_rename_operations(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('process_rename_operations', ...args)
+	installer := installer_receiver(args, 'process_rename_operations') or { return installer_error(err) }
+	target := if args.len > 1 { args[1].as_string() } else { '' }
+	installer.process_rename_operations(target) or { return installer_error(err) }
+	return installer_nil()
 }
 
 // Ruby method `install_artifacts(predecessor: nil)` at line 301.
 pub fn ruby_installer_l301_d28_install_artifacts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('install_artifacts', ...args)
+	mut installer := installer_receiver(args, 'install_artifacts') or { return installer_error(err) }
+	predecessor := if args.len > 1 { args[1].as_string() } else { '' }
+	installer.install_artifacts(predecessor) or { return installer_error(err) }
+	return installer_nil()
 }
 
 // Ruby method `check_requirements` at line 359.
 pub fn ruby_installer_l359_d29_check_requirements(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('check_requirements', ...args)
+	installer := installer_receiver(args, 'check_requirements') or { return installer_error(err) }
+	installer.check_requirements() or { return installer_error(err) }
+	return installer_nil()
 }
 
 // Ruby method `check_stanza_os_requirements` at line 367.
 pub fn ruby_installer_l367_d30_check_stanza_os_requirements(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('check_stanza_os_requirements', ...args)
+	installer := installer_receiver(args, 'check_stanza_os_requirements') or { return installer_error(err) }
+	installer.check_stanza_os_requirements() or { return installer_error(err) }
+	return installer_nil()
 }
 
 // Ruby method `check_supported_system` at line 374.
 pub fn ruby_installer_l374_d31_check_supported_system(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('check_supported_system', ...args)
+	installer := installer_receiver(args, 'check_supported_system') or { return installer_error(err) }
+	installer.check_supported_system() or { return installer_error(err) }
+	return installer_nil()
 }
 
 // Ruby method `check_macos_requirements` at line 385.
 pub fn ruby_installer_l385_d32_check_macos_requirements(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('check_macos_requirements', ...args)
+	installer := installer_receiver(args, 'check_macos_requirements') or { return installer_error(err) }
+	installer.check_macos_requirements() or { return installer_error(err) }
+	return installer_nil()
 }
 
 // Ruby method `check_arch_requirements` at line 393.
 pub fn ruby_installer_l393_d33_check_arch_requirements(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('check_arch_requirements', ...args)
+	installer := installer_receiver(args, 'check_arch_requirements') or { return installer_error(err) }
+	installer.check_arch_requirements() or { return installer_error(err) }
+	return installer_nil()
 }
 
 // Ruby method `cask_and_formula_dependencies` at line 410.
 pub fn ruby_installer_l410_d34_cask_and_formula_dependencies(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask_and_formula_dependencies', ...args)
+	installer := installer_receiver(args, 'cask_and_formula_dependencies') or { return installer_error(err) }
+	dependencies := installer.cask_and_formula_dependencies() or { return installer_error(err) }
+	return brew_runtime.array_value(dependencies.map(installer_dependency_value(it)))
 }
 
 // Ruby method `missing_cask_and_formula_dependencies` at line 429.
 pub fn ruby_installer_l429_d35_missing_cask_and_formula_dependencies(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('missing_cask_and_formula_dependencies', ...args)
+	installer := installer_receiver(args, 'missing_cask_and_formula_dependencies') or { return installer_error(err) }
+	dependencies := installer.missing_cask_and_formula_dependencies() or { return installer_error(err) }
+	return brew_runtime.array_value(dependencies.map(installer_dependency_value(it)))
 }
 
 // Ruby method `satisfy_cask_and_formula_dependencies` at line 441.
 pub fn ruby_installer_l441_d36_satisfy_cask_and_formula_dependencies(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('satisfy_cask_and_formula_dependencies', ...args)
+	mut installer := installer_receiver(args, 'satisfy_cask_and_formula_dependencies') or { return installer_error(err) }
+	installer.satisfy_cask_and_formula_dependencies() or { return installer_error(err) }
+	return installer_nil()
 }
 
 // Ruby method `caveats` at line 500.
 pub fn ruby_installer_l500_d37_caveats(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('caveats', ...args)
+	installer := installer_receiver(args, 'caveats') or { return installer_error(err) }
+	text := installer.caveats()
+	return if text == '' { installer_nil() } else { brew_runtime.string_value(text) }
 }
 
 // Ruby method `metadata_subdir` at line 505.
 pub fn ruby_installer_l505_d38_metadata_subdir(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('metadata_subdir', ...args)
+	mut installer := installer_receiver(args, 'metadata_subdir') or { return installer_error(err) }
+	return brew_runtime.object_value('Pathname', installer.metadata_subdir() or {
+		return installer_error(err)
+	})
 }
 
 // Ruby method `save_caskfile` at line 518.
 pub fn ruby_installer_l518_d39_save_caskfile(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('save_caskfile', ...args)
+	mut installer := installer_receiver(args, 'save_caskfile') or { return installer_error(err) }
+	installer.save_caskfile() or { return installer_error(err) }
+	return installer_nil()
 }
 
 // Ruby method `save_config_file` at line 535.
 pub fn ruby_installer_l535_d40_save_config_file(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('save_config_file', ...args)
+	installer := installer_receiver(args, 'save_config_file') or { return installer_error(err) }
+	installer.save_config_file() or { return installer_error(err) }
+	return installer_nil()
 }
 
 // Ruby method `save_download_sha` at line 540.
 pub fn ruby_installer_l540_d41_save_download_sha(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('save_download_sha', ...args)
+	mut installer := installer_receiver(args, 'save_download_sha') or { return installer_error(err) }
+	installer.save_download_sha() or { return installer_error(err) }
+	return installer_nil()
 }
 
 // Ruby method `uninstall(successor: nil)` at line 547.
 pub fn ruby_installer_l547_d42_uninstall(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uninstall', ...args)
+	mut installer := installer_receiver(args, 'uninstall') or { return installer_error(err) }
+	successor := if args.len > 1 { args[1].as_string() } else { '' }
+	installer.uninstall(successor) or { return installer_error(err) }
+	return installer_nil()
 }
 
 // Ruby method `remove_tabfile` at line 567.
 pub fn ruby_installer_l567_d43_remove_tabfile(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('remove_tabfile', ...args)
+	installer := installer_receiver(args, 'remove_tabfile') or { return installer_error(err) }
+	installer.remove_tabfile() or { return installer_error(err) }
+	return installer_nil()
 }
 
 // Ruby method `remove_config_file` at line 574.
 pub fn ruby_installer_l574_d44_remove_config_file(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('remove_config_file', ...args)
+	installer := installer_receiver(args, 'remove_config_file') or { return installer_error(err) }
+	installer.remove_config_file() or { return installer_error(err) }
+	return installer_nil()
 }
 
 // Ruby method `remove_download_sha` at line 580.
 pub fn ruby_installer_l580_d45_remove_download_sha(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('remove_download_sha', ...args)
+	installer := installer_receiver(args, 'remove_download_sha') or { return installer_error(err) }
+	installer.remove_download_sha() or { return installer_error(err) }
+	return installer_nil()
 }
 
 // Ruby method `start_upgrade(successor:, quit: true)` at line 586.
 pub fn ruby_installer_l586_d46_start_upgrade(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('start_upgrade', ...args)
+	mut installer := installer_receiver(args, 'start_upgrade') or { return installer_error(err) }
+	options := if args.len > 1 { args[1].map_data.clone() } else { map[string]brew_runtime.Value{} }
+	installer.start_upgrade(installer_value_string(options, 'successor', ''), installer_value_bool(options, 'quit', true)) or { return installer_error(err) }
+	return installer_nil()
 }
 
 // Ruby method `backup` at line 592.
 pub fn ruby_installer_l592_d47_backup(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('backup', ...args)
+	installer := installer_receiver(args, 'backup') or { return installer_error(err) }
+	installer.backup() or { return installer_error(err) }
+	return installer_nil()
 }
 
 // Ruby method `restore_backup` at line 606.
 pub fn ruby_installer_l606_d48_restore_backup(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('restore_backup', ...args)
+	installer := installer_receiver(args, 'restore_backup') or { return installer_error(err) }
+	installer.restore_backup() or { return installer_error(err) }
+	return installer_nil()
 }
 
 // Ruby method `revert_upgrade(predecessor:)` at line 623.
 pub fn ruby_installer_l623_d49_revert_upgrade(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('revert_upgrade', ...args)
+	mut installer := installer_receiver(args, 'revert_upgrade') or { return installer_error(err) }
+	predecessor := if args.len > 1 { args[1].as_string() } else { '' }
+	installer.revert_upgrade(predecessor) or { return installer_error(err) }
+	return installer_nil()
 }
 
 // Ruby method `finalize_upgrade` at line 630.
 pub fn ruby_installer_l630_d50_finalize_upgrade(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('finalize_upgrade', ...args)
+	mut installer := installer_receiver(args, 'finalize_upgrade') or { return installer_error(err) }
+	installer.finalize_upgrade() or { return installer_error(err) }
+	return installer_nil()
 }
 
 // Ruby method `uninstall_artifacts(clear: false, successor: nil, quit: true)` at line 639.
 pub fn ruby_installer_l639_d51_uninstall_artifacts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uninstall_artifacts', ...args)
+	mut installer := installer_receiver(args, 'uninstall_artifacts') or { return installer_error(err) }
+	options := if args.len > 1 { args[1].map_data.clone() } else { map[string]brew_runtime.Value{} }
+	installer.uninstall_artifacts(installer_value_bool(options, 'clear', false), installer_value_string(options, 'successor', ''), installer_value_bool(options, 'quit', true)) or {
+		return installer_error(err)
+	}
+	return installer_nil()
 }
 
 // Ruby method `zap` at line 692.
 pub fn ruby_installer_l692_d52_zap(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('zap', ...args)
+	mut installer := installer_receiver(args, 'zap') or { return installer_error(err) }
+	installer.zap() or { return installer_error(err) }
+	return installer_nil()
 }
 
 // Ruby method `backup_path` at line 708.
 pub fn ruby_installer_l708_d53_backup_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('backup_path', ...args)
+	installer := installer_receiver(args, 'backup_path') or { return installer_error(err) }
+	path := installer.backup_path()
+	return if path == '' { installer_nil() } else { brew_runtime.object_value('Pathname', path) }
 }
 
 // Ruby method `backup_metadata_path` at line 715.
 pub fn ruby_installer_l715_d54_backup_metadata_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('backup_metadata_path', ...args)
+	installer := installer_receiver(args, 'backup_metadata_path') or { return installer_error(err) }
+	path := installer.backup_metadata_path()
+	return if path == '' { installer_nil() } else { brew_runtime.object_value('Pathname', path) }
 }
 
 // Ruby method `gain_permissions_remove(path)` at line 722.
 pub fn ruby_installer_l722_d55_gain_permissions_remove(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('gain_permissions_remove', ...args)
+	installer := installer_receiver(args, 'gain_permissions_remove') or { return installer_error(err) }
+	if args.len < 2 {
+		return brew_runtime.object_value('ArgumentError', 'gain_permissions_remove requires a path')
+	}
+	installer.gain_permissions_remove(args[1].as_string()) or { return installer_error(err) }
+	return installer_nil()
 }
 
 // Ruby method `purge_backed_up_versioned_files` at line 727.
 pub fn ruby_installer_l727_d56_purge_backed_up_versioned_files(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('purge_backed_up_versioned_files', ...args)
+	installer := installer_receiver(args, 'purge_backed_up_versioned_files') or { return installer_error(err) }
+	installer.purge_backed_up_versioned_files() or { return installer_error(err) }
+	return installer_nil()
 }
 
 // Ruby method `purge_versioned_files` at line 742.
 pub fn ruby_installer_l742_d57_purge_versioned_files(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('purge_versioned_files', ...args)
+	installer := installer_receiver(args, 'purge_versioned_files') or { return installer_error(err) }
+	installer.purge_versioned_files() or { return installer_error(err) }
+	return installer_nil()
 }
 
 // Ruby method `purge_caskroom_path` at line 765.
 pub fn ruby_installer_l765_d58_purge_caskroom_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('purge_caskroom_path', ...args)
+	installer := installer_receiver(args, 'purge_caskroom_path') or { return installer_error(err) }
+	installer.purge_caskroom_path() or { return installer_error(err) }
+	return installer_nil()
 }
 
 // Ruby method `forbidden_tap_check(cask_only: false)` at line 772.
 pub fn ruby_installer_l772_d59_forbidden_tap_check(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('forbidden_tap_check', ...args)
+	installer := installer_receiver(args, 'forbidden_tap_check') or { return installer_error(err) }
+	cask_only := args.len > 1 && installer_value_bool(args[1].map_data, 'cask_only', false)
+	installer.forbidden_tap_check(cask_only) or { return installer_error(err) }
+	return installer_nil()
 }
 
 // Ruby method `forbidden_cask_and_formula_check(cask_only: false)` at line 814.
 pub fn ruby_installer_l814_d60_forbidden_cask_and_formula_check(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('forbidden_cask_and_formula_check', ...args)
+	installer := installer_receiver(args, 'forbidden_cask_and_formula_check') or {
+		return installer_error(err)
+	}
+	cask_only := args.len > 1 && installer_value_bool(args[1].map_data, 'cask_only', false)
+	installer.forbidden_cask_and_formula_check(cask_only) or { return installer_error(err) }
+	return installer_nil()
 }
 
 // Ruby method `forbidden_cask_artifacts_check` at line 872.
 pub fn ruby_installer_l872_d61_forbidden_cask_artifacts_check(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('forbidden_cask_artifacts_check', ...args)
+	installer := installer_receiver(args, 'forbidden_cask_artifacts_check') or {
+		return installer_error(err)
+	}
+	installer.forbidden_cask_artifacts_check() or { return installer_error(err) }
+	return installer_nil()
 }
 
 // Ruby method `prelude` at line 899.
 pub fn ruby_installer_l899_d62_prelude(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prelude', ...args)
+	mut installer := installer_receiver(args, 'prelude') or { return installer_error(err) }
+	installer.prelude() or { return installer_error(err) }
+	return installer_nil()
 }
 
 // Ruby method `source_download_requires_pre_fetch?` at line 912.
 pub fn ruby_installer_l912_d63_source_download_requires_pre_fetch(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('source_download_requires_pre_fetch?', ...args)
+	installer := installer_receiver(args, 'source_download_requires_pre_fetch?') or {
+		return installer_error(err)
+	}
+	return brew_runtime.bool_value(installer.source_download_requires_pre_fetch())
 }
 
 // Ruby method `prelude_fetch(download_queue: @download_queue)` at line 917.
 pub fn ruby_installer_l917_d64_prelude_fetch(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prelude_fetch', ...args)
+	mut installer := installer_receiver(args, 'prelude_fetch') or { return installer_error(err) }
+	installer.prelude_fetch() or { return installer_error(err) }
+	return installer_nil()
 }
 
 // Ruby method `prelude_fetch_download` at line 924.
 pub fn ruby_installer_l924_d65_prelude_fetch_download(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prelude_fetch_download', ...args)
+	mut installer := installer_receiver(args, 'prelude_fetch_download') or {
+		return installer_error(err)
+	}
+	download := installer.prelude_fetch_download() or { return installer_error(err) }
+	return if download == '' {
+		installer_nil()
+	} else {
+		brew_runtime.object_value('Homebrew::API::SourceDownload', download)
+	}
 }
 
 // Ruby method `enqueue_downloads` at line 941.
 pub fn ruby_installer_l941_d66_enqueue_downloads(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('enqueue_downloads', ...args)
+	mut installer := installer_receiver(args, 'enqueue_downloads') or { return installer_error(err) }
+	installer.enqueue_downloads() or { return installer_error(err) }
+	return installer_nil()
 }
 
 // Ruby method `load_installed_caskfile!` at line 960.
 pub fn ruby_installer_l960_d67_load_installed_caskfile(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('load_installed_caskfile!', ...args)
+	mut installer := installer_receiver(args, 'load_installed_caskfile!') or {
+		return installer_error(err)
+	}
+	installer.load_installed_caskfile() or { return installer_error(err) }
+	return installer_nil()
 }
 
 // Ruby method `remove_broken_caskroom_symlinks` at line 1030.
 pub fn ruby_installer_l1030_d68_remove_broken_caskroom_symlinks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('remove_broken_caskroom_symlinks', ...args)
+	installer := installer_receiver(args, 'remove_broken_caskroom_symlinks') or {
+		return installer_error(err)
+	}
+	installer.remove_broken_caskroom_symlinks() or { return installer_error(err) }
+	return installer_nil()
 }
 
 // Ruby method `installed_uninstall_artifacts_missing?(installed_caskfile)` at line 1042.
 pub fn ruby_installer_l1042_d69_installed_uninstall_artifacts_missing(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('installed_uninstall_artifacts_missing?', ...args)
+	installer := installer_receiver(args, 'installed_uninstall_artifacts_missing?') or {
+		return installer_error(err)
+	}
+	path := if args.len > 1 { args[1].as_string() } else { '' }
+	installed_json := if args.len > 2 {
+		args[2].map_data.clone()
+	} else {
+		map[string]brew_runtime.Value{}
+	}
+	tab_artifacts := if args.len > 3 {
+		args[3].as_array() or { []brew_runtime.Value{} }
+	} else {
+		[]brew_runtime.Value{}
+	}
+	return brew_runtime.bool_value(installer.installed_uninstall_artifacts_missing(path, installed_json, tab_artifacts))
 }
 
 // Ruby method `check_prelude_requirements` at line 1052.
 pub fn ruby_installer_l1052_d70_check_prelude_requirements(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('check_prelude_requirements', ...args)
+	mut installer := installer_receiver(args, 'check_prelude_requirements') or {
+		return installer_error(err)
+	}
+	installer.check_prelude_requirements() or { return installer_error(err) }
+	return installer_nil()
 }
 
 // Ruby method `source_download` at line 1063.
 pub fn ruby_installer_l1063_d71_source_download(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('source_download', ...args)
+	mut installer := installer_receiver(args, 'source_download') or { return installer_error(err) }
+	return brew_runtime.object_value('Homebrew::API::SourceDownload', installer.source_download() or {
+		return installer_error(err)
+	})
 }
 
 // Ruby method `load_cask_from_source_api!` at line 1068.
 pub fn ruby_installer_l1068_d72_load_cask_from_source_api(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('load_cask_from_source_api!', ...args)
+	mut installer := installer_receiver(args, 'load_cask_from_source_api!') or {
+		return installer_error(err)
+	}
+	installer.load_cask_from_source_api() or { return installer_error(err) }
+	return installer_nil()
 }
 
 // Ruby method `cask_from_source_api?` at line 1073.
 pub fn ruby_installer_l1073_d73_cask_from_source_api(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask_from_source_api?', ...args)
+	installer := installer_receiver(args, 'cask_from_source_api?') or { return installer_error(err) }
+	return brew_runtime.bool_value(installer.cask_from_source_api())
 }
 
 // Original Ruby source (line-for-line):

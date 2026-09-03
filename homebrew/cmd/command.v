@@ -1,13 +1,21 @@
 module cmd
 
-import brew_runtime
-
 // Translated from Homebrew/brew `cmd/command.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub type CommandPathResolver = fn(string) ?string
+
+pub fn command_paths(commands []string, resolver CommandPathResolver) ![]string {
+	mut paths := []string{cap: commands.len}
+	for command in commands {
+		path := resolver(command) or { return error('Unknown command: brew ${command}') }
+		paths << path
+	}
+	return paths
+}
 
 // Ruby method `run` at line 19.
-pub fn ruby_command_l19_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('run', ...args)
+pub fn ruby_command_l19_d1_run(commands []string, resolver CommandPathResolver) ![]string {
+	return command_paths(commands, resolver)
 }
 
 // Original Ruby source (line-for-line):

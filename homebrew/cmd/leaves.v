@@ -4,15 +4,132 @@ import brew_runtime
 
 // Translated from Homebrew/brew `cmd/leaves.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub enum LeavesFilter {
+	all
+	installed_on_request
+	installed_as_dependency
+}
+
+pub struct LeavesFormula {
+pub:
+	full_name                      string
+	possible_names                 []string
+	has_tab_runtime_dependencies   bool
+	tab_runtime_dependencies       []string
+	installed_runtime_dependencies []string
+	installed_on_request           bool
+}
+
+fn leaf_dependency_name(full_name string) string {
+	return full_name.all_after_last('/')
+}
+
+pub fn installed_on_request(formula LeavesFormula) bool {
+	return formula.installed_on_request
+}
+
+pub fn formula_leaves(installed []LeavesFormula, cask_dependencies []string, filter LeavesFilter) []string {
+	mut dependency_names := map[string]bool{}
+	for formula in installed {
+		dependencies := if formula.has_tab_runtime_dependencies {
+			formula.tab_runtime_dependencies
+		} else {
+			formula.installed_runtime_dependencies
+		}
+		for dependency in dependencies {
+			if dependency != '' {
+				dependency_names[leaf_dependency_name(dependency)] = true
+			}
+		}
+	}
+	for dependency in cask_dependencies {
+		if dependency != '' {
+			dependency_names[leaf_dependency_name(dependency)] = true
+		}
+	}
+	mut leaves := []string{}
+	for formula in installed {
+		if formula.possible_names.any(it in dependency_names) {
+			continue
+		}
+		if filter == .installed_on_request && !installed_on_request(formula) {
+			continue
+		}
+		if filter == .installed_as_dependency && installed_on_request(formula) {
+			continue
+		}
+		leaves << formula.full_name
+	}
+	leaves.sort()
+	return leaves
+}
+
+pub fn leaves_formula_value(formula LeavesFormula) brew_runtime.Value {
+	return brew_runtime.Value{
+		type_name: 'Formula'
+		repr: formula.full_name
+		attributes: {
+			'full_name':                    formula.full_name
+			'has_tab_runtime_dependencies': formula.has_tab_runtime_dependencies.str()
+			'installed_on_request':         formula.installed_on_request.str()
+		}
+		map_data: {
+			'possible_names':                 brew_runtime.string_array_value(formula.possible_names)
+			'tab_runtime_dependencies':       brew_runtime.string_array_value(formula.tab_runtime_dependencies)
+			'installed_runtime_dependencies': brew_runtime.string_array_value(formula.installed_runtime_dependencies)
+		}
+	}
+}
+
+fn leaves_formula_from_value(value brew_runtime.Value) LeavesFormula {
+	return LeavesFormula{
+		full_name: value.attribute('full_name') or { value.as_string() }
+		possible_names: (value.map_data['possible_names'] or {
+			brew_runtime.string_array_value([
+				value.as_string(),
+			])}).as_string_array() or { [value.as_string()] }
+		has_tab_runtime_dependencies: (value.attribute('has_tab_runtime_dependencies') or { 'false' }) == 'true'
+		tab_runtime_dependencies: (value.map_data['tab_runtime_dependencies'] or { brew_runtime.string_array_value([]) }).as_string_array() or { [] }
+		installed_runtime_dependencies: (value.map_data['installed_runtime_dependencies'] or { brew_runtime.string_array_value([]) }).as_string_array() or { [] }
+		installed_on_request: (value.attribute('installed_on_request') or { 'false' }) == 'true'
+	}
+}
+
+fn leaves_filter_from_string(value string) LeavesFilter {
+	return match value {
+		'installed_on_request' { .installed_on_request }
+		'installed_as_dependency' { .installed_as_dependency }
+		else { .all }
+	}
+}
 
 // Ruby method `run` at line 26.
 pub fn ruby_leaves_l26_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('run', ...args)
+	formula_values := if args.len > 0 {
+		args[0].as_array() or { []brew_runtime.Value{} }
+	} else {
+		[]brew_runtime.Value{}
+	}
+	cask_dependencies := if args.len > 1 {
+		args[1].as_string_array() or { []string{} }
+	} else {
+		[]string{}
+	}
+	filter := if args.len > 2 {
+		leaves_filter_from_string(args[2].as_string())
+	} else {
+		LeavesFilter.all
+	}
+	leaves := formula_leaves(formula_values.map(leaves_formula_from_value(it)), cask_dependencies, filter)
+	return brew_runtime.string_value(if leaves.len == 0 { '' } else { '${leaves.join('\n')}\n' })
 }
 
 // Ruby method `installed_on_request?(formula)` at line 64.
 pub fn ruby_leaves_l64_d2_installed_on_request(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('installed_on_request?', ...args)
+	if args.len == 0 {
+		return brew_runtime.object_value('ArgumentError', 'installed_on_request? requires a formula')
+	}
+	return brew_runtime.bool_value(installed_on_request(leaves_formula_from_value(args[0])))
 }
 
 // Original Ruby source (line-for-line):

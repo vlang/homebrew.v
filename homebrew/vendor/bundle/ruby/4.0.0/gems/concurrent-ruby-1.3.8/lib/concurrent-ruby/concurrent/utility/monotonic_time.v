@@ -1,13 +1,28 @@
 module utility
 
 import brew_runtime
+import time
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/utility/monotonic_time.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub fn monotonic_time(unit string) !brew_runtime.Value {
+	nanoseconds := time.sys_mono_now()
+	return match unit.trim_left(':') {
+		'', 'float_second' { brew_runtime.float_value(f64(nanoseconds) / 1_000_000_000.0) }
+		'float_millisecond' { brew_runtime.float_value(f64(nanoseconds) / 1_000_000.0) }
+		'float_microsecond' { brew_runtime.float_value(f64(nanoseconds) / 1_000.0) }
+		'second' { brew_runtime.int_value(i64(nanoseconds / 1_000_000_000)) }
+		'millisecond' { brew_runtime.int_value(i64(nanoseconds / 1_000_000)) }
+		'microsecond' { brew_runtime.int_value(i64(nanoseconds / 1_000)) }
+		'nanosecond' { brew_runtime.int_value(i64(nanoseconds)) }
+		else { error('unexpected unit: ${unit}') }
+	}
+}
 
 // Ruby method `monotonic_time(unit = :float_second)` at line 15.
 pub fn ruby_monotonic_time_l15_d1_monotonic_time(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('monotonic_time', ...args)
+	unit := if args.len > 0 { args[0].as_string() } else { 'float_second' }
+	return monotonic_time(unit) or { panic(err) }
 }
 
 // Original Ruby source (line-for-line):

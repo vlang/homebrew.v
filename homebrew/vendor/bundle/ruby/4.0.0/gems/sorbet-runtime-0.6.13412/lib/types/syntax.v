@@ -4,15 +4,63 @@ import brew_runtime
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/sorbet-runtime-0.6.13412/lib/types/syntax.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub struct SyntaxHookPlan {
+pub:
+	target_name string
+	prepend     []string
+	include     []string
+}
+
+pub fn syntax_included(target_name string, is_module_constant bool) SyntaxHookPlan {
+	return SyntaxHookPlan{
+		target_name: target_name
+		prepend: if is_module_constant {
+			['T::Private::Methods::MethodHooks']} else {
+			[]string{}}
+	}
+}
+
+pub fn syntax_extended(target_name string, is_module bool,
+	is_singleton_class bool) SyntaxHookPlan {
+	return SyntaxHookPlan{
+		target_name: target_name
+		include: if is_module && is_singleton_class {
+			['T::Private::Methods::SingletonMethodHooks']} else {
+			[]string{}}
+	}
+}
+
+fn syntax_plan_value(plan SyntaxHookPlan) brew_runtime.Value {
+	return brew_runtime.Value{
+		type_name: 'T::Syntax::HookPlan'
+		repr: plan.target_name
+		map_data: {
+			'prepend': brew_runtime.string_array_value(plan.prepend)
+			'include': brew_runtime.string_array_value(plan.include)
+		}
+	}
+}
 
 // Ruby method `self.included(other)` at line 32.
 pub fn ruby_syntax_l32_d1_self_included(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.included', ...args)
+	if args.len == 0 {
+		return syntax_plan_value(SyntaxHookPlan{})
+	}
+	target := args[0]
+	is_module_constant := target.attribute('module_constant') or { 'false' } == 'true' || (target.type_name == 'Class' && target.as_string() == 'Module')
+	return syntax_plan_value(syntax_included(target.as_string(), is_module_constant))
 }
 
 // Ruby method `self.extended(other)` at line 37.
 pub fn ruby_syntax_l37_d2_self_extended(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.extended', ...args)
+	if args.len == 0 {
+		return syntax_plan_value(SyntaxHookPlan{})
+	}
+	target := args[0]
+	return syntax_plan_value(syntax_extended(target.as_string(), target.type_name in [
+		'Class',
+		'Module',
+	], target.attribute('singleton_class') or { 'false' } == 'true'))
 }
 
 // Original Ruby source (line-for-line):

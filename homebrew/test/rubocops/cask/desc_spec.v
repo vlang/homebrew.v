@@ -1,23 +1,59 @@
 module cask
 
-import brew_runtime
+import homebrew.rubocops.cask as desc_core
 
 // Translated from Homebrew/brew `test/rubocops/cask/desc_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "does not start with an article" do` at line 7.
-pub fn ruby_desc_spec_l7_d1_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_desc_spec_l7_d1_does() bool {
+	accepted := 'cask "foo" do\n  desc "Bar program"\nend'
+	a_source := "cask 'foo' do\n  desc 'A bar program'\nend"
+	the_source := "cask 'foo' do\n  desc 'The bar program'\nend"
+	a_offenses := desc_core.audit_cask_desc(a_source)
+	the_offenses := desc_core.audit_cask_desc(the_source)
+	return desc_core.audit_cask_desc(accepted).len == 0 && a_offenses.len == 1 && a_source[a_offenses[0].begin_pos..a_offenses[0].end_pos] == 'A' && a_offenses[0].message == desc_core.cask_desc_article_message && the_offenses.len == 1 && the_source[the_offenses[0].begin_pos..the_offenses[0].end_pos] == 'The' && desc_core.correct_cask_desc(the_source) == "cask 'foo' do\n  desc 'Bar program'\nend"
 }
 
 // Ruby it `it "does not start with the cask name" do` at line 35.
-pub fn ruby_desc_spec_l35_d2_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_desc_spec_l35_d2_does() bool {
+	cases := {
+		'foobar':  ['Foo bar program', 'Foo-Bar program']
+		'foo-bar': ['Foo bar program', 'Foo-Bar program', 'Foo Bar']
+	}
+	for cask_name, descriptions in cases {
+		for description in descriptions {
+			source := "cask '${cask_name}' do\n  desc '${description}'\nend"
+			offenses := desc_core.audit_cask_desc(source)
+			if offenses.len != 1 || offenses[0].message != desc_core.cask_desc_name_message || source[offenses[0].begin_pos..offenses[0].end_pos] != description.all_before(' program') {
+				return false
+			}
+		}
+	}
+	return true
 }
 
 // Ruby it `it "does not contain the platform" do` at line 72.
-pub fn ruby_desc_spec_l72_d3_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_desc_spec_l72_d3_does() bool {
+	cases := {
+		'macOS status bar monitor':                                 'macOS'
+		'Toggles dark mode on macOS Catalina':                      'macOS'
+		'Better input source switcher for OS X':                    'OS X'
+		'Media Manager for Mac OS X':                               'Mac OS X'
+		'Application for managing macOS virtual machines on macOS': 'macOS'
+	}
+	for description, platform in cases {
+		source := "cask 'foo' do\n  desc '${description}'\nend"
+		offenses := desc_core.audit_cask_desc(source)
+		if offenses.len != 1 || offenses[0].message != desc_core.cask_desc_platform_message || source[offenses[0].begin_pos..offenses[0].end_pos] != platform {
+			return false
+		}
+	}
+	virtual_machines := "cask 'foo' do\n  desc 'Application for managing macOS virtual machines'\nend"
+	mac_address := "cask 'foo' do\n  desc 'MAC address changer'\nend"
+	emoji := "cask 'foo' do\n  desc 'Description with a 🍺 symbol'\nend"
+	emoji_offenses := desc_core.audit_cask_desc(emoji)
+	return desc_core.audit_cask_desc(virtual_machines).len == 0 && desc_core.audit_cask_desc(mac_address).len == 0 && emoji_offenses.len == 1 && emoji_offenses[0].message == desc_core.cask_desc_symbol_message && emoji[emoji_offenses[0].begin_pos..emoji_offenses[0].end_pos] == '🍺'
 }
 
 // Original Ruby source (line-for-line):

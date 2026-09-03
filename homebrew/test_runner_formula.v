@@ -1,83 +1,259 @@
 module homebrew
 
-import brew_runtime
-
 // Translated from Homebrew/brew `test_runner_formula.rb`.
-// The original source is retained below until every stub has a typed V body.
+pub enum TestRunnerRequirementKind {
+	arch
+	macos
+	linux
+}
+
+pub struct TestRunnerRequirement {
+pub:
+	kind              TestRunnerRequirementKind
+	arch              string
+	version           string
+	comparator        string = '>='
+	version_specified bool
+}
+
+pub struct TestRunnerDependencyRule {
+pub:
+	name          string
+	platform      string
+	arch          string
+	macos_version string
+}
+
+pub struct TestRunnerFormulaDefinition {
+pub:
+	name             string
+	supports_macos   bool = true
+	supports_linux   bool = true
+	requirements     []TestRunnerRequirement
+	dependencies     []string
+	conditional_deps []TestRunnerDependencyRule
+	installed        bool
+	disabled         bool
+	deprecated       bool
+}
+
+pub struct TestRunnerFormula {
+pub:
+	name                  string
+	formula               TestRunnerFormulaDefinition
+	eval_all              bool
+	factory_cache_enabled bool
+}
+
+pub struct TestRunnerSystem {
+pub:
+	platform      string
+	arch          string
+	macos_version string
+}
+
+pub fn new_test_runner_formula(formula TestRunnerFormulaDefinition,
+	eval_all bool) TestRunnerFormula {
+	return TestRunnerFormula{
+		name: formula.name
+		formula: formula
+		eval_all: eval_all
+		factory_cache_enabled: true
+	}
+}
+
+pub fn (wrapper TestRunnerFormula) macos_only() bool {
+	return !wrapper.linux_compatible()
+}
+
+pub fn (wrapper TestRunnerFormula) macos_compatible() bool {
+	return wrapper.formula.supports_macos
+}
+
+pub fn (wrapper TestRunnerFormula) linux_only() bool {
+	return !wrapper.macos_compatible()
+}
+
+pub fn (wrapper TestRunnerFormula) linux_compatible() bool {
+	return wrapper.formula.supports_linux
+}
+
+pub fn (wrapper TestRunnerFormula) x86_64_only() bool {
+	return wrapper.formula.requirements.any(it.kind == .arch && it.arch == 'x86_64')
+}
+
+pub fn (wrapper TestRunnerFormula) x86_64_compatible() bool {
+	return !wrapper.arm64_only()
+}
+
+pub fn (wrapper TestRunnerFormula) arm64_only() bool {
+	return wrapper.formula.requirements.any(it.kind == .arch && it.arch == 'arm64')
+}
+
+pub fn (wrapper TestRunnerFormula) arm64_compatible() bool {
+	return !wrapper.x86_64_only()
+}
+
+pub fn (wrapper TestRunnerFormula) versioned_macos_requirement() ?TestRunnerRequirement {
+	for requirement in wrapper.formula.requirements {
+		if requirement.kind == .macos && requirement.version_specified {
+			return requirement
+		}
+	}
+	return none
+}
+
+fn test_runner_version_parts(version string) []int {
+	mut parts := []int{}
+	for part in version.split('.') {
+		parts << (part.int())
+	}
+	return parts
+}
+
+fn test_runner_compare_versions(left string, right string) int {
+	left_parts := test_runner_version_parts(left)
+	right_parts := test_runner_version_parts(right)
+	maximum := if left_parts.len > right_parts.len { left_parts.len } else { right_parts.len }
+	for index in 0 .. maximum {
+		left_part := if index < left_parts.len { left_parts[index] } else { 0 }
+		right_part := if index < right_parts.len { right_parts[index] } else { 0 }
+		if left_part < right_part {
+			return -1
+		}
+		if left_part > right_part {
+			return 1
+		}
+	}
+	return 0
+}
+
+pub fn (wrapper TestRunnerFormula) compatible_with(macos_version string) bool {
+	requirement := wrapper.versioned_macos_requirement() or { return true }
+	comparison := test_runner_compare_versions(macos_version, requirement.version)
+	return match requirement.comparator {
+		'>' { comparison > 0 }
+		'<=' { comparison <= 0 }
+		'<' { comparison < 0 }
+		'==' { comparison == 0 }
+		else { comparison >= 0 }
+	}
+}
+
+fn test_runner_rule_active(rule TestRunnerDependencyRule, system TestRunnerSystem) bool {
+	if rule.platform != '' && rule.platform != system.platform {
+		return false
+	}
+	if rule.arch != '' && rule.arch != system.arch {
+		return false
+	}
+	if rule.macos_version != '' {
+		return system.platform == 'macos' && system.macos_version == rule.macos_version
+	}
+	return true
+}
+
+fn test_runner_active_dependencies(formula TestRunnerFormulaDefinition,
+	system TestRunnerSystem) []string {
+	mut dependencies := formula.dependencies.clone()
+	for rule in formula.conditional_deps {
+		if test_runner_rule_active(rule, system) {
+			dependencies << rule.name
+		}
+	}
+	return dependencies
+}
+
+pub fn (wrapper TestRunnerFormula) dependents(candidates []TestRunnerFormulaDefinition,
+	system TestRunnerSystem) []TestRunnerFormula {
+	mut result := []TestRunnerFormula{}
+	for candidate in candidates {
+		if !wrapper.eval_all && !candidate.installed {
+			continue
+		}
+		if wrapper.name in test_runner_active_dependencies(candidate, system) {
+			result << new_test_runner_formula(candidate, wrapper.eval_all)
+		}
+	}
+	return result
+}
 
 // Ruby attr_reader `attr_reader :name` at line 8.
-pub fn ruby_test_runner_formula_l8_d1_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('name', ...args)
+pub fn ruby_test_runner_formula_l8_d1_name(wrapper TestRunnerFormula) string {
+	return wrapper.name
 }
 
 // Ruby attr_reader `attr_reader :formula` at line 11.
-pub fn ruby_test_runner_formula_l11_d2_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula', ...args)
+pub fn ruby_test_runner_formula_l11_d2_formula(wrapper TestRunnerFormula) TestRunnerFormulaDefinition {
+	return wrapper.formula
 }
 
 // Ruby attr_reader `attr_reader :eval_all` at line 14.
-pub fn ruby_test_runner_formula_l14_d3_eval_all(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('eval_all', ...args)
+pub fn ruby_test_runner_formula_l14_d3_eval_all(wrapper TestRunnerFormula) bool {
+	return wrapper.eval_all
 }
 
 // Ruby method `initialize(formula, eval_all: false)` at line 17.
-pub fn ruby_test_runner_formula_l17_d4_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+pub fn ruby_test_runner_formula_l17_d4_initialize(formula TestRunnerFormulaDefinition,
+	eval_all bool) TestRunnerFormula {
+	return new_test_runner_formula(formula, eval_all)
 }
 
 // Ruby method `macos_only?` at line 27.
-pub fn ruby_test_runner_formula_l27_d5_macos_only(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('macos_only?', ...args)
+pub fn ruby_test_runner_formula_l27_d5_macos_only(wrapper TestRunnerFormula) bool {
+	return wrapper.macos_only()
 }
 
 // Ruby method `macos_compatible?` at line 32.
-pub fn ruby_test_runner_formula_l32_d6_macos_compatible(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('macos_compatible?', ...args)
+pub fn ruby_test_runner_formula_l32_d6_macos_compatible(wrapper TestRunnerFormula) bool {
+	return wrapper.macos_compatible()
 }
 
 // Ruby method `linux_only?` at line 37.
-pub fn ruby_test_runner_formula_l37_d7_linux_only(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('linux_only?', ...args)
+pub fn ruby_test_runner_formula_l37_d7_linux_only(wrapper TestRunnerFormula) bool {
+	return wrapper.linux_only()
 }
 
 // Ruby method `linux_compatible?` at line 42.
-pub fn ruby_test_runner_formula_l42_d8_linux_compatible(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('linux_compatible?', ...args)
+pub fn ruby_test_runner_formula_l42_d8_linux_compatible(wrapper TestRunnerFormula) bool {
+	return wrapper.linux_compatible()
 }
 
 // Ruby method `x86_64_only?` at line 47.
-pub fn ruby_test_runner_formula_l47_d9_x86_64_only(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('x86_64_only?', ...args)
+pub fn ruby_test_runner_formula_l47_d9_x86_64_only(wrapper TestRunnerFormula) bool {
+	return wrapper.x86_64_only()
 }
 
 // Ruby method `x86_64_compatible?` at line 52.
-pub fn ruby_test_runner_formula_l52_d10_x86_64_compatible(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('x86_64_compatible?', ...args)
+pub fn ruby_test_runner_formula_l52_d10_x86_64_compatible(wrapper TestRunnerFormula) bool {
+	return wrapper.x86_64_compatible()
 }
 
 // Ruby method `arm64_only?` at line 57.
-pub fn ruby_test_runner_formula_l57_d11_arm64_only(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('arm64_only?', ...args)
+pub fn ruby_test_runner_formula_l57_d11_arm64_only(wrapper TestRunnerFormula) bool {
+	return wrapper.arm64_only()
 }
 
 // Ruby method `arm64_compatible?` at line 62.
-pub fn ruby_test_runner_formula_l62_d12_arm64_compatible(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('arm64_compatible?', ...args)
+pub fn ruby_test_runner_formula_l62_d12_arm64_compatible(wrapper TestRunnerFormula) bool {
+	return wrapper.arm64_compatible()
 }
 
 // Ruby method `versioned_macos_requirement` at line 67.
-pub fn ruby_test_runner_formula_l67_d13_versioned_macos_requirement(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('versioned_macos_requirement', ...args)
+pub fn ruby_test_runner_formula_l67_d13_versioned_macos_requirement(wrapper TestRunnerFormula) ?TestRunnerRequirement {
+	return wrapper.versioned_macos_requirement()
 }
 
 // Ruby method `compatible_with?(macos_version)` at line 72.
-pub fn ruby_test_runner_formula_l72_d14_compatible_with(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('compatible_with?', ...args)
+pub fn ruby_test_runner_formula_l72_d14_compatible_with(wrapper TestRunnerFormula,
+	macos_version string) bool {
+	return wrapper.compatible_with(macos_version)
 }
 
 // Ruby method `dependents(platform:, arch:, macos_version:)` at line 87.
-pub fn ruby_test_runner_formula_l87_d15_dependents(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dependents', ...args)
+pub fn ruby_test_runner_formula_l87_d15_dependents(wrapper TestRunnerFormula,
+	candidates []TestRunnerFormulaDefinition, system TestRunnerSystem) []TestRunnerFormula {
+	return wrapper.dependents(candidates, system)
 }
 
 // Original Ruby source (line-for-line):

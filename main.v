@@ -1,11 +1,23 @@
 module main
 
-import brew_runtime
+import homebrew
 import os
 
 fn main() {
-	brew_runtime.exec_compatibility_backend(os.args[1..]) or {
-		eprintln('brew.v: ${err}')
-		exit(1)
+	dispatch := homebrew.ruby_brew_file_body(os.args[1..], os.getenv('HOMEBREW_HELP').len > 0)
+	match dispatch.action {
+		.help {
+			println(dispatch.message)
+		}
+		.usage_error {
+			eprintln(dispatch.message)
+			exit(1)
+		}
+		.execute {
+			homebrew.execute_dispatch(dispatch) or {
+				eprintln('brew.v: ${err}')
+				exit(1)
+			}
+		}
 	}
 }

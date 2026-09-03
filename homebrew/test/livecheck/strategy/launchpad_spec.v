@@ -1,73 +1,193 @@
 module strategy
 
 import brew_runtime
+import homebrew.livecheck
+import homebrew.livecheck.strategy as launchpad_core
+import homebrew.utils
 
 // Translated from Homebrew/brew `test/livecheck/strategy/launchpad_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub struct LaunchpadSpecMatchData {
+pub:
+	cached         launchpad_core.PageMatchData
+	cached_default launchpad_core.PageMatchData
+}
+
+fn launchpad_spec_scan_block(page string,
+	provided ?launchpad_core.PageMatchRegex) !livecheck.StrategyBlockValue {
+	match_regex := provided or { return livecheck.StrategyBlockValue{ kind: .nil_value } }
+	versions := launchpad_core.page_match_scan(page, match_regex)!
+	return livecheck.StrategyBlockValue{
+		kind: .array
+		values: versions.map(livecheck.StrategyBlockItem{
+			kind: .string_value
+			value: it
+		})
+	}
+}
+
+fn launchpad_spec_unused_fetcher(_ livecheck.StrategyCurlRequest) !utils.CurlCommandResult {
+	return error('cached Launchpad content unexpectedly fetched')
+}
+
+fn launchpad_spec_regex_equal(left ?launchpad_core.PageMatchRegex,
+	right ?launchpad_core.PageMatchRegex) bool {
+	left_value := left or { launchpad_core.PageMatchRegex{} }
+	right_value := right or { launchpad_core.PageMatchRegex{} }
+	return left_value == right_value
+}
+
+fn launchpad_spec_match_data_equal(left launchpad_core.PageMatchData,
+	right launchpad_core.PageMatchData) bool {
+	return left.matches == right.matches && launchpad_spec_regex_equal(left.regex, right.regex) && left.url == right.url && left.cached == right.cached && left.has_cached == right.has_cached && left.content == right.content && left.has_content == right.has_content && left.final_url == right.final_url && left.has_final_url == right.has_final_url && left.messages == right.messages && left.has_messages == right.has_messages
+}
 
 // Ruby subject `subject(:launchpad) { described_class }` at line 7.
-pub fn ruby_launchpad_spec_l7_d1_launchpad(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('launchpad', ...args)
+pub fn ruby_launchpad_spec_l7_d1_launchpad() brew_runtime.Value {
+	return brew_runtime.object_value('Class', 'Homebrew::Livecheck::Strategy::Launchpad')
 }
 
 // Ruby let `let(:launchpad_urls) do` at line 9.
-pub fn ruby_launchpad_spec_l9_d2_launchpad_urls(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('launchpad_urls', ...args)
+pub fn ruby_launchpad_spec_l9_d2_launchpad_urls() map[string]string {
+	return {
+		'version_dir':    'https://launchpad.net/abc/1.2/1.2.3/+download/abc-1.2.3.tar.gz'
+		'trunk':          'https://launchpad.net/abc/trunk/1.2.3/+download/abc-1.2.3.tar.gz'
+		'code_subdomain': 'https://code.launchpad.net/abc/1.2/1.2.3/+download/abc-1.2.3.tar.gz'
+	}
 }
 
 // Ruby let `let(:non_launchpad_url) { "https://brew.sh/test" }` at line 16.
-pub fn ruby_launchpad_spec_l16_d3_non_launchpad_url(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('non_launchpad_url', ...args)
+pub fn ruby_launchpad_spec_l16_d3_non_launchpad_url() string {
+	return 'https://brew.sh/test'
 }
 
 // Ruby let `let(:generated) do` at line 17.
-pub fn ruby_launchpad_spec_l17_d4_generated(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('generated', ...args)
+pub fn ruby_launchpad_spec_l17_d4_generated() launchpad_core.LaunchpadInputValues {
+	return launchpad_core.LaunchpadInputValues{
+		present: true
+		url: 'https://launchpad.net/abc/'
+	}
 }
 
 // Ruby let `let(:content) do` at line 24.
-pub fn ruby_launchpad_spec_l24_d5_content(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('content', ...args)
+pub fn ruby_launchpad_spec_l24_d5_content() string {
+	return [
+		'<!DOCTYPE html>',
+		'<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en" dir="ltr">',
+		'  <head>',
+		'    <meta charset="UTF-8"/>',
+		'    <title>abc in Launchpad</title>',
+		'  </head>',
+		'  <body>',
+		'    <div id="downloads" class="top-portlet downloads">',
+		'      <h2>Downloads</h2>',
+		'      <div class="version">Latest version is 1.2.3</div>',
+		'      <ul>',
+		'        <li>',
+		'          <a href="https://launchpad.net/abc/trunk/1.2.3/+download/abc-1.2.3.tar.gz" title="abc 1.2.3">abc-1.2.3.tar.gz</a>',
+		'        </li>',
+		'      </ul>',
+		'',
+		'      <div class="released">',
+		'        released',
+		'        <time title="2022-01-23 01:23:45 UTC" datetime="2022-01-23T01:23:45+00:00">on 2022-01-23</time>',
+		'      </div>',
+		'',
+		'      <p class="alternate">',
+		'        <a class="sprite info" href="https://launchpad.net/abc/+download">All downloads</a>',
+		'      </p>',
+		'    </div>',
+		'  </body>',
+		'</html>',
+	].join('\n') + '\n'
 }
 
 // Ruby let `let(:matches) { ["1.2.3"] }` at line 55.
-pub fn ruby_launchpad_spec_l55_d6_matches(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('matches', ...args)
+pub fn ruby_launchpad_spec_l55_d6_matches() []string {
+	return ['1.2.3']
 }
 
 // Ruby it `it "returns true for a Launchpad URL" do` at line 58.
-pub fn ruby_launchpad_spec_l58_d7_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_launchpad_spec_l58_d7_returns() bool {
+	for url in ruby_launchpad_spec_l9_d2_launchpad_urls().values() {
+		if !launchpad_core.launchpad_matches_url(url) {
+			return false
+		}
+	}
+	return true
 }
 
 // Ruby it `it "returns false for a non-Launchpad URL" do` at line 64.
-pub fn ruby_launchpad_spec_l64_d8_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_launchpad_spec_l64_d8_returns() bool {
+	return !launchpad_core.launchpad_matches_url(ruby_launchpad_spec_l16_d3_non_launchpad_url())
 }
 
 // Ruby it `it "returns a hash containing url and regex for an Launchpad URL" do` at line 70.
-pub fn ruby_launchpad_spec_l70_d9_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_launchpad_spec_l70_d9_returns() bool {
+	expected := ruby_launchpad_spec_l17_d4_generated()
+	for url in ruby_launchpad_spec_l9_d2_launchpad_urls().values() {
+		if launchpad_core.launchpad_generate_input_values(url) != expected {
+			return false
+		}
+	}
+	return true
 }
 
 // Ruby it `it "returns an empty hash for a non-Launchpad URL" do` at line 76.
-pub fn ruby_launchpad_spec_l76_d10_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_launchpad_spec_l76_d10_returns() bool {
+	return !launchpad_core.launchpad_generate_input_values(ruby_launchpad_spec_l16_d3_non_launchpad_url()).present
 }
 
 // Ruby let `let(:match_data) do` at line 82.
-pub fn ruby_launchpad_spec_l82_d11_match_data(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('match_data', ...args)
+pub fn ruby_launchpad_spec_l82_d11_match_data() LaunchpadSpecMatchData {
+	base := launchpad_core.PageMatchData{
+		matches: {
+			'1.2.3': '1.2.3'
+		}
+		regex: launchpad_core.PageMatchRegex{
+			pattern: launchpad_core.launchpad_default_pattern
+		}
+		url: ruby_launchpad_spec_l17_d4_generated().url
+		cached: true
+		has_cached: true
+	}
+	return LaunchpadSpecMatchData{
+		cached: base
+		cached_default: launchpad_core.PageMatchData{
+			...base
+			matches: map[string]string{}
+		}
+	}
 }
 
 // Ruby it `it "finds versions in provided content" do` at line 96.
-pub fn ruby_launchpad_spec_l96_d12_finds(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('finds', ...args)
+pub fn ruby_launchpad_spec_l96_d12_finds() bool {
+	url := ruby_launchpad_spec_l9_d2_launchpad_urls()['trunk']
+	content := ruby_launchpad_spec_l24_d5_content()
+	direct := launchpad_core.launchpad_find_versions(launchpad_core.LaunchpadFindRequest{
+		url: url
+		content: content
+	}, launchpad_spec_unused_fetcher) or { return false }
+
+	// This `strategy` block is unnecessary but it's intended to test using a
+	// generated regex in a `strategy` block.
+	with_block := launchpad_core.launchpad_find_versions(launchpad_core.LaunchpadFindRequest{
+		url: url
+		content: content
+		has_block: true
+		block: launchpad_spec_scan_block
+	}, launchpad_spec_unused_fetcher) or { return false }
+	expected := ruby_launchpad_spec_l82_d11_match_data().cached
+	return launchpad_spec_match_data_equal(direct, expected) && launchpad_spec_match_data_equal(with_block, expected)
 }
 
 // Ruby it `it "returns default match_data when content is blank" do` at line 107.
-pub fn ruby_launchpad_spec_l107_d13_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_launchpad_spec_l107_d13_returns() bool {
+	actual := launchpad_core.launchpad_find_versions(launchpad_core.LaunchpadFindRequest{
+		url: ruby_launchpad_spec_l9_d2_launchpad_urls()['trunk']
+		content: ''
+	}, launchpad_spec_unused_fetcher) or { return false }
+	return launchpad_spec_match_data_equal(actual, ruby_launchpad_spec_l82_d11_match_data().cached_default)
 }
 
 // Original Ruby source (line-for-line):

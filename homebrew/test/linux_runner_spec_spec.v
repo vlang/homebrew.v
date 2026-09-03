@@ -1,23 +1,37 @@
 module test
 
-import brew_runtime
+import homebrew
+import json2
 
 // Translated from Homebrew/brew `test/linux_runner_spec_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby let `let(:spec) do` at line 7.
-pub fn ruby_linux_runner_spec_spec_l7_d1_spec(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('spec', ...args)
+pub fn ruby_linux_runner_spec_spec_l7_d1_spec() homebrew.LinuxRunnerSpec {
+	return homebrew.LinuxRunnerSpec{
+		name: 'Linux'
+		runner: 'ubuntu-latest'
+		container: homebrew.LinuxRunnerContainer{
+			image: 'ghcr.io/homebrew/brew:main'
+			options: '--user=linuxbrew'
+		}
+		workdir: '/github/home'
+		timeout: 360
+		cleanup: false
+	}
 }
 
 // Ruby it `it "has immutable attributes" do` at line 18.
-pub fn ruby_linux_runner_spec_spec_l18_d2_has(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('has', ...args)
+pub fn ruby_linux_runner_spec_spec_l18_d2_has() bool {
+	specification := ruby_linux_runner_spec_spec_l7_d1_spec()
+	container := specification.container or { return false }
+	return specification.name == 'Linux' && specification.runner == 'ubuntu-latest' && container.image == 'ghcr.io/homebrew/brew:main' && container.options == '--user=linuxbrew' && specification.workdir == '/github/home' && specification.timeout == 360 && !specification.cleanup
 }
 
 // Ruby it `it "returns an object that responds to `#to_json`" do` at line 25.
-pub fn ruby_linux_runner_spec_spec_l25_d3_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_linux_runner_spec_spec_l25_d3_returns() bool {
+	value := homebrew.linux_runner_spec_to_map(ruby_linux_runner_spec_spec_l7_d1_spec())
+	return json2.encode(value, escape_unicode: true).starts_with('{') && value['testing_formulae'].as_string() == ''
 }
 
 // Original Ruby source (line-for-line):

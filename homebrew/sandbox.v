@@ -1,348 +1,776 @@
 module homebrew
 
-import brew_runtime
+import os
+import time
 
 // Translated from Homebrew/brew `sandbox.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub enum SandboxFilterType {
+	literal
+	subpath
+	regex
+}
+
+pub enum SandboxState {
+	available
+	unavailable
+	config_disabled
+	missing_fiddle
+	unsupported
+	disabled
+	unsupported_abi
+}
+
+pub enum SandboxHookAction {
+	base_noop
+	applied
+}
+
+pub struct SandboxPathFilter {
+pub:
+	path      string
+	type_name SandboxFilterType
+}
+
+pub struct SandboxRule {
+pub:
+	allow      bool
+	operation  string
+	filter     SandboxPathFilter
+	has_filter bool
+	modifier   string
+}
+
+pub struct SandboxProfile {
+pub mut:
+	rules []SandboxRule
+}
+
+pub struct SandboxPaths {
+pub:
+	home               string
+	prefix             string
+	repository         string
+	cache              string
+	logs               string
+	temp               string
+	library            string
+	original_brew_file string
+	trust_file         string
+	github_workspace   string
+	runner_workspace   string
+	runner_temp        string
+	home_write_paths   []string
+}
+
+pub struct Sandbox {
+pub mut:
+	profile      SandboxProfile
+	failed       bool
+	logfile      string
+	start        i64
+	paths        SandboxPaths
+	warnings     []string
+	last_command []string
+	forked       bool
+}
+
+pub struct SandboxAvoidContext {
+pub:
+	opted_in         bool
+	nested           bool
+	default_prefix   bool
+	prefix           string
+	privileged_group string
+}
+
+pub struct SandboxUseContext {
+pub:
+	available    bool
+	avoid_nested bool
+}
+
+pub struct SandboxUseDecision {
+pub:
+	use     bool
+	warning string
+}
+
+pub struct SandboxRunOrForkResult {
+pub:
+	sandboxed bool
+	forked    bool
+	command   []string
+	warning   string
+}
+
+pub struct SandboxFormulaPaths {
+pub:
+	rack string
+	etc  string
+	var  string
+	logs string
+}
+
+pub struct SandboxFileOperation {
+pub:
+	operation string
+	path      string
+	content   string
+	mode      int
+}
+
+pub struct SandboxRunContext {
+pub:
+	tmpdir                       string
+	exit_status                  int
+	output                       string
+	sandbox_command              []string
+	allow_network_for_error_pipe bool
+	operations                   []SandboxFileOperation
+}
+
+pub struct SandboxRunResult {
+pub:
+	command []string
+	tmpdir  string
+	output  string
+}
+
+pub struct SandboxCommandPlan {
+pub:
+	sandbox       Sandbox
+	command       []string
+	writable_path string
+}
+
+pub struct SandboxExecutableContext {
+pub:
+	executable_name    string
+	original_paths     []string
+	environment_path   string
+	original_brew_file string
+	unsuitable         []string
+}
+
+pub struct SandboxBrewMutation {
+pub:
+	replacement    string
+	make_symlink   bool
+	target         string
+	directory_mode int
+}
+
+const sandbox_privileged_groups = ['admin', 'staff', 'root', 'wheel']
+const sandbox_sensitive_home_paths = ['.ssh', '.aws', '.azure', '.boto', '.docker', '.config/fish',
+	'.config/gh', '.config/gcloud', '.config/huggingface', '.config/pip', '.config/pypoetry',
+	'.config/rclone', '.config/containers/auth.json', '.config/composer/auth.json',
+	'.config/sops/age/keys.txt', '.gnupg', '.git-credentials', '.gitconfig', '.gsutil', '.kube',
+	'.netrc', '.npmrc', '.yarnrc', '.yarnrc.yml', '.pnpmrc', '.bunfig.toml', '.pypirc', '.pip',
+	'.poetry', '.local/share/pypoetry', '.gem/credentials', '.bundle/config', '.cargo/credentials',
+	'.cargo/credentials.toml', '.composer/auth.json', '.condarc', '.m2/settings.xml',
+	'.gradle/gradle.properties', '.sbt/1.0/credentials.sbt', '.terraform.d/credentials.tfrc.json',
+	'.pulumi/credentials.json', '.oci/config', '.huggingface/token', '.cache/huggingface/token',
+	'.claude', '.claude.json', '.kiro', '.bash_login', '.bash_logout', '.bash_profile', '.bashrc',
+	'.bash_history', '.profile', '.zlogin', '.zlogout', '.zprofile', '.zshenv', '.zshrc',
+	'.zsh_history', '.python_history', '.mysql_history', '.psql_history', '.env', '.env.local',
+	'Documents', 'Movies', 'Music', 'Pictures', 'Library/Keychains', 'Library/Mobile Documents',
+	'Library/CloudStorage', 'Dropbox', 'Google Drive', 'OneDrive']
+
+fn sandbox_path_inside(path string, ancestor string) bool {
+	normal := os.norm_path(path)
+	root := os.norm_path(ancestor)
+	return normal == root || normal.starts_with(root.trim_right(os.path_separator) + os.path_separator)
+}
+
+fn sandbox_expand_realpath(path string) !string {
+	if !os.is_abs_path(path) {
+		return error('path must be absolute')
+	}
+	if os.exists(path) || os.is_link(path) {
+		return os.real_path(path)
+	}
+	parent := os.dir(path)
+	if parent == path {
+		return path
+	}
+	return os.join_path(sandbox_expand_realpath(parent)!, os.base(path))
+}
+
+fn sandbox_rule_matches(rule SandboxRule, path string) bool {
+	if !rule.has_filter {
+		return true
+	}
+	resolved := sandbox_expand_realpath(os.abs_path(path)) or { os.abs_path(path) }
+	return match rule.filter.type_name {
+		.literal { os.norm_path(rule.filter.path) == os.norm_path(resolved) }
+		.subpath { sandbox_path_inside(resolved, rule.filter.path) }
+		.regex { path.contains(rule.filter.path.trim('^\$')) }
+	}
+}
+
+fn sandbox_operation_allowed(sandbox Sandbox, operation string, path string) bool {
+	mut allowed := !operation.starts_with('file-write')
+	for rule in sandbox.profile.rules {
+		if (rule.operation == operation || (rule.operation.ends_with('*') && operation.starts_with(rule.operation.trim_string_right('*')))) && sandbox_rule_matches(rule, path) {
+			allowed = rule.allow
+		}
+	}
+	return allowed
+}
 
 // Ruby attr_reader `attr_reader :path` at line 22.
-pub fn ruby_sandbox_l22_d1_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('path', ...args)
+pub fn ruby_sandbox_l22_d1_path(filter SandboxPathFilter) string {
+	return filter.path
 }
 
 // Ruby attr_reader `attr_reader :type` at line 25.
-pub fn ruby_sandbox_l25_d2_type(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('type', ...args)
+pub fn ruby_sandbox_l25_d2_type(filter SandboxPathFilter) SandboxFilterType {
+	return filter.type_name
 }
 
 // Ruby method `initialize(path:, type:)` at line 28.
-pub fn ruby_sandbox_l28_d3_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+pub fn ruby_sandbox_l28_d3_initialize(path string, type_name SandboxFilterType) SandboxPathFilter {
+	return SandboxPathFilter{ path: path, type_name: type_name }
 }
 
 // Ruby attr_reader `attr_reader :allow` at line 37.
-pub fn ruby_sandbox_l37_d4_allow(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allow', ...args)
+pub fn ruby_sandbox_l37_d4_allow(rule SandboxRule) bool {
+	return rule.allow
 }
 
 // Ruby attr_reader `attr_reader :operation` at line 40.
-pub fn ruby_sandbox_l40_d5_operation(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('operation', ...args)
+pub fn ruby_sandbox_l40_d5_operation(rule SandboxRule) string {
+	return rule.operation
 }
 
 // Ruby attr_reader `attr_reader :filter` at line 43.
-pub fn ruby_sandbox_l43_d6_filter(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('filter', ...args)
+pub fn ruby_sandbox_l43_d6_filter(rule SandboxRule) ?SandboxPathFilter {
+	return if rule.has_filter { rule.filter } else { none }
 }
 
 // Ruby attr_reader `attr_reader :modifier` at line 46.
-pub fn ruby_sandbox_l46_d7_modifier(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('modifier', ...args)
+pub fn ruby_sandbox_l46_d7_modifier(rule SandboxRule) ?string {
+	return if rule.modifier != '' { rule.modifier } else { none }
 }
 
 // Ruby method `initialize(allow:, operation:, filter:, modifier:)` at line 52.
-pub fn ruby_sandbox_l52_d8_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+pub fn ruby_sandbox_l52_d8_initialize(allow bool, operation string, filter ?SandboxPathFilter, modifier string) SandboxRule {
+	return SandboxRule{ allow: allow, operation: operation, filter: filter or { SandboxPathFilter{} }, has_filter: filter != none, modifier: modifier }
 }
 
 // Ruby attr_reader `attr_reader :rules` at line 64.
-pub fn ruby_sandbox_l64_d9_rules(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('rules', ...args)
+pub fn ruby_sandbox_l64_d9_rules(profile SandboxProfile) []SandboxRule {
+	return profile.rules.clone()
 }
 
 // Ruby method `initialize` at line 67.
-pub fn ruby_sandbox_l67_d10_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+pub fn ruby_sandbox_l67_d10_initialize() SandboxProfile {
+	return SandboxProfile{}
 }
 
 // Ruby method `add_rule(rule)` at line 72.
-pub fn ruby_sandbox_l72_d11_add_rule(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('add_rule', ...args)
+pub fn ruby_sandbox_l72_d11_add_rule(mut profile SandboxProfile, rule SandboxRule) {
+	profile.rules << rule
 }
 
 // Ruby method `self.available?` at line 79.
-pub fn ruby_sandbox_l79_d12_self_available(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.available?', ...args)
+pub fn ruby_sandbox_l79_d12_self_available() bool {
+	return false
 }
 
 // Ruby method `self.full_write_isolation? = true` at line 84.
-pub fn ruby_sandbox_l84_d13_self_full_write_isolation(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.full_write_isolation?', ...args)
+pub fn ruby_sandbox_l84_d13_self_full_write_isolation() bool {
+	return true
 }
 
 // Ruby method `self.nested_sandbox? = false` at line 90.
-pub fn ruby_sandbox_l90_d14_self_nested_sandbox(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.nested_sandbox?', ...args)
+pub fn ruby_sandbox_l90_d14_self_nested_sandbox() bool {
+	return false
 }
 
 // Ruby method `self.avoid_nested_sandboxing?` at line 98.
-pub fn ruby_sandbox_l98_d15_self_avoid_nested_sandboxing(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.avoid_nested_sandboxing?', ...args)
+pub fn ruby_sandbox_l98_d15_self_avoid_nested_sandboxing(context SandboxAvoidContext) !bool {
+	if !context.opted_in || !context.nested {
+		return false
+	}
+	if context.default_prefix {
+		return error('Refusing to skip the sandbox: `\$HOMEBREW_AVOID_NESTED_SANDBOXING` is set inside another sandbox but Homebrew is using its default prefix (${context.prefix}); this is only supported in a custom prefix.')
+	}
+	if context.privileged_group in sandbox_privileged_groups {
+		return error('Refusing to skip the sandbox: `\$HOMEBREW_AVOID_NESTED_SANDBOXING` is set inside another sandbox but you are in the privileged `${context.privileged_group}` group; this is only supported for an unprivileged user.')
+	}
+	return true
 }
 
 // Ruby method `self.use_for?(step, warn_without_sandbox: true)` at line 124.
-pub fn ruby_sandbox_l124_d16_self_use_for(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.use_for?', ...args)
+pub fn ruby_sandbox_l124_d16_self_use_for(step string, warn bool, context SandboxUseContext) SandboxUseDecision {
+	if !context.available {
+		return SandboxUseDecision{
+			warning: if warn {
+				'Sandbox unavailable: ${step} without sandboxing!'} else {
+				''}
+		}
+	}
+	if context.avoid_nested {
+		return SandboxUseDecision{
+			warning: if warn {
+				"${step.capitalize()} without Homebrew's sandbox; relying on the outer sandbox."} else {
+				''}
+		}
+	}
+	return SandboxUseDecision{ use: true }
 }
 
 // Ruby method `self.run_or_fork(*args, step:, warn_without_sandbox: true, &_block)` at line 146.
-pub fn ruby_sandbox_l146_d17_self_run_or_fork(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.run_or_fork', ...args)
+pub fn ruby_sandbox_l146_d17_self_run_or_fork(command []string, step string, warn bool, context SandboxUseContext) SandboxRunOrForkResult {
+	decision := ruby_sandbox_l124_d16_self_use_for(step, warn, context)
+	return SandboxRunOrForkResult{ sandboxed: decision.use, forked: !decision.use, command: command.clone(), warning: decision.warning }
 }
 
 // Ruby method `self.with_preserved_brew_file(&block)` at line 159.
-pub fn ruby_sandbox_l159_d18_self_with_preserved_brew_file(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.with_preserved_brew_file', ...args)
+pub fn ruby_sandbox_l159_d18_self_with_preserved_brew_file(prefix string, full_write_isolation bool, mutation SandboxBrewMutation) ! {
+	brew_file := os.join_path(prefix, 'bin', 'brew')
+	if full_write_isolation {
+		sandbox_apply_brew_mutation(brew_file, mutation)!
+		return
+	}
+	directory := os.dir(brew_file)
+	directory_mode := os.stat(directory)!.mode & 0o7777
+	was_link := os.is_link(brew_file)
+	contents := if was_link { os.readlink(brew_file)! } else { os.read_file(brew_file)! }
+	file_mode := os.lstat(brew_file)!.mode & 0o7777
+	sandbox_apply_brew_mutation(brew_file, mutation)!
+	os.chmod(directory, int(directory_mode))!
+	if was_link {
+		current_target := os.readlink(brew_file) or { '' }
+		if !os.is_link(brew_file) || current_target != contents {
+			sandbox_remove_path(brew_file)!
+			os.symlink(contents, brew_file)!
+		}
+	} else {
+		current_contents := os.read_file(brew_file) or { '' }
+		if os.is_link(brew_file) || !os.is_file(brew_file) || current_contents != contents || (os.lstat(brew_file)!.mode & 0o7777) != file_mode {
+			sandbox_remove_path(brew_file)!
+			os.write_file(brew_file, contents)!
+			os.chmod(brew_file, int(file_mode))!
+		}
+	}
+}
+
+fn sandbox_apply_brew_mutation(brew_file string, mutation SandboxBrewMutation) ! {
+	if mutation.make_symlink {
+		sandbox_remove_path(brew_file)!
+		os.symlink(mutation.target, brew_file)!
+	} else if mutation.replacement != '' {
+		sandbox_remove_path(brew_file)!
+		os.write_file(brew_file, mutation.replacement)!
+	}
+	if mutation.directory_mode > 0 {
+		os.chmod(os.dir(brew_file), mutation.directory_mode)!
+	}
+}
+
+fn sandbox_remove_path(path string) ! {
+	if os.is_dir(path) && !os.is_link(path) {
+		os.rmdir_all(path)!
+	} else if os.exists(path) || os.is_link(path) {
+		os.rm(path)!
+	}
 }
 
 // Ruby method `self.ensure_sandbox_available!` at line 187.
-pub fn ruby_sandbox_l187_d19_self_ensure_sandbox_available(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.ensure_sandbox_available!', ...args)
+pub fn ruby_sandbox_l187_d19_self_ensure_sandbox_available(available bool, reason string) ! {
+	if !available {
+		message := if reason != '' { reason } else { 'The sandbox is not available.' }
+		return error(message)
+	}
 }
 
 // Ruby method `self.state` at line 194.
-pub fn ruby_sandbox_l194_d20_self_state(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.state', ...args)
+pub fn ruby_sandbox_l194_d20_self_state(available bool) SandboxState {
+	return if available { .available } else { .unavailable }
 }
 
 // Ruby method `self.failure_reason` at line 199.
-pub fn ruby_sandbox_l199_d21_self_failure_reason(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.failure_reason', ...args)
+pub fn ruby_sandbox_l199_d21_self_failure_reason(state SandboxState) ?string {
+	return if state == .available { none } else { 'The sandbox is not available.' }
 }
 
 // Ruby method `self.reset_state!; end` at line 206.
-pub fn ruby_sandbox_l206_d22_self_reset_state(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.reset_state!', ...args)
+pub fn ruby_sandbox_l206_d22_self_reset_state() SandboxHookAction {
+	return .base_noop
 }
 
 // Ruby method `self.run_command(*command, writable_path:, deny_network: false)` at line 209.
-pub fn ruby_sandbox_l209_d23_self_run_command(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.run_command', ...args)
+pub fn ruby_sandbox_l209_d23_self_run_command(command []string, writable_path string, deny_network bool, available bool, reason string, paths SandboxPaths) !SandboxCommandPlan {
+	ruby_sandbox_l187_d19_self_ensure_sandbox_available(available, reason)!
+	expanded := os.abs_path(writable_path)
+	if !os.is_dir(expanded) || !os.is_writable(expanded) {
+		return error('Invalid usage: `${expanded}` is not a writable directory.')
+	}
+	real := os.real_path(expanded)
+	mut sandbox := ruby_sandbox_l283_d31_initialize(paths)
+	ruby_sandbox_l491_d45_allow_write_temp_and_cache(mut sandbox)!
+	ruby_sandbox_l473_d42_allow_write_path(mut sandbox, real)!
+	ruby_sandbox_l326_d38_deny_read_home(mut sandbox)!
+	if deny_network { ruby_sandbox_l547_d54_deny_all_network(mut sandbox) }
+	mut sandbox_command := [
+		'/bin/sh',
+		'-c',
+		'cd "\$1" && shift && exec "\$@"',
+		'brew-sandbox-exec',
+		real,
+	]
+	sandbox_command << command
+	return SandboxCommandPlan{ sandbox: sandbox, writable_path: real, command: sandbox_command }
 }
 
 // Ruby method `self.executable_name` at line 228.
-pub fn ruby_sandbox_l228_d24_self_executable_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.executable_name', ...args)
+pub fn ruby_sandbox_l228_d24_self_executable_name() !string {
+	return error('Sandbox is not implemented for this OS.')
 }
 
 // Ruby method `self.executable_candidate_paths` at line 233.
-pub fn ruby_sandbox_l233_d25_self_executable_candidate_paths(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.executable_candidate_paths', ...args)
+pub fn ruby_sandbox_l233_d25_self_executable_candidate_paths(context SandboxExecutableContext) []string {
+	if os.is_abs_path(context.executable_name) {
+		return [os.dir(context.executable_name)]
+	}
+	mut paths := context.original_paths.clone()
+	paths << context.environment_path.split(os.path_delimiter)
+	paths << os.dir(context.original_brew_file)
+	mut result := []string{}
+	for path in paths {
+		if path != '' && path !in result { result << path }
+	}
+	return result
 }
 
 // Ruby method `self.executable` at line 241.
-pub fn ruby_sandbox_l241_d26_self_executable(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.executable', ...args)
+pub fn ruby_sandbox_l241_d26_self_executable(context SandboxExecutableContext) ?string {
+	for path in ruby_sandbox_l233_d25_self_executable_candidate_paths(context) {
+		candidate := if os.is_abs_path(context.executable_name) {
+			os.abs_path(context.executable_name)
+		} else {
+			os.abs_path(os.join_path(path, context.executable_name))
+		}
+		if os.is_file(candidate) && os.is_executable(candidate) && ruby_sandbox_l264_d28_self_executable_usable(candidate, context.unsuitable) {
+			return candidate
+		}
+	}
+	return none
 }
 
 // Ruby method `self.executable!` at line 259.
-pub fn ruby_sandbox_l259_d27_self_executable(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.executable!', ...args)
+pub fn ruby_sandbox_l259_d27_self_executable(context SandboxExecutableContext) !string {
+	return ruby_sandbox_l241_d26_self_executable(context) or { error('${context.executable_name} is required to use the sandbox.') }
 }
 
 // Ruby method `self.executable_usable?(_candidate)` at line 264.
-pub fn ruby_sandbox_l264_d28_self_executable_usable(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.executable_usable?', ...args)
+pub fn ruby_sandbox_l264_d28_self_executable_usable(candidate string, unsuitable []string) bool {
+	return candidate !in unsuitable
 }
 
 // Ruby method `self.terminal_ioctl_request` at line 269.
-pub fn ruby_sandbox_l269_d29_self_terminal_ioctl_request(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.terminal_ioctl_request', ...args)
+pub fn ruby_sandbox_l269_d29_self_terminal_ioctl_request() !int {
+	return error('Sandbox is not implemented for this OS.')
 }
 
 // Ruby method `self.tty_state` at line 277.
-pub fn ruby_sandbox_l277_d30_self_tty_state(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.tty_state', ...args)
+pub fn ruby_sandbox_l277_d30_self_tty_state(captured string) ?string {
+	return if captured != '' { captured.trim_space() } else { none }
 }
 
 // Ruby method `initialize` at line 283.
-pub fn ruby_sandbox_l283_d31_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+pub fn ruby_sandbox_l283_d31_initialize(paths SandboxPaths) Sandbox {
+	return Sandbox{ profile: ruby_sandbox_l67_d10_initialize(), paths: paths }
 }
 
 // Ruby method `record_log(file)` at line 291.
-pub fn ruby_sandbox_l291_d32_record_log(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('record_log', ...args)
+pub fn ruby_sandbox_l291_d32_record_log(mut sandbox Sandbox, file string) {
+	sandbox.logfile = file
 }
 
 // Ruby method `add_rule(allow:, operation:, filter: nil, modifier: nil)` at line 299.
-pub fn ruby_sandbox_l299_d33_add_rule(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('add_rule', ...args)
+pub fn ruby_sandbox_l299_d33_add_rule(mut sandbox Sandbox, allow bool, operation string, filter ?SandboxPathFilter, modifier string) {
+	ruby_sandbox_l72_d11_add_rule(mut sandbox.profile, ruby_sandbox_l52_d8_initialize(allow, operation, filter, modifier))
 }
 
 // Ruby method `allow_read(path:, type: :literal)` at line 305.
-pub fn ruby_sandbox_l305_d34_allow_read(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allow_read', ...args)
+pub fn ruby_sandbox_l305_d34_allow_read(mut sandbox Sandbox, path string, type_name SandboxFilterType) ! {
+	ruby_sandbox_l299_d33_add_rule(mut sandbox, true, 'file-read*', ruby_sandbox_l665_d56_path_filter(path, type_name)!, '')
 }
 
 // Ruby method `allow_process_exec(path, no_sandbox: false)` at line 310.
-pub fn ruby_sandbox_l310_d35_allow_process_exec(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allow_process_exec', ...args)
+pub fn ruby_sandbox_l310_d35_allow_process_exec(mut sandbox Sandbox, path string, no_sandbox bool) ! {
+	ruby_sandbox_l299_d33_add_rule(mut sandbox, true, 'process-exec', ruby_sandbox_l665_d56_path_filter(path, .literal)!, if no_sandbox {
+		'no-sandbox'
+	} else {
+		''
+	})
 }
 
 // Ruby method `deny_read(path:, type: :literal)` at line 316.
-pub fn ruby_sandbox_l316_d36_deny_read(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('deny_read', ...args)
+pub fn ruby_sandbox_l316_d36_deny_read(mut sandbox Sandbox, path string, type_name SandboxFilterType) ! {
+	ruby_sandbox_l299_d33_add_rule(mut sandbox, false, 'file-read*', ruby_sandbox_l665_d56_path_filter(path, type_name)!, '')
 }
 
 // Ruby method `deny_read_path(path)` at line 321.
-pub fn ruby_sandbox_l321_d37_deny_read_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('deny_read_path', ...args)
+pub fn ruby_sandbox_l321_d37_deny_read_path(mut sandbox Sandbox, path string) ! {
+	ruby_sandbox_l316_d36_deny_read(mut sandbox, path, .subpath)!
 }
 
 // Ruby method `deny_read_home` at line 326.
-pub fn ruby_sandbox_l326_d38_deny_read_home(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('deny_read_home', ...args)
+pub fn ruby_sandbox_l326_d38_deny_read_home(mut sandbox Sandbox) ! {
+	home := os.real_path(sandbox.paths.home)
+	mut required := [sandbox.paths.prefix, sandbox.paths.repository, sandbox.paths.cache,
+		sandbox.paths.logs, sandbox.paths.temp, sandbox.paths.github_workspace,
+		sandbox.paths.runner_workspace, sandbox.paths.runner_temp, sandbox.paths.trust_file]
+	required << sandbox.paths.home_write_paths.filter(os.exists(it))
+	mut readable := []string{}
+	for item in required {
+		if item == '' {
+			continue
+		}
+		readable << os.abs_path(item)
+		if os.exists(item) {
+			real := os.real_path(item)
+			if real !in readable { readable << real }
+		}
+	}
+	if readable.any(sandbox_path_inside(it, home)) {
+		for relative in sandbox_sensitive_home_paths {
+			path := os.join_path(home, relative)
+			if !os.exists(path) && !os.is_link(path) {
+				continue
+			}
+			real := os.real_path(path)
+			if !os.exists(real) && !os.is_link(real) {
+				continue
+			}
+			if !sandbox_path_inside(real, home) {
+				continue
+			}
+			mut required_inside := ''
+			for item in readable {
+				if sandbox_path_inside(item, real) {
+					required_inside = item
+					break
+				}
+			}
+			if required_inside != '' {
+				sandbox.warnings << 'The sandbox cannot prevent formulae from reading:\n  ${real}\nbecause this required path is inside it:\n  ${required_inside}\nFormulae may access personal data in this directory.\n'
+				continue
+			}
+			ruby_sandbox_l321_d37_deny_read_path(mut sandbox, real)!
+		}
+		return
+	}
+	ruby_sandbox_l321_d37_deny_read_path(mut sandbox, home)!
 }
 
 // Ruby method `allow_read_if_exists(path:, type: :literal)` at line 453.
-pub fn ruby_sandbox_l453_d39_allow_read_if_exists(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allow_read_if_exists', ...args)
+pub fn ruby_sandbox_l453_d39_allow_read_if_exists(mut sandbox Sandbox, path ?string, type_name SandboxFilterType) ! {
+	actual := path or { return }
+	if os.exists(actual) { ruby_sandbox_l305_d34_allow_read(mut sandbox, actual, type_name)! }
 }
 
 // Ruby method `allow_write(path:, type: :literal)` at line 461.
-pub fn ruby_sandbox_l461_d40_allow_write(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allow_write', ...args)
+pub fn ruby_sandbox_l461_d40_allow_write(mut sandbox Sandbox, path string, type_name SandboxFilterType) ! {
+	filter := ruby_sandbox_l665_d56_path_filter(path, type_name)!
+	for operation in ['file-write*', 'file-write-setugid', 'file-write-mode'] {
+		ruby_sandbox_l299_d33_add_rule(mut sandbox, true, operation, filter, '')
+	}
 }
 
 // Ruby method `deny_write(path:, type: :literal)` at line 468.
-pub fn ruby_sandbox_l468_d41_deny_write(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('deny_write', ...args)
+pub fn ruby_sandbox_l468_d41_deny_write(mut sandbox Sandbox, path string, type_name SandboxFilterType) ! {
+	ruby_sandbox_l299_d33_add_rule(mut sandbox, false, 'file-write*', ruby_sandbox_l665_d56_path_filter(path, type_name)!, '')
 }
 
 // Ruby method `allow_write_path(path)` at line 473.
-pub fn ruby_sandbox_l473_d42_allow_write_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allow_write_path', ...args)
+pub fn ruby_sandbox_l473_d42_allow_write_path(mut sandbox Sandbox, path string) ! {
+	ruby_sandbox_l461_d40_allow_write(mut sandbox, path, .subpath)!
 }
 
 // Ruby method `allow_write_path_if_exists(path)` at line 478.
-pub fn ruby_sandbox_l478_d43_allow_write_path_if_exists(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allow_write_path_if_exists', ...args)
+pub fn ruby_sandbox_l478_d43_allow_write_path_if_exists(mut sandbox Sandbox, path ?string) ! {
+	actual := path or { return }
+	if os.exists(actual) { ruby_sandbox_l473_d42_allow_write_path(mut sandbox, actual)! }
 }
 
 // Ruby method `deny_write_path(path)` at line 486.
-pub fn ruby_sandbox_l486_d44_deny_write_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('deny_write_path', ...args)
+pub fn ruby_sandbox_l486_d44_deny_write_path(mut sandbox Sandbox, path string) ! {
+	ruby_sandbox_l468_d41_deny_write(mut sandbox, path, .subpath)!
 }
 
 // Ruby method `allow_write_temp_and_cache` at line 491.
-pub fn ruby_sandbox_l491_d45_allow_write_temp_and_cache(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allow_write_temp_and_cache', ...args)
+pub fn ruby_sandbox_l491_d45_allow_write_temp_and_cache(mut sandbox Sandbox) ! {
+	ruby_sandbox_l473_d42_allow_write_path(mut sandbox, sandbox.paths.temp)!
+	ruby_sandbox_l473_d42_allow_write_path(mut sandbox, sandbox.paths.cache)!
 }
 
 // Ruby method `add_install_hook_rules(network_access_allowed:)` at line 497.
-pub fn ruby_sandbox_l497_d46_add_install_hook_rules(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('add_install_hook_rules', ...args)
+pub fn ruby_sandbox_l497_d46_add_install_hook_rules(mut sandbox Sandbox, network_access_allowed bool) ! {
+	ruby_sandbox_l491_d45_allow_write_temp_and_cache(mut sandbox)!
+	ruby_sandbox_l531_d52_deny_write_homebrew_repository(mut sandbox)!
+	ruby_sandbox_l326_d38_deny_read_home(mut sandbox)!
+	if !network_access_allowed { ruby_sandbox_l547_d54_deny_all_network(mut sandbox) }
 }
 
 // Ruby method `allow_cvs` at line 505.
-pub fn ruby_sandbox_l505_d47_allow_cvs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allow_cvs', ...args)
+pub fn ruby_sandbox_l505_d47_allow_cvs(mut sandbox Sandbox) ! {
+	ruby_sandbox_l473_d42_allow_write_path(mut sandbox, os.join_path(sandbox.paths.home, '.cvspass'))!
 }
 
 // Ruby method `allow_fossil` at line 510.
-pub fn ruby_sandbox_l510_d48_allow_fossil(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allow_fossil', ...args)
+pub fn ruby_sandbox_l510_d48_allow_fossil(mut sandbox Sandbox) ! {
+	for name in ['.fossil', '.fossil-journal'] {
+		ruby_sandbox_l473_d42_allow_write_path(mut sandbox, os.join_path(sandbox.paths.home, name))!
+	}
 }
 
 // Ruby method `allow_write_cellar(formula)` at line 516.
-pub fn ruby_sandbox_l516_d49_allow_write_cellar(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allow_write_cellar', ...args)
+pub fn ruby_sandbox_l516_d49_allow_write_cellar(mut sandbox Sandbox, formula SandboxFormulaPaths) ! {
+	for path in [formula.rack, formula.etc, formula.var] {
+		ruby_sandbox_l473_d42_allow_write_path(mut sandbox, path)!
+	}
 }
 
 // Ruby method `allow_write_xcode; end` at line 523.
-pub fn ruby_sandbox_l523_d50_allow_write_xcode(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allow_write_xcode', ...args)
+pub fn ruby_sandbox_l523_d50_allow_write_xcode() SandboxHookAction {
+	return .base_noop
 }
 
 // Ruby method `allow_write_log(formula)` at line 526.
-pub fn ruby_sandbox_l526_d51_allow_write_log(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allow_write_log', ...args)
+pub fn ruby_sandbox_l526_d51_allow_write_log(mut sandbox Sandbox, formula SandboxFormulaPaths) ! {
+	ruby_sandbox_l473_d42_allow_write_path(mut sandbox, formula.logs)!
 }
 
 // Ruby method `deny_write_homebrew_repository` at line 531.
-pub fn ruby_sandbox_l531_d52_deny_write_homebrew_repository(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('deny_write_homebrew_repository', ...args)
+pub fn ruby_sandbox_l531_d52_deny_write_homebrew_repository(mut sandbox Sandbox) ! {
+	ruby_sandbox_l468_d41_deny_write(mut sandbox, sandbox.paths.original_brew_file, .literal)!
+	if os.norm_path(sandbox.paths.prefix) == os.norm_path(sandbox.paths.repository) {
+		ruby_sandbox_l486_d44_deny_write_path(mut sandbox, sandbox.paths.library)!
+		ruby_sandbox_l486_d44_deny_write_path(mut sandbox, os.join_path(sandbox.paths.repository, '.git'))!
+	} else {
+		ruby_sandbox_l486_d44_deny_write_path(mut sandbox, sandbox.paths.repository)!
+	}
 }
 
 // Ruby method `allow_network(path:, type: :literal)` at line 542.
-pub fn ruby_sandbox_l542_d53_allow_network(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allow_network', ...args)
+pub fn ruby_sandbox_l542_d53_allow_network(mut sandbox Sandbox, path string, type_name SandboxFilterType) ! {
+	ruby_sandbox_l299_d33_add_rule(mut sandbox, true, 'network*', ruby_sandbox_l665_d56_path_filter(path, type_name)!, '')
 }
 
 // Ruby method `deny_all_network` at line 547.
-pub fn ruby_sandbox_l547_d54_deny_all_network(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('deny_all_network', ...args)
+pub fn ruby_sandbox_l547_d54_deny_all_network(mut sandbox Sandbox) {
+	ruby_sandbox_l299_d33_add_rule(mut sandbox, false, 'network*', none, '')
 }
 
 // Ruby method `run(*args)` at line 552.
-pub fn ruby_sandbox_l552_d55_run(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('run', ...args)
+pub fn ruby_sandbox_l552_d55_run(mut sandbox Sandbox, args []string, context SandboxRunContext) !SandboxRunResult {
+	tmpdir := context.tmpdir
+	os.mkdir_all(tmpdir)!
+	if context.allow_network_for_error_pipe {
+		ruby_sandbox_l542_d53_allow_network(mut sandbox, os.join_path(tmpdir, 'socket'), .literal)!
+	}
+	sandbox.start = time.now().unix()
+	command := if context.sandbox_command.len > 0 {
+		context.sandbox_command.clone()
+	} else {
+		args.clone()
+	}
+	sandbox.last_command = command.clone()
+	for operation in context.operations {
+		if !sandbox_operation_allowed(sandbox, operation.operation, operation.path) {
+			sandbox.failed = true
+			return error('ErrorDuringExecution: ${command.join(' ')}')
+		}
+		match operation.operation {
+			'file-write*' {
+				os.mkdir_all(os.dir(operation.path))!
+				os.write_file(operation.path, operation.content)!
+			}
+			'file-write-mode' { os.chmod(operation.path, operation.mode)! }
+			'file-write-setugid' { os.chmod(operation.path, operation.mode)! }
+			else {}
+		}
+	}
+	if context.exit_status != 0 {
+		sandbox.failed = true
+		return error('ErrorDuringExecution: ${command.join(' ')} (status ${context.exit_status})')
+	}
+	return SandboxRunResult{ command: command, tmpdir: tmpdir, output: context.output }
 }
 
 // Ruby method `path_filter(path, type)` at line 665.
-pub fn ruby_sandbox_l665_d56_path_filter(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('path_filter', ...args)
+pub fn ruby_sandbox_l665_d56_path_filter(path string, type_name SandboxFilterType) !SandboxPathFilter {
+	filter_path := match type_name {
+		.regex { path }
+		.subpath, .literal { sandbox_expand_realpath(path)! }
+	}
+	return SandboxPathFilter{ path: filter_path, type_name: type_name }
 }
 
 // Ruby attr_reader `attr_reader :profile` at line 681.
-pub fn ruby_sandbox_l681_d57_profile(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('profile', ...args)
+pub fn ruby_sandbox_l681_d57_profile(sandbox Sandbox) SandboxProfile {
+	return sandbox.profile
 }
 
 // Ruby method `copy_pty_output(controller)` at line 684.
-pub fn ruby_sandbox_l684_d58_copy_pty_output(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('copy_pty_output', ...args)
+pub fn ruby_sandbox_l684_d58_copy_pty_output(characters string, eio bool) string {
+	return if eio { characters } else { characters }
 }
 
 // Ruby attr_reader `attr_reader :failed` at line 694.
-pub fn ruby_sandbox_l694_d59_failed(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('failed', ...args)
+pub fn ruby_sandbox_l694_d59_failed(sandbox Sandbox) bool {
+	return sandbox.failed
 }
 
 // Ruby attr_reader `attr_reader :logfile` at line 697.
-pub fn ruby_sandbox_l697_d60_logfile(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('logfile', ...args)
+pub fn ruby_sandbox_l697_d60_logfile(sandbox Sandbox) ?string {
+	return if sandbox.logfile != '' { sandbox.logfile } else { none }
 }
 
 // Ruby attr_reader `attr_reader :start` at line 700.
-pub fn ruby_sandbox_l700_d61_start(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('start', ...args)
+pub fn ruby_sandbox_l700_d61_start(sandbox Sandbox) ?i64 {
+	return if sandbox.start > 0 { sandbox.start } else { none }
 }
 
 // Ruby method `home_write_paths = []` at line 705.
-pub fn ruby_sandbox_l705_d62_home_write_paths(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('home_write_paths', ...args)
+pub fn ruby_sandbox_l705_d62_home_write_paths() []string {
+	return []
 }
 
 // Ruby method `sandbox_command(_args, _tmpdir)` at line 708.
-pub fn ruby_sandbox_l708_d63_sandbox_command(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sandbox_command', ...args)
+pub fn ruby_sandbox_l708_d63_sandbox_command(_ []string, _ string) ![]string {
+	return error('Sandbox is not implemented for this OS.')
 }
 
 // Ruby method `allow_network_for_error_pipe?` at line 713.
-pub fn ruby_sandbox_l713_d64_allow_network_for_error_pipe(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('allow_network_for_error_pipe?', ...args)
+pub fn ruby_sandbox_l713_d64_allow_network_for_error_pipe() bool {
+	return false
 }
 
 // Ruby method `ensure_child_tty_available; end` at line 718.
-pub fn ruby_sandbox_l718_d65_ensure_child_tty_available(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ensure_child_tty_available', ...args)
+pub fn ruby_sandbox_l718_d65_ensure_child_tty_available() SandboxHookAction {
+	return .base_noop
 }
 
 // Ruby method `apply_sandbox; end` at line 721.
-pub fn ruby_sandbox_l721_d66_apply_sandbox(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('apply_sandbox', ...args)
+pub fn ruby_sandbox_l721_d66_apply_sandbox() SandboxHookAction {
+	return .base_noop
 }
 
 // Ruby method `record_sandbox_log; end` at line 724.
-pub fn ruby_sandbox_l724_d67_record_sandbox_log(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('record_sandbox_log', ...args)
+pub fn ruby_sandbox_l724_d67_record_sandbox_log() SandboxHookAction {
+	return .base_noop
 }
 
 // Ruby method `expand_realpath(path)` at line 727.
-pub fn ruby_sandbox_l727_d68_expand_realpath(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('expand_realpath', ...args)
+pub fn ruby_sandbox_l727_d68_expand_realpath(path string) !string {
+	return sandbox_expand_realpath(path)
 }
 
 // Original Ruby source (line-for-line):

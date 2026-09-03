@@ -1,53 +1,108 @@
 module tap
 
-import brew_runtime
+import os
 
 // Translated from Homebrew/brew `tap/core_cask_tap.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub struct CoreCaskTapState {
+pub:
+	user       string
+	repository string
+	name       string
+}
+
+pub fn new_core_cask_tap_state() CoreCaskTapState {
+	return CoreCaskTapState{ user: 'Homebrew', repository: 'cask', name: 'homebrew/cask' }
+}
+
+pub fn core_cask_tap_new_subdirectory(token string) string {
+	if token == '' {
+		return ''
+	}
+	if token.starts_with('font-') {
+		remainder := token['font-'.len..]
+		return if remainder == '' { 'font/font-' } else { 'font/font-${remainder[..1]}' }
+	}
+	return token[..1]
+}
+
+pub fn core_cask_tap_new_path(cask_dir string, token string) string {
+	return os.join_path(cask_dir, core_cask_tap_new_subdirectory(token), '${token.to_lower()}.rb')
+}
+
+pub fn core_cask_tap_files_by_name(cask_dir string, tokens []string) map[string]string {
+	mut files := map[string]string{}
+	for token in tokens {
+		new_path := core_cask_tap_new_path(cask_dir, token)
+		existing := files[token] or { '' }
+		if existing == '' || existing.len < new_path.len {
+			files[token] = new_path
+		}
+	}
+	return files
+}
+
+pub fn core_cask_tap_files(no_install_from_api bool, local_files []string, cask_dir string,
+	api_tokens []string) []string {
+	if no_install_from_api {
+		return local_files
+	}
+	by_name := core_cask_tap_files_by_name(cask_dir, api_tokens)
+	return api_tokens.map(by_name[it])
+}
 
 // Ruby method `initialize` at line 12.
-pub fn ruby_core_cask_tap_l12_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+pub fn ruby_core_cask_tap_l12_d1_initialize() CoreCaskTapState {
+	return new_core_cask_tap_state()
 }
 
 // Ruby method `core_cask_tap?` at line 17.
-pub fn ruby_core_cask_tap_l17_d2_core_cask_tap(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('core_cask_tap?', ...args)
+pub fn ruby_core_cask_tap_l17_d2_core_cask_tap() bool {
+	return true
 }
 
 // Ruby method `new_cask_subdirectory(token)` at line 22.
-pub fn ruby_core_cask_tap_l22_d3_new_cask_subdirectory(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('new_cask_subdirectory', ...args)
+pub fn ruby_core_cask_tap_l22_d3_new_cask_subdirectory(token string) string {
+	return core_cask_tap_new_subdirectory(token)
 }
 
 // Ruby method `new_cask_path(token)` at line 31.
-pub fn ruby_core_cask_tap_l31_d4_new_cask_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('new_cask_path', ...args)
+pub fn ruby_core_cask_tap_l31_d4_new_cask_path(cask_dir string, token string) string {
+	return core_cask_tap_new_path(cask_dir, token)
 }
 
 // Ruby method `cask_files` at line 36.
-pub fn ruby_core_cask_tap_l36_d5_cask_files(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask_files', ...args)
+pub fn ruby_core_cask_tap_l36_d5_cask_files(no_install_from_api bool, local_files []string,
+	cask_dir string, api_tokens []string) []string {
+	return core_cask_tap_files(no_install_from_api, local_files, cask_dir, api_tokens)
 }
 
 // Ruby method `cask_tokens` at line 43.
-pub fn ruby_core_cask_tap_l43_d6_cask_tokens(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask_tokens', ...args)
+pub fn ruby_core_cask_tap_l43_d6_cask_tokens(no_install_from_api bool, local_tokens []string,
+	api_tokens []string) []string {
+	return if no_install_from_api { local_tokens } else { api_tokens }
 }
 
 // Ruby method `cask_files_by_name` at line 50.
-pub fn ruby_core_cask_tap_l50_d7_cask_files_by_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask_files_by_name', ...args)
+pub fn ruby_core_cask_tap_l50_d7_cask_files_by_name(no_install_from_api bool,
+	local map[string]string, cask_dir string, api_tokens []string) map[string]string {
+	return if no_install_from_api {
+		local
+	} else {
+		core_cask_tap_files_by_name(cask_dir, api_tokens)
+	}
 }
 
 // Ruby method `cask_renames` at line 69.
-pub fn ruby_core_cask_tap_l69_d8_cask_renames(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask_renames', ...args)
+pub fn ruby_core_cask_tap_l69_d8_cask_renames(no_install_from_api bool,
+	local map[string]string, api map[string]string) map[string]string {
+	return if no_install_from_api { local } else { api }
 }
 
 // Ruby method `tap_migrations` at line 81.
-pub fn ruby_core_cask_tap_l81_d9_tap_migrations(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tap_migrations', ...args)
+pub fn ruby_core_cask_tap_l81_d9_tap_migrations(no_install_from_api bool,
+	local map[string]string, api map[string]string) map[string]string {
+	return if no_install_from_api { local } else { api }
 }
 
 // Original Ruby source (line-for-line):

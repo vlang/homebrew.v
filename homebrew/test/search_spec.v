@@ -1,183 +1,403 @@
 module test
 
-import brew_runtime
+import homebrew
+import homebrew.utils as brew_utils
 
 // Translated from Homebrew/brew `test/search_spec.rb`.
-// The original source is retained below until every stub has a typed V body.
+pub struct SearchSpecTab {
+pub:
+	installed_on_request bool
+}
+
+pub struct SearchSpecDependsOn {
+pub:
+	formulae []string
+	casks    []string
+}
+
+pub struct SearchSpecApiFormula {
+pub:
+	description          string
+	homepage             string
+	license              string
+	ruby_source_checksum string
+	stable_url           string
+	stable_version       string
+}
+
+pub struct SearchSpecApiCask {
+pub:
+	description string
+	has_desc    bool
+	names       []string
+	sha256      string
+	url         string
+	version     string
+}
+
+fn search_spec_output_options() brew_utils.OutputOptions {
+	return brew_utils.OutputOptions{
+		tty: brew_utils.TtyState{
+			stream_is_tty: true
+		}
+	}
+}
+
+fn search_spec_formula(deprecated bool, disabled bool, installed bool) homebrew.SearchFormula {
+	return homebrew.SearchFormula{
+		name: 'testball'
+		full_name: 'testball'
+		installed: installed
+		valid_platform: true
+		deprecated: deprecated
+		disabled: disabled
+	}
+}
+
+fn search_spec_formula_state(deprecated bool, disabled bool,
+	installed bool) homebrew.SearchFormulaState {
+	formula := search_spec_formula(deprecated, disabled, installed)
+	return homebrew.SearchFormulaState{
+		full_names: ['testball']
+		formulae: {
+			'testball': formula
+		}
+		output_options: search_spec_output_options()
+	}
+}
+
+fn search_spec_cask(deprecated bool, disabled bool, installed bool,
+	supports_linux bool) homebrew.SearchCask {
+	return homebrew.SearchCask{
+		token: 'testball'
+		full_name: 'testball'
+		installed: installed
+		deprecated: deprecated
+		disabled: disabled
+		supports_linux: supports_linux
+	}
+}
+
+fn search_spec_cask_state(deprecated bool, disabled bool, installed bool, supports_linux bool,
+	host_linux bool) homebrew.SearchCaskState {
+	cask := search_spec_cask(deprecated, disabled, installed, supports_linux)
+	return homebrew.SearchCaskState{
+		taps: [homebrew.SearchTap{
+			cask_tokens: ['testball']
+		}]
+		casks: {
+			'testball': cask
+		}
+		host_linux: host_linux
+		output_options: search_spec_output_options()
+	}
+}
+
+fn search_spec_short_name(values []string) []string {
+	if values.len < 2 {
+		return []string{}
+	}
+	return [values[1]]
+}
+
+fn search_spec_long_name(values []string) []string {
+	if values.len == 0 {
+		return []string{}
+	}
+	return [values[0]]
+}
+
+fn search_spec_api_formulae() map[string]SearchSpecApiFormula {
+	return {
+		'testball': SearchSpecApiFormula{
+			description: 'Some test'
+			homepage: 'https://brew.sh/testball'
+			license: 'MIT'
+			ruby_source_checksum: 'abc123'
+			stable_url: 'https://brew.sh/testball-1.0.tar.gz'
+			stable_version: '1.0'
+		}
+	}
+}
+
+fn search_spec_api_casks(has_desc bool) map[string]SearchSpecApiCask {
+	return {
+		'testball': SearchSpecApiCask{
+			description: if has_desc { 'Some test' } else { '' }
+			has_desc: has_desc
+			names: ['Test Ball']
+			sha256: 'abc123'
+			url: 'https://brew.sh/testball.zip'
+			version: '1.0'
+		}
+	}
+}
+
+fn search_spec_description_state(has_cask_desc bool,
+	tap_trust_configured bool) homebrew.SearchDescriptionsState {
+	formula_entries := {
+		'testball': homebrew.description_formula('Some test')
+	}
+	cask_entries := {
+		'testball': if has_cask_desc {
+			homebrew.description_cask('Test Ball', 'Some test')
+		} else {
+			homebrew.description_cask('Test Ball', none)
+		}
+	}
+	return homebrew.SearchDescriptionsState{
+		tap_trust_configured: tap_trust_configured
+		formula_api: formula_entries
+		cask_api: cask_entries
+		formula_cache: formula_entries
+		cask_cache: cask_entries
+		output_options: brew_utils.OutputOptions{}
+	}
+}
 
 // Ruby it `it "correctly parses a regex query" do` at line 10.
-pub fn ruby_search_spec_l10_d1_correctly(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('correctly', ...args)
+pub fn ruby_search_spec_l10_d1_correctly() bool {
+	query := homebrew.ruby_search_l39_d1_self_query_regexp('/^query\$/') or { return false }
+	return query.is_regex && query.value == '^query\$'
 }
 
 // Ruby it `it "returns the original string if it is not a regex query" do` at line 14.
-pub fn ruby_search_spec_l14_d2_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_search_spec_l14_d2_returns() bool {
+	query := homebrew.ruby_search_l39_d1_self_query_regexp('query') or { return false }
+	return !query.is_regex && query.value == 'query'
 }
 
 // Ruby it `it "raises an error if the query is an invalid regex" do` at line 18.
-pub fn ruby_search_spec_l18_d3_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+pub fn ruby_search_spec_l18_d3_raises() bool {
+	mut message := ''
+	homebrew.ruby_search_l39_d1_self_query_regexp('/+/') or { message = err.msg() }
+	return message.contains('not a valid regex')
 }
 
 // Ruby let `let(:collection) { ["with-dashes", "with@alpha", "with+plus"] }` at line 24.
-pub fn ruby_search_spec_l24_d4_collection(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('collection', ...args)
+pub fn ruby_search_spec_l24_d4_collection() []string {
+	return ['with-dashes', 'with@alpha', 'with+plus']
 }
 
 // Ruby let `let(:collection) { [["with-dashes", "withdashes"]] }` at line 27.
-pub fn ruby_search_spec_l27_d5_collection(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('collection', ...args)
+pub fn ruby_search_spec_l27_d5_collection() [][]string {
+	return [['with-dashes', 'withdashes']]
 }
 
 // Ruby it `it "searches by the selected argument" do` at line 29.
-pub fn ruby_search_spec_l29_d6_searches(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('searches', ...args)
+pub fn ruby_search_spec_l29_d6_searches() bool {
+	collection := homebrew.search_row_collection(ruby_search_spec_l27_d5_collection())
+	query := homebrew.SearchQuery{ value: 'withdashes', is_regex: true }
+	short := homebrew.ruby_search_l223_d7_self_search(collection, query, search_spec_short_name) or {
+		return false
+	}
+	long := homebrew.ruby_search_l223_d7_self_search(collection, query, search_spec_long_name) or {
+		return false
+	}
+	return short.entries.len > 0 && long.entries.len == 0
 }
 
 // Ruby it `it "does not simplify strings" do` at line 36.
-pub fn ruby_search_spec_l36_d7_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_search_spec_l36_d7_does() bool {
+	result := homebrew.ruby_search_l223_d7_self_search(homebrew.search_string_collection(ruby_search_spec_l24_d4_collection()), homebrew.SearchQuery{ value: 'with-dashes', is_regex: true }, homebrew.search_identity_projector) or { return false }
+	return homebrew.search_collection_strings(result) == ['with-dashes']
 }
 
 // Ruby it `it "simplifies both the query and searched strings" do` at line 42.
-pub fn ruby_search_spec_l42_d8_simplifies(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('simplifies', ...args)
+pub fn ruby_search_spec_l42_d8_simplifies() bool {
+	result := homebrew.ruby_search_l223_d7_self_search(homebrew.search_string_collection(ruby_search_spec_l24_d4_collection()), homebrew.SearchQuery{ value: 'with dashes' }, homebrew.search_identity_projector) or {
+		return false
+	}
+	return homebrew.search_collection_strings(result) == ['with-dashes']
 }
 
 // Ruby it `it "does not simplify strings with @ and + characters" do` at line 46.
-pub fn ruby_search_spec_l46_d9_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_search_spec_l46_d9_does() bool {
+	collection := homebrew.search_string_collection(ruby_search_spec_l24_d4_collection())
+	alpha := homebrew.ruby_search_l223_d7_self_search(collection, homebrew.SearchQuery{ value: 'with@alpha' }, homebrew.search_identity_projector) or {
+		return false
+	}
+	plus := homebrew.ruby_search_l223_d7_self_search(collection, homebrew.SearchQuery{ value: 'with+plus' }, homebrew.search_identity_projector) or {
+		return false
+	}
+	return homebrew.search_collection_strings(alpha) == ['with@alpha'] && homebrew.search_collection_strings(plus) == [
+		'with+plus',
+	]
 }
 
 // Ruby let `let(:collection) { { "foo" => "bar" } }` at line 53.
-pub fn ruby_search_spec_l53_d10_collection(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('collection', ...args)
+pub fn ruby_search_spec_l53_d10_collection() homebrew.SearchCollection {
+	return homebrew.SearchCollection{
+		kind: .string_map
+		entries: [homebrew.SearchEntry{
+			key: 'foo'
+			values: [homebrew.SearchOptionalString{ present: true, value: 'bar' }]
+		}]
+	}
 }
 
 // Ruby it `it "returns a Hash" do` at line 55.
-pub fn ruby_search_spec_l55_d11_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_search_spec_l55_d11_returns() bool {
+	result := homebrew.ruby_search_l223_d7_self_search(ruby_search_spec_l53_d10_collection(), homebrew.SearchQuery{ value: 'foo' }, homebrew.search_identity_projector) or { return false }
+	return result.kind == .string_map && result.entries == ruby_search_spec_l53_d10_collection().entries
 }
 
 // Ruby let `let(:collection) { { "foo" => nil } }` at line 60.
-pub fn ruby_search_spec_l60_d12_collection(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('collection', ...args)
+pub fn ruby_search_spec_l60_d12_collection() homebrew.SearchCollection {
+	return homebrew.SearchCollection{
+		kind: .string_map
+		entries: [homebrew.SearchEntry{
+			key: 'foo'
+			values: [homebrew.SearchOptionalString{}]
+		}]
+	}
 }
 
 // Ruby it `it "does not raise an error" do` at line 62.
-pub fn ruby_search_spec_l62_d13_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_search_spec_l62_d13_does() bool {
+	result := homebrew.ruby_search_l223_d7_self_search(ruby_search_spec_l60_d12_collection(), homebrew.SearchQuery{ value: 'foo' }, homebrew.search_identity_projector) or { return false }
+	return result.entries == ruby_search_spec_l60_d12_collection().entries
 }
 
 // Ruby let `let(:tab) { instance_double(Tab, installed_on_request: false) }` at line 70.
-pub fn ruby_search_spec_l70_d14_tab(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tab', ...args)
+pub fn ruby_search_spec_l70_d14_tab() SearchSpecTab {
+	return SearchSpecTab{}
 }
 
 // Ruby let `let(:formula) do` at line 71.
-pub fn ruby_search_spec_l71_d15_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formula', ...args)
+pub fn ruby_search_spec_l71_d15_formula() homebrew.SearchFormula {
+	return search_spec_formula(false, false, false)
 }
 
 // Ruby it `it "annotates deprecated formulae" do` at line 85.
-pub fn ruby_search_spec_l85_d16_annotates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('annotates', ...args)
+pub fn ruby_search_spec_l85_d16_annotates() bool {
+	result := homebrew.ruby_search_l118_d4_self_search_formulae(homebrew.SearchQuery{ value: 'testball', is_regex: true }, search_spec_formula_state(true, false, false)) or { return false }
+	return result.len == 1 && result[0].contains('(deprecated)')
 }
 
 // Ruby it `it "annotates disabled formulae" do` at line 90.
-pub fn ruby_search_spec_l90_d17_annotates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('annotates', ...args)
+pub fn ruby_search_spec_l90_d17_annotates() bool {
+	result := homebrew.ruby_search_l118_d4_self_search_formulae(homebrew.SearchQuery{ value: 'testball', is_regex: true }, search_spec_formula_state(false, true, false)) or { return false }
+	return result.len == 1 && result[0].contains('(disabled)')
 }
 
 // Ruby it `it "does not annotate normal formulae" do` at line 95.
-pub fn ruby_search_spec_l95_d18_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_search_spec_l95_d18_does() bool {
+	result := homebrew.ruby_search_l118_d4_self_search_formulae(homebrew.SearchQuery{ value: 'testball', is_regex: true }, search_spec_formula_state(false, false, false)) or { return false }
+	return result == ['testball']
 }
 
 // Ruby it `it "shows only the installed icon for installed formulae" do` at line 99.
-pub fn ruby_search_spec_l99_d19_shows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('shows', ...args)
+pub fn ruby_search_spec_l99_d19_shows() bool {
+	result := homebrew.ruby_search_l118_d4_self_search_formulae(homebrew.SearchQuery{ value: 'testball', is_regex: true }, search_spec_formula_state(false, false, true)) or { return false }
+	return result == [
+		brew_utils.pretty_installed('testball', search_spec_output_options()),
+	]
 }
 
 // Ruby let `let(:depends_on) { instance_double(Cask::DSL::DependsOn, formula: [], cask: []) }` at line 108.
-pub fn ruby_search_spec_l108_d20_depends_on(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('depends_on', ...args)
+pub fn ruby_search_spec_l108_d20_depends_on() SearchSpecDependsOn {
+	return SearchSpecDependsOn{}
 }
 
 // Ruby let `let(:tab) { instance_double(Cask::Tab, installed_on_request: false) }` at line 109.
-pub fn ruby_search_spec_l109_d21_tab(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tab', ...args)
+pub fn ruby_search_spec_l109_d21_tab() SearchSpecTab {
+	return SearchSpecTab{}
 }
 
 // Ruby let `let(:cask) do` at line 110.
-pub fn ruby_search_spec_l110_d22_cask(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cask', ...args)
+pub fn ruby_search_spec_l110_d22_cask() homebrew.SearchCask {
+	return search_spec_cask(false, false, false, true)
 }
 
 // Ruby it `it "annotates deprecated casks", :needs_macos do` at line 122.
-pub fn ruby_search_spec_l122_d23_annotates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('annotates', ...args)
+pub fn ruby_search_spec_l122_d23_annotates() bool {
+	result := homebrew.ruby_search_l160_d5_self_search_casks(homebrew.SearchQuery{ value: 'testball', is_regex: true }, search_spec_cask_state(true, false, false, true, false)) or { return false }
+	return result.len == 1 && result[0].contains('(deprecated)')
 }
 
 // Ruby it `it "annotates disabled casks", :needs_macos do` at line 127.
-pub fn ruby_search_spec_l127_d24_annotates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('annotates', ...args)
+pub fn ruby_search_spec_l127_d24_annotates() bool {
+	result := homebrew.ruby_search_l160_d5_self_search_casks(homebrew.SearchQuery{ value: 'testball', is_regex: true }, search_spec_cask_state(false, true, false, true, false)) or { return false }
+	return result.len == 1 && result[0].contains('(disabled)')
 }
 
 // Ruby it `it "does not annotate normal casks", :needs_macos do` at line 132.
-pub fn ruby_search_spec_l132_d25_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_search_spec_l132_d25_does() bool {
+	result := homebrew.ruby_search_l160_d5_self_search_casks(homebrew.SearchQuery{ value: 'testball', is_regex: true }, search_spec_cask_state(false, false, false, true, false)) or { return false }
+	return result == ['testball']
 }
 
 // Ruby it `it "hides macOS-only casks on Linux", :needs_linux do` at line 136.
-pub fn ruby_search_spec_l136_d26_hides(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('hides', ...args)
+pub fn ruby_search_spec_l136_d26_hides() bool {
+	result := homebrew.ruby_search_l160_d5_self_search_casks(homebrew.SearchQuery{ value: 'testball', is_regex: true }, search_spec_cask_state(false, false, false, false, true)) or { return false }
+	return result.len == 0
 }
 
 // Ruby it `it "shows Linux-compatible casks on Linux", :needs_linux do` at line 142.
-pub fn ruby_search_spec_l142_d27_shows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('shows', ...args)
+pub fn ruby_search_spec_l142_d27_shows() bool {
+	result := homebrew.ruby_search_l160_d5_self_search_casks(homebrew.SearchQuery{ value: 'testball', is_regex: true }, search_spec_cask_state(false, false, false, true, true)) or { return false }
+	return result == ['testball']
 }
 
 // Ruby it `it "shows only the installed icon for installed casks", :needs_macos do` at line 146.
-pub fn ruby_search_spec_l146_d28_shows(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('shows', ...args)
+pub fn ruby_search_spec_l146_d28_shows() bool {
+	result := homebrew.ruby_search_l160_d5_self_search_casks(homebrew.SearchQuery{ value: 'testball', is_regex: true }, search_spec_cask_state(false, false, true, true, false)) or { return false }
+	return result == [
+		brew_utils.pretty_installed('testball', search_spec_output_options()),
+	]
 }
 
 // Ruby let `let(:args) { Homebrew::Cmd::Desc.new(["min_arg_placeholder"]).args }` at line 155.
-pub fn ruby_search_spec_l155_d29_args(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('args', ...args)
+pub fn ruby_search_spec_l155_d29_args() homebrew.SearchArgs {
+	return homebrew.SearchArgs{}
 }
 
 // Ruby let `let(:api_formulae) do` at line 158.
-pub fn ruby_search_spec_l158_d30_api_formulae(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('api_formulae', ...args)
+pub fn ruby_search_spec_l158_d30_api_formulae() map[string]SearchSpecApiFormula {
+	return search_spec_api_formulae()
 }
 
 // Ruby let `let(:api_casks) do` at line 171.
-pub fn ruby_search_spec_l171_d31_api_casks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('api_casks', ...args)
+pub fn ruby_search_spec_l171_d31_api_casks() map[string]SearchSpecApiCask {
+	return search_spec_api_casks(true)
 }
 
 // Ruby it `it "searches formula descriptions" do` at line 193.
-pub fn ruby_search_spec_l193_d32_searches(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('searches', ...args)
+pub fn ruby_search_spec_l193_d32_searches() bool {
+	result := homebrew.ruby_search_l62_d3_self_search_descriptions(homebrew.SearchDescriptionsRequest{
+		query: homebrew.SearchQuery{ value: 'some' }
+		args: ruby_search_spec_l155_d29_args()
+	}, search_spec_description_state(true, false)) or { return false }
+	return result.stdout.contains('testball: Some test')
 }
 
 // Ruby it `it "searches all trusted descriptions with tap trust enabled" do` at line 198.
-pub fn ruby_search_spec_l198_d33_searches(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('searches', ...args)
+pub fn ruby_search_spec_l198_d33_searches() bool {
+	result := homebrew.ruby_search_l62_d3_self_search_descriptions(homebrew.SearchDescriptionsRequest{
+		query: homebrew.SearchQuery{ value: 'some' }
+		args: homebrew.SearchArgs{ formula: true }
+	}, search_spec_description_state(true, true)) or { return false }
+	return result.calls == ['descriptions:formula:cache:eval_all=true']
 }
 
 // Ruby it `it "searches cask descriptions", :needs_macos do` at line 212.
-pub fn ruby_search_spec_l212_d34_searches(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('searches', ...args)
+pub fn ruby_search_spec_l212_d34_searches() bool {
+	result := homebrew.ruby_search_l62_d3_self_search_descriptions(homebrew.SearchDescriptionsRequest{
+		query: homebrew.SearchQuery{ value: 'ball' }
+		args: ruby_search_spec_l155_d29_args()
+	}, search_spec_description_state(true, false)) or { return false }
+	return result.stdout.contains('testball: (Test Ball) Some test') && !result.stdout.contains('testball: Some test')
 }
 
 // Ruby it `it "searches cask names without descriptions", :needs_macos do` at line 218.
-pub fn ruby_search_spec_l218_d35_searches(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('searches', ...args)
+pub fn ruby_search_spec_l218_d35_searches() bool {
+	result := homebrew.ruby_search_l62_d3_self_search_descriptions(homebrew.SearchDescriptionsRequest{
+		query: homebrew.SearchQuery{ value: 'ball' }
+		args: ruby_search_spec_l155_d29_args()
+		show_missing: true
+	}, search_spec_description_state(false, false)) or { return false }
+	return result.stdout.contains('testball: (Test Ball) [no description]')
 }
 
 // Original Ruby source (line-for-line):

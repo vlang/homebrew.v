@@ -1,58 +1,79 @@
 module rubocops
 
 import brew_runtime
+import homebrew.rubocops as redundancy_core
 
 // Translated from Homebrew/brew `test/rubocops/components_redundancy_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:cop) { described_class.new }` at line 7.
 pub fn ruby_components_redundancy_spec_l7_d1_cop(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cop', ...args)
+	return brew_runtime.object_value('RuboCop::Cop::FormulaAudit::ComponentsRedundancy', 'FormulaAudit/ComponentsRedundancy')
 }
 
 // Ruby it `it "reports an offense if `url` is outside `stable` block" do` at line 10.
-pub fn ruby_components_redundancy_spec_l10_d2_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_components_redundancy_spec_l10_d2_reports() bool {
+	source := 'class Foo < Formula\n  url "stable"\n  stable do\n    # stuff\n  end\n  head do\n    # stuff\n  end\nend'
+	return redundancy_core.audit_components_redundancy(source).map(it.kind) == [
+		'url_outside_stable',
+	]
 }
 
 // Ruby it `it "reports an offense if both `head` and `head do` are present" do` at line 26.
-pub fn ruby_components_redundancy_spec_l26_d3_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_components_redundancy_spec_l26_d3_reports() bool {
+	source := 'class Foo < Formula\n  head "git"\n  head do\n    # stuff\n  end\nend'
+	return redundancy_core.audit_components_redundancy(source).map(it.kind) == [
+		'head_and_block',
+	]
 }
 
 // Ruby it `it "reports an offense if both `bottle :modifier` and `bottle do` are present" do` at line 38.
-pub fn ruby_components_redundancy_spec_l38_d4_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_components_redundancy_spec_l38_d4_reports() bool {
+	source := 'class Foo < Formula\n  url "stable"\n  bottle do\n    # stuff\n  end\n  bottle :unneeded\nend'
+	return redundancy_core.audit_components_redundancy(source).map(it.kind) == [
+		'bottle_and_block',
+	]
 }
 
 // Ruby it `it "reports no offenses if `stable do` is present with a `head` method" do` at line 51.
-pub fn ruby_components_redundancy_spec_l51_d5_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_components_redundancy_spec_l51_d5_reports() bool {
+	source := 'class Foo < Formula\n  head "git"\n  stable do\n    # stuff\n  end\nend'
+	return redundancy_core.audit_components_redundancy(source).len == 0
 }
 
 // Ruby it `it "reports no offenses if `stable do` is present with a `head do` block" do` at line 63.
-pub fn ruby_components_redundancy_spec_l63_d6_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_components_redundancy_spec_l63_d6_reports() bool {
+	source := 'class Foo < Formula\n  stable do\n    # stuff\n  end\n  head do\n    # stuff\n  end\nend'
+	return redundancy_core.audit_components_redundancy(source).len == 0
 }
 
 // Ruby it `it "reports an offense if `stable do` or `head do` is present with only `url`" do` at line 77.
-pub fn ruby_components_redundancy_spec_l77_d7_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_components_redundancy_spec_l77_d7_reports() bool {
+	source := 'class Foo < Formula\n  stable do\n    url "stable"\n  end\n  head do\n    url "git"\n  end\nend'
+	return redundancy_core.audit_components_redundancy(source).map(it.kind) == [
+		'stable_only_shorthand',
+		'head_only_shorthand',
+	]
 }
 
 // Ruby it `it "reports an offense if `head do` is present with only `url` and `branch`" do` at line 93.
-pub fn ruby_components_redundancy_spec_l93_d8_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_components_redundancy_spec_l93_d8_reports() bool {
+	source := 'class Foo < Formula\n  url "stable"\n  head do\n    url "git", branch: "develop"\n  end\nend'
+	return redundancy_core.audit_components_redundancy(source).map(it.kind) == [
+		'head_only_shorthand',
+	]
 }
 
 // Ruby it `it "reports no offenses if `stable do` is present with `url` and `depends_on`" do` at line 106.
-pub fn ruby_components_redundancy_spec_l106_d9_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_components_redundancy_spec_l106_d9_reports() bool {
+	source := 'class Foo < Formula\n  head "git"\n  stable do\n    url "stable"\n    depends_on "bar"\n  end\nend'
+	return redundancy_core.audit_components_redundancy(source).len == 0
 }
 
 // Ruby it `it "reports no offenses if `head do` is present with `url` and `depends_on`" do` at line 119.
-pub fn ruby_components_redundancy_spec_l119_d10_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_components_redundancy_spec_l119_d10_reports() bool {
+	source := 'class Foo < Formula\n  url "stable"\n  head do\n    url "git"\n    branch "develop"\n    depends_on "bar"\n  end\nend'
+	return redundancy_core.audit_components_redundancy(source).len == 0
 }
 
 // Original Ruby source (line-for-line):

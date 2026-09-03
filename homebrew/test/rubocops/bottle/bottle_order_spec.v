@@ -1,53 +1,68 @@
 module bottle
 
 import brew_runtime
+import homebrew.rubocops as bottle_core
 
 // Translated from Homebrew/brew `test/rubocops/bottle/bottle_order_spec.rb`.
-// The original source is retained below until every stub has a typed V body.
+// The original source is retained below for line-by-line provenance.
+fn bottle_order_spec_matches(body string, expected_body string) bool {
+	source := bottle_spec_formula(body)
+	expected := bottle_spec_formula(expected_body)
+	problems := bottle_core.audit_bottle_order(source)
+	return problems.len == 1 && problems[0].message == bottle_core.bottle_order_message && source[problems[0].begin_pos..problems[0].end_pos].starts_with('bottle do') && bottle_core.correct_bottle_order(source) == expected
+}
 
 // Ruby subject `subject(:cop) { described_class.new }` at line 7.
 pub fn ruby_bottle_order_spec_l7_d1_cop(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cop', ...args)
+	return brew_runtime.object_value('RuboCop::Cop::FormulaAudit::BottleOrder', 'FormulaAudit/BottleOrder')
 }
 
 // Ruby it `it "reports no offenses for `bottle :unneeded`" do` at line 9.
-pub fn ruby_bottle_order_spec_l9_d2_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_bottle_order_spec_l9_d2_reports() bool {
+	return bottle_core.audit_bottle_order(bottle_spec_formula('  bottle :unneeded')).len == 0
 }
 
 // Ruby it `it "reports no offenses for a properly ordered bottle block" do` at line 19.
-pub fn ruby_bottle_order_spec_l19_d3_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_bottle_order_spec_l19_d3_reports() bool {
+	plain := bottle_spec_formula('  bottle do\n    rebuild 4\n    sha256 arm64_something_else: "aaaaaaaa"\n    sha256 arm64_big_sur: "aaaaaaaa"\n    sha256 big_sur: "faceb00c"\n    sha256 catalina: "deadbeef"\n  end')
+	cellars := bottle_spec_formula('  bottle do\n    rebuild 4\n    sha256 cellar: :any, arm64_something_else: "aaaaaaaa"\n    sha256 cellar: :any_skip_relocation, arm64_big_sur: "aaaaaaaa"\n    sha256 cellar: "/usr/local/Cellar", big_sur: "faceb00c"\n    sha256 catalina: "deadbeef"\n  end')
+	return bottle_core.audit_bottle_order(plain).len == 0 && bottle_core.audit_bottle_order(cellars).len == 0
 }
 
 // Ruby it `it "reports no offenses for a properly ordered bottle block with a single bottle" do` at line 49.
-pub fn ruby_bottle_order_spec_l49_d4_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_bottle_order_spec_l49_d4_reports() bool {
+	plain := bottle_spec_formula('  bottle do\n    sha256 big_sur: "faceb00c"\n  end')
+	cellar := bottle_spec_formula('  bottle do\n    sha256 cellar: :any, big_sur: "faceb00c"\n  end')
+	return bottle_core.audit_bottle_order(plain).len == 0 && bottle_core.audit_bottle_order(cellar).len == 0
 }
 
 // Ruby it `it "reports no offenses for a properly ordered bottle block with only arm/intel bottles" do` at line 71.
-pub fn ruby_bottle_order_spec_l71_d5_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_bottle_order_spec_l71_d5_reports() bool {
+	arm := bottle_spec_formula('  bottle do\n    rebuild 4\n    sha256 arm64_catalina: "aaaaaaaa"\n    sha256 arm64_big_sur: "aaaaaaaa"\n  end')
+	intel := bottle_spec_formula('  bottle do\n    rebuild 4\n    sha256 big_sur: "faceb00c"\n    sha256 catalina: "deadbeef"\n  end')
+	arm_single := bottle_spec_formula('  bottle do\n    rebuild 4\n    sha256 arm64_big_sur: "aaaaaaaa"\n  end')
+	intel_single := bottle_spec_formula('  bottle do\n    rebuild 4\n    sha256 big_sur: "faceb00c"\n  end')
+	return bottle_core.audit_bottle_order(arm).len == 0 && bottle_core.audit_bottle_order(intel).len == 0 && bottle_core.audit_bottle_order(arm_single).len == 0 && bottle_core.audit_bottle_order(intel_single).len == 0
 }
 
 // Ruby it `it "reports and corrects arm bottles below intel bottles" do` at line 119.
-pub fn ruby_bottle_order_spec_l119_d6_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_bottle_order_spec_l119_d6_reports() bool {
+	return bottle_order_spec_matches('  bottle do\n    rebuild 4\n    sha256 big_sur: "faceb00c"\n    sha256 catalina: "deadbeef"\n    sha256 arm64_big_sur: "aaaaaaaa"\n  end', '  bottle do\n    rebuild 4\n    sha256 arm64_big_sur: "aaaaaaaa"\n    sha256 big_sur: "faceb00c"\n    sha256 catalina: "deadbeef"\n  end')
 }
 
 // Ruby it `it "reports and corrects multiple arm bottles below intel bottles" do` at line 148.
-pub fn ruby_bottle_order_spec_l148_d7_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_bottle_order_spec_l148_d7_reports() bool {
+	return bottle_order_spec_matches('  bottle do\n    rebuild 4\n    sha256 big_sur: "faceb00c"\n    sha256 arm64_catalina: "aaaaaaaa"\n    sha256 catalina: "deadbeef"\n    sha256 arm64_big_sur: "aaaaaaaa"\n  end', '  bottle do\n    rebuild 4\n    sha256 arm64_catalina: "aaaaaaaa"\n    sha256 arm64_big_sur: "aaaaaaaa"\n    sha256 big_sur: "faceb00c"\n    sha256 catalina: "deadbeef"\n  end')
 }
 
 // Ruby it `it "reports and corrects arm bottles with cellars below intel bottles" do` at line 179.
-pub fn ruby_bottle_order_spec_l179_d8_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_bottle_order_spec_l179_d8_reports() bool {
+	return bottle_order_spec_matches('  bottle do\n    rebuild 4\n    sha256 cellar: "/usr/local/Cellar",  big_sur:        "faceb00c"\n    sha256                               catalina:       "deadbeef"\n    sha256 cellar: :any,                 arm64_big_sur:  "aaaaaaaa"\n    sha256 cellar: :any_skip_relocation, arm64_catalina: "aaaaaaaa"\n  end', '  bottle do\n    rebuild 4\n    sha256 cellar: :any,                 arm64_big_sur:  "aaaaaaaa"\n    sha256 cellar: :any_skip_relocation, arm64_catalina: "aaaaaaaa"\n    sha256 cellar: "/usr/local/Cellar",  big_sur:        "faceb00c"\n    sha256                               catalina:       "deadbeef"\n  end')
 }
 
 // Ruby it `it "reports and corrects arm bottles below intel bottles with old bottle syntax" do` at line 210.
-pub fn ruby_bottle_order_spec_l210_d9_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_bottle_order_spec_l210_d9_reports() bool {
+	return bottle_order_spec_matches('  bottle do\n    cellar :any\n    sha256 "faceb00c" => :big_sur\n    sha256 "aaaaaaaa" => :arm64_big_sur\n    sha256 "aaaaaaaa" => :arm64_catalina\n    sha256 "deadbeef" => :catalina\n  end', '  bottle do\n    cellar :any\n    sha256 "aaaaaaaa" => :arm64_big_sur\n    sha256 "aaaaaaaa" => :arm64_catalina\n    sha256 "faceb00c" => :big_sur\n    sha256 "deadbeef" => :catalina\n  end')
 }
 
 // Original Ruby source (line-for-line):

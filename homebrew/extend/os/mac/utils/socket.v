@@ -1,13 +1,23 @@
 module utils
 
-import brew_runtime
-
 // Translated from Homebrew/brew `extend/os/mac/utils/socket.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub fn sockaddr_un(path string) ![]u8 {
+	path_bytes := path.bytes()
+	if path_bytes.len > 252 {
+		return error('too long unix socket path (${path_bytes.len} bytes given but 252 bytes max)')
+	}
+	mut packed := []u8{cap: path_bytes.len + 3}
+	packed << u8(path_bytes.len + 3)
+	packed << u8(1)
+	packed << path_bytes
+	packed << u8(0)
+	return packed
+}
 
 // Ruby method `sockaddr_un(path)` at line 16.
-pub fn ruby_socket_l16_d1_sockaddr_un(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sockaddr_un', ...args)
+pub fn ruby_socket_l16_d1_sockaddr_un(path string) ![]u8 {
+	return sockaddr_un(path)
 }
 
 // Original Ruby source (line-for-line):

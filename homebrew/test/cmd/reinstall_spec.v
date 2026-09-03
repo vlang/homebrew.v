@@ -1,38 +1,82 @@
 module cmd
 
-import brew_runtime
+import homebrew.cmd as reinstall_core
 
 // Translated from Homebrew/brew `test/cmd/reinstall_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "reports unavailable names via ofail and continues reinstalling" do` at line 11.
-pub fn ruby_reinstall_spec_l11_d1_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_reinstall_spec_l11_d1_reports() bool {
+	result := reinstall_core.run_reinstall_command([
+		reinstall_core.ReinstallCommandItem{
+			kind: .formula
+			name: 'testball'
+		},
+		reinstall_core.ReinstallCommandItem{
+			kind: .unavailable
+			name: 'nonexistent'
+		},
+	], reinstall_core.ReinstallCommandOptions{}) or { return false }
+	return result.formulae_reinstalled == ['testball'] && result.errors.contains('nonexistent') && result.failed && result.events[0] == 'trust_fully_qualified_items'
 }
 
 // Ruby it `it "does not reinstall a pinned Cask" do` at line 29.
-pub fn ruby_reinstall_spec_l29_d2_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_reinstall_spec_l29_d2_does() bool {
+	result := reinstall_core.run_reinstall_command([reinstall_core.ReinstallCommandItem{
+		kind: .cask
+		name: 'local-caffeine'
+		pinned: true
+	}], reinstall_core.ReinstallCommandOptions{}) or { return false }
+	return result.casks_reinstalled.len == 0 && result.errors == [
+		'local-caffeine is pinned. You must unpin it to reinstall.',
+	]
 }
 
 // Ruby it `it "asks for casks before shared prefetch when reinstalling formulae and casks" do` at line 45.
-pub fn ruby_reinstall_spec_l45_d3_asks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('asks', ...args)
+pub fn ruby_reinstall_spec_l45_d3_asks() bool {
+	result := reinstall_core.run_reinstall_command([
+		reinstall_core.ReinstallCommandItem{ kind: .formula, name: 'testball' },
+		reinstall_core.ReinstallCommandItem{ kind: .cask, name: 'local-caffeine' },
+	], reinstall_core.ReinstallCommandOptions{}) or { return false }
+	return result.events.index('ask_casks') < result.events.index('download_queue_new') && result.casks_prefetched
 }
 
 // Ruby it `it "starts formula prelude fetches before dependant checks when not asking" do` at line 88.
-pub fn ruby_reinstall_spec_l88_d4_starts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('starts', ...args)
+pub fn ruby_reinstall_spec_l88_d4_starts() bool {
+	result := reinstall_core.run_reinstall_command([reinstall_core.ReinstallCommandItem{
+		kind: .formula
+		name: 'testball'
+	}], reinstall_core.ReinstallCommandOptions{
+		no_ask: true
+	}) or { return false }
+	return result.events.index('download_queue_new') < result.events.index('dependants') && result.events.index('prelude_fetch:testball') < result.events.index('dependants') && result.queue_shutdown
 }
 
 // Ruby it `it "reinstalls the remaining formulae after one fails" do` at line 129.
-pub fn ruby_reinstall_spec_l129_d5_reinstalls(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reinstalls', ...args)
+pub fn ruby_reinstall_spec_l129_d5_reinstalls() bool {
+	result := reinstall_core.run_reinstall_command([
+		reinstall_core.ReinstallCommandItem{
+			kind: .formula
+			name: 'one'
+			fail_message: 'gzip decompression failed'
+		},
+		reinstall_core.ReinstallCommandItem{ kind: .formula, name: 'two' },
+	], reinstall_core.ReinstallCommandOptions{
+		no_ask: true
+	}) or { return false }
+	return result.errors.contains('one: gzip decompression failed') && result.formulae_reinstalled == [
+		'two',
+	]
 }
 
 // Ruby it `it "reinstalls a Formula", :integration_test do` at line 167.
-pub fn ruby_reinstall_spec_l167_d6_reinstalls(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reinstalls', ...args)
+pub fn ruby_reinstall_spec_l167_d6_reinstalls() bool {
+	result := reinstall_core.run_reinstall_command([reinstall_core.ReinstallCommandItem{
+		kind: .formula
+		name: 'testball_bottle'
+		bottled: true
+	}], reinstall_core.ReinstallCommandOptions{}) or { return false }
+	return result.formulae_reinstalled == ['testball_bottle'] && result.events.contains('reinstall_formula:testball_bottle')
 }
 
 // Original Ruby source (line-for-line):

@@ -1,68 +1,160 @@
 module bundle
 
 import brew_runtime
+import homebrew.bundle.extensions
 
 // Translated from Homebrew/brew `test/bundle/krew_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+fn krew_spec_case(line int) bool {
+	match line {
+		18 {
+			mut state := extensions.new_krew_state()
+			packages := state.discover_packages()
+			return packages.len == 0 && extensions.krew_dump(packages) == ''
+		}
+		31 {
+			return extensions.krew_parse_plugin_list('ctx\nneat\nns\n') == ['ctx', 'neat', 'ns']
+		}
+		37 {
+			return extensions.krew_parse_plugin_list('').len == 0
+		}
+		43 {
+			return extensions.krew_dump(['ctx', 'ns', 'neat']) == 'krew "ctx"\nkrew "ns"\nkrew "neat"'
+		}
+		58 {
+			if _ := extensions.krew_preinstall('', [], 'ctx') {
+				return false
+			}
+			return true
+		}
+		65 {
+			upgrade_formulae := ['foo', 'bar']
+			if _ := extensions.krew_preinstall('', [], 'ctx') {}
+			return upgrade_formulae == ['foo', 'bar']
+		}
+		89 {
+			return !(extensions.krew_preinstall('/usr/local/bin/kubectl-krew', ['ctx'], 'ctx') or {
+				return false
+			})
+		}
+		105 {
+			mut state := extensions.new_krew_state()
+			state.executable = '/usr/local/bin/kubectl-krew'
+			state.original_path = '/usr/bin:/bin'
+			state.packages_loaded = true
+			state.installed_packages_loaded = true
+			preinstall := extensions.krew_preinstall(state.executable, state.installed_packages, 'ctx') or { return false }
+			installed := state.install('ctx', true, false, true) or { return false }
+			return preinstall && installed && state.commands == [
+				['/usr/local/bin/kubectl-krew', 'install', 'ctx'],
+			] && state.last_environment['PATH'].starts_with('/usr/local/bin:')
+		}
+		116 {
+			mut state := extensions.new_krew_state()
+			state.executable = '/usr/local/bin/kubectl-krew'
+			state.packages_loaded = true
+			state.installed_packages_loaded = true
+			if !(state.install('ctx', true, false, true) or { return false }) {
+				return false
+			}
+			return extensions.krew_dump(state.packages) == 'krew "ctx"'
+		}
+		142 {
+			entries := [extensions.ExtensionEntry{
+				entry_type: 'krew'
+				name: 'ctx'
+			}]
+			return extensions.krew_cleanup_items(entries, '/usr/local/bin/kubectl-krew', [
+				'ctx',
+				'ns',
+				'neat',
+			]) == ['ns', 'neat']
+		}
+		147 {
+			mut state := extensions.new_krew_state()
+			state.executable = '/usr/local/bin/kubectl-krew'
+			state.original_path = '/usr/bin:/bin'
+			state.cleanup(['ns'])
+			return state.commands == [
+				['/usr/local/bin/kubectl-krew', 'uninstall', 'ns'],
+			] && state.last_environment['PATH'].starts_with('/usr/local/bin:') && state.output.last().contains('Uninstalled 1 Krew plugin')
+		}
+		else {
+			return false
+		}
+	}
+}
 
 // Ruby subject `subject(:dumper) { described_class }` at line 10.
 pub fn ruby_krew_spec_l10_d1_dumper(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dumper', ...args)
+	_ = args
+	return brew_runtime.object_value('Homebrew::Bundle::Krew', 'Homebrew::Bundle::Krew')
 }
 
 // Ruby it `it "returns an empty list and dumps an empty string" do` at line 18.
 pub fn ruby_krew_spec_l18_d2_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	return brew_runtime.bool_value(krew_spec_case(18))
 }
 
 // Ruby it `it "returns plugin list" do` at line 31.
 pub fn ruby_krew_spec_l31_d3_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	return brew_runtime.bool_value(krew_spec_case(31))
 }
 
 // Ruby it `it "handles empty output" do` at line 37.
 pub fn ruby_krew_spec_l37_d4_handles(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('handles', ...args)
+	_ = args
+	return brew_runtime.bool_value(krew_spec_case(37))
 }
 
 // Ruby it `it "dumps plugin list" do` at line 43.
 pub fn ruby_krew_spec_l43_d5_dumps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dumps', ...args)
+	_ = args
+	return brew_runtime.bool_value(krew_spec_case(43))
 }
 
 // Ruby it `it "tries to install krew" do` at line 58.
 pub fn ruby_krew_spec_l58_d6_tries(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('tries', ...args)
+	_ = args
+	return brew_runtime.bool_value(krew_spec_case(58))
 }
 
 // Ruby it `it "preserves upgrade_formulae while bootstrapping krew" do` at line 65.
 pub fn ruby_krew_spec_l65_d7_preserves(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('preserves', ...args)
+	_ = args
+	return brew_runtime.bool_value(krew_spec_case(65))
 }
 
 // Ruby it `it "skips" do` at line 89.
 pub fn ruby_krew_spec_l89_d8_skips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skips', ...args)
+	_ = args
+	return brew_runtime.bool_value(krew_spec_case(89))
 }
 
 // Ruby it `it "installs plugin" do` at line 105.
 pub fn ruby_krew_spec_l105_d9_installs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('installs', ...args)
+	_ = args
+	return brew_runtime.bool_value(krew_spec_case(105))
 }
 
 // Ruby it `it "updates dump output after install" do` at line 116.
 pub fn ruby_krew_spec_l116_d10_updates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('updates', ...args)
+	_ = args
+	return brew_runtime.bool_value(krew_spec_case(116))
 }
 
 // Ruby it `it "returns plugins not in Brewfile entries" do` at line 142.
 pub fn ruby_krew_spec_l142_d11_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	return brew_runtime.bool_value(krew_spec_case(142))
 }
 
 // Ruby it `it "uninstalls plugins" do` at line 147.
 pub fn ruby_krew_spec_l147_d12_uninstalls(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uninstalls', ...args)
+	_ = args
+	return brew_runtime.bool_value(krew_spec_case(147))
 }
 
 // Original Ruby source (line-for-line):

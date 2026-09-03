@@ -1,73 +1,123 @@
 module test
 
 import brew_runtime
+import homebrew
+
+fn error_execution_status() homebrew.ExecutionStatus {
+	return homebrew.ExecutionStatus{
+		has_exitstatus: true
+		exitstatus: 1
+	}
+}
+
+fn error_execution_value(command []string, output []homebrew.ExecutionOutputLine,
+	terminal bool) brew_runtime.Value {
+	exception := homebrew.execution_exception_with_terminal(command, error_execution_status(), output, [], terminal, false, false) or { panic(err) }
+	return homebrew.brew_exception_value(exception)
+}
+
+fn error_execution_message(value brew_runtime.Value) string {
+	return homebrew.brew_exception_from_value(value).message
+}
 
 // Translated from Homebrew/brew `test/error_during_execution_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:error) { described_class.new(command, status:, output:) }` at line 5.
 pub fn ruby_error_during_execution_spec_l5_d1_error(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('error', ...args)
+	return error_execution_value(['false'], [], false)
 }
 
 // Ruby let `let(:command) { ["false"] }` at line 7.
 pub fn ruby_error_during_execution_spec_l7_d2_command(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('command', ...args)
+	return brew_runtime.string_array_value(['false'])
 }
 
 // Ruby let `let(:status) { instance_double(Process::Status, exitstatus:, termsig: nil) }` at line 8.
 pub fn ruby_error_during_execution_spec_l8_d3_status(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('status', ...args)
+	return brew_runtime.structured_value('Process::Status', 'exit 1', {
+		'exitstatus': '1'
+		'termsig':    ''
+	})
 }
 
 // Ruby let `let(:exitstatus) { 1 }` at line 9.
 pub fn ruby_error_during_execution_spec_l9_d4_exitstatus(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('exitstatus', ...args)
+	return brew_runtime.int_value(1)
 }
 
 // Ruby let `let(:output) { nil }` at line 10.
 pub fn ruby_error_during_execution_spec_l10_d5_output(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('output', ...args)
+	return brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
 }
 
 // Ruby it `it "fails when only given a command" do` at line 13.
 pub fn ruby_error_during_execution_spec_l13_d6_fails(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fails', ...args)
+	homebrew.execution_exception_from_optional(?[]string(['false']), none, [], []) or {
+		return brew_runtime.bool_value(err.msg().contains('requires status'))
+	}
+	return brew_runtime.bool_value(false)
 }
 
 // Ruby it `it "fails when only given a status" do` at line 20.
 pub fn ruby_error_during_execution_spec_l20_d7_fails(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fails', ...args)
+	homebrew.execution_exception_from_optional(none, ?homebrew.ExecutionStatus(error_execution_status()), [], []) or {
+		return brew_runtime.bool_value(err.msg().contains('requires command'))
+	}
+	return brew_runtime.bool_value(false)
 }
 
 // Ruby it `it "does not raise an error when given both a command and a status" do` at line 25.
 pub fn ruby_error_during_execution_spec_l25_d8_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	homebrew.execution_exception_from_optional(?[]string(['false']), ?homebrew.ExecutionStatus(error_execution_status()), [], []) or {
+		return brew_runtime.bool_value(false)
+	}
+	return brew_runtime.bool_value(true)
 }
 
 // Ruby it `it(:to_s) { expect(error.to_s).to eq "Failure while executing; `false` exited with 1." }` at line 34.
 pub fn ruby_error_during_execution_spec_l34_d9_to_s(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_s', ...args)
+	value := if args.len > 0 { args[0] } else { ruby_error_during_execution_spec_l5_d1_error() }
+	return brew_runtime.bool_value(error_execution_message(value) == 'Failure while executing; `false` exited with 1.')
 }
 
 // Ruby let `let(:output) do` at line 38.
 pub fn ruby_error_during_execution_spec_l38_d10_output(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('output', ...args)
+	return brew_runtime.array_value([
+		brew_runtime.structured_value('OutputLine', 'This still worked.\n', {
+			'type': 'stdout'
+		}),
+		brew_runtime.structured_value('OutputLine', 'Here something went wrong.\n', {
+			'type': 'stderr'
+		}),
+	])
 }
 
 // Ruby it `it(:to_s) do` at line 49.
 pub fn ruby_error_during_execution_spec_l49_d11_to_s(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_s', ...args)
+	value := error_execution_value(['false'], [
+		homebrew.ExecutionOutputLine{
+			kind: 'stdout'
+			line: 'This still worked.\n'
+		},
+		homebrew.ExecutionOutputLine{
+			kind: 'stderr'
+			line: 'Here something went wrong.\n'
+		},
+	], true)
+	expected := "Failure while executing; `false` exited with 1. Here's the output:\nThis still worked.\n\x1b[31mHere something went wrong.\n\x1b[0m\n"
+	return brew_runtime.bool_value(error_execution_message(value) == expected)
 }
 
 // Ruby let `let(:command) { ["env", "PATH=/bin", "cat", "with spaces"] }` at line 59.
 pub fn ruby_error_during_execution_spec_l59_d12_command(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('command', ...args)
+	return brew_runtime.string_array_value(['env', 'PATH=/bin', 'cat', 'with spaces'])
 }
 
 // Ruby it `it(:to_s) do` at line 61.
 pub fn ruby_error_during_execution_spec_l61_d13_to_s(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('to_s', ...args)
+	value := error_execution_value(['env', 'PATH=/bin', 'cat', 'with spaces'], [], false)
+	return brew_runtime.bool_value(error_execution_message(value) == 'Failure while executing; `env PATH=/bin cat with\\ spaces` exited with 1.')
 }
 
 // Original Ruby source (line-for-line):

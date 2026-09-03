@@ -1,13 +1,43 @@
 module cmd
 
-import brew_runtime
+import homebrew.aliases
 
 // Translated from Homebrew/brew `cmd/alias.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub fn run_alias(config aliases.AliasConfig, named ?string, edit bool,
+	editor aliases.AliasEditor) ![]string {
+	aliases.init_aliases(config)!
+	if argument := named {
+		mut name := argument
+		mut command := ?string(none)
+		if separator := argument.index('=') {
+			name = argument[..separator]
+			command = argument[separator + 1..]
+		}
+		if value := command {
+			aliases.add_alias(config, name, value)!
+			if edit {
+				aliases.edit_alias(config, name, none, editor)!
+			}
+			return []string{}
+		}
+		if edit {
+			aliases.edit_alias(config, name, none, editor)!
+			return []string{}
+		}
+		return aliases.show_aliases(config, [name])
+	}
+	if edit {
+		aliases.edit_all_aliases(config, editor)!
+		return []string{}
+	}
+	return aliases.show_aliases(config, []string{})
+}
 
 // Ruby method `run` at line 23.
-pub fn ruby_alias_l23_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('run', ...args)
+pub fn ruby_alias_l23_d1_run(config aliases.AliasConfig, named ?string, edit bool,
+	editor aliases.AliasEditor) ![]string {
+	return run_alias(config, named, edit, editor)
 }
 
 // Original Ruby source (line-for-line):

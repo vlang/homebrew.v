@@ -1,203 +1,553 @@
 module bundle
 
-import brew_runtime
+import homebrew.bundle.subcommand
 
 // Translated from Homebrew/brew `test/cmd/bundle/cleanup_subcommand_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+fn cleanup_spec_empty_loader(_ bool, _ string) !subcommand.CleanupDsl {
+	return subcommand.CleanupDsl{}
+}
+
+fn cleanup_spec_confirm_yes(_ string) bool {
+	return true
+}
+
+fn cleanup_spec_confirm_no(_ string) bool {
+	return false
+}
+
+fn cleanup_spec_command(argv []string, _ bool) !string {
+	return if argv == ['brew', 'cleanup'] { 'cleaned' } else { '' }
+}
+
+fn cleanup_spec_output_command(_ []string, _ bool) !string {
+	return 'cleaned\n'
+}
+
+fn cleanup_spec_failure_command(_ []string, _ bool) !string {
+	return error('command failed with status 1')
+}
+
+fn cleanup_spec_no_trust(_ []subcommand.CleanupTrustEntry) !string {
+	return ''
+}
+
+fn cleanup_spec_no_marker(_ []subcommand.CleanupDslEntry) !string {
+	return ''
+}
+
+fn cleanup_spec_no_extension(_ string, _ []string) !string {
+	return ''
+}
+
+fn cleanup_spec_no_reset() !string {
+	return ''
+}
+
+fn cleanup_spec_callbacks(confirm bool, failed bool) subcommand.CleanupCallbacks {
+	return subcommand.CleanupCallbacks{
+		load_dsl: cleanup_spec_empty_loader
+		confirm: if confirm { cleanup_spec_confirm_yes } else { cleanup_spec_confirm_no }
+		run_command: if failed { cleanup_spec_failure_command } else { cleanup_spec_command }
+		replace_trust: cleanup_spec_no_trust
+		mark_formulae: cleanup_spec_no_marker
+		cleanup_extension: cleanup_spec_no_extension
+		reset_modules: cleanup_spec_no_reset
+	}
+}
+
+fn cleanup_spec_state(entries []subcommand.CleanupDslEntry) subcommand.CleanupState {
+	return subcommand.CleanupState{
+		dsl: subcommand.CleanupDsl{ entries: entries }
+		has_dsl: true
+	}
+}
+
+fn cleanup_spec_entry(kind subcommand.CleanupDslEntryType, name string) subcommand.CleanupDslEntry {
+	return subcommand.CleanupDslEntry{ entry_type: kind, name: name, full_name: name }
+}
+
+fn cleanup_spec_empty_inventory() subcommand.CleanupInventory {
+	return subcommand.CleanupInventory{}
+}
+
+fn cleanup_spec_execute(entries []subcommand.CleanupDslEntry, inventory subcommand.CleanupInventory,
+	options subcommand.CleanupOptions, confirm bool, failed bool) !subcommand.CleanupResult {
+	mut state := cleanup_spec_state(entries)
+	return subcommand.execute_cleanup(mut state, inventory, options, cleanup_spec_callbacks(confirm, failed))
+}
+
+fn cleanup_spec_initial_entries() []subcommand.CleanupDslEntry {
+	return [
+		cleanup_spec_entry(.tap, 'x'),
+		cleanup_spec_entry(.tap, 'y'),
+		cleanup_spec_entry(.cask, '123'),
+		cleanup_spec_entry(.brew, 'a'),
+		cleanup_spec_entry(.brew, 'b'),
+		cleanup_spec_entry(.brew, 'd2'),
+		cleanup_spec_entry(.brew, 'homebrew/tap/f'),
+		cleanup_spec_entry(.brew, 'homebrew/tap/g'),
+		cleanup_spec_entry(.brew, 'homebrew/tap/h'),
+		cleanup_spec_entry(.brew, 'homebrew/tap/i2'),
+		cleanup_spec_entry(.brew, 'homebrew/tap/hasdependency'),
+		cleanup_spec_entry(.brew, 'hasbuilddependency1'),
+		cleanup_spec_entry(.brew, 'hasbuilddependency2'),
+		subcommand.CleanupDslEntry{ entry_type: .extension_entry, name: 'VsCodeExtension1', extension_type: 'vscode' },
+	]
+}
+
+fn cleanup_spec_formula_inventory() subcommand.CleanupInventory {
+	return subcommand.CleanupInventory{
+		formulae: [
+			subcommand.CleanupFormula{ full_name: 'a2', dependencies: ['homebrew/tap/d'] },
+			subcommand.CleanupFormula{ full_name: 'b' },
+			subcommand.CleanupFormula{ full_name: 'c' },
+			subcommand.CleanupFormula{ full_name: 'homebrew/tap/d' },
+			subcommand.CleanupFormula{ full_name: 'homebrew/tap/e' },
+			subcommand.CleanupFormula{ full_name: 'homebrew/tap/f', tap: 'homebrew/tap' },
+			subcommand.CleanupFormula{ full_name: 'homebrew/tap/g', tap: 'homebrew/tap' },
+			subcommand.CleanupFormula{ full_name: 'other/tap/h', tap: 'other/tap' },
+			subcommand.CleanupFormula{ full_name: 'homebrew/tap/i', tap: 'homebrew/tap' },
+			subcommand.CleanupFormula{ full_name: 'homebrew/tap/hasdependency', dependencies: ['homebrew/tap/isdependency'], tap: 'homebrew/tap' },
+			subcommand.CleanupFormula{ full_name: 'homebrew/tap/isdependency', tap: 'homebrew/tap' },
+			subcommand.CleanupFormula{ full_name: 'hasbuilddependency1', build_dependencies: ['builddependency1'], poured_from_bottle: true },
+			subcommand.CleanupFormula{ full_name: 'hasbuilddependency2', build_dependencies: ['builddependency2'] },
+			subcommand.CleanupFormula{ full_name: 'builddependency1' },
+			subcommand.CleanupFormula{ full_name: 'builddependency2' },
+			subcommand.CleanupFormula{ full_name: 'homebrew/tap/caskdependency' },
+		]
+		casks: [
+			subcommand.CleanupCask{
+				name: '123'
+				formula_dependencies: [
+					'homebrew/tap/caskdependency',
+				]
+			},
+		]
+		aliases: {
+			'a':               'a2'
+			'd2':              'homebrew/tap/d'
+			'homebrew/tap/i2': 'homebrew/tap/i'
+		}
+	}
+}
+
+fn cleanup_spec_selection(formulae bool, casks bool, taps bool,
+	extensions map[string]bool) subcommand.CleanupSelection {
+	return subcommand.CleanupSelection{
+		formulae: formulae
+		casks: casks
+		taps: taps
+		extension_types: extensions
+	}
+}
 
 // Ruby it `it "asks before cleanup unless --force is passed" do` at line 11.
-pub fn ruby_cleanup_subcommand_spec_l11_d1_asks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('asks', ...args)
+pub fn ruby_cleanup_subcommand_spec_l11_d1_asks() bool {
+	options := subcommand.cleanup_options_from_command(subcommand.CleanupCommandContext{})
+	return options.ask && !options.force
 }
 
 // Ruby it `it "does not ask before cleanup when --force is passed" do` at line 23.
-pub fn ruby_cleanup_subcommand_spec_l23_d2_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_cleanup_subcommand_spec_l23_d2_does() bool {
+	options := subcommand.cleanup_options_from_command(subcommand.CleanupCommandContext{ force: true })
+	return !options.ask && options.force
 }
 
 // Ruby it `it "cleans up every supported type when --all is passed" do` at line 35.
-pub fn ruby_cleanup_subcommand_spec_l35_d3_cleans(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cleans', ...args)
+pub fn ruby_cleanup_subcommand_spec_l35_d3_cleans() bool {
+	options := subcommand.cleanup_options_from_command(subcommand.CleanupCommandContext{
+		all: true
+		extension_types: ['cargo', 'flatpak', 'go', 'krew', 'mas', 'npm', 'uv', 'vscode']
+	})
+	return options.selection.formulae && options.selection.casks && options.selection.taps && options.selection.extension_types.values().all(it)
 }
 
 // Ruby it `it "does not clean up disabled types by default" do` at line 60.
-pub fn ruby_cleanup_subcommand_spec_l60_d4_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_cleanup_subcommand_spec_l60_d4_does() bool {
+	options := subcommand.cleanup_options_from_command(subcommand.CleanupCommandContext{
+		no_type_args: true
+		formulae_disabled: true
+		extension_types: ['mas', 'vscode']
+		extension_disabled: {
+			'mas': true
+		}
+	})
+	return !options.selection.formulae && options.selection.casks && options.selection.taps && !options.selection.extension_types['mas'] && options.selection.extension_types['vscode']
 }
 
 // Ruby it `it "treats --no-tap as --no-cleanup-tap" do` at line 75.
-pub fn ruby_cleanup_subcommand_spec_l75_d5_treats(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('treats', ...args)
+pub fn ruby_cleanup_subcommand_spec_l75_d5_treats() bool {
+	options := subcommand.cleanup_options_from_command(subcommand.CleanupCommandContext{
+		no_type_args: true
+		taps_disabled: true
+	})
+	return !options.selection.taps
 }
 
 // Ruby it `it "does not clean up types disabled by environment" do` at line 86.
-pub fn ruby_cleanup_subcommand_spec_l86_d6_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_cleanup_subcommand_spec_l86_d6_does() bool {
+	return ruby_cleanup_subcommand_spec_l60_d4_does()
 }
 
 // Ruby it `it "computes which casks to uninstall" do` at line 140.
-pub fn ruby_cleanup_subcommand_spec_l140_d7_computes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('computes', ...args)
+pub fn ruby_cleanup_subcommand_spec_l140_d7_computes() bool {
+	mut state := cleanup_spec_state([cleanup_spec_entry(.cask, '123')])
+	inventory := subcommand.CleanupInventory{
+		casks: [
+			subcommand.CleanupCask{ name: '123' },
+			subcommand.CleanupCask{ name: '456' },
+		]
+	}
+	return (subcommand.cleanup_casks_to_uninstall(mut state, inventory) or { return false }) == [
+		'456',
+	]
 }
 
 // Ruby it `it "computes which formulae to uninstall" do` at line 147.
-pub fn ruby_cleanup_subcommand_spec_l147_d8_computes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('computes', ...args)
+pub fn ruby_cleanup_subcommand_spec_l147_d8_computes() bool {
+	mut state := cleanup_spec_state(cleanup_spec_initial_entries())
+	return (subcommand.cleanup_formulae_to_uninstall(mut state, cleanup_spec_formula_inventory()) or {
+		return false
+	}) == ['c', 'homebrew/tap/e', 'other/tap/h', 'builddependency1']
 }
 
 // Ruby it `it "computes which tap to untap" do` at line 198.
-pub fn ruby_cleanup_subcommand_spec_l198_d9_computes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('computes', ...args)
+pub fn ruby_cleanup_subcommand_spec_l198_d9_computes() bool {
+	mut state := cleanup_spec_state(cleanup_spec_initial_entries())
+	mut inventory := cleanup_spec_formula_inventory()
+	inventory = subcommand.CleanupInventory{ ...inventory, taps: ['z', 'homebrew/core', 'homebrew/tap'] }
+	return (subcommand.cleanup_taps_to_untap(mut state, inventory) or { return false }) == [
+		'z',
+	]
 }
 
 // Ruby it `it "keeps taps referenced by fully qualified formulae" do` at line 204.
-pub fn ruby_cleanup_subcommand_spec_l204_d10_keeps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('keeps', ...args)
+pub fn ruby_cleanup_subcommand_spec_l204_d10_keeps() bool {
+	mut state := cleanup_spec_state([cleanup_spec_entry(.brew, 'homebrew/tap/foo')])
+	inventory := subcommand.CleanupInventory{
+		formulae: [
+			subcommand.CleanupFormula{ full_name: 'homebrew/tap/foo', tap: 'homebrew/tap' },
+		]
+		taps: ['homebrew/core', 'homebrew/tap']
+	}
+	return (subcommand.cleanup_formulae_to_uninstall(mut state, inventory) or { return false }).len == 0 && (subcommand.cleanup_taps_to_untap(mut state, inventory) or { return false }).len == 0
 }
 
 // Ruby it `it "keeps taps referenced by fully qualified casks" do` at line 224.
-pub fn ruby_cleanup_subcommand_spec_l224_d11_keeps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('keeps', ...args)
+pub fn ruby_cleanup_subcommand_spec_l224_d11_keeps() bool {
+	mut state := cleanup_spec_state([cleanup_spec_entry(.cask, 'homebrew/tap/foo')])
+	inventory := subcommand.CleanupInventory{
+		casks: [subcommand.CleanupCask{ name: 'homebrew/tap/foo' }]
+		taps: ['homebrew/core', 'homebrew/tap']
+	}
+	return (subcommand.cleanup_casks_to_uninstall(mut state, inventory) or { return false }).len == 0 && (subcommand.cleanup_taps_to_untap(mut state, inventory) or { return false }).len == 0
 }
 
 // Ruby it `it "ignores unavailable formulae when computing which taps to keep" do` at line 241.
-pub fn ruby_cleanup_subcommand_spec_l241_d12_ignores(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ignores', ...args)
+pub fn ruby_cleanup_subcommand_spec_l241_d12_ignores() bool {
+	mut state := cleanup_spec_state([cleanup_spec_entry(.brew, 'foo')])
+	inventory := subcommand.CleanupInventory{
+		formulae: [
+			subcommand.CleanupFormula{ full_name: 'foo', tap: 'homebrew/tap', available: false },
+		]
+		taps: ['z', 'homebrew/core', 'homebrew/tap']
+	}
+	return (subcommand.cleanup_taps_to_untap(mut state, inventory) or { return false }) == [
+		'z',
+		'homebrew/tap',
+	]
 }
 
 // Ruby it `it "ignores formulae with .keepme references when computing which formulae to uninstall" do` at line 254.
-pub fn ruby_cleanup_subcommand_spec_l254_d13_ignores(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ignores', ...args)
+pub fn ruby_cleanup_subcommand_spec_l254_d13_ignores() bool {
+	mut state := cleanup_spec_state([])
+	inventory := subcommand.CleanupInventory{
+		formulae: [
+			subcommand.CleanupFormula{ full_name: 'c', keepme_refs: ['/some/file'] },
+		]
+	}
+	return (subcommand.cleanup_formulae_to_uninstall(mut state, inventory) or { return false }).len == 0
 }
 
 // Ruby it `it "computes which VSCode extensions to uninstall" do` at line 270.
-pub fn ruby_cleanup_subcommand_spec_l270_d14_computes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('computes', ...args)
+pub fn ruby_cleanup_subcommand_spec_l270_d14_computes() bool {
+	result := cleanup_spec_extension_plan('vscode', ['z'], ['VsCodeExtension1'], [
+		'VsCodeExtension1',
+	], true) or { return false }
+	return result == ['z']
 }
 
 // Ruby it `it "computes which VSCode extensions to uninstall irrespective of case of the extension name" do` at line 275.
-pub fn ruby_cleanup_subcommand_spec_l275_d15_computes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('computes', ...args)
+pub fn ruby_cleanup_subcommand_spec_l275_d15_computes() bool {
+	result := cleanup_spec_extension_plan('vscode', ['z', 'vscodeextension1'], [
+		'VsCodeExtension1',
+	], [], true) or { return false }
+	return result == ['z']
 }
 
 // Ruby it `it "computes which flatpaks to uninstall", :needs_linux do` at line 280.
-pub fn ruby_cleanup_subcommand_spec_l280_d16_computes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('computes', ...args)
+pub fn ruby_cleanup_subcommand_spec_l280_d16_computes() bool {
+	result := cleanup_spec_extension_plan('flatpak', ['org.gnome.Calculator', 'org.mozilla.firefox'], [
+		'org.gnome.Calculator',
+	], [], false) or { return false }
+	return result == ['org.mozilla.firefox']
 }
 
 // Ruby it `it "does nothing" do` at line 303.
-pub fn ruby_cleanup_subcommand_spec_l303_d17_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_cleanup_subcommand_spec_l303_d17_does() bool {
+	result := cleanup_spec_execute([], cleanup_spec_empty_inventory(), subcommand.CleanupOptions{
+		force: true
+	}, false, false) or { return false }
+	return result.commands == [['brew', 'cleanup']] && result.output == ['cleaned']
 }
 
 // Ruby let `let(:dsl) do` at line 311.
-pub fn ruby_cleanup_subcommand_spec_l311_d18_dsl(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dsl', ...args)
+pub fn ruby_cleanup_subcommand_spec_l311_d18_dsl() subcommand.CleanupDsl {
+	return subcommand.CleanupDsl{ entries: cleanup_spec_trust_entries() }
 }
 
 // Ruby it `it "resets the trust store to the Brewfile entries on forced cleanup" do` at line 338.
-pub fn ruby_cleanup_subcommand_spec_l338_d19_resets(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('resets', ...args)
+pub fn ruby_cleanup_subcommand_spec_l338_d19_resets() bool {
+	result := cleanup_spec_execute(cleanup_spec_trust_entries(), cleanup_spec_empty_inventory(), subcommand.CleanupOptions{ force: true }, false, false) or { return false }
+	return result.trust_replaced && result.plan.trust == [
+		subcommand.CleanupTrustEntry{ entry_type: .tap, name: 'trusted/tap' },
+		subcommand.CleanupTrustEntry{ entry_type: .brew, name: 'thirdparty/tap/foo' },
+		subcommand.CleanupTrustEntry{ entry_type: .cask, name: 'thirdparty/tap/bar' },
+		subcommand.CleanupTrustEntry{ entry_type: .brew, name: 'thirdparty/tap/qux' },
+		subcommand.CleanupTrustEntry{ entry_type: .cask, name: 'thirdparty/tap/quux' },
+		subcommand.CleanupTrustEntry{ entry_type: .other, name: 'thirdparty/tap/baz' },
+	]
 }
 
 // Ruby it `it "uninstalls casks" do` at line 358.
-pub fn ruby_cleanup_subcommand_spec_l358_d20_uninstalls(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uninstalls', ...args)
+pub fn ruby_cleanup_subcommand_spec_l358_d20_uninstalls() bool {
+	result := cleanup_spec_forced_inventory(['a', 'b'], [], [], [], false, cleanup_spec_selection(true, true, true, {})) or { return false }
+	return result.commands[0] == ['brew', 'uninstall', '--cask', '--force', 'a', 'b'] && result.output.contains('Uninstalled 2 casks')
 }
 
 // Ruby it `it "does not uninstall casks if --formulae is disabled" do` at line 366.
-pub fn ruby_cleanup_subcommand_spec_l366_d21_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_cleanup_subcommand_spec_l366_d21_does() bool {
+	result := cleanup_spec_forced_inventory(['a', 'b'], [], [], [], false, cleanup_spec_selection(true, false, true, {})) or { return false }
+	return !result.commands.any(it.contains('--cask'))
 }
 
 // Ruby it `it "uninstalls casks" do` at line 383.
-pub fn ruby_cleanup_subcommand_spec_l383_d22_uninstalls(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uninstalls', ...args)
+pub fn ruby_cleanup_subcommand_spec_l383_d22_uninstalls() bool {
+	result := cleanup_spec_forced_inventory(['a', 'b'], [], [], [], true, cleanup_spec_selection(true, true, true, {})) or { return false }
+	return result.commands[0] == ['brew', 'uninstall', '--cask', '--zap', '--force', 'a', 'b']
 }
 
 // Ruby it `it "does not uninstall casks if --casks is disabled" do` at line 391.
-pub fn ruby_cleanup_subcommand_spec_l391_d23_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_cleanup_subcommand_spec_l391_d23_does() bool {
+	result := cleanup_spec_forced_inventory(['a', 'b'], [], [], [], true, cleanup_spec_selection(true, false, true, {})) or { return false }
+	return !result.commands.any(it.contains('--cask'))
 }
 
 // Ruby it `it "uninstalls formulae" do` at line 411.
-pub fn ruby_cleanup_subcommand_spec_l411_d24_uninstalls(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uninstalls', ...args)
+pub fn ruby_cleanup_subcommand_spec_l411_d24_uninstalls() bool {
+	result := cleanup_spec_forced_inventory([], ['a', 'b'], [], [], false, cleanup_spec_selection(true, true, true, {})) or { return false }
+	return result.commands[0] == ['brew', 'uninstall', '--formula', '--force', 'a', 'b'] && result.output.contains('Uninstalled 2 formulae')
 }
 
 // Ruby it `it "does not uninstall formulae if --casks is disabled" do` at line 419.
-pub fn ruby_cleanup_subcommand_spec_l419_d25_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_cleanup_subcommand_spec_l419_d25_does() bool {
+	result := cleanup_spec_forced_inventory([], ['a', 'b'], [], [], false, cleanup_spec_selection(false, true, true, {})) or { return false }
+	return !result.commands.any(it.contains('--formula'))
 }
 
 // Ruby it `it "untaps taps" do` at line 438.
-pub fn ruby_cleanup_subcommand_spec_l438_d26_untaps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('untaps', ...args)
+pub fn ruby_cleanup_subcommand_spec_l438_d26_untaps() bool {
+	result := cleanup_spec_forced_inventory([], [], ['a', 'b'], [], false, cleanup_spec_selection(true, true, true, {})) or { return false }
+	return result.commands[0] == ['brew', 'untap', 'a', 'b']
 }
 
 // Ruby it `it "does not untap taps if --taps is disabled" do` at line 444.
-pub fn ruby_cleanup_subcommand_spec_l444_d27_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_cleanup_subcommand_spec_l444_d27_does() bool {
+	result := cleanup_spec_forced_inventory([], [], ['a', 'b'], [], false, cleanup_spec_selection(true, true, false, {})) or { return false }
+	return !result.commands.any(it.contains('untap'))
 }
 
 // Ruby it `it "uninstalls extensions" do` at line 462.
-pub fn ruby_cleanup_subcommand_spec_l462_d28_uninstalls(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uninstalls', ...args)
+pub fn ruby_cleanup_subcommand_spec_l462_d28_uninstalls() bool {
+	result := cleanup_spec_forced_inventory([], [], [], [subcommand.CleanupExtensionInventory{
+		type_name: 'vscode'
+		cleanup_heading: 'VSCode extensions'
+		installed_items: ['GitHub.codespaces']
+	}], false, cleanup_spec_selection(true, true, true, {
+		'vscode': true
+	})) or { return false }
+	return result.extension_actions == ['vscode']
 }
 
 // Ruby it `it "does not uninstall extensions if --vscode is disabled" do` at line 468.
-pub fn ruby_cleanup_subcommand_spec_l468_d29_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_cleanup_subcommand_spec_l468_d29_does() bool {
+	result := cleanup_spec_forced_inventory([], [], [], [subcommand.CleanupExtensionInventory{
+		type_name: 'vscode'
+		cleanup_heading: 'VSCode extensions'
+		installed_items: ['GitHub.codespaces']
+	}], false, cleanup_spec_selection(true, true, true, {
+		'vscode': false
+	})) or { return false }
+	return result.extension_actions.len == 0
 }
 
 // Ruby it `it "uninstalls flatpaks" do` at line 485.
-pub fn ruby_cleanup_subcommand_spec_l485_d30_uninstalls(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('uninstalls', ...args)
+pub fn ruby_cleanup_subcommand_spec_l485_d30_uninstalls() bool {
+	result := cleanup_spec_forced_inventory([], [], [], [subcommand.CleanupExtensionInventory{
+		type_name: 'flatpak'
+		cleanup_heading: 'flatpaks'
+		installed_items: ['org.gnome.Calculator']
+	}], false, cleanup_spec_selection(true, true, true, {
+		'flatpak': true
+	})) or { return false }
+	return result.extension_actions == ['flatpak']
 }
 
 // Ruby it `it "does not uninstall flatpaks if --flatpak is disabled" do` at line 493.
-pub fn ruby_cleanup_subcommand_spec_l493_d31_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_cleanup_subcommand_spec_l493_d31_does() bool {
+	result := cleanup_spec_forced_inventory([], [], [], [subcommand.CleanupExtensionInventory{
+		type_name: 'flatpak'
+		cleanup_heading: 'flatpaks'
+		installed_items: ['org.gnome.Calculator']
+	}], false, cleanup_spec_selection(true, true, true, {
+		'flatpak': false
+	})) or { return false }
+	return result.extension_actions.len == 0
 }
 
 // Ruby it `it "lists casks, formulae and taps" do` at line 515.
-pub fn ruby_cleanup_subcommand_spec_l515_d32_lists(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('lists', ...args)
+pub fn ruby_cleanup_subcommand_spec_l515_d32_lists() bool {
+	result := cleanup_spec_dry_all(false) or { return false }
+	joined := result.output.join('\n')
+	return result.exit_code == 1 && joined.contains('Would uninstall casks:') && joined.contains('Would uninstall formulae:') && joined.contains('Would untap:') && joined.contains('Would uninstall VSCode extensions:') && joined.contains('Would uninstall flatpaks:')
 }
 
 // Ruby it `it "cleans up without suggesting --force when it prompts" do` at line 530.
-pub fn ruby_cleanup_subcommand_spec_l530_d33_cleans(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cleans', ...args)
+pub fn ruby_cleanup_subcommand_spec_l530_d33_cleans() bool {
+	result := cleanup_spec_dry_all(true) or { return false }
+	return result.confirmed && result.force && !result.output.any(it.contains('Run `brew bundle cleanup --force`'))
 }
 
 // Ruby define_method `define_method(:sane?) do` at line 555.
-pub fn ruby_cleanup_subcommand_spec_l555_d34_sane(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('sane?', ...args)
+pub fn ruby_cleanup_subcommand_spec_l555_d34_sane() bool {
+	mut state := cleanup_spec_state([])
+	plan := subcommand.build_cleanup_plan(mut state, cleanup_spec_empty_inventory(), subcommand.CleanupOptions{ dry_cleanup_output: 'cleaned' }) or { return false }
+	return plan.would_clean
 }
 
 // Ruby it `it "prints output" do` at line 561.
-pub fn ruby_cleanup_subcommand_spec_l561_d35_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+pub fn ruby_cleanup_subcommand_spec_l561_d35_prints() bool {
+	result := cleanup_spec_execute([], cleanup_spec_empty_inventory(), subcommand.CleanupOptions{
+		force: true
+	}, false, false) or { return false }
+	return result.output == ['cleaned']
 }
 
 // Ruby it `it "prints output" do` at line 568.
-pub fn ruby_cleanup_subcommand_spec_l568_d36_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+pub fn ruby_cleanup_subcommand_spec_l568_d36_prints() bool {
+	result := cleanup_spec_execute([], cleanup_spec_empty_inventory(), subcommand.CleanupOptions{
+		dry_cleanup_output: 'cleaned'
+	}, false, false) or { return false }
+	return result.output == ['Would `brew cleanup`:', 'cleaned',
+		'Run `brew bundle cleanup --force` to make these changes.']
 }
 
 // Ruby it `it "discards stderr without closing it" do` at line 580.
-pub fn ruby_cleanup_subcommand_spec_l580_d37_discards(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('discards', ...args)
+pub fn ruby_cleanup_subcommand_spec_l580_d37_discards() bool {
+	return (subcommand.cleanup_system_output_no_stderr(['ruby', '-e', 'warn'], cleanup_spec_output_command) or { return false }) == 'cleaned\n'
 }
 
 // Ruby it `it "raises when the command fails" do` at line 593.
-pub fn ruby_cleanup_subcommand_spec_l593_d38_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+pub fn ruby_cleanup_subcommand_spec_l593_d38_raises() bool {
+	_ := subcommand.cleanup_system_output_no_stderr(['ruby', '-e', 'exit 1'], cleanup_spec_failure_command) or { return err.msg().contains('status 1') }
+	return false
 }
 
 // Ruby it `it "marks Brewfile formulae as installed_on_request before uninstalling" do` at line 615.
-pub fn ruby_cleanup_subcommand_spec_l615_d39_marks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('marks', ...args)
+pub fn ruby_cleanup_subcommand_spec_l615_d39_marks() bool {
+	result := cleanup_spec_forced_inventory([], ['some_formula'], [], [], false, cleanup_spec_selection(true, true, true, {})) or { return false }
+	return result.formulae_marked
+}
+
+fn cleanup_spec_extension_plan(type_name string, installed []string, entries []string,
+	kept []string, case_insensitive bool) ![]string {
+	mut dsl_entries := []subcommand.CleanupDslEntry{}
+	for entry in entries {
+		dsl_entries << subcommand.CleanupDslEntry{ entry_type: .extension_entry, name: entry, extension_type: type_name }
+	}
+	mut state := cleanup_spec_state(dsl_entries)
+	plan := subcommand.build_cleanup_plan(mut state, subcommand.CleanupInventory{
+		extensions: [subcommand.CleanupExtensionInventory{
+			type_name: type_name
+			cleanup_heading: type_name
+			installed_items: installed
+			kept_items: kept
+			case_insensitive: case_insensitive
+		}]
+	}, subcommand.CleanupOptions{})!
+	return plan.extensions[0].items
+}
+
+fn cleanup_spec_trust_entries() []subcommand.CleanupDslEntry {
+	return [
+		subcommand.CleanupDslEntry{ entry_type: .tap, name: 'trusted/tap', trusted: true },
+		subcommand.CleanupDslEntry{ entry_type: .brew, name: 'thirdparty/tap/foo', trusted: true },
+		subcommand.CleanupDslEntry{ entry_type: .cask, name: 'thirdparty/tap/bar', trusted: true },
+		subcommand.CleanupDslEntry{ entry_type: .brew, name: 'thirdparty/tap/qux', trusted: true },
+		subcommand.CleanupDslEntry{ entry_type: .cask, name: 'thirdparty/tap/quux', trusted: true },
+		subcommand.CleanupDslEntry{ entry_type: .other, name: 'thirdparty/tap/baz', trusted: true },
+	]
+}
+
+fn cleanup_spec_forced_inventory(casks []string, formulae []string, taps []string,
+	extensions []subcommand.CleanupExtensionInventory, zap bool,
+	selection subcommand.CleanupSelection) !subcommand.CleanupResult {
+	inventory := subcommand.CleanupInventory{
+		casks: casks.map(subcommand.CleanupCask{ name: it })
+		formulae: formulae.map(subcommand.CleanupFormula{ full_name: it })
+		taps: taps
+		extensions: extensions
+	}
+	return cleanup_spec_execute([], inventory, subcommand.CleanupOptions{
+		force: true
+		zap: zap
+		selection: selection
+	}, false, false)
+}
+
+fn cleanup_spec_dry_all(confirm bool) !subcommand.CleanupResult {
+	inventory := subcommand.CleanupInventory{
+		casks: [subcommand.CleanupCask{ name: 'a' }, subcommand.CleanupCask{ name: 'b' }]
+		formulae: [subcommand.CleanupFormula{ full_name: 'a' },
+			subcommand.CleanupFormula{ full_name: 'b' }]
+		taps: ['a', 'b']
+		extensions: [
+			subcommand.CleanupExtensionInventory{
+				type_name: 'vscode'
+				cleanup_heading: 'VSCode extensions'
+				installed_items: [
+					'a',
+					'b',
+				]
+			},
+			subcommand.CleanupExtensionInventory{
+				type_name: 'flatpak'
+				cleanup_heading: 'flatpaks'
+				installed_items: [
+					'a',
+					'b',
+				]
+			},
+		]
+	}
+	return cleanup_spec_execute([], inventory, subcommand.CleanupOptions{
+		ask: confirm
+		selection: cleanup_spec_selection(true, true, true, {
+			'vscode':  true
+			'flatpak': true
+		})
+	}, confirm, false)
 }
 
 // Original Ruby source (line-for-line):

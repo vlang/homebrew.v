@@ -1,53 +1,233 @@
 module cmd
 
-import brew_runtime
+import homebrew
+import homebrew.cmd as brew_cmd
 
 // Translated from Homebrew/brew `test/cmd/config_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+fn config_spec_command_probe(command homebrew.SystemConfigCommand) !homebrew.SystemConfigCommandResult {
+	if command.executable == 'curl' {
+		return homebrew.SystemConfigCommandResult{
+			stdout: 'curl 8.14.1 (test)\n'
+		}
+	}
+	if command.executable == 'uname' {
+		return homebrew.SystemConfigCommandResult{
+			stdout: if command.arguments == ['-m'] {
+				'x86_64\n'} else {
+				'Linux test 6.16 x86_64\n'}
+		}
+	}
+	if command.arguments.contains('reg') {
+		return homebrew.SystemConfigCommandResult{
+			stdout: 'HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\n    ProductName    REG_SZ    Windows 10 Pro\n    DisplayVersion    REG_SZ    25H2\n    CurrentBuildNumber    REG_SZ    26200\n    UBR    REG_DWORD    0x2109\n'
+		}
+	}
+	if command.arguments.contains('ver') {
+		return homebrew.SystemConfigCommandResult{
+			stdout: '\r\nMicrosoft Windows [Version 10.0.26200.8457]\r\n'
+		}
+	}
+	return error('unexpected command: ${command.executable} ${command.arguments}')
+}
+
+fn config_spec_context(environment []homebrew.SystemConfigEnvVariable,
+	host homebrew.SystemConfigHost) homebrew.SystemConfigContext {
+	return homebrew.SystemConfigContext{
+		homebrew_version: '5.0.0-test'
+		homebrew_prefix: '/home/linuxbrew/.linuxbrew'
+		homebrew_repository: '/home/linuxbrew/.linuxbrew/Homebrew'
+		default_repository: '/home/linuxbrew/.linuxbrew/Homebrew'
+		homebrew_cellar: '/home/linuxbrew/.linuxbrew/Cellar'
+		default_cellar: '/home/linuxbrew/.linuxbrew/Cellar'
+		ruby_version: '3.4.5'
+		ruby_path: '/home/linuxbrew/.linuxbrew/Library/Homebrew/vendor/portable-ruby/current/bin/ruby'
+		development_tools_installed: true
+		clang_version: '18.1.8'
+		clang_build_version: '1801.8'
+		repository: homebrew.SystemConfigRepository{
+			path: '/home/linuxbrew/.linuxbrew/Homebrew'
+			origin: 'https://github.com/Homebrew/brew'
+			head: homebrew.SystemConfigGitHead{
+				head: '0123456789abcdef'
+				last_commit: '2 hours ago'
+				branch: 'main'
+			}
+		}
+		hardware: homebrew.SystemConfigHardware{
+			known: true
+			cores_as_words: '8'
+			bits: 64
+			family: 'zen4'
+		}
+		git: homebrew.SystemConfigTool{
+			available: true
+			version: '2.51.0'
+			path: '/usr/bin/git'
+		}
+		curl: homebrew.SystemConfigTool{
+			available: true
+			version: '8.14.1'
+			path: '/usr/bin/curl'
+			executable: 'curl'
+		}
+		core_tap: homebrew.SystemConfigTap{
+			kind: .core
+			installed: false
+			json_modified_utc: '29 Aug 12:00 UTC'
+		}
+		core_cask_tap: homebrew.SystemConfigTap{
+			kind: .core_cask
+			installed: false
+		}
+		environment: environment
+		host: host
+	}
+}
+
+fn config_spec_linux_host(wsl bool, landlock ?int) homebrew.SystemConfigHost {
+	return homebrew.SystemConfigHost{
+		platform: .linux
+		os_version: 'Ubuntu 24.04.3 LTS'
+		wsl: wsl
+		wsl_version: if wsl { '2' } else { '' }
+		windows_cmd: '/tmp/cmd.exe'
+		windows_cmd_executable: wsl
+		landlock_abi: landlock
+		host_glibc: '2.39'
+		host_libstdcxx: '14.2.0'
+		host_gcc_path: '/usr/bin/gcc'
+		host_gcc_version: '13.3.0'
+		host_ruby_version: '3.2.3'
+		linked_formulae: [
+			homebrew.SystemConfigLinkedFormula{ name: 'glibc', version: '2.39' },
+			homebrew.SystemConfigLinkedFormula{ name: 'gcc', version: '14.2.0' },
+		]
+	}
+}
+
+fn render_delayed_config_section(section homebrew.SystemConfigSection) !string {
+	return match section {
+		.homebrew_config { 'first\n' }
+		.host_software_config { 'second\n' }
+		else { '' }
+	}
+}
+
+fn config_spec_command_output() !string {
+	state := homebrew.new_system_config(config_spec_context([], config_spec_linux_host(false, 6)))
+	return homebrew.system_config_dump_verbose(state, config_spec_command_probe)
+}
 
 // Ruby let `let(:windows_cmd) do` at line 8.
-pub fn ruby_config_spec_l8_d1_windows_cmd(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('windows_cmd', ...args)
+pub fn ruby_config_spec_l8_d1_windows_cmd() string {
+	return '/tmp/cmd.exe'
 }
 
 // Ruby it `it "prints information about the current Homebrew configuration", :integration_test do` at line 17.
-pub fn ruby_config_spec_l17_d2_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+pub fn ruby_config_spec_l17_d2_prints() bool {
+	output := brew_cmd.config_command_output(config_spec_command_output) or { return false }
+	return output.contains('HOMEBREW_VERSION: 5.0.0-test')
 }
 
 // Ruby it `it "prints HOMEBREW_CASK_OPTS_REQUIRE_SHA in env config output when set" do` at line 24.
-pub fn ruby_config_spec_l24_d3_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+pub fn ruby_config_spec_l24_d3_prints() bool {
+	state := homebrew.new_system_config(config_spec_context([
+		homebrew.SystemConfigEnvVariable{
+			name: 'HOMEBREW_CASK_OPTS_REQUIRE_SHA'
+			value: '1'
+			directly_set: true
+		},
+	], homebrew.SystemConfigHost{}))
+	return homebrew.system_config_homebrew_environment(state).contains('HOMEBREW_CASK_OPTS_REQUIRE_SHA: 1')
 }
 
 // Ruby it `it "prints only environment variables with non-default values" do` at line 37.
-pub fn ruby_config_spec_l37_d4_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+pub fn ruby_config_spec_l37_d4_prints() bool {
+	state := homebrew.new_system_config(config_spec_context([
+		homebrew.SystemConfigEnvVariable{
+			name: 'HOMEBREW_API_AUTO_UPDATE_SECS'
+			value: '450'
+			default_value: '450'
+			directly_set: true
+		},
+		homebrew.SystemConfigEnvVariable{
+			name: 'HOMEBREW_BUNDLE_DESCRIBE'
+			value: 'false'
+			boolean_mode: .falsy_values
+			default_bool: true
+			directly_set: true
+		},
+		homebrew.SystemConfigEnvVariable{
+			name: 'HOMEBREW_CURL_RETRIES'
+			value: '4'
+			default_value: '3'
+			directly_set: true
+		},
+		homebrew.SystemConfigEnvVariable{
+			name: 'HOMEBREW_REQUIRE_TAP_TRUST'
+			value: '1'
+			boolean_mode: .set
+			default_bool: true
+			directly_set: true
+		},
+		homebrew.SystemConfigEnvVariable{
+			name: 'HOMEBREW_EDITOR'
+			value: 'vim'
+			directly_set: false
+		},
+	], homebrew.SystemConfigHost{}))
+	output := homebrew.system_config_homebrew_environment(state)
+	return output.contains('HOMEBREW_BUNDLE_DESCRIBE: false\n') && output.contains('HOMEBREW_CURL_RETRIES: 4\n') && !output.contains('HOMEBREW_API_AUTO_UPDATE_SECS') && !output.contains('HOMEBREW_REQUIRE_TAP_TRUST') && !output.contains('HOMEBREW_EDITOR')
 }
 
 // Ruby it `it "reads the Windows version on WSL", :needs_linux do` at line 59.
-pub fn ruby_config_spec_l59_d5_reads(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reads', ...args)
+pub fn ruby_config_spec_l59_d5_reads() bool {
+	state := homebrew.new_system_config(config_spec_context([], config_spec_linux_host(true, 6)))
+	return homebrew.system_config_windows_version(state, config_spec_command_probe) or { return false } == 'Windows 11 Pro (25H2) [26200.8457]'
 }
 
 // Ruby it `it "prints the Windows version in config output on WSL", :needs_linux do` at line 76.
-pub fn ruby_config_spec_l76_d6_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+pub fn ruby_config_spec_l76_d6_prints() bool {
+	state := homebrew.new_system_config(config_spec_context([], config_spec_linux_host(true, 6)))
+	output := homebrew.system_config_dump_verbose(state, config_spec_command_probe) or { return false }
+	return output.contains('Windows: Windows 11 Pro (25H2) [26200.8457]\n')
 }
 
 // Ruby it `it "prints the Landlock ABI in config output", :needs_linux do` at line 95.
-pub fn ruby_config_spec_l95_d7_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+pub fn ruby_config_spec_l95_d7_prints() bool {
+	state := homebrew.new_system_config(config_spec_context([], config_spec_linux_host(false, 6)))
+	output := homebrew.system_config_dump_verbose(state, config_spec_command_probe) or { return false }
+	return output.contains('Landlock ABI: 6\n')
 }
 
 // Ruby it `it "prints config sections in order" do` at line 112.
-pub fn ruby_config_spec_l112_d8_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prints', ...args)
+pub fn ruby_config_spec_l112_d8_prints() bool {
+	output := homebrew.render_system_config_sections_ordered([
+		.homebrew_config,
+		.host_software_config,
+	], render_delayed_config_section) or { return false }
+	return output == 'first\nsecond\n'
 }
 
 // Ruby it `it "does not print HOMEBREW_EVAL_ALL unless it is directly set" do` at line 127.
-pub fn ruby_config_spec_l127_d9_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_config_spec_l127_d9_does() bool {
+	state := homebrew.new_system_config(config_spec_context([
+		homebrew.SystemConfigEnvVariable{
+			name: 'HOMEBREW_REQUIRE_TAP_TRUST'
+			value: '1'
+			boolean_mode: .set
+			default_bool: true
+			directly_set: true
+		},
+		homebrew.SystemConfigEnvVariable{
+			name: 'HOMEBREW_EVAL_ALL'
+			value: '1'
+			boolean_mode: .falsy_values
+			directly_set: false
+		},
+	], homebrew.SystemConfigHost{}))
+	return !homebrew.system_config_homebrew_environment(state).contains('HOMEBREW_EVAL_ALL')
 }
 
 // Original Ruby source (line-for-line):

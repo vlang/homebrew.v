@@ -7,7 +7,15 @@ import brew_runtime
 
 // Ruby method `deep_dup` at line 17.
 pub fn ruby_deep_dup_l17_d1_deep_dup(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('deep_dup', ...args)
+	if args.len == 0 {
+		return brew_runtime.Value{}
+	}
+	return brew_runtime.Value{
+		...args[0]
+		string_array_data: args[0].string_array_data.clone()
+		array_data:        args[0].array_data.clone()
+		attributes:        args[0].attributes.clone()
+	}
 }
 
 // Original Ruby source (line-for-line):

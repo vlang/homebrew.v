@@ -1,108 +1,159 @@
 module test
 
 import brew_runtime
+import homebrew
 
 // Translated from Homebrew/brew `test/bump_version_parser_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby let `let(:general_version) { "1.2.3" }` at line 7.
-pub fn ruby_bump_version_parser_spec_l7_d1_general_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('general_version', ...args)
+pub fn ruby_bump_version_parser_spec_l7_d1_general_version() string {
+	return '1.2.3'
 }
 
 // Ruby let `let(:intel_version) { "2.3.4" }` at line 8.
-pub fn ruby_bump_version_parser_spec_l8_d2_intel_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('intel_version', ...args)
+pub fn ruby_bump_version_parser_spec_l8_d2_intel_version() string {
+	return '2.3.4'
 }
 
 // Ruby let `let(:arm_version) { "3.4.5" }` at line 9.
-pub fn ruby_bump_version_parser_spec_l9_d3_arm_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('arm_version', ...args)
+pub fn ruby_bump_version_parser_spec_l9_d3_arm_version() string {
+	return '3.4.5'
 }
 
 // Ruby it `it "raises a usage error" do` at line 12.
-pub fn ruby_bump_version_parser_spec_l12_d4_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+pub fn ruby_bump_version_parser_spec_l12_d4_raises() bool {
+	homebrew.new_bump_version_parser(none, none, none) or {
+		return err.msg() == 'Invalid usage: `--version` must not be empty.'
+	}
+	return false
 }
 
 // Ruby let `let(:new_version_arm) { described_class.new(arm: arm_version) }` at line 21.
-pub fn ruby_bump_version_parser_spec_l21_d5_new_version_arm(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('new_version_arm', ...args)
+pub fn ruby_bump_version_parser_spec_l21_d5_new_version_arm() !homebrew.BumpVersionParser {
+	return homebrew.new_bump_version_parser_from_strings(none, ruby_bump_version_parser_spec_l9_d3_arm_version(), none)
 }
 
 // Ruby it `it "correctly parses arm version" do` at line 23.
-pub fn ruby_bump_version_parser_spec_l23_d6_correctly(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('correctly', ...args)
+pub fn ruby_bump_version_parser_spec_l23_d6_correctly() bool {
+	parser := ruby_bump_version_parser_spec_l21_d5_new_version_arm() or { return false }
+	return bump_version_spec_text(parser.arm) == ruby_bump_version_parser_spec_l9_d3_arm_version()
 }
 
 // Ruby let `let(:new_version_intel) { described_class.new(intel: intel_version) }` at line 29.
-pub fn ruby_bump_version_parser_spec_l29_d7_new_version_intel(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('new_version_intel', ...args)
+pub fn ruby_bump_version_parser_spec_l29_d7_new_version_intel() !homebrew.BumpVersionParser {
+	return homebrew.new_bump_version_parser_from_strings(none, none, ruby_bump_version_parser_spec_l8_d2_intel_version())
 }
 
 // Ruby it `it "correctly parses intel version" do` at line 31.
-pub fn ruby_bump_version_parser_spec_l31_d8_correctly(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('correctly', ...args)
+pub fn ruby_bump_version_parser_spec_l31_d8_correctly() bool {
+	parser := ruby_bump_version_parser_spec_l29_d7_new_version_intel() or { return false }
+	return bump_version_spec_text(parser.intel) == ruby_bump_version_parser_spec_l8_d2_intel_version()
 }
 
 // Ruby let `let(:new_version_arm_intel) { described_class.new(arm: arm_version, intel: intel_version) }` at line 37.
-pub fn ruby_bump_version_parser_spec_l37_d9_new_version_arm_intel(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('new_version_arm_intel', ...args)
+pub fn ruby_bump_version_parser_spec_l37_d9_new_version_arm_intel() !homebrew.BumpVersionParser {
+	return homebrew.new_bump_version_parser_from_strings(none, ruby_bump_version_parser_spec_l9_d3_arm_version(), ruby_bump_version_parser_spec_l8_d2_intel_version())
 }
 
 // Ruby it `it "correctly parses arm and intel versions" do` at line 39.
-pub fn ruby_bump_version_parser_spec_l39_d10_correctly(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('correctly', ...args)
+pub fn ruby_bump_version_parser_spec_l39_d10_correctly() bool {
+	parser := ruby_bump_version_parser_spec_l37_d9_new_version_arm_intel() or {
+		return false
+	}
+	return bump_version_spec_text(parser.arm) == ruby_bump_version_parser_spec_l9_d3_arm_version() && bump_version_spec_text(parser.intel) == ruby_bump_version_parser_spec_l8_d2_intel_version()
 }
 
 // Ruby let `let(:new_version) { described_class.new(general: general_version, arm: arm_version, intel: intel_version) }` at line 46.
-pub fn ruby_bump_version_parser_spec_l46_d11_new_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('new_version', ...args)
+pub fn ruby_bump_version_parser_spec_l46_d11_new_version() !homebrew.BumpVersionParser {
+	return homebrew.new_bump_version_parser_from_strings(ruby_bump_version_parser_spec_l7_d1_general_version(), ruby_bump_version_parser_spec_l9_d3_arm_version(), ruby_bump_version_parser_spec_l8_d2_intel_version())
 }
 
 // Ruby let `let(:new_version_version) do` at line 47.
-pub fn ruby_bump_version_parser_spec_l47_d12_new_version_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('new_version_version', ...args)
+pub fn ruby_bump_version_parser_spec_l47_d12_new_version_version() !homebrew.BumpVersionParser {
+	general := homebrew.new_version(ruby_bump_version_parser_spec_l7_d1_general_version())!
+	arm := homebrew.new_version(ruby_bump_version_parser_spec_l9_d3_arm_version())!
+	intel := homebrew.new_version(ruby_bump_version_parser_spec_l8_d2_intel_version())!
+	return homebrew.new_bump_version_parser(homebrew.new_formula_bump_version(general), homebrew.new_formula_bump_version(arm), homebrew.new_formula_bump_version(intel))
 }
 
 // Ruby specify `specify do` at line 55.
-pub fn ruby_bump_version_parser_spec_l55_d13_do(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('do', ...args)
+pub fn ruby_bump_version_parser_spec_l55_d13_do() bool {
+	from_strings := ruby_bump_version_parser_spec_l46_d11_new_version() or { return false }
+	from_versions := ruby_bump_version_parser_spec_l47_d12_new_version_version() or {
+		return false
+	}
+	return bump_version_spec_text(from_strings.general) == ruby_bump_version_parser_spec_l7_d1_general_version() && bump_version_spec_text(from_versions.general) == ruby_bump_version_parser_spec_l7_d1_general_version() && bump_version_spec_text(from_strings.arm) == ruby_bump_version_parser_spec_l9_d3_arm_version() && bump_version_spec_text(from_versions.arm) == ruby_bump_version_parser_spec_l9_d3_arm_version() && bump_version_spec_text(from_strings.intel) == ruby_bump_version_parser_spec_l8_d2_intel_version() && bump_version_spec_text(from_versions.intel) == ruby_bump_version_parser_spec_l8_d2_intel_version() && bump_version_spec_source(from_versions.general) == .formula
 }
 
 // Ruby it `it "returns a version object for latest" do` at line 65.
-pub fn ruby_bump_version_parser_spec_l65_d14_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_bump_version_parser_spec_l65_d14_returns() bool {
+	parser := homebrew.new_bump_version_parser_from_strings('latest', none, none) or {
+		return false
+	}
+	version := parser.general or { return false }
+	return version.str() == 'latest' && version.latest && version.source == .cask
 }
 
 // Ruby it `it "returns a version object for the given version" do` at line 71.
-pub fn ruby_bump_version_parser_spec_l71_d15_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_bump_version_parser_spec_l71_d15_returns() bool {
+	parser := homebrew.new_bump_version_parser_from_strings(ruby_bump_version_parser_spec_l7_d1_general_version(), none, none) or {
+		return false
+	}
+	return bump_version_spec_text(parser.general) == ruby_bump_version_parser_spec_l7_d1_general_version()
 }
 
 // Ruby it `it "returns false if any version is present" do` at line 79.
-pub fn ruby_bump_version_parser_spec_l79_d16_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_bump_version_parser_spec_l79_d16_returns() bool {
+	parser := homebrew.new_bump_version_parser_from_strings(ruby_bump_version_parser_spec_l7_d1_general_version(), '', '') or {
+		return false
+	}
+	return !parser.is_blank() && parser.arm == none && parser.intel == none
 }
 
 // Ruby let `let(:new_version) { described_class.new(general: general_version, arm: arm_version, intel: intel_version) }` at line 87.
-pub fn ruby_bump_version_parser_spec_l87_d17_new_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('new_version', ...args)
+pub fn ruby_bump_version_parser_spec_l87_d17_new_version() !homebrew.BumpVersionParser {
+	return ruby_bump_version_parser_spec_l46_d11_new_version()
 }
 
 // Ruby it `it "returns false" do` at line 90.
-pub fn ruby_bump_version_parser_spec_l90_d18_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_bump_version_parser_spec_l90_d18_returns() bool {
+	parser := ruby_bump_version_parser_spec_l87_d17_new_version() or { return false }
+	equal := homebrew.ruby_bump_version_parser_l57_d8_anonymous(homebrew.bump_version_parser_value(parser), brew_runtime.object_value('Version', '1.2.3')).as_bool() or {
+		return false
+	}
+	return !equal
 }
 
 // Ruby it `it "returns true" do` at line 96.
-pub fn ruby_bump_version_parser_spec_l96_d19_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_bump_version_parser_spec_l96_d19_returns() bool {
+	parser := ruby_bump_version_parser_spec_l87_d17_new_version() or { return false }
+	same_version := ruby_bump_version_parser_spec_l46_d11_new_version() or { return false }
+	return parser.equals(same_version)
 }
 
 // Ruby it `it "returns false" do` at line 104.
-pub fn ruby_bump_version_parser_spec_l104_d20_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_bump_version_parser_spec_l104_d20_returns() bool {
+	parser := ruby_bump_version_parser_spec_l87_d17_new_version() or { return false }
+	different_versions := [
+		homebrew.new_bump_version_parser_from_strings('3.2.1', ruby_bump_version_parser_spec_l9_d3_arm_version(), ruby_bump_version_parser_spec_l8_d2_intel_version()) or { return false },
+		homebrew.new_bump_version_parser_from_strings(ruby_bump_version_parser_spec_l7_d1_general_version(), '4.3.2', ruby_bump_version_parser_spec_l8_d2_intel_version()) or { return false },
+		homebrew.new_bump_version_parser_from_strings(ruby_bump_version_parser_spec_l7_d1_general_version(), ruby_bump_version_parser_spec_l9_d3_arm_version(), '5.4.3') or { return false },
+		homebrew.new_bump_version_parser_from_strings('3.2.1', '4.3.2', ruby_bump_version_parser_spec_l8_d2_intel_version()) or { return false },
+		homebrew.new_bump_version_parser_from_strings(ruby_bump_version_parser_spec_l7_d1_general_version(), '4.3.2', '5.4.3') or { return false },
+		homebrew.new_bump_version_parser_from_strings('3.2.1', ruby_bump_version_parser_spec_l9_d3_arm_version(), '5.4.3') or { return false },
+	]
+	return different_versions.all(!parser.equals(it))
+}
+
+fn bump_version_spec_text(version ?homebrew.BumpVersion) string {
+	parsed := version or { return '' }
+	return parsed.str()
+}
+
+fn bump_version_spec_source(version ?homebrew.BumpVersion) homebrew.BumpVersionSource {
+	parsed := version or { return .cask }
+	return parsed.source
 }
 
 // Original Ruby source (line-for-line):

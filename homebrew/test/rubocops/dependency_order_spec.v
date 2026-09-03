@@ -1,83 +1,142 @@
 module rubocops
 
 import brew_runtime
+import homebrew.rubocops as dependency_order_core
 
 // Translated from Homebrew/brew `test/rubocops/dependency_order_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:cop) { described_class.new }` at line 7.
 pub fn ruby_dependency_order_spec_l7_d1_cop(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cop', ...args)
+	_ = args
+	return brew_runtime.object_value('RuboCop::Cop::FormulaAudit::DependencyOrder', 'FormulaAudit/DependencyOrder')
+}
+
+fn dependency_order_spec_formula(lines []string) string {
+	mut formula := ['class Foo < Formula', '  homepage "https://brew.sh"',
+		'  url "https://brew.sh/foo-1.0.tgz"']
+	formula << lines
+	formula << 'end'
+	return formula.join('\n') + '\n'
+}
+
+fn dependency_order_spec_single_move(method string, first string, second string,
+	first_name string, second_name string) bool {
+	source := dependency_order_spec_formula(['  ${method} ${first}', '  ${method} ${second}'])
+	problems := dependency_order_core.audit_dependency_order(source)
+	if problems.len != 1 {
+		return false
+	}
+	problem := problems[0]
+	expected := dependency_order_spec_formula(['  ${method} ${second}', '  ${method} ${first}'])
+	return problem.dependency == second_name && problem.other_dependency == first_name && problem.line == 5 && problem.other_line == 4 && problem.message == '`dependency "${second_name}"` (line 5) should be put before `dependency "${first_name}"` (line 4)' && dependency_order_core.correct_dependency_order(source) == expected
+}
+
+fn dependency_order_spec_scoped(method string, block string) bool {
+	source := dependency_order_spec_formula(['  ${block} do',
+		'    ${method} "apple" if build.with? "foo"', '    ${method} "bar"',
+		'    ${method} "foo" => :optional', '  end'])
+	problems := dependency_order_core.audit_dependency_order(source)
+	expected := dependency_order_spec_formula(['  ${block} do', '    ${method} "bar"',
+		'    ${method} "foo" => :optional', '    ${method} "apple" if build.with? "foo"', '  end'])
+	return problems.len == 2 && problems.map(it.dependency) == ['bar', 'foo'] && problems.map(it.other_dependency) == [
+		'apple',
+		'apple',
+	] && dependency_order_core.correct_dependency_order(source) == expected
+}
+
+fn dependency_order_spec_head_and_body(method string) bool {
+	source := dependency_order_spec_formula(['  head do',
+		'    ${method} "apple" if build.with? "foo"', '    ${method} "bar"',
+		'    ${method} "foo" => :optional', '  end', '  ${method} "apple" if build.with? "foo"',
+		'  ${method} "foo" => :optional'])
+	problems := dependency_order_core.audit_dependency_order(source)
+	expected := dependency_order_spec_formula(['  head do', '    ${method} "bar"',
+		'    ${method} "foo" => :optional', '    ${method} "apple" if build.with? "foo"', '  end',
+		'  ${method} "foo" => :optional', '  ${method} "apple" if build.with? "foo"'])
+	return problems.len == 3 && problems.map(it.dependency) == ['foo', 'bar', 'foo'] && dependency_order_core.correct_dependency_order(source) == expected
 }
 
 // Ruby it `it "reports and corrects incorrectly ordered conditional dependencies" do` at line 10.
-pub fn ruby_dependency_order_spec_l10_d2_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_dependency_order_spec_l10_d2_reports() bool {
+	return dependency_order_spec_single_move('uses_from_macos', '"apple" if build.with? "foo"', '"foo" => :optional', 'apple', 'foo')
 }
 
 // Ruby it `it "reports and corrects incorrectly ordered alphabetical dependencies" do` at line 31.
-pub fn ruby_dependency_order_spec_l31_d3_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_dependency_order_spec_l31_d3_reports() bool {
+	return dependency_order_spec_single_move('uses_from_macos', '"foo"', '"bar"', 'foo', 'bar')
 }
 
 // Ruby it `it "reports and corrects incorrectly ordered dependencies that are Requirements" do` at line 52.
-pub fn ruby_dependency_order_spec_l52_d4_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_dependency_order_spec_l52_d4_reports() bool {
+	return dependency_order_spec_single_move('uses_from_macos', 'FooRequirement', '"bar"', 'FooRequirement', 'bar')
 }
 
 // Ruby it `it "reports and corrects wrong conditional order within a spec block" do` at line 73.
-pub fn ruby_dependency_order_spec_l73_d5_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_dependency_order_spec_l73_d5_reports() bool {
+	return dependency_order_spec_head_and_body('uses_from_macos')
 }
 
 // Ruby it `it "reports no offenses if correct order for multiple tags" do` at line 106.
-pub fn ruby_dependency_order_spec_l106_d6_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_dependency_order_spec_l106_d6_reports() bool {
+	source := dependency_order_spec_formula([
+		'  uses_from_macos "bar" => [:build, :test]',
+		'  uses_from_macos "foo" => :build',
+		'  uses_from_macos "apple"',
+	])
+	return dependency_order_core.audit_dependency_order(source).len == 0
 }
 
 // Ruby it `it "reports and corrects wrong conditional order within a system block" do` at line 118.
-pub fn ruby_dependency_order_spec_l118_d7_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_dependency_order_spec_l118_d7_reports() bool {
+	return dependency_order_spec_scoped('uses_from_macos', 'on_arm')
 }
 
 // Ruby it `it "reports and corrects incorrectly ordered conditional dependencies" do` at line 148.
-pub fn ruby_dependency_order_spec_l148_d8_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_dependency_order_spec_l148_d8_reports() bool {
+	return dependency_order_spec_single_move('depends_on', '"apple" if build.with? "foo"', '"foo" => :optional', 'apple', 'foo')
 }
 
 // Ruby it `it "reports and corrects incorrectly ordered alphabetical dependencies" do` at line 169.
-pub fn ruby_dependency_order_spec_l169_d9_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_dependency_order_spec_l169_d9_reports() bool {
+	return dependency_order_spec_single_move('depends_on', '"foo"', '"bar"', 'foo', 'bar')
 }
 
 // Ruby it `it "reports and corrects incorrectly ordered dependencies that are Requirements" do` at line 190.
-pub fn ruby_dependency_order_spec_l190_d10_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_dependency_order_spec_l190_d10_reports() bool {
+	return dependency_order_spec_single_move('depends_on', 'FooRequirement', '"bar"', 'FooRequirement', 'bar')
 }
 
 // Ruby it `it "reports and corrects wrong conditional order within a spec block" do` at line 211.
-pub fn ruby_dependency_order_spec_l211_d11_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_dependency_order_spec_l211_d11_reports() bool {
+	return dependency_order_spec_head_and_body('depends_on')
 }
 
 // Ruby it `it "reports no offenses if correct order for multiple tags" do` at line 244.
-pub fn ruby_dependency_order_spec_l244_d12_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_dependency_order_spec_l244_d12_reports() bool {
+	source := dependency_order_spec_formula(['  depends_on "bar" => [:build, :test]',
+		'  depends_on "foo" => :build', '  depends_on "apple"'])
+	return dependency_order_core.audit_dependency_order(source).len == 0
 }
 
 // Ruby it `it "reports and corrects wrong conditional order within a system block" do` at line 256.
-pub fn ruby_dependency_order_spec_l256_d13_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_dependency_order_spec_l256_d13_reports() bool {
+	return dependency_order_spec_scoped('depends_on', 'on_linux')
 }
 
 // Ruby it `it "handles dynamic strings in depends_on" do` at line 284.
-pub fn ruby_dependency_order_spec_l284_d14_handles(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('handles', ...args)
+pub fn ruby_dependency_order_spec_l284_d14_handles() bool {
+	source := dependency_order_spec_formula(['', '  BAR_VERSION = 1', '', '  depends_on "foo"',
+		'  depends_on "bar@#{BAR_VERSION}"'])
+	problems := dependency_order_core.audit_dependency_order(source)
+	return problems.len == 1 && problems[0].dependency == 'bar@#{BAR_VERSION}' && problems[0].line == 8 && problems[0].other_line == 7
 }
 
 // Ruby it `it "does not error on invalid depends_on" do` at line 299.
-pub fn ruby_dependency_order_spec_l299_d15_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+pub fn ruby_dependency_order_spec_l299_d15_does() bool {
+	source := dependency_order_spec_formula(['  depends_on "apple"', '  depends_on 1',
+		'  depends_on "bar"'])
+	return dependency_order_core.audit_dependency_order(source).len == 0
 }
 
 // Original Ruby source (line-for-line):

@@ -1,83 +1,89 @@
 module homebrew
 
-import brew_runtime
+import homebrew.unpack_strategy
 
 // Translated from Homebrew/brew `unpack_strategy.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `extensions; end` at line 28.
-pub fn ruby_unpack_strategy_l28_d1_extensions(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('extensions', ...args)
+pub fn ruby_unpack_strategy_l28_d1_extensions(kind unpack_strategy.StrategyKind) []string {
+	return unpack_strategy.extensions(kind)
 }
 
 // Ruby method `can_extract?(path); end` at line 31.
-pub fn ruby_unpack_strategy_l31_d2_can_extract(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('can_extract?', ...args)
+pub fn ruby_unpack_strategy_l31_d2_can_extract(kind unpack_strategy.StrategyKind, path string) bool {
+	return unpack_strategy.can_extract(kind, path)
 }
 
 // Ruby method `self.strategies` at line 37.
-pub fn ruby_unpack_strategy_l37_d3_self_strategies(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.strategies', ...args)
+pub fn ruby_unpack_strategy_l37_d3_self_strategies() []unpack_strategy.StrategyKind {
+	return unpack_strategy.strategies()
 }
 
 // Ruby method `self.from_type(type)` at line 76.
-pub fn ruby_unpack_strategy_l76_d4_self_from_type(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.from_type', ...args)
+pub fn ruby_unpack_strategy_l76_d4_self_from_type(type_name string) ?unpack_strategy.StrategyKind {
+	return unpack_strategy.from_type(type_name)
 }
 
 // Ruby method `self.from_extension(extension)` at line 94.
-pub fn ruby_unpack_strategy_l94_d5_self_from_extension(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.from_extension', ...args)
+pub fn ruby_unpack_strategy_l94_d5_self_from_extension(extension string) ?unpack_strategy.StrategyKind {
+	return unpack_strategy.from_extension(extension)
 }
 
 // Ruby method `self.from_magic(path)` at line 100.
-pub fn ruby_unpack_strategy_l100_d6_self_from_magic(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.from_magic', ...args)
+pub fn ruby_unpack_strategy_l100_d6_self_from_magic(path string) ?unpack_strategy.StrategyKind {
+	return unpack_strategy.from_magic(path)
 }
 
 // Ruby method `self.detect(path, prioritize_extension: false, type: nil, ref_type: nil, ref: nil, merge_xattrs: false)` at line 108.
-pub fn ruby_unpack_strategy_l108_d7_self_detect(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('self.detect', ...args)
+pub fn ruby_unpack_strategy_l108_d7_self_detect(path string, options unpack_strategy.DetectOptions) unpack_strategy.Strategy {
+	return unpack_strategy.detect(path, options)
 }
 
 // Ruby attr_reader `attr_reader :path` at line 126.
-pub fn ruby_unpack_strategy_l126_d8_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('path', ...args)
+pub fn ruby_unpack_strategy_l126_d8_path(strategy unpack_strategy.Strategy) string {
+	return strategy.path
 }
 
 // Ruby attr_reader `attr_reader :merge_xattrs` at line 129.
-pub fn ruby_unpack_strategy_l129_d9_merge_xattrs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('merge_xattrs', ...args)
+pub fn ruby_unpack_strategy_l129_d9_merge_xattrs(strategy unpack_strategy.Strategy) bool {
+	return strategy.merge_xattrs
 }
 
 // Ruby method `initialize(path, ref_type: nil, ref: nil, merge_xattrs: false)` at line 135.
-pub fn ruby_unpack_strategy_l135_d10_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+pub fn ruby_unpack_strategy_l135_d10_initialize(path string, options unpack_strategy.DetectOptions) unpack_strategy.Strategy {
+	return unpack_strategy.detect(path, options)
 }
 
 // Ruby method `extract_to_dir(unpack_dir, basename:, verbose:); end` at line 143.
-pub fn ruby_unpack_strategy_l143_d11_extract_to_dir(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('extract_to_dir', ...args)
+pub fn ruby_unpack_strategy_l143_d11_extract_to_dir(strategy unpack_strategy.Strategy, options unpack_strategy.ExtractOptions) ! {
+	strategy.extract(options)!
 }
 
 // Ruby method `extract(to: nil, basename: nil, verbose: false)` at line 151.
-pub fn ruby_unpack_strategy_l151_d12_extract(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('extract', ...args)
+pub fn ruby_unpack_strategy_l151_d12_extract(strategy unpack_strategy.Strategy, options unpack_strategy.ExtractOptions) ! {
+	strategy.extract(options)!
 }
 
 // Ruby method `extract_nestedly(to: nil, basename: nil, verbose: false, prioritize_extension: false)` at line 166.
-pub fn ruby_unpack_strategy_l166_d13_extract_nestedly(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('extract_nestedly', ...args)
+pub fn ruby_unpack_strategy_l166_d13_extract_nestedly(strategy unpack_strategy.Strategy, options unpack_strategy.ExtractOptions) ! {
+	strategy.extract_nestedly(options)!
 }
 
 // Ruby method `dependencies` at line 197.
-pub fn ruby_unpack_strategy_l197_d14_dependencies(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dependencies', ...args)
+pub fn ruby_unpack_strategy_l197_d14_dependencies(strategy unpack_strategy.Strategy) []string {
+	return strategy.dependencies()
 }
 
 // Ruby method `each_directory(pathname, &_block)` at line 208.
-pub fn ruby_unpack_strategy_l208_d15_each_directory(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('each_directory', ...args)
+pub fn ruby_unpack_strategy_l208_d15_each_directory(path string) ![]string {
+	return unpack_strategy.each_directory(path)
+}
+
+// unpack_detect exposes the translated dispatcher to Resource and download
+// staging without coupling those callers to Ruby-style compatibility names.
+pub fn unpack_detect(path string, options unpack_strategy.DetectOptions) unpack_strategy.Strategy {
+	return unpack_strategy.detect(path, options)
 }
 
 // Original Ruby source (line-for-line):

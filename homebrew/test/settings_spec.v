@@ -1,68 +1,142 @@
 module test
 
 import brew_runtime
+import homebrew
+import os
+import time
 
 // Translated from Homebrew/brew `test/settings_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `setup_setting` at line 14.
-pub fn ruby_settings_spec_l14_d1_setup_setting(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('setup_setting', ...args)
+pub fn ruby_settings_spec_l14_d1_setup_setting(repository string) ! {
+	result := brew_runtime.run_command('git', ['-C', repository, 'config', '--replace-all',
+		'homebrew.foo', 'true'])
+	if result.exit_code != 0 {
+		return error(result.output.trim_space())
+	}
+}
+
+fn settings_spec_repository(label string) !string {
+	repository := os.join_path(os.temp_dir(), 'brew-v-settings-${label}-${os.getpid()}-${time.now().unix_nano()}')
+	os.mkdir_all(repository)!
+	result := brew_runtime.run_command('git', ['-C', repository, 'init'])
+	if result.exit_code != 0 {
+		os.rmdir_all(repository) or {}
+		return error(result.output.trim_space())
+	}
+	return repository
 }
 
 // Ruby it `it "returns the correct value for a setting" do` at line 21.
-pub fn ruby_settings_spec_l21_d2_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_settings_spec_l21_d2_returns() !bool {
+	repository := settings_spec_repository('read-string')!
+	defer { os.rmdir_all(repository) or {} }
+	ruby_settings_spec_l14_d1_setup_setting(repository)!
+	mut settings := homebrew.new_settings(repository)
+	return settings.read('foo') or { '' } == 'true'
 }
 
 // Ruby it `it "returns the correct value for a setting as a symbol" do` at line 26.
-pub fn ruby_settings_spec_l26_d3_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_settings_spec_l26_d3_returns() !bool {
+	repository := settings_spec_repository('read-symbol')!
+	defer { os.rmdir_all(repository) or {} }
+	ruby_settings_spec_l14_d1_setup_setting(repository)!
+	mut settings := homebrew.new_settings(repository)
+	// Symbols and strings reach the same typed setting-name boundary.
+	return settings.read('foo') or { '' } == 'true'
 }
 
 // Ruby it `it "returns nil when setting is not set" do` at line 31.
-pub fn ruby_settings_spec_l31_d4_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_settings_spec_l31_d4_returns() !bool {
+	repository := settings_spec_repository('read-missing')!
+	defer { os.rmdir_all(repository) or {} }
+	ruby_settings_spec_l14_d1_setup_setting(repository)!
+	mut settings := homebrew.new_settings(repository)
+	return settings.read('bar') == none
 }
 
 // Ruby it `it "runs on a repo without a configuration file" do` at line 36.
-pub fn ruby_settings_spec_l36_d5_runs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('runs', ...args)
+pub fn ruby_settings_spec_l36_d5_runs() !bool {
+	repository := settings_spec_repository('no-config')!
+	defer { os.rmdir_all(repository) or {} }
+	mut settings := homebrew.new_settings(repository)
+	return settings.read_from('foo', os.join_path(repository, 'bar')) == none
 }
 
 // Ruby it `it "reads all settings with a single git invocation per repository" do` at line 40.
-pub fn ruby_settings_spec_l40_d6_reads(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reads', ...args)
+pub fn ruby_settings_spec_l40_d6_reads() !bool {
+	repository := settings_spec_repository('one-read')!
+	defer { os.rmdir_all(repository) or {} }
+	ruby_settings_spec_l14_d1_setup_setting(repository)!
+	mut settings := homebrew.new_settings(repository)
+	first := settings.read('foo') or { return false }
+	changed := brew_runtime.run_command('git', ['-C', repository, 'config', '--replace-all',
+		'homebrew.foo', 'false'])
+	if changed.exit_code != 0 {
+		return error(changed.output.trim_space())
+	}
+	// A second key lookup uses the repository snapshot populated by the first read.
+	second := settings.read('foo') or { return false }
+	return first == 'true' && second == 'true' && settings.read('bar') == none
 }
 
 // Ruby it `it "writes over an existing value" do` at line 52.
-pub fn ruby_settings_spec_l52_d7_writes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('writes', ...args)
+pub fn ruby_settings_spec_l52_d7_writes() !bool {
+	repository := settings_spec_repository('overwrite')!
+	defer { os.rmdir_all(repository) or {} }
+	ruby_settings_spec_l14_d1_setup_setting(repository)!
+	mut settings := homebrew.new_settings(repository)
+	settings.write_bool('foo', false)!
+	return settings.read('foo') or { '' } == 'false'
 }
 
 // Ruby it `it "writes a new value" do` at line 58.
-pub fn ruby_settings_spec_l58_d8_writes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('writes', ...args)
+pub fn ruby_settings_spec_l58_d8_writes() !bool {
+	repository := settings_spec_repository('write-new')!
+	defer { os.rmdir_all(repository) or {} }
+	ruby_settings_spec_l14_d1_setup_setting(repository)!
+	mut settings := homebrew.new_settings(repository)
+	settings.write('bar', 'abcde')!
+	return settings.read('bar') or { '' } == 'abcde'
 }
 
 // Ruby it `it "returns if the repo doesn't have a configuration file" do` at line 64.
-pub fn ruby_settings_spec_l64_d9_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_settings_spec_l64_d9_returns() !bool {
+	repository := settings_spec_repository('write-no-config')!
+	defer { os.rmdir_all(repository) or {} }
+	mut settings := homebrew.new_settings(repository)
+	settings.write_to('foo', 'false', os.join_path(repository, 'bar'))!
+	return true
 }
 
 // Ruby it `it "deletes an existing setting" do` at line 70.
-pub fn ruby_settings_spec_l70_d10_deletes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('deletes', ...args)
+pub fn ruby_settings_spec_l70_d10_deletes() !bool {
+	repository := settings_spec_repository('delete')!
+	defer { os.rmdir_all(repository) or {} }
+	ruby_settings_spec_l14_d1_setup_setting(repository)!
+	mut settings := homebrew.new_settings(repository)
+	settings.delete('foo')!
+	return settings.read('foo') == none
 }
 
 // Ruby it `it "deletes a non-existing setting" do` at line 76.
-pub fn ruby_settings_spec_l76_d11_deletes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('deletes', ...args)
+pub fn ruby_settings_spec_l76_d11_deletes() !bool {
+	repository := settings_spec_repository('delete-missing')!
+	defer { os.rmdir_all(repository) or {} }
+	ruby_settings_spec_l14_d1_setup_setting(repository)!
+	mut settings := homebrew.new_settings(repository)
+	settings.delete('bar')!
+	return settings.read('foo') or { '' } == 'true'
 }
 
 // Ruby it `it "returns if the repo doesn't have a configuration file" do` at line 81.
-pub fn ruby_settings_spec_l81_d12_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+pub fn ruby_settings_spec_l81_d12_returns() !bool {
+	repository := settings_spec_repository('delete-no-config')!
+	defer { os.rmdir_all(repository) or {} }
+	mut settings := homebrew.new_settings(repository)
+	settings.delete_from('foo', os.join_path(repository, 'bar'))!
+	return true
 }
 
 // Original Ruby source (line-for-line):

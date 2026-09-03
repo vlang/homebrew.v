@@ -1,213 +1,621 @@
 module env
 
-import brew_runtime
+import homebrew
+import os
+import regex
 
 // Translated from Homebrew/brew `extend/ENV/shared.rb`.
 // The original source is retained below until every stub has a typed V body.
+pub const shared_env_cc_flag_vars = ['CFLAGS', 'CXXFLAGS', 'OBJCFLAGS', 'OBJCXXFLAGS']
+pub const shared_env_fc_flag_vars = ['FCFLAGS', 'FFLAGS']
+pub const shared_env_sanitized_vars = [
+	'CDPATH',
+	'CLICOLOR_FORCE',
+	'CPATH',
+	'C_INCLUDE_PATH',
+	'CPLUS_INCLUDE_PATH',
+	'OBJC_INCLUDE_PATH',
+	'CC',
+	'CXX',
+	'OBJC',
+	'OBJCXX',
+	'CPP',
+	'MAKE',
+	'LD',
+	'LDSHARED',
+	'CFLAGS',
+	'CXXFLAGS',
+	'OBJCFLAGS',
+	'OBJCXXFLAGS',
+	'LDFLAGS',
+	'CPPFLAGS',
+	'MACOSX_DEPLOYMENT_TARGET',
+	'SDKROOT',
+	'DEVELOPER_DIR',
+	'CMAKE_PREFIX_PATH',
+	'CMAKE_INCLUDE_PATH',
+	'CMAKE_FRAMEWORK_PATH',
+	'GOBIN',
+	'GOPATH',
+	'GOROOT',
+	'PERL_MB_OPT',
+	'PERL_MM_OPT',
+	'LIBRARY_PATH',
+	'LD_LIBRARY_PATH',
+	'LD_PRELOAD',
+	'LD_RUN_PATH',
+	'RUSTFLAGS',
+]
+pub const shared_env_removed_cc_keys = ['CC', 'CXX', 'OBJC', 'OBJCXX', 'LD', 'CPP', 'CFLAGS',
+	'CXXFLAGS', 'OBJCFLAGS', 'OBJCXXFLAGS', 'LDFLAGS', 'CPPFLAGS']
+pub const shared_env_gnu_gcc_versions = ['8', '9', '10', '11', '12', '13', '14', '15', '16']
+
+pub struct SharedEnvCompiler {
+pub:
+	name   string
+	symbol bool
+}
+
+pub struct SharedEnvGccFormula {
+pub:
+	name              string
+	version_suffix    string
+	opt_prefix_exists bool
+	full_name         string
+	opt_bin           string
+}
+
+pub struct SharedEnvConfig {
+pub:
+	default_compiler          string = 'clang'
+	oldest_cpu                string = 'native'
+	make_jobs                 int = 1
+	selected_formula_compiler string
+	gfortran_homebrew         ?string
+	gfortran_original         ?string
+	gcc_formulas              map[string]SharedEnvGccFormula
+}
+
+pub struct SharedEnvBuildOptions {
+pub:
+	formula         ?string
+	cc              ?string
+	build_bottle    bool
+	bottle_arch     ?string
+	testing_formula bool
+	debug_symbols   bool
+}
+
+pub struct SharedEnvRemovedValue {
+pub:
+	existed bool
+	value   string
+}
+
+pub struct SharedEnvRemoval {
+pub:
+	value  string
+	regexp bool
+}
+
+@[heap]
+pub struct SharedEnvState {
+pub:
+	config SharedEnvConfig
+pub mut:
+	environment        map[string]string
+	formula            ?string
+	cc_option          ?string
+	build_bottle       bool
+	bottle_arch        ?string
+	debug_symbols      bool
+	testing_formula    bool
+	compiler_cache     ?SharedEnvCompiler
+	fortran_setup_done bool
+	output             []string
+	created_paths      []string
+}
+
+pub fn new_shared_env(config SharedEnvConfig, environment map[string]string) &SharedEnvState {
+	return &SharedEnvState{
+		config: config
+		environment: environment.clone()
+	}
+}
+
+pub fn (state &SharedEnvState) to_map() map[string]string {
+	return state.environment.clone()
+}
+
+pub fn (state &SharedEnvState) value(key string) ?string {
+	return state.environment[key]
+}
+
+pub fn (mut state SharedEnvState) set_value(key string, value string) {
+	state.environment[key] = value
+}
+
+pub fn shared_env_setup(mut state SharedEnvState, options SharedEnvBuildOptions) {
+	state.formula = options.formula
+	state.cc_option = options.cc
+	state.build_bottle = options.build_bottle
+	state.bottle_arch = options.bottle_arch
+	state.debug_symbols = options.debug_symbols
+	state.testing_formula = options.testing_formula
+	shared_env_reset(mut state)
+}
+
+pub fn shared_env_build_bottle(state &SharedEnvState) bool {
+	return state.build_bottle
+}
+
+pub fn shared_env_debug_symbols(state &SharedEnvState) bool {
+	return state.debug_symbols
+}
+
+pub fn shared_env_reset(mut state SharedEnvState) {
+	for key in shared_env_sanitized_vars {
+		state.environment.delete(key)
+	}
+}
+
+pub fn shared_env_remove_cc_etc(mut state SharedEnvState) map[string]SharedEnvRemovedValue {
+	mut removed := map[string]SharedEnvRemovedValue{}
+	for key in shared_env_removed_cc_keys {
+		if value := state.environment[key] {
+			removed[key] = SharedEnvRemovedValue{ existed: true, value: value }
+			state.environment.delete(key)
+		} else {
+			removed[key] = SharedEnvRemovedValue{}
+		}
+	}
+	return removed
+}
+
+pub fn shared_env_append(mut state SharedEnvState, keys []string, value string,
+	separator string) {
+	for key in keys {
+		old_value := state.environment[key] or { '' }
+		state.environment[key] = if old_value == '' { value } else { old_value + separator + value }
+	}
+}
+
+pub fn shared_env_prepend(mut state SharedEnvState, keys []string, value string,
+	separator string) {
+	for key in keys {
+		old_value := state.environment[key] or { '' }
+		state.environment[key] = if old_value == '' { value } else { value + separator + old_value }
+	}
+}
+
+pub fn shared_env_append_to_cflags(mut state SharedEnvState, flags string) {
+	shared_env_append(mut state, shared_env_cc_flag_vars, flags, ' ')
+}
+
+fn shared_env_sub_once(value string, removal SharedEnvRemoval) !string {
+	if !removal.regexp {
+		return value.replace_once(removal.value, '')
+	}
+	mut expression := regex.regex_opt(removal.value)!
+	return expression.replace_n(value, '', 1)
+}
+
+pub fn shared_env_remove(mut state SharedEnvState, keys []string,
+	removal ?SharedEnvRemoval) ! {
+	selected := removal or { return }
+	for key in keys {
+		old_value := state.environment[key] or { continue }
+		new_value := shared_env_sub_once(old_value, selected)!
+		if new_value == '' {
+			state.environment.delete(key)
+		} else {
+			state.environment[key] = new_value
+		}
+	}
+}
+
+pub fn shared_env_remove_from_cflags(mut state SharedEnvState, removal SharedEnvRemoval) ! {
+	shared_env_remove(mut state, shared_env_cc_flag_vars, removal)!
+}
+
+pub fn shared_env_append_to_cccfg(mut state SharedEnvState, value string) {
+	shared_env_append(mut state, ['HOMEBREW_CCCFG'], value, '')
+}
+
+pub fn shared_env_append_path(mut state SharedEnvState, key string, path string) {
+	mut value := homebrew.new_brew_path(homebrew.path_input(state.environment[key] or { '' }))
+	value.append(homebrew.path_input(path))
+	state.environment[key] = value.str()
+}
+
+pub fn shared_env_append_to_rustflags(mut state SharedEnvState, value string) {
+	shared_env_append(mut state, ['HOMEBREW_RUSTFLAGS'], value, ' ')
+}
+
+pub fn shared_env_prepend_path(mut state SharedEnvState, key string, path string) {
+	if path in ['/usr/bin', '/bin', '/usr/sbin', '/sbin'] {
+		return
+	}
+	mut value := homebrew.new_brew_path(homebrew.path_input(state.environment[key] or { '' }))
+	value.prepend(homebrew.path_input(path))
+	state.environment[key] = value.str()
+}
+
+pub fn shared_env_prepend_create_path(mut state SharedEnvState, key string, path string) ! {
+	os.mkdir_all(path)!
+	state.created_paths << path
+	shared_env_prepend_path(mut state, key, path)
+}
+
+pub fn shared_env_fetch_compiler(value string, source string) !SharedEnvCompiler {
+	if value in ['gcc', 'clang', 'llvm_clang'] {
+		return SharedEnvCompiler{ name: value, symbol: true }
+	}
+	if value.starts_with('gcc-') && value[4..] in shared_env_gnu_gcc_versions {
+		return SharedEnvCompiler{ name: value, symbol: true }
+	}
+	return error('Invalid value for ${source}: ${value}')
+}
+
+fn shared_env_is_versioned_gcc(value string) bool {
+	return value.starts_with('gcc-') && value[4..] in shared_env_gnu_gcc_versions
+}
+
+pub fn shared_env_gcc_version_formula(state &SharedEnvState,
+	name string) !SharedEnvGccFormula {
+	if !shared_env_is_versioned_gcc(name) {
+		return error('Invalid Homebrew GCC name: ${name}')
+	}
+	version := name[4..]
+	gcc := state.config.gcc_formulas['gcc'] or {
+		return error('Homebrew GCC requested, but formula gcc not found!')
+	}
+	if gcc.version_suffix == version {
+		return gcc
+	}
+	formula_name := 'gcc@${version}'
+	return state.config.gcc_formulas[formula_name] or {
+		return error('Homebrew GCC requested, but formula ${formula_name} not found!')
+	}
+}
+
+pub fn shared_env_warn_about_non_apple_gcc(state &SharedEnvState, name string) ! {
+	formula := shared_env_gcc_version_formula(state, name)!
+	if formula.opt_prefix_exists {
+		return
+	}
+	full_name := if formula.full_name != '' { formula.full_name } else { formula.name }
+	return error('The requested Homebrew GCC was not installed. You must:\n  brew install ${full_name}')
+}
+
+pub fn shared_env_compiler(mut state SharedEnvState) !SharedEnvCompiler {
+	if cached := state.compiler_cache {
+		return cached
+	}
+	mut selected := SharedEnvCompiler{}
+	if cc := state.cc_option {
+		if shared_env_is_versioned_gcc(cc) {
+			shared_env_warn_about_non_apple_gcc(state, cc)!
+		}
+		selected = shared_env_fetch_compiler(cc, '--cc')!
+	} else if cc := state.environment['HOMEBREW_CC'] {
+		if shared_env_is_versioned_gcc(cc) {
+			shared_env_warn_about_non_apple_gcc(state, cc)!
+		}
+		selected = shared_env_fetch_compiler(cc, 'HOMEBREW_CC')!
+		if state.formula != none && state.config.selected_formula_compiler != '' {
+			selected = SharedEnvCompiler{ name: state.config.selected_formula_compiler, symbol: true }
+		}
+	} else if state.formula != none && state.config.selected_formula_compiler != '' {
+		selected = SharedEnvCompiler{ name: state.config.selected_formula_compiler, symbol: true }
+	} else {
+		selected = SharedEnvCompiler{ name: state.config.default_compiler, symbol: true }
+	}
+	state.compiler_cache = selected
+	return selected
+}
+
+pub fn shared_env_determine_cc(mut state SharedEnvState) !string {
+	compiler := shared_env_compiler(mut state)!
+	return compiler.name
+}
+
+pub fn shared_env_use_compiler(mut state SharedEnvState, compiler string,
+	determined_cxx ?string) ! {
+	state.compiler_cache = SharedEnvCompiler{
+		name: compiler
+		symbol: compiler in ['gcc', 'clang', 'llvm_clang'] || shared_env_is_versioned_gcc(compiler)
+	}
+	cc := shared_env_determine_cc(mut state)!
+	cxx := determined_cxx or { cc.replace('gcc', 'g++').replace('clang', 'clang++') }
+	shared_env_set_cc(mut state, cc)
+	shared_env_set_cxx(mut state, cxx)
+}
+
+pub fn shared_env_set_cc(mut state SharedEnvState, value string) {
+	state.environment['CC'] = value
+	state.environment['OBJC'] = value
+}
+
+pub fn shared_env_set_cxx(mut state SharedEnvState, value string) {
+	state.environment['CXX'] = value
+	state.environment['OBJCXX'] = value
+}
+
+pub fn shared_env_fortran(mut state SharedEnvState) {
+	if state.fortran_setup_done {
+		return
+	}
+	state.fortran_setup_done = true
+	mut flags := []string{}
+	if compiler := state.environment['FC'] {
+		state.output << 'Building with an unsupported Fortran compiler'
+		if 'F77' !in state.environment {
+			state.environment['F77'] = compiler
+		}
+	} else {
+		mut gfortran := ''
+		if path := state.config.gfortran_homebrew {
+			gfortran = path
+			state.output << 'Using Homebrew-provided Fortran compiler'
+		} else if path := state.config.gfortran_original {
+			gfortran = path
+			state.output << 'Using a Fortran compiler found at ${path}'
+		}
+		if gfortran != '' {
+			state.output << 'This may be changed by setting the `\$FC` environment variable.'
+			state.environment['FC'] = gfortran
+			state.environment['F77'] = gfortran
+			flags = shared_env_fc_flag_vars.clone()
+		}
+	}
+	for key in flags {
+		if cflags := state.environment['CFLAGS'] {
+			state.environment[key] = cflags
+		} else {
+			state.environment.delete(key)
+		}
+	}
+	shared_env_set_cpu_flags(mut state, flags, {})
+}
+
+pub fn shared_env_effective_arch(state &SharedEnvState) string {
+	if state.build_bottle {
+		if arch := state.bottle_arch {
+			return arch
+		}
+	}
+	return state.config.oldest_cpu
+}
+
+pub fn shared_env_make_jobs(state &SharedEnvState) int {
+	return state.config.make_jobs
+}
+
+pub fn shared_env_set_cpu_flags(mut state SharedEnvState, _ []string,
+	_ map[string]string) {
+	_ = state
+}
+
+pub fn shared_env_check_for_compiler_universal_support(state &SharedEnvState) ! {
+	if cc := state.environment['HOMEBREW_CC'] {
+		if shared_env_is_versioned_gcc(cc) {
+			return error("Non-Apple GCC can't build universal binaries")
+		}
+	}
+}
 
 // Ruby attr_reader `attr_reader :bottle_arch` at line 40.
-pub fn ruby_shared_l40_d1_bottle_arch(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('bottle_arch', ...args)
+pub fn ruby_shared_l40_d1_bottle_arch(state &SharedEnvState) ?string {
+	return state.bottle_arch
 }
 
 // Ruby method `setup_build_environment(formula: nil, cc: nil, build_bottle: false, bottle_arch: nil, testing_formula: false,` at line 52.
-pub fn ruby_shared_l52_d2_setup_build_environment(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('setup_build_environment', ...args)
+pub fn ruby_shared_l52_d2_setup_build_environment(mut state SharedEnvState,
+	options SharedEnvBuildOptions) {
+	shared_env_setup(mut state, options)
 }
 
 // Ruby method `build_bottle? = @build_bottle == true` at line 64.
-pub fn ruby_shared_l64_d3_build_bottle(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('build_bottle?', ...args)
+pub fn ruby_shared_l64_d3_build_bottle(state &SharedEnvState) bool {
+	return shared_env_build_bottle(state)
 }
 
 // Ruby method `debug_symbols? = @debug_symbols == true` at line 67.
-pub fn ruby_shared_l67_d4_debug_symbols(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('debug_symbols?', ...args)
+pub fn ruby_shared_l67_d4_debug_symbols(state &SharedEnvState) bool {
+	return shared_env_debug_symbols(state)
 }
 
 // Ruby method `reset` at line 70.
-pub fn ruby_shared_l70_d5_reset(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reset', ...args)
+pub fn ruby_shared_l70_d5_reset(mut state SharedEnvState) {
+	shared_env_reset(mut state)
 }
 
 // Ruby method `remove_cc_etc` at line 76.
-pub fn ruby_shared_l76_d6_remove_cc_etc(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('remove_cc_etc', ...args)
+pub fn ruby_shared_l76_d6_remove_cc_etc(mut state SharedEnvState) map[string]SharedEnvRemovedValue {
+	return shared_env_remove_cc_etc(mut state)
 }
 
 // Ruby method `append_to_cflags(newflags)` at line 82.
-pub fn ruby_shared_l82_d7_append_to_cflags(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('append_to_cflags', ...args)
+pub fn ruby_shared_l82_d7_append_to_cflags(mut state SharedEnvState, flags string) {
+	shared_env_append_to_cflags(mut state, flags)
 }
 
 // Ruby method `remove_from_cflags(val)` at line 87.
-pub fn ruby_shared_l87_d8_remove_from_cflags(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('remove_from_cflags', ...args)
+pub fn ruby_shared_l87_d8_remove_from_cflags(mut state SharedEnvState,
+	removal SharedEnvRemoval) ! {
+	shared_env_remove_from_cflags(mut state, removal)!
 }
 
 // Ruby method `append_to_cccfg(value)` at line 92.
-pub fn ruby_shared_l92_d9_append_to_cccfg(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('append_to_cccfg', ...args)
+pub fn ruby_shared_l92_d9_append_to_cccfg(mut state SharedEnvState, value string) {
+	shared_env_append_to_cccfg(mut state, value)
 }
 
 // Ruby method `append(keys, value, separator = " ")` at line 97.
-pub fn ruby_shared_l97_d10_append(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('append', ...args)
+pub fn ruby_shared_l97_d10_append(mut state SharedEnvState, keys []string, value string,
+	separator string) {
+	shared_env_append(mut state, keys, value, separator)
 }
 
 // Ruby method `prepend(keys, value, separator = " ")` at line 110.
-pub fn ruby_shared_l110_d11_prepend(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prepend', ...args)
+pub fn ruby_shared_l110_d11_prepend(mut state SharedEnvState, keys []string, value string,
+	separator string) {
+	shared_env_prepend(mut state, keys, value, separator)
 }
 
 // Ruby method `append_path(key, path)` at line 123.
-pub fn ruby_shared_l123_d12_append_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('append_path', ...args)
+pub fn ruby_shared_l123_d12_append_path(mut state SharedEnvState, key string, path string) {
+	shared_env_append_path(mut state, key, path)
 }
 
 // Ruby method `append_to_rustflags(rustflags)` at line 128.
-pub fn ruby_shared_l128_d13_append_to_rustflags(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('append_to_rustflags', ...args)
+pub fn ruby_shared_l128_d13_append_to_rustflags(mut state SharedEnvState, value string) {
+	shared_env_append_to_rustflags(mut state, value)
 }
 
 // Ruby method `prepend_path(key, path)` at line 140.
-pub fn ruby_shared_l140_d14_prepend_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prepend_path', ...args)
+pub fn ruby_shared_l140_d14_prepend_path(mut state SharedEnvState, key string, path string) {
+	shared_env_prepend_path(mut state, key, path)
 }
 
 // Ruby method `prepend_create_path(key, path)` at line 147.
-pub fn ruby_shared_l147_d15_prepend_create_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('prepend_create_path', ...args)
+pub fn ruby_shared_l147_d15_prepend_create_path(mut state SharedEnvState, key string,
+	path string) ! {
+	shared_env_prepend_create_path(mut state, key, path)!
 }
 
 // Ruby method `remove(keys, value)` at line 154.
-pub fn ruby_shared_l154_d16_remove(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('remove', ...args)
+pub fn ruby_shared_l154_d16_remove(mut state SharedEnvState, keys []string,
+	removal ?SharedEnvRemoval) ! {
+	shared_env_remove(mut state, keys, removal)!
 }
 
 // Ruby method `cc` at line 171.
-pub fn ruby_shared_l171_d17_cc(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cc', ...args)
+pub fn ruby_shared_l171_d17_cc(state &SharedEnvState) ?string {
+	return state.value('CC')
 }
 
 // Ruby method `cxx` at line 176.
-pub fn ruby_shared_l176_d18_cxx(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cxx', ...args)
+pub fn ruby_shared_l176_d18_cxx(state &SharedEnvState) ?string {
+	return state.value('CXX')
 }
 
 // Ruby method `cflags` at line 181.
-pub fn ruby_shared_l181_d19_cflags(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cflags', ...args)
+pub fn ruby_shared_l181_d19_cflags(state &SharedEnvState) ?string {
+	return state.value('CFLAGS')
 }
 
 // Ruby method `cxxflags` at line 186.
-pub fn ruby_shared_l186_d20_cxxflags(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cxxflags', ...args)
+pub fn ruby_shared_l186_d20_cxxflags(state &SharedEnvState) ?string {
+	return state.value('CXXFLAGS')
 }
 
 // Ruby method `cppflags` at line 191.
-pub fn ruby_shared_l191_d21_cppflags(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cppflags', ...args)
+pub fn ruby_shared_l191_d21_cppflags(state &SharedEnvState) ?string {
+	return state.value('CPPFLAGS')
 }
 
 // Ruby method `ldflags` at line 196.
-pub fn ruby_shared_l196_d22_ldflags(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ldflags', ...args)
+pub fn ruby_shared_l196_d22_ldflags(state &SharedEnvState) ?string {
+	return state.value('LDFLAGS')
 }
 
 // Ruby method `fc` at line 201.
-pub fn ruby_shared_l201_d23_fc(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fc', ...args)
+pub fn ruby_shared_l201_d23_fc(state &SharedEnvState) ?string {
+	return state.value('FC')
 }
 
 // Ruby method `fflags` at line 206.
-pub fn ruby_shared_l206_d24_fflags(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fflags', ...args)
+pub fn ruby_shared_l206_d24_fflags(state &SharedEnvState) ?string {
+	return state.value('FFLAGS')
 }
 
 // Ruby method `fcflags` at line 211.
-pub fn ruby_shared_l211_d25_fcflags(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fcflags', ...args)
+pub fn ruby_shared_l211_d25_fcflags(state &SharedEnvState) ?string {
+	return state.value('FCFLAGS')
 }
 
 // Ruby method `compiler` at line 222.
-pub fn ruby_shared_l222_d26_compiler(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('compiler', ...args)
+pub fn ruby_shared_l222_d26_compiler(mut state SharedEnvState) !SharedEnvCompiler {
+	return shared_env_compiler(mut state)
 }
 
 // Ruby method `determine_cc` at line 247.
-pub fn ruby_shared_l247_d27_determine_cc(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('determine_cc', ...args)
+pub fn ruby_shared_l247_d27_determine_cc(mut state SharedEnvState) !string {
+	return shared_env_determine_cc(mut state)
 }
 
 // Ruby define_method `define_method(compiler) do` at line 258.
-pub fn ruby_shared_l258_d28_compiler(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('compiler', ...args)
+pub fn ruby_shared_l258_d28_compiler(mut state SharedEnvState, compiler string,
+	determined_cxx ?string) ! {
+	shared_env_use_compiler(mut state, compiler, determined_cxx)!
 }
 
 // Ruby method `fortran` at line 267.
-pub fn ruby_shared_l267_d29_fortran(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fortran', ...args)
+pub fn ruby_shared_l267_d29_fortran(mut state SharedEnvState) {
+	shared_env_fortran(mut state)
 }
 
 // Ruby method `effective_arch` at line 298.
-pub fn ruby_shared_l298_d30_effective_arch(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('effective_arch', ...args)
+pub fn ruby_shared_l298_d30_effective_arch(state &SharedEnvState) string {
+	return shared_env_effective_arch(state)
 }
 
 // Ruby method `gcc_version_formula(name)` at line 307.
-pub fn ruby_shared_l307_d31_gcc_version_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('gcc_version_formula', ...args)
+pub fn ruby_shared_l307_d31_gcc_version_formula(state &SharedEnvState,
+	name string) !SharedEnvGccFormula {
+	return shared_env_gcc_version_formula(state, name)
 }
 
 // Ruby method `warn_about_non_apple_gcc(name)` at line 321.
-pub fn ruby_shared_l321_d32_warn_about_non_apple_gcc(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('warn_about_non_apple_gcc', ...args)
+pub fn ruby_shared_l321_d32_warn_about_non_apple_gcc(state &SharedEnvState, name string) ! {
+	shared_env_warn_about_non_apple_gcc(state, name)!
 }
 
 // Ruby method `permit_arch_flags; end` at line 340.
-pub fn ruby_shared_l340_d33_permit_arch_flags(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('permit_arch_flags', ...args)
+pub fn ruby_shared_l340_d33_permit_arch_flags(_ &SharedEnvState) {
 }
 
 // Ruby method `make_jobs` at line 343.
-pub fn ruby_shared_l343_d34_make_jobs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('make_jobs', ...args)
+pub fn ruby_shared_l343_d34_make_jobs(state &SharedEnvState) int {
+	return shared_env_make_jobs(state)
 }
 
 // Ruby method `refurbish_args; end` at line 348.
-pub fn ruby_shared_l348_d35_refurbish_args(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('refurbish_args', ...args)
+pub fn ruby_shared_l348_d35_refurbish_args(_ &SharedEnvState) {
 }
 
 // Ruby method `set_cpu_flags(_flags, _map = {}); end` at line 353.
-pub fn ruby_shared_l353_d36_set_cpu_flags(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('set_cpu_flags', ...args)
+pub fn ruby_shared_l353_d36_set_cpu_flags(mut state SharedEnvState, flags []string,
+	values map[string]string) {
+	shared_env_set_cpu_flags(mut state, flags, values)
 }
 
 // Ruby method `cc=(val)` at line 356.
-pub fn ruby_shared_l356_d37_cc(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cc=', ...args)
+pub fn ruby_shared_l356_d37_cc(mut state SharedEnvState, value string) {
+	shared_env_set_cc(mut state, value)
 }
 
 // Ruby method `cxx=(val)` at line 361.
-pub fn ruby_shared_l361_d38_cxx(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cxx=', ...args)
+pub fn ruby_shared_l361_d38_cxx(mut state SharedEnvState, value string) {
+	shared_env_set_cxx(mut state, value)
 }
 
 // Ruby method `homebrew_cc` at line 366.
-pub fn ruby_shared_l366_d39_homebrew_cc(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('homebrew_cc', ...args)
+pub fn ruby_shared_l366_d39_homebrew_cc(state &SharedEnvState) ?string {
+	return state.value('HOMEBREW_CC')
 }
 
 // Ruby method `fetch_compiler(value, source)` at line 371.
-pub fn ruby_shared_l371_d40_fetch_compiler(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('fetch_compiler', ...args)
+pub fn ruby_shared_l371_d40_fetch_compiler(value string,
+	source string) !SharedEnvCompiler {
+	return shared_env_fetch_compiler(value, source)
 }
 
 // Ruby method `check_for_compiler_universal_support` at line 383.
-pub fn ruby_shared_l383_d41_check_for_compiler_universal_support(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('check_for_compiler_universal_support', ...args)
+pub fn ruby_shared_l383_d41_check_for_compiler_universal_support(state &SharedEnvState) ! {
+	shared_env_check_for_compiler_universal_support(state)!
 }
 
 // Original Ruby source (line-for-line):

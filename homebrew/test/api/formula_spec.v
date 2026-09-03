@@ -1,98 +1,397 @@
 module api
 
 import brew_runtime
+import homebrew.api as formula_api
+import os
+import time
 
 // Translated from Homebrew/brew `test/api/formula_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+fn formula_spec_nil_value() brew_runtime.Value {
+	return brew_runtime.object_value('NilClass', 'nil')
+}
+
+fn formula_spec_error_value(message string) brew_runtime.Value {
+	return brew_runtime.structured_value('RuntimeError', message, {
+		'message': message
+	})
+}
+
+fn formula_spec_temp_dir(label string) !string {
+	path := os.join_path(os.temp_dir(), 'brew-v-api-formula-spec-${label}-${os.getpid()}-${time.now().unix_micro()}')
+	os.mkdir_all(path)!
+	return path
+}
+
+pub fn formula_spec_cache_dir() !string {
+	return formula_spec_temp_dir('cache')
+}
+
+pub fn formula_spec_source_cache_dir() !string {
+	return formula_spec_temp_dir('source-cache')
+}
+
+pub fn formula_spec_formulae_json() string {
+	return '[{\n  "name": "foo",\n  "url": "https://brew.sh/foo",\n  "aliases": ["foo-alias1", "foo-alias2"],\n  "executables": ["foo-bin", "food"]\n}, {\n  "name": "bar",\n  "url": "https://brew.sh/bar",\n  "aliases": ["bar-alias"]\n}, {\n  "name": "baz",\n  "url": "https://brew.sh/baz",\n  "aliases": []\n}]\n'
+}
+
+pub fn formula_spec_formulae_hash() map[string]map[string]brew_runtime.Value {
+	return {
+		'foo': {
+			'url':         brew_runtime.string_value('https://brew.sh/foo')
+			'aliases':     brew_runtime.string_array_value(['foo-alias1', 'foo-alias2'])
+			'executables': brew_runtime.string_array_value(['foo-bin', 'food'])
+		}
+		'bar': {
+			'url':     brew_runtime.string_value('https://brew.sh/bar')
+			'aliases': brew_runtime.string_array_value(['bar-alias'])
+		}
+		'baz': {
+			'url':     brew_runtime.string_value('https://brew.sh/baz')
+			'aliases': brew_runtime.string_array_value([])
+		}
+	}
+}
+
+pub fn formula_spec_formulae_aliases() map[string]string {
+	return {
+		'foo-alias1': 'foo'
+		'foo-alias2': 'foo'
+		'bar-alias':  'bar'
+	}
+}
+
+pub fn formula_spec_mock_curl_download(stdout string, mut state formula_api.FormulaApiState) ! {
+	state.fetch_results['formula.jws.json'] = formula_api.FormulaApiFetchResult{
+		data: brew_runtime.parse_json_value(stdout)!
+		updated: true
+	}
+}
+
+fn formula_spec_value_equal(left brew_runtime.Value, right brew_runtime.Value) bool {
+	if left.type_name != right.type_name {
+		return false
+	}
+	if left.type_name == 'Hash' {
+		if left.map_data.len != right.map_data.len {
+			return false
+		}
+		for key, value in left.map_data {
+			other := right.map_data[key] or { return false }
+			if !formula_spec_value_equal(value, other) {
+				return false
+			}
+		}
+		return true
+	}
+	if left.type_name == 'Array' {
+		left_values := left.as_array() or { return false }
+		right_values := right.as_array() or { return false }
+		if left_values.len != right_values.len {
+			return false
+		}
+		for index, value in left_values {
+			if !formula_spec_value_equal(value, right_values[index]) {
+				return false
+			}
+		}
+		return true
+	}
+	return left.repr == right.repr && left.bool_data == right.bool_data && left.int_data == right.int_data
+}
+
+fn formula_spec_maps_equal(left map[string]map[string]brew_runtime.Value,
+	right map[string]map[string]brew_runtime.Value) bool {
+	if left.len != right.len {
+		return false
+	}
+	for key, values in left {
+		other := (right[key] or { return false }).clone()
+		if !formula_spec_value_equal(brew_runtime.map_value(values), brew_runtime.map_value(other)) {
+			return false
+		}
+	}
+	return true
+}
+
+pub fn formula_spec_formula() formula_api.FormulaSource {
+	return formula_api.FormulaSource{
+		name: 'testball'
+		full_name: 'testball'
+		ruby_source_path: 'Formula/testball.rb'
+		tap_git_head: 'abc123'
+		tap_full_name: 'Homebrew/homebrew-core'
+		active_spec: 'stable'
+	}
+}
+
+fn formula_spec_state(root string) formula_api.FormulaApiState {
+	return formula_api.new_formula_api_state(root, os.join_path(root, 'api-source'))
+}
+
+pub fn formula_spec_returns_expected_formulae() bool {
+	root := formula_spec_temp_dir('formulae') or { return false }
+	defer {
+		os.rmdir_all(root) or {}
+	}
+	mut state := formula_spec_state(root)
+	formula_spec_mock_curl_download(formula_spec_formulae_json(), mut state) or { return false }
+	actual := formula_api.formula_all_formulae(mut state) or { return false }
+	return formula_spec_maps_equal(actual, formula_spec_formulae_hash())
+}
+
+pub fn formula_spec_returns_expected_aliases() bool {
+	root := formula_spec_temp_dir('aliases') or { return false }
+	defer {
+		os.rmdir_all(root) or {}
+	}
+	mut state := formula_spec_state(root)
+	formula_spec_mock_curl_download(formula_spec_formulae_json(), mut state) or { return false }
+	return (formula_api.formula_all_aliases(mut state) or { return false }) == formula_spec_formulae_aliases()
+}
+
+pub fn formula_spec_writes_executables() bool {
+	root := formula_spec_temp_dir('executables') or { return false }
+	defer {
+		os.rmdir_all(root) or {}
+	}
+	mut state := formula_spec_state(root)
+	formula_spec_mock_curl_download(formula_spec_formulae_json(), mut state) or { return false }
+	formula_api.formula_write_names_and_aliases(mut state, false) or { return false }
+	return os.read_file(os.join_path(root, 'internal', 'executables.txt')) or { return false } == 'foo:foo-bin food\n'
+}
+
+fn formula_spec_json_without_executables() string {
+	return '[{"name":"foo","url":"https://brew.sh/foo","aliases":[]}]'
+}
+
+pub fn formula_spec_removes_empty_executables() bool {
+	root := formula_spec_temp_dir('remove-executables') or { return false }
+	defer {
+		os.rmdir_all(root) or {}
+	}
+	target := os.join_path(root, 'internal', 'executables.txt')
+	os.mkdir_all(os.dir(target)) or { return false }
+	os.write_file(target, 'foo:foo-bin\n') or { return false }
+	mut state := formula_spec_state(root)
+	formula_spec_mock_curl_download(formula_spec_json_without_executables(), mut state) or {
+		return false
+	}
+	formula_api.formula_write_names_and_aliases(mut state, false) or { return false }
+	return !os.exists(target)
+}
+
+pub fn formula_spec_reading_json_does_not_create_executables() bool {
+	root := formula_spec_temp_dir('read-only') or { return false }
+	defer {
+		os.rmdir_all(root) or {}
+	}
+	mut state := formula_spec_state(root)
+	formula_spec_mock_curl_download(formula_spec_json_without_executables(), mut state) or {
+		return false
+	}
+	formulae := formula_api.formula_all_formulae(mut state) or { return false }
+	return formulae.len == 1 && !os.exists(os.join_path(root, 'internal', 'executables.txt'))
+}
+
+fn formula_spec_download_location(state formula_api.FormulaApiState,
+	formula formula_api.FormulaSource) string {
+	download := formula_api.new_source_download('https://raw.githubusercontent.com/${formula.tap_full_name}/${formula.tap_git_head}/${formula.ruby_source_path}', none, [], os.join_path(state.source_cache_directory, formula.tap_full_name, formula.tap_git_head, 'Formula'), '')
+	return formula_api.source_download_strategy_symlink_location(download.downloader)
+}
+
+pub fn formula_spec_forces_redownload_for_regular_file() bool {
+	root := formula_spec_temp_dir('regular-source') or { return false }
+	defer {
+		os.rmdir_all(root) or {}
+	}
+	mut state := formula_spec_state(root)
+	formula := formula_spec_formula()
+	location := formula_spec_download_location(state, formula)
+	os.mkdir_all(os.dir(location)) or { return false }
+	os.write_file(location, 'not a symlink') or { return false }
+	_ = formula_api.formula_source_download(mut state, formula, false) or { return false }
+	return state.fetched_downloads.len == 1
+}
+
+pub fn formula_spec_skips_valid_symlink() bool {
+	root := formula_spec_temp_dir('symlink-source') or { return false }
+	defer {
+		os.rmdir_all(root) or {}
+	}
+	mut state := formula_spec_state(root)
+	formula := formula_spec_formula()
+	location := formula_spec_download_location(state, formula)
+	target := os.join_path(root, 'testball-target.rb')
+	os.mkdir_all(os.dir(location)) or { return false }
+	os.write_file(target, 'content') or { return false }
+	os.symlink(target, location) or { return false }
+	_ = formula_api.formula_source_download(mut state, formula, false) or { return false }
+	return state.fetched_downloads.len == 0
+}
+
+pub fn formula_spec_missing_source_raises() bool {
+	root := formula_spec_temp_dir('missing-source') or { return false }
+	defer {
+		os.rmdir_all(root) or {}
+	}
+	mut state := formula_spec_state(root)
+	formula_api.formula_source_download_formula(mut state, formula_spec_formula()) or {
+		return err.msg().contains('source code not found')
+	}
+	return false
+}
+
+fn formula_spec_write_source(mut state formula_api.FormulaApiState, contents string) !string {
+	formula := formula_spec_formula()
+	location := formula_spec_download_location(state, formula)
+	os.mkdir_all(os.dir(location))!
+	os.write_file(location, contents)!
+	return location
+}
+
+pub fn formula_spec_loads_source_formula() bool {
+	root := formula_spec_temp_dir('load-source') or { return false }
+	defer {
+		os.rmdir_all(root) or {}
+	}
+	mut state := formula_spec_state(root)
+	location := formula_spec_write_source(mut state, 'class Testball < Formula\n  url "https://brew.sh/testball-0.1.tar.gz"\nend\n') or {
+		return false
+	}
+	result := formula_api.formula_source_download_formula(mut state, formula_spec_formula()) or {
+		return false
+	}
+	return result.name == 'testball' && result.path == location
+}
+
+pub fn formula_spec_loads_local_patch() bool {
+	root := formula_spec_temp_dir('local-patch') or { return false }
+	defer {
+		os.rmdir_all(root) or {}
+	}
+	mut state := formula_spec_state(root)
+	formula_spec_write_source(mut state, 'class Testball < Formula\n  url "https://brew.sh/testball-0.1.tar.gz"\n  patch do\n    file "patches/noop-a.diff"\n  end\nend\n') or {
+		return false
+	}
+	patch_location := os.join_path(state.source_cache_directory, 'Homebrew/homebrew-core', 'abc123', 'patches', 'noop-a.diff')
+	os.mkdir_all(os.dir(patch_location)) or { return false }
+	os.write_file(patch_location, 'patch contents') or { return false }
+	result := formula_api.formula_source_download_formula(mut state, formula_spec_formula()) or {
+		return false
+	}
+	return result.local_patches['patches/noop-a.diff'] or { '' } == 'patch contents'
+}
 
 // Ruby let `let(:cache_dir) { mktmpdir }` at line 8.
 pub fn ruby_formula_spec_l8_d1_cache_dir(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cache_dir', ...args)
+	return brew_runtime.object_value('Pathname', formula_spec_cache_dir() or {
+		return formula_spec_error_value(err.msg())
+	})
 }
 
 // Ruby let `let(:source_cache_dir) { mktmpdir }` at line 9.
 pub fn ruby_formula_spec_l9_d2_source_cache_dir(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('source_cache_dir', ...args)
+	return brew_runtime.object_value('Pathname', formula_spec_source_cache_dir() or {
+		return formula_spec_error_value(err.msg())
+	})
 }
 
 // Ruby method `mock_curl_download(stdout:)` at line 18.
 pub fn ruby_formula_spec_l18_d3_mock_curl_download(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('mock_curl_download', ...args)
+	if args.len < 2 || 'formula_api_state_address' !in args[0].attributes {
+		return formula_spec_error_value('mock_curl_download requires Formula API state and stdout')
+	}
+	mut state := unsafe {
+		&formula_api.FormulaApiState(voidptr(args[0].attributes['formula_api_state_address'].u64()))
+	}
+	formula_spec_mock_curl_download(args[1].as_string(), mut state) or {
+		return formula_spec_error_value(err.msg())
+	}
+	return formula_spec_nil_value()
 }
 
 // Ruby let `let(:formulae_json) do` at line 28.
 pub fn ruby_formula_spec_l28_d4_formulae_json(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formulae_json', ...args)
+	return brew_runtime.string_value(formula_spec_formulae_json())
 }
 
 // Ruby let `let(:formulae_hash) do` at line 46.
 pub fn ruby_formula_spec_l46_d5_formulae_hash(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formulae_hash', ...args)
+	mut output := map[string]brew_runtime.Value{}
+	for name, formula in formula_spec_formulae_hash() {
+		output[name] = brew_runtime.map_value(formula)
+	}
+	return brew_runtime.map_value(output)
 }
 
 // Ruby let `let(:formulae_aliases) do` at line 57.
 pub fn ruby_formula_spec_l57_d6_formulae_aliases(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('formulae_aliases', ...args)
+	mut output := map[string]brew_runtime.Value{}
+	for alias_name, name in formula_spec_formulae_aliases() {
+		output[alias_name] = brew_runtime.string_value(name)
+	}
+	return brew_runtime.map_value(output)
 }
 
 // Ruby it `it "returns the expected formula JSON list" do` at line 65.
 pub fn ruby_formula_spec_l65_d7_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	return brew_runtime.bool_value(formula_spec_returns_expected_formulae())
 }
 
 // Ruby it `it "returns the expected formula alias list" do` at line 71.
 pub fn ruby_formula_spec_l71_d8_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	return brew_runtime.bool_value(formula_spec_returns_expected_aliases())
 }
 
 // Ruby it `it "writes formula executables from the formula JSON list" do` at line 77.
 pub fn ruby_formula_spec_l77_d9_writes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('writes', ...args)
+	return brew_runtime.bool_value(formula_spec_writes_executables())
 }
 
 // Ruby it `it "removes the executables database if formula JSON has no executable entries" do` at line 84.
 pub fn ruby_formula_spec_l84_d10_removes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('removes', ...args)
+	return brew_runtime.bool_value(formula_spec_removes_empty_executables())
 }
 
 // Ruby it `it "does not download the executables database while reading formula JSON" do` at line 108.
 pub fn ruby_formula_spec_l108_d11_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('does', ...args)
+	return brew_runtime.bool_value(formula_spec_reading_json_does_not_create_executables())
 }
 
 // Ruby let `let(:f) { Testball.new }` at line 130.
 pub fn ruby_formula_spec_l130_d12_f(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f', ...args)
+	return formula_api.formula_source_boundary(formula_spec_formula())
 }
 
 // Ruby it `it "forces re-download when symlink_location exists but is not a symlink" do` at line 139.
 pub fn ruby_formula_spec_l139_d13_forces(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('forces', ...args)
+	return brew_runtime.bool_value(formula_spec_forces_redownload_for_regular_file())
 }
 
 // Ruby it `it "skips download when symlink_location is a valid symlink" do` at line 149.
 pub fn ruby_formula_spec_l149_d14_skips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('skips', ...args)
+	return brew_runtime.bool_value(formula_spec_skips_valid_symlink())
 }
 
 // Ruby let `let(:f) { Testball.new }` at line 163.
 pub fn ruby_formula_spec_l163_d15_f(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('f', ...args)
+	return formula_api.formula_source_boundary(formula_spec_formula())
 }
 
 // Ruby it `it "raises CannotInstallFormulaError when source file is missing" do` at line 172.
 pub fn ruby_formula_spec_l172_d16_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+	return brew_runtime.bool_value(formula_spec_missing_source_raises())
 }
 
 // Ruby it `it "loads formula from symlink_location when source file exists" do` at line 183.
 pub fn ruby_formula_spec_l183_d17_loads(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('loads', ...args)
+	return brew_runtime.bool_value(formula_spec_loads_source_formula())
 }
 
 // Ruby it `it "loads local patch files from API source cache" do` at line 199.
 pub fn ruby_formula_spec_l199_d18_loads(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('loads', ...args)
+	return brew_runtime.bool_value(formula_spec_loads_local_patch())
 }
 
 // Original Ruby source (line-for-line):

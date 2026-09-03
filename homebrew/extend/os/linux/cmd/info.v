@@ -7,7 +7,11 @@ import brew_runtime
 
 // Ruby method `requirement_for_other_os?(requirement)` at line 11.
 pub fn ruby_info_l11_d1_requirement_for_other_os(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('requirement_for_other_os?', ...args)
+	return brew_runtime.bool_value(args.len > 0 && requirement_for_other_os(args[0].type_name))
+}
+
+pub fn requirement_for_other_os(requirement_type string) bool {
+	return requirement_type == 'MacOSRequirement'
 }
 
 // Original Ruby source (line-for-line):

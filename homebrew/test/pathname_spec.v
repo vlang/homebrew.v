@@ -1,193 +1,457 @@
 module test
 
 import brew_runtime
+import homebrew
+import homebrew.extend as pathname_ext
+import homebrew.extend.pathname as path_usage
+import os
 
 // Translated from Homebrew/brew `test/pathname_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
+struct PathnameSpecFixture {
+	src  string
+	dst  string
+	file string
+	dir  string
+}
+
+fn pathname_spec_fixture(name string) !PathnameSpecFixture {
+	root := os.join_path(os.temp_dir(), 'brew-v-pathname-spec-${name}-${os.getpid()}')
+	if os.exists(root) {
+		os.rmdir_all(root)!
+	}
+	src := os.join_path(root, 'src')
+	dst := os.join_path(root, 'dst')
+	os.mkdir_all(src)!
+	os.mkdir_all(dst)!
+	return PathnameSpecFixture{
+		src: src
+		dst: dst
+		file: os.join_path(src, 'foo')
+		dir: os.join_path(src, 'bar')
+	}
+}
+
+fn pathname_spec_bool(value bool) brew_runtime.Value {
+	return brew_runtime.bool_value(value)
+}
+
+fn pathname_spec_disk_fixture(name string) !PathnameSpecFixture {
+	fixture := pathname_spec_fixture(name)!
+	os.mkdir_all(os.join_path(fixture.dir, 'a-directory'))!
+	os.write_file(os.join_path(fixture.dir, '.DS_Store'), '')!
+	file := os.join_path(fixture.dir, 'a-file')
+	os.write_file(file, 'x'.repeat(1_048_576))!
+	os.symlink(file, os.join_path(fixture.dir, 'a-symlink'))!
+	os.link(file, os.join_path(fixture.dir, 'a-hardlink'))!
+	return fixture
+}
+
+fn pathname_spec_install_fixture(name string) !PathnameSpecFixture {
+	fixture := pathname_spec_fixture(name)!
+	os.write_file(os.join_path(fixture.src, 'a.txt'), 'This is sample file a.')!
+	os.write_file(os.join_path(fixture.src, 'b.txt'), 'This is sample file b.')!
+	return fixture
+}
+
+fn pathname_spec_writable_action(path string) ! {
+	if !os.is_writable(path) {
+		return error('${path} was not made writable')
+	}
+}
 
 // Ruby let `let(:src) { mktmpdir }` at line 8.
 pub fn ruby_pathname_spec_l8_d1_src(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('src', ...args)
+	_ = args
+	return brew_runtime.string_value(pathname_spec_fixture('src') or { panic(err) }.src)
 }
 
 // Ruby let `let(:dst) { mktmpdir }` at line 9.
 pub fn ruby_pathname_spec_l9_d2_dst(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dst', ...args)
+	_ = args
+	return brew_runtime.string_value(pathname_spec_fixture('dst') or { panic(err) }.dst)
 }
 
 // Ruby let `let(:file) { src/"foo" }` at line 10.
 pub fn ruby_pathname_spec_l10_d3_file(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('file', ...args)
+	_ = args
+	return brew_runtime.string_value(pathname_spec_fixture('file') or { panic(err) }.file)
 }
 
 // Ruby let `let(:dir) { src/"bar" }` at line 11.
 pub fn ruby_pathname_spec_l11_d4_dir(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('dir', ...args)
+	_ = args
+	return brew_runtime.string_value(pathname_spec_fixture('dir') or { panic(err) }.dir)
 }
 
 // Ruby it `it "defines the lazy memoised ivars on every new Pathname" do` at line 16.
 pub fn ruby_pathname_spec_l16_d5_defines(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('defines', ...args)
+	_ = args
+	fixture := pathname_spec_fixture('eager') or { return pathname_spec_bool(false) }
+	path := path_usage.new_eager_pathname(fixture.file)
+	return pathname_spec_bool(path.path == fixture.file && path.magic_number == none && path.file_type == none && path.zipinfo == none && path.which_install_info == none && path.disk_usage == none && path.file_count == none)
 }
 
 // Ruby it `it "returns the number of files in a directory" do` at line 38.
 pub fn ruby_pathname_spec_l38_d6_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	fixture := pathname_spec_disk_fixture('file-count') or { return pathname_spec_bool(false) }
+	return pathname_spec_bool(path_usage.pathname_file_count(fixture.dir) or { return pathname_spec_bool(false) } == 3)
 }
 
 // Ruby it `it "returns a string with the file count and disk usage" do` at line 45.
 pub fn ruby_pathname_spec_l45_d7_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	fixture := pathname_spec_disk_fixture('directory-abv') or { return pathname_spec_bool(false) }
+	return pathname_spec_bool(path_usage.pathname_abv(fixture.dir) or { return pathname_spec_bool(false) } == '3 files, 1MB')
 }
 
 // Ruby it `it "returns the disk usage" do` at line 51.
 pub fn ruby_pathname_spec_l51_d8_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	fixture := pathname_spec_disk_fixture('file-abv') or { return pathname_spec_bool(false) }
+	return pathname_spec_bool(path_usage.pathname_abv(os.join_path(fixture.dir, 'a-file')) or {
+		return pathname_spec_bool(false)
+	} == '1MB')
 }
 
 // Ruby it `it "returns true and removes a directory if it doesn't contain files" do` at line 61.
 pub fn ruby_pathname_spec_l61_d9_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	fixture := pathname_spec_fixture('rmdir-empty') or { return pathname_spec_bool(false) }
+	os.mkdir_all(fixture.dir) or { return pathname_spec_bool(false) }
+	return pathname_spec_bool(pathname_ext.pathname_rmdir_if_possible(fixture.dir) && !os.exists(fixture.dir))
 }
 
 // Ruby it `it "returns false and doesn't delete a directory if it contains files" do` at line 66.
 pub fn ruby_pathname_spec_l66_d10_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	fixture := pathname_spec_fixture('rmdir-full') or { return pathname_spec_bool(false) }
+	os.mkdir_all(fixture.dir) or { return pathname_spec_bool(false) }
+	os.write_file(os.join_path(fixture.dir, 'foo'), '') or { return pathname_spec_bool(false) }
+	return pathname_spec_bool(!pathname_ext.pathname_rmdir_if_possible(fixture.dir) && os.is_dir(fixture.dir))
 }
 
 // Ruby it `it "ignores .DS_Store files" do` at line 72.
 pub fn ruby_pathname_spec_l72_d11_ignores(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('ignores', ...args)
+	_ = args
+	fixture := pathname_spec_fixture('rmdir-ds-store') or { return pathname_spec_bool(false) }
+	os.mkdir_all(fixture.dir) or { return pathname_spec_bool(false) }
+	os.write_file(os.join_path(fixture.dir, '.DS_Store'), '') or { return pathname_spec_bool(false) }
+	return pathname_spec_bool(pathname_ext.pathname_rmdir_if_possible(fixture.dir) && !os.exists(fixture.dir))
 }
 
 // Ruby it `it "appends lines to a file" do` at line 80.
 pub fn ruby_pathname_spec_l80_d12_appends(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('appends', ...args)
+	_ = args
+	fixture := pathname_spec_fixture('append') or { return pathname_spec_bool(false) }
+	os.write_file(fixture.file, '') or { return pathname_spec_bool(false) }
+	pathname_ext.pathname_append_lines(fixture.file, 'CONTENT') or { return pathname_spec_bool(false) }
+	if os.read_file(fixture.file) or { '' } != 'CONTENT\n' {
+		return pathname_spec_bool(false)
+	}
+	pathname_ext.pathname_append_lines(fixture.file, 'CONTENTS') or { return pathname_spec_bool(false) }
+	return pathname_spec_bool(os.read_file(fixture.file) or { '' } == 'CONTENT\nCONTENTS\n')
 }
 
 // Ruby it `it "raises an error if the file does not exist" do` at line 95.
 pub fn ruby_pathname_spec_l95_d13_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+	_ = args
+	fixture := pathname_spec_fixture('append-missing') or { return pathname_spec_bool(false) }
+	pathname_ext.pathname_append_lines(fixture.file, 'CONTENT') or {
+		return pathname_spec_bool(err.msg().contains("doesn't exist"))
+	}
+	return pathname_spec_bool(false)
 }
 
 // Ruby it `it "atomically replaces a file" do` at line 102.
 pub fn ruby_pathname_spec_l102_d14_atomically(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('atomically', ...args)
+	_ = args
+	fixture := pathname_spec_fixture('atomic') or { return pathname_spec_bool(false) }
+	os.write_file(fixture.file, '') or { return pathname_spec_bool(false) }
+	pathname_ext.pathname_atomic_write(fixture.file, 'CONTENT') or { return pathname_spec_bool(false) }
+	return pathname_spec_bool(os.read_file(fixture.file) or { '' } == 'CONTENT')
 }
 
 // Ruby it `it "preserves permissions" do` at line 108.
 pub fn ruby_pathname_spec_l108_d15_preserves(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('preserves', ...args)
+	_ = args
+	fixture := pathname_spec_fixture('atomic-mode') or { return pathname_spec_bool(false) }
+	os.write_file(fixture.file, '') or { return pathname_spec_bool(false) }
+	os.chmod(fixture.file, 0o777) or { return pathname_spec_bool(false) }
+	before := os.stat(fixture.file) or { return pathname_spec_bool(false) }
+	pathname_ext.pathname_atomic_write(fixture.file, 'CONTENT') or { return pathname_spec_bool(false) }
+	after := os.stat(fixture.file) or { return pathname_spec_bool(false) }
+	return pathname_spec_bool(before.get_mode().bitmask() == after.get_mode().bitmask())
 }
 
 // Ruby it `it "preserves default permissions" do` at line 116.
 pub fn ruby_pathname_spec_l116_d16_preserves(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('preserves', ...args)
+	_ = args
+	fixture := pathname_spec_fixture('atomic-default-mode') or { return pathname_spec_bool(false) }
+	pathname_ext.pathname_atomic_write(fixture.file, 'CONTENT') or { return pathname_spec_bool(false) }
+	sentinel := os.join_path(fixture.src, 'sentinel')
+	os.write_file(sentinel, '') or { return pathname_spec_bool(false) }
+	file_mode := os.stat(fixture.file) or { return pathname_spec_bool(false) }
+	sentinel_mode := os.stat(sentinel) or { return pathname_spec_bool(false) }
+	return pathname_spec_bool(file_mode.get_mode().bitmask() == sentinel_mode.get_mode().bitmask())
 }
 
 // Ruby it `it "makes a file writable and restores permissions afterwards" do` at line 125.
 pub fn ruby_pathname_spec_l125_d17_makes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('makes', ...args)
+	_ = args
+	if os.geteuid() == 0 {
+		return pathname_spec_bool(true)
+	}
+	fixture := pathname_spec_fixture('ensure-writable') or { return pathname_spec_bool(false) }
+	os.write_file(fixture.file, '') or { return pathname_spec_bool(false) }
+	os.chmod(fixture.file, 0o555) or { return pathname_spec_bool(false) }
+	pathname_ext.pathname_ensure_writable(fixture.file, pathname_spec_writable_action) or {
+		return pathname_spec_bool(false)
+	}
+	return pathname_spec_bool(!os.is_writable(fixture.file))
 }
 
 // Ruby specify `specify do` at line 138.
 pub fn ruby_pathname_spec_l138_d18_do(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('do', ...args)
+	_ = args
+	return pathname_spec_bool(pathname_ext.pathname_extname('foo-0.1.tar.gz') == '.tar.gz' && pathname_ext.pathname_extname('foo-0.1.cpio.gz') == '.cpio.gz' && pathname_ext.pathname_extname('foo-0.1') == '' && pathname_ext.pathname_extname('foo-1.0-rc1') == '' && pathname_ext.pathname_extname('foo-1.2.3') == '' && pathname_ext.pathname_extname('snap7-full-1.4.2.7z') == '.7z')
 }
 
 // Ruby it `it "returns the basename without double extensions" do` at line 149.
 pub fn ruby_pathname_spec_l149_d19_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	return pathname_spec_bool(pathname_ext.pathname_stem('foo-0.1.tar.gz') == 'foo-0.1' && pathname_ext.pathname_stem('foo-0.1.cpio.gz') == 'foo-0.1')
 }
 
 // Ruby it `it "raises an error if the file doesn't exist" do` at line 161.
 pub fn ruby_pathname_spec_l161_d20_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('raises', ...args)
+	_ = args
+	fixture := pathname_spec_install_fixture('install-missing') or { return pathname_spec_bool(false) }
+	pathname_ext.pathname_install(fixture.dst, [pathname_ext.PathInstallSource{
+		path: os.join_path(fixture.src, 'non_existent_file')
+	}]) or {
+		return pathname_spec_bool(err.msg().contains('ENOENT'))
+	}
+	return pathname_spec_bool(false)
 }
 
 // Ruby it `it "installs a file to a directory with its basename" do` at line 165.
 pub fn ruby_pathname_spec_l165_d21_installs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('installs', ...args)
+	_ = args
+	fixture := pathname_spec_install_fixture('install-basename') or { return pathname_spec_bool(false) }
+	os.write_file(fixture.file, '') or { return pathname_spec_bool(false) }
+	pathname_ext.pathname_install(fixture.dst, [pathname_ext.PathInstallSource{
+		path: fixture.file
+	}]) or { return pathname_spec_bool(false) }
+	return pathname_spec_bool(os.exists(os.join_path(fixture.dst, os.base(fixture.file))) && !os.exists(fixture.file))
 }
 
 // Ruby it `it "creates intermediate directories" do` at line 172.
 pub fn ruby_pathname_spec_l172_d22_creates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('creates', ...args)
+	_ = args
+	fixture := pathname_spec_install_fixture('install-intermediate') or { return pathname_spec_bool(false) }
+	os.write_file(fixture.file, '') or { return pathname_spec_bool(false) }
+	pathname_ext.pathname_install(fixture.dir, [pathname_ext.PathInstallSource{
+		path: fixture.file
+	}]) or { return pathname_spec_bool(false) }
+	return pathname_spec_bool(os.is_dir(fixture.dir))
 }
 
 // Ruby it `it "can install a file" do` at line 179.
 pub fn ruby_pathname_spec_l179_d23_can(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('can', ...args)
+	_ = args
+	fixture := pathname_spec_install_fixture('install-one') or { return pathname_spec_bool(false) }
+	pathname_ext.pathname_install(fixture.dst, [pathname_ext.PathInstallSource{
+		path: os.join_path(fixture.src, 'a.txt')
+	}]) or { return pathname_spec_bool(false) }
+	return pathname_spec_bool(os.exists(os.join_path(fixture.dst, 'a.txt')) && !os.exists(os.join_path(fixture.dst, 'b.txt')))
 }
 
 // Ruby it `it "can install an array of files" do` at line 185.
 pub fn ruby_pathname_spec_l185_d24_can(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('can', ...args)
+	_ = args
+	fixture := pathname_spec_install_fixture('install-array') or { return pathname_spec_bool(false) }
+	pathname_ext.pathname_install(fixture.dst, [
+		pathname_ext.PathInstallSource{ path: os.join_path(fixture.src, 'a.txt') },
+		pathname_ext.PathInstallSource{ path: os.join_path(fixture.src, 'b.txt') },
+	]) or { return pathname_spec_bool(false) }
+	return pathname_spec_bool(os.exists(os.join_path(fixture.dst, 'a.txt')) && os.exists(os.join_path(fixture.dst, 'b.txt')))
 }
 
 // Ruby it `it "can install a directory" do` at line 192.
 pub fn ruby_pathname_spec_l192_d25_can(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('can', ...args)
+	_ = args
+	fixture := pathname_spec_install_fixture('install-directory') or { return pathname_spec_bool(false) }
+	bin := os.join_path(fixture.src, 'bin')
+	os.mkdir_all(bin) or { return pathname_spec_bool(false) }
+	os.mv(os.join_path(fixture.src, 'a.txt'), os.join_path(bin, 'a.txt')) or { return pathname_spec_bool(false) }
+	os.mv(os.join_path(fixture.src, 'b.txt'), os.join_path(bin, 'b.txt')) or { return pathname_spec_bool(false) }
+	pathname_ext.pathname_install(fixture.dst, [
+		pathname_ext.PathInstallSource{ path: bin },
+	]) or {
+		return pathname_spec_bool(false)
+	}
+	return pathname_spec_bool(os.exists(os.join_path(fixture.dst, 'bin', 'a.txt')) && os.exists(os.join_path(fixture.dst, 'bin', 'b.txt')))
 }
 
 // Ruby it `it "supports renaming files" do` at line 202.
 pub fn ruby_pathname_spec_l202_d26_supports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('supports', ...args)
+	_ = args
+	fixture := pathname_spec_install_fixture('rename-one') or { return pathname_spec_bool(false) }
+	pathname_ext.pathname_install(fixture.dst, [pathname_ext.PathInstallSource{
+		path: os.join_path(fixture.src, 'a.txt')
+		new_basename: 'c.txt'
+	}]) or { return pathname_spec_bool(false) }
+	return pathname_spec_bool(os.exists(os.join_path(fixture.dst, 'c.txt')) && !os.exists(os.join_path(fixture.dst, 'a.txt')) && !os.exists(os.join_path(fixture.dst, 'b.txt')))
 }
 
 // Ruby it `it "supports renaming multiple files" do` at line 210.
 pub fn ruby_pathname_spec_l210_d27_supports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('supports', ...args)
+	_ = args
+	fixture := pathname_spec_install_fixture('rename-many') or { return pathname_spec_bool(false) }
+	pathname_ext.pathname_install(fixture.dst, [
+		pathname_ext.PathInstallSource{
+			path: os.join_path(fixture.src, 'a.txt')
+			new_basename: 'c.txt'
+		},
+		pathname_ext.PathInstallSource{
+			path: os.join_path(fixture.src, 'b.txt')
+			new_basename: 'd.txt'
+		},
+	]) or { return pathname_spec_bool(false) }
+	return pathname_spec_bool(os.exists(os.join_path(fixture.dst, 'c.txt')) && os.exists(os.join_path(fixture.dst, 'd.txt')) && !os.exists(os.join_path(fixture.dst, 'a.txt')) && !os.exists(os.join_path(fixture.dst, 'b.txt')))
 }
 
 // Ruby it `it "supports renaming directories" do` at line 219.
 pub fn ruby_pathname_spec_l219_d28_supports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('supports', ...args)
+	_ = args
+	fixture := pathname_spec_install_fixture('rename-directory') or { return pathname_spec_bool(false) }
+	bin := os.join_path(fixture.src, 'bin')
+	os.mkdir_all(bin) or { return pathname_spec_bool(false) }
+	os.mv(os.join_path(fixture.src, 'a.txt'), os.join_path(bin, 'a.txt')) or { return pathname_spec_bool(false) }
+	os.mv(os.join_path(fixture.src, 'b.txt'), os.join_path(bin, 'b.txt')) or { return pathname_spec_bool(false) }
+	pathname_ext.pathname_install(fixture.dst, [pathname_ext.PathInstallSource{
+		path: bin
+		new_basename: 'libexec'
+	}]) or { return pathname_spec_bool(false) }
+	return pathname_spec_bool(!os.exists(os.join_path(fixture.dst, 'bin')) && os.exists(os.join_path(fixture.dst, 'libexec', 'a.txt')) && os.exists(os.join_path(fixture.dst, 'libexec', 'b.txt')))
 }
 
 // Ruby it `it "can install directories as relative symlinks" do` at line 230.
 pub fn ruby_pathname_spec_l230_d29_can(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('can', ...args)
+	_ = args
+	fixture := pathname_spec_install_fixture('symlink-directory') or { return pathname_spec_bool(false) }
+	bin := os.join_path(fixture.src, 'bin')
+	os.mkdir_all(bin) or { return pathname_spec_bool(false) }
+	os.mv(os.join_path(fixture.src, 'a.txt'), os.join_path(bin, 'a.txt')) or { return pathname_spec_bool(false) }
+	os.mv(os.join_path(fixture.src, 'b.txt'), os.join_path(bin, 'b.txt')) or { return pathname_spec_bool(false) }
+	pathname_ext.pathname_install_symlink(fixture.dst, [
+		pathname_ext.PathInstallSource{ path: bin },
+	]) or {
+		return pathname_spec_bool(false)
+	}
+	link := os.join_path(fixture.dst, 'bin')
+	target := os.readlink(link) or { return pathname_spec_bool(false) }
+	return pathname_spec_bool(os.is_link(link) && os.is_dir(link) && os.exists(os.join_path(link, 'a.txt')) && os.exists(os.join_path(link, 'b.txt')) && !os.is_abs_path(target))
 }
 
 // Ruby it `it "can install relative paths as symlinks" do` at line 243.
 pub fn ruby_pathname_spec_l243_d30_can(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('can', ...args)
+	_ = args
+	fixture := pathname_spec_install_fixture('symlink-relative') or { return pathname_spec_bool(false) }
+	pathname_ext.pathname_install_symlink(fixture.dst, [pathname_ext.PathInstallSource{
+		path: 'foo'
+		new_basename: 'bar'
+	}]) or { return pathname_spec_bool(false) }
+	return pathname_spec_bool(os.readlink(os.join_path(fixture.dst, 'bar')) or { '' } == 'foo')
 }
 
 // Ruby it `it "can install relative symlinks in a symlinked directory" do` at line 248.
 pub fn ruby_pathname_spec_l248_d31_can(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('can', ...args)
+	_ = args
+	fixture := pathname_spec_install_fixture('symlink-nested') or { return pathname_spec_bool(false) }
+	os.mkdir_all(os.join_path(fixture.dst, '1', '2')) or { return pathname_spec_bool(false) }
+	pathname_ext.pathname_install_symlink(fixture.dst, [pathname_ext.PathInstallSource{
+		path: '1/2'
+		new_basename: '12'
+	}]) or { return pathname_spec_bool(false) }
+	if os.readlink(os.join_path(fixture.dst, '12')) or { '' } != '1/2' {
+		return pathname_spec_bool(false)
+	}
+	pathname_ext.pathname_install_symlink(os.join_path(fixture.dst, '12'), [pathname_ext.PathInstallSource{
+		path: os.join_path(fixture.dst, 'foo')
+	}]) or { return pathname_spec_bool(false) }
+	return pathname_spec_bool(os.readlink(os.join_path(fixture.dst, '12', 'foo')) or { '' } == '../../foo')
 }
 
 // Ruby it `it "renames the installed file if it already exists" do` at line 262.
 pub fn ruby_pathname_spec_l262_d32_renames(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('renames', ...args)
+	_ = args
+	fixture := pathname_spec_fixture('install-renamed-file') or { return pathname_spec_bool(false) }
+	os.write_file(fixture.file, 'a') or { return pathname_spec_bool(false) }
+	homebrew.install_renamed_install_p(fixture.dst, fixture.file, os.base(fixture.file), '') or {
+		return pathname_spec_bool(false)
+	}
+	os.write_file(fixture.file, 'b') or { return pathname_spec_bool(false) }
+	homebrew.install_renamed_install_p(fixture.dst, fixture.file, os.base(fixture.file), '') or {
+		return pathname_spec_bool(false)
+	}
+	return pathname_spec_bool(os.read_file(os.join_path(fixture.dst, os.base(fixture.file))) or { '' } == 'a' && os.read_file(os.join_path(fixture.dst, '${os.base(fixture.file)}.default')) or { '' } == 'b')
 }
 
 // Ruby it `it "renames the installed directory" do` at line 273.
 pub fn ruby_pathname_spec_l273_d33_renames(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('renames', ...args)
+	_ = args
+	fixture := pathname_spec_fixture('install-renamed-directory') or { return pathname_spec_bool(false) }
+	os.write_file(fixture.file, 'a') or { return pathname_spec_bool(false) }
+	homebrew.install_renamed_install_p(fixture.dst, fixture.src, os.base(fixture.src), '') or {
+		return pathname_spec_bool(false)
+	}
+	return pathname_spec_bool(os.read_file(os.join_path(fixture.dst, os.base(fixture.src), os.base(fixture.file))) or { '' } == 'a')
 }
 
 // Ruby it `it "recursively renames directories" do` at line 279.
 pub fn ruby_pathname_spec_l279_d34_recursively(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('recursively', ...args)
+	_ = args
+	fixture := pathname_spec_fixture('install-renamed-recursive') or { return pathname_spec_bool(false) }
+	target_dir := os.join_path(fixture.dst, os.base(fixture.dir))
+	os.mkdir_all(target_dir) or { return pathname_spec_bool(false) }
+	os.write_file(os.join_path(target_dir, 'another_file'), 'a') or { return pathname_spec_bool(false) }
+	os.mkdir_all(fixture.dir) or { return pathname_spec_bool(false) }
+	os.write_file(os.join_path(fixture.dir, 'another_file'), 'b') or { return pathname_spec_bool(false) }
+	homebrew.install_renamed_install_p(fixture.dst, fixture.dir, os.base(fixture.dir), '') or {
+		return pathname_spec_bool(false)
+	}
+	return pathname_spec_bool(os.read_file(os.join_path(target_dir, 'another_file.default')) or { '' } == 'b')
 }
 
 // Ruby it `it "copies a file and replaces the given pattern" do` at line 290.
 pub fn ruby_pathname_spec_l290_d35_copies(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('copies', ...args)
+	_ = args
+	fixture := pathname_spec_fixture('copy-file') or { return pathname_spec_bool(false) }
+	os.write_file(fixture.file, 'a') or { return pathname_spec_bool(false) }
+	destination := pathname_ext.pathname_cp_path_sub(fixture.file, fixture.src, fixture.dst) or {
+		return pathname_spec_bool(false)
+	}
+	return pathname_spec_bool(os.read_file(destination) or { '' } == 'a' && destination == os.join_path(fixture.dst, os.base(fixture.file)))
 }
 
 // Ruby it `it "copies a directory and replaces the given pattern" do` at line 296.
 pub fn ruby_pathname_spec_l296_d36_copies(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('copies', ...args)
+	_ = args
+	fixture := pathname_spec_fixture('copy-directory') or { return pathname_spec_bool(false) }
+	os.mkdir_all(fixture.dir) or { return pathname_spec_bool(false) }
+	destination := pathname_ext.pathname_cp_path_sub(fixture.dir, fixture.src, fixture.dst) or {
+		return pathname_spec_bool(false)
+	}
+	return pathname_spec_bool(os.is_dir(destination) && destination == os.join_path(fixture.dst, os.base(fixture.dir)))
 }
 
 // Ruby it `it "returns whether a file is .DS_Store or not" do` at line 304.
 pub fn ruby_pathname_spec_l304_d37_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('returns', ...args)
+	_ = args
+	return pathname_spec_bool(!pathname_ext.pathname_ds_store('/tmp/foo') && pathname_ext.pathname_ds_store('/tmp/foo/.DS_Store'))
 }
 
 // Original Ruby source (line-for-line):

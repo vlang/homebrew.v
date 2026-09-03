@@ -1,28 +1,33 @@
 module rubocops
 
 import brew_runtime
+import homebrew.rubocops as uses_from_macos_core
 
 // Translated from Homebrew/brew `test/rubocops/uses_from_macos_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:cop) { described_class.new }` at line 7.
 pub fn ruby_uses_from_macos_spec_l7_d1_cop(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('cop', ...args)
+	return brew_runtime.object_value('RuboCop::Cop::FormulaAudit::UsesFromMacos', 'FormulaAudit/UsesFromMacos')
 }
 
 // Ruby it `it "reports an offense when used on non-macOS dependency" do` at line 10.
-pub fn ruby_uses_from_macos_spec_l10_d2_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_uses_from_macos_spec_l10_d2_reports() bool {
+	problems := uses_from_macos_core.audit_uses_from_macos('uses_from_macos "postgresql"')
+	return problems.len == 1 && problems[0].dependency == 'postgresql'
 }
 
 // Ruby it `it "reports offenses for multiple non-macOS dependencies and none for valid macOS dependencies" do` at line 22.
-pub fn ruby_uses_from_macos_spec_l22_d3_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_uses_from_macos_spec_l22_d3_reports() bool {
+	source := 'uses_from_macos "boost"\nuses_from_macos "bzip2"\nuses_from_macos "postgresql"\nuses_from_macos "zlib"'
+	problems := uses_from_macos_core.audit_uses_from_macos(source)
+	return problems.len == 2 && problems.map(it.dependency) == ['boost', 'postgresql']
 }
 
 // Ruby it `it "reports an offense when used in `depends_on :linux` formula" do` at line 38.
-pub fn ruby_uses_from_macos_spec_l38_d4_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reports', ...args)
+pub fn ruby_uses_from_macos_spec_l38_d4_reports() bool {
+	problems := uses_from_macos_core.audit_uses_from_macos('depends_on :linux\nuses_from_macos "zlib"')
+	return problems.len == 1 && problems[0].kind == 'linux_required'
 }
 
 // Original Ruby source (line-for-line):
