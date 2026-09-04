@@ -1,1 +1,0 @@
-scripts/approve_stale_lead_maintainer_prs.rb

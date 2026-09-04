@@ -3,7 +3,6 @@ module homebrew
 import ruby
 
 // Translated from Homebrew/brew `pypi_packages.rb`.
-// The original source is retained below until every stub has a typed V body.
 
 // PypiPackagesConfig contains the keyword arguments accepted by PypiPackages.
 // Arrays are copied into the model so callers cannot mutate its state later.
@@ -145,14 +144,20 @@ fn pypi_packages_config_from_args(args []ruby.Value) !PypiPackagesConfig {
 	return PypiPackagesConfig{
 		package_name: package_name
 		extra_packages: if args.len > 1 {
-			pypi_packages_array_from_value(args[1], 'extra_packages')!} else {
-			[]string{}}
+			pypi_packages_array_from_value(args[1], 'extra_packages')!
+		} else {
+			[]string{}
+		}
 		exclude_packages: if args.len > 2 {
-			pypi_packages_array_from_value(args[2], 'exclude_packages')!} else {
-			[]string{}}
+			pypi_packages_array_from_value(args[2], 'exclude_packages')!
+		} else {
+			[]string{}
+		}
 		dependencies: if args.len > 3 {
-			pypi_packages_array_from_value(args[3], 'dependencies')!} else {
-			[]string{}}
+			pypi_packages_array_from_value(args[3], 'dependencies')!
+		} else {
+			[]string{}
+		}
 	}
 }
 
@@ -164,77 +169,3 @@ fn (packages PypiPackages) to_config() PypiPackagesConfig {
 		dependencies: packages.dependencies()
 	}
 }
-
-// Ruby attr_reader `attr_reader :package_name` at line 8.
-pub fn ruby_pypi_packages_l8_d1_package_name(args ...ruby.Value) ruby.Value {
-	packages := pypi_packages_from_boundary_args(args) or { panic(err) }
-	return if name := packages.package_name() {
-		ruby.string_value(name)
-	} else {
-		ruby.object_value('NilClass', 'nil')
-	}
-}
-
-// Ruby attr_reader `attr_reader :extra_packages` at line 11.
-pub fn ruby_pypi_packages_l11_d2_extra_packages(args ...ruby.Value) ruby.Value {
-	packages := pypi_packages_from_boundary_args(args) or { panic(err) }
-	return ruby.string_array_value(packages.extra_packages())
-}
-
-// Ruby attr_reader `attr_reader :exclude_packages` at line 14.
-pub fn ruby_pypi_packages_l14_d3_exclude_packages(args ...ruby.Value) ruby.Value {
-	packages := pypi_packages_from_boundary_args(args) or { panic(err) }
-	return ruby.string_array_value(packages.exclude_packages())
-}
-
-// Ruby attr_reader `attr_reader :dependencies` at line 17.
-pub fn ruby_pypi_packages_l17_d4_dependencies(args ...ruby.Value) ruby.Value {
-	packages := pypi_packages_from_boundary_args(args) or { panic(err) }
-	return ruby.string_array_value(packages.dependencies())
-}
-
-// Ruby method `initialize(` at line 27.
-pub fn ruby_pypi_packages_l27_d5_initialize(args ...ruby.Value) ruby.Value {
-	config := pypi_packages_config_from_args(args) or { panic(err) }
-	return pypi_packages_value(new_pypi_packages(config))
-}
-
-// Original Ruby source (line-for-line):
-// 1: # typed: strict
-// 2: # frozen_string_literal: true
-// 3:
-// 4: # Helper class for `pypi_packages` DSL.
-// 5: # @api internal
-// 6: class PypiPackages
-// 7:   sig { returns(T.nilable(String)) }
-// 8:   attr_reader :package_name
-// 9:
-// 10:   sig { returns(T::Array[String]) }
-// 11:   attr_reader :extra_packages
-// 12:
-// 13:   sig { returns(T::Array[String]) }
-// 14:   attr_reader :exclude_packages
-// 15:
-// 16:   sig { returns(T::Array[String]) }
-// 17:   attr_reader :dependencies
-// 18:
-// 19:   sig {
-// 20:     params(
-// 21:       package_name:     T.nilable(String),
-// 22:       extra_packages:   T::Array[String],
-// 23:       exclude_packages: T::Array[String],
-// 24:       dependencies:     T::Array[String],
-// 25:     ).void
-// 26:   }
-// 27:   def initialize(
-// 28:     package_name: nil,
-// 29:     extra_packages: [],
-// 30:     exclude_packages: [],
-// 31:     dependencies: []
-// 32:   )
-// 33:     @package_name = package_name
-// 34:     @extra_packages = extra_packages
-// 35:     @exclude_packages = exclude_packages
-// 36:     @dependencies = dependencies
-// 37:   end
-// 38: end

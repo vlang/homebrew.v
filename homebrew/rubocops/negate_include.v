@@ -3,7 +3,6 @@ module rubocops
 import ruby
 
 // Translated from Homebrew/brew `rubocops/negate_include.rb`.
-// The original source is retained below until every stub has a typed V body.
 pub const negate_include_message = 'Use `.exclude?` and remove the negation part.'
 
 pub struct NegateIncludeCall {
@@ -314,70 +313,3 @@ fn negate_include_offense_value(offense NegateIncludeOffense) ruby.Value {
 		'replacement': offense.replacement
 	})
 }
-
-// Ruby def_node_matcher `def_node_matcher :negate_include_call?, <<~PATTERN` at line 31.
-pub fn ruby_negate_include_l31_d1_negate_include_call(args ...ruby.Value) ruby.Value {
-	source := if args.len > 0 { args[0].as_string() } else { '' }
-	call := negate_include_call(source) or {
-		return ruby.object_value('NilClass', 'nil')
-	}
-	return negate_include_call_value(call)
-}
-
-// Ruby method `on_send(node)` at line 36.
-pub fn ruby_negate_include_l36_d2_on_send(args ...ruby.Value) ruby.Value {
-	source := if args.len > 0 { args[0].as_string() } else { '' }
-	analysis := analyze_negate_includes(source)
-	if analysis.offenses.len == 0 {
-		return ruby.object_value('NilClass', 'nil')
-	}
-	return negate_include_offense_value(analysis.offenses[0])
-}
-
-// Original Ruby source (line-for-line):
-// 1: # typed: strict
-// 2: # frozen_string_literal: true
-// 3:
-// 4: module RuboCop
-// 5:   module Cop
-// 6:     module Homebrew
-// 7:       # Enforces the use of `collection.exclude?(obj)`
-// 8:       # over `!collection.include?(obj)`.
-// 9:       #
-// 10:       # NOTE: This cop is unsafe because false positives will occur for
-// 11:       #       receiver objects that do not have an `#exclude?` method (e.g. `IPAddr`).
-// 12:       #
-// 13:       # ### Example
-// 14:       #
-// 15:       # ```ruby
-// 16:       # # bad
-// 17:       # !array.include?(2)
-// 18:       # !hash.include?(:key)
-// 19:       #
-// 20:       # # good
-// 21:       # array.exclude?(2)
-// 22:       # hash.exclude?(:key)
-// 23:       # ```
-// 24:       class NegateInclude < Base
-// 25:         extend AutoCorrector
-// 26:
-// 27:         MSG = "Use `.exclude?` and remove the negation part."
-// 28:
-// 29:         RESTRICT_ON_SEND = [:!].freeze
-// 30:
-// 31:         def_node_matcher :negate_include_call?, <<~PATTERN
-// 32:           (send (send $!nil? :include? $_) :!)
-// 33:         PATTERN
-// 34:
-// 35:         sig { params(node: RuboCop::AST::SendNode).void }
-// 36:         def on_send(node)
-// 37:           return unless (receiver, obj = negate_include_call?(node))
-// 38:
-// 39:           add_offense(node) do |corrector|
-// 40:             corrector.replace(node, "#{receiver.source}.exclude?(#{obj.source})")
-// 41:           end
-// 42:         end
-// 43:       end
-// 44:     end
-// 45:   end
-// 46: end

@@ -4,7 +4,6 @@ import ruby
 import os
 
 // Translated from Homebrew/brew `cask/artifact/app.rb`.
-// The original source is retained below until every stub has a typed V body.
 pub struct AppArtifact {
 pub:
 	source string
@@ -18,7 +17,7 @@ pub:
 	sudo       bool
 }
 
-pub type AppCommandRunner = fn(AppCommand) !
+pub type AppCommandRunner = fn (AppCommand) !
 
 pub struct AppInstallOptions {
 pub:
@@ -118,10 +117,10 @@ fn app_collect_entries(root string, path string, mut entries []string) {
 			entries << '${relative}/'
 			app_collect_entries(root, entry, mut entries)
 		} else if os.is_link(entry) {
-			entries << '${relative}\0link:${os.readlink(entry) or { '' }}'
+			entries << '${relative}\x00link:${os.readlink(entry) or { '' }}'
 		} else {
 			contents := os.read_file(entry) or { '' }
-			entries << '${relative}\0${contents}'
+			entries << '${relative}\x00${contents}'
 		}
 	}
 }
@@ -403,81 +402,3 @@ pub fn app_operation_value(result AppOperationResult) ruby.Value {
 		'commands':    ruby.string_array_value(result.commands.map('${it.executable} ${it.args.join(' ')} sudo=${it.sudo}'))
 	})
 }
-
-// Ruby method `install_phase(` at line 22.
-pub fn ruby_app_l22_d1_install_phase(args ...ruby.Value) ruby.Value {
-	if args.len == 0 {
-		return app_operation_value(AppOperationResult{
-			error: 'App install_phase requires an artifact'
-		})
-	}
-	mut options := AppInstallOptions{}
-	if args.len > 1 && args[1].type_name == 'Hash' {
-		values := args[1].map_data.clone()
-		options = AppInstallOptions{
-			adopt: if value := values['adopt'] { value.as_bool() or { false } } else { false }
-			auto_updates: if value := values['auto_updates'] {
-				value.as_bool() or { false }} else {
-				false}
-			force: if value := values['force'] { value.as_bool() or { false } } else { false }
-			predecessor_matches: if value := values['predecessor_matches'] {
-				value.as_bool() or { false }} else {
-				false}
-			reinstall: if value := values['reinstall'] {
-				value.as_bool() or { false }} else {
-				false}
-			system_directory: if value := values['system_directory'] {
-				value.as_bool() or { false }} else {
-				false}
-			target_writable: if value := values['target_writable'] {
-				value.as_bool() or { true }} else {
-				true}
-		}
-	}
-	return app_operation_value(install_app(app_artifact_from_value(args[0]), options))
-}
-
-// Original Ruby source (line-for-line):
-// 1: # typed: strict
-// 2: # frozen_string_literal: true
-// 3:
-// 4: require "cask/artifact/moved"
-// 5:
-// 6: module Cask
-// 7:   module Artifact
-// 8:     # Artifact corresponding to the `app` stanza.
-// 9:     class App < Moved
-// 10:       sig {
-// 11:         override.params(
-// 12:           adopt:        T::Boolean,
-// 13:           auto_updates: T.nilable(T::Boolean),
-// 14:           force:        T::Boolean,
-// 15:           verbose:      T::Boolean,
-// 16:           predecessor:  T.nilable(Cask),
-// 17:           successor:    T.nilable(Cask),
-// 18:           reinstall:    T::Boolean,
-// 19:           command:      T.class_of(SystemCommand),
-// 20:         ).void
-// 21:       }
-// 22:       def install_phase(
-// 23:         adopt: false,
-// 24:         auto_updates: false,
-// 25:         force: false,
-// 26:         verbose: false,
-// 27:         predecessor: nil,
-// 28:         successor: nil,
-// 29:         reinstall: false,
-// 30:         command: SystemCommand
-// 31:       )
-// 32:         super
-// 33:
-// 34:         return if target.ascend.none? { OS::Mac.system_dir?(it) }
-// 35:
-// 36:         odebug "Fixing up '#{target}' permissions for installation to '#{target.parent}'"
-// 37:         # Ensure that globally installed applications can be accessed by all users.
-// 38:         # We shell out to `chmod` instead of using `FileUtils.chmod` so that using `+X` works correctly.
-// 39:         command.run!("chmod", args: ["-R", "a+rX", target], sudo: !target.writable?)
-// 40:       end
-// 41:     end
-// 42:   end
-// 43: end

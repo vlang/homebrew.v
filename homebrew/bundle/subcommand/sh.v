@@ -3,19 +3,6 @@ module subcommand
 import ruby
 
 // Translated from Homebrew/brew `bundle/subcommand/sh.rb`.
-// The original source is retained below until every stub has a typed V body.
-
-// Ruby method `run` at line 31.
-pub fn ruby_sh_l31_d1_run(args ...ruby.Value) ruby.Value {
-	options := BundleExecSubcommandOptions{
-		services: if args.len > 0 { args[0].as_bool() or { false } } else { false }
-		check: if args.len > 1 { args[1].as_bool() or { false } } else { false }
-		no_secrets: if args.len > 2 { args[2].as_bool() or { false } } else { false }
-		global: if args.len > 3 { args[3].as_bool() or { false } } else { false }
-		file: if args.len > 4 { args[4].as_string() } else { '' }
-	}
-	return bundle_exec_invocation_value(run_sh_subcommand(options))
-}
 
 pub fn run_sh_subcommand(options BundleExecSubcommandOptions) BundleExecSubcommandInvocation {
 	return BundleExecSubcommandInvocation{
@@ -24,42 +11,3 @@ pub fn run_sh_subcommand(options BundleExecSubcommandOptions) BundleExecSubcomma
 		options: options
 	}
 }
-
-// Original Ruby source (line-for-line):
-// 1: # typed: strict
-// 2: # frozen_string_literal: true
-// 3:
-// 4: require "abstract_subcommand"
-// 5:
-// 6: module Homebrew
-// 7:   module Cmd
-// 8:     class Bundle < Homebrew::AbstractCommand
-// 9:       class ShSubcommand < Homebrew::AbstractSubcommand
-// 10:         subcommand_args do
-// 11:           usage_banner <<~EOS
-// 12:             `brew bundle sh` [`--check`] [`--no-secrets`]:
-// 13:             Run your shell in a `brew bundle exec` environment.
-// 14:           EOS
-// 15:           named_args :none
-// 16:           switch "--install",
-// 17:                  description: "Run `install` before starting the shell."
-// 18:           switch "--services",
-// 19:                  description: "Temporarily start services while running the shell.",
-// 20:                  env:         :bundle_services
-// 21:           switch "--check",
-// 22:                  description: "Check that all dependencies in the Brewfile are installed before " \
-// 23:                               "starting the shell.",
-// 24:                  env:         :bundle_check
-// 25:           switch "--no-secrets",
-// 26:                  description: "Attempt to remove secrets from the environment before starting the shell.",
-// 27:                  env:         :bundle_no_secrets
-// 28:         end
-// 29:
-// 30:         sig { override.void }
-// 31:         def run
-// 32:           ExecSubcommand.run_command("sh", args:, context:)
-// 33:         end
-// 34:       end
-// 35:     end
-// 36:   end
-// 37: end

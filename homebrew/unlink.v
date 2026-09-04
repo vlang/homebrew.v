@@ -4,7 +4,6 @@ import ruby
 import os
 
 // Translated from Homebrew/brew `unlink.rb`.
-// The original source is retained below until every stub has a typed V body.
 pub struct UnlinkKeg {
 pub:
 	name      string
@@ -42,7 +41,7 @@ pub:
 	output   string
 }
 
-pub type UnlinkKegAction = fn(UnlinkKeg, UnlinkOptions) !int
+pub type UnlinkKegAction = fn (UnlinkKeg, UnlinkOptions) !int
 
 // unlink_managed_symlinks is a small native Keg.unlink boundary. Only symlinks
 // explicitly owned by the keg are removed; dry runs report them without mutation.
@@ -129,60 +128,3 @@ fn unlink_results_value(results []UnlinkResult) ruby.Value {
 		'output':   it.output
 	})))
 }
-
-// Ruby method `self.unlink_link_overwrite_formulae(formula, verbose: false)` at line 8.
-pub fn ruby_unlink_l8_d1_self_unlink_link_overwrite_formulae(args ...ruby.Value) ruby.Value {
-	if args.len == 0 {
-		return ruby.array_value([])
-	}
-	verbose := if args.len > 1 { args[1].as_bool() or { false } } else { false }
-	results := unlink_link_overwrite_formulae(unlink_formula_from_value(args[0]), verbose, unlink_managed_symlinks) or { return ruby.object_value('Error', err.msg()) }
-	return unlink_results_value(results)
-}
-
-// Ruby method `self.unlink(keg, dry_run: false, verbose: false)` at line 20.
-pub fn ruby_unlink_l20_d2_self_unlink(args ...ruby.Value) ruby.Value {
-	if args.len == 0 {
-		return ruby.object_value('Error', 'missing keg')
-	}
-	options := UnlinkOptions{
-		dry_run: if args.len > 1 { args[1].as_bool() or { false } } else { false }
-		verbose: if args.len > 2 { args[2].as_bool() or { false } } else { false }
-	}
-	result := unlink_keg(unlink_keg_from_value(args[0]), options, unlink_managed_symlinks) or {
-		return ruby.object_value('Error', err.msg())
-	}
-	return unlink_results_value([result])
-}
-
-// Original Ruby source (line-for-line):
-// 1: # typed: strict
-// 2: # frozen_string_literal: true
-// 3:
-// 4: module Homebrew
-// 5:   # Provides helper methods for unlinking formulae and kegs with consistent output.
-// 6:   module Unlink
-// 7:     sig { params(formula: Formula, verbose: T::Boolean).void }
-// 8:     def self.unlink_link_overwrite_formulae(formula, verbose: false)
-// 9:       overwrite_formulae = formula.link_overwrite_formulae.select(&:linked?)
-// 10:       overwrite_formulae.select!(&:keg_only?) unless formula.keg_only?
-// 11:
-// 12:       overwrite_formulae.filter_map(&:any_installed_keg)
-// 13:                         .select(&:directory?)
-// 14:                         .each do |keg|
-// 15:         unlink(keg, verbose:)
-// 16:       end
-// 17:     end
-// 18:
-// 19:     sig { params(keg: Keg, dry_run: T::Boolean, verbose: T::Boolean).void }
-// 20:     def self.unlink(keg, dry_run: false, verbose: false)
-// 21:       options = { dry_run:, verbose: }
-// 22:
-// 23:       keg.lock do
-// 24:         print "Unlinking #{keg}... "
-// 25:         puts if verbose
-// 26:         puts "#{keg.unlink(**options)} symlinks removed."
-// 27:       end
-// 28:     end
-// 29:   end
-// 30: end

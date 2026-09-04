@@ -3,7 +3,6 @@ module cask
 import ruby
 
 // Translated from Homebrew/brew `rubocops/cask/desc.rb`.
-// The original source is retained below until every stub has a typed V body.
 pub const cask_desc_article_message = "Description shouldn't start with an article."
 pub const cask_desc_name_message = "Description shouldn't start with the cask name."
 pub const cask_desc_platform_message = "Description shouldn't contain the platform."
@@ -879,42 +878,3 @@ fn cask_desc_value(offense CaskDescOffense) ruby.Value {
 		'replacement': offense.replacement
 	})
 }
-
-// Ruby method `on_desc_stanza(stanza)` at line 18.
-pub fn ruby_desc_l18_d1_on_desc_stanza(args ...ruby.Value) ruby.Value {
-	source := if args.len > 0 { args[0].as_string() } else { '' }
-	offenses := audit_cask_desc(source)
-	return if offenses.len == 0 {
-		ruby.object_value('NilClass', 'nil')
-	} else {
-		cask_desc_value(offenses[0])
-	}
-}
-
-// Original Ruby source (line-for-line):
-// 1: # typed: strict
-// 2: # frozen_string_literal: true
-// 3:
-// 4: require "rubocops/cask/mixin/on_desc_stanza"
-// 5: require "rubocops/shared/desc_helper"
-// 6:
-// 7: module RuboCop
-// 8:   module Cop
-// 9:     module Cask
-// 10:       # This cop audits `desc` in casks.
-// 11:       # See the {DescHelper} module for details of the checks.
-// 12:       class Desc < Base
-// 13:         include OnDescStanza
-// 14:         include DescHelper
-// 15:         extend AutoCorrector
-// 16:
-// 17:         sig { params(stanza: RuboCop::Cask::AST::Stanza).void }
-// 18:         def on_desc_stanza(stanza)
-// 19:           @name = T.let(cask_block&.header&.cask_token, T.nilable(String))
-// 20:           desc_call = stanza.stanza_node
-// 21:           audit_desc(:cask, @name, desc_call)
-// 22:         end
-// 23:       end
-// 24:     end
-// 25:   end
-// 26: end
