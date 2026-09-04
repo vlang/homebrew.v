@@ -8,7 +8,7 @@ import homebrew.developer.subcommand
 
 // Ruby method `run` at line 24.
 pub fn ruby_developer_l24_d1_run(arguments []string, mut state subcommand.DeveloperState) !string {
-	return developer.ruby_subcommand_l16_d1_dispatch(arguments, mut state)
+	return developer.subcommand_dispatch(arguments, mut state)
 }
 
 // Original Ruby source (line-for-line):

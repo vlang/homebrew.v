@@ -14,10 +14,10 @@ accessors, aliases, delegates, matcher methods, and RSpec examples have V entry
 points.
 
 Where a dependency or Ruby type has not yet been translated, the V entry point
-calls `ruby.unimplemented_fn` from the
+uses the dynamic `ruby.Value` boundary from the
 [`vlang/ruby`](https://github.com/vlang/ruby) compatibility module. These
-explicit boundaries are intended to be replaced one at a time with typed V
-bodies without losing source context.
+boundaries are being replaced one at a time with typed V bodies without losing
+source context.
 
 Install the external V dependencies once after cloning:
 
@@ -32,9 +32,9 @@ v -o brew-v .
 ```
 
 The executable runs only translated V code. It does not invoke or fall back to a
-native Ruby Homebrew installation. Execution currently stops at the explicit
-`brew.rb:<top-level>` stub because the retained Ruby command graph does not yet
-have typed V bodies.
+native Ruby Homebrew installation. Formula bottle installation and uninstall,
+along with `--version`, `--repository`, and `--taps`, have executable command
+bodies. Other recognized commands report that their run body is not implemented.
 
 ## Benchmarks
 
@@ -56,30 +56,32 @@ seconds.
 Ruby Homebrew has no ahead-of-time build step, so these are deliberately
 different operations: V produces and links a native executable, while Ruby only
 parses source into process-local bytecode. The V executable includes the
-translated root `homebrew` module, but most entry points remain explicit stubs.
+translated root `homebrew` module and the command implementations they reach.
 
 ### Installing Neovim
 
-There is no valid V installation benchmark yet. `brew-v install neovim` reaches
-the untranslated `brew.rb:<top-level>` boundary and exits without installing
-anything. Publishing the native Ruby Homebrew time as a `brew-v` result would be
-misleading.
+There is no timed V installation benchmark yet. An isolated end-to-end check on
+2026-09-04 installed the current Neovim bottle and its dependencies, ran
+`nvim --version`, and uninstalled Neovim using `brew-v`. Dependencies remain
+installed after a plain uninstall; automatic dependency removal is not yet
+wired into the root command.
 
 ### Updating Homebrew
 
-There is likewise no valid V update benchmark yet. `brew-v update` stops at the
-same untranslated top-level boundary. A native Ruby `brew update` measured
-35.70 s while updating two taps from Homebrew 6.0.17 to 6.0.20, but that is a
-Ruby Homebrew result, not a V result.
+There is likewise no valid V update benchmark yet. `brew-v update` resolves the
+translated command but reports that its run body is not implemented. A native
+Ruby `brew update` measured 35.70 s while updating two taps from Homebrew 6.0.17
+to 6.0.20, but that is a Ruby Homebrew result, not a V result.
 
 ## Translation status
 
 The repository contains source-faithful V counterparts for all 2,180 Ruby files
-and retains all 320,780 Ruby source lines as comments. It currently has 23,530
-translated function or generated-method boundaries: 23,527 explicit stubs and
-three direct implementations. This is a complete mechanical translation
-scaffold under the project's explicit stub convention, not yet a behaviorally
-complete Homebrew implementation.
+and retains all 320,780 Ruby source lines as comments. There are currently no
+explicit `ruby.unimplemented_fn` stubs. Production callers use stable V APIs
+whenever the target has a concrete signature. Generated `ruby_*_l*` names remain
+for dynamically typed `ruby.Value` boundaries and retained source-coverage entry
+points. This is not yet a behaviorally complete Homebrew implementation, and
+those dynamic boundaries are being replaced as their domain models become typed.
 
 ## Validation
 

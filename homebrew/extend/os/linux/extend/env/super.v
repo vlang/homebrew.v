@@ -88,7 +88,7 @@ pub fn linux_superenv_setup_build_environment(mut state base_env.SuperenvState,
 	} else {
 		state.remove_value('HOMEBREW_DYNAMIC_LINKER')
 	}
-	rpaths := linux_superenv_rpath_paths(context.formula_lib, state.config.prefix, base_env.ruby_super_l29_d5_run_time_deps(state), exists)
+	rpaths := linux_superenv_rpath_paths(context.formula_lib, state.config.prefix, base_env.super_run_time_deps(state), exists)
 	state.set_value('HOMEBREW_RPATH_PATHS', rpaths.join(':'))
 	if state.dependencies().any(it.name in ['libtool', 'bison']) {
 		state.set_value('M4', os.join_path(state.config.prefix, 'opt', 'm4', 'bin', 'm4'))

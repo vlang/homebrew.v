@@ -18,12 +18,12 @@ pub fn ruby_backend_l10_d1_full_write_isolation() bool {
 }
 
 // Ruby method `initialize(profile)` at line 14.
-pub fn ruby_backend_l14_d2_initialize(profile homebrew.SandboxProfile) LinuxBackend {
+pub fn backend_initialize(profile homebrew.SandboxProfile) LinuxBackend {
 	return LinuxBackend{ profile: profile }
 }
 
 // Ruby method `run(&block)` at line 20.
-pub fn ruby_backend_l20_d3_run(mut backend LinuxBackend) {
+pub fn backend_run(mut backend LinuxBackend) {
 	for path in backend.prepared_writable_paths.reverse() {
 		if os.is_dir(path) { os.rmdir(path) or {} }
 	}
@@ -36,7 +36,7 @@ pub fn ruby_backend_l34_d4_profile(backend LinuxBackend) homebrew.SandboxProfile
 }
 
 // Ruby method `writable_paths` at line 39.
-pub fn ruby_backend_l39_d5_writable_paths(backend LinuxBackend) !map[string]homebrew.SandboxFilterType {
+pub fn backend_writable_paths(backend LinuxBackend) !map[string]homebrew.SandboxFilterType {
 	mut paths := map[string]homebrew.SandboxFilterType{}
 	for rule in backend.profile.rules {
 		if !rule.allow || !rule.operation.starts_with('file-write') || !rule.has_filter {
@@ -57,7 +57,7 @@ pub fn ruby_backend_l39_d5_writable_paths(backend LinuxBackend) !map[string]home
 }
 
 // Ruby method `profile_paths(allow:, operation:)` at line 58.
-pub fn ruby_backend_l58_d6_profile_paths(backend LinuxBackend, allow bool, operation string) []string {
+pub fn backend_profile_paths(backend LinuxBackend, allow bool, operation string) []string {
 	mut result := []string{}
 	for rule in backend.profile.rules {
 		if rule.allow != allow || !rule.operation.starts_with(operation) || !rule.has_filter || rule.filter.type_name == .regex {
@@ -69,12 +69,12 @@ pub fn ruby_backend_l58_d6_profile_paths(backend LinuxBackend, allow bool, opera
 }
 
 // Ruby method `deny_all_network?` at line 68.
-pub fn ruby_backend_l68_d7_deny_all_network(backend LinuxBackend) bool {
+pub fn backend_deny_all_network(backend LinuxBackend) bool {
 	return backend.profile.rules.any(!it.allow && it.operation == 'network*' && !it.has_filter)
 }
 
 // Ruby method `prepare_writable_path(path, type)` at line 75.
-pub fn ruby_backend_l75_d8_prepare_writable_path(mut backend LinuxBackend, path string, type_name homebrew.SandboxFilterType) ! {
+pub fn backend_prepare_writable_path(mut backend LinuxBackend, path string, type_name homebrew.SandboxFilterType) ! {
 	if os.exists(path) {
 		return
 	}

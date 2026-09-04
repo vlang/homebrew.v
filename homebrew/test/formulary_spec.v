@@ -14,7 +14,7 @@ pub:
 }
 
 fn formulary_spec_class(name string, contents string) !homebrew.FormularyLoadedClass {
-	return homebrew.ruby_formulary_l123_d11_self_load_formula(name, '/tmp/${name}.rb', contents, 'TestNamespace', [], false, homebrew.FormularyLoadContext{})
+	return homebrew.formulary_load_formula(name, '/tmp/${name}.rb', contents, 'TestNamespace', [], false, homebrew.FormularyLoadContext{})
 }
 
 fn formulary_spec_struct() api.FormulaStruct {
@@ -422,7 +422,7 @@ fn formulary_spec_run(line int) bool {
 
 fn formulary_spec_load_ignorable() bool {
 	contents := 'class IgnorableError < Formula\n  url "https://brew.sh/ignorable-error-1.0.tar.gz"\nend'
-	loaded := homebrew.ruby_formulary_l123_d11_self_load_formula('ignorable-error', '/tmp/ignorable.rb', contents, 'IgnorableErrorNamespace', [], true, homebrew.FormularyLoadContext{
+	loaded := homebrew.formulary_load_formula('ignorable-error', '/tmp/ignorable.rb', contents, 'IgnorableErrorNamespace', [], true, homebrew.FormularyLoadContext{
 		evaluation_error: 'ArgumentError'
 	}) or { return false }
 	return loaded.reference.source_url == 'https://brew.sh/ignorable-error-1.0.tar.gz'
@@ -430,7 +430,7 @@ fn formulary_spec_load_ignorable() bool {
 
 fn formulary_spec_load_unreadable() bool {
 	contents := 'class UnreadableError < Formula\n  url "https://brew.sh/unreadable-error-1.0.tar.gz"\nend'
-	if _ := homebrew.ruby_formulary_l123_d11_self_load_formula('unreadable-error', '/tmp/unreadable.rb', contents, 'UnreadableErrorNamespace', [], true, homebrew.FormularyLoadContext{
+	if _ := homebrew.formulary_load_formula('unreadable-error', '/tmp/unreadable.rb', contents, 'UnreadableErrorNamespace', [], true, homebrew.FormularyLoadContext{
 		evaluation_error: 'NoMethodError'
 	}) {
 		return false
@@ -453,7 +453,7 @@ fn formulary_spec_github_token() bool {
 
 fn formulary_spec_untrusted() bool {
 	contents := 'class SensitiveEnv < Formula\n  url "https://brew.sh/sensitive-env-1.0.tar.gz"\nend'
-	if _ := homebrew.ruby_formulary_l123_d11_self_load_formula('sensitive-env', '/tmp/sensitive-env.rb', contents, 'SensitiveEnvNamespace', [], false, homebrew.FormularyLoadContext{ trusted: false }) {
+	if _ := homebrew.formulary_load_formula('sensitive-env', '/tmp/sensitive-env.rb', contents, 'SensitiveEnvNamespace', [], false, homebrew.FormularyLoadContext{ trusted: false }) {
 		return false
 	} else {
 		return err.msg().contains('UntrustedTapError')
@@ -461,14 +461,14 @@ fn formulary_spec_untrusted() bool {
 }
 
 fn formulary_spec_from_contents() bool {
-	formula := homebrew.ruby_formulary_l1119_d71_self_from_contents('testball_bottle', '/tmp/testball_bottle.rb', formulary_spec_formula_content('testball_bottle'), 'stable', '', none, false, [], false, homebrew.FormularyLoadContext{}) or {
+	formula := homebrew.formulary_from_contents('testball_bottle', '/tmp/testball_bottle.rb', formulary_spec_formula_content('testball_bottle'), 'stable', '', none, false, [], false, homebrew.FormularyLoadContext{}) or {
 		return false
 	}
 	return formula.name() == 'testball_bottle' && formula.reference.source_url.ends_with('/testball-0.1.tbz')
 }
 
 fn formulary_spec_file_uri() bool {
-	loader := homebrew.ruby_formulary_l671_d43_initialize('file:///tmp/testball.rb', '', '/tmp/formula-cache')
+	loader := homebrew.new_uri_formulary_loader('file:///tmp/testball.rb', '', '/tmp/formula-cache')
 	mut cache := homebrew.FormularyPlatformCache{}
 	loaded := homebrew.ruby_formulary_l682_d44_load_file(mut cache, loader, formulary_spec_formula_content('testball'), [], false, homebrew.FormularyLoadContext{}) or {
 		return false
@@ -485,16 +485,16 @@ fn formulary_spec_factory(line int) bool {
 				'testball_bottle-old': 'homebrew/core/testball_bottle'
 			}
 		}
-		resolved := homebrew.ruby_formulary_l1173_d75_self_tap_formula_name_type('homebrew/foo/testball_bottle-old', old_tap, [
+		resolved := homebrew.formulary_resolve_tap_formula_name('homebrew/foo/testball_bottle-old', old_tap, [
 			old_tap,
 			core,
 		], false) or { return false }
-		loader := homebrew.ruby_formulary_l726_d48_self_loader_from_name_tap_type(resolved)
+		loader := homebrew.formulary_loader_from_name_tap_type(resolved)
 		return loader.kind == .api && loader.name == 'testball_bottle'
 	}
 	if line in [606, 646, 655, 668, 691, 704, 717, 733, 753, 764, 775] {
 		mut cache := homebrew.FormularyPlatformCache{}
-		loaded := homebrew.ruby_formulary_l228_d15_self_load_formula_from_struct(mut cache, 'testball_bottle', formulary_spec_struct_for_line(line), '{"name":"testball_bottle"}', '0000000000000000000000000000000000000000', [], true, '/opt/homebrew', '/opt/homebrew/Cellar', '/Users/test')
+		loaded := homebrew.formulary_load_formula_from_struct(mut cache, 'testball_bottle', formulary_spec_struct_for_line(line), '{"name":"testball_bottle"}', '0000000000000000000000000000000000000000', [], true, '/opt/homebrew', '/opt/homebrew/Cellar', '/Users/test')
 		loader := homebrew.FormularyLoader{
 			kind: .api
 			name: 'testball_bottle'
@@ -574,7 +574,7 @@ fn formulary_spec_factory(line int) bool {
 		return formula.name() == 'testball_bottle' && formula.alias_path.ends_with('/Aliases/foo')
 	}
 	if line in [304, 312] {
-		formula := homebrew.ruby_formulary_l1119_d71_self_from_contents('testball_bottle', '/tmp/testball_bottle.rb', formulary_spec_formula_content('testball_bottle'), 'stable', '', none, false, [], false, homebrew.FormularyLoadContext{}) or {
+		formula := homebrew.formulary_from_contents('testball_bottle', '/tmp/testball_bottle.rb', formulary_spec_formula_content('testball_bottle'), 'stable', '', none, false, [], false, homebrew.FormularyLoadContext{}) or {
 			return false
 		}
 		return formula.name() == 'testball_bottle' && formula.path() == '/tmp/testball_bottle.rb'
@@ -588,7 +588,7 @@ fn formulary_spec_factory(line int) bool {
 				'testball_bottle': new_tap.name
 			}
 		}
-		resolved := homebrew.ruby_formulary_l1173_d75_self_tap_formula_name_type('homebrew/foo/testball_bottle', migrating, [
+		resolved := homebrew.formulary_resolve_tap_formula_name('homebrew/foo/testball_bottle', migrating, [
 			migrating,
 			new_tap,
 		], false) or { return false }
@@ -596,7 +596,7 @@ fn formulary_spec_factory(line int) bool {
 	}
 	if line in [391, 395, 406] {
 		tap := formulary_spec_tap('homebrew/foo', false)
-		loader := homebrew.ruby_formulary_l738_d49_initialize('testball_bottle', '/tmp/testball_bottle.rb', tap, if line == 395 {
+		loader := homebrew.new_tap_formulary_loader('testball_bottle', '/tmp/testball_bottle.rb', tap, if line == 395 {
 			'bar'
 		} else {
 			''
@@ -620,7 +620,7 @@ fn formulary_spec_factory(line int) bool {
 fn formulary_spec_errors(line int) bool {
 	match line {
 		175, 859 {
-			loader := homebrew.ruby_formulary_l867_d56_initialize(if line == 175 {
+			loader := homebrew.new_null_formulary_loader(if line == 175 {
 				'not_existed_formula'
 			} else {
 				'foo bar'
@@ -641,14 +641,14 @@ fn formulary_spec_errors(line int) bool {
 			}
 		}
 		213 {
-			if _ := homebrew.ruby_formulary_l123_d11_self_load_formula('giraffe', '/tmp/giraffe.rb', 'class WrongGiraffe < Formula\nend', 'WrongClassNamespace', [], false, homebrew.FormularyLoadContext{}) {
+			if _ := homebrew.formulary_load_formula('giraffe', '/tmp/giraffe.rb', 'class WrongGiraffe < Formula\nend', 'WrongClassNamespace', [], false, homebrew.FormularyLoadContext{}) {
 				return false
 			} else {
 				return err.msg().contains('FormulaClassUnavailableError')
 			}
 		}
 		224, 261 {
-			if _ := homebrew.ruby_formulary_l123_d11_self_load_formula('testball_bottle', '/tmp/testball_bottle.rb', formulary_spec_formula_content('testball_bottle'), 'DisabledPathNamespace', [], false, homebrew.FormularyLoadContext{
+			if _ := homebrew.formulary_load_formula('testball_bottle', '/tmp/testball_bottle.rb', formulary_spec_formula_content('testball_bottle'), 'DisabledPathNamespace', [], false, homebrew.FormularyLoadContext{
 				disable_load_formula: true
 			}) {
 				return false
@@ -667,7 +667,7 @@ fn formulary_spec_errors(line int) bool {
 				...formulary_spec_tap('homebrew/foo', false)
 				installed: line != 363
 			}
-			loader := homebrew.ruby_formulary_l738_d49_initialize(if line == 400 {
+			loader := homebrew.new_tap_formulary_loader(if line == 400 {
 				'not_existed_formula'
 			} else {
 				'testball_bottle'
@@ -682,7 +682,7 @@ fn formulary_spec_errors(line int) bool {
 			return formulary_spec_ambiguity_error()
 		}
 		827, 833, 839, 845 {
-			loader := homebrew.ruby_formulary_l671_d43_initialize(match line {
+			loader := homebrew.new_uri_formulary_loader(match line {
 				827 { 'https://brew.sh/foo.rb' }
 				833 { 'https://brew.sh/foo-1.0.arm64.bottle.tar.gz' }
 				839 { 'ftp://brew.sh/foo.rb' }
@@ -739,7 +739,7 @@ fn formulary_spec_core_path(line int) bool {
 		core_tap: true
 		api_formula_names: if line == 927 { ['foo-bar'] } else { [] }
 	}
-	path := homebrew.ruby_formulary_l1256_d78_self_find_formula_in_tap('foo-bar', tap, line == 927, true)
+	path := homebrew.formulary_find_formula_in_tap('foo-bar', tap, line == 927, true)
 	return if line == 927 {
 		path.ends_with('/Formula/f/foo-bar.rb')
 	} else {
@@ -773,7 +773,7 @@ fn formulary_spec_migration(line int) bool {
 	requested := if line in [987, 1005, 1055, 1094] {
 		'foo'
 	} else if line in [1011] { '${new_tap.name}/foo' } else { '${old_tap.name}/foo' }
-	resolved := homebrew.ruby_formulary_l1173_d75_self_tap_formula_name_type('${old_tap.name}/foo', migrating, [
+	resolved := homebrew.formulary_resolve_tap_formula_name('${old_tap.name}/foo', migrating, [
 		migrating,
 		new_tap,
 	], true) or { return false }

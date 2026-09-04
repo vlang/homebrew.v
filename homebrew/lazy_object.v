@@ -1,36 +1,34 @@
 module homebrew
 
-import ruby
-
 // Translated from Homebrew/brew `lazy_object.rb`.
 // The original source is retained below until every stub has a typed V body.
-pub type LazyValueFactory = fn() !ruby.Value
+pub type LazyValueFactory[T] = fn () !T
 
-pub struct LazyObject {
+pub struct LazyObject[T] {
 mut:
-	callable    LazyValueFactory @[required]
+	callable    LazyValueFactory[T] @[required]
 	getobj_set  bool
-	object      ruby.Value
+	object      T
 	evaluations int
 }
 
-pub fn (object &LazyObject) evaluated() bool {
+pub fn (object &LazyObject[T]) evaluated[T]() bool {
 	return object.getobj_set
 }
 
-pub fn (object &LazyObject) evaluation_count() int {
+pub fn (object &LazyObject[T]) evaluation_count[T]() int {
 	return object.evaluations
 }
 
 // Ruby method `initialize(&callable)` at line 9.
-pub fn ruby_lazy_object_l9_d1_initialize(callable LazyValueFactory) LazyObject {
-	return LazyObject{
+pub fn new_lazy_object[T](callable LazyValueFactory[T]) LazyObject[T] {
+	return LazyObject[T]{
 		callable: callable
 	}
 }
 
 // Ruby method `__getobj__(&_blk)` at line 17.
-pub fn ruby_lazy_object_l17_d2_getobj(mut object LazyObject) !ruby.Value {
+pub fn (mut object LazyObject[T]) get[T]() !T {
 	if object.getobj_set {
 		return object.object
 	}
@@ -41,39 +39,25 @@ pub fn ruby_lazy_object_l17_d2_getobj(mut object LazyObject) !ruby.Value {
 }
 
 // Ruby method `__setobj__(callable)` at line 26.
-pub fn ruby_lazy_object_l26_d3_setobj(mut object LazyObject, callable LazyValueFactory) {
+pub fn (mut object LazyObject[T]) set_factory[T](callable LazyValueFactory[T]) {
 	object.callable = callable
 	object.getobj_set = false
-	object.object = ruby.Value{}
 }
 
 // Ruby method `is_a?(klass)` at line 36.
-pub fn ruby_lazy_object_l36_d4_is_a(mut object LazyObject, class_name string) !bool {
-	value := ruby_lazy_object_l17_d2_getobj(mut object)!
-	return value.type_name == class_name || class_name == 'LazyObject' || class_name == 'Delegator'
+pub fn (mut object LazyObject[T]) is_a[T](predicate fn (T) bool) !bool {
+	return predicate(object.get()!)
 }
 
 // Ruby method `class = __getobj__.class` at line 44.
-pub fn ruby_lazy_object_l44_d5_class(mut object LazyObject) !string {
-	return ruby_lazy_object_l17_d2_getobj(mut object)!.type_name
+pub fn (mut object LazyObject[T]) value_type_name[T]() !string {
+	_ = object.get()!
+	return $typeof(object.object).name
 }
 
 // Ruby method `to_s = __getobj__.to_s` at line 47.
-pub fn ruby_lazy_object_l47_d6_to_s(mut object LazyObject) !string {
-	return ruby_lazy_object_l17_d2_getobj(mut object)!.as_string()
-}
-
-pub fn lazy_object_not(mut object LazyObject) !bool {
-	value := ruby_lazy_object_l17_d2_getobj(mut object)!
-	if value.type_name == 'Bool' {
-		return !value.as_bool()!
-	}
-	return false
-}
-
-pub fn lazy_object_equals(mut object LazyObject, other ruby.Value) !bool {
-	value := ruby_lazy_object_l17_d2_getobj(mut object)!
-	return value.type_name == other.type_name && value.repr == other.repr
+pub fn (mut object LazyObject[T]) string[T]() !string {
+	return '${object.get()!}'
 }
 
 // Original Ruby source (line-for-line):

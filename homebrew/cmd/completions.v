@@ -8,7 +8,7 @@ import homebrew.completions.subcommand
 
 // Ruby method `run` at line 24.
 pub fn ruby_completions_l24_d1_run(arguments []string, mut state subcommand.CompletionsState) !string {
-	return completions.ruby_subcommand_l16_dispatch(arguments, mut state)
+	return completions.subcommand_dispatch(arguments, mut state)
 }
 
 // Original Ruby source (line-for-line):

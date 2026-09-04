@@ -219,8 +219,10 @@ fn formulary_class_from_contents(name string, path string, contents string, name
 			name: name
 			full_name: name
 			stable_version: if stable_url != '' {
-				formulary_version_from_url(stable_url)} else {
-				''}
+				formulary_version_from_url(stable_url)
+			} else {
+				''
+			}
 			head_version: if head_url != '' { 'HEAD' } else { '' }
 			source_url: stable_url
 			source_checksum: checksum
@@ -386,12 +388,16 @@ pub fn default_formulary_lookup_config() FormularyLookupConfig {
 		formula_directory: ruby.environment_value('HOMEBREW_CORE_FORMULA_DIR')
 		prefix: prefix
 		cellar: if cellar == '' && prefix != '' {
-			ruby.join_path(prefix, 'Cellar')} else {
-			cellar}
+			ruby.join_path(prefix, 'Cellar')
+		} else {
+			cellar
+		}
 		api: api.FormulaLookupConfig{
 			api_base_url: if api_domain == '' {
-				api.default_formula_lookup_config().api_base_url} else {
-				api_domain}
+				api.default_formula_lookup_config().api_base_url
+			} else {
+				api_domain
+			}
 			cache_directory: api_cache
 			without_api: without_api
 		}
@@ -737,7 +743,7 @@ pub fn ruby_formulary_l93_d10_self_clear_cache(mut cache FormularyPlatformCache)
 }
 
 // Ruby method `self.load_formula(name, path, contents, namespace, flags:, ignore_errors:)` at line 123.
-pub fn ruby_formulary_l123_d11_self_load_formula(name string, path string, contents string, namespace string,
+pub fn formulary_load_formula(name string, path string, contents string, namespace string,
 	flags []string, ignore_errors bool, context FormularyLoadContext) !FormularyLoadedClass {
 	mut effective := context
 	if ignore_errors && context.evaluation_error in ['NameError', 'ArgumentError',
@@ -760,17 +766,17 @@ pub fn ruby_formulary_l200_d13_self_replace_placeholders(value string, prefix st
 }
 
 // Ruby method `self.load_formula_from_path(name, path, flags:, ignore_errors:)` at line 210.
-pub fn ruby_formulary_l210_d14_self_load_formula_from_path(mut cache FormularyPlatformCache, name string,
+pub fn formulary_load_formula_from_path(mut cache FormularyPlatformCache, name string,
 	path string, flags []string, ignore_errors bool, context FormularyLoadContext) !FormularyLoadedClass {
 	contents := os.read_file(path)!
 	namespace := 'FormulaNamespace${formula_namespace_key(path, 'host', 'host')}'
-	loaded := ruby_formulary_l123_d11_self_load_formula(name, path, contents, namespace, flags, ignore_errors, context)!
+	loaded := formulary_load_formula(name, path, contents, namespace, flags, ignore_errors, context)!
 	cache.path_classes[path] = loaded
 	return loaded
 }
 
 // Ruby method `self.load_formula_from_struct!(name, formula_struct, api_source:, tap_git_head:, flags:, internal_api: false)` at line 228.
-pub fn ruby_formulary_l228_d15_self_load_formula_from_struct(mut cache FormularyPlatformCache, name string,
+pub fn formulary_load_formula_from_struct(mut cache FormularyPlatformCache, name string,
 	formula_struct api.FormulaStruct, api_source string, tap_git_head string, flags []string, internal_api bool,
 	prefix string, cellar string, home_directory string) FormularyLoadedClass {
 	stable_url := formula_struct.stable_url_args.first.as_string()
@@ -957,16 +963,16 @@ pub fn ruby_formulary_l512_d34_klass(mut cache FormularyPlatformCache, loader Fo
 	if loader.path in cache.path_classes {
 		return cache.path_classes[loader.path]
 	}
-	return ruby_formulary_l520_d35_load_file(mut cache, loader, flags, ignore_errors, context)
+	return formulary_load_file(mut cache, loader, flags, ignore_errors, context)
 }
 
 // Ruby method `load_file(flags:, ignore_errors:)` at line 520.
-pub fn ruby_formulary_l520_d35_load_file(mut cache FormularyPlatformCache, loader FormularyLoader,
+pub fn formulary_load_file(mut cache FormularyPlatformCache, loader FormularyLoader,
 	flags []string, ignore_errors bool, context FormularyLoadContext) !FormularyLoadedClass {
 	if !os.is_file(loader.path) {
 		return error('FormulaUnavailableError: ${loader.name}')
 	}
-	return ruby_formulary_l210_d14_self_load_formula_from_path(mut cache, loader.name, loader.path, flags, ignore_errors, context)
+	return formulary_load_formula_from_path(mut cache, loader.name, loader.path, flags, ignore_errors, context)
 }
 
 // Ruby method `self.try_new(ref, from: nil, warn: false)` at line 535.
@@ -974,18 +980,20 @@ pub fn ruby_formulary_l535_d36_self_try_new(input FormularyLoaderInput) ?Formula
 	if input.forbid_paths || !input.bottle_extension || !input.exists {
 		return none
 	}
-	return ruby_formulary_l544_d37_initialize(input)
+	return new_bottle_formulary_loader(input)
 }
 
 // Ruby method `initialize(bottle_name, warn: false)` at line 544.
-pub fn ruby_formulary_l544_d37_initialize(input FormularyLoaderInput) FormularyLoader {
+pub fn new_bottle_formulary_loader(input FormularyLoaderInput) FormularyLoader {
 	name := input.bottle_name
 	if name == '' || input.bottle_version == '' {
 		return FormularyLoader{
 			kind: .bottle
 			bottle_path: if input.resolved_path != '' {
-				input.resolved_path} else {
-				os.abs_path(input.ref)}
+				input.resolved_path
+			} else {
+				os.abs_path(input.ref)
+			}
 			error_message: 'BottleFormulaUnavailableError: ${input.ref}'
 		}
 	}
@@ -1003,8 +1011,10 @@ pub fn ruby_formulary_l544_d37_initialize(input FormularyLoaderInput) FormularyL
 		tap: tap
 		has_tap: has_tap || input.has_tap
 		bottle_path: if input.resolved_path != '' {
-			input.resolved_path} else {
-			os.abs_path(input.ref)}
+			input.resolved_path
+		} else {
+			os.abs_path(input.ref)
+		}
 		cellar_formula_path: cellar_path
 	}
 }
@@ -1035,11 +1045,11 @@ pub fn ruby_formulary_l600_d39_self_try_new(input FormularyLoaderInput) ?Formula
 		tap = FormularyTap{ name: input.api_tap_name }
 		has_tap = true
 	}
-	return ruby_formulary_l630_d40_initialize(path, alias_path, if has_tap { tap } else { none })
+	return new_path_formulary_loader(path, alias_path, if has_tap { tap } else { none })
 }
 
 // Ruby method `initialize(path, alias_path: nil, tap: nil)` at line 630.
-pub fn ruby_formulary_l630_d40_initialize(path string, alias_path string,
+pub fn new_path_formulary_loader(path string, alias_path string,
 	tap ?FormularyTap) FormularyLoader {
 	expanded := os.abs_path(path)
 	name := os.base(expanded).trim_string_right('.rb')
@@ -1067,7 +1077,7 @@ pub fn ruby_formulary_l648_d41_self_try_new(input FormularyLoaderInput) ?Formula
 	if scheme == '' || !rest.contains('/') {
 		return none
 	}
-	return ruby_formulary_l671_d43_initialize(uri, input.from, input.cache_formula_dir)
+	return new_uri_formulary_loader(uri, input.from, input.cache_formula_dir)
 }
 
 // Ruby attr_reader `attr_reader :url` at line 668.
@@ -1076,7 +1086,7 @@ pub fn ruby_formulary_l668_d42_url(loader FormularyLoader) string {
 }
 
 // Ruby method `initialize(url, from: nil)` at line 671.
-pub fn ruby_formulary_l671_d43_initialize(url string, from string, cache_formula_dir string) FormularyLoader {
+pub fn new_uri_formulary_loader(url string, from string, cache_formula_dir string) FormularyLoader {
 	path_component := url.all_after('://').all_after('/')
 	filename := os.base(path_component)
 	if path_component == '' || filename == '' {
@@ -1094,7 +1104,7 @@ pub fn ruby_formulary_l682_d44_load_file(mut cache FormularyPlatformCache, loade
 		return error('Non-checksummed download of ${loader.name} formula file from an arbitrary URL is unsupported! Use `brew version-install` to install a formula file from your own custom tap instead.')
 	}
 	namespace := 'FormulaNamespace${formula_namespace_key(loader.path, 'host', 'host')}'
-	loaded := ruby_formulary_l123_d11_self_load_formula(loader.name, loader.path, downloaded_contents, namespace, flags, ignore_errors, context)!
+	loaded := formulary_load_formula(loader.name, loader.path, downloaded_contents, namespace, flags, ignore_errors, context)!
 	cache.path_classes[loader.path] = loaded
 	return loaded
 }
@@ -1112,22 +1122,22 @@ pub fn ruby_formulary_l708_d46_path(loader FormularyLoader) string {
 // Ruby method `self.try_new(ref, from: nil, warn: false)` at line 714.
 pub fn ruby_formulary_l714_d47_self_try_new(resolution ?TapFormulaNameType) ?FormularyLoader {
 	if actual := resolution {
-		return ruby_formulary_l726_d48_self_loader_from_name_tap_type(actual)
+		return formulary_loader_from_name_tap_type(actual)
 	}
 	return none
 }
 
 // Ruby method `self.loader_from_name_tap_type(name_tap_type)` at line 726.
-pub fn ruby_formulary_l726_d48_self_loader_from_name_tap_type(resolution TapFormulaNameType) FormularyLoader {
-	path := ruby_formulary_l1256_d78_self_find_formula_in_tap(resolution.name, resolution.tap, false, false)
+pub fn formulary_loader_from_name_tap_type(resolution TapFormulaNameType) FormularyLoader {
+	path := formulary_find_formula_in_tap(resolution.name, resolution.tap, false, false)
 	if resolution.type_name == 'migration' && resolution.tap.core_tap && resolution.name in resolution.tap.api_formula_names {
-		return ruby_formulary_l931_d62_initialize(resolution.name, resolution.tap, resolution.alias_name)
+		return new_api_formulary_loader(resolution.name, resolution.tap, resolution.alias_name)
 	}
-	return ruby_formulary_l738_d49_initialize(resolution.name, path, resolution.tap, resolution.alias_name)
+	return new_tap_formulary_loader(resolution.name, path, resolution.tap, resolution.alias_name)
 }
 
 // Ruby method `initialize(name, path, tap:, alias_name: nil)` at line 738.
-pub fn ruby_formulary_l738_d49_initialize(name string, path string, tap FormularyTap,
+pub fn new_tap_formulary_loader(name string, path string, tap FormularyTap,
 	alias_name string) FormularyLoader {
 	alias_path := if alias_name != '' { os.join_path(tap.alias_dir, alias_name) } else { '' }
 	return FormularyLoader{ kind: .tap, name: name, path: path, alias_path: alias_path, tap: tap, has_tap: true }
@@ -1144,7 +1154,7 @@ pub fn ruby_formulary_l754_d50_get_formula(loader FormularyLoader, spec string,
 // Ruby method `load_file(flags:, ignore_errors:)` at line 765.
 pub fn ruby_formulary_l765_d51_load_file(mut cache FormularyPlatformCache, loader FormularyLoader,
 	flags []string, ignore_errors bool, context FormularyLoadContext) !FormularyLoadedClass {
-	return ruby_formulary_l520_d35_load_file(mut cache, loader, flags, ignore_errors, context) or {
+	return formulary_load_file(mut cache, loader, flags, ignore_errors, context) or {
 		return error('${err.msg()} (${loader.tap.issues_url})')
 	}
 }
@@ -1157,7 +1167,7 @@ pub fn ruby_formulary_l781_d52_self_try_new(input FormularyLoaderInput,
 	}
 	name := input.ref.to_lower()
 	if core := core_resolution {
-		loader := ruby_formulary_l726_d48_self_loader_from_name_tap_type(core)
+		loader := formulary_loader_from_name_tap_type(core)
 		if loader.kind == .api || os.exists(loader.path) {
 			return loader
 		}
@@ -1167,8 +1177,8 @@ pub fn ruby_formulary_l781_d52_self_try_new(input FormularyLoaderInput,
 		if !tap.installed || tap.core_tap {
 			continue
 		}
-		resolution := ruby_formulary_l1173_d75_self_tap_formula_name_type('${tap.name}/${name}', tap, input.installed_taps, input.warn) or { continue }
-		loader := ruby_formulary_l726_d48_self_loader_from_name_tap_type(resolution)
+		resolution := formulary_resolve_tap_formula_name('${tap.name}/${name}', tap, input.installed_taps, input.warn) or { continue }
+		loader := formulary_loader_from_name_tap_type(resolution)
 		if os.exists(loader.path) && !loaders.any(it.path == loader.path) { loaders << loader }
 	}
 	if loaders.len == 1 {
@@ -1203,11 +1213,11 @@ pub fn ruby_formulary_l860_d55_self_try_new(ref string, is_uri bool,
 	if is_uri {
 		return none
 	}
-	return ruby_formulary_l867_d56_initialize(ref, core_formula_dir)
+	return new_null_formulary_loader(ref, core_formula_dir)
 }
 
 // Ruby method `initialize(ref)` at line 867.
-pub fn ruby_formulary_l867_d56_initialize(ref string, core_formula_dir string) FormularyLoader {
+pub fn new_null_formulary_loader(ref string, core_formula_dir string) FormularyLoader {
 	name := os.base(ref).trim_string_right('.rb')
 	return FormularyLoader{ kind: .null_loader, name: name, path: core_formula_path(name, core_formula_dir), error_message: 'FormulaUnavailableError: ${name}' }
 }
@@ -1223,7 +1233,7 @@ pub fn ruby_formulary_l890_d58_contents(loader FormularyLoader) string {
 }
 
 // Ruby method `initialize(name, path, contents, tap: nil)` at line 893.
-pub fn ruby_formulary_l893_d59_initialize(name string, path string, contents string,
+pub fn new_contents_formulary_loader(name string, path string, contents string,
 	tap ?FormularyTap) FormularyLoader {
 	if actual := tap {
 		return FormularyLoader{ kind: .contents, name: name, path: path, contents: contents, tap: actual, has_tap: true }
@@ -1232,10 +1242,10 @@ pub fn ruby_formulary_l893_d59_initialize(name string, path string, contents str
 }
 
 // Ruby method `klass(flags:, ignore_errors:)` at line 899.
-pub fn ruby_formulary_l899_d60_klass(loader FormularyLoader, flags []string,
+pub fn formulary_klass(loader FormularyLoader, flags []string,
 	ignore_errors bool, context FormularyLoadContext) !FormularyLoadedClass {
 	namespace := 'FormulaNamespace${md5.sum(loader.contents.bytes()).hex()}'
-	return ruby_formulary_l123_d11_self_load_formula(loader.name, loader.path, loader.contents, namespace, flags, ignore_errors, context)
+	return formulary_load_formula(loader.name, loader.path, loader.contents, namespace, flags, ignore_errors, context)
 }
 
 // Ruby method `self.try_new(ref, from: nil, warn: false)` at line 911.
@@ -1255,14 +1265,14 @@ pub fn ruby_formulary_l911_d61_self_try_new(input FormularyLoaderInput,
 	if renamed := input.api_renames[name] {
 		name = renamed
 	}
-	return ruby_formulary_l931_d62_initialize(name, core_tap, alias_name)
+	return new_api_formulary_loader(name, core_tap, alias_name)
 }
 
 // Ruby method `initialize(name, tap: nil, alias_name: nil)` at line 931.
-pub fn ruby_formulary_l931_d62_initialize(name string, tap FormularyTap,
+pub fn new_api_formulary_loader(name string, tap FormularyTap,
 	alias_name string) FormularyLoader {
 	alias_path := if alias_name != '' { os.join_path(tap.alias_dir, alias_name) } else { '' }
-	return FormularyLoader{ kind: .api, name: name, path: ruby_formulary_l1256_d78_self_find_formula_in_tap(name, tap, true, true), alias_path: alias_path, tap: tap, has_tap: true }
+	return FormularyLoader{ kind: .api, name: name, path: formulary_find_formula_in_tap(name, tap, true, true), alias_path: alias_path, tap: tap, has_tap: true }
 }
 
 // Ruby method `klass(flags:, ignore_errors:)` at line 938.
@@ -1270,25 +1280,25 @@ pub fn ruby_formulary_l938_d63_klass(mut cache FormularyPlatformCache, loader Fo
 	formula_struct api.FormulaStruct, api_source string, tap_git_head string, flags []string, prefix string,
 	cellar string, home_directory string) !FormularyLoadedClass {
 	if loader.name !in cache.api_classes {
-		ruby_formulary_l946_d64_load_from_api(mut cache, loader, formula_struct, api_source, tap_git_head, flags, prefix, cellar, home_directory)!
+		formulary_load_from_api(mut cache, loader, formula_struct, api_source, tap_git_head, flags, prefix, cellar, home_directory)!
 	}
 	return cache.api_classes[loader.name] or { error('FormulaUnavailableError: ${loader.name}') }
 }
 
 // Ruby method `load_from_api(flags:)` at line 946.
-pub fn ruby_formulary_l946_d64_load_from_api(mut cache FormularyPlatformCache, loader FormularyLoader,
+pub fn formulary_load_from_api(mut cache FormularyPlatformCache, loader FormularyLoader,
 	formula_struct api.FormulaStruct, api_source string, tap_git_head string, flags []string, prefix string,
 	cellar string, home_directory string) !FormularyLoadedClass {
 	if api_source == '' {
 		return error('FormulaUnavailableError: ${loader.name}')
 	}
-	return ruby_formulary_l228_d15_self_load_formula_from_struct(mut cache, loader.name, formula_struct, api_source, tap_git_head, flags, true, prefix, cellar, home_directory)
+	return formulary_load_formula_from_struct(mut cache, loader.name, formula_struct, api_source, tap_git_head, flags, true, prefix, cellar, home_directory)
 }
 
 // Ruby method `initialize(name, contents, tap: nil, alias_name: nil)` at line 961.
 pub fn ruby_formulary_l961_d65_initialize(name string, contents string, tap FormularyTap,
 	alias_name string) FormularyLoader {
-	base := ruby_formulary_l931_d62_initialize(name, tap, alias_name)
+	base := new_api_formulary_loader(name, tap, alias_name)
 	return FormularyLoader{ ...base, kind: .json_contents, contents: contents }
 }
 
@@ -1296,7 +1306,7 @@ pub fn ruby_formulary_l961_d65_initialize(name string, contents string, tap Form
 pub fn ruby_formulary_l969_d66_load_from_api(mut cache FormularyPlatformCache, loader FormularyLoader,
 	formula_struct api.FormulaStruct, tap_git_head string, flags []string, prefix string,
 	cellar string, home_directory string) FormularyLoadedClass {
-	return ruby_formulary_l228_d15_self_load_formula_from_struct(mut cache, loader.name, formula_struct, loader.contents, tap_git_head, flags, false, prefix, cellar, home_directory)
+	return formulary_load_formula_from_struct(mut cache, loader.name, formula_struct, loader.contents, tap_git_head, flags, false, prefix, cellar, home_directory)
 }
 
 // Ruby method `self.factory(` at line 997.
@@ -1330,11 +1340,11 @@ pub fn ruby_formulary_l1068_d70_self_from_keg(args ...ruby.Value) ruby.Value {
 }
 
 // Ruby method `self.from_contents(` at line 1119.
-pub fn ruby_formulary_l1119_d71_self_from_contents(name string, path string, contents string,
+pub fn formulary_from_contents(name string, path string, contents string,
 	spec string, alias_path string, tap ?FormularyTap, force_bottle bool, flags []string,
 	ignore_errors bool, context FormularyLoadContext) !Formula {
-	loader := ruby_formulary_l893_d59_initialize(name, path, contents, tap)
-	loaded := ruby_formulary_l899_d60_klass(loader, flags, ignore_errors, context)!
+	loader := new_contents_formulary_loader(name, path, contents, tap)
+	loaded := formulary_klass(loader, flags, ignore_errors, context)!
 	return formulary_loader_formula(FormularyLoader{ ...loader, loaded_class: loaded }, spec, alias_path, force_bottle, flags)
 }
 
@@ -1430,7 +1440,7 @@ fn formulary_tap_formula_name_type(tapped_name string, initial FormularyTap,
 			type_name = 'migration'
 		}
 	}
-	path := ruby_formulary_l1256_d78_self_find_formula_in_tap(name, tap, true, true)
+	path := formulary_find_formula_in_tap(name, tap, true, true)
 	destination_exists := os.exists(path) || (tap.core_tap && name in tap.api_formula_names)
 	warning := if warn && old_name != '' && new_name != '' && destination_exists {
 		'Formula ${old_name} was renamed to ${new_name}.'
@@ -1449,7 +1459,7 @@ fn formulary_tap_formula_name_type(tapped_name string, initial FormularyTap,
 }
 
 // Ruby method `self.tap_formula_name_type(tapped_name, warn:)` at line 1173.
-pub fn ruby_formulary_l1173_d75_self_tap_formula_name_type(tapped_name string,
+pub fn formulary_resolve_tap_formula_name(tapped_name string,
 	tap FormularyTap, taps []FormularyTap, warn bool) ?TapFormulaNameType {
 	return formulary_tap_formula_name_type(tapped_name, tap, taps, warn, 0)
 }
@@ -1466,7 +1476,7 @@ pub fn ruby_formulary_l1251_d77_self_core_path(name string, formula_directory st
 }
 
 // Ruby method `self.find_formula_in_tap(name, tap)` at line 1256.
-pub fn ruby_formulary_l1256_d78_self_find_formula_in_tap(name string, tap FormularyTap,
+pub fn formulary_find_formula_in_tap(name string, tap FormularyTap,
 	api_hashes_cached bool, api_install_enabled bool) string {
 	filename := if name.ends_with('.rb') { name } else { '${name}.rb' }
 	plain_name := name.trim_string_right('.rb')

@@ -93,13 +93,13 @@ pub fn ruby_formula_wrapper_spec_l23_d3_service_object() formula_wrapper.Formula
 // Ruby it `it "macOS - outputs the full service file path" do` at line 44.
 pub fn ruby_formula_wrapper_spec_l44_d4_macos() !bool {
 	wrapper := formula_wrapper_spec_wrapper(.launchctl, false, formula_wrapper_spec_service_object())!
-	return formula_wrapper.ruby_formula_wrapper_l92_d10_service_file(&wrapper) == '/usr/local/opt/mysql/homebrew.mysql.plist'
+	return formula_wrapper.formula_wrapper_service_file(&wrapper) == '/usr/local/opt/mysql/homebrew.mysql.plist'
 }
 
 // Ruby it `it "systemD - outputs the full service file path" do` at line 49.
 pub fn ruby_formula_wrapper_spec_l49_d5_systemd() !bool {
 	wrapper := formula_wrapper_spec_wrapper(.systemctl, false, formula_wrapper_spec_service_object())!
-	return formula_wrapper.ruby_formula_wrapper_l92_d10_service_file(&wrapper) == '/usr/local/opt/mysql/homebrew.mysql.service'
+	return formula_wrapper.formula_wrapper_service_file(&wrapper) == '/usr/local/opt/mysql/homebrew.mysql.service'
 }
 
 // Ruby it `it "Other - raises an error" do` at line 54.
@@ -113,7 +113,7 @@ pub fn ruby_formula_wrapper_spec_l54_d6_other() bool {
 // Ruby it `it "outputs formula name" do` at line 64.
 pub fn ruby_formula_wrapper_spec_l64_d7_outputs() !bool {
 	wrapper := ruby_formula_wrapper_spec_l9_d1_service()!
-	return formula_wrapper.ruby_formula_wrapper_l42_d4_name(&wrapper) == 'mysql'
+	return formula_wrapper.formula_wrapper_name(&wrapper) == 'mysql'
 }
 
 // Ruby it `it "macOS - generates the plist from the formula service block" do` at line 70.
@@ -157,13 +157,13 @@ pub fn ruby_formula_wrapper_spec_l95_d11_reads() !bool {
 // Ruby it `it "macOS - outputs the service name" do` at line 105.
 pub fn ruby_formula_wrapper_spec_l105_d12_macos() !bool {
 	wrapper := formula_wrapper_spec_wrapper(.launchctl, false, formula_wrapper_spec_service_object())!
-	return formula_wrapper.ruby_formula_wrapper_l80_d9_service_name(&wrapper) == 'plist-mysql-test'
+	return formula_wrapper.formula_wrapper_service_name(&wrapper) == 'plist-mysql-test'
 }
 
 // Ruby it `it "systemD - outputs the service name" do` at line 110.
 pub fn ruby_formula_wrapper_spec_l110_d13_systemd() !bool {
 	wrapper := formula_wrapper_spec_wrapper(.systemctl, false, formula_wrapper_spec_service_object())!
-	return formula_wrapper.ruby_formula_wrapper_l80_d9_service_name(&wrapper) == 'plist-mysql-test'
+	return formula_wrapper.formula_wrapper_service_name(&wrapper) == 'plist-mysql-test'
 }
 
 // Ruby it `it "Other - raises an error" do` at line 115.
@@ -174,37 +174,37 @@ pub fn ruby_formula_wrapper_spec_l115_d14_other() bool {
 // Ruby it `it "macOS - user - outputs the destination directory for the service file" do` at line 129.
 pub fn ruby_formula_wrapper_spec_l129_d15_macos() !bool {
 	wrapper := formula_wrapper_spec_wrapper(.launchctl, false, formula_wrapper_spec_service_object())!
-	return formula_wrapper.ruby_formula_wrapper_l131_d15_dest_dir(&wrapper) == '/tmp_home/Library/LaunchAgents'
+	return formula_wrapper.formula_wrapper_dest_dir(&wrapper) == '/tmp_home/Library/LaunchAgents'
 }
 
 // Ruby it `it "macOS - root - outputs the destination directory for the service file" do` at line 135.
 pub fn ruby_formula_wrapper_spec_l135_d16_macos() !bool {
 	wrapper := formula_wrapper.new_formula_wrapper(formula_wrapper_spec_formula(false, formula_wrapper_spec_service_object()), formula_wrapper_spec_system(.launchctl, true, '/Library/LaunchDaemons', '/tmp_home/Library/LaunchAgents'))!
-	return formula_wrapper.ruby_formula_wrapper_l131_d15_dest_dir(&wrapper) == '/Library/LaunchDaemons'
+	return formula_wrapper.formula_wrapper_dest_dir(&wrapper) == '/Library/LaunchDaemons'
 }
 
 // Ruby it `it "systemD - user - outputs the destination directory for the service file" do` at line 140.
 pub fn ruby_formula_wrapper_spec_l140_d17_systemd() !bool {
 	wrapper := formula_wrapper.new_formula_wrapper(formula_wrapper_spec_formula(false, formula_wrapper_spec_service_object()), formula_wrapper_spec_system(.systemctl, false, '/usr/lib/systemd/system', '/tmp_home/.config/systemd/user'))!
-	return formula_wrapper.ruby_formula_wrapper_l131_d15_dest_dir(&wrapper) == '/tmp_home/.config/systemd/user'
+	return formula_wrapper.formula_wrapper_dest_dir(&wrapper) == '/tmp_home/.config/systemd/user'
 }
 
 // Ruby it `it "systemD - root - outputs the destination directory for the service file" do` at line 146.
 pub fn ruby_formula_wrapper_spec_l146_d18_systemd() !bool {
 	wrapper := formula_wrapper.new_formula_wrapper(formula_wrapper_spec_formula(false, formula_wrapper_spec_service_object()), formula_wrapper_spec_system(.systemctl, true, '/usr/lib/systemd/system', '/tmp_home/.config/systemd/user'))!
-	return formula_wrapper.ruby_formula_wrapper_l131_d15_dest_dir(&wrapper) == '/usr/lib/systemd/system'
+	return formula_wrapper.formula_wrapper_dest_dir(&wrapper) == '/usr/lib/systemd/system'
 }
 
 // Ruby it `it "macOS - outputs the destination for the service file" do` at line 158.
 pub fn ruby_formula_wrapper_spec_l158_d19_macos() !bool {
 	wrapper := formula_wrapper_spec_wrapper(.launchctl, false, formula_wrapper_spec_service_object())!
-	return formula_wrapper.ruby_formula_wrapper_l137_d16_dest(&wrapper) == '/tmp_home/Library/LaunchAgents/homebrew.mysql.plist'
+	return formula_wrapper.formula_wrapper_dest(&wrapper) == '/tmp_home/Library/LaunchAgents/homebrew.mysql.plist'
 }
 
 // Ruby it `it "systemD - outputs the destination for the service file" do` at line 163.
 pub fn ruby_formula_wrapper_spec_l163_d20_systemd() !bool {
 	wrapper := formula_wrapper.new_formula_wrapper(formula_wrapper_spec_formula(false, formula_wrapper_spec_service_object()), formula_wrapper_spec_system(.systemctl, false, '/usr/lib/systemd/system', '/tmp_home/.config/systemd/user'))!
-	return formula_wrapper.ruby_formula_wrapper_l137_d16_dest(&wrapper) == '/tmp_home/.config/systemd/user/homebrew.mysql.service'
+	return formula_wrapper.formula_wrapper_dest(&wrapper) == '/tmp_home/.config/systemd/user/homebrew.mysql.service'
 }
 
 // Ruby it `it "outputs if the service formula is installed" do` at line 170.
@@ -216,13 +216,13 @@ pub fn ruby_formula_wrapper_spec_l170_d21_outputs() !bool {
 // Ruby it `it "macOS - outputs if the service is loaded" do` at line 176.
 pub fn ruby_formula_wrapper_spec_l176_d22_macos() !bool {
 	mut wrapper := ruby_formula_wrapper_spec_l9_d1_service()!
-	return !formula_wrapper.ruby_formula_wrapper_l154_d19_loaded(mut wrapper, false)
+	return !formula_wrapper.formula_wrapper_loaded(mut wrapper, false)
 }
 
 // Ruby it `it "systemD - outputs if the service is loaded" do` at line 182.
 pub fn ruby_formula_wrapper_spec_l182_d23_systemd() !bool {
 	mut wrapper := formula_wrapper_spec_wrapper(.systemctl, false, formula_wrapper_spec_service_object())!
-	return !formula_wrapper.ruby_formula_wrapper_l154_d19_loaded(mut wrapper, false)
+	return !formula_wrapper.formula_wrapper_loaded(mut wrapper, false)
 }
 
 // Ruby it `it "systemD - checks timer status for timed services" do` at line 189.
@@ -232,7 +232,7 @@ pub fn ruby_formula_wrapper_spec_l189_d24_systemd() !bool {
 	mut system := formula_wrapper_spec_system(.systemctl, false, '/usr/lib/systemd/system', '/tmp_home/.config/systemd/user')
 	system.systemctl_quiet_run_result = true
 	mut wrapper := formula_wrapper.new_formula_wrapper(formula_wrapper_spec_formula(true, service), system)!
-	return formula_wrapper.ruby_formula_wrapper_l154_d19_loaded(mut wrapper, false) && wrapper.last_quiet_run_target == 'homebrew.mysql.timer'
+	return formula_wrapper.formula_wrapper_loaded(mut wrapper, false) && wrapper.last_quiet_run_target == 'homebrew.mysql.timer'
 }
 
 // Ruby it `it "Other - raises an error" do` at line 199.
@@ -247,7 +247,7 @@ pub fn ruby_formula_wrapper_spec_l209_d26_reads() !bool {
 	path := os.join_path(directory, 'homebrew.mysql.plist')
 	os.write_file(path, '<?xml version="1.0" encoding="UTF-8"?>\n<plist version="1.0"><dict><key>UserName</key><string>_serviced</string></dict></plist>')!
 	wrapper := formula_wrapper.new_formula_wrapper(formula_wrapper_spec_formula(false, formula_wrapper_spec_service_object()), formula_wrapper_spec_system(.launchctl, false, '/Library/LaunchDaemons', directory))!
-	owner := formula_wrapper.ruby_formula_wrapper_l178_d21_owner(&wrapper) or { return false }
+	owner := formula_wrapper.formula_wrapper_owner(&wrapper) or { return false }
 	return owner == '_serviced'
 }
 
@@ -257,7 +257,7 @@ pub fn ruby_formula_wrapper_spec_l226_d27_root() !bool {
 	defer { os.rmdir_all(directory) or {} }
 	os.write_file(os.join_path(directory, 'homebrew.mysql.plist'), '')!
 	wrapper := formula_wrapper.new_formula_wrapper(formula_wrapper_spec_formula(false, formula_wrapper_spec_service_object()), formula_wrapper_spec_system(.launchctl, false, directory, ''))!
-	owner := formula_wrapper.ruby_formula_wrapper_l178_d21_owner(&wrapper) or { return false }
+	owner := formula_wrapper.formula_wrapper_owner(&wrapper) or { return false }
 	return owner == 'root'
 }
 
@@ -267,14 +267,14 @@ pub fn ruby_formula_wrapper_spec_l231_d28_user() !bool {
 	defer { os.rmdir_all(directory) or {} }
 	os.write_file(os.join_path(directory, 'homebrew.mysql.plist'), '')!
 	wrapper := formula_wrapper.new_formula_wrapper(formula_wrapper_spec_formula(false, formula_wrapper_spec_service_object()), formula_wrapper_spec_system(.launchctl, false, '', directory))!
-	owner := formula_wrapper.ruby_formula_wrapper_l178_d21_owner(&wrapper) or { return false }
+	owner := formula_wrapper.formula_wrapper_owner(&wrapper) or { return false }
 	return owner == 'user'
 }
 
 // Ruby it `it "nil if no file present" do` at line 238.
 pub fn ruby_formula_wrapper_spec_l238_d29_nil() !bool {
 	wrapper := formula_wrapper.new_formula_wrapper(formula_wrapper_spec_formula(false, formula_wrapper_spec_service_object()), formula_wrapper_spec_system(.launchctl, false, '', ''))!
-	if _ := formula_wrapper.ruby_formula_wrapper_l178_d21_owner(&wrapper) {
+	if _ := formula_wrapper.formula_wrapper_owner(&wrapper) {
 		return false
 	}
 	return true
@@ -283,25 +283,25 @@ pub fn ruby_formula_wrapper_spec_l238_d29_nil() !bool {
 // Ruby it `it "macOS - outputs if the service file is present" do` at line 246.
 pub fn ruby_formula_wrapper_spec_l246_d30_macos() !bool {
 	wrapper := ruby_formula_wrapper_spec_l9_d1_service()!
-	return !formula_wrapper.ruby_formula_wrapper_l166_d20_service_file_present(&wrapper, .any)
+	return !formula_wrapper.formula_wrapper_service_file_present(&wrapper, .any)
 }
 
 // Ruby it `it "macOS - outputs if the service file is present for root" do` at line 251.
 pub fn ruby_formula_wrapper_spec_l251_d31_macos() !bool {
 	wrapper := ruby_formula_wrapper_spec_l9_d1_service()!
-	return !formula_wrapper.ruby_formula_wrapper_l166_d20_service_file_present(&wrapper, .root)
+	return !formula_wrapper.formula_wrapper_service_file_present(&wrapper, .root)
 }
 
 // Ruby it `it "macOS - outputs if the service file is present for user" do` at line 256.
 pub fn ruby_formula_wrapper_spec_l256_d32_macos() !bool {
 	wrapper := ruby_formula_wrapper_spec_l9_d1_service()!
-	return !formula_wrapper.ruby_formula_wrapper_l166_d20_service_file_present(&wrapper, .user)
+	return !formula_wrapper.formula_wrapper_service_file_present(&wrapper, .user)
 }
 
 // Ruby it `it "macOS - outputs the service file owner" do` at line 263.
 pub fn ruby_formula_wrapper_spec_l263_d33_macos() !bool {
 	wrapper := formula_wrapper.new_formula_wrapper(formula_wrapper_spec_formula(false, formula_wrapper_spec_service_object()), formula_wrapper_spec_system(.launchctl, false, '', ''))!
-	if _ := formula_wrapper.ruby_formula_wrapper_l178_d21_owner(&wrapper) {
+	if _ := formula_wrapper.formula_wrapper_owner(&wrapper) {
 		return false
 	}
 	return true
@@ -330,7 +330,7 @@ pub fn ruby_formula_wrapper_spec_l286_d37_outputs() bool {
 // Ruby it `it "outputs nil because there is not pid" do` at line 293.
 pub fn ruby_formula_wrapper_spec_l293_d38_outputs() !bool {
 	mut wrapper := formula_wrapper_spec_wrapper(.systemctl, false, formula_wrapper_spec_service_object())!
-	if _ := formula_wrapper.ruby_formula_wrapper_l216_d25_pid(mut wrapper) {
+	if _ := formula_wrapper.formula_wrapper_pid(mut wrapper) {
 		return false
 	}
 	return true
@@ -374,7 +374,7 @@ pub fn ruby_formula_wrapper_spec_l330_d45_outputs() bool {
 // Ruby it `it "outputs nil because there is no exit code" do` at line 337.
 pub fn ruby_formula_wrapper_spec_l337_d46_outputs() !bool {
 	mut wrapper := formula_wrapper_spec_wrapper(.systemctl, false, formula_wrapper_spec_service_object())!
-	if _ := formula_wrapper.ruby_formula_wrapper_l222_d26_exit_code(mut wrapper) {
+	if _ := formula_wrapper.formula_wrapper_exit_code(mut wrapper) {
 		return false
 	}
 	return true
@@ -383,7 +383,7 @@ pub fn ruby_formula_wrapper_spec_l337_d46_outputs() !bool {
 // Ruby it `it "outputs true because there is no PID" do` at line 343.
 pub fn ruby_formula_wrapper_spec_l343_d47_outputs() !bool {
 	mut wrapper := formula_wrapper_spec_wrapper(.systemctl, false, formula_wrapper_spec_service_object())!
-	return formula_wrapper.ruby_formula_wrapper_l210_d24_unknown_status(mut wrapper)
+	return formula_wrapper.formula_wrapper_unknown_status(mut wrapper)
 }
 
 // Ruby it `it "returns true if timed service" do` at line 349.
@@ -391,19 +391,19 @@ pub fn ruby_formula_wrapper_spec_l349_d48_returns() !bool {
 	mut service := formula_wrapper_spec_service_object()
 	service.timed = true
 	wrapper := formula_wrapper_spec_wrapper(.launchctl, true, service)!
-	return formula_wrapper.ruby_formula_wrapper_l54_d6_timed(&wrapper)
+	return formula_wrapper.formula_wrapper_timed(&wrapper)
 }
 
 // Ruby it `it "returns false if no timed service" do` at line 357.
 pub fn ruby_formula_wrapper_spec_l357_d49_returns() !bool {
 	wrapper := formula_wrapper_spec_wrapper(.launchctl, true, formula_wrapper_spec_service_object())!
-	return !formula_wrapper.ruby_formula_wrapper_l54_d6_timed(&wrapper)
+	return !formula_wrapper.formula_wrapper_timed(&wrapper)
 }
 
 // Ruby it `it "returns false if no service" do` at line 367.
 pub fn ruby_formula_wrapper_spec_l367_d50_returns() !bool {
 	wrapper := formula_wrapper_spec_wrapper(.launchctl, false, formula_wrapper_spec_service_object())!
-	return !formula_wrapper.ruby_formula_wrapper_l54_d6_timed(&wrapper)
+	return !formula_wrapper.formula_wrapper_timed(&wrapper)
 }
 
 // Ruby it `it "returns true if service needs to stay alive" do` at line 375.

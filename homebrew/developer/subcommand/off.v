@@ -4,7 +4,7 @@ module subcommand
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `run` at line 22.
-pub fn ruby_off_l22_d1_run(mut state DeveloperState) string {
+pub fn disable_developer_mode(mut state DeveloperState) string {
 	state.devcmdrun = false
 	if state.developer_environment {
 		return 'To fully disable developer mode, you must unset HOMEBREW_DEVELOPER.\n'

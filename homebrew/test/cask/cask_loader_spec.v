@@ -100,7 +100,7 @@ fn cask_loader_spec_renamed_loader(root string, ref string,
 			old_token: new_token
 		}
 	}
-	return cask_loader.ruby_cask_loader_l755_d49_self_for(cask_loader_spec_ref(ref), false, true, context)
+	return cask_loader.cask_loader_for(cask_loader_spec_ref(ref), false, true, context)
 }
 
 fn cask_loader_spec_migration(root string, token string, old_name string, new_name string,
@@ -259,28 +259,28 @@ pub fn ruby_cask_loader_spec_l91_d17_cask_file(root string) string {
 // Ruby it `it "warns when loading the short token" do` at line 100.
 pub fn ruby_cask_loader_spec_l100_d18_warns(root string) !bool {
 	fixture := cask_loader_spec_migration(root, 'some-cask', 'homebrew/foo', 'homebrew/bar', 'cask', true)!
-	loader := cask_loader.ruby_cask_loader_l755_d49_self_for(cask_loader_spec_ref('some-cask'), false, true, fixture.context)!
+	loader := cask_loader.cask_loader_for(cask_loader_spec_ref('some-cask'), false, true, fixture.context)!
 	return loader.warning == 'Cask homebrew/foo/some-cask was renamed to homebrew/bar/some-cask.'
 }
 
 // Ruby it `it "warns with the canonical token when loading an uppercase short token" do` at line 106.
 pub fn ruby_cask_loader_spec_l106_d19_warns(root string) !bool {
 	fixture := cask_loader_spec_migration(root, 'some-cask', 'homebrew/foo', 'homebrew/bar', 'cask', true)!
-	loader := cask_loader.ruby_cask_loader_l755_d49_self_for(cask_loader_spec_ref('SOME-CASK'), false, true, fixture.context)!
+	loader := cask_loader.cask_loader_for(cask_loader_spec_ref('SOME-CASK'), false, true, fixture.context)!
 	return loader.warning == 'Cask homebrew/foo/some-cask was renamed to homebrew/bar/some-cask.'
 }
 
 // Ruby it `it "does not warn when loading the full token in the new tap" do` at line 112.
 pub fn ruby_cask_loader_spec_l112_d20_does(root string) !bool {
 	fixture := cask_loader_spec_migration(root, 'some-cask', 'homebrew/foo', 'homebrew/bar', 'cask', true)!
-	loader := cask_loader.ruby_cask_loader_l755_d49_self_for(cask_loader_spec_ref('homebrew/bar/some-cask'), false, true, fixture.context)!
+	loader := cask_loader.cask_loader_for(cask_loader_spec_ref('homebrew/bar/some-cask'), false, true, fixture.context)!
 	return loader.warning == ''
 }
 
 // Ruby it `it "warns when loading the full token in the old tap" do` at line 118.
 pub fn ruby_cask_loader_spec_l118_d21_warns(root string) !bool {
 	fixture := cask_loader_spec_migration(root, 'some-cask', 'homebrew/foo', 'homebrew/bar', 'cask', true)!
-	loader := cask_loader.ruby_cask_loader_l755_d49_self_for(cask_loader_spec_ref('homebrew/foo/some-cask'), false, true, fixture.context)!
+	loader := cask_loader.cask_loader_for(cask_loader_spec_ref('homebrew/foo/some-cask'), false, true, fixture.context)!
 	return loader.warning.contains('homebrew/foo/some-cask was renamed to homebrew/bar/some-cask')
 }
 
@@ -291,7 +291,7 @@ pub fn ruby_cask_loader_spec_l124_d22_raises(root string) !bool {
 		lookup: fixture.context
 		trusted: true
 	}
-	cask_loader.ruby_cask_loader_l698_d47_self_load(cask_loader_spec_ref('homebrew/foo/some-cask'), cask_loader.CaskLoaderConfig{}, true, context) or {
+	cask_loader.cask_loader_load_reference(cask_loader_spec_ref('homebrew/foo/some-cask'), cask_loader.CaskLoaderConfig{}, true, context) or {
 		return err.msg().contains('TapCaskUnavailableError') && err.msg().contains('If you trust this tap')
 	}
 	return false
@@ -315,7 +315,7 @@ pub fn ruby_cask_loader_spec_l138_d25_formula_file(root string) string {
 // Ruby it `it "does not warn when loading the short token" do` at line 145.
 pub fn ruby_cask_loader_spec_l145_d26_does(root string) !bool {
 	fixture := cask_loader_spec_migration(root, 'local-caffeine', 'homebrew/cask', 'homebrew/core', 'formula', true)!
-	loader := cask_loader.ruby_cask_loader_l755_d49_self_for(cask_loader_spec_ref('local-caffeine'), false, true, fixture.context)!
+	loader := cask_loader.cask_loader_for(cask_loader_spec_ref('local-caffeine'), false, true, fixture.context)!
 	return loader.warning == ''
 }
 
@@ -342,7 +342,7 @@ pub fn ruby_cask_loader_spec_l158_d30_formula_file(root string) string {
 // Ruby it `it "does not warn when loading the short token" do` at line 165.
 pub fn ruby_cask_loader_spec_l165_d31_does(root string) !bool {
 	fixture := cask_loader_spec_migration(root, 'some-cask', 'homebrew/foo', 'homebrew/bar', 'formula', true)!
-	loader := cask_loader.ruby_cask_loader_l755_d49_self_for(cask_loader_spec_ref('some-cask'), false, true, fixture.context)!
+	loader := cask_loader.cask_loader_for(cask_loader_spec_ref('some-cask'), false, true, fixture.context)!
 	return loader.warning == ''
 }
 
@@ -364,21 +364,21 @@ pub fn ruby_cask_loader_spec_l176_d34_cask_file(root string) string {
 // Ruby it `it "does not warn when loading the short token" do` at line 183.
 pub fn ruby_cask_loader_spec_l183_d35_does(root string) !bool {
 	fixture := cask_loader_spec_migration(root, 'local-caffeine', 'homebrew/core', 'homebrew/cask', 'cask', true)!
-	loader := cask_loader.ruby_cask_loader_l755_d49_self_for(cask_loader_spec_ref('local-caffeine'), false, true, fixture.context)!
+	loader := cask_loader.cask_loader_for(cask_loader_spec_ref('local-caffeine'), false, true, fixture.context)!
 	return loader.warning == ''
 }
 
 // Ruby it `it "does not warn when loading the full token in the default tap" do` at line 189.
 pub fn ruby_cask_loader_spec_l189_d36_does(root string) !bool {
 	fixture := cask_loader_spec_migration(root, 'local-caffeine', 'homebrew/core', 'homebrew/cask', 'cask', true)!
-	loader := cask_loader.ruby_cask_loader_l755_d49_self_for(cask_loader_spec_ref('homebrew/cask/local-caffeine'), false, true, fixture.context)!
+	loader := cask_loader.cask_loader_for(cask_loader_spec_ref('homebrew/cask/local-caffeine'), false, true, fixture.context)!
 	return loader.warning == ''
 }
 
 // Ruby it `it "warns when loading the full token in the old tap" do` at line 195.
 pub fn ruby_cask_loader_spec_l195_d37_warns(root string) !bool {
 	fixture := cask_loader_spec_migration(root, 'local-caffeine', 'homebrew/core', 'homebrew/cask', 'cask', true)!
-	loader := cask_loader.ruby_cask_loader_l755_d49_self_for(cask_loader_spec_ref('homebrew/core/local-caffeine'), false, true, fixture.context)!
+	loader := cask_loader.cask_loader_for(cask_loader_spec_ref('homebrew/core/local-caffeine'), false, true, fixture.context)!
 	return loader.warning == 'Cask homebrew/core/local-caffeine was renamed to local-caffeine.'
 }
 
@@ -404,7 +404,7 @@ pub fn ruby_cask_loader_spec_l227_d39_falls(root string) !bool {
 			'stubbed': [artifact]
 		}
 	}
-	cask := cask_loader.ruby_cask_loader_l798_d51_self_load_from_installed_caskfile(path, cask_loader.CaskLoaderConfig{}, true, true, cask_loader.CaskLoaderLoadContext{
+	cask := cask_loader.cask_loader_load_from_installed_caskfile(path, cask_loader.CaskLoaderConfig{}, true, true, cask_loader.CaskLoaderLoadContext{
 		lookup: lookup
 		trusted: true
 	})!
@@ -427,7 +427,7 @@ pub fn ruby_cask_loader_spec_l237_d40_does(root string) !bool {
 			'stubbed': [cask_loader_spec_artifact('Should Not Load.app')]
 		}
 	}
-	cask := cask_loader.ruby_cask_loader_l798_d51_self_load_from_installed_caskfile(path, cask_loader.CaskLoaderConfig{}, true, false, cask_loader.CaskLoaderLoadContext{
+	cask := cask_loader.cask_loader_load_from_installed_caskfile(path, cask_loader.CaskLoaderConfig{}, true, false, cask_loader.CaskLoaderLoadContext{
 		lookup: lookup
 		trusted: true
 	})!
@@ -491,7 +491,7 @@ pub fn ruby_cask_loader_spec_l263_d48_returns(root string) !bool {
 			}
 		}
 	}
-	return cask_loader.ruby_cask_loader_l777_d50_self_load_prefer_installed('test-cask', cask_loader.CaskLoaderConfig{}, true, context)!.tap.name == foo.tap.name
+	return cask_loader.cask_loader_load_prefer_installed('test-cask', cask_loader.CaskLoaderConfig{}, true, context)!.tap.name == foo.tap.name
 }
 
 // Ruby it `it "returns the correct cask when no tap is specified but a tab exists" do` at line 270.
@@ -508,7 +508,7 @@ pub fn ruby_cask_loader_spec_l270_d49_returns(root string) !bool {
 			}
 		}
 	}
-	return cask_loader.ruby_cask_loader_l777_d50_self_load_prefer_installed('test-cask', cask_loader.CaskLoaderConfig{}, true, context)!.tap.name == bar.tap.name
+	return cask_loader.cask_loader_load_prefer_installed('test-cask', cask_loader.CaskLoaderConfig{}, true, context)!.tap.name == bar.tap.name
 }
 
 // Ruby it `it "returns the correct cask when a tap is specified and no tab exists" do` at line 277.
@@ -522,7 +522,7 @@ pub fn ruby_cask_loader_spec_l277_d50_returns(root string) !bool {
 			}
 		}
 	}
-	return cask_loader.ruby_cask_loader_l777_d50_self_load_prefer_installed('user/bar/test-cask', cask_loader.CaskLoaderConfig{}, true, context)!.tap.name == bar.tap.name
+	return cask_loader.cask_loader_load_prefer_installed('user/bar/test-cask', cask_loader.CaskLoaderConfig{}, true, context)!.tap.name == bar.tap.name
 }
 
 // Ruby it `it "returns the correct cask when no tap is specified and a tab exists" do` at line 284.
@@ -539,7 +539,7 @@ pub fn ruby_cask_loader_spec_l284_d51_returns(root string) !bool {
 			}
 		}
 	}
-	return cask_loader.ruby_cask_loader_l777_d50_self_load_prefer_installed('user/foo/test-cask', cask_loader.CaskLoaderConfig{}, true, context)!.tap.name == foo.tap.name
+	return cask_loader.cask_loader_load_prefer_installed('user/foo/test-cask', cask_loader.CaskLoaderConfig{}, true, context)!.tap.name == foo.tap.name
 }
 
 // Ruby it `it "returns the correct cask when no tap is specified and the tab lists an tap that isn't installed" do` at line 291.
@@ -557,7 +557,7 @@ pub fn ruby_cask_loader_spec_l291_d52_returns(root string) !bool {
 			load_failures: ['user/bar/test-cask']
 		}
 	}
-	return cask_loader.ruby_cask_loader_l777_d50_self_load_prefer_installed('test-cask', cask_loader.CaskLoaderConfig{}, true, context)!.tap.name == foo.tap.name
+	return cask_loader.cask_loader_load_prefer_installed('test-cask', cask_loader.CaskLoaderConfig{}, true, context)!.tap.name == foo.tap.name
 }
 
 // Ruby it `it "masks sensitive environment variables while evaluating casks" do` at line 302.
@@ -578,11 +578,11 @@ pub fn ruby_cask_loader_spec_l302_d53_masks(root string) !bool {
 	].join('\n') + '\n'
 	cask_loader_spec_write(path, content)!
 	lookup := cask_loader_spec_context(root)
-	mut loader := cask_loader.ruby_cask_loader_l154_d14_initialize(path, '', lookup)
+	mut loader := cask_loader.new_path_cask_loader(path, '', lookup)
 	environment := {
 		'HOMEBREW_SECRET_TOKEN': 'password'
 	}
-	cask := cask_loader.ruby_cask_loader_l167_d15_load(mut loader, cask_loader.CaskLoaderConfig{}, cask_loader.CaskLoaderLoadContext{
+	cask := cask_loader.cask_loader_load_path(mut loader, cask_loader.CaskLoaderConfig{}, cask_loader.CaskLoaderLoadContext{
 		lookup: lookup
 		evaluation: cask_loader.CaskLoaderEvaluation{
 			valid: true
@@ -617,8 +617,8 @@ pub fn ruby_cask_loader_spec_l327_d54_allows(root string) !bool {
 	].join('\n') + '\n'
 	cask_loader_spec_write(path, content)!
 	lookup := cask_loader_spec_context(root)
-	mut loader := cask_loader.ruby_cask_loader_l154_d14_initialize(path, '', lookup)
-	cask := cask_loader.ruby_cask_loader_l167_d15_load(mut loader, cask_loader.CaskLoaderConfig{}, cask_loader.CaskLoaderLoadContext{
+	mut loader := cask_loader.new_path_cask_loader(path, '', lookup)
+	cask := cask_loader.cask_loader_load_path(mut loader, cask_loader.CaskLoaderConfig{}, cask_loader.CaskLoaderLoadContext{
 		lookup: lookup
 		evaluation: cask_loader.CaskLoaderEvaluation{
 			valid: true
@@ -661,13 +661,13 @@ pub fn ruby_cask_loader_spec_l351_d55_refuses(root string) !bool {
 			os.abs_path(path): tap
 		}
 	}
-	mut loader := cask_loader.ruby_cask_loader_l154_d14_initialize(path, '', lookup)
-	cask_loader.ruby_cask_loader_l167_d15_load(mut loader, cask_loader.CaskLoaderConfig{}, cask_loader.CaskLoaderLoadContext{ lookup: lookup, trusted: false }) or {
+	mut loader := cask_loader.new_path_cask_loader(path, '', lookup)
+	cask_loader.cask_loader_load_path(mut loader, cask_loader.CaskLoaderConfig{}, cask_loader.CaskLoaderLoadContext{ lookup: lookup, trusted: false }) or {
 		if !err.msg().contains('UntrustedTapError') || !err.msg().contains('thirdparty/foo') {
 			return false
 		}
-		mut trusted_loader := cask_loader.ruby_cask_loader_l154_d14_initialize(path, '', lookup)
-		cask := cask_loader.ruby_cask_loader_l167_d15_load(mut trusted_loader, cask_loader.CaskLoaderConfig{}, cask_loader.CaskLoaderLoadContext{
+		mut trusted_loader := cask_loader.new_path_cask_loader(path, '', lookup)
+		cask := cask_loader.cask_loader_load_path(mut trusted_loader, cask_loader.CaskLoaderConfig{}, cask_loader.CaskLoaderLoadContext{
 			lookup: lookup
 			evaluation: cask_loader_spec_evaluation('sensitive-env', '1.0.0')
 			trusted: true
@@ -714,8 +714,8 @@ pub fn ruby_cask_loader_spec_l415_d60_raises(root string) !bool {
 	path := ruby_cask_loader_spec_l389_d58_cask_file(root)
 	cask_loader_spec_write(path, ruby_cask_loader_spec_l390_d59_cask_content())!
 	lookup := cask_loader_spec_context(root)
-	mut loader := cask_loader.ruby_cask_loader_l154_d14_initialize(path, '', lookup)
-	cask_loader.ruby_cask_loader_l167_d15_load(mut loader, cask_loader.CaskLoaderConfig{}, cask_loader.CaskLoaderLoadContext{
+	mut loader := cask_loader.new_path_cask_loader(path, '', lookup)
+	cask_loader.cask_loader_load_path(mut loader, cask_loader.CaskLoaderConfig{}, cask_loader.CaskLoaderLoadContext{
 		lookup: lookup
 		evaluation: cask_loader.CaskLoaderEvaluation{
 			failed: true
@@ -738,8 +738,8 @@ pub fn ruby_cask_loader_spec_l420_d61_does(root string) !bool {
 		error_message: 'appcast is disabled'
 		homebrew_failed: false
 	}
-	mut loader := cask_loader.ruby_cask_loader_l154_d14_initialize(path, '', lookup)
-	cask_loader.ruby_cask_loader_l167_d15_load(mut loader, cask_loader.CaskLoaderConfig{}, cask_loader.CaskLoaderLoadContext{
+	mut loader := cask_loader.new_path_cask_loader(path, '', lookup)
+	cask_loader.cask_loader_load_path(mut loader, cask_loader.CaskLoaderConfig{}, cask_loader.CaskLoaderLoadContext{
 		lookup: lookup
 		evaluation: evaluation
 		trusted: true
@@ -752,9 +752,9 @@ pub fn ruby_cask_loader_spec_l426_d62_raises(root string) !bool {
 	path := ruby_cask_loader_spec_l389_d58_cask_file(root)
 	cask_loader_spec_write(path, ruby_cask_loader_spec_l390_d59_cask_content())!
 	lookup := cask_loader_spec_context(root)
-	mut loader := cask_loader.ruby_cask_loader_l154_d14_initialize(path, '', lookup)
-	cask_loader.ruby_cask_loader_l151_d13_from_installed_caskfile(mut loader, true)
-	cask_loader.ruby_cask_loader_l167_d15_load(mut loader, cask_loader.CaskLoaderConfig{}, cask_loader.CaskLoaderLoadContext{
+	mut loader := cask_loader.new_path_cask_loader(path, '', lookup)
+	cask_loader.cask_loader_set_from_installed_caskfile(mut loader, true)
+	cask_loader.cask_loader_load_path(mut loader, cask_loader.CaskLoaderConfig{}, cask_loader.CaskLoaderLoadContext{
 		lookup: lookup
 		evaluation: cask_loader.CaskLoaderEvaluation{
 			failed: true
@@ -828,8 +828,8 @@ pub fn ruby_cask_loader_spec_l487_d67_raises(root string) !bool {
 	path := ruby_cask_loader_spec_l436_d65_cask_file(root)
 	cask_loader_spec_write(path, ruby_cask_loader_spec_l437_d66_cask_content())!
 	lookup := cask_loader_spec_context(root)
-	mut loader := cask_loader.ruby_cask_loader_l154_d14_initialize(path, '', lookup)
-	cask_loader.ruby_cask_loader_l167_d15_load(mut loader, cask_loader.CaskLoaderConfig{}, cask_loader.CaskLoaderLoadContext{ lookup: lookup, trusted: true }) or {
+	mut loader := cask_loader.new_path_cask_loader(path, '', lookup)
+	cask_loader.cask_loader_load_path(mut loader, cask_loader.CaskLoaderConfig{}, cask_loader.CaskLoaderLoadContext{ lookup: lookup, trusted: true }) or {
 		return err.msg().contains('CaskInvalidError') && err.msg().contains('Unknown key: :formula')
 	}
 	return false
@@ -840,9 +840,9 @@ pub fn ruby_cask_loader_spec_l492_d68_raises(root string) !bool {
 	path := ruby_cask_loader_spec_l436_d65_cask_file(root)
 	cask_loader_spec_write(path, ruby_cask_loader_spec_l437_d66_cask_content())!
 	lookup := cask_loader_spec_context(root)
-	mut loader := cask_loader.ruby_cask_loader_l154_d14_initialize(path, '', lookup)
-	cask_loader.ruby_cask_loader_l151_d13_from_installed_caskfile(mut loader, true)
-	cask_loader.ruby_cask_loader_l167_d15_load(mut loader, cask_loader.CaskLoaderConfig{}, cask_loader.CaskLoaderLoadContext{ lookup: lookup, trusted: true }) or {
+	mut loader := cask_loader.new_path_cask_loader(path, '', lookup)
+	cask_loader.cask_loader_set_from_installed_caskfile(mut loader, true)
+	cask_loader.cask_loader_load_path(mut loader, cask_loader.CaskLoaderConfig{}, cask_loader.CaskLoaderLoadContext{ lookup: lookup, trusted: true }) or {
 		return err.msg().contains('CaskUnreadableError') && err.msg().contains('Unknown key: :formula')
 	}
 	return false
@@ -912,8 +912,8 @@ pub fn ruby_cask_loader_spec_l545_d77_allows(root string) !bool {
 		...cask_loader_spec_context(root)
 		forbid_packages_from_paths: true
 	}
-	mut loader := cask_loader.ruby_cask_loader_l119_d9_self_try_new(cask_loader_spec_path_ref(path), lookup) or { return false }
-	cask := cask_loader.ruby_cask_loader_l167_d15_load(mut loader, cask_loader.CaskLoaderConfig{}, cask_loader.CaskLoaderLoadContext{
+	mut loader := cask_loader.cask_loader_try_path(cask_loader_spec_path_ref(path), lookup) or { return false }
+	cask := cask_loader.cask_loader_load_path(mut loader, cask_loader.CaskLoaderConfig{}, cask_loader.CaskLoaderLoadContext{
 		lookup: lookup
 		evaluation: cask_loader_spec_evaluation('testcask', '1.0.0')
 		trusted: true
@@ -930,7 +930,7 @@ pub fn ruby_cask_loader_spec_l561_d78_allows(root string) !bool {
 	if !os.exists(link) {
 		os.symlink(real, link)!
 	}
-	return cask_loader.ruby_cask_loader_l119_d9_self_try_new(cask_loader_spec_path_ref(ruby_cask_loader_spec_l507_d75_cask_file_path(root)), cask_loader_spec_context(root)) != none
+	return cask_loader.cask_loader_try_path(cask_loader_spec_path_ref(ruby_cask_loader_spec_l507_d75_cask_file_path(root)), cask_loader_spec_context(root)) != none
 }
 
 // Ruby it `it "does not request API metadata for a removed cask" do` at line 572.
@@ -944,7 +944,7 @@ pub fn ruby_cask_loader_spec_l572_d79_does(root string) bool {
 			'removed-cask': [cask_loader_spec_artifact('Should Not Load.app')]
 		}
 	}
-	return cask_loader.ruby_cask_loader_l846_d56_self_resolve_installed_artifacts('removed-cask', [], false, none, true, context).len == 0
+	return cask_loader.cask_loader_resolve_installed_artifacts('removed-cask', [], false, none, true, context).len == 0
 }
 
 // Ruby it `it "falls back to API artifacts when the membership check fails" do` at line 580.
@@ -959,7 +959,7 @@ pub fn ruby_cask_loader_spec_l580_d80_falls(root string) bool {
 			'unavailable-membership': [artifact]
 		}
 	}
-	return cask_loader.ruby_cask_loader_l846_d56_self_resolve_installed_artifacts('unavailable-membership', [], false, none, true, context) == [
+	return cask_loader.cask_loader_resolve_installed_artifacts('unavailable-membership', [], false, none, true, context) == [
 		artifact,
 	]
 }
@@ -975,7 +975,7 @@ pub fn ruby_cask_loader_spec_l591_d81_returns(root string) bool {
 			'unavailable': 'ErrorDuringExecution'
 		}
 	}
-	return cask_loader.ruby_cask_loader_l846_d56_self_resolve_installed_artifacts('unavailable', [], false, none, true, context).len == 0
+	return cask_loader.cask_loader_resolve_installed_artifacts('unavailable', [], false, none, true, context).len == 0
 }
 
 // Ruby it `it "returns empty artifacts when the API cannot be loaded" do` at line 601.
@@ -989,7 +989,7 @@ pub fn ruby_cask_loader_spec_l601_d82_returns(root string) bool {
 			'unavailable': 'SystemExit'
 		}
 	}
-	return cask_loader.ruby_cask_loader_l846_d56_self_resolve_installed_artifacts('unavailable', [], false, none, true, context).len == 0
+	return cask_loader.cask_loader_resolve_installed_artifacts('unavailable', [], false, none, true, context).len == 0
 }
 
 // Ruby it `it "falls back to API artifacts when tap lookup is ambiguous" do` at line 608.
@@ -1004,7 +1004,7 @@ pub fn ruby_cask_loader_spec_l608_d83_falls(root string) bool {
 			'ambiguous': [artifact]
 		}
 	}
-	return cask_loader.ruby_cask_loader_l846_d56_self_resolve_installed_artifacts('ambiguous', [], false, none, true, context) == [
+	return cask_loader.cask_loader_resolve_installed_artifacts('ambiguous', [], false, none, true, context) == [
 		artifact,
 	]
 }
@@ -1018,7 +1018,7 @@ pub fn ruby_cask_loader_spec_l621_d84_returns(root string) bool {
 			'unavailable-tap': 'SystemExit'
 		}
 	}
-	return cask_loader.ruby_cask_loader_l846_d56_self_resolve_installed_artifacts('unavailable-tap', [], false, tap, true, context).len == 0
+	return cask_loader.cask_loader_resolve_installed_artifacts('unavailable-tap', [], false, tap, true, context).len == 0
 }
 
 // Ruby let `let(:caskroom) { mktmpdir/"Caskroom" }` at line 634.
@@ -1043,7 +1043,7 @@ pub fn ruby_cask_loader_spec_l638_d86_reconstructs(root string) !bool {
 			}
 		}
 	}
-	recovered := cask_loader.ruby_cask_loader_l888_d57_self_recover_from_installed_caskfile(path, none, none, cask_loader.CaskLoaderConfig{}, context) or { return false }
+	recovered := cask_loader.cask_loader_recover_from_installed_caskfile(path, none, none, cask_loader.CaskLoaderConfig{}, context) or { return false }
 	return recovered.version == '1.0' && recovered.artifacts == [artifact]
 }
 
@@ -1065,7 +1065,7 @@ pub fn ruby_cask_loader_spec_l661_d87_does(root string) !bool {
 			}
 		}
 	}
-	return cask_loader.ruby_cask_loader_l888_d57_self_recover_from_installed_caskfile(path, none, none, cask_loader.CaskLoaderConfig{}, context) == none
+	return cask_loader.cask_loader_recover_from_installed_caskfile(path, none, none, cask_loader.CaskLoaderConfig{}, context) == none
 }
 
 // Ruby it `it "returns nil when the reconstructed metadata remains invalid" do` at line 676.
@@ -1077,7 +1077,7 @@ pub fn ruby_cask_loader_spec_l676_d88_returns(root string) !bool {
 		...cask_loader_spec_context(root)
 		recovery_invalid_tokens: [token]
 	}
-	return cask_loader.ruby_cask_loader_l888_d57_self_recover_from_installed_caskfile(path, none, none, cask_loader.CaskLoaderConfig{}, context) == none
+	return cask_loader.cask_loader_recover_from_installed_caskfile(path, none, none, cask_loader.CaskLoaderConfig{}, context) == none
 }
 
 pub fn cask_loader_spec_all_boundaries(root string) ![]CaskLoaderSpecBoundary {

@@ -6,7 +6,7 @@ import homebrew.utils
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `run` at line 20.
-pub fn ruby_off_l20_run(mut state utils.AnalyticsState) {
+pub fn disable_analytics(mut state utils.AnalyticsState) {
 	state.disable()
 }
 

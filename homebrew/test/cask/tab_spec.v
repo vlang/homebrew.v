@@ -247,7 +247,7 @@ pub fn ruby_tab_spec_l56_d7_have_uninstall_flight_blocks(tab cask_core.CaskTab) 
 
 // Ruby specify `specify "defaults" do` at line 62.
 pub fn ruby_tab_spec_l62_d8_defaults() bool {
-	tab := cask_core.ruby_tab_l66_d8_self_empty(cask_tab_spec_environment(0))
+	tab := cask_core.tab_empty(cask_tab_spec_environment(0))
 	return tab.base.homebrew_version == '4.3.7' && !tab.base.installed_on_request && !tab.base.loaded_from_api && !tab.base.loaded_from_internal_api && !tab.uninstall_flight_blocks && tab.base.tap_name() == '' && !tab.base.has_time && !tab.runtime_dependencies.present && (tab.base.source['path'] or { json2.null }) is json2.Null
 }
 
@@ -267,37 +267,37 @@ pub fn ruby_tab_spec_l78_d9_runtime_dependencies() bool {
 
 // Ruby specify `specify "with no dependencies" do` at line 92.
 pub fn ruby_tab_spec_l92_d10_with(root string) bool {
-	result := cask_core.ruby_tab_l76_d9_self_runtime_deps_hash(cask_tab_spec_cask('local-transmission', root))
+	result := cask_core.tab_runtime_deps_hash(cask_tab_spec_cask('local-transmission', root))
 	return result.present && result.casks.len == 0 && result.formulae.len == 0
 }
 
 // Ruby specify `specify "with cask dependencies" do` at line 98.
 pub fn ruby_tab_spec_l98_d11_with(root string) bool {
-	result := cask_core.ruby_tab_l76_d9_self_runtime_deps_hash(cask_tab_spec_cask('with-depends-on-cask', root))
+	result := cask_core.tab_runtime_deps_hash(cask_tab_spec_cask('with-depends-on-cask', root))
 	return result.casks.len == 1 && result.casks[0].full_name == 'local-transmission-zip' && result.casks[0].version == '2.61' && result.casks[0].declared_directly
 }
 
 // Ruby it `it "ignores macos symbol dependencies" do` at line 109.
 pub fn ruby_tab_spec_l109_d12_ignores(root string) bool {
-	result := cask_core.ruby_tab_l76_d9_self_runtime_deps_hash(cask_tab_spec_cask('with-depends-on-macos-symbol', root))
+	result := cask_core.tab_runtime_deps_hash(cask_tab_spec_cask('with-depends-on-macos-symbol', root))
 	return result.casks.len == 0 && result.formulae.len == 0
 }
 
 // Ruby it `it "ignores macos array dependencies" do` at line 115.
 pub fn ruby_tab_spec_l115_d13_ignores(root string) bool {
-	result := cask_core.ruby_tab_l76_d9_self_runtime_deps_hash(cask_tab_spec_cask('with-depends-on-macos-array', root))
+	result := cask_core.tab_runtime_deps_hash(cask_tab_spec_cask('with-depends-on-macos-array', root))
 	return result.casks.len == 0 && result.formulae.len == 0
 }
 
 // Ruby it `it "ignores arch dependencies" do` at line 121.
 pub fn ruby_tab_spec_l121_d14_ignores(root string) bool {
-	result := cask_core.ruby_tab_l76_d9_self_runtime_deps_hash(cask_tab_spec_cask('with-depends-on-arch', root))
+	result := cask_core.tab_runtime_deps_hash(cask_tab_spec_cask('with-depends-on-arch', root))
 	return result.casks.len == 0 && result.formulae.len == 0
 }
 
 // Ruby specify `specify "with all types of dependencies" do` at line 127.
 pub fn ruby_tab_spec_l127_d15_with(root string) bool {
-	result := cask_core.ruby_tab_l76_d9_self_runtime_deps_hash(cask_tab_spec_cask('with-depends-on-everything', root))
+	result := cask_core.tab_runtime_deps_hash(cask_tab_spec_cask('with-depends-on-everything', root))
 	return result.casks.map(it.full_name) == ['local-caffeine', 'with-depends-on-cask',
 		'local-transmission-zip'] && result.casks.map(it.declared_directly) == [true, true, false] && result.formulae.len == 1 && result.formulae[0].full_name == 'unar' && result.formulae[0].version == '1.2' && result.formulae[0].revision == 0 && result.formulae[0].pkg_version == '1.2' && result.formulae[0].declared_directly
 }

@@ -20,8 +20,7 @@ pub fn ruby_macos_version_l14_d2_initialize(args ...ruby.Value) ruby.Value {
 	} else {
 		'"${value}"'
 	}
-	return ruby.structured_value('MacOSVersion::Error',
-		'unknown or unsupported macOS version: ${inspected}', {
+	return ruby.structured_value('MacOSVersion::Error', 'unknown or unsupported macOS version: ${inspected}', {
 		'version': value
 	})
 }
@@ -144,22 +143,34 @@ pub fn ruby_macos_version_l150_d16_requires_nehalem_cpu(args ...ruby.Value) ruby
 
 // Ruby alias `alias requires_sse4? requires_nehalem_cpu?` at line 160.
 pub fn ruby_macos_version_l160_d17_requires_sse4(args ...ruby.Value) ruby.Value {
-	return ruby_macos_version_l150_d16_requires_nehalem_cpu(...args)
+	version := macos_version_from_args(args) or { panic(err) }
+	intel := if args.len > 1 { args[1].as_bool() or { false } } else { false }
+	oldest_cpu := if args.len > 2 { args[2].as_string() } else { '' }
+	return ruby.bool_value(version.requires_sse4(intel, oldest_cpu) or { panic(err) })
 }
 
 // Ruby alias `alias requires_sse41? requires_nehalem_cpu?` at line 161.
 pub fn ruby_macos_version_l161_d18_requires_sse41(args ...ruby.Value) ruby.Value {
-	return ruby_macos_version_l150_d16_requires_nehalem_cpu(...args)
+	version := macos_version_from_args(args) or { panic(err) }
+	intel := if args.len > 1 { args[1].as_bool() or { false } } else { false }
+	oldest_cpu := if args.len > 2 { args[2].as_string() } else { '' }
+	return ruby.bool_value(version.requires_sse41(intel, oldest_cpu) or { panic(err) })
 }
 
 // Ruby alias `alias requires_sse42? requires_nehalem_cpu?` at line 162.
 pub fn ruby_macos_version_l162_d19_requires_sse42(args ...ruby.Value) ruby.Value {
-	return ruby_macos_version_l150_d16_requires_nehalem_cpu(...args)
+	version := macos_version_from_args(args) or { panic(err) }
+	intel := if args.len > 1 { args[1].as_bool() or { false } } else { false }
+	oldest_cpu := if args.len > 2 { args[2].as_string() } else { '' }
+	return ruby.bool_value(version.requires_sse42(intel, oldest_cpu) or { panic(err) })
 }
 
 // Ruby alias `alias requires_popcnt? requires_nehalem_cpu?` at line 163.
 pub fn ruby_macos_version_l163_d20_requires_popcnt(args ...ruby.Value) ruby.Value {
-	return ruby_macos_version_l150_d16_requires_nehalem_cpu(...args)
+	version := macos_version_from_args(args) or { panic(err) }
+	intel := if args.len > 1 { args[1].as_bool() or { false } } else { false }
+	oldest_cpu := if args.len > 2 { args[2].as_string() } else { '' }
+	return ruby.bool_value(version.requires_popcnt(intel, oldest_cpu) or { panic(err) })
 }
 
 // MacOSVersion keeps the source's stricter macOS input validation while using
@@ -299,6 +310,22 @@ pub fn (version MacOSVersion) requires_nehalem_cpu(intel bool, oldest_cpu string
 		return error('Unexpected architecture. This only works with Intel architecture.')
 	}
 	return oldest_cpu == 'nehalem'
+}
+
+pub fn (version MacOSVersion) requires_sse4(intel bool, oldest_cpu string) !bool {
+	return version.requires_nehalem_cpu(intel, oldest_cpu)
+}
+
+pub fn (version MacOSVersion) requires_sse41(intel bool, oldest_cpu string) !bool {
+	return version.requires_nehalem_cpu(intel, oldest_cpu)
+}
+
+pub fn (version MacOSVersion) requires_sse42(intel bool, oldest_cpu string) !bool {
+	return version.requires_nehalem_cpu(intel, oldest_cpu)
+}
+
+pub fn (version MacOSVersion) requires_popcnt(intel bool, oldest_cpu string) !bool {
+	return version.requires_nehalem_cpu(intel, oldest_cpu)
 }
 
 pub fn (version MacOSVersion) str() string {

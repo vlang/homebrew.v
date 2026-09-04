@@ -9,7 +9,7 @@ fn sandbox_linux_spec_new(root string) !homebrew.Sandbox {
 		os.join_path(root, 'tmp')] {
 		os.mkdir_all(path)!
 	}
-	return homebrew.ruby_sandbox_l283_d31_initialize(homebrew.SandboxPaths{
+	return homebrew.new_sandbox(homebrew.SandboxPaths{
 		home: os.join_path(root, 'home')
 		prefix: os.join_path(root, 'prefix')
 		repository: os.join_path(root, 'repository')
@@ -37,8 +37,8 @@ pub fn ruby_sandbox_linux_spec_l8_d1_sandbox(root string) !homebrew.Sandbox {
 pub fn ruby_sandbox_linux_spec_l15_d2_allows(root string) !bool {
 	mut value := sandbox_linux_spec_new(root)!
 	file := os.join_path(root, 'allowed/foo')
-	homebrew.ruby_sandbox_l461_d40_allow_write(mut value, file, .literal)!
-	homebrew.ruby_sandbox_l552_d55_run(mut value, ['touch', file], sandbox_linux_spec_context(root, 0, [
+	homebrew.sandbox_allow_write(mut value, file, .literal)!
+	homebrew.sandbox_run(mut value, ['touch', file], sandbox_linux_spec_context(root, 0, [
 		homebrew.SandboxFileOperation{ operation: 'file-write*', path: file },
 	]))!
 	return os.exists(file)
@@ -48,7 +48,7 @@ pub fn ruby_sandbox_linux_spec_l15_d2_allows(root string) !bool {
 pub fn ruby_sandbox_linux_spec_l23_d3_fails(root string) !bool {
 	mut value := sandbox_linux_spec_new(root)!
 	file := os.join_path(root, 'denied/foo')
-	homebrew.ruby_sandbox_l552_d55_run(mut value, ['touch', file], sandbox_linux_spec_context(root, 0, [
+	homebrew.sandbox_run(mut value, ['touch', file], sandbox_linux_spec_context(root, 0, [
 		homebrew.SandboxFileOperation{ operation: 'file-write*', path: file },
 	])) or {
 		return err.msg().contains('ErrorDuringExecution') && !os.exists(file)
@@ -59,7 +59,7 @@ pub fn ruby_sandbox_linux_spec_l23_d3_fails(root string) !bool {
 // Ruby it `it "returns the command exit status" do` at line 33.
 pub fn ruby_sandbox_linux_spec_l33_d4_returns(root string) !bool {
 	mut value := sandbox_linux_spec_new(root)!
-	homebrew.ruby_sandbox_l552_d55_run(mut value, ['false'], sandbox_linux_spec_context(root, 1, [])) or { return err.msg().contains('status 1') }
+	homebrew.sandbox_run(mut value, ['false'], sandbox_linux_spec_context(root, 1, [])) or { return err.msg().contains('status 1') }
 	return false
 }
 
@@ -68,9 +68,8 @@ pub fn ruby_sandbox_linux_spec_l37_d5_allows(root string) !bool {
 	mut value := sandbox_linux_spec_new(root)!
 	denied := os.join_path(root, 'denied-pty')
 	os.mkdir_all(denied)!
-	homebrew.ruby_sandbox_l321_d37_deny_read_path(mut value, denied)!
-	result := homebrew.ruby_sandbox_l552_d55_run(mut value, ['ruby', '-rpty', '-e',
-		'PTY.spawn("true")'], sandbox_linux_spec_context(root, 0, []))!
+	homebrew.sandbox_deny_read_path(mut value, denied)!
+	result := homebrew.sandbox_run(mut value, ['ruby', '-rpty', '-e', 'PTY.spawn("true")'], sandbox_linux_spec_context(root, 0, []))!
 	return result.command[1] == '-rpty'
 }
 
@@ -80,8 +79,8 @@ pub fn ruby_sandbox_linux_spec_l45_d6_prevents(root string) !bool {
 	denied := os.join_path(root, 'denied-list')
 	os.mkdir_all(denied)!
 	os.write_file(os.join_path(denied, 'secret'), '')!
-	homebrew.ruby_sandbox_l321_d37_deny_read_path(mut value, denied)!
-	homebrew.ruby_sandbox_l552_d55_run(mut value, ['ls', denied], sandbox_linux_spec_context(root, 0, [
+	homebrew.sandbox_deny_read_path(mut value, denied)!
+	homebrew.sandbox_run(mut value, ['ls', denied], sandbox_linux_spec_context(root, 0, [
 		homebrew.SandboxFileOperation{ operation: 'file-read*', path: denied },
 	])) or {
 		return err.msg().contains('ErrorDuringExecution')
@@ -97,8 +96,8 @@ pub fn ruby_sandbox_linux_spec_l54_d7_prevents(root string) !bool {
 	executable := os.join_path(denied, 'secret')
 	os.write_file(executable, '#!/bin/sh\nexit 0\n')!
 	os.chmod(executable, 0o755)!
-	homebrew.ruby_sandbox_l321_d37_deny_read_path(mut value, denied)!
-	homebrew.ruby_sandbox_l552_d55_run(mut value, ['exec', executable], sandbox_linux_spec_context(root, 0, [
+	homebrew.sandbox_deny_read_path(mut value, denied)!
+	homebrew.sandbox_run(mut value, ['exec', executable], sandbox_linux_spec_context(root, 0, [
 		homebrew.SandboxFileOperation{ operation: 'file-read*', path: executable },
 	])) or {
 		return err.msg().contains('ErrorDuringExecution')
@@ -109,7 +108,7 @@ pub fn ruby_sandbox_linux_spec_l54_d7_prevents(root string) !bool {
 // Ruby it `it "allows standard devices and shared memory" do` at line 65.
 pub fn ruby_sandbox_linux_spec_l65_d8_allows(root string) !bool {
 	mut value := sandbox_linux_spec_new(root)!
-	result := homebrew.ruby_sandbox_l552_d55_run(mut value, ['ruby', '-rio/console'], sandbox_linux_spec_context(root, 0, []))!
+	result := homebrew.sandbox_run(mut value, ['ruby', '-rio/console'], sandbox_linux_spec_context(root, 0, []))!
 	return result.command == ['ruby', '-rio/console']
 }
 

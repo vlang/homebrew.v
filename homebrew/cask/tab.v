@@ -262,7 +262,8 @@ pub fn cask_tab_from_json(content string, path string) !CaskTab {
 			has_arch: has_arch
 			source: (attributes['source'] or { json2.Any(map[string]json2.Any{}) }).as_map()
 			built_on: (attributes['built_on'] or {
-				json2.Any(map[string]json2.Any{})}).as_map()
+				json2.Any(map[string]json2.Any{})
+			}).as_map()
 			has_built_on: 'built_on' in attributes
 		}
 		uninstall_flight_blocks: CaskTabOptionalBool{
@@ -277,7 +278,7 @@ pub fn cask_tab_from_json(content string, path string) !CaskTab {
 pub fn cask_tab_from_file(path string, environment CaskTabEnvironment) !CaskTab {
 	content := os.read_file(path)!
 	if content.trim_space() == '' {
-		return ruby_tab_l66_d8_self_empty(environment)
+		return tab_empty(environment)
 	}
 	return cask_tab_from_json(content, path)
 }
@@ -409,7 +410,7 @@ pub fn ruby_tab_l31_d6_self_create(cask CaskTabCask,
 		has_uninstall_flight: true
 		uninstall_artifact_items: cask.uninstall_artifacts.clone()
 		has_uninstall_artifacts: true
-		runtime_dependencies: ruby_tab_l76_d9_self_runtime_deps_hash(cask)
+		runtime_dependencies: tab_runtime_deps_hash(cask)
 	}
 	tab.base.tabfile = os.join_path(cask.metadata_main_container_path, homebrew.tab_filename)
 	tab.base.source['version'] = json2.Any(cask.version)
@@ -424,7 +425,7 @@ pub fn ruby_tab_l48_d7_self_for_cask(cask CaskTabCask,
 	if os.exists(path) {
 		return cask_tab_from_file(path, environment)
 	}
-	mut tab := ruby_tab_l66_d8_self_empty(environment)
+	mut tab := tab_empty(environment)
 	tab.base.source = {
 		'path':         json2.Any(cask.sourcefile_path)
 		'tap':          cask_tab_null_or_string(cask.tap_name)
@@ -437,7 +438,7 @@ pub fn ruby_tab_l48_d7_self_for_cask(cask CaskTabCask,
 }
 
 // Ruby method `self.empty` at line 66.
-pub fn ruby_tab_l66_d8_self_empty(environment CaskTabEnvironment) CaskTab {
+pub fn tab_empty(environment CaskTabEnvironment) CaskTab {
 	return new_cask_tab(CaskTabConfig{
 		base: homebrew.TabConfig{
 			homebrew_version: environment.homebrew_version
@@ -464,7 +465,7 @@ pub fn ruby_tab_l66_d8_self_empty(environment CaskTabEnvironment) CaskTab {
 }
 
 // Ruby method `self.runtime_deps_hash(cask)` at line 76.
-pub fn ruby_tab_l76_d9_self_runtime_deps_hash(cask CaskTabCask) CaskTabRuntimeDependencies {
+pub fn tab_runtime_deps_hash(cask CaskTabCask) CaskTabRuntimeDependencies {
 	mut casks := []homebrew.RuntimeDependencyReceipt{}
 	mut formulae := []homebrew.RuntimeDependencyReceipt{}
 	mut seen := map[string]bool{}

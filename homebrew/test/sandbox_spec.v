@@ -27,7 +27,7 @@ fn sandbox_spec_paths(root string) !homebrew.SandboxPaths {
 }
 
 fn sandbox_spec_new(root string) !homebrew.Sandbox {
-	return homebrew.ruby_sandbox_l283_d31_initialize(sandbox_spec_paths(root)!)
+	return homebrew.new_sandbox(sandbox_spec_paths(root)!)
 }
 
 fn sandbox_spec_run_root(root string, context homebrew.SandboxRunContext) homebrew.SandboxRunContext {
@@ -110,8 +110,8 @@ pub fn ruby_sandbox_spec_l45_d8_errors() bool {
 pub fn ruby_sandbox_spec_l51_d9_allow_write(root string) !bool {
 	mut sandbox := sandbox_spec_new(root)!
 	file := os.join_path(root, 'dir', 'foo')
-	homebrew.ruby_sandbox_l461_d40_allow_write(mut sandbox, file, .literal)!
-	homebrew.ruby_sandbox_l552_d55_run(mut sandbox, ['touch', file], sandbox_spec_run_root(root, homebrew.SandboxRunContext{
+	homebrew.sandbox_allow_write(mut sandbox, file, .literal)!
+	homebrew.sandbox_run(mut sandbox, ['touch', file], sandbox_spec_run_root(root, homebrew.SandboxRunContext{
 		operations: [
 			homebrew.SandboxFileOperation{ operation: 'file-write*', path: file },
 		]
@@ -125,8 +125,8 @@ pub fn ruby_sandbox_spec_l58_d10_writes(root string) !bool {
 	directory := os.join_path(root, 'I:\\ and "quote"')
 	os.mkdir_all(directory)!
 	target := os.join_path(directory, 'foo')
-	homebrew.ruby_sandbox_l461_d40_allow_write(mut sandbox, target, .literal)!
-	homebrew.ruby_sandbox_l552_d55_run(mut sandbox, ['touch', target], sandbox_spec_run_root(root, homebrew.SandboxRunContext{
+	homebrew.sandbox_allow_write(mut sandbox, target, .literal)!
+	homebrew.sandbox_run(mut sandbox, ['touch', target], sandbox_spec_run_root(root, homebrew.SandboxRunContext{
 		operations: [
 			homebrew.SandboxFileOperation{ operation: 'file-write*', path: target },
 		]
@@ -138,7 +138,7 @@ pub fn ruby_sandbox_spec_l58_d10_writes(root string) !bool {
 pub fn ruby_sandbox_spec_l69_d11_fails(root string) !bool {
 	mut sandbox := sandbox_spec_new(root)!
 	file := os.join_path(root, 'denied', 'foo')
-	homebrew.ruby_sandbox_l552_d55_run(mut sandbox, ['touch', file], sandbox_spec_run_root(root, homebrew.SandboxRunContext{
+	homebrew.sandbox_run(mut sandbox, ['touch', file], sandbox_spec_run_root(root, homebrew.SandboxRunContext{
 		operations: [
 			homebrew.SandboxFileOperation{ operation: 'file-write*', path: file },
 		]
@@ -151,7 +151,7 @@ pub fn ruby_sandbox_spec_l69_d11_fails(root string) !bool {
 // Ruby it `it "complains on failure" do` at line 77.
 pub fn ruby_sandbox_spec_l77_d12_complains(root string) !bool {
 	mut sandbox := sandbox_spec_new(root)!
-	homebrew.ruby_sandbox_l552_d55_run(mut sandbox, ['false'], sandbox_spec_run_root(root, homebrew.SandboxRunContext{ exit_status: 1 })) or {
+	homebrew.sandbox_run(mut sandbox, ['false'], sandbox_spec_run_root(root, homebrew.SandboxRunContext{ exit_status: 1 })) or {
 		logs := mac.ruby_sandbox_l123_d10_record_sandbox_log(sandbox, 'foo', true)!
 		return err.msg().contains('ErrorDuringExecution') && logs.displayed && logs.logs == 'foo'
 	}
@@ -163,15 +163,15 @@ pub fn ruby_sandbox_spec_l88_d13_does(root string) !bool {
 	mut sandbox := sandbox_spec_new(root)!
 	denied := os.join_path(root, 'denied')
 	os.mkdir_all(denied)!
-	homebrew.ruby_sandbox_l321_d37_deny_read_path(mut sandbox, denied)!
-	result := homebrew.ruby_sandbox_l552_d55_run(mut sandbox, ['/bin/pwd'], sandbox_spec_run_root(root, homebrew.SandboxRunContext{}))!
+	homebrew.sandbox_deny_read_path(mut sandbox, denied)!
+	result := homebrew.sandbox_run(mut sandbox, ['/bin/pwd'], sandbox_spec_run_root(root, homebrew.SandboxRunContext{}))!
 	return result.command == ['/bin/pwd']
 }
 
 // Ruby it `it "ignores bogus Python error" do` at line 97.
 pub fn ruby_sandbox_spec_l97_d14_ignores(root string) !bool {
 	mut sandbox := sandbox_spec_new(root)!
-	homebrew.ruby_sandbox_l552_d55_run(mut sandbox, ['false'], sandbox_spec_run_root(root, homebrew.SandboxRunContext{ exit_status: 1 })) or {
+	homebrew.sandbox_run(mut sandbox, ['false'], sandbox_spec_run_root(root, homebrew.SandboxRunContext{ exit_status: 1 })) or {
 		raw := 'foo\nMar 17 02:55:06 sandboxd[342]: Python(49765) deny file-write-unlink /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/distutils/errors.pyc\nbar\n'
 		logs := mac.ruby_sandbox_l123_d10_record_sandbox_log(sandbox, raw, true)!
 		return err.msg().contains('ErrorDuringExecution') && logs.logs.contains('foo') && logs.logs.contains('bar') && !logs.logs.contains('Python')
@@ -183,7 +183,7 @@ pub fn ruby_sandbox_spec_l97_d14_ignores(root string) !bool {
 pub fn ruby_sandbox_spec_l115_d15_formula(root string) !bool {
 	mut sandbox := sandbox_spec_new(root)!
 	prefix := sandbox.paths.prefix
-	homebrew.ruby_sandbox_l552_d55_run(mut sandbox, ['chmod', 'ug-w', prefix], sandbox_spec_run_root(root, homebrew.SandboxRunContext{
+	homebrew.sandbox_run(mut sandbox, ['chmod', 'ug-w', prefix], sandbox_spec_run_root(root, homebrew.SandboxRunContext{
 		operations: [
 			homebrew.SandboxFileOperation{ operation: 'file-write-mode', path: prefix, mode: 0o555 },
 		]
@@ -200,8 +200,8 @@ pub fn ruby_sandbox_spec_l119_d16_allows(root string) !bool {
 	os.mkdir_all(directory)!
 	file := os.join_path(directory, 'foo')
 	os.write_file(file, '')!
-	homebrew.ruby_sandbox_l473_d42_allow_write_path(mut sandbox, directory)!
-	homebrew.ruby_sandbox_l552_d55_run(mut sandbox, ['chmod', 'ug-w', file], sandbox_spec_run_root(root, homebrew.SandboxRunContext{
+	homebrew.sandbox_allow_write_path(mut sandbox, directory)!
+	homebrew.sandbox_run(mut sandbox, ['chmod', 'ug-w', file], sandbox_spec_run_root(root, homebrew.SandboxRunContext{
 		operations: [
 			homebrew.SandboxFileOperation{ operation: 'file-write-mode', path: file, mode: 0o555 },
 		]
@@ -213,7 +213,7 @@ pub fn ruby_sandbox_spec_l119_d16_allows(root string) !bool {
 pub fn ruby_sandbox_spec_l129_d17_formula(root string) !bool {
 	mut sandbox := sandbox_spec_new(root)!
 	prefix := sandbox.paths.prefix
-	homebrew.ruby_sandbox_l552_d55_run(mut sandbox, ['chmod', '4000', prefix], sandbox_spec_run_root(root, homebrew.SandboxRunContext{
+	homebrew.sandbox_run(mut sandbox, ['chmod', '4000', prefix], sandbox_spec_run_root(root, homebrew.SandboxRunContext{
 		operations: [
 			homebrew.SandboxFileOperation{ operation: 'file-write-setugid', path: prefix, mode: 0o4000 },
 		]
@@ -230,8 +230,8 @@ pub fn ruby_sandbox_spec_l133_d18_allows(root string) !bool {
 	os.mkdir_all(directory)!
 	file := os.join_path(directory, 'foo')
 	os.write_file(file, '')!
-	homebrew.ruby_sandbox_l473_d42_allow_write_path(mut sandbox, directory)!
-	homebrew.ruby_sandbox_l552_d55_run(mut sandbox, ['chmod', '4000', file], sandbox_spec_run_root(root, homebrew.SandboxRunContext{
+	homebrew.sandbox_allow_write_path(mut sandbox, directory)!
+	homebrew.sandbox_run(mut sandbox, ['chmod', '4000', file], sandbox_spec_run_root(root, homebrew.SandboxRunContext{
 		operations: [
 			homebrew.SandboxFileOperation{ operation: 'file-write-setugid', path: file, mode: 0o4000 },
 		]

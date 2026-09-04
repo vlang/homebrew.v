@@ -22,8 +22,8 @@ fn from_path_loader_default_root(label string) string {
 }
 
 fn from_path_loader_load(path string, evaluation cask.CaskLoaderEvaluation) !cask.CaskLoaderCask {
-	mut loader := cask.ruby_cask_loader_l154_d14_initialize(path, '', cask.CaskLoaderLookupContext{})
-	return cask.ruby_cask_loader_l167_d15_load(mut loader, cask.CaskLoaderConfig{}, cask.CaskLoaderLoadContext{
+	mut loader := cask.new_path_cask_loader(path, '', cask.CaskLoaderLookupContext{})
+	return cask.cask_loader_load_path(mut loader, cask.CaskLoaderConfig{}, cask.CaskLoaderLoadContext{
 		evaluation: evaluation
 	})
 }

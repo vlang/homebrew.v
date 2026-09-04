@@ -35,7 +35,7 @@ pub:
 	entries []SearchEntry
 }
 
-pub type SearchProjector = fn([]string) []string
+pub type SearchProjector = fn ([]string) []string
 
 pub struct SearchArgs {
 pub:
@@ -184,8 +184,10 @@ pub fn search_string_map_collection(values map[string]?string) SearchCollection 
 		entries: keys.map(SearchEntry{
 			key: it
 			values: if value := values[it] {
-				[search_present(value)]} else {
-				[SearchOptionalString{}]}
+				[search_present(value)]
+			} else {
+				[SearchOptionalString{}]
+			}
 		})
 	}
 }
@@ -338,7 +340,7 @@ pub fn ruby_search_l62_d3_self_search_descriptions(request SearchDescriptionsReq
 }
 
 // Ruby method `self.search_formulae(string_or_regex)` at line 118.
-pub fn ruby_search_l118_d4_self_search_formulae(query SearchQuery,
+pub fn search_search_formulae(query SearchQuery,
 	state SearchFormulaState) ![]string {
 	if !query.is_regex && search_qualified_name(query.value) {
 		formula := state.formulae[query.value] or {
@@ -352,7 +354,7 @@ pub fn ruby_search_l118_d4_self_search_formulae(query SearchQuery,
 	}
 	mut names := state.full_names.clone()
 	names << state.aliases
-	found := ruby_search_l223_d7_self_search(search_string_collection(names), query, search_identity_projector)!
+	found := search_search(search_string_collection(names), query, search_identity_projector)!
 	mut results := search_collection_strings(found)
 	results.sort()
 	if !query.is_regex {
@@ -394,7 +396,7 @@ pub fn ruby_search_l118_d4_self_search_formulae(query SearchQuery,
 }
 
 // Ruby method `self.search_casks(string_or_regex)` at line 160.
-pub fn ruby_search_l160_d5_self_search_casks(query SearchQuery,
+pub fn search_search_casks(query SearchQuery,
 	state SearchCaskState) ![]string {
 	if !query.is_regex && search_qualified_name(query.value) {
 		cask := state.casks[query.value] or {
@@ -420,7 +422,7 @@ pub fn ruby_search_l160_d5_self_search_casks(query SearchQuery,
 		}
 	}
 	cask_tokens = search_unique(cask_tokens)
-	found := ruby_search_l223_d7_self_search(search_string_collection(cask_tokens), query, search_identity_projector)!
+	found := search_search(search_string_collection(cask_tokens), query, search_identity_projector)!
 	mut results := search_collection_strings(found)
 	if !query.is_regex {
 		results << state.corrections[query.value]
@@ -450,32 +452,32 @@ pub fn ruby_search_l207_d6_self_search_names(query SearchQuery, args SearchArgs,
 	context SearchContext) !SearchNames {
 	if !args.formula && !args.cask {
 		return SearchNames{
-			formulae: ruby_search_l118_d4_self_search_formulae(query, context.formulae)!
-			casks: ruby_search_l160_d5_self_search_casks(query, context.casks)!
+			formulae: search_search_formulae(query, context.formulae)!
+			casks: search_search_casks(query, context.casks)!
 		}
 	} else if args.formula {
 		return SearchNames{
-			formulae: ruby_search_l118_d4_self_search_formulae(query, context.formulae)!
+			formulae: search_search_formulae(query, context.formulae)!
 		}
 	} else if args.cask {
 		return SearchNames{
-			casks: ruby_search_l160_d5_self_search_casks(query, context.casks)!
+			casks: search_search_casks(query, context.casks)!
 		}
 	}
 	return SearchNames{}
 }
 
 // Ruby method `self.search(selectable, string_or_regex, &block)` at line 223.
-pub fn ruby_search_l223_d7_self_search(selectable SearchCollection, query SearchQuery,
+pub fn search_search(selectable SearchCollection, query SearchQuery,
 	projector SearchProjector) !SearchCollection {
 	if query.is_regex {
-		return ruby_search_l238_d9_self_search_regex(selectable, query.value, projector)
+		return search_search_regex(selectable, query.value, projector)
 	}
-	return ruby_search_l247_d10_self_search_string(selectable, query.value, projector)
+	return search_search_string(selectable, query.value, projector)
 }
 
 // Ruby method `self.simplify_string(string)` at line 233.
-pub fn ruby_search_l233_d8_self_simplify_string(value string) string {
+pub fn search_simplify_string(value string) string {
 	mut simplified := []u8{cap: value.len}
 	for character in value.to_lower().bytes() {
 		if (character >= `a` && character <= `z`) || (character >= `0` && character <= `9`) || character == `@` || character == `+` {
@@ -486,7 +488,7 @@ pub fn ruby_search_l233_d8_self_simplify_string(value string) string {
 }
 
 // Ruby method `self.search_regex(selectable, regex, &_block)` at line 238.
-pub fn ruby_search_l238_d9_self_search_regex(selectable SearchCollection, pattern string,
+pub fn search_search_regex(selectable SearchCollection, pattern string,
 	projector SearchProjector) !SearchCollection {
 	mut expression := regex.regex_opt(pattern) or { return error('/${pattern}/ is not a valid regex.') }
 	mut entries := []SearchEntry{}
@@ -511,13 +513,13 @@ pub fn ruby_search_l238_d9_self_search_regex(selectable SearchCollection, patter
 }
 
 // Ruby method `self.search_string(selectable, string, &_block)` at line 247.
-pub fn ruby_search_l247_d10_self_search_string(selectable SearchCollection, value string,
+pub fn search_search_string(selectable SearchCollection, value string,
 	projector SearchProjector) SearchCollection {
-	simplified := ruby_search_l233_d8_self_simplify_string(value)
+	simplified := search_simplify_string(value)
 	mut entries := []SearchEntry{}
 	for entry in selectable.entries {
 		arguments := projector(search_entry_arguments(entry, selectable.kind))
-		if arguments.any(ruby_search_l233_d8_self_simplify_string(it).contains(simplified)) {
+		if arguments.any(search_simplify_string(it).contains(simplified)) {
 			entries << entry
 		}
 	}

@@ -53,8 +53,8 @@ pub fn from_tap_loader_spec_load(root string, sharded bool) !cask.CaskLoaderCask
 		core_cask_tap: tap
 		taps: [tap]
 	}
-	mut loader := cask.ruby_cask_loader_l336_d25_initialize('homebrew/cask/${from_tap_loader_spec_cask_name}', lookup)!
-	return cask.ruby_cask_loader_l347_d26_load(mut loader, cask.CaskLoaderConfig{}, cask.CaskLoaderLoadContext{
+	mut loader := cask.new_tap_cask_loader('homebrew/cask/${from_tap_loader_spec_cask_name}', lookup)!
+	return cask.cask_loader_load_tap(mut loader, cask.CaskLoaderConfig{}, cask.CaskLoaderLoadContext{
 		lookup: lookup
 		evaluation: cask.CaskLoaderEvaluation{
 			valid: true
@@ -73,10 +73,10 @@ pub fn from_tap_loader_spec_unavailable(root string) bool {
 		core_cask_tap: tap
 		taps: [tap]
 	}
-	mut loader := cask.ruby_cask_loader_l336_d25_initialize('foo/bar/baz', lookup) or {
+	mut loader := cask.new_tap_cask_loader('foo/bar/baz', lookup) or {
 		return false
 	}
-	cask.ruby_cask_loader_l347_d26_load(mut loader, cask.CaskLoaderConfig{}, cask.CaskLoaderLoadContext{
+	cask.cask_loader_load_tap(mut loader, cask.CaskLoaderConfig{}, cask.CaskLoaderLoadContext{
 		lookup: lookup
 		trusted: true
 	}) or { return err.msg().contains('CaskUnavailableError') }

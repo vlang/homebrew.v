@@ -4,7 +4,7 @@ module subcommand
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `run` at line 21.
-pub fn ruby_regenerate_uuid_l21_run() !string {
+pub fn regenerate_analytics_uuid() !string {
 	return error('brew analytics regenerate-uuid has been disabled')
 }
 

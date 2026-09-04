@@ -16,7 +16,7 @@ fn from_uri_loader_temp_cache(label string) string {
 
 pub fn from_uri_loader_spec_try_new(reference brew_cask.CaskLoaderReference, forbid_paths bool,
 	cache_path string) ?brew_cask.CaskLoader {
-	return brew_cask.ruby_cask_loader_l244_d17_self_try_new(reference, brew_cask.CaskLoaderLookupContext{
+	return brew_cask.cask_loader_try_uri(reference, brew_cask.CaskLoaderLookupContext{
 		forbid_packages_from_paths: forbid_paths
 		cache_path: cache_path
 	})
@@ -27,8 +27,8 @@ pub fn from_uri_loader_spec_load(url string, cache_path string,
 	lookup := brew_cask.CaskLoaderLookupContext{
 		cache_path: cache_path
 	}
-	mut loader := brew_cask.ruby_cask_loader_l272_d20_initialize(url, lookup)
-	return brew_cask.ruby_cask_loader_l282_d21_load(mut loader, brew_cask.CaskLoaderConfig{}, brew_cask.CaskLoaderLoadContext{
+	mut loader := brew_cask.new_uri_cask_loader(url, lookup)
+	return brew_cask.cask_loader_load_uri(mut loader, brew_cask.CaskLoaderConfig{}, brew_cask.CaskLoaderLoadContext{
 		lookup: lookup
 		evaluation: evaluation
 	})

@@ -141,7 +141,7 @@ pub fn (downloader &DownloadableDownloader) total_size() ?i64 {
 	return none
 }
 
-pub type DownloadableDownloaderFactory = fn(DownloadableDownloaderRequest) !DownloadableDownloader
+pub type DownloadableDownloaderFactory = fn (DownloadableDownloaderRequest) !DownloadableDownloader
 
 @[heap]
 pub struct DownloadableVerificationCache {
@@ -277,9 +277,9 @@ pub fn ruby_downloadable_l25_d1_initialize() DownloadableVerificationCache {
 }
 
 // Ruby method `verify(filename, checksum)` at line 34.
-pub fn ruby_downloadable_l34_d2_verify(mut cache DownloadableVerificationCache, filename string,
+pub fn downloadable_verify(mut cache DownloadableVerificationCache, filename string,
 	checksum ?Checksum) !DownloadableVerificationResult {
-	key := ruby_downloadable_l53_d3_key_for(filename, checksum)
+	key := downloadable_key_for(filename, checksum)
 	if value := key {
 		cache.mutex.lock()
 		already_verified := cache.verified[value]
@@ -311,7 +311,7 @@ pub fn ruby_downloadable_l34_d2_verify(mut cache DownloadableVerificationCache, 
 }
 
 // Ruby method `key_for(filename, checksum)` at line 53.
-pub fn ruby_downloadable_l53_d3_key_for(filename string, checksum ?Checksum) ?string {
+pub fn downloadable_key_for(filename string, checksum ?Checksum) ?string {
 	digest := checksum or { return none }
 	if !os.exists(filename) {
 		return none
@@ -335,7 +335,7 @@ pub fn ruby_downloadable_l71_d5_url(downloadable &Downloadable) ?Url {
 }
 
 // Ruby attr_reader `attr_reader :checksum` at line 74.
-pub fn ruby_downloadable_l74_d6_checksum(downloadable &Downloadable) ?Checksum {
+pub fn downloadable_checksum(downloadable &Downloadable) ?Checksum {
 	if downloadable.has_checksum {
 		return downloadable.checksum_value
 	}
@@ -359,22 +359,22 @@ pub fn ruby_downloadable_l80_d9_phase(mut downloadable Downloadable, phase Downl
 }
 
 // Ruby method `downloading! = (@phase = :downloading)` at line 83.
-pub fn ruby_downloadable_l83_d10_downloading(mut downloadable Downloadable) {
+pub fn downloadable_downloading(mut downloadable Downloadable) {
 	downloadable.phase = .downloading
 }
 
 // Ruby method `downloaded! = (@phase = :downloaded)` at line 85.
-pub fn ruby_downloadable_l85_d11_downloaded(mut downloadable Downloadable) {
+pub fn downloadable_downloaded(mut downloadable Downloadable) {
 	downloadable.phase = .downloaded
 }
 
 // Ruby method `verifying! = (@phase = :verifying)` at line 87.
-pub fn ruby_downloadable_l87_d12_verifying(mut downloadable Downloadable) {
+pub fn downloadable_verifying(mut downloadable Downloadable) {
 	downloadable.phase = .verifying
 }
 
 // Ruby method `verified! = (@phase = :verified)` at line 89.
-pub fn ruby_downloadable_l89_d13_verified(mut downloadable Downloadable) {
+pub fn downloadable_verified(mut downloadable Downloadable) {
 	downloadable.phase = .verified
 }
 
@@ -409,37 +409,37 @@ pub fn ruby_downloadable_l114_d17_freeze(mut downloadable Downloadable) Download
 }
 
 // Ruby method `download_queue_name = download_name` at line 122.
-pub fn ruby_downloadable_l122_d18_download_queue_name(mut downloadable Downloadable) string {
-	return ruby_downloadable_l275_d37_download_name(mut downloadable)
+pub fn downloadable_download_queue_name(mut downloadable Downloadable) string {
+	return downloadable_download_name(mut downloadable)
 }
 
 // Ruby method `download_queue_type; end` at line 125.
-pub fn ruby_downloadable_l125_d19_download_queue_type(downloadable &Downloadable) string {
+pub fn downloadable_download_queue_type(downloadable &Downloadable) string {
 	return downloadable.download_queue_type_value
 }
 
 // Ruby method `download_queue_message` at line 128.
 pub fn ruby_downloadable_l128_d20_download_queue_message(mut downloadable Downloadable) string {
-	return '${ruby_downloadable_l125_d19_download_queue_type(downloadable)} ${ruby_downloadable_l122_d18_download_queue_name(mut downloadable)}'
+	return '${downloadable_download_queue_type(downloadable)} ${downloadable_download_queue_name(mut downloadable)}'
 }
 
 // Ruby method `downloaded?` at line 133.
 pub fn ruby_downloadable_l133_d21_downloaded(mut downloadable Downloadable,
 	factory DownloadableDownloaderFactory) !bool {
-	path := ruby_downloadable_l149_d23_cached_download(mut downloadable, factory)!
+	path := downloadable_cached_download(mut downloadable, factory)!
 	return os.exists(path)
 }
 
 // Ruby method `downloaded_and_valid?` at line 138.
 pub fn ruby_downloadable_l138_d22_downloaded_and_valid(mut downloadable Downloadable,
 	mut context DownloadableContext, factory DownloadableDownloaderFactory) !bool {
-	path := ruby_downloadable_l149_d23_cached_download(mut downloadable, factory)!
+	path := downloadable_cached_download(mut downloadable, factory)!
 	if !os.is_file(path) || downloadable_checksum_is_blank(downloadable) {
 		return false
 	}
 	was_verbose := context.verification_cache.verbose
 	context.verification_cache.verbose = false
-	ruby_downloadable_l234_d33_verify_download_integrity(mut downloadable, mut context, path) or {
+	downloadable_verify_download_integrity(mut downloadable, mut context, path) or {
 		context.verification_cache.verbose = was_verbose
 		if err.msg().starts_with('ChecksumMismatchError:') {
 			return false
@@ -451,23 +451,23 @@ pub fn ruby_downloadable_l138_d22_downloaded_and_valid(mut downloadable Download
 }
 
 // Ruby method `cached_download` at line 149.
-pub fn ruby_downloadable_l149_d23_cached_download(mut downloadable Downloadable,
+pub fn downloadable_cached_download(mut downloadable Downloadable,
 	factory DownloadableDownloaderFactory) !string {
-	downloader := ruby_downloadable_l184_d29_downloader(mut downloadable, factory)!
+	downloader := downloadable_downloader(mut downloadable, factory)!
 	return downloader.cached_location()
 }
 
 // Ruby method `clear_cache` at line 154.
 pub fn ruby_downloadable_l154_d24_clear_cache(mut downloadable Downloadable,
 	factory DownloadableDownloaderFactory) ! {
-	mut downloader := ruby_downloadable_l184_d29_downloader(mut downloadable, factory)!
+	mut downloader := downloadable_downloader(mut downloadable, factory)!
 	downloader.clear_cache()!
 }
 
 // Ruby method `fetched_size` at line 160.
 pub fn ruby_downloadable_l160_d25_fetched_size(mut downloadable Downloadable,
 	factory DownloadableDownloaderFactory) !DownloadableSize {
-	downloader := ruby_downloadable_l184_d29_downloader(mut downloadable, factory)!
+	downloader := downloadable_downloader(mut downloadable, factory)!
 	if value := downloader.fetched_size() {
 		return DownloadableSize{
 			value: value
@@ -486,7 +486,7 @@ pub fn ruby_downloadable_l166_d26_total_size(mut downloadable Downloadable,
 			has_value: true
 		}
 	}
-	downloader := ruby_downloadable_l184_d29_downloader(mut downloadable, factory)!
+	downloader := downloadable_downloader(mut downloadable, factory)!
 	value := downloader.total_size() or { return DownloadableSize{} }
 	downloadable.total_size_value = value
 	downloadable.has_total_size = true
@@ -497,7 +497,7 @@ pub fn ruby_downloadable_l166_d26_total_size(mut downloadable Downloadable,
 }
 
 // Ruby method `version` at line 171.
-pub fn ruby_downloadable_l171_d27_version(downloadable &Downloadable) ?Version {
+pub fn downloadable_version(downloadable &Downloadable) ?Version {
 	if downloadable.has_version && !downloadable.version_value.is_null() {
 		return downloadable.version_value
 	}
@@ -511,7 +511,7 @@ pub fn ruby_downloadable_l171_d27_version(downloadable &Downloadable) ?Version {
 }
 
 // Ruby method `download_strategy` at line 179.
-pub fn ruby_downloadable_l179_d28_download_strategy(mut downloadable Downloadable) !download_strategy.DownloadStrategy {
+pub fn downloadable_download_strategy(mut downloadable Downloadable) !download_strategy.DownloadStrategy {
 	if downloadable.has_download_strategy {
 		return downloadable.download_strategy_value
 	}
@@ -522,27 +522,29 @@ pub fn ruby_downloadable_l179_d28_download_strategy(mut downloadable Downloadabl
 }
 
 // Ruby method `downloader` at line 184.
-pub fn ruby_downloadable_l184_d29_downloader(mut downloadable Downloadable,
+pub fn downloadable_downloader(mut downloadable Downloadable,
 	factory DownloadableDownloaderFactory) !&DownloadableDownloader {
 	if downloadable.has_downloader {
 		return &downloadable.downloader_value
 	}
-	urls := ruby_downloadable_l290_d40_determine_url_mirrors(downloadable)
+	urls := downloadable_determine_url_mirrors(downloadable)
 	primary_url := if urls.len > 0 { urls[0] } else { '' }
 	if primary_url.trim_space() == '' {
 		return error('attempted to use a `Downloadable` without a URL!')
 	}
-	strategy := ruby_downloadable_l179_d28_download_strategy(mut downloadable)!
+	strategy := downloadable_download_strategy(mut downloadable)!
 	request := DownloadableDownloaderRequest{
 		strategy: strategy
 		primary_url: primary_url
-		name: ruby_downloadable_l275_d37_download_name(mut downloadable)
-		version: ruby_downloadable_l171_d27_version(downloadable)
+		name: downloadable_download_name(mut downloadable)
+		version: downloadable_version(downloadable)
 		mirrors: if urls.len > 1 { urls[1..].clone() } else { [] }
-		cache: ruby_downloadable_l295_d41_cache(downloadable)
+		cache: downloadable_cache(downloadable)
 		specs: if downloadable.has_url {
-			downloadable.url_value.specs.clone()} else {
-			map[string]string{}}
+			downloadable.url_value.specs.clone()
+		} else {
+			map[string]string{}
+		}
 	}
 	downloadable.downloader_value = factory(request)!
 	if downloadable_curl_derived(strategy) && download_strategy.expand_deferred_environment_for(strategy) {
@@ -556,25 +558,25 @@ pub fn ruby_downloadable_l184_d29_downloader(mut downloadable Downloadable,
 pub fn ruby_downloadable_l206_d30_fetch(mut downloadable Downloadable, mut context DownloadableContext,
 	verify_download_integrity bool, timeout ?f64, quiet bool,
 	factory DownloadableDownloaderFactory) !string {
-	ruby_downloadable_l83_d10_downloading(mut downloadable)
-	os.mkdir_all(ruby_downloadable_l295_d41_cache(downloadable))!
-	mut downloader := ruby_downloadable_l184_d29_downloader(mut downloadable, factory)!
+	downloadable_downloading(mut downloadable)
+	os.mkdir_all(downloadable_cache(downloadable))!
+	mut downloader := downloadable_downloader(mut downloadable, factory)!
 	if quiet {
 		downloader.quiet()
 	}
 	if failure := downloader.fetch(timeout) {
 		if failure.kind in [.error_during_execution, .curl_download_strategy] {
 			return DownloadableDownloadError{
-				download_queue_name: ruby_downloadable_l122_d18_download_queue_name(mut downloadable)
+				download_queue_name: downloadable_download_queue_name(mut downloadable)
 				cause: failure
 			}
 		}
 		return failure
 	}
-	ruby_downloadable_l85_d11_downloaded(mut downloadable)
-	download := ruby_downloadable_l149_d23_cached_download(mut downloadable, factory)!
+	downloadable_downloaded(mut downloadable)
+	download := downloadable_cached_download(mut downloadable, factory)!
 	if verify_download_integrity {
-		ruby_downloadable_l234_d33_verify_download_integrity(mut downloadable, mut context, download)!
+		downloadable_verify_download_integrity(mut downloadable, mut context, download)!
 	}
 	return download
 }
@@ -590,14 +592,14 @@ pub fn ruby_downloadable_l231_d32_stage_from_download_queue(_ string, _ bool) {
 }
 
 // Ruby method `verify_download_integrity(filename)` at line 234.
-pub fn ruby_downloadable_l234_d33_verify_download_integrity(mut downloadable Downloadable,
+pub fn downloadable_verify_download_integrity(mut downloadable Downloadable,
 	mut context DownloadableContext, filename string) ! {
-	ruby_downloadable_l87_d12_verifying(mut downloadable)
+	downloadable_verifying(mut downloadable)
 	if !os.is_file(filename) {
 		return
 	}
-	checksum := ruby_downloadable_l74_d6_checksum(downloadable)
-	ruby_downloadable_l34_d2_verify(mut context.verification_cache, filename, checksum) or {
+	checksum := downloadable_checksum(downloadable)
+	downloadable_verify(mut context.verification_cache, filename, checksum) or {
 		if !err.msg().starts_with('ChecksumMissingError') {
 			return error(err.msg())
 		}
@@ -608,13 +610,13 @@ pub fn ruby_downloadable_l234_d33_verify_download_integrity(mut downloadable Dow
 		downloadable.warnings << 'Cannot verify integrity of \'${os.file_name(filename)}\'.\nNo checksum was provided.\nFor your reference, the checksum is:\n  sha256 "${actual}"\n'
 		return
 	}
-	ruby_downloadable_l89_d13_verified(mut downloadable)
+	downloadable_verified(mut downloadable)
 }
 
 // Ruby method `hash` at line 253.
 pub fn ruby_downloadable_l253_d34_hash(mut downloadable Downloadable,
 	factory DownloadableDownloaderFactory) !u64 {
-	path := ruby_downloadable_l149_d23_cached_download(mut downloadable, factory)!
+	path := downloadable_cached_download(mut downloadable, factory)!
 	return fnv1a.sum64_string('${downloadable.class_name}:${path}')
 }
 
@@ -624,22 +626,22 @@ pub fn ruby_downloadable_l258_d35_eql(mut downloadable Downloadable, mut other D
 	if downloadable.class_name != other.class_name {
 		return false
 	}
-	left := ruby_downloadable_l149_d23_cached_download(mut downloadable, factory)!
-	right := ruby_downloadable_l149_d23_cached_download(mut other, factory)!
+	left := downloadable_cached_download(mut downloadable, factory)!
+	right := downloadable_cached_download(mut other, factory)!
 	return left == right
 }
 
 // Ruby method `to_s` at line 266.
 pub fn ruby_downloadable_l266_d36_to_s(mut downloadable Downloadable,
 	factory DownloadableDownloaderFactory) !string {
-	path := ruby_downloadable_l149_d23_cached_download(mut downloadable, factory)!
-	prefix := os.join_path(ruby_downloadable_l295_d41_cache(downloadable), 'downloads') + os.path_separator
+	path := downloadable_cached_download(mut downloadable, factory)!
+	prefix := os.join_path(downloadable_cache(downloadable), 'downloads') + os.path_separator
 	short_path := if path.starts_with(prefix) { path[prefix.len..] } else { path }
 	return '#<${downloadable.class_name}: ${short_path}>'
 }
 
 // Ruby method `download_name` at line 275.
-pub fn ruby_downloadable_l275_d37_download_name(mut downloadable Downloadable) string {
+pub fn downloadable_download_name(mut downloadable Downloadable) string {
 	if !downloadable.has_download_name {
 		raw := downloadable_url_text(downloadable).trim_right('/')
 		downloadable.download_name_value = os.file_name(raw)
@@ -659,7 +661,7 @@ pub fn ruby_downloadable_l285_d39_determine_url(downloadable &Downloadable) ?Url
 }
 
 // Ruby method `determine_url_mirrors` at line 290.
-pub fn ruby_downloadable_l290_d40_determine_url_mirrors(downloadable &Downloadable) []string {
+pub fn downloadable_determine_url_mirrors(downloadable &Downloadable) []string {
 	mut urls := [downloadable_url_text(downloadable)]
 	urls << downloadable.mirrors
 	mut unique := []string{}
@@ -672,7 +674,7 @@ pub fn ruby_downloadable_l290_d40_determine_url_mirrors(downloadable &Downloadab
 }
 
 // Ruby method `cache` at line 295.
-pub fn ruby_downloadable_l295_d41_cache(downloadable &Downloadable) string {
+pub fn downloadable_cache(downloadable &Downloadable) string {
 	return downloadable.cache_path
 }
 

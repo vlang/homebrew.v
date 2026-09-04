@@ -43,11 +43,11 @@ pub const superenv_sanitized_variables = [
 	'RUSTFLAGS',
 ]
 
-pub type SuperenvPathPredicate = fn(string) bool
+pub type SuperenvPathPredicate = fn (string) bool
 
-pub type SuperenvAction = fn(mut SuperenvState) !ruby.Value
+pub type SuperenvAction = fn (mut SuperenvState) !ruby.Value
 
-pub type SuperenvVoidAction = fn(mut SuperenvState) !
+pub type SuperenvVoidAction = fn (mut SuperenvState) !
 
 pub struct SuperenvDependency {
 pub:
@@ -476,7 +476,7 @@ pub fn ruby_super_l26_d4_deps(mut state SuperenvState, dependencies []SuperenvDe
 }
 
 // Ruby attr_accessor `attr_accessor :run_time_deps` at line 29.
-pub fn ruby_super_l29_d5_run_time_deps(state &SuperenvState) []SuperenvDependency {
+pub fn super_run_time_deps(state &SuperenvState) []SuperenvDependency {
 	return state.run_time_deps.clone()
 }
 

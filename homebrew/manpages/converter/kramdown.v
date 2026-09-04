@@ -44,8 +44,8 @@ fn kramdown_inner(mut state KramdownConverter, element ConverterElement, options
 	mut result := ''
 	for child in element.children {
 		result += match child.typ {
-			'variable' { ruby_kramdown_l17_d2_convert_variable(child, options) }
-			'a' { ruby_kramdown_l22_d3_convert_a(mut state, child, options) }
+			'variable' { kramdown_convert_variable(child, options) }
+			'a' { kramdown_convert_a(mut state, child, options) }
 			else { kramdown_inner(mut state, child, options) }
 		}
 	}
@@ -87,12 +87,12 @@ pub fn ruby_kramdown_l12_d1_initialize(root ConverterElement, options KramdownOp
 }
 
 // Ruby method `convert_variable(element, _options)` at line 17.
-pub fn ruby_kramdown_l17_d2_convert_variable(element ConverterElement, _options KramdownOptions) string {
+pub fn kramdown_convert_variable(element ConverterElement, _options KramdownOptions) string {
 	return '*`${element.value}`*'
 }
 
 // Ruby method `convert_a(element, options)` at line 22.
-pub fn ruby_kramdown_l22_d3_convert_a(mut state KramdownConverter, element ConverterElement, options KramdownOptions) string {
+pub fn kramdown_convert_a(mut state KramdownConverter, element ConverterElement, options KramdownOptions) string {
 	text := kramdown_inner(mut state, element, options)
 	if element.attr['href'] or { '' } == text {
 		// Don't duplicate the URL if the link text is the same as the URL.

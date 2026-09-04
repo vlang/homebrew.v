@@ -10,7 +10,7 @@ fn landlock_spec_sandbox(root string) !homebrew.Sandbox {
 		os.join_path(root, 'tmp')] {
 		os.mkdir_all(path)!
 	}
-	return homebrew.ruby_sandbox_l283_d31_initialize(homebrew.SandboxPaths{
+	return homebrew.new_sandbox(homebrew.SandboxPaths{
 		home: os.join_path(root, 'home')
 		prefix: os.join_path(root, 'prefix')
 		repository: os.join_path(root, 'repository')
@@ -51,7 +51,7 @@ fn landlock_spec_context(abi int, devices []string, descriptors map[string]int) 
 
 // Ruby subject `subject(:landlock) { described_class.new(sandbox.profile) }` at line 8.
 pub fn ruby_sandbox_landlock_spec_l8_d1_landlock(value homebrew.Sandbox) linux_sandbox.Landlock {
-	return linux_sandbox.ruby_landlock_l276_d16_initialize(value.profile)
+	return linux_sandbox.landlock_initialize(value.profile)
 }
 
 // Ruby let `let(:sandbox) { Sandbox.new }` at line 10.
@@ -61,58 +61,58 @@ pub fn ruby_sandbox_landlock_spec_l10_d2_sandbox(root string) !homebrew.Sandbox 
 
 // Ruby it `it "declares its weaker write-isolation contract" do` at line 20.
 pub fn ruby_sandbox_landlock_spec_l20_d3_declares() bool {
-	return !linux_sandbox.ruby_landlock_l101_d1_full_write_isolation()
+	return !linux_sandbox.landlock_full_write_isolation()
 }
 
 // Ruby it `it "reports the supported Landlock ABI" do` at line 24.
 pub fn ruby_sandbox_landlock_spec_l24_d4_reports() bool {
 	mut state := linux_sandbox.LandlockClassState{}
 	context := linux_sandbox.LandlockClassContext{ kernel_abi: 4 }
-	available := linux_sandbox.ruby_landlock_l104_d2_available(mut state, context)
-	resolved_state := linux_sandbox.ruby_landlock_l109_d3_state(mut state, context)
+	available := linux_sandbox.landlock_available(mut state, context)
+	resolved_state := linux_sandbox.landlock_state(mut state, context)
 	version := linux_sandbox.ruby_landlock_l114_d4_abi_version(mut state, context) or { return false }
-	return available && resolved_state == .available && version == 4 && linux_sandbox.ruby_landlock_l132_d6_failure_reason(state.state, state.abi_version) == none
+	return available && resolved_state == .available && version == 4 && linux_sandbox.landlock_failure_reason(state.state, state.abi_version) == none
 }
 
 // Ruby it `it "returns false for a kernel without Landlock support" do` at line 33.
 pub fn ruby_sandbox_landlock_spec_l33_d5_returns() bool {
 	mut state := linux_sandbox.LandlockClassState{}
 	context := linux_sandbox.LandlockClassContext{ last_error: 38 }
-	return !linux_sandbox.ruby_landlock_l104_d2_available(mut state, context) && state.state == .unsupported && (linux_sandbox.ruby_landlock_l132_d6_failure_reason(state.state, 0) or { '' }).contains('not supported by this Linux kernel')
+	return !linux_sandbox.landlock_available(mut state, context) && state.state == .unsupported && (linux_sandbox.landlock_failure_reason(state.state, 0) or { '' }).contains('not supported by this Linux kernel')
 }
 
 // Ruby it `it "returns false when Landlock is disabled by the kernel configuration" do` at line 42.
 pub fn ruby_sandbox_landlock_spec_l42_d6_returns() bool {
 	mut state := linux_sandbox.LandlockClassState{}
 	context := linux_sandbox.LandlockClassContext{ last_error: 95 }
-	return !linux_sandbox.ruby_landlock_l104_d2_available(mut state, context) && state.state == .disabled && (linux_sandbox.ruby_landlock_l132_d6_failure_reason(state.state, 0) or { '' }).contains('disabled by this Linux kernel')
+	return !linux_sandbox.landlock_available(mut state, context) && state.state == .disabled && (linux_sandbox.landlock_failure_reason(state.state, 0) or { '' }).contains('disabled by this Linux kernel')
 }
 
 // Ruby it `it "returns false when Linux sandboxing is disabled" do` at line 51.
 pub fn ruby_sandbox_landlock_spec_l51_d7_returns() bool {
 	mut state := linux_sandbox.LandlockClassState{}
-	return !linux_sandbox.ruby_landlock_l104_d2_available(mut state, linux_sandbox.LandlockClassContext{ sandbox_linux: false, kernel_abi: 10 }) && state.state == .config_disabled
+	return !linux_sandbox.landlock_available(mut state, linux_sandbox.LandlockClassContext{ sandbox_linux: false, kernel_abi: 10 }) && state.state == .config_disabled
 }
 
 // Ruby it `it "returns false when Fiddle is unavailable" do` at line 58.
 pub fn ruby_sandbox_landlock_spec_l58_d8_returns() bool {
 	mut state := linux_sandbox.LandlockClassState{}
 	context := linux_sandbox.LandlockClassContext{ fiddle_available: false, kernel_abi: 10 }
-	return !linux_sandbox.ruby_landlock_l104_d2_available(mut state, context) && state.state == .missing_fiddle && (linux_sandbox.ruby_landlock_l132_d6_failure_reason(state.state, 0) or { '' }).contains('Fiddle')
+	return !linux_sandbox.landlock_available(mut state, context) && state.state == .missing_fiddle && (linux_sandbox.landlock_failure_reason(state.state, 0) or { '' }).contains('Fiddle')
 }
 
 // Ruby it `it "is available for an ABI without truncate restrictions" do` at line 66.
 pub fn ruby_sandbox_landlock_spec_l66_d9_is() bool {
 	mut state := linux_sandbox.LandlockClassState{}
-	return linux_sandbox.ruby_landlock_l104_d2_available(mut state, linux_sandbox.LandlockClassContext{ kernel_abi: 2 })
+	return linux_sandbox.landlock_available(mut state, linux_sandbox.LandlockClassContext{ kernel_abi: 2 })
 }
 
 // Ruby it `it "returns false for an ABI that always denies cross-directory renames" do` at line 72.
 pub fn ruby_sandbox_landlock_spec_l72_d10_returns() bool {
 	mut state := linux_sandbox.LandlockClassState{}
 	context := linux_sandbox.LandlockClassContext{ kernel_abi: 1 }
-	available := linux_sandbox.ruby_landlock_l104_d2_available(mut state, context)
-	reason := linux_sandbox.ruby_landlock_l132_d6_failure_reason(state.state, state.abi_version) or {
+	available := linux_sandbox.landlock_available(mut state, context)
+	reason := linux_sandbox.landlock_failure_reason(state.state, state.abi_version) or {
 		return false
 	}
 	return !available && state.state == .unsupported_abi && state.abi_version == 1 && reason == 'Landlock ABI 2 or later is required; found ABI 1.'
@@ -120,7 +120,7 @@ pub fn ruby_sandbox_landlock_spec_l72_d10_returns() bool {
 
 // Ruby it `it "reports the kernel ABI even when Linux sandboxing is disabled" do` at line 83.
 pub fn ruby_sandbox_landlock_spec_l83_d11_reports() bool {
-	version := linux_sandbox.ruby_landlock_l122_d5_kernel_abi_version(linux_sandbox.LandlockClassContext{
+	version := linux_sandbox.landlock_kernel_abi_version(linux_sandbox.LandlockClassContext{
 		sandbox_linux: false
 		kernel_abi: 6
 	}) or { return false }
@@ -129,12 +129,12 @@ pub fn ruby_sandbox_landlock_spec_l83_d11_reports() bool {
 
 // Ruby it `it "returns nil for a kernel without Landlock support" do` at line 90.
 pub fn ruby_sandbox_landlock_spec_l90_d12_returns() bool {
-	return linux_sandbox.ruby_landlock_l122_d5_kernel_abi_version(linux_sandbox.LandlockClassContext{}) == none
+	return linux_sandbox.landlock_kernel_abi_version(linux_sandbox.LandlockClassContext{}) == none
 }
 
 // Ruby it `it "returns nil when Fiddle function setup fails" do` at line 96.
 pub fn ruby_sandbox_landlock_spec_l96_d13_returns() bool {
-	return linux_sandbox.ruby_landlock_l122_d5_kernel_abi_version(linux_sandbox.LandlockClassContext{
+	return linux_sandbox.landlock_kernel_abi_version(linux_sandbox.LandlockClassContext{
 		kernel_abi: 10
 		setup_failed: true
 	}) == none
@@ -157,8 +157,8 @@ pub fn ruby_sandbox_landlock_spec_l106_d15_tmpdir(root string) !string {
 // Ruby it `it "rejects an ABI without cross-directory rename restrictions" do` at line 118.
 pub fn ruby_sandbox_landlock_spec_l118_d16_rejects(root string) !bool {
 	value := landlock_spec_sandbox(root)!
-	mut landlock := linux_sandbox.ruby_landlock_l276_d16_initialize(value.profile)
-	linux_sandbox.ruby_landlock_l299_d18_apply(mut landlock, linux_sandbox.LandlockApplyContext{
+	mut landlock := linux_sandbox.landlock_initialize(value.profile)
+	linux_sandbox.landlock_apply(mut landlock, linux_sandbox.LandlockApplyContext{
 		abi: 1
 	}) or { return err.msg() == 'Landlock ABI 2 or later is required; found ABI 1.' }
 	return false
@@ -171,11 +171,11 @@ pub fn ruby_sandbox_landlock_spec_l127_d17_restricts(root string) !bool {
 	tmpdir := os.join_path(root, 'tmpdir')
 	os.mkdir_all(writable)!
 	os.mkdir_all(tmpdir)!
-	homebrew.ruby_sandbox_l473_d42_allow_write_path(mut value, writable)!
-	homebrew.ruby_sandbox_l547_d54_deny_all_network(mut value)
-	mut landlock := linux_sandbox.ruby_landlock_l276_d16_initialize(value.profile)
-	linux_sandbox.ruby_landlock_l286_d17_command(mut landlock, ['true'], tmpdir)!
-	result := linux_sandbox.ruby_landlock_l299_d18_apply(mut landlock, landlock_spec_context(10, [
+	homebrew.sandbox_allow_write_path(mut value, writable)!
+	homebrew.sandbox_deny_all_network(mut value)
+	mut landlock := linux_sandbox.landlock_initialize(value.profile)
+	linux_sandbox.landlock_command(mut landlock, ['true'], tmpdir)!
+	result := linux_sandbox.landlock_apply(mut landlock, landlock_spec_context(10, [
 		'/dev/ptmx',
 		'/dev/pts',
 	], {
@@ -209,12 +209,12 @@ pub fn ruby_sandbox_landlock_spec_l171_d18_handles(root string) !bool {
 		os.mkdir_all(path)!
 	}
 	os.write_file(file, 'content')!
-	homebrew.ruby_sandbox_l321_d37_deny_read_path(mut value, denied)!
-	mut landlock := linux_sandbox.ruby_landlock_l276_d16_initialize(value.profile)
+	homebrew.sandbox_deny_read_path(mut value, denied)!
+	mut landlock := linux_sandbox.landlock_initialize(value.profile)
 	landlock.root_path = root
-	linux_sandbox.ruby_landlock_l286_d17_command(mut landlock, ['true'], tmpdir)!
+	linux_sandbox.landlock_command(mut landlock, ['true'], tmpdir)!
 	landlock.readable_paths = [readable, file]
-	result := linux_sandbox.ruby_landlock_l299_d18_apply(mut landlock, landlock_spec_context(10, [
+	result := linux_sandbox.landlock_apply(mut landlock, landlock_spec_context(10, [
 		'/dev/ptmx',
 		'/dev/pts',
 	], {
@@ -241,9 +241,9 @@ pub fn ruby_sandbox_landlock_spec_l213_d19_skips(root string) !bool {
 	readable := os.join_path(root, 'removed')
 	tmpdir := os.join_path(root, 'tmpdir')
 	os.mkdir_all(tmpdir)!
-	mut landlock := linux_sandbox.ruby_landlock_l276_d16_initialize(value.profile)
+	mut landlock := linux_sandbox.landlock_initialize(value.profile)
 	landlock.readable_paths = [readable]
-	result := linux_sandbox.ruby_landlock_l299_d18_apply(mut landlock, linux_sandbox.LandlockApplyContext{
+	result := linux_sandbox.landlock_apply(mut landlock, linux_sandbox.LandlockApplyContext{
 		abi: 10
 		create_result: 17
 		device_paths: landlock_spec_devices([])
@@ -255,8 +255,8 @@ pub fn ruby_sandbox_landlock_spec_l213_d19_skips(root string) !bool {
 // Ruby it `it "allows pseudo-terminal device access" do` at line 231.
 pub fn ruby_sandbox_landlock_spec_l231_d20_allows(root string) !bool {
 	value := landlock_spec_sandbox(root)!
-	mut landlock := linux_sandbox.ruby_landlock_l276_d16_initialize(value.profile)
-	result := linux_sandbox.ruby_landlock_l299_d18_apply(mut landlock, landlock_spec_context(10, [
+	mut landlock := linux_sandbox.landlock_initialize(value.profile)
+	result := linux_sandbox.landlock_apply(mut landlock, landlock_spec_context(10, [
 		'/dev/ptmx',
 		'/dev/pts',
 	], {
@@ -274,10 +274,10 @@ pub fn ruby_sandbox_landlock_spec_l249_d21_allows(root string) !bool {
 	mut value := landlock_spec_sandbox(root)!
 	denied := os.join_path(root, 'denied')
 	os.mkdir_all(denied)!
-	homebrew.ruby_sandbox_l321_d37_deny_read_path(mut value, denied)!
-	mut landlock := linux_sandbox.ruby_landlock_l276_d16_initialize(value.profile)
+	homebrew.sandbox_deny_read_path(mut value, denied)!
+	mut landlock := linux_sandbox.landlock_initialize(value.profile)
 	landlock.deny_read = true
-	result := linux_sandbox.ruby_landlock_l299_d18_apply(mut landlock, landlock_spec_context(10, [
+	result := linux_sandbox.landlock_apply(mut landlock, landlock_spec_context(10, [
 		'/dev/full',
 		'/dev/mqueue',
 		'/dev/shm',
@@ -299,45 +299,45 @@ pub fn ruby_sandbox_landlock_spec_l249_d21_allows(root string) !bool {
 // Ruby it `it "skips unavailable device and IPC paths" do` at line 278.
 pub fn ruby_sandbox_landlock_spec_l278_d22_skips(root string) !bool {
 	value := landlock_spec_sandbox(root)!
-	mut landlock := linux_sandbox.ruby_landlock_l276_d16_initialize(value.profile)
-	result := linux_sandbox.ruby_landlock_l299_d18_apply(mut landlock, landlock_spec_context(10, [], map[string]int{}))!
+	mut landlock := linux_sandbox.landlock_initialize(value.profile)
+	result := linux_sandbox.landlock_apply(mut landlock, landlock_spec_context(10, [], map[string]int{}))!
 	return result.path_rules.len == 0
 }
 
 // Ruby it `it "warns when applying incomplete network denial" do` at line 310.
 pub fn ruby_sandbox_landlock_spec_l310_d23_warns(root string) !bool {
 	mut value := landlock_spec_sandbox(root)!
-	homebrew.ruby_sandbox_l547_d54_deny_all_network(mut value)
-	mut landlock := linux_sandbox.ruby_landlock_l276_d16_initialize(value.profile)
+	homebrew.sandbox_deny_all_network(mut value)
+	mut landlock := linux_sandbox.landlock_initialize(value.profile)
 	landlock.deny_all_network = true
-	result := linux_sandbox.ruby_landlock_l299_d18_apply(mut landlock, landlock_spec_context(7, [], map[string]int{}))!
+	result := linux_sandbox.landlock_apply(mut landlock, landlock_spec_context(7, [], map[string]int{}))!
 	return result.warning.contains('Landlock ABI 10 or later') && result.warning.contains('found ABI 7')
 }
 
 // Ruby it `it "does not warn before applying network denial" do` at line 318.
 pub fn ruby_sandbox_landlock_spec_l318_d24_does(root string) !bool {
 	mut value := landlock_spec_sandbox(root)!
-	homebrew.ruby_sandbox_l547_d54_deny_all_network(mut value)
-	mut landlock := linux_sandbox.ruby_landlock_l276_d16_initialize(value.profile)
-	linux_sandbox.ruby_landlock_l286_d17_command(mut landlock, ['true'], os.join_path(root, 'tmp'))!
+	homebrew.sandbox_deny_all_network(mut value)
+	mut landlock := linux_sandbox.landlock_initialize(value.profile)
+	linux_sandbox.landlock_command(mut landlock, ['true'], os.join_path(root, 'tmp'))!
 	return landlock.warnings.len == 0
 }
 
 // Ruby it `it "does not warn without network denial" do` at line 324.
 pub fn ruby_sandbox_landlock_spec_l324_d25_does(root string) !bool {
 	value := landlock_spec_sandbox(root)!
-	mut landlock := linux_sandbox.ruby_landlock_l276_d16_initialize(value.profile)
-	result := linux_sandbox.ruby_landlock_l299_d18_apply(mut landlock, landlock_spec_context(7, [], map[string]int{}))!
+	mut landlock := linux_sandbox.landlock_initialize(value.profile)
+	result := linux_sandbox.landlock_apply(mut landlock, landlock_spec_context(7, [], map[string]int{}))!
 	return result.warning == ''
 }
 
 // Ruby it `it "uses the supported network access rights" do` at line 330.
 pub fn ruby_sandbox_landlock_spec_l330_d26_uses(root string) !bool {
 	mut value := landlock_spec_sandbox(root)!
-	homebrew.ruby_sandbox_l547_d54_deny_all_network(mut value)
-	mut landlock := linux_sandbox.ruby_landlock_l276_d16_initialize(value.profile)
+	homebrew.sandbox_deny_all_network(mut value)
+	mut landlock := linux_sandbox.landlock_initialize(value.profile)
 	landlock.deny_all_network = true
-	return linux_sandbox.ruby_landlock_l379_d19_ruleset_attributes(landlock, 7).values == [
+	return linux_sandbox.landlock_ruleset_attributes(landlock, 7).values == [
 		u64(65522),
 		3,
 		1,
@@ -347,25 +347,25 @@ pub fn ruby_sandbox_landlock_spec_l330_d26_uses(root string) !bool {
 // Ruby it `it "does not warn without network denial" do` at line 348.
 pub fn ruby_sandbox_landlock_spec_l348_d27_does(root string) !bool {
 	value := landlock_spec_sandbox(root)!
-	mut landlock := linux_sandbox.ruby_landlock_l276_d16_initialize(value.profile)
-	return (linux_sandbox.ruby_landlock_l299_d18_apply(mut landlock, landlock_spec_context(2, [], map[string]int{}))!).warning == ''
+	mut landlock := linux_sandbox.landlock_initialize(value.profile)
+	return (linux_sandbox.landlock_apply(mut landlock, landlock_spec_context(2, [], map[string]int{}))!).warning == ''
 }
 
 // Ruby it `it "warns that network access cannot be restricted" do` at line 354.
 pub fn ruby_sandbox_landlock_spec_l354_d28_warns(root string) !bool {
 	mut value := landlock_spec_sandbox(root)!
-	homebrew.ruby_sandbox_l547_d54_deny_all_network(mut value)
-	mut landlock := linux_sandbox.ruby_landlock_l276_d16_initialize(value.profile)
+	homebrew.sandbox_deny_all_network(mut value)
+	mut landlock := linux_sandbox.landlock_initialize(value.profile)
 	landlock.deny_all_network = true
-	result := linux_sandbox.ruby_landlock_l299_d18_apply(mut landlock, landlock_spec_context(2, [], map[string]int{}))!
+	result := linux_sandbox.landlock_apply(mut landlock, landlock_spec_context(2, [], map[string]int{}))!
 	return result.warning.contains('found ABI 2. This kernel cannot restrict network access')
 }
 
 // Ruby it `it "omits unsupported access rights from device path rules" do` at line 362.
 pub fn ruby_sandbox_landlock_spec_l362_d29_omits(root string) !bool {
 	value := landlock_spec_sandbox(root)!
-	mut landlock := linux_sandbox.ruby_landlock_l276_d16_initialize(value.profile)
-	result := linux_sandbox.ruby_landlock_l299_d18_apply(mut landlock, landlock_spec_context(2, [
+	mut landlock := linux_sandbox.landlock_initialize(value.profile)
+	result := linux_sandbox.landlock_apply(mut landlock, landlock_spec_context(2, [
 		'/dev/full',
 	], {
 		'/dev/full': 19
@@ -376,10 +376,10 @@ pub fn ruby_sandbox_landlock_spec_l362_d29_omits(root string) !bool {
 // Ruby it `it "handles only the supported filesystem access rights" do` at line 373.
 pub fn ruby_sandbox_landlock_spec_l373_d30_handles(root string) !bool {
 	mut value := landlock_spec_sandbox(root)!
-	homebrew.ruby_sandbox_l547_d54_deny_all_network(mut value)
-	mut landlock := linux_sandbox.ruby_landlock_l276_d16_initialize(value.profile)
+	homebrew.sandbox_deny_all_network(mut value)
+	mut landlock := linux_sandbox.landlock_initialize(value.profile)
 	landlock.deny_all_network = true
-	return linux_sandbox.ruby_landlock_l379_d19_ruleset_attributes(landlock, 2).values == [
+	return linux_sandbox.landlock_ruleset_attributes(landlock, 2).values == [
 		u64(16370),
 	]
 }
@@ -388,20 +388,20 @@ pub fn ruby_sandbox_landlock_spec_l373_d30_handles(root string) !bool {
 pub fn ruby_sandbox_landlock_spec_l385_d31_prepares(root string) !bool {
 	mut value := landlock_spec_sandbox(root)!
 	writable := os.join_path(root, 'created')
-	homebrew.ruby_sandbox_l473_d42_allow_write_path(mut value, writable)!
-	mut landlock := linux_sandbox.ruby_landlock_l276_d16_initialize(value.profile)
-	command := linux_sandbox.ruby_landlock_l286_d17_command(mut landlock, ['true'], os.join_path(root, 'tmp'))!
+	homebrew.sandbox_allow_write_path(mut value, writable)!
+	mut landlock := linux_sandbox.landlock_initialize(value.profile)
+	command := linux_sandbox.landlock_command(mut landlock, ['true'], os.join_path(root, 'tmp'))!
 	created := os.is_dir(writable)
-	linux_sandbox.ruby_backend_l20_d3_run(mut landlock.backend)
+	linux_sandbox.backend_run(mut landlock.backend)
 	return command == ['true'] && created && !os.exists(writable)
 }
 
 // Ruby it `it "rejects regex path filters" do` at line 397.
 pub fn ruby_sandbox_landlock_spec_l397_d32_rejects(root string) !bool {
 	mut value := landlock_spec_sandbox(root)!
-	homebrew.ruby_sandbox_l461_d40_allow_write(mut value, '^/tmp/homebrew-[^/]+\$', .regex)!
-	mut landlock := linux_sandbox.ruby_landlock_l276_d16_initialize(value.profile)
-	linux_sandbox.ruby_landlock_l286_d17_command(mut landlock, ['true'], os.join_path(root, 'tmp')) or {
+	homebrew.sandbox_allow_write(mut value, '^/tmp/homebrew-[^/]+\$', .regex)!
+	mut landlock := linux_sandbox.landlock_initialize(value.profile)
+	linux_sandbox.landlock_command(mut landlock, ['true'], os.join_path(root, 'tmp')) or {
 		return err.msg().contains('Linux sandbox does not support regex path filters')
 	}
 	return false
@@ -415,7 +415,7 @@ pub fn ruby_sandbox_landlock_spec_l404_d33_allows(root string) !bool {
 		os.mkdir_all(path)!
 	}
 	mut landlock := linux_sandbox.Landlock{ root_path: root }
-	return linux_sandbox.ruby_landlock_l405_d20_readable_paths(landlock, [denied])! == [
+	return linux_sandbox.landlock_readable_paths(landlock, [denied])! == [
 		readable,
 	]
 }
@@ -426,7 +426,7 @@ pub fn ruby_sandbox_landlock_spec_l415_d34_does(root string) !bool {
 	os.mkdir_all(denied)!
 	os.symlink(denied, os.join_path(root, 'alias'))!
 	mut landlock := linux_sandbox.Landlock{ root_path: root }
-	return linux_sandbox.ruby_landlock_l405_d20_readable_paths(landlock, [denied])!.len == 0
+	return linux_sandbox.landlock_readable_paths(landlock, [denied])!.len == 0
 }
 
 // Ruby it `it "skips dangling symlinks" do` at line 426.
@@ -435,7 +435,7 @@ pub fn ruby_sandbox_landlock_spec_l426_d35_skips(root string) !bool {
 	os.mkdir_all(denied)!
 	os.symlink(os.join_path(root, 'missing'), os.join_path(root, 'dangling'))!
 	mut landlock := linux_sandbox.Landlock{ root_path: root }
-	return linux_sandbox.ruby_landlock_l405_d20_readable_paths(landlock, [denied])!.len == 0
+	return linux_sandbox.landlock_readable_paths(landlock, [denied])!.len == 0
 }
 
 // Original Ruby source (line-for-line):

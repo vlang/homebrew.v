@@ -7,25 +7,25 @@ import homebrew.utils
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `dispatch(args)` at line 16.
-pub fn ruby_subcommand_l16_dispatch(arguments []string, mut state utils.AnalyticsState) !string {
+pub fn subcommand_dispatch(arguments []string, mut state utils.AnalyticsState) !string {
 	if arguments.len > 1 {
 		return error('analytics accepts at most one named argument')
 	}
 	name := if arguments.len == 0 { 'state' } else { arguments[0] }
 	match name {
 		'on' {
-			subcommand.ruby_on_l20_run(mut state)
+			subcommand.enable_analytics(mut state)
 			return ''
 		}
 		'off' {
-			subcommand.ruby_off_l20_run(mut state)
+			subcommand.disable_analytics(mut state)
 			return ''
 		}
 		'state' {
-			return subcommand.ruby_state_l20_run(state)
+			return subcommand.analytics_state_message(state)
 		}
 		'regenerate-uuid' {
-			return subcommand.ruby_regenerate_uuid_l21_run()
+			return subcommand.regenerate_analytics_uuid()
 		}
 		else {
 			return error('unknown analytics subcommand: ${name}')

@@ -32,7 +32,7 @@ fn sandbox_shared_paths(root string) !homebrew.SandboxPaths {
 }
 
 fn sandbox_shared_new(root string) !homebrew.Sandbox {
-	return homebrew.ruby_sandbox_l283_d31_initialize(sandbox_shared_paths(root)!)
+	return homebrew.new_sandbox(sandbox_shared_paths(root)!)
 }
 
 fn sandbox_shared_make_executable(path string) ! {
@@ -108,25 +108,25 @@ pub fn ruby_sandbox_shared_spec_l7_d1_sandbox(root string) !homebrew.Sandbox {
 
 // Ruby it `it "uses an available non-nested sandbox" do` at line 10.
 pub fn ruby_sandbox_shared_spec_l10_d2_uses() bool {
-	decision := homebrew.ruby_sandbox_l124_d16_self_use_for('running install hooks', true, homebrew.SandboxUseContext{ available: true })
+	decision := homebrew.sandbox_use_for('running install hooks', true, homebrew.SandboxUseContext{ available: true })
 	return decision.use && decision.warning == ''
 }
 
 // Ruby it `it "warns when the sandbox is unavailable" do` at line 16.
 pub fn ruby_sandbox_shared_spec_l16_d3_warns() bool {
-	decision := homebrew.ruby_sandbox_l124_d16_self_use_for('running install hooks', true, homebrew.SandboxUseContext{})
+	decision := homebrew.sandbox_use_for('running install hooks', true, homebrew.SandboxUseContext{})
 	return !decision.use && decision.warning == 'Sandbox unavailable: running install hooks without sandboxing!'
 }
 
 // Ruby it `it "can quietly fall back when the sandbox is unavailable" do` at line 23.
 pub fn ruby_sandbox_shared_spec_l23_d4_can() bool {
-	decision := homebrew.ruby_sandbox_l124_d16_self_use_for('testing a formula', false, homebrew.SandboxUseContext{})
+	decision := homebrew.sandbox_use_for('testing a formula', false, homebrew.SandboxUseContext{})
 	return !decision.use && decision.warning == ''
 }
 
 // Ruby it `it "warns when relying on an outer sandbox" do` at line 30.
 pub fn ruby_sandbox_shared_spec_l30_d5_warns() bool {
-	decision := homebrew.ruby_sandbox_l124_d16_self_use_for('running install hooks', true, homebrew.SandboxUseContext{ available: true, avoid_nested: true })
+	decision := homebrew.sandbox_use_for('running install hooks', true, homebrew.SandboxUseContext{ available: true, avoid_nested: true })
 	return !decision.use && decision.warning == "Running install hooks without Homebrew's sandbox; relying on the outer sandbox."
 }
 
@@ -347,7 +347,7 @@ pub fn ruby_sandbox_shared_spec_l231_d37_uses(root string) !bool {
 	sandbox_shared_make_executable(first)!
 	sandbox_shared_make_executable(second)!
 	context := sandbox_shared_executable_context('sandbox-tool', [os.dir(first)], os.dir(second), os.join_path(root, 'homebrew-bin/brew'), [])
-	return (homebrew.ruby_sandbox_l241_d26_self_executable(context) or { return false }) == first
+	return (homebrew.sandbox_executable(context) or { return false }) == first
 }
 
 // Ruby it `it "skips unsuitable executable candidates" do` at line 243.
@@ -359,7 +359,7 @@ pub fn ruby_sandbox_shared_spec_l243_d38_skips(root string) !bool {
 	context := sandbox_shared_executable_context('sandbox-tool', [os.dir(first)], os.dir(second), os.join_path(root, 'homebrew-bin/brew'), [
 		first,
 	])
-	return (homebrew.ruby_sandbox_l241_d26_self_executable(context) or { return false }) == second
+	return (homebrew.sandbox_executable(context) or { return false }) == second
 }
 
 // Ruby it `it "falls back to the original Homebrew bin directory" do` at line 256.
@@ -367,7 +367,7 @@ pub fn ruby_sandbox_shared_spec_l256_d39_falls(root string) !bool {
 	homebrew_executable := os.join_path(root, 'homebrew-bin/sandbox-tool')
 	sandbox_shared_make_executable(homebrew_executable)!
 	context := sandbox_shared_executable_context('sandbox-tool', [], os.join_path(root, 'empty'), os.join_path(root, 'homebrew-bin/brew'), [])
-	return (homebrew.ruby_sandbox_l241_d26_self_executable(context) or { return false }) == homebrew_executable
+	return (homebrew.sandbox_executable(context) or { return false }) == homebrew_executable
 }
 
 // Ruby it `it "checks absolute executable paths directly" do` at line 266.
@@ -375,7 +375,7 @@ pub fn ruby_sandbox_shared_spec_l266_d40_checks(root string) !bool {
 	executable := os.join_path(root, 'first/sandbox-tool')
 	sandbox_shared_make_executable(executable)!
 	context := sandbox_shared_executable_context(executable, [], os.join_path(root, 'empty'), os.join_path(root, 'homebrew-bin/brew'), [])
-	return (homebrew.ruby_sandbox_l241_d26_self_executable(context) or { return false }) == executable
+	return (homebrew.sandbox_executable(context) or { return false }) == executable
 }
 
 // Ruby it `it "raises when no executable candidate exists" do` at line 277.
@@ -391,7 +391,7 @@ pub fn ruby_sandbox_shared_spec_l277_d41_raises(root string) bool {
 pub fn ruby_sandbox_shared_spec_l290_d42_allows(root string) !bool {
 	os.mkdir_all(root)!
 	for character in ["'", '"', '(', ')', '\\', ' ', ';', '#', '\n'] {
-		filter := homebrew.ruby_sandbox_l665_d56_path_filter(os.join_path(root, 'foo${character}bar'), .subpath)!
+		filter := homebrew.sandbox_path_filter(os.join_path(root, 'foo${character}bar'), .subpath)!
 		if filter.type_name != .subpath {
 			return false
 		}
@@ -436,7 +436,7 @@ pub fn ruby_sandbox_shared_spec_l332_d47_denies(root string) !bool {
 	mut value := sandbox_shared_new(root)!
 	directory := os.join_path(root, 'foo')
 	os.mkdir_all(directory)!
-	homebrew.ruby_sandbox_l321_d37_deny_read_path(mut value, directory)!
+	homebrew.sandbox_deny_read_path(mut value, directory)!
 	rule := value.profile.rules.last()
 	return !rule.allow && rule.operation == 'file-read*' && rule.filter.path == os.real_path(directory) && rule.filter.type_name == .subpath
 }
@@ -474,7 +474,7 @@ pub fn ruby_sandbox_shared_spec_l350_d53_logs(root string) !string {
 // Ruby it `it "denies reads from the real home" do` at line 362.
 pub fn ruby_sandbox_shared_spec_l362_d54_denies(root string) !bool {
 	mut value := sandbox_shared_new(root)!
-	homebrew.ruby_sandbox_l326_d38_deny_read_home(mut value)!
+	homebrew.sandbox_deny_read_home(mut value)!
 	rule := value.profile.rules.last()
 	return !rule.allow && rule.operation == 'file-read*' && rule.filter.path == os.real_path(value.paths.home) && rule.filter.type_name == .subpath
 }
@@ -500,8 +500,8 @@ pub fn ruby_sandbox_shared_spec_l377_d55_skips(root string) !bool {
 			library: base.library
 			original_brew_file: base.original_brew_file
 		}
-		mut value := homebrew.ruby_sandbox_l283_d31_initialize(paths)
-		homebrew.ruby_sandbox_l326_d38_deny_read_home(mut value)!
+		mut value := homebrew.new_sandbox(paths)
+		homebrew.sandbox_deny_read_home(mut value)!
 		if value.profile.rules.len != 0 {
 			return false
 		}
@@ -525,8 +525,8 @@ pub fn ruby_sandbox_shared_spec_l395_d56_skips(root string) !bool {
 		} else {
 			''
 		}, [])
-		mut value := homebrew.ruby_sandbox_l283_d31_initialize(paths)
-		homebrew.ruby_sandbox_l326_d38_deny_read_home(mut value)!
+		mut value := homebrew.new_sandbox(paths)
+		homebrew.sandbox_deny_read_home(mut value)!
 		if value.profile.rules.len != 0 {
 			return false
 		}
@@ -542,8 +542,8 @@ pub fn ruby_sandbox_shared_spec_l406_d57_skips(root string) !bool {
 	os.mkdir_all(workspace)!
 	os.symlink(workspace, link)!
 	paths := sandbox_shared_inside_home_paths(base, base.home, base.cache, '', link, '', '', [])
-	mut value := homebrew.ruby_sandbox_l283_d31_initialize(paths)
-	homebrew.ruby_sandbox_l326_d38_deny_read_home(mut value)!
+	mut value := homebrew.new_sandbox(paths)
+	homebrew.sandbox_deny_read_home(mut value)!
 	return value.profile.rules.len == 0
 }
 
@@ -577,8 +577,8 @@ pub fn ruby_sandbox_shared_spec_l418_d58_denies(root string) !bool {
 		os.write_file(path, '')!
 	}
 	paths := sandbox_shared_inside_home_paths(base, home, cache, '', '', '', '', [])
-	mut value := homebrew.ruby_sandbox_l283_d31_initialize(paths)
-	homebrew.ruby_sandbox_l326_d38_deny_read_home(mut value)!
+	mut value := homebrew.new_sandbox(paths)
+	homebrew.sandbox_deny_read_home(mut value)!
 	denied := sandbox_shared_denied_paths(value)
 	return sensitive_dirs.all(os.real_path(it) in denied) && sensitive_files.all(os.real_path(it) in denied) && allowed_dirs.all(os.real_path(it) !in denied)
 }
@@ -592,8 +592,8 @@ pub fn ruby_sandbox_shared_spec_l485_d59_keeps(root string) !bool {
 		os.mkdir_all(path)!
 	}
 	paths := sandbox_shared_replace_paths(base, prefix, base.logs)
-	mut value := homebrew.ruby_sandbox_l283_d31_initialize(paths)
-	homebrew.ruby_sandbox_l326_d38_deny_read_home(mut value)!
+	mut value := homebrew.new_sandbox(paths)
+	homebrew.sandbox_deny_read_home(mut value)!
 	return sandbox_shared_denied_paths(value) == [os.real_path(ssh)]
 }
 
@@ -603,8 +603,8 @@ pub fn ruby_sandbox_shared_spec_l495_d60_warns(root string) !bool {
 	prefix := os.join_path(base.home, 'Documents/homebrew')
 	os.mkdir_all(prefix)!
 	paths := sandbox_shared_replace_paths(base, prefix, base.logs)
-	mut value := homebrew.ruby_sandbox_l283_d31_initialize(paths)
-	homebrew.ruby_sandbox_l326_d38_deny_read_home(mut value)!
+	mut value := homebrew.new_sandbox(paths)
+	homebrew.sandbox_deny_read_home(mut value)!
 	return value.warnings == [
 		'The sandbox cannot prevent formulae from reading:\n  ${os.real_path(os.join_path(base.home, 'Documents'))}\nbecause this required path is inside it:\n  ${os.real_path(prefix)}\nFormulae may access personal data in this directory.\n',
 	]
@@ -621,8 +621,8 @@ pub fn ruby_sandbox_shared_spec_l510_d61_does(root string) !bool {
 		os.mkdir_all(path)!
 	}
 	paths := sandbox_shared_replace_paths(base, base.prefix, logs)
-	mut value := homebrew.ruby_sandbox_l283_d31_initialize(paths)
-	homebrew.ruby_sandbox_l326_d38_deny_read_home(mut value)!
+	mut value := homebrew.new_sandbox(paths)
+	homebrew.sandbox_deny_read_home(mut value)!
 	denied := sandbox_shared_denied_paths(value)
 	return os.real_path(ssh) in denied && os.real_path(teams) !in denied && os.real_path(backslash) !in denied
 }
@@ -634,8 +634,8 @@ pub fn ruby_sandbox_shared_spec_l523_d62_does(root string) !bool {
 	os.mkdir_all(cache)!
 	os.symlink(os.path_devnull, os.join_path(base.home, '.mysql_history'))!
 	paths := sandbox_shared_inside_home_paths(base, base.home, cache, '', '', '', '', [])
-	mut value := homebrew.ruby_sandbox_l283_d31_initialize(paths)
-	homebrew.ruby_sandbox_l326_d38_deny_read_home(mut value)!
+	mut value := homebrew.new_sandbox(paths)
+	homebrew.sandbox_deny_read_home(mut value)!
 	return os.path_devnull !in sandbox_shared_denied_paths(value)
 }
 
@@ -648,8 +648,8 @@ pub fn ruby_sandbox_shared_spec_l534_d63_passes(root string) !bool {
 	os.write_file(target, '')!
 	os.symlink(target, os.join_path(base.home, '.mysql_history'))!
 	paths := sandbox_shared_inside_home_paths(base, base.home, cache, '', '', '', '', [])
-	mut value := homebrew.ruby_sandbox_l283_d31_initialize(paths)
-	homebrew.ruby_sandbox_l326_d38_deny_read_home(mut value)!
+	mut value := homebrew.new_sandbox(paths)
+	homebrew.sandbox_deny_read_home(mut value)!
 	return os.real_path(target) in sandbox_shared_denied_paths(value)
 }
 
@@ -660,8 +660,8 @@ pub fn ruby_sandbox_shared_spec_l546_d64_ignores(root string) !bool {
 	os.mkdir_all(cache)!
 	os.symlink(os.join_path(base.home, 'missing'), os.join_path(base.home, '.mysql_history'))!
 	paths := sandbox_shared_inside_home_paths(base, base.home, cache, '', '', '', '', [])
-	mut value := homebrew.ruby_sandbox_l283_d31_initialize(paths)
-	homebrew.ruby_sandbox_l326_d38_deny_read_home(mut value)!
+	mut value := homebrew.new_sandbox(paths)
+	homebrew.sandbox_deny_read_home(mut value)!
 	return true
 }
 
@@ -677,8 +677,8 @@ pub fn ruby_sandbox_shared_spec_l554_d65_keeps(root string) !bool {
 	}
 	os.write_file(trust, '')!
 	paths := sandbox_shared_inside_home_paths(base, base.home, cache, trust, '', '', '', [])
-	mut value := homebrew.ruby_sandbox_l283_d31_initialize(paths)
-	homebrew.ruby_sandbox_l326_d38_deny_read_home(mut value)!
+	mut value := homebrew.new_sandbox(paths)
+	homebrew.sandbox_deny_read_home(mut value)!
 	denied := sandbox_shared_denied_paths(value)
 	return os.real_path(ssh) in denied && os.real_path(trust) !in denied
 }
@@ -696,8 +696,8 @@ pub fn ruby_sandbox_shared_spec_l570_d66_keeps(root string) !bool {
 	}
 	os.write_file(trust, '')!
 	paths := sandbox_shared_inside_home_paths(base, base.home, cache, trust, '', '', '', [])
-	mut value := homebrew.ruby_sandbox_l283_d31_initialize(paths)
-	homebrew.ruby_sandbox_l326_d38_deny_read_home(mut value)!
+	mut value := homebrew.new_sandbox(paths)
+	homebrew.sandbox_deny_read_home(mut value)!
 	denied := sandbox_shared_denied_paths(value)
 	return os.real_path(gh) in denied && os.real_path(ssh) in denied && os.real_path(os.join_path(base.home, '.config')) !in denied && os.real_path(trust) !in denied
 }
@@ -715,8 +715,8 @@ pub fn ruby_sandbox_shared_spec_l589_d67_keeps(root string) !bool {
 		developer,
 		swiftpm,
 	])
-	mut value := homebrew.ruby_sandbox_l283_d31_initialize(paths)
-	homebrew.ruby_sandbox_l326_d38_deny_read_home(mut value)!
+	mut value := homebrew.new_sandbox(paths)
+	homebrew.sandbox_deny_read_home(mut value)!
 	denied := sandbox_shared_denied_paths(value)
 	return os.real_path(developer) !in denied && os.real_path(swiftpm) !in denied && os.real_path(ssh) in denied
 }

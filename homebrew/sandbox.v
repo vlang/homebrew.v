@@ -255,7 +255,7 @@ pub fn ruby_sandbox_l46_d7_modifier(rule SandboxRule) ?string {
 }
 
 // Ruby method `initialize(allow:, operation:, filter:, modifier:)` at line 52.
-pub fn ruby_sandbox_l52_d8_initialize(allow bool, operation string, filter ?SandboxPathFilter, modifier string) SandboxRule {
+pub fn new_sandbox_rule(allow bool, operation string, filter ?SandboxPathFilter, modifier string) SandboxRule {
 	return SandboxRule{ allow: allow, operation: operation, filter: filter or { SandboxPathFilter{} }, has_filter: filter != none, modifier: modifier }
 }
 
@@ -265,12 +265,12 @@ pub fn ruby_sandbox_l64_d9_rules(profile SandboxProfile) []SandboxRule {
 }
 
 // Ruby method `initialize` at line 67.
-pub fn ruby_sandbox_l67_d10_initialize() SandboxProfile {
+pub fn new_sandbox_profile() SandboxProfile {
 	return SandboxProfile{}
 }
 
 // Ruby method `add_rule(rule)` at line 72.
-pub fn ruby_sandbox_l72_d11_add_rule(mut profile SandboxProfile, rule SandboxRule) {
+pub fn sandbox_profile_add_rule(mut profile SandboxProfile, rule SandboxRule) {
 	profile.rules << rule
 }
 
@@ -304,19 +304,23 @@ pub fn ruby_sandbox_l98_d15_self_avoid_nested_sandboxing(context SandboxAvoidCon
 }
 
 // Ruby method `self.use_for?(step, warn_without_sandbox: true)` at line 124.
-pub fn ruby_sandbox_l124_d16_self_use_for(step string, warn bool, context SandboxUseContext) SandboxUseDecision {
+pub fn sandbox_use_for(step string, warn bool, context SandboxUseContext) SandboxUseDecision {
 	if !context.available {
 		return SandboxUseDecision{
 			warning: if warn {
-				'Sandbox unavailable: ${step} without sandboxing!'} else {
-				''}
+				'Sandbox unavailable: ${step} without sandboxing!'
+			} else {
+				''
+			}
 		}
 	}
 	if context.avoid_nested {
 		return SandboxUseDecision{
 			warning: if warn {
-				"${step.capitalize()} without Homebrew's sandbox; relying on the outer sandbox."} else {
-				''}
+				"${step.capitalize()} without Homebrew's sandbox; relying on the outer sandbox."
+			} else {
+				''
+			}
 		}
 	}
 	return SandboxUseDecision{ use: true }
@@ -324,7 +328,7 @@ pub fn ruby_sandbox_l124_d16_self_use_for(step string, warn bool, context Sandbo
 
 // Ruby method `self.run_or_fork(*args, step:, warn_without_sandbox: true, &_block)` at line 146.
 pub fn ruby_sandbox_l146_d17_self_run_or_fork(command []string, step string, warn bool, context SandboxUseContext) SandboxRunOrForkResult {
-	decision := ruby_sandbox_l124_d16_self_use_for(step, warn, context)
+	decision := sandbox_use_for(step, warn, context)
 	return SandboxRunOrForkResult{ sandboxed: decision.use, forked: !decision.use, command: command.clone(), warning: decision.warning }
 }
 
@@ -380,7 +384,7 @@ fn sandbox_remove_path(path string) ! {
 }
 
 // Ruby method `self.ensure_sandbox_available!` at line 187.
-pub fn ruby_sandbox_l187_d19_self_ensure_sandbox_available(available bool, reason string) ! {
+pub fn sandbox_ensure_sandbox_available(available bool, reason string) ! {
 	if !available {
 		message := if reason != '' { reason } else { 'The sandbox is not available.' }
 		return error(message)
@@ -404,17 +408,17 @@ pub fn ruby_sandbox_l206_d22_self_reset_state() SandboxHookAction {
 
 // Ruby method `self.run_command(*command, writable_path:, deny_network: false)` at line 209.
 pub fn ruby_sandbox_l209_d23_self_run_command(command []string, writable_path string, deny_network bool, available bool, reason string, paths SandboxPaths) !SandboxCommandPlan {
-	ruby_sandbox_l187_d19_self_ensure_sandbox_available(available, reason)!
+	sandbox_ensure_sandbox_available(available, reason)!
 	expanded := os.abs_path(writable_path)
 	if !os.is_dir(expanded) || !os.is_writable(expanded) {
 		return error('Invalid usage: `${expanded}` is not a writable directory.')
 	}
 	real := os.real_path(expanded)
-	mut sandbox := ruby_sandbox_l283_d31_initialize(paths)
-	ruby_sandbox_l491_d45_allow_write_temp_and_cache(mut sandbox)!
-	ruby_sandbox_l473_d42_allow_write_path(mut sandbox, real)!
-	ruby_sandbox_l326_d38_deny_read_home(mut sandbox)!
-	if deny_network { ruby_sandbox_l547_d54_deny_all_network(mut sandbox) }
+	mut sandbox := new_sandbox(paths)
+	sandbox_allow_write_temp_and_cache(mut sandbox)!
+	sandbox_allow_write_path(mut sandbox, real)!
+	sandbox_deny_read_home(mut sandbox)!
+	if deny_network { sandbox_deny_all_network(mut sandbox) }
 	mut sandbox_command := [
 		'/bin/sh',
 		'-c',
@@ -432,7 +436,7 @@ pub fn ruby_sandbox_l228_d24_self_executable_name() !string {
 }
 
 // Ruby method `self.executable_candidate_paths` at line 233.
-pub fn ruby_sandbox_l233_d25_self_executable_candidate_paths(context SandboxExecutableContext) []string {
+pub fn sandbox_executable_candidate_paths(context SandboxExecutableContext) []string {
 	if os.is_abs_path(context.executable_name) {
 		return [os.dir(context.executable_name)]
 	}
@@ -447,14 +451,14 @@ pub fn ruby_sandbox_l233_d25_self_executable_candidate_paths(context SandboxExec
 }
 
 // Ruby method `self.executable` at line 241.
-pub fn ruby_sandbox_l241_d26_self_executable(context SandboxExecutableContext) ?string {
-	for path in ruby_sandbox_l233_d25_self_executable_candidate_paths(context) {
+pub fn sandbox_executable(context SandboxExecutableContext) ?string {
+	for path in sandbox_executable_candidate_paths(context) {
 		candidate := if os.is_abs_path(context.executable_name) {
 			os.abs_path(context.executable_name)
 		} else {
 			os.abs_path(os.join_path(path, context.executable_name))
 		}
-		if os.is_file(candidate) && os.is_executable(candidate) && ruby_sandbox_l264_d28_self_executable_usable(candidate, context.unsuitable) {
+		if os.is_file(candidate) && os.is_executable(candidate) && sandbox_executable_usable(candidate, context.unsuitable) {
 			return candidate
 		}
 	}
@@ -463,11 +467,11 @@ pub fn ruby_sandbox_l241_d26_self_executable(context SandboxExecutableContext) ?
 
 // Ruby method `self.executable!` at line 259.
 pub fn ruby_sandbox_l259_d27_self_executable(context SandboxExecutableContext) !string {
-	return ruby_sandbox_l241_d26_self_executable(context) or { error('${context.executable_name} is required to use the sandbox.') }
+	return sandbox_executable(context) or { error('${context.executable_name} is required to use the sandbox.') }
 }
 
 // Ruby method `self.executable_usable?(_candidate)` at line 264.
-pub fn ruby_sandbox_l264_d28_self_executable_usable(candidate string, unsuitable []string) bool {
+pub fn sandbox_executable_usable(candidate string, unsuitable []string) bool {
 	return candidate !in unsuitable
 }
 
@@ -482,8 +486,8 @@ pub fn ruby_sandbox_l277_d30_self_tty_state(captured string) ?string {
 }
 
 // Ruby method `initialize` at line 283.
-pub fn ruby_sandbox_l283_d31_initialize(paths SandboxPaths) Sandbox {
-	return Sandbox{ profile: ruby_sandbox_l67_d10_initialize(), paths: paths }
+pub fn new_sandbox(paths SandboxPaths) Sandbox {
+	return Sandbox{ profile: new_sandbox_profile(), paths: paths }
 }
 
 // Ruby method `record_log(file)` at line 291.
@@ -492,18 +496,18 @@ pub fn ruby_sandbox_l291_d32_record_log(mut sandbox Sandbox, file string) {
 }
 
 // Ruby method `add_rule(allow:, operation:, filter: nil, modifier: nil)` at line 299.
-pub fn ruby_sandbox_l299_d33_add_rule(mut sandbox Sandbox, allow bool, operation string, filter ?SandboxPathFilter, modifier string) {
-	ruby_sandbox_l72_d11_add_rule(mut sandbox.profile, ruby_sandbox_l52_d8_initialize(allow, operation, filter, modifier))
+pub fn sandbox_add_rule(mut sandbox Sandbox, allow bool, operation string, filter ?SandboxPathFilter, modifier string) {
+	sandbox_profile_add_rule(mut sandbox.profile, new_sandbox_rule(allow, operation, filter, modifier))
 }
 
 // Ruby method `allow_read(path:, type: :literal)` at line 305.
-pub fn ruby_sandbox_l305_d34_allow_read(mut sandbox Sandbox, path string, type_name SandboxFilterType) ! {
-	ruby_sandbox_l299_d33_add_rule(mut sandbox, true, 'file-read*', ruby_sandbox_l665_d56_path_filter(path, type_name)!, '')
+pub fn sandbox_allow_read(mut sandbox Sandbox, path string, type_name SandboxFilterType) ! {
+	sandbox_add_rule(mut sandbox, true, 'file-read*', sandbox_path_filter(path, type_name)!, '')
 }
 
 // Ruby method `allow_process_exec(path, no_sandbox: false)` at line 310.
 pub fn ruby_sandbox_l310_d35_allow_process_exec(mut sandbox Sandbox, path string, no_sandbox bool) ! {
-	ruby_sandbox_l299_d33_add_rule(mut sandbox, true, 'process-exec', ruby_sandbox_l665_d56_path_filter(path, .literal)!, if no_sandbox {
+	sandbox_add_rule(mut sandbox, true, 'process-exec', sandbox_path_filter(path, .literal)!, if no_sandbox {
 		'no-sandbox'
 	} else {
 		''
@@ -511,17 +515,17 @@ pub fn ruby_sandbox_l310_d35_allow_process_exec(mut sandbox Sandbox, path string
 }
 
 // Ruby method `deny_read(path:, type: :literal)` at line 316.
-pub fn ruby_sandbox_l316_d36_deny_read(mut sandbox Sandbox, path string, type_name SandboxFilterType) ! {
-	ruby_sandbox_l299_d33_add_rule(mut sandbox, false, 'file-read*', ruby_sandbox_l665_d56_path_filter(path, type_name)!, '')
+pub fn sandbox_deny_read(mut sandbox Sandbox, path string, type_name SandboxFilterType) ! {
+	sandbox_add_rule(mut sandbox, false, 'file-read*', sandbox_path_filter(path, type_name)!, '')
 }
 
 // Ruby method `deny_read_path(path)` at line 321.
-pub fn ruby_sandbox_l321_d37_deny_read_path(mut sandbox Sandbox, path string) ! {
-	ruby_sandbox_l316_d36_deny_read(mut sandbox, path, .subpath)!
+pub fn sandbox_deny_read_path(mut sandbox Sandbox, path string) ! {
+	sandbox_deny_read(mut sandbox, path, .subpath)!
 }
 
 // Ruby method `deny_read_home` at line 326.
-pub fn ruby_sandbox_l326_d38_deny_read_home(mut sandbox Sandbox) ! {
+pub fn sandbox_deny_read_home(mut sandbox Sandbox) ! {
 	home := os.real_path(sandbox.paths.home)
 	mut required := [sandbox.paths.prefix, sandbox.paths.repository, sandbox.paths.cache,
 		sandbox.paths.logs, sandbox.paths.temp, sandbox.paths.github_workspace,
@@ -562,78 +566,78 @@ pub fn ruby_sandbox_l326_d38_deny_read_home(mut sandbox Sandbox) ! {
 				sandbox.warnings << 'The sandbox cannot prevent formulae from reading:\n  ${real}\nbecause this required path is inside it:\n  ${required_inside}\nFormulae may access personal data in this directory.\n'
 				continue
 			}
-			ruby_sandbox_l321_d37_deny_read_path(mut sandbox, real)!
+			sandbox_deny_read_path(mut sandbox, real)!
 		}
 		return
 	}
-	ruby_sandbox_l321_d37_deny_read_path(mut sandbox, home)!
+	sandbox_deny_read_path(mut sandbox, home)!
 }
 
 // Ruby method `allow_read_if_exists(path:, type: :literal)` at line 453.
 pub fn ruby_sandbox_l453_d39_allow_read_if_exists(mut sandbox Sandbox, path ?string, type_name SandboxFilterType) ! {
 	actual := path or { return }
-	if os.exists(actual) { ruby_sandbox_l305_d34_allow_read(mut sandbox, actual, type_name)! }
+	if os.exists(actual) { sandbox_allow_read(mut sandbox, actual, type_name)! }
 }
 
 // Ruby method `allow_write(path:, type: :literal)` at line 461.
-pub fn ruby_sandbox_l461_d40_allow_write(mut sandbox Sandbox, path string, type_name SandboxFilterType) ! {
-	filter := ruby_sandbox_l665_d56_path_filter(path, type_name)!
+pub fn sandbox_allow_write(mut sandbox Sandbox, path string, type_name SandboxFilterType) ! {
+	filter := sandbox_path_filter(path, type_name)!
 	for operation in ['file-write*', 'file-write-setugid', 'file-write-mode'] {
-		ruby_sandbox_l299_d33_add_rule(mut sandbox, true, operation, filter, '')
+		sandbox_add_rule(mut sandbox, true, operation, filter, '')
 	}
 }
 
 // Ruby method `deny_write(path:, type: :literal)` at line 468.
-pub fn ruby_sandbox_l468_d41_deny_write(mut sandbox Sandbox, path string, type_name SandboxFilterType) ! {
-	ruby_sandbox_l299_d33_add_rule(mut sandbox, false, 'file-write*', ruby_sandbox_l665_d56_path_filter(path, type_name)!, '')
+pub fn sandbox_deny_write(mut sandbox Sandbox, path string, type_name SandboxFilterType) ! {
+	sandbox_add_rule(mut sandbox, false, 'file-write*', sandbox_path_filter(path, type_name)!, '')
 }
 
 // Ruby method `allow_write_path(path)` at line 473.
-pub fn ruby_sandbox_l473_d42_allow_write_path(mut sandbox Sandbox, path string) ! {
-	ruby_sandbox_l461_d40_allow_write(mut sandbox, path, .subpath)!
+pub fn sandbox_allow_write_path(mut sandbox Sandbox, path string) ! {
+	sandbox_allow_write(mut sandbox, path, .subpath)!
 }
 
 // Ruby method `allow_write_path_if_exists(path)` at line 478.
 pub fn ruby_sandbox_l478_d43_allow_write_path_if_exists(mut sandbox Sandbox, path ?string) ! {
 	actual := path or { return }
-	if os.exists(actual) { ruby_sandbox_l473_d42_allow_write_path(mut sandbox, actual)! }
+	if os.exists(actual) { sandbox_allow_write_path(mut sandbox, actual)! }
 }
 
 // Ruby method `deny_write_path(path)` at line 486.
-pub fn ruby_sandbox_l486_d44_deny_write_path(mut sandbox Sandbox, path string) ! {
-	ruby_sandbox_l468_d41_deny_write(mut sandbox, path, .subpath)!
+pub fn sandbox_deny_write_path(mut sandbox Sandbox, path string) ! {
+	sandbox_deny_write(mut sandbox, path, .subpath)!
 }
 
 // Ruby method `allow_write_temp_and_cache` at line 491.
-pub fn ruby_sandbox_l491_d45_allow_write_temp_and_cache(mut sandbox Sandbox) ! {
-	ruby_sandbox_l473_d42_allow_write_path(mut sandbox, sandbox.paths.temp)!
-	ruby_sandbox_l473_d42_allow_write_path(mut sandbox, sandbox.paths.cache)!
+pub fn sandbox_allow_write_temp_and_cache(mut sandbox Sandbox) ! {
+	sandbox_allow_write_path(mut sandbox, sandbox.paths.temp)!
+	sandbox_allow_write_path(mut sandbox, sandbox.paths.cache)!
 }
 
 // Ruby method `add_install_hook_rules(network_access_allowed:)` at line 497.
 pub fn ruby_sandbox_l497_d46_add_install_hook_rules(mut sandbox Sandbox, network_access_allowed bool) ! {
-	ruby_sandbox_l491_d45_allow_write_temp_and_cache(mut sandbox)!
-	ruby_sandbox_l531_d52_deny_write_homebrew_repository(mut sandbox)!
-	ruby_sandbox_l326_d38_deny_read_home(mut sandbox)!
-	if !network_access_allowed { ruby_sandbox_l547_d54_deny_all_network(mut sandbox) }
+	sandbox_allow_write_temp_and_cache(mut sandbox)!
+	sandbox_deny_write_homebrew_repository(mut sandbox)!
+	sandbox_deny_read_home(mut sandbox)!
+	if !network_access_allowed { sandbox_deny_all_network(mut sandbox) }
 }
 
 // Ruby method `allow_cvs` at line 505.
 pub fn ruby_sandbox_l505_d47_allow_cvs(mut sandbox Sandbox) ! {
-	ruby_sandbox_l473_d42_allow_write_path(mut sandbox, os.join_path(sandbox.paths.home, '.cvspass'))!
+	sandbox_allow_write_path(mut sandbox, os.join_path(sandbox.paths.home, '.cvspass'))!
 }
 
 // Ruby method `allow_fossil` at line 510.
 pub fn ruby_sandbox_l510_d48_allow_fossil(mut sandbox Sandbox) ! {
 	for name in ['.fossil', '.fossil-journal'] {
-		ruby_sandbox_l473_d42_allow_write_path(mut sandbox, os.join_path(sandbox.paths.home, name))!
+		sandbox_allow_write_path(mut sandbox, os.join_path(sandbox.paths.home, name))!
 	}
 }
 
 // Ruby method `allow_write_cellar(formula)` at line 516.
 pub fn ruby_sandbox_l516_d49_allow_write_cellar(mut sandbox Sandbox, formula SandboxFormulaPaths) ! {
 	for path in [formula.rack, formula.etc, formula.var] {
-		ruby_sandbox_l473_d42_allow_write_path(mut sandbox, path)!
+		sandbox_allow_write_path(mut sandbox, path)!
 	}
 }
 
@@ -644,36 +648,36 @@ pub fn ruby_sandbox_l523_d50_allow_write_xcode() SandboxHookAction {
 
 // Ruby method `allow_write_log(formula)` at line 526.
 pub fn ruby_sandbox_l526_d51_allow_write_log(mut sandbox Sandbox, formula SandboxFormulaPaths) ! {
-	ruby_sandbox_l473_d42_allow_write_path(mut sandbox, formula.logs)!
+	sandbox_allow_write_path(mut sandbox, formula.logs)!
 }
 
 // Ruby method `deny_write_homebrew_repository` at line 531.
-pub fn ruby_sandbox_l531_d52_deny_write_homebrew_repository(mut sandbox Sandbox) ! {
-	ruby_sandbox_l468_d41_deny_write(mut sandbox, sandbox.paths.original_brew_file, .literal)!
+pub fn sandbox_deny_write_homebrew_repository(mut sandbox Sandbox) ! {
+	sandbox_deny_write(mut sandbox, sandbox.paths.original_brew_file, .literal)!
 	if os.norm_path(sandbox.paths.prefix) == os.norm_path(sandbox.paths.repository) {
-		ruby_sandbox_l486_d44_deny_write_path(mut sandbox, sandbox.paths.library)!
-		ruby_sandbox_l486_d44_deny_write_path(mut sandbox, os.join_path(sandbox.paths.repository, '.git'))!
+		sandbox_deny_write_path(mut sandbox, sandbox.paths.library)!
+		sandbox_deny_write_path(mut sandbox, os.join_path(sandbox.paths.repository, '.git'))!
 	} else {
-		ruby_sandbox_l486_d44_deny_write_path(mut sandbox, sandbox.paths.repository)!
+		sandbox_deny_write_path(mut sandbox, sandbox.paths.repository)!
 	}
 }
 
 // Ruby method `allow_network(path:, type: :literal)` at line 542.
-pub fn ruby_sandbox_l542_d53_allow_network(mut sandbox Sandbox, path string, type_name SandboxFilterType) ! {
-	ruby_sandbox_l299_d33_add_rule(mut sandbox, true, 'network*', ruby_sandbox_l665_d56_path_filter(path, type_name)!, '')
+pub fn sandbox_allow_network(mut sandbox Sandbox, path string, type_name SandboxFilterType) ! {
+	sandbox_add_rule(mut sandbox, true, 'network*', sandbox_path_filter(path, type_name)!, '')
 }
 
 // Ruby method `deny_all_network` at line 547.
-pub fn ruby_sandbox_l547_d54_deny_all_network(mut sandbox Sandbox) {
-	ruby_sandbox_l299_d33_add_rule(mut sandbox, false, 'network*', none, '')
+pub fn sandbox_deny_all_network(mut sandbox Sandbox) {
+	sandbox_add_rule(mut sandbox, false, 'network*', none, '')
 }
 
 // Ruby method `run(*args)` at line 552.
-pub fn ruby_sandbox_l552_d55_run(mut sandbox Sandbox, args []string, context SandboxRunContext) !SandboxRunResult {
+pub fn sandbox_run(mut sandbox Sandbox, args []string, context SandboxRunContext) !SandboxRunResult {
 	tmpdir := context.tmpdir
 	os.mkdir_all(tmpdir)!
 	if context.allow_network_for_error_pipe {
-		ruby_sandbox_l542_d53_allow_network(mut sandbox, os.join_path(tmpdir, 'socket'), .literal)!
+		sandbox_allow_network(mut sandbox, os.join_path(tmpdir, 'socket'), .literal)!
 	}
 	sandbox.start = time.now().unix()
 	command := if context.sandbox_command.len > 0 {
@@ -705,7 +709,7 @@ pub fn ruby_sandbox_l552_d55_run(mut sandbox Sandbox, args []string, context San
 }
 
 // Ruby method `path_filter(path, type)` at line 665.
-pub fn ruby_sandbox_l665_d56_path_filter(path string, type_name SandboxFilterType) !SandboxPathFilter {
+pub fn sandbox_path_filter(path string, type_name SandboxFilterType) !SandboxPathFilter {
 	filter_path := match type_name {
 		.regex { path }
 		.subpath, .literal { sandbox_expand_realpath(path)! }

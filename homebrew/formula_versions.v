@@ -120,7 +120,7 @@ fn formula_versions_native_git_runner(request FormulaVersionsGitRequest) !string
 }
 
 fn formula_versions_default_loader(request FormulaVersionsLoadRequest) !Formula {
-	return ruby_formulary_l1119_d71_self_from_contents(request.name, request.path, request.contents, '', '', none, false, []string{}, true, FormularyLoadContext{})
+	return formulary_from_contents(request.name, request.path, request.contents, '', '', none, false, []string{}, true, FormularyLoadContext{})
 }
 
 pub fn formula_versions_rev_list_with_runner(versions &FormulaVersions, branch string,

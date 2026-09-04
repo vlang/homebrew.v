@@ -71,7 +71,7 @@ pub fn ruby_cli_spec_l14_d2_service_string() string {
 
 // Ruby it `it "outputs command name" do` at line 17.
 pub fn ruby_cli_spec_l17_d3_outputs() bool {
-	return services_cli.ruby_cli_l26_d3_self_bin() == 'brew services'
+	return services_cli.cli_bin() == 'brew services'
 }
 
 // Ruby it `it "macOS - returns the currently running services" do` at line 23.
@@ -80,8 +80,8 @@ pub fn ruby_cli_spec_l23_d4_macos() bool {
 		manager: .launchctl
 		running_output: '77513   50  homebrew.mxcl.php\n495     0   homebrew.mxcl.node_exporter\n1234    34  homebrew.mxcl.postgresql@14\n'
 	}
-	return services_cli.ruby_cli_l32_d4_self_running(system) == ['homebrew.mxcl.php',
-		'homebrew.mxcl.node_exporter', 'homebrew.mxcl.postgresql@14']
+	return services_cli.cli_running(system) == ['homebrew.mxcl.php', 'homebrew.mxcl.node_exporter',
+		'homebrew.mxcl.postgresql@14']
 }
 
 // Ruby it `it "systemD - returns the currently running services" do` at line 37.
@@ -90,12 +90,12 @@ pub fn ruby_cli_spec_l37_d5_systemd() bool {
 		manager: .systemctl
 		running_output: 'homebrew.php.service     loaded active running Homebrew PHP service\nsystemd-udevd.service    loaded active running Rule-based Manager for Device Events and Files\nudisks2.service          loaded active running Disk Manager\nuser@1000.service        loaded active running User Manager for UID 1000\n'
 	}
-	return services_cli.ruby_cli_l32_d4_self_running(system) == ['homebrew.php']
+	return services_cli.cli_running(system) == ['homebrew.php']
 }
 
 // Ruby it `it "checks the input does not exist" do` at line 50.
 pub fn ruby_cli_spec_l50_d6_checks() bool {
-	services_cli.ruby_cli_l48_d5_self_check([]services_cli.CliService{}) or {
+	services_cli.cli_check([]services_cli.CliService{}) or {
 		return err.msg() == 'Invalid usage: Formula(e) missing, please provide a formula name or use `--all`.'
 	}
 	return false
@@ -103,7 +103,7 @@ pub fn ruby_cli_spec_l50_d6_checks() bool {
 
 // Ruby it `it "checks the input exists" do` at line 57.
 pub fn ruby_cli_spec_l57_d7_checks() bool {
-	return services_cli.ruby_cli_l48_d5_self_check([
+	return services_cli.cli_check([
 		services_cli.CliService{ name: 'name' },
 	]) or {
 		false
@@ -314,14 +314,14 @@ pub fn ruby_cli_spec_l232_d24_stops() !bool {
 pub fn ruby_cli_spec_l267_d25_checks() bool {
 	mut state := services_cli.CliState{}
 	mut targets := []services_cli.CliService{}
-	return services_cli.ruby_cli_l258_d11_self_kill(mut state, cli_spec_system(.systemctl, false), mut targets, false).commands.len == 0
+	return services_cli.cli_kill(mut state, cli_spec_system(.systemctl, false), mut targets, false).commands.len == 0
 }
 
 // Ruby it `it "prints a message if service is not running" do` at line 272.
 pub fn ruby_cli_spec_l272_d26_prints() bool {
 	mut state := services_cli.CliState{}
 	mut targets := [services_cli.CliService{ name: 'example_service' }]
-	result := services_cli.ruby_cli_l258_d11_self_kill(mut state, cli_spec_system(.systemctl, false), mut targets, false)
+	result := services_cli.cli_kill(mut state, cli_spec_system(.systemctl, false), mut targets, false)
 	return result.stdout == ['Service `example_service` is not started.']
 }
 
@@ -333,7 +333,7 @@ pub fn ruby_cli_spec_l280_d27_prints() bool {
 		pid_values: [true]
 		keep_alive: true
 	}]
-	result := services_cli.ruby_cli_l258_d11_self_kill(mut state, cli_spec_system(.systemctl, false), mut targets, false)
+	result := services_cli.cli_kill(mut state, cli_spec_system(.systemctl, false), mut targets, false)
 	return result.stdout == [
 		"Service `example_service` is set to automatically restart and can't be killed.",
 	]
@@ -341,19 +341,19 @@ pub fn ruby_cli_spec_l280_d27_prints() bool {
 
 // Ruby it `it "returns false when given non-root user" do` at line 290.
 pub fn ruby_cli_spec_l290_d28_returns() bool {
-	return !services_cli.ruby_cli_l288_d12_self_take_root_ownership(services_cli.CliState{}, cli_spec_system(.launchctl, false), services_cli.CliService{}).ownership_taken
+	return !services_cli.cli_take_root_ownership(services_cli.CliState{}, cli_spec_system(.launchctl, false), services_cli.CliService{}).ownership_taken
 }
 
 // Ruby it `it "returns false when given `--sudo-service-user`" do` at line 296.
 pub fn ruby_cli_spec_l296_d29_returns() bool {
-	return !services_cli.ruby_cli_l288_d12_self_take_root_ownership(services_cli.CliState{
+	return !services_cli.cli_take_root_ownership(services_cli.CliState{
 		sudo_service_user: '_serviced'
 	}, cli_spec_system(.launchctl, true), services_cli.CliService{}).ownership_taken
 }
 
 // Ruby it `it "checks service is installed" do` at line 305.
 pub fn ruby_cli_spec_l305_d30_checks() bool {
-	services_cli.ruby_cli_l407_d16_self_install_service_file(services_cli.CliState{}, cli_spec_system(.launchctl, false), services_cli.CliService{ name: 'name' }, services_cli.CliFileArgument{}) or {
+	services_cli.cli_install_service_file(services_cli.CliState{}, cli_spec_system(.launchctl, false), services_cli.CliService{ name: 'name' }, services_cli.CliFileArgument{}) or {
 		return err.msg() == 'Invalid usage: Formula `name` is not installed.'
 	}
 	return false
@@ -361,7 +361,7 @@ pub fn ruby_cli_spec_l305_d30_checks() bool {
 
 // Ruby it `it "checks service file exists" do` at line 312.
 pub fn ruby_cli_spec_l312_d31_checks() bool {
-	services_cli.ruby_cli_l407_d16_self_install_service_file(services_cli.CliState{}, cli_spec_system(.launchctl, false), services_cli.CliService{
+	services_cli.cli_install_service_file(services_cli.CliState{}, cli_spec_system(.launchctl, false), services_cli.CliService{
 		name: 'name'
 		installed: true
 		service_file: '/does/not/exist'
@@ -378,7 +378,7 @@ pub fn ruby_cli_spec_l327_d32_installs() !bool {
 	mut service := cli_spec_service(directory)!
 	service.timed = true
 	os.write_file(service.timer_file, 'timer')!
-	result := services_cli.ruby_cli_l407_d16_self_install_service_file(services_cli.CliState{}, cli_spec_system(.systemctl, false), service, services_cli.CliFileArgument{})!
+	result := services_cli.cli_install_service_file(services_cli.CliState{}, cli_spec_system(.systemctl, false), service, services_cli.CliFileArgument{})!
 	return os.read_file(service.timer_dest)! == 'timer' && cli_spec_command_args(result).contains('--user daemon-reload')
 }
 
@@ -415,7 +415,7 @@ pub fn ruby_cli_spec_l374_d35_service() !services_cli.CliService {
 pub fn ruby_cli_spec_l395_d36_prints() !bool {
 	service := ruby_cli_spec_l374_d35_service()!
 	defer { os.rmdir_all(os.dir(os.dir(service.service_file))) or {} }
-	result := services_cli.ruby_cli_l407_d16_self_install_service_file(services_cli.CliState{
+	result := services_cli.cli_install_service_file(services_cli.CliState{
 		sudo_service_user: '_serviced'
 	}, cli_spec_system(.launchctl, false), service, services_cli.CliFileArgument{})!
 	return result.stdout == ['==> Setting username in homebrew.test to: _serviced']
@@ -425,7 +425,7 @@ pub fn ruby_cli_spec_l395_d36_prints() !bool {
 pub fn ruby_cli_spec_l401_d37_sets() !bool {
 	service := ruby_cli_spec_l374_d35_service()!
 	defer { os.rmdir_all(os.dir(os.dir(service.service_file))) or {} }
-	services_cli.ruby_cli_l407_d16_self_install_service_file(services_cli.CliState{
+	services_cli.cli_install_service_file(services_cli.CliState{
 		sudo_service_user: '_serviced'
 	}, cli_spec_system(.launchctl, false), service, services_cli.CliFileArgument{})!
 	contents := os.read_file(service.dest)!
@@ -444,19 +444,19 @@ pub fn ruby_cli_spec_l410_d39_log() !string {
 
 // Ruby it `it "checks non-enabling run" do` at line 421.
 pub fn ruby_cli_spec_l421_d40_checks() bool {
-	result := services_cli.ruby_cli_l367_d14_self_systemd_load(cli_spec_system(.systemctl, false), services_cli.CliService{ service_name: 'name' }, false)
+	result := services_cli.cli_systemd_load(cli_spec_system(.systemctl, false), services_cli.CliService{ service_name: 'name' }, false)
 	return cli_spec_command_args(result) == ['--user start name']
 }
 
 // Ruby it `it "checks enabling run" do` at line 432.
 pub fn ruby_cli_spec_l432_d41_checks() bool {
-	result := services_cli.ruby_cli_l367_d14_self_systemd_load(cli_spec_system(.systemctl, false), services_cli.CliService{ service_name: 'name' }, true)
+	result := services_cli.cli_systemd_load(cli_spec_system(.systemctl, false), services_cli.CliService{ service_name: 'name' }, true)
 	return cli_spec_command_args(result) == ['--user start name', '--user enable name']
 }
 
 // Ruby it `it "checks enabling timed run" do` at line 446.
 pub fn ruby_cli_spec_l446_d42_checks() bool {
-	result := services_cli.ruby_cli_l367_d14_self_systemd_load(cli_spec_system(.systemctl, false), services_cli.CliService{
+	result := services_cli.cli_systemd_load(cli_spec_system(.systemctl, false), services_cli.CliService{
 		service_name: 'name'
 		timed: true
 		timer_file: 'name.timer'
@@ -477,13 +477,13 @@ pub fn ruby_cli_spec_l469_d44_log() !string {
 
 // Ruby it `it "checks non-enabling run" do` at line 480.
 pub fn ruby_cli_spec_l480_d45_checks() bool {
-	result := services_cli.ruby_cli_l361_d13_self_launchctl_load(cli_spec_system(.launchctl, false), services_cli.CliService{}, 'a', false)
+	result := services_cli.cli_launchctl_load(cli_spec_system(.launchctl, false), services_cli.CliService{}, 'a', false)
 	return cli_spec_command_args(result) == ['bootstrap gui/501 a']
 }
 
 // Ruby it `it "checks enabling run" do` at line 488.
 pub fn ruby_cli_spec_l488_d46_checks() bool {
-	result := services_cli.ruby_cli_l361_d13_self_launchctl_load(cli_spec_system(.launchctl, false), services_cli.CliService{ service_name: 'name' }, 'a', true)
+	result := services_cli.cli_launchctl_load(cli_spec_system(.launchctl, false), services_cli.CliService{ service_name: 'name' }, 'a', true)
 	return cli_spec_command_args(result) == ['enable gui/501/name', 'bootstrap gui/501 a']
 }
 
@@ -491,7 +491,7 @@ pub fn ruby_cli_spec_l488_d46_checks() bool {
 pub fn ruby_cli_spec_l503_d47_checks() !bool {
 	mut state := services_cli.CliState{}
 	mut service := services_cli.CliService{ name: 'name', service_name: 'service.name' }
-	result := services_cli.ruby_cli_l378_d15_self_service_load(mut state, cli_spec_system(.unavailable, true), mut service, services_cli.CliFileArgument{}, false)!
+	result := services_cli.cli_service_load(mut state, cli_spec_system(.unavailable, true), mut service, services_cli.CliFileArgument{}, false)!
 	return result.stdout == ['==> Successfully ran `name` (label: service.name)']
 }
 
@@ -503,7 +503,7 @@ pub fn ruby_cli_spec_l522_d48_checks() !bool {
 		service_name: 'service.name'
 		service_startup: true
 	}
-	result := services_cli.ruby_cli_l378_d15_self_service_load(mut state, cli_spec_system(.unavailable, false), mut service, services_cli.CliFileArgument{}, false)!
+	result := services_cli.cli_service_load(mut state, cli_spec_system(.unavailable, false), mut service, services_cli.CliFileArgument{}, false)!
 	return result.stdout == ['==> Successfully ran `name` (label: service.name)']
 }
 
@@ -511,7 +511,7 @@ pub fn ruby_cli_spec_l522_d48_checks() !bool {
 pub fn ruby_cli_spec_l540_d49_warns() !bool {
 	mut state := services_cli.CliState{}
 	mut service := services_cli.CliService{ name: 'name', service_name: 'service.name' }
-	result := services_cli.ruby_cli_l378_d15_self_service_load(mut state, cli_spec_system(.unavailable, true), mut service, services_cli.CliFileArgument{}, true)!
+	result := services_cli.cli_service_load(mut state, cli_spec_system(.unavailable, true), mut service, services_cli.CliFileArgument{}, true)!
 	return result.warnings.contains('Warning: `name` must be run as non-root to start at user login!')
 }
 
@@ -519,7 +519,7 @@ pub fn ruby_cli_spec_l540_d49_warns() !bool {
 pub fn ruby_cli_spec_l558_d50_does() !bool {
 	mut state := services_cli.CliState{ sudo_service_user: '_serviced' }
 	mut service := services_cli.CliService{ name: 'name', service_name: 'service.name' }
-	result := services_cli.ruby_cli_l378_d15_self_service_load(mut state, cli_spec_system(.unavailable, true), mut service, services_cli.CliFileArgument{}, true)!
+	result := services_cli.cli_service_load(mut state, cli_spec_system(.unavailable, true), mut service, services_cli.CliFileArgument{}, true)!
 	return !result.warnings.any(it.contains('must be run as non-root'))
 }
 
@@ -527,7 +527,7 @@ pub fn ruby_cli_spec_l558_d50_does() !bool {
 pub fn ruby_cli_spec_l578_d51_errors() bool {
 	mut state := services_cli.CliState{ sudo_service_user: 'not_a_real_user' }
 	mut service := services_cli.CliService{ name: 'name', service_name: 'service.name' }
-	services_cli.ruby_cli_l378_d15_self_service_load(mut state, cli_spec_system(.unavailable, true), mut service, services_cli.CliFileArgument{}, true) or {
+	services_cli.cli_service_load(mut state, cli_spec_system(.unavailable, true), mut service, services_cli.CliFileArgument{}, true) or {
 		return err.msg() == 'Error: Cannot start `name` as `not_a_real_user` is not a user!'
 	}
 	return false
@@ -537,7 +537,7 @@ pub fn ruby_cli_spec_l578_d51_errors() bool {
 pub fn ruby_cli_spec_l596_d52_continues() !bool {
 	mut state := services_cli.CliState{ sudo_service_user: '_serviced' }
 	mut service := services_cli.CliService{ name: 'name', service_name: 'service.name' }
-	result := services_cli.ruby_cli_l378_d15_self_service_load(mut state, cli_spec_system(.unavailable, true), mut service, services_cli.CliFileArgument{}, true)!
+	result := services_cli.cli_service_load(mut state, cli_spec_system(.unavailable, true), mut service, services_cli.CliFileArgument{}, true)!
 	return result.stdout == ['==> Successfully started `name` (label: service.name)']
 }
 
@@ -549,7 +549,7 @@ pub fn ruby_cli_spec_l618_d53_triggers() !bool {
 		service_name: 'service.name'
 		service_file: 'service-file'
 	}
-	result := services_cli.ruby_cli_l378_d15_self_service_load(mut state, cli_spec_system(.launchctl, false), mut service, services_cli.CliFileArgument{}, false)!
+	result := services_cli.cli_service_load(mut state, cli_spec_system(.launchctl, false), mut service, services_cli.CliFileArgument{}, false)!
 	return result.commands.len == 1 && result.commands[0].args == ['bootstrap', 'gui/501',
 		'service-file']
 }
@@ -566,7 +566,7 @@ pub fn ruby_cli_spec_l639_d54_creates() !bool {
 		service_file: 'service-file'
 		path_dirs: paths
 	}
-	services_cli.ruby_cli_l378_d15_self_service_load(mut state, cli_spec_system(.launchctl, false), mut service, services_cli.CliFileArgument{}, false)!
+	services_cli.cli_service_load(mut state, cli_spec_system(.launchctl, false), mut service, services_cli.CliFileArgument{}, false)!
 	return paths.all(os.is_dir(it))
 }
 
@@ -582,7 +582,7 @@ pub fn ruby_cli_spec_l668_d55_triggers() !bool {
 		service_name: 'service.name'
 		dest: dest
 	}
-	result := services_cli.ruby_cli_l378_d15_self_service_load(mut state, cli_spec_system(.systemctl, false), mut service, services_cli.CliFileArgument{}, false)!
+	result := services_cli.cli_service_load(mut state, cli_spec_system(.systemctl, false), mut service, services_cli.CliFileArgument{}, false)!
 	return cli_spec_command_args(result) == ['--user start service.name']
 }
 
@@ -598,7 +598,7 @@ pub fn ruby_cli_spec_l690_d56_represents() !bool {
 		service_name: 'service.name'
 		dest: dest
 	}
-	result := services_cli.ruby_cli_l378_d15_self_service_load(mut state, cli_spec_system(.systemctl, false), mut service, services_cli.CliFileArgument{}, true)!
+	result := services_cli.cli_service_load(mut state, cli_spec_system(.systemctl, false), mut service, services_cli.CliFileArgument{}, true)!
 	return cli_spec_command_args(result) == ['--user start service.name', '--user enable service.name'] && result.stdout == [
 		'==> Successfully started `name` (label: service.name)',
 	]

@@ -155,7 +155,7 @@ pub fn service_info_output(hash map[string]ruby.Value, verbose bool,
 }
 
 pub fn run_service_info(request ServiceInfoRequest) !string {
-	services_cli.ruby_cli_l48_d5_self_check([]services_cli.CliService{len: request.targets.len})!
+	services_cli.cli_check([]services_cli.CliService{len: request.targets.len})!
 	if request.json {
 		return service_info_pretty_json(request.targets)
 	}

@@ -19,7 +19,7 @@ fn env_config_spec_state(values map[string]string) homebrew.EnvConfigState {
 
 fn env_config_spec_deprecated(env string, entry homebrew.EnvConfigEntry, values map[string]string, expected string) bool {
 	mut state := env_config_spec_state(values)
-	homebrew.ruby_env_config_l919_d10_env_value(env, entry, mut state) or {
+	homebrew.env_config_env_value(env, entry, mut state) or {
 		return err.msg().contains(env) && err.msg().contains(expected)
 	}
 	return false
@@ -40,12 +40,12 @@ pub fn ruby_env_config_spec_l10_d2_sorts() bool {
 
 // Ruby it `it "generates method names" do` at line 16.
 pub fn ruby_env_config_spec_l16_d3_generates() bool {
-	return homebrew.ruby_env_config_l801_d1_env_method_name('HOMEBREW_FOO', homebrew.EnvConfigEntry{}) == 'foo'
+	return homebrew.env_config_env_method_name('HOMEBREW_FOO', homebrew.EnvConfigEntry{}) == 'foo'
 }
 
 // Ruby it `it "generates boolean method names" do` at line 20.
 pub fn ruby_env_config_spec_l20_d4_generates() bool {
-	return homebrew.ruby_env_config_l801_d1_env_method_name('HOMEBREW_BAR', homebrew.EnvConfigEntry{ boolean_mode: .falsey_values }) == 'bar?'
+	return homebrew.env_config_env_method_name('HOMEBREW_BAR', homebrew.EnvConfigEntry{ boolean_mode: .falsey_values }) == 'bar?'
 }
 
 // Ruby it `it "deprecates variables using ENVS metadata" do` at line 26.
@@ -83,7 +83,7 @@ pub fn ruby_env_config_spec_l51_d8_skips() bool {
 		'HOMEBREW_TEST_DEPRECATED': '1'
 		'HOMEBREW_COMMAND':         'info'
 	})
-	value := homebrew.ruby_env_config_l919_d10_env_value('HOMEBREW_TEST_DEPRECATED', homebrew.EnvConfigEntry{
+	value := homebrew.env_config_env_value('HOMEBREW_TEST_DEPRECATED', homebrew.EnvConfigEntry{
 		odeprecated: true
 		commands: [
 			'install',
@@ -111,7 +111,7 @@ pub fn ruby_env_config_spec_l65_d10_skips() bool {
 		'HOMEBREW_TEST_DEPRECATED': '1'
 		'HOMEBREW_SUBCOMMAND':      'dump'
 	})
-	value := homebrew.ruby_env_config_l919_d10_env_value('HOMEBREW_TEST_DEPRECATED', homebrew.EnvConfigEntry{
+	value := homebrew.env_config_env_value('HOMEBREW_TEST_DEPRECATED', homebrew.EnvConfigEntry{
 		odeprecated: true
 		subcommands: [
 			'install',
@@ -128,7 +128,7 @@ pub fn ruby_env_config_spec_l74_d11_detects() bool {
 		'HOMEBREW_CURL_RETRIES': '4'
 		'HOMEBREW_BAT':          'false'
 	})
-	return homebrew.ruby_env_config_l848_d4_non_default_variable('HOMEBREW_CURL_RETRIES', &state) or { false } && !(homebrew.ruby_env_config_l848_d4_non_default_variable('HOMEBREW_BAT', &state) or { true })
+	return homebrew.env_config_non_default_variable('HOMEBREW_CURL_RETRIES', &state) or { false } && !(homebrew.env_config_non_default_variable('HOMEBREW_BAT', &state) or { true })
 }
 
 // Ruby it `it "compares values with callable defaults" do` at line 84.
@@ -136,7 +136,7 @@ pub fn ruby_env_config_spec_l84_d12_compares() bool {
 	state := env_config_spec_state({
 		'HOMEBREW_MAKE_JOBS': '8'
 	})
-	return !(homebrew.ruby_env_config_l848_d4_non_default_variable('HOMEBREW_MAKE_JOBS', &state) or { true })
+	return !(homebrew.env_config_non_default_variable('HOMEBREW_MAKE_JOBS', &state) or { true })
 }
 
 // Ruby it `it "treats blank boolean values as default like their accessors" do` at line 91.
@@ -144,7 +144,7 @@ pub fn ruby_env_config_spec_l91_d13_treats() bool {
 	state := env_config_spec_state({
 		'HOMEBREW_SBOM': ''
 	})
-	return !(homebrew.ruby_env_config_l848_d4_non_default_variable('HOMEBREW_SBOM', &state) or { true })
+	return !(homebrew.env_config_non_default_variable('HOMEBREW_SBOM', &state) or { true })
 }
 
 // Ruby it `it "treats values matching computed defaults as default" do` at line 97.
@@ -156,7 +156,7 @@ pub fn ruby_env_config_spec_l97_d14_treats() bool {
 		'HOMEBREW_NO_INSTALL_FROM_API': '1'
 	})
 	for name in ['HOMEBREW_PIP_INDEX_URL', 'HOMEBREW_SSH_CONFIG_PATH', 'HOMEBREW_AUTO_UPDATE_SECS'] {
-		if homebrew.ruby_env_config_l848_d4_non_default_variable(name, &state) or { return false } {
+		if homebrew.env_config_non_default_variable(name, &state) or { return false } {
 			return false
 		}
 	}
@@ -168,7 +168,7 @@ pub fn ruby_env_config_spec_l112_d15_compares() bool {
 	state := env_config_spec_state({
 		'HOMEBREW_FORBID_PACKAGES_FROM_PATHS': '1'
 	})
-	return !(homebrew.ruby_env_config_l848_d4_non_default_variable('HOMEBREW_FORBID_PACKAGES_FROM_PATHS', &state) or { true })
+	return !(homebrew.env_config_non_default_variable('HOMEBREW_FORBID_PACKAGES_FROM_PATHS', &state) or { true })
 }
 
 // Ruby it `it "only counts HOMEBREW_* variables recorded by bin/brew as user-set" do` at line 122.
@@ -179,18 +179,18 @@ pub fn ruby_env_config_spec_l122_d16_only() bool {
 		'HOMEBREW_EDITOR':        'vim'
 		'SUDO_ASKPASS':           '/usr/bin/ssh-askpass'
 	})
-	return homebrew.ruby_env_config_l868_d5_user_set_variable('HOMEBREW_CURL_RETRIES', &state) && !homebrew.ruby_env_config_l868_d5_user_set_variable('HOMEBREW_EDITOR', &state) && homebrew.ruby_env_config_l868_d5_user_set_variable('SUDO_ASKPASS', &state) && !homebrew.ruby_env_config_l868_d5_user_set_variable('HOMEBREW_BAT', &state)
+	return homebrew.env_config_user_set_variable('HOMEBREW_CURL_RETRIES', &state) && !homebrew.env_config_user_set_variable('HOMEBREW_EDITOR', &state) && homebrew.env_config_user_set_variable('SUDO_ASKPASS', &state) && !homebrew.env_config_user_set_variable('HOMEBREW_BAT', &state)
 }
 
 // Ruby it `it "prefers human default text over literal defaults" do` at line 139.
 pub fn ruby_env_config_spec_l139_d17_prefers() bool {
 	state := env_config_spec_state(map[string]string{})
-	make_jobs := homebrew.ruby_env_config_l817_d3_default_description('HOMEBREW_MAKE_JOBS', &state) or { return false }
-	api_update := homebrew.ruby_env_config_l817_d3_default_description('HOMEBREW_API_AUTO_UPDATE_SECS', &state) or { return false }
-	if _ := homebrew.ruby_env_config_l817_d3_default_description('HOMEBREW_BAT', &state) {
+	make_jobs := homebrew.env_config_default_description('HOMEBREW_MAKE_JOBS', &state) or { return false }
+	api_update := homebrew.env_config_default_description('HOMEBREW_API_AUTO_UPDATE_SECS', &state) or { return false }
+	if _ := homebrew.env_config_default_description('HOMEBREW_BAT', &state) {
 		return false
 	}
-	if _ := homebrew.ruby_env_config_l817_d3_default_description('HOMEBREW_REMOVED_VARIABLE', &state) {
+	if _ := homebrew.env_config_default_description('HOMEBREW_REMOVED_VARIABLE', &state) {
 		return false
 	}
 	return make_jobs == 'The number of available CPU cores.' && api_update == '`450`.'
@@ -225,7 +225,7 @@ pub fn ruby_env_config_spec_l176_d20_returns() bool {
 	mut state := env_config_spec_state({
 		'HOMEBREW_ARTIFACT_DOMAIN': 'https://brew.sh'
 	})
-	value := homebrew.ruby_env_config_l912_d9_method_name('HOMEBREW_ARTIFACT_DOMAIN', mut state) or {
+	value := homebrew.env_config_optional_value('HOMEBREW_ARTIFACT_DOMAIN', mut state) or {
 		return false
 	}
 	return value.present && value.value == 'https://brew.sh'
@@ -236,7 +236,7 @@ pub fn ruby_env_config_spec_l181_d21_returns() bool {
 	mut state := env_config_spec_state({
 		'HOMEBREW_ARTIFACT_DOMAIN': ''
 	})
-	return !(homebrew.ruby_env_config_l912_d9_method_name('HOMEBREW_ARTIFACT_DOMAIN', mut state) or {
+	return !(homebrew.env_config_optional_value('HOMEBREW_ARTIFACT_DOMAIN', mut state) or {
 		return false
 	}).present
 }
@@ -262,13 +262,13 @@ pub fn ruby_env_config_spec_l202_d24_returns() bool {
 	mut state := env_config_spec_state({
 		'HOMEBREW_CLEANUP_PERIODIC_FULL_DAYS': '360'
 	})
-	return (homebrew.ruby_env_config_l903_d8_method_name('HOMEBREW_CLEANUP_PERIODIC_FULL_DAYS', mut state) or { '' }) == '360'
+	return (homebrew.env_config_string_value('HOMEBREW_CLEANUP_PERIODIC_FULL_DAYS', mut state) or { '' }) == '360'
 }
 
 // Ruby it `it "returns default if unset" do` at line 207.
 pub fn ruby_env_config_spec_l207_d25_returns() bool {
 	mut state := env_config_spec_state(map[string]string{})
-	return (homebrew.ruby_env_config_l903_d8_method_name('HOMEBREW_CLEANUP_PERIODIC_FULL_DAYS', mut state) or { '' }) == '30'
+	return (homebrew.env_config_string_value('HOMEBREW_CLEANUP_PERIODIC_FULL_DAYS', mut state) or { '' }) == '30'
 }
 
 // Ruby it `it "returns true if set" do` at line 214.
@@ -276,13 +276,13 @@ pub fn ruby_env_config_spec_l214_d26_returns() bool {
 	mut state := env_config_spec_state({
 		'HOMEBREW_BAT': '1'
 	})
-	return homebrew.ruby_env_config_l891_d7_method_name('HOMEBREW_BAT', mut state) or { false }
+	return homebrew.env_config_boolean_value('HOMEBREW_BAT', mut state) or { false }
 }
 
 // Ruby it `it "returns false if unset" do` at line 219.
 pub fn ruby_env_config_spec_l219_d27_returns() bool {
 	mut state := env_config_spec_state(map[string]string{})
-	return !(homebrew.ruby_env_config_l891_d7_method_name('HOMEBREW_BAT', mut state) or { true })
+	return !(homebrew.env_config_boolean_value('HOMEBREW_BAT', mut state) or { true })
 }
 
 // Ruby it `it "returns false if set to a falsey value" do` at line 224.
@@ -290,13 +290,13 @@ pub fn ruby_env_config_spec_l224_d28_returns() bool {
 	mut state := env_config_spec_state({
 		'HOMEBREW_BAT': '0'
 	})
-	return !(homebrew.ruby_env_config_l891_d7_method_name('HOMEBREW_BAT', mut state) or { true })
+	return !(homebrew.env_config_boolean_value('HOMEBREW_BAT', mut state) or { true })
 }
 
 // Ruby it `it "returns true by default" do` at line 236.
 pub fn ruby_env_config_spec_l236_d29_returns() bool {
 	mut state := env_config_spec_state(map[string]string{})
-	return homebrew.ruby_env_config_l891_d7_method_name('HOMEBREW_ASK', mut state) or { false }
+	return homebrew.env_config_boolean_value('HOMEBREW_ASK', mut state) or { false }
 }
 
 // Ruby it `it "returns false if HOMEBREW_NO_ASK is set" do` at line 240.
@@ -304,7 +304,7 @@ pub fn ruby_env_config_spec_l240_d30_returns() bool {
 	mut state := env_config_spec_state({
 		'HOMEBREW_NO_ASK': '1'
 	})
-	return !(homebrew.ruby_env_config_l891_d7_method_name('HOMEBREW_ASK', mut state) or { true })
+	return !(homebrew.env_config_boolean_value('HOMEBREW_ASK', mut state) or { true })
 }
 
 // Ruby it `it "deprecates HOMEBREW_ASK" do` at line 245.
@@ -312,7 +312,7 @@ pub fn ruby_env_config_spec_l245_d31_deprecates() bool {
 	mut state := env_config_spec_state({
 		'HOMEBREW_ASK': '1'
 	})
-	homebrew.ruby_env_config_l891_d7_method_name('HOMEBREW_ASK', mut state) or {
+	homebrew.env_config_boolean_value('HOMEBREW_ASK', mut state) or {
 		return err.msg().contains('HOMEBREW_ASK') && err.msg().contains('deprecated')
 	}
 	return false
@@ -324,7 +324,7 @@ pub fn ruby_env_config_spec_l257_d32_returns() bool {
 		'HOMEBREW_COLOR':    '1'
 		'HOMEBREW_NO_COLOR': '1'
 	})
-	return !(homebrew.ruby_env_config_l891_d7_method_name('HOMEBREW_COLOR', mut state) or { true })
+	return !(homebrew.env_config_boolean_value('HOMEBREW_COLOR', mut state) or { true })
 }
 
 // Ruby it `it "returns value if positive" do` at line 265.
@@ -347,7 +347,7 @@ pub fn ruby_env_config_spec_l270_d34_returns() bool {
 // Ruby it `it "returns true if unset" do` at line 278.
 pub fn ruby_env_config_spec_l278_d35_returns() bool {
 	mut state := env_config_spec_state(map[string]string{})
-	return homebrew.ruby_env_config_l891_d7_method_name('HOMEBREW_BUNDLE_DESCRIBE', mut state) or {
+	return homebrew.env_config_boolean_value('HOMEBREW_BUNDLE_DESCRIBE', mut state) or {
 		false
 	}
 }
@@ -358,7 +358,7 @@ pub fn ruby_env_config_spec_l284_d36_returns() bool {
 		'HOMEBREW_BUNDLE_DESCRIBE':    '1'
 		'HOMEBREW_BUNDLE_NO_DESCRIBE': '1'
 	})
-	return !(homebrew.ruby_env_config_l891_d7_method_name('HOMEBREW_BUNDLE_DESCRIBE', mut state) or { true })
+	return !(homebrew.env_config_boolean_value('HOMEBREW_BUNDLE_DESCRIBE', mut state) or { true })
 }
 
 // Ruby it `it "deprecates HOMEBREW_BUNDLE_DESCRIBE" do` at line 290.
@@ -366,7 +366,7 @@ pub fn ruby_env_config_spec_l290_d37_deprecates() bool {
 	mut state := env_config_spec_state({
 		'HOMEBREW_BUNDLE_DESCRIBE': '1'
 	})
-	homebrew.ruby_env_config_l891_d7_method_name('HOMEBREW_BUNDLE_DESCRIBE', mut state) or {
+	homebrew.env_config_boolean_value('HOMEBREW_BUNDLE_DESCRIBE', mut state) or {
 		return err.msg().contains('HOMEBREW_BUNDLE_DESCRIBE') && err.msg().contains('deprecated')
 	}
 	return false
@@ -400,7 +400,7 @@ pub fn ruby_env_config_spec_l311_d40_warns() bool {
 // Ruby it `it "returns true if unset" do` at line 319.
 pub fn ruby_env_config_spec_l319_d41_returns() bool {
 	mut state := env_config_spec_state(map[string]string{})
-	return homebrew.ruby_env_config_l891_d7_method_name('HOMEBREW_BUNDLE_NO_SECRETS', mut state) or { false }
+	return homebrew.env_config_boolean_value('HOMEBREW_BUNDLE_NO_SECRETS', mut state) or { false }
 }
 
 // Ruby it `it "returns false if HOMEBREW_BUNDLE_SECRETS is set" do` at line 325.
@@ -409,7 +409,7 @@ pub fn ruby_env_config_spec_l325_d42_returns() bool {
 		'HOMEBREW_BUNDLE_NO_SECRETS': '1'
 		'HOMEBREW_BUNDLE_SECRETS':    '1'
 	})
-	return !(homebrew.ruby_env_config_l891_d7_method_name('HOMEBREW_BUNDLE_NO_SECRETS', mut state) or { true })
+	return !(homebrew.env_config_boolean_value('HOMEBREW_BUNDLE_NO_SECRETS', mut state) or { true })
 }
 
 // Ruby it `it "deprecates HOMEBREW_BUNDLE_NO_SECRETS" do` at line 331.
@@ -417,7 +417,7 @@ pub fn ruby_env_config_spec_l331_d43_deprecates() bool {
 	mut state := env_config_spec_state({
 		'HOMEBREW_BUNDLE_NO_SECRETS': '1'
 	})
-	homebrew.ruby_env_config_l891_d7_method_name('HOMEBREW_BUNDLE_NO_SECRETS', mut state) or {
+	homebrew.env_config_boolean_value('HOMEBREW_BUNDLE_NO_SECRETS', mut state) or {
 		return err.msg().contains('HOMEBREW_BUNDLE_NO_SECRETS') && err.msg().contains('deprecated')
 	}
 	return false
@@ -428,7 +428,7 @@ pub fn ruby_env_config_spec_l340_d44_deprecates() bool {
 	mut state := env_config_spec_state({
 		'HOMEBREW_USE_INTERNAL_API': '1'
 	})
-	homebrew.ruby_env_config_l891_d7_method_name('HOMEBREW_USE_INTERNAL_API', mut state) or {
+	homebrew.env_config_boolean_value('HOMEBREW_USE_INTERNAL_API', mut state) or {
 		return err.msg().contains('HOMEBREW_USE_INTERNAL_API') && err.msg().contains('deprecated')
 	}
 	return false
@@ -470,7 +470,7 @@ pub fn ruby_env_config_spec_l391_d49_returns() bool {
 	mut state := env_config_spec_state({
 		'HOMEBREW_DEVELOPER': '1'
 	})
-	return homebrew.ruby_env_config_l891_d7_method_name('HOMEBREW_UPGRADE_AUTO_UPDATES_CASKS', mut state) or { false }
+	return homebrew.env_config_boolean_value('HOMEBREW_UPGRADE_AUTO_UPDATES_CASKS', mut state) or { false }
 }
 
 // Ruby it `it "returns true if set to a falsey value" do` at line 396.
@@ -478,7 +478,7 @@ pub fn ruby_env_config_spec_l396_d50_returns() bool {
 	mut state := env_config_spec_state({
 		'HOMEBREW_UPGRADE_AUTO_UPDATES_CASKS': '0'
 	})
-	return homebrew.ruby_env_config_l891_d7_method_name('HOMEBREW_UPGRADE_AUTO_UPDATES_CASKS', mut state) or { false }
+	return homebrew.env_config_boolean_value('HOMEBREW_UPGRADE_AUTO_UPDATES_CASKS', mut state) or { false }
 }
 
 // Ruby it `it "returns false if HOMEBREW_NO_UPGRADE_AUTO_UPDATES_CASKS is set" do` at line 401.
@@ -487,13 +487,13 @@ pub fn ruby_env_config_spec_l401_d51_returns() bool {
 		'HOMEBREW_UPGRADE_AUTO_UPDATES_CASKS':    '1'
 		'HOMEBREW_NO_UPGRADE_AUTO_UPDATES_CASKS': '1'
 	})
-	return !(homebrew.ruby_env_config_l891_d7_method_name('HOMEBREW_UPGRADE_AUTO_UPDATES_CASKS', mut state) or { true })
+	return !(homebrew.env_config_boolean_value('HOMEBREW_UPGRADE_AUTO_UPDATES_CASKS', mut state) or { true })
 }
 
 // Ruby it `it "returns true by default" do` at line 417.
 pub fn ruby_env_config_spec_l417_d52_returns() bool {
 	mut state := env_config_spec_state(map[string]string{})
-	return homebrew.ruby_env_config_l891_d7_method_name('HOMEBREW_SANDBOX_LINUX', mut state) or {
+	return homebrew.env_config_boolean_value('HOMEBREW_SANDBOX_LINUX', mut state) or {
 		false
 	}
 }
@@ -503,7 +503,7 @@ pub fn ruby_env_config_spec_l421_d53_returns() bool {
 	mut state := env_config_spec_state({
 		'HOMEBREW_DEVELOPER': '1'
 	})
-	return homebrew.ruby_env_config_l891_d7_method_name('HOMEBREW_SANDBOX_LINUX', mut state) or {
+	return homebrew.env_config_boolean_value('HOMEBREW_SANDBOX_LINUX', mut state) or {
 		false
 	}
 }
@@ -513,7 +513,7 @@ pub fn ruby_env_config_spec_l426_d54_deprecates() bool {
 	mut state := env_config_spec_state({
 		'HOMEBREW_SANDBOX_LINUX': '1'
 	})
-	homebrew.ruby_env_config_l891_d7_method_name('HOMEBREW_SANDBOX_LINUX', mut state) or {
+	homebrew.env_config_boolean_value('HOMEBREW_SANDBOX_LINUX', mut state) or {
 		return err.msg().contains('HOMEBREW_SANDBOX_LINUX') && err.msg().contains('deprecated')
 	}
 	return false
@@ -522,7 +522,7 @@ pub fn ruby_env_config_spec_l426_d54_deprecates() bool {
 // Ruby it `it "returns true by default" do` at line 437.
 pub fn ruby_env_config_spec_l437_d55_returns() bool {
 	mut state := env_config_spec_state(map[string]string{})
-	return homebrew.ruby_env_config_l891_d7_method_name('HOMEBREW_SBOM', mut state) or { false }
+	return homebrew.env_config_boolean_value('HOMEBREW_SBOM', mut state) or { false }
 }
 
 // Ruby it `it "returns true if set to a falsey value" do` at line 441.
@@ -530,13 +530,13 @@ pub fn ruby_env_config_spec_l441_d56_returns() bool {
 	mut state := env_config_spec_state({
 		'HOMEBREW_SBOM': '0'
 	})
-	return homebrew.ruby_env_config_l891_d7_method_name('HOMEBREW_SBOM', mut state) or { false }
+	return homebrew.env_config_boolean_value('HOMEBREW_SBOM', mut state) or { false }
 }
 
 // Ruby it `it "is hidden" do` at line 446.
 pub fn ruby_env_config_spec_l446_d57_is() bool {
 	state := env_config_spec_state(map[string]string{})
-	return homebrew.ruby_env_config_l810_d2_hidden(homebrew.env_config_entries(&state)['HOMEBREW_SBOM'])
+	return homebrew.env_config_hidden(homebrew.env_config_entries(&state)['HOMEBREW_SBOM'])
 }
 
 // Ruby it `it "deprecates HOMEBREW_NO_SANDBOX_CASK" do` at line 452.
@@ -544,7 +544,7 @@ pub fn ruby_env_config_spec_l452_d58_deprecates() bool {
 	mut state := env_config_spec_state({
 		'HOMEBREW_NO_SANDBOX_CASK': '1'
 	})
-	homebrew.ruby_env_config_l891_d7_method_name('HOMEBREW_NO_SANDBOX_CASK', mut state) or {
+	homebrew.env_config_boolean_value('HOMEBREW_NO_SANDBOX_CASK', mut state) or {
 		return err.msg().contains('HOMEBREW_NO_SANDBOX_CASK') && err.msg().contains('deprecated')
 	}
 	return false
@@ -553,7 +553,7 @@ pub fn ruby_env_config_spec_l452_d58_deprecates() bool {
 // Ruby it `it "returns true by default" do` at line 469.
 pub fn ruby_env_config_spec_l469_d59_returns() bool {
 	mut state := env_config_spec_state(map[string]string{})
-	return homebrew.ruby_env_config_l891_d7_method_name('HOMEBREW_REQUIRE_TAP_TRUST', mut state) or {
+	return homebrew.env_config_boolean_value('HOMEBREW_REQUIRE_TAP_TRUST', mut state) or {
 		false
 	}
 }
@@ -564,7 +564,7 @@ pub fn ruby_env_config_spec_l482_d60_returns() bool {
 		'HOMEBREW_VERIFY_ATTESTATIONS':    '1'
 		'HOMEBREW_NO_VERIFY_ATTESTATIONS': '1'
 	})
-	return !(homebrew.ruby_env_config_l891_d7_method_name('HOMEBREW_VERIFY_ATTESTATIONS', mut state) or { true })
+	return !(homebrew.env_config_boolean_value('HOMEBREW_VERIFY_ATTESTATIONS', mut state) or { true })
 }
 
 // Ruby it `it "returns false if HOMEBREW_REQUIRE_TAP_TRUST is set" do` at line 497.
@@ -572,7 +572,7 @@ pub fn ruby_env_config_spec_l497_d61_returns() bool {
 	mut state := env_config_spec_state({
 		'HOMEBREW_REQUIRE_TAP_TRUST': '1'
 	})
-	return !(homebrew.ruby_env_config_l891_d7_method_name('HOMEBREW_EVAL_ALL', mut state) or {
+	return !(homebrew.env_config_boolean_value('HOMEBREW_EVAL_ALL', mut state) or {
 		true
 	})
 }
@@ -582,7 +582,7 @@ pub fn ruby_env_config_spec_l505_d62_deprecates() bool {
 	mut state := env_config_spec_state({
 		'HOMEBREW_NO_EVAL_ENV_SCRUBBING': '1'
 	})
-	homebrew.ruby_env_config_l891_d7_method_name('HOMEBREW_NO_EVAL_ENV_SCRUBBING', mut state) or {
+	homebrew.env_config_boolean_value('HOMEBREW_NO_EVAL_ENV_SCRUBBING', mut state) or {
 		return err.msg().contains('HOMEBREW_NO_EVAL_ENV_SCRUBBING') && err.msg().contains('deprecated')
 	}
 	return false
@@ -591,7 +591,7 @@ pub fn ruby_env_config_spec_l505_d62_deprecates() bool {
 // Ruby it `it "returns true by default" do` at line 520.
 pub fn ruby_env_config_spec_l520_d63_returns() bool {
 	mut state := env_config_spec_state(map[string]string{})
-	return homebrew.ruby_env_config_l1053_d23_tap_trust_configured(mut state) or { false } && (homebrew.ruby_env_config_l891_d7_method_name('HOMEBREW_REQUIRE_TAP_TRUST', mut state) or { false })
+	return homebrew.ruby_env_config_l1053_d23_tap_trust_configured(mut state) or { false } && (homebrew.env_config_boolean_value('HOMEBREW_REQUIRE_TAP_TRUST', mut state) or { false })
 }
 
 // Ruby it `it "returns true if HOMEBREW_REQUIRE_TAP_TRUST is set" do` at line 525.
@@ -599,7 +599,7 @@ pub fn ruby_env_config_spec_l525_d64_returns() bool {
 	mut state := env_config_spec_state({
 		'HOMEBREW_REQUIRE_TAP_TRUST': '1'
 	})
-	return homebrew.ruby_env_config_l1053_d23_tap_trust_configured(mut state) or { false } && (homebrew.ruby_env_config_l891_d7_method_name('HOMEBREW_REQUIRE_TAP_TRUST', mut state) or { false })
+	return homebrew.ruby_env_config_l1053_d23_tap_trust_configured(mut state) or { false } && (homebrew.env_config_boolean_value('HOMEBREW_REQUIRE_TAP_TRUST', mut state) or { false })
 }
 
 // Original Ruby source (line-for-line):

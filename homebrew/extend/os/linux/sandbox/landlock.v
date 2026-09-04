@@ -108,19 +108,19 @@ pub mut:
 	warnings         []string
 }
 
-pub fn ruby_landlock_l101_d1_full_write_isolation() bool {
+pub fn landlock_full_write_isolation() bool {
 	return false
 }
 
 // Ruby method `available?` at line 104.
-pub fn ruby_landlock_l104_d2_available(mut state LandlockClassState, context LandlockClassContext) bool {
-	return ruby_landlock_l109_d3_state(mut state, context) == .available
+pub fn landlock_available(mut state LandlockClassState, context LandlockClassContext) bool {
+	return landlock_state(mut state, context) == .available
 }
 
 // Ruby method `state` at line 109.
-pub fn ruby_landlock_l109_d3_state(mut state LandlockClassState, context LandlockClassContext) homebrew.SandboxState {
+pub fn landlock_state(mut state LandlockClassState, context LandlockClassContext) homebrew.SandboxState {
 	if !state.computed {
-		state.state = ruby_landlock_l248_d15_compute_state(mut state, context)
+		state.state = landlock_compute_state(mut state, context)
 		state.computed = true
 	}
 	return state.state
@@ -128,12 +128,12 @@ pub fn ruby_landlock_l109_d3_state(mut state LandlockClassState, context Landloc
 
 // Ruby method `abi_version` at line 114.
 pub fn ruby_landlock_l114_d4_abi_version(mut state LandlockClassState, context LandlockClassContext) ?int {
-	ruby_landlock_l109_d3_state(mut state, context)
+	landlock_state(mut state, context)
 	return if state.abi_version > 0 { state.abi_version } else { none }
 }
 
 // Ruby method `kernel_abi_version` at line 122.
-pub fn ruby_landlock_l122_d5_kernel_abi_version(context LandlockClassContext) ?int {
+pub fn landlock_kernel_abi_version(context LandlockClassContext) ?int {
 	if !context.fiddle_available || context.setup_failed || context.kernel_abi <= 0 {
 		return none
 	}
@@ -141,7 +141,7 @@ pub fn ruby_landlock_l122_d5_kernel_abi_version(context LandlockClassContext) ?i
 }
 
 // Ruby method `failure_reason` at line 132.
-pub fn ruby_landlock_l132_d6_failure_reason(state homebrew.SandboxState, abi int) ?string {
+pub fn landlock_failure_reason(state homebrew.SandboxState, abi int) ?string {
 	return match state {
 		.available { none }
 		.config_disabled { 'Landlock cannot be used because Linux sandboxing is disabled.' }
@@ -160,7 +160,7 @@ pub fn ruby_landlock_l132_d6_failure_reason(state homebrew.SandboxState, abi int
 }
 
 // Ruby method `reset_state!` at line 157.
-pub fn ruby_landlock_l157_d7_reset_state(mut state LandlockClassState) {
+pub fn landlock_reset_state(mut state LandlockClassState) {
 	state.computed = false
 	state.state = .unavailable
 	state.abi_version = 0
@@ -175,7 +175,7 @@ pub fn ruby_landlock_l163_d8_landlock_create_ruleset(mut syscalls LandlockSyscal
 }
 
 // Ruby method `landlock_add_rule(ruleset_fd, type, attributes, flags)` at line 176.
-pub fn ruby_landlock_l176_d9_landlock_add_rule(mut syscalls LandlockSyscalls, ruleset_fd int, type_name int, allowed_access u64, path_fd int, flags int) int {
+pub fn landlock_landlock_add_rule(mut syscalls LandlockSyscalls, ruleset_fd int, type_name int, allowed_access u64, path_fd int, flags int) int {
 	syscalls.calls << LandlockSyscallCall{
 		operation: 'landlock_add_rule'
 		values: [
@@ -208,7 +208,7 @@ pub fn ruby_landlock_l202_d11_set_no_new_privileges(mut syscalls LandlockSyscall
 }
 
 // Ruby method `open_path(path)` at line 215.
-pub fn ruby_landlock_l215_d12_open_path(mut syscalls LandlockSyscalls, path string) int {
+pub fn landlock_open_path_raw(mut syscalls LandlockSyscalls, path string) int {
 	syscalls.calls << LandlockSyscallCall{
 		operation: 'open'
 		path: path
@@ -220,7 +220,7 @@ pub fn ruby_landlock_l215_d12_open_path(mut syscalls LandlockSyscalls, path stri
 }
 
 // Ruby method `close_file_descriptor(file_descriptor)` at line 228.
-pub fn ruby_landlock_l228_d13_close_file_descriptor(mut syscalls LandlockSyscalls, file_descriptor int) int {
+pub fn landlock_close_fd_raw(mut syscalls LandlockSyscalls, file_descriptor int) int {
 	syscalls.calls << LandlockSyscallCall{
 		operation: 'close'
 		values: [
@@ -236,14 +236,14 @@ pub fn ruby_landlock_l241_d14_last_error(syscalls LandlockSyscalls) int {
 }
 
 // Ruby method `compute_state` at line 248.
-pub fn ruby_landlock_l248_d15_compute_state(mut state LandlockClassState, context LandlockClassContext) homebrew.SandboxState {
+pub fn landlock_compute_state(mut state LandlockClassState, context LandlockClassContext) homebrew.SandboxState {
 	if !context.sandbox_linux {
 		return .config_disabled
 	}
 	if !context.fiddle_available {
 		return .missing_fiddle
 	}
-	version := ruby_landlock_l122_d5_kernel_abi_version(context) or {
+	version := landlock_kernel_abi_version(context) or {
 		return match context.last_error {
 			38 { .unsupported }
 			95 { .disabled }
@@ -255,31 +255,31 @@ pub fn ruby_landlock_l248_d15_compute_state(mut state LandlockClassState, contex
 }
 
 // Ruby method `initialize(profile)` at line 276.
-pub fn ruby_landlock_l276_d16_initialize(profile homebrew.SandboxProfile) Landlock {
-	return Landlock{ backend: ruby_backend_l14_d2_initialize(profile) }
+pub fn landlock_initialize(profile homebrew.SandboxProfile) Landlock {
+	return Landlock{ backend: backend_initialize(profile) }
 }
 
 // Ruby method `command(args, tmpdir)` at line 286.
-pub fn ruby_landlock_l286_d17_command(mut landlock Landlock, args []string, tmpdir string) ![]string {
-	paths := ruby_backend_l39_d5_writable_paths(landlock.backend)!
+pub fn landlock_command(mut landlock Landlock, args []string, tmpdir string) ![]string {
+	paths := backend_writable_paths(landlock.backend)!
 	landlock.writable_paths = paths.keys()
 	for required in [os.path_devnull, tmpdir] {
 		if required !in landlock.writable_paths { landlock.writable_paths << required }
 	}
 	for path in landlock.writable_paths {
 		type_name := paths[path] or { homebrew.SandboxFilterType.subpath }
-		ruby_backend_l75_d8_prepare_writable_path(mut landlock.backend, path, type_name)!
+		backend_prepare_writable_path(mut landlock.backend, path, type_name)!
 	}
-	denied := ruby_landlock_l432_d22_denied_read_paths(landlock)
-	landlock.readable_paths = ruby_landlock_l405_d20_readable_paths(landlock, denied)!
+	denied := landlock_denied_read_paths(landlock)
+	landlock.readable_paths = landlock_readable_paths(landlock, denied)!
 	landlock.deny_read = denied.len > 0
-	landlock.deny_all_network = ruby_backend_l68_d7_deny_all_network(landlock.backend)
+	landlock.deny_all_network = backend_deny_all_network(landlock.backend)
 	landlock.error_pipe_path = os.join_path(tmpdir, 'socket')
 	return args.clone()
 }
 
 // Ruby method `apply!` at line 299.
-pub fn ruby_landlock_l299_d18_apply(mut landlock Landlock, context LandlockApplyContext) !LandlockApplyResult {
+pub fn landlock_apply(mut landlock Landlock, context LandlockApplyContext) !LandlockApplyResult {
 	abi := context.abi
 	if abi < 2 {
 		return error('Landlock ABI 2 or later is required; found ABI ${abi}.')
@@ -294,9 +294,9 @@ pub fn ruby_landlock_l299_d18_apply(mut landlock Landlock, context LandlockApply
 		warning = 'Landlock ABI 10 or later is required to deny all network access; found ABI ${abi}. ${restriction}'
 		landlock.warnings << warning
 	}
-	attributes := ruby_landlock_l379_d19_ruleset_attributes(landlock, abi)
+	attributes := landlock_ruleset_attributes(landlock, abi)
 	if context.create_result < 0 {
-		return ruby_landlock_l477_d27_raise_system_call_error('landlock_create_ruleset', context.last_error)
+		return landlock_raise_system_call_error('landlock_create_ruleset', context.last_error)
 	}
 	ruleset_fd := context.create_result
 	mut rules := []LandlockPathRule{}
@@ -311,8 +311,10 @@ pub fn ruby_landlock_l299_d18_apply(mut landlock Landlock, context LandlockApply
 		LandlockDeviceRule{
 			path: '/dev/mqueue'
 			access: attributes.allowed_write_access_fs | if landlock.deny_read {
-				access_fs_read_file} else {
-				u64(0)}
+				access_fs_read_file
+			} else {
+				u64(0)
+			}
 		},
 		LandlockDeviceRule{ path: '/dev/ptmx', access: pty_access },
 		LandlockDeviceRule{ path: '/dev/pts', access: pty_access },
@@ -359,17 +361,17 @@ pub fn ruby_landlock_l299_d18_apply(mut landlock Landlock, context LandlockApply
 		closed << fd
 	}
 	if context.set_no_new_privileges_result < 0 {
-		return ruby_landlock_l477_d27_raise_system_call_error('prctl', context.last_error)
+		return landlock_raise_system_call_error('prctl', context.last_error)
 	}
 	if context.restrict_result < 0 {
-		return ruby_landlock_l477_d27_raise_system_call_error('landlock_restrict_self', context.last_error)
+		return landlock_raise_system_call_error('landlock_restrict_self', context.last_error)
 	}
 	closed << ruleset_fd
 	return LandlockApplyResult{ attributes: attributes, ruleset_fd: ruleset_fd, path_rules: rules, closed_file_descriptors: closed, warning: warning }
 }
 
 // Ruby method `ruleset_attributes(abi)` at line 379.
-pub fn ruby_landlock_l379_d19_ruleset_attributes(landlock Landlock, abi int) LandlockRulesetAttributes {
+pub fn landlock_ruleset_attributes(landlock Landlock, abi int) LandlockRulesetAttributes {
 	mut allowed := write_access_fs
 	if abi >= 2 {
 		allowed |= access_fs_refer
@@ -400,7 +402,7 @@ pub fn ruby_landlock_l379_d19_ruleset_attributes(landlock Landlock, abi int) Lan
 }
 
 // Ruby method `readable_paths(denied_paths)` at line 405.
-pub fn ruby_landlock_l405_d20_readable_paths(landlock Landlock, denied_paths []string) ![]string {
+pub fn landlock_readable_paths(landlock Landlock, denied_paths []string) ![]string {
 	if denied_paths.len == 0 || os.norm_path(landlock.root_path) in denied_paths.map(os.norm_path(it)) {
 		return []
 	}
@@ -408,29 +410,29 @@ pub fn ruby_landlock_l405_d20_readable_paths(landlock Landlock, denied_paths []s
 	mut children := os.ls(landlock.root_path)!
 	children.sort()
 	for name in children {
-		ruby_landlock_l443_d23_add_readable_path(os.join_path(landlock.root_path, name), denied_paths, mut paths)!
+		landlock_add_readable_path(os.join_path(landlock.root_path, name), denied_paths, mut paths)!
 	}
 	return paths
 }
 
 // Ruby method `add_path_rule(ruleset_fd, path, allowed_access)` at line 416.
 pub fn ruby_landlock_l416_d21_add_path_rule(mut syscalls LandlockSyscalls, ruleset_fd int, path string, allowed_access u64) !LandlockPathRule {
-	fd := ruby_landlock_l464_d25_open_path(mut syscalls, path)!
-	result := ruby_landlock_l176_d9_landlock_add_rule(mut syscalls, ruleset_fd, 1, allowed_access, fd, 0)
-	ruby_landlock_l472_d26_close_file_descriptor(mut syscalls, fd)!
+	fd := landlock_open_path(mut syscalls, path)!
+	result := landlock_landlock_add_rule(mut syscalls, ruleset_fd, 1, allowed_access, fd, 0)
+	landlock_close_fd(mut syscalls, fd)!
 	if result < 0 {
-		return ruby_landlock_l477_d27_raise_system_call_error('landlock_add_rule', syscalls.last_error)
+		return landlock_raise_system_call_error('landlock_add_rule', syscalls.last_error)
 	}
 	return LandlockPathRule{ path: path, allowed_access: allowed_access, file_descriptor: fd }
 }
 
 // Ruby method `denied_read_paths` at line 432.
-pub fn ruby_landlock_l432_d22_denied_read_paths(landlock Landlock) []string {
-	return ruby_backend_l58_d6_profile_paths(landlock.backend, false, 'file-read').filter(os.exists(it) || os.is_link(it))
+pub fn landlock_denied_read_paths(landlock Landlock) []string {
+	return backend_profile_paths(landlock.backend, false, 'file-read').filter(os.exists(it) || os.is_link(it))
 }
 
 // Ruby method `add_readable_path(path, denied_paths, paths)` at line 443.
-pub fn ruby_landlock_l443_d23_add_readable_path(path string, denied_paths []string, mut paths []string) ! {
+pub fn landlock_add_readable_path(path string, denied_paths []string, mut paths []string) ! {
 	normal := os.norm_path(path)
 	if normal in denied_paths.map(os.norm_path(it)) {
 		return
@@ -442,7 +444,7 @@ pub fn ruby_landlock_l443_d23_add_readable_path(path string, denied_paths []stri
 		mut children := os.ls(path) or { return }
 		children.sort()
 		for child in children {
-			ruby_landlock_l443_d23_add_readable_path(os.join_path(path, child), denied_paths, mut paths)!
+			landlock_add_readable_path(os.join_path(path, child), denied_paths, mut paths)!
 		}
 	} else {
 		paths << path
@@ -455,23 +457,23 @@ pub fn ruby_landlock_l459_d24_root_path(landlock Landlock) string {
 }
 
 // Ruby method `open_path(path)` at line 464.
-pub fn ruby_landlock_l464_d25_open_path(mut syscalls LandlockSyscalls, path string) !int {
-	fd := ruby_landlock_l215_d12_open_path(mut syscalls, path)
+pub fn landlock_open_path(mut syscalls LandlockSyscalls, path string) !int {
+	fd := landlock_open_path_raw(mut syscalls, path)
 	if fd < 0 {
-		return ruby_landlock_l477_d27_raise_system_call_error('open', syscalls.last_error)
+		return landlock_raise_system_call_error('open', syscalls.last_error)
 	}
 	return fd
 }
 
 // Ruby method `close_file_descriptor(file_descriptor)` at line 472.
-pub fn ruby_landlock_l472_d26_close_file_descriptor(mut syscalls LandlockSyscalls, fd int) ! {
-	if ruby_landlock_l228_d13_close_file_descriptor(mut syscalls, fd) < 0 {
-		return ruby_landlock_l477_d27_raise_system_call_error('close', syscalls.last_error)
+pub fn landlock_close_fd(mut syscalls LandlockSyscalls, fd int) ! {
+	if landlock_close_fd_raw(mut syscalls, fd) < 0 {
+		return landlock_raise_system_call_error('close', syscalls.last_error)
 	}
 }
 
 // Ruby method `raise_system_call_error(operation)` at line 477.
-pub fn ruby_landlock_l477_d27_raise_system_call_error(operation string, last_error int) IError {
+pub fn landlock_raise_system_call_error(operation string, last_error int) IError {
 	return error('SystemCallError: ${operation} (${last_error})')
 }
 

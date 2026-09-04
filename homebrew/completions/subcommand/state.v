@@ -8,7 +8,7 @@ pub mut:
 }
 
 // Ruby method `run` at line 20.
-pub fn ruby_state_l20_run(state CompletionsState) string {
+pub fn completions_state_message(state CompletionsState) string {
 	return if state.linked {
 		'Completions are linked.\n'
 	} else {

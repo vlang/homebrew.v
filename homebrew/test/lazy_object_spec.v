@@ -1,6 +1,5 @@
 module test
 
-import ruby
 import homebrew
 
 // Translated from Homebrew/brew `test/lazy_object_spec.rb`.
@@ -8,42 +7,40 @@ import homebrew
 
 // Ruby it `it "does not evaluate the block" do` at line 8.
 pub fn ruby_lazy_object_spec_l8_d1_does() bool {
-	object := homebrew.ruby_lazy_object_l9_d1_initialize(lazy_integer_factory)
+	object := homebrew.new_lazy_object(lazy_integer_factory)
 	return !object.evaluated() && object.evaluation_count() == 0
 }
 
 // Ruby it `it "evaluates the block" do` at line 16.
 pub fn ruby_lazy_object_spec_l16_d2_evaluates() bool {
-	mut object := homebrew.ruby_lazy_object_l9_d1_initialize(lazy_integer_factory)
-	return homebrew.ruby_lazy_object_l47_d6_to_s(mut object) or { return false } == '42'
+	mut object := homebrew.new_lazy_object(lazy_integer_factory)
+	return object.string() or { return false } == '42'
 }
 
 // Ruby it `it "delegates to the underlying object" do` at line 22.
 pub fn ruby_lazy_object_spec_l22_d3_delegates() bool {
-	mut object := homebrew.ruby_lazy_object_l9_d1_initialize(lazy_false_factory)
-	return homebrew.lazy_object_not(mut object) or { return false }
+	mut object := homebrew.new_lazy_object(lazy_false_factory)
+	return !(object.get() or { return false })
 }
 
 // Ruby it `it "delegates to the underlying object" do` at line 28.
 pub fn ruby_lazy_object_spec_l28_d4_delegates() bool {
-	mut object := homebrew.ruby_lazy_object_l9_d1_initialize(lazy_integer_factory)
-	return !(homebrew.lazy_object_equals(mut object, ruby.int_value(13)) or {
-		return false
-	})
+	mut object := homebrew.new_lazy_object(lazy_integer_factory)
+	return (object.get() or { return false }) != 13
 }
 
 // Ruby it `it "delegates to the underlying object" do` at line 34.
 pub fn ruby_lazy_object_spec_l34_d5_delegates() bool {
-	mut object := homebrew.ruby_lazy_object_l9_d1_initialize(lazy_integer_factory)
-	return homebrew.lazy_object_equals(mut object, ruby.int_value(42)) or { return false }
+	mut object := homebrew.new_lazy_object(lazy_integer_factory)
+	return object.get() or { return false } == 42
 }
 
-fn lazy_integer_factory() !ruby.Value {
-	return ruby.int_value(42)
+fn lazy_integer_factory() !int {
+	return 42
 }
 
-fn lazy_false_factory() !ruby.Value {
-	return ruby.bool_value(false)
+fn lazy_false_factory() !bool {
+	return false
 }
 
 // Original Ruby source (line-for-line):

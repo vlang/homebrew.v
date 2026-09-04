@@ -9,14 +9,14 @@ import homebrew.developer.subcommand
 // Ruby it `it "uses state as the default subcommand" do` at line 10.
 pub fn ruby_developer_spec_l10_d1_uses() bool {
 	mut state := subcommand.DeveloperState{}
-	output := developer.ruby_subcommand_l16_d1_dispatch([], mut state) or { return false }
+	output := developer.subcommand_dispatch([], mut state) or { return false }
 	return output.starts_with('Developer mode is disabled.')
 }
 
 // Ruby it `it "rejects extra arguments for state" do` at line 14.
 pub fn ruby_developer_spec_l14_d2_rejects() bool {
 	mut state := subcommand.DeveloperState{}
-	developer.ruby_subcommand_l16_d1_dispatch(['state', 'foo'], mut state) or {
+	developer.subcommand_dispatch(['state', 'foo'], mut state) or {
 		return err.msg().contains('at most one named argument')
 	}
 	return false
@@ -25,7 +25,7 @@ pub fn ruby_developer_spec_l14_d2_rejects() bool {
 // Ruby it `it "prints that Developer mode is disabled by default", :integration_test do` at line 19.
 pub fn ruby_developer_spec_l19_d3_prints() bool {
 	mut state := subcommand.DeveloperState{}
-	output := developer.ruby_subcommand_l16_d1_dispatch([], mut state) or { return false }
+	output := developer.subcommand_dispatch([], mut state) or { return false }
 	return output.contains('Developer mode is disabled')
 }
 

@@ -157,7 +157,7 @@ pub fn ruby_installer_l53_d4_self_install(mut context BundleInstallerContext,
 		context.trusted << target
 		context.events << 'trust:${target.name}'
 	}
-	fetchable := ruby_installer_l131_d5_self_fetchable_formulae_and_casks(mut context, installable_entries, options.no_upgrade)
+	fetchable := installer_fetchable_formulae_and_casks(mut context, installable_entries, options.no_upgrade)
 	if fetchable.len > 0 {
 		if !options.quiet {
 			context.output << 'Fetching ${fetchable.join(', ')}'
@@ -173,7 +173,7 @@ pub fn ruby_installer_l53_d4_self_install(mut context BundleInstallerContext,
 	mut success := 0
 	mut failure := 0
 	for entry in installable_entries {
-		if ruby_installer_l195_d8_self_install_entry(mut context, entry, options.no_upgrade, options.verbose, options.force, options.quiet) {
+		if installer_install_entry(mut context, entry, options.no_upgrade, options.verbose, options.force, options.quiet) {
 			success++
 		} else {
 			failure++
@@ -195,12 +195,12 @@ pub fn ruby_installer_l53_d4_self_install(mut context BundleInstallerContext,
 }
 
 // Ruby method `self.fetchable_formulae_and_casks(entries, no_upgrade:)` at line 131.
-pub fn ruby_installer_l131_d5_self_fetchable_formulae_and_casks(mut context BundleInstallerContext,
+pub fn installer_fetchable_formulae_and_casks(mut context BundleInstallerContext,
 	entries []InstallableEntry, no_upgrade bool) []string {
 	_ = no_upgrade
 	mut fetchable := []string{}
 	for entry in entries {
-		if ruby_installer_l148_d6_self_tap_dependencies(mut context, entry, entries, context.installed_taps).len > 0 {
+		if installer_tap_dependencies(mut context, entry, entries, context.installed_taps).len > 0 {
 			continue
 		}
 		if entry.fetchable_name != '' {
@@ -211,7 +211,7 @@ pub fn ruby_installer_l131_d5_self_fetchable_formulae_and_casks(mut context Bund
 }
 
 // Ruby method `self.tap_dependencies(entry, entries:, installed_taps:)` at line 148.
-pub fn ruby_installer_l148_d6_self_tap_dependencies(mut context BundleInstallerContext,
+pub fn installer_tap_dependencies(mut context BundleInstallerContext,
 	entry InstallableEntry, entries []InstallableEntry, installed_taps []string) []string {
 	if entry.package_kind !in [.brew, .cask] {
 		return []
@@ -225,14 +225,14 @@ pub fn ruby_installer_l148_d6_self_tap_dependencies(mut context BundleInstallerC
 			tap_names << tap_entry.name
 		}
 	}
-	if tap_names.len == 0 || !ruby_installer_l165_d7_self_unavailable_without_tap(mut context, entry) {
+	if tap_names.len == 0 || !installer_unavailable_without_tap(mut context, entry) {
 		return []
 	}
 	return tap_names
 }
 
 // Ruby method `self.unavailable_without_tap?(entry)` at line 165.
-pub fn ruby_installer_l165_d7_self_unavailable_without_tap(mut context BundleInstallerContext,
+pub fn installer_unavailable_without_tap(mut context BundleInstallerContext,
 	entry InstallableEntry) bool {
 	metadata := clone_installer_api_metadata(context.api)
 	if metadata.error_message != '' {
@@ -249,7 +249,7 @@ pub fn ruby_installer_l165_d7_self_unavailable_without_tap(mut context BundleIns
 }
 
 // Ruby method `self.install_entry!(entry, no_upgrade:, verbose:, force:, quiet:)` at line 195.
-pub fn ruby_installer_l195_d8_self_install_entry(mut context BundleInstallerContext,
+pub fn installer_install_entry(mut context BundleInstallerContext,
 	entry InstallableEntry, no_upgrade bool, verbose bool, force bool, quiet bool) bool {
 	_ = no_upgrade
 	_ = verbose

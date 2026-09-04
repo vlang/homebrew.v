@@ -12,7 +12,7 @@ pub:
 }
 
 pub fn from_content_loader_spec_try_new(content string) ?brew_cask.CaskLoader {
-	return brew_cask.ruby_cask_loader_l74_d6_self_try_new(brew_cask.CaskLoaderReference{
+	return brew_cask.cask_loader_try_content(brew_cask.CaskLoaderReference{
 		kind: .text
 		value: content
 	})

@@ -271,11 +271,11 @@ pub fn manpages_environment_variables(state &EnvConfigState) string {
 	mut lines := []string{}
 	for name in names {
 		entry := entries[name]
-		if ruby_env_config_l810_d2_hidden(entry) {
+		if env_config_hidden(entry) {
 			continue
 		}
 		mut text := '`${name}`\n\n: ${entry.description}\n'
-		if default_text := ruby_env_config_l817_d3_default_description(name, state) {
+		if default_text := env_config_default_description(name, state) {
 			text += '\n\n    *Default:* ${default_text}\n'
 		}
 		lines << text

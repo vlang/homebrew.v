@@ -166,9 +166,9 @@ pub mut:
 	prepended_paths         []string
 }
 
-pub type RequirementSatisfyBlock = fn(Requirement) RequirementResult
+pub type RequirementSatisfyBlock = fn (Requirement) RequirementResult
 
-pub type RequirementEnvProc = fn(mut RequirementExecution)
+pub type RequirementEnvProc = fn (mut RequirementExecution)
 
 pub struct RequirementSatisfier {
 pub:
@@ -461,9 +461,9 @@ pub fn (requirement Requirement) equals(other Requirement) bool {
 }
 
 pub fn (requirement Requirement) hash_value() u64 {
-	mut identity := '${requirement.class.identity}\0${requirement.name}'
+	mut identity := '${requirement.class.identity}\x00${requirement.name}'
 	for tag in requirement.tags {
-		identity += '\0${int(tag.kind)}:${tag.value}:${tag.cask}:${tag.download}:${tag.has_cask}:${tag.has_download}'
+		identity += '\x00${int(tag.kind)}:${tag.value}:${tag.cask}:${tag.download}:${tag.has_cask}:${tag.has_download}'
 	}
 	return fnv1a.sum64_string(identity)
 }
@@ -485,9 +485,9 @@ pub:
 	path   string
 }
 
-pub type RequirementMktempBlock = fn(RequirementMktemp) !
+pub type RequirementMktempBlock = fn (RequirementMktemp) !
 
-pub type RequirementMktempRunner = fn(string, RequirementMktempBlock) !
+pub type RequirementMktempRunner = fn (string, RequirementMktempBlock) !
 
 pub fn (requirement Requirement) run_mktemp(runner RequirementMktempRunner,
 	block RequirementMktempBlock) ! {
@@ -599,7 +599,7 @@ pub:
 	build_with             []string
 }
 
-pub type RequirementExpandFilter = fn(RequirementDependent, Requirement) string
+pub type RequirementExpandFilter = fn (RequirementDependent, Requirement) string
 
 struct RequirementCacheEntry {
 	key          string
@@ -762,7 +762,7 @@ pub fn ruby_requirement_l158_d14_env_proc(requirement Requirement) ?RequirementE
 }
 
 // Ruby method `==(other)` at line 163.
-pub fn ruby_requirement_l163_d15_anonymous(requirement Requirement,
+pub fn requirement_anonymous(requirement Requirement,
 	other RequirementComparisonTarget) bool {
 	return other.has_requirement && requirement.equals(other.requirement)
 }
@@ -770,7 +770,7 @@ pub fn ruby_requirement_l163_d15_anonymous(requirement Requirement,
 // Ruby alias `alias eql? ==` at line 170.
 pub fn ruby_requirement_l170_d16_eql(requirement Requirement,
 	other RequirementComparisonTarget) bool {
-	return ruby_requirement_l163_d15_anonymous(requirement, other)
+	return requirement_anonymous(requirement, other)
 }
 
 // Ruby method `hash` at line 173.

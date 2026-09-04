@@ -8,7 +8,7 @@ import homebrew.utils
 
 // Ruby method `run` at line 23.
 pub fn ruby_analytics_l23_d1_run(arguments []string, mut state utils.AnalyticsState) !string {
-	return analytics.ruby_subcommand_l16_dispatch(arguments, mut state)
+	return analytics.subcommand_dispatch(arguments, mut state)
 }
 
 // Original Ruby source (line-for-line):

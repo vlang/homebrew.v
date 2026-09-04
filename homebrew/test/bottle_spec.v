@@ -109,7 +109,7 @@ fn bottle_spec_cached_bottle_value(fixture BottleSpecCachedBottle) ruby.Value {
 pub fn bottle_spec_retry_corrupt_cache(mut fixture BottleSpecCachedBottle,
 	fetched_content string) !BottleSpecStageResult {
 	mut extractions := 1
-	discarded := homebrew.ruby_bottle_l179_d26_discard_corrupt_cached_download(mut fixture.bottle)!
+	discarded := homebrew.bottle_discard_corrupt_cached_download(mut fixture.bottle)!
 	if !discarded || os.exists(fixture.cache_path) {
 		return error('corrupt cached bottle was not discarded')
 	}
@@ -132,7 +132,7 @@ pub fn bottle_spec_retry_corrupt_cache(mut fixture BottleSpecCachedBottle,
 }
 
 pub fn bottle_spec_keep_valid_unextractable(mut fixture BottleSpecCachedBottle) !BottleSpecStageResult {
-	discarded := homebrew.ruby_bottle_l179_d26_discard_corrupt_cached_download(mut fixture.bottle)!
+	discarded := homebrew.bottle_discard_corrupt_cached_download(mut fixture.bottle)!
 	if discarded {
 		return error('checksum-matching cached bottle was discarded')
 	}

@@ -4,7 +4,7 @@ module subcommand
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `run` at line 20.
-pub fn ruby_link_l20_run(mut state CompletionsState) string {
+pub fn link_completions(mut state CompletionsState) string {
 	state.linked = true
 	return 'Completions are now linked.\n'
 }

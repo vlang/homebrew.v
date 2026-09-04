@@ -6,7 +6,7 @@ import homebrew.utils
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `run` at line 20.
-pub fn ruby_state_l20_run(state utils.AnalyticsState) string {
+pub fn analytics_state_message(state utils.AnalyticsState) string {
 	status := if state.disabled() { 'disabled' } else { 'enabled' }
 	return 'InfluxDB analytics are ${status}.\nGoogle Analytics were destroyed.\n'
 }

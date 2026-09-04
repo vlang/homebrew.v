@@ -114,7 +114,7 @@ pub fn caskroom_cask_installed(path string, token string) bool {
 }
 
 fn caskroom_artifact_key(artifact CaskLoaderArtifact) string {
-	return artifact.kind + '\0' + artifact.values.join('\0')
+	return artifact.kind + '\x00' + artifact.values.join('\x00')
 }
 
 pub fn caskroom_artifacts_equivalent(first []CaskLoaderArtifact,
@@ -148,9 +148,9 @@ fn caskroom_write_installed_json(path string, values map[string]json2.Any) ! {
 
 pub fn caskroom_migrate_caskfile_to_json(caskfile string,
 	context CaskroomMigrationContext) !CaskroomMigrationResult {
-	token := ruby_cask_loader_l806_d52_self_token_from_path(caskfile)
-	installed_json_caskfile := ruby_cask_loader_l812_d53_self_installed_json_caskfile(caskfile)
-	source_json := ruby_cask_loader_l817_d54_self_load_installed_json(caskfile)
+	token := cask_loader_token_from_path(caskfile)
+	installed_json_caskfile := cask_loader_installed_json_caskfile(caskfile)
+	source_json := cask_loader_load_installed_json(caskfile)
 	mut has_source_artifacts := false
 	mut source_url_specs := map[string]string{}
 	mut current_json := false
@@ -173,7 +173,7 @@ pub fn caskroom_migrate_caskfile_to_json(caskfile string,
 			current_json = values.keys().all(it in ['artifacts', 'url_specs', 'version']) && artifacts_valid
 		}
 	}
-	receipt := ruby_cask_loader_l827_d55_self_load_installed_tab(CaskLoaderReference{
+	receipt := cask_loader_load_installed_tab(CaskLoaderReference{
 		kind: .text
 		value: token
 	}, context.load_context.lookup)
@@ -181,12 +181,12 @@ pub fn caskroom_migrate_caskfile_to_json(caskfile string,
 	mut has_cask := false
 	if !context.force_source_load_failure {
 		if installed_json_caskfile {
-			if loaded := ruby_cask_loader_l798_d51_self_load_from_installed_caskfile(caskfile, CaskLoaderConfig{}, false, true, context.load_context) {
+			if loaded := cask_loader_load_from_installed_caskfile(caskfile, CaskLoaderConfig{}, false, true, context.load_context) {
 				cask = loaded
 				has_cask = true
 			}
 		} else {
-			if loaded := ruby_cask_loader_l698_d47_self_load(CaskLoaderReference{
+			if loaded := cask_loader_load_reference(CaskLoaderReference{
 				kind: .path
 				value: caskfile
 			}, CaskLoaderConfig{}, false, context.load_context) {
@@ -219,7 +219,7 @@ pub fn caskroom_migrate_caskfile_to_json(caskfile string,
 				path_version := if parts.len >= 4 { parts[parts.len - 4] } else { source.version }
 				mut resolved_artifacts := source.artifacts.clone()
 				if !has_source_artifacts {
-					resolved_artifacts = ruby_cask_loader_l846_d56_self_resolve_installed_artifacts(token, []CaskLoaderArtifact{}, false, if receipt.has_tap {
+					resolved_artifacts = cask_loader_resolve_installed_artifacts(token, []CaskLoaderArtifact{}, false, if receipt.has_tap {
 						receipt.tap
 					} else {
 						none
@@ -236,7 +236,7 @@ pub fn caskroom_migrate_caskfile_to_json(caskfile string,
 		}
 	}
 	if !has_cask {
-		if recovered := ruby_cask_loader_l888_d57_self_recover_from_installed_caskfile(caskfile, receipt, none, CaskLoaderConfig{}, context.load_context.lookup) {
+		if recovered := cask_loader_recover_from_installed_caskfile(caskfile, receipt, none, CaskLoaderConfig{}, context.load_context.lookup) {
 			cask = recovered
 			has_cask = true
 		}
@@ -426,9 +426,9 @@ pub fn caskroom_casks(path string, context CaskLoaderLoadContext) []CaskLoaderCa
 	mut casks := []CaskLoaderCask{}
 	mut full_names := map[string]bool{}
 	for token in tokens {
-		mut cask := ruby_cask_loader_l777_d50_self_load_prefer_installed(token, CaskLoaderConfig{}, false, context) or {
+		mut cask := cask_loader_load_prefer_installed(token, CaskLoaderConfig{}, false, context) or {
 			installed_path := caskroom_installed_caskfile(path, token, []string{}) or { continue }
-			ruby_cask_loader_l798_d51_self_load_from_installed_caskfile(installed_path, CaskLoaderConfig{}, false, false, context) or { continue }
+			cask_loader_load_from_installed_caskfile(installed_path, CaskLoaderConfig{}, false, false, context) or { continue }
 		}
 		if cask.token == '' {
 			continue

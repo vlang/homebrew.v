@@ -4,7 +4,7 @@ module subcommand
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `run` at line 20.
-pub fn ruby_unlink_l20_run(mut state CompletionsState) string {
+pub fn unlink_completions(mut state CompletionsState) string {
 	state.linked = false
 	return 'Completions are no longer linked.\n'
 }

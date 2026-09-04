@@ -4,6 +4,7 @@ import ruby
 import homebrew.cli
 import homebrew.cmd
 import homebrew.api
+import os
 
 // Translated from Homebrew/brew `brew.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -213,6 +214,65 @@ fn execute_install_dispatch(arguments []string) ! {
 	}
 }
 
+fn uninstall_kegs_for_name(name string, cellar string, prefix string, force bool) ![]Keg {
+	rack := os.join_path(cellar, name)
+	if !os.is_dir(rack) {
+		return error('NoSuchKegError: ${name}')
+	}
+	mut kegs := []Keg{}
+	for version in os.ls(rack)! {
+		path := os.join_path(rack, version)
+		if keg := new_keg_with_paths(path, cellar, prefix) {
+			kegs << keg
+		}
+	}
+	if kegs.len == 0 {
+		return error('NoSuchKegError: ${name}')
+	}
+	if force || kegs.len == 1 {
+		return kegs
+	}
+	for keg in kegs {
+		if keg.linked() || keg.optlinked() {
+			return [keg]
+		}
+	}
+	mut latest := kegs[0]
+	for keg in kegs[1..] {
+		if keg.compare_scheme_and_version(latest) > 0 {
+			latest = keg
+		}
+	}
+	return [latest]
+}
+
+fn execute_uninstall_dispatch(arguments []string) ! {
+	options := cmd.parse_uninstall_arguments(arguments)!
+	if options.cask || options.zap {
+		return error('cask uninstall is not implemented')
+	}
+	prefix_value := ruby.environment_value('HOMEBREW_PREFIX').trim_right('/')
+	prefix := if prefix_value == '' { current_bottle_tag().default_prefix() } else { prefix_value }
+	cellar_value := ruby.environment_value('HOMEBREW_CELLAR').trim_right('/')
+	cellar := if cellar_value == '' { os.join_path(prefix, 'Cellar') } else { cellar_value }
+	for requested_name in options.named {
+		name := requested_name.all_after_last('/').to_lower()
+		kegs := uninstall_kegs_for_name(name, cellar, prefix, options.force)!
+		pin := os.join_path(prefix, 'var', 'homebrew', 'pinned', name)
+		if os.is_link(pin) && !options.force {
+			return error('${name} is pinned. You must unpin it to uninstall.')
+		}
+		for keg in kegs {
+			println('Uninstalling ${keg.path}...')
+			keg.unlink(false)!
+			keg.uninstall()!
+		}
+		if options.force && os.is_link(pin) {
+			os.rm(pin)!
+		}
+	}
+}
+
 // Ruby top-level program body from `brew.rb`. It now returns a typed dispatch
 // decision rather than crossing the generic stub boundary or invoking Ruby brew.
 pub fn ruby_brew_file_body(argv []string, help_from_environment bool) DispatchResult {
@@ -279,8 +339,8 @@ pub fn ruby_brew_file_body(argv []string, help_from_environment bool) DispatchRe
 }
 
 // execute_dispatch is the deliberate boundary between translated CLI dispatch
-// and command bodies that still have explicit V stubs. It never invokes Ruby or
-// a native Homebrew executable.
+// and command bodies that do not yet have executable V implementations. It
+// never invokes Ruby or a native Homebrew executable.
 pub fn execute_dispatch(dispatch DispatchResult) ! {
 	if dispatch.action != .execute {
 		return error('cannot execute a ${dispatch.action} dispatch result')
@@ -303,6 +363,10 @@ pub fn execute_dispatch(dispatch DispatchResult) ! {
 	}
 	if dispatch.command == 'install' {
 		execute_install_dispatch(dispatch.arguments)!
+		return
+	}
+	if dispatch.command == 'uninstall' {
+		execute_uninstall_dispatch(dispatch.arguments)!
 		return
 	}
 	return error('V command `${dispatch.command}` is selected at `${dispatch.command_path}` but its run body is not implemented')

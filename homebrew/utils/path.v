@@ -30,7 +30,8 @@ pub fn ruby_path_l28_d3_self_formula_opt_prefix(args ...ruby.Value) ruby.Value {
 
 // Ruby method `formula_opt_prefix(formula_name)` at line 36.
 pub fn ruby_path_l36_d4_formula_opt_prefix(args ...ruby.Value) ruby.Value {
-	return ruby_path_l28_d3_self_formula_opt_prefix(...args)
+	if args.len == 0 { panic('Utils::Path.formula_opt_prefix requires a formula name') }
+	return ruby.string_value(path_formula_opt_prefix(path_homebrew_prefix(), args[0].as_string()))
 }
 
 // Ruby method `self.formula_opt_bin(formula_name)` at line 44.
@@ -41,7 +42,8 @@ pub fn ruby_path_l44_d5_self_formula_opt_bin(args ...ruby.Value) ruby.Value {
 
 // Ruby method `formula_opt_bin(formula_name)` at line 52.
 pub fn ruby_path_l52_d6_formula_opt_bin(args ...ruby.Value) ruby.Value {
-	return ruby_path_l44_d5_self_formula_opt_bin(...args)
+	if args.len == 0 { panic('Utils::Path.formula_opt_bin requires a formula name') }
+	return ruby.string_value(path_formula_opt_bin(path_homebrew_prefix(), args[0].as_string()))
 }
 
 // Ruby method `self.formula_opt_lib(formula_name)` at line 60.
@@ -52,7 +54,8 @@ pub fn ruby_path_l60_d7_self_formula_opt_lib(args ...ruby.Value) ruby.Value {
 
 // Ruby method `formula_opt_lib(formula_name)` at line 68.
 pub fn ruby_path_l68_d8_formula_opt_lib(args ...ruby.Value) ruby.Value {
-	return ruby_path_l60_d7_self_formula_opt_lib(...args)
+	if args.len == 0 { panic('Utils::Path.formula_opt_lib requires a formula name') }
+	return ruby.string_value(path_formula_opt_lib(path_homebrew_prefix(), args[0].as_string()))
 }
 
 // Ruby method `self.formula_opt_libexec(formula_name)` at line 76.
@@ -63,7 +66,8 @@ pub fn ruby_path_l76_d9_self_formula_opt_libexec(args ...ruby.Value) ruby.Value 
 
 // Ruby method `formula_opt_libexec(formula_name)` at line 84.
 pub fn ruby_path_l84_d10_formula_opt_libexec(args ...ruby.Value) ruby.Value {
-	return ruby_path_l76_d9_self_formula_opt_libexec(...args)
+	if args.len == 0 { panic('Utils::Path.formula_opt_libexec requires a formula name') }
+	return ruby.string_value(path_formula_opt_libexec(path_homebrew_prefix(), args[0].as_string()))
 }
 
 // Ruby method `self.formula_opt_include(formula_name)` at line 92.
@@ -74,7 +78,8 @@ pub fn ruby_path_l92_d11_self_formula_opt_include(args ...ruby.Value) ruby.Value
 
 // Ruby method `formula_opt_include(formula_name)` at line 100.
 pub fn ruby_path_l100_d12_formula_opt_include(args ...ruby.Value) ruby.Value {
-	return ruby_path_l92_d11_self_formula_opt_include(...args)
+	if args.len == 0 { panic('Utils::Path.formula_opt_include requires a formula name') }
+	return ruby.string_value(path_formula_opt_include(path_homebrew_prefix(), args[0].as_string()))
 }
 
 // Ruby method `self.formula_installed_prefixes(formula_names)` at line 108.
@@ -92,7 +97,8 @@ pub fn ruby_path_l120_d14_self_formula_any_version_installed(args ...ruby.Value)
 
 // Ruby method `formula_any_version_installed?(formula_names)` at line 128.
 pub fn ruby_path_l128_d15_formula_any_version_installed(args ...ruby.Value) ruby.Value {
-	return ruby_path_l120_d14_self_formula_any_version_installed(...args)
+	if args.len == 0 { panic('Utils::Path.formula_any_version_installed? requires formula names') }
+	return ruby.bool_value(path_formula_any_version_installed(path_homebrew_cellar(), path_names_from_value(args[0])))
 }
 
 // Ruby method `self.formula_opt_bin_path(formula_name, *paths)` at line 136.
@@ -104,7 +110,9 @@ pub fn ruby_path_l136_d16_self_formula_opt_bin_path(args ...ruby.Value) ruby.Val
 
 // Ruby method `self.formula_opt_bin_env(formula_name, *paths)` at line 144.
 pub fn ruby_path_l144_d17_self_formula_opt_bin_env(args ...ruby.Value) ruby.Value {
-	path := ruby_path_l136_d16_self_formula_opt_bin_path(...args).as_string()
+	if args.len == 0 { panic('Utils::Path.formula_opt_bin_env requires a formula name') }
+	extra := if args.len > 1 { args[1..].map(it.as_string()) } else { []string{} }
+	path := path_formula_opt_bin_path(path_homebrew_prefix(), args[0].as_string(), extra, os.getenv('PATH'))
 	return ruby.map_value({
 		'PATH': ruby.string_value(path)
 	})

@@ -77,7 +77,7 @@ fn audit_file(source_root string, source_path string, destination_root string, m
 	}
 	translation_lines := translated_lines[..marker_index]
 	file_markers := translation_lines.filter(it.starts_with('// Ruby ')).len
-	file_functions := translation_lines.filter(it.starts_with('pub fn ruby_')).len
+	file_functions := translated_function_count(translation_lines)
 	totals.markers += file_markers
 	totals.functions += file_functions
 	if file_markers != file_functions {
@@ -105,6 +105,25 @@ fn audit_file(source_root string, source_path string, destination_root string, m
 			totals.errors << '${relative_path}:${line_number}: missing generated-method translation marker'
 		}
 	}
+}
+
+// A translated definition keeps its Ruby source marker, but its public V API is
+// free to use a stable typed name. Count the first public function associated
+// with each marker instead of requiring the old generated `ruby_*_l*` prefix.
+fn translated_function_count(lines []string) int {
+	mut awaiting_function := false
+	mut count := 0
+	for line in lines {
+		if line.starts_with('// Ruby ') {
+			awaiting_function = true
+			continue
+		}
+		if awaiting_function && line.starts_with('pub fn ') {
+			count++
+			awaiting_function = false
+		}
+	}
+	return count
 }
 
 fn ruby_method_prefix(line string) string {

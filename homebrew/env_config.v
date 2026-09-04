@@ -607,7 +607,7 @@ pub fn env_config_shellsplit(value string) ![]string {
 }
 
 // Ruby method `env_method_name(env, hash)` at line 801.
-pub fn ruby_env_config_l801_d1_env_method_name(env string, entry EnvConfigEntry) string {
+pub fn env_config_env_method_name(env string, entry EnvConfigEntry) string {
 	mut generated_name := env
 	if generated_name.starts_with('HOMEBREW_') {
 		generated_name = generated_name['HOMEBREW_'.len..]
@@ -620,12 +620,12 @@ pub fn ruby_env_config_l801_d1_env_method_name(env string, entry EnvConfigEntry)
 }
 
 // Ruby method `hidden?(hash)` at line 810.
-pub fn ruby_env_config_l810_d2_hidden(entry EnvConfigEntry) bool {
+pub fn env_config_hidden(entry EnvConfigEntry) bool {
 	return entry.hidden || entry.odeprecated || entry.odisabled
 }
 
 // Ruby method `default_description(env)` at line 817.
-pub fn ruby_env_config_l817_d3_default_description(env string, state &EnvConfigState) ?string {
+pub fn env_config_default_description(env string, state &EnvConfigState) ?string {
 	entries := env_config_entries(state)
 	entry := entries[env] or { return none }
 	if entry.default_text != '' {
@@ -638,7 +638,7 @@ pub fn ruby_env_config_l817_d3_default_description(env string, state &EnvConfigS
 }
 
 // Ruby method `non_default_variable?(env)` at line 848.
-pub fn ruby_env_config_l848_d4_non_default_variable(env string, state &EnvConfigState) !bool {
+pub fn env_config_non_default_variable(env string, state &EnvConfigState) !bool {
 	value := state.values[env] or { return false }
 	if env_config_blank(value) {
 		return false
@@ -653,7 +653,7 @@ pub fn ruby_env_config_l848_d4_non_default_variable(env string, state &EnvConfig
 }
 
 // Ruby method `user_set_variable?(env)` at line 868.
-pub fn ruby_env_config_l868_d5_user_set_variable(env string, state &EnvConfigState) bool {
+pub fn env_config_user_set_variable(env string, state &EnvConfigState) bool {
 	value := state.values[env] or { return false }
 	if env_config_blank(value) {
 		return false
@@ -669,7 +669,7 @@ pub fn ruby_env_config_l876_d6_non_default_variables(state &EnvConfigState) ![]s
 	entries := env_config_entries(state)
 	mut variables := []string{}
 	for env, _ in state.values {
-		if env in entries && ruby_env_config_l868_d5_user_set_variable(env, state) && ruby_env_config_l848_d4_non_default_variable(env, state)! {
+		if env in entries && env_config_user_set_variable(env, state) && env_config_non_default_variable(env, state)! {
 			variables << env
 		}
 	}
@@ -678,12 +678,12 @@ pub fn ruby_env_config_l876_d6_non_default_variables(state &EnvConfigState) ![]s
 }
 
 // Ruby define_method `define_method(method_name) do` at line 891.
-pub fn ruby_env_config_l891_d7_method_name(env string, mut state EnvConfigState) !bool {
+pub fn env_config_boolean_value(env string, mut state EnvConfigState) !bool {
 	entry := env_config_entries(&state)[env] or { return error('unknown environment variable ${env}') }
-	if entry.disabled_by != '' && ruby_env_config_l891_d7_method_name(entry.disabled_by, mut state)! {
+	if entry.disabled_by != '' && env_config_boolean_value(entry.disabled_by, mut state)! {
 		return false
 	}
-	value := ruby_env_config_l919_d10_env_value(env, entry, mut state)!
+	value := env_config_env_value(env, entry, mut state)!
 	if entry.default_boolean && (!value.present || env_config_blank(value.value)) {
 		return true
 	}
@@ -691,9 +691,9 @@ pub fn ruby_env_config_l891_d7_method_name(env string, mut state EnvConfigState)
 }
 
 // Ruby define_method `define_method(method_name) do` at line 903.
-pub fn ruby_env_config_l903_d8_method_name(env string, mut state EnvConfigState) !string {
+pub fn env_config_string_value(env string, mut state EnvConfigState) !string {
 	entry := env_config_entries(&state)[env] or { return error('unknown environment variable ${env}') }
-	value := ruby_env_config_l919_d10_env_value(env, entry, mut state)!
+	value := env_config_env_value(env, entry, mut state)!
 	if value.present && !env_config_blank(value.value) {
 		return value.value
 	}
@@ -701,9 +701,9 @@ pub fn ruby_env_config_l903_d8_method_name(env string, mut state EnvConfigState)
 }
 
 // Ruby define_method `define_method(method_name) do` at line 912.
-pub fn ruby_env_config_l912_d9_method_name(env string, mut state EnvConfigState) !EnvConfigValue {
+pub fn env_config_optional_value(env string, mut state EnvConfigState) !EnvConfigValue {
 	entry := env_config_entries(&state)[env] or { return error('unknown environment variable ${env}') }
-	value := ruby_env_config_l919_d10_env_value(env, entry, mut state)!
+	value := env_config_env_value(env, entry, mut state)!
 	if !value.present || env_config_blank(value.value) {
 		return EnvConfigValue{}
 	}
@@ -711,10 +711,10 @@ pub fn ruby_env_config_l912_d9_method_name(env string, mut state EnvConfigState)
 }
 
 // Ruby method `env_value(env, hash)` at line 919.
-pub fn ruby_env_config_l919_d10_env_value(env string, entry EnvConfigEntry, mut state EnvConfigState) !EnvConfigValue {
+pub fn env_config_env_value(env string, entry EnvConfigEntry, mut state EnvConfigState) !EnvConfigValue {
 	env_value := state.values[env] or { return EnvConfigValue{} }
 	if !env_config_blank(env_value) && (!entry.default_boolean || !env_config_falsey(env_value)) {
-		ruby_env_config_l934_d11_odeprecated_env(env, entry, mut state)!
+		env_config_odeprecated_env(env, entry, mut state)!
 	}
 	if entry.replacement_env && entry.replacement != '' && entry.replacement !in state.values {
 		state.values[entry.replacement] = env_value
@@ -726,8 +726,8 @@ pub fn ruby_env_config_l919_d10_env_value(env string, entry EnvConfigEntry, mut 
 }
 
 // Ruby method `odeprecated_env(env, hash)` at line 934.
-pub fn ruby_env_config_l934_d11_odeprecated_env(env string, entry EnvConfigEntry, mut state EnvConfigState) !EnvConfigDeprecationOutcome {
-	if (!entry.odeprecated && !entry.odisabled) || !ruby_env_config_l946_d12_env_deprecation_applies(entry, &state) {
+pub fn env_config_odeprecated_env(env string, entry EnvConfigEntry, mut state EnvConfigState) !EnvConfigDeprecationOutcome {
+	if (!entry.odeprecated && !entry.odisabled) || !env_config_env_deprecation_applies(entry, &state) {
 		return EnvConfigDeprecationOutcome{}
 	}
 	if !state.raise_deprecation_exceptions && env_config_blank(state.values['HOMEBREW_TESTS'] or { '' }) && env in state.warned_deprecated {
@@ -757,7 +757,7 @@ pub fn ruby_env_config_l934_d11_odeprecated_env(env string, entry EnvConfigEntry
 }
 
 // Ruby method `env_deprecation_applies?(hash)` at line 946.
-pub fn ruby_env_config_l946_d12_env_deprecation_applies(entry EnvConfigEntry, state &EnvConfigState) bool {
+pub fn env_config_env_deprecation_applies(entry EnvConfigEntry, state &EnvConfigState) bool {
 	command := state.values['HOMEBREW_COMMAND'] or { '' }
 	if entry.commands.len > 0 && !env_config_blank(command) && command !in entry.commands {
 		return false
@@ -771,7 +771,7 @@ pub fn ruby_env_config_l946_d12_env_deprecation_applies(entry EnvConfigEntry, st
 
 // Ruby method `bottle_domain_custom?` at line 959.
 pub fn ruby_env_config_l959_d13_bottle_domain_custom(mut state EnvConfigState) !bool {
-	return ruby_env_config_l903_d8_method_name('HOMEBREW_BOTTLE_DOMAIN', mut state)! != state.bottle_default_domain
+	return env_config_string_value('HOMEBREW_BOTTLE_DOMAIN', mut state)! != state.bottle_default_domain
 }
 
 // Ruby method `make_jobs` at line 964.
@@ -784,13 +784,13 @@ pub fn ruby_env_config_l964_d14_make_jobs(state &EnvConfigState) string {
 }
 
 // Ruby method `cask_opts` at line 975.
-pub fn ruby_env_config_l975_d15_cask_opts(state &EnvConfigState) ![]string {
+pub fn env_config_cask_opts(state &EnvConfigState) ![]string {
 	return env_config_shellsplit(state.values['HOMEBREW_CASK_OPTS'] or { '' })
 }
 
 // Ruby method `self.cask_opts_binaries?` at line 980.
 pub fn ruby_env_config_l980_d16_self_cask_opts_binaries(mut state EnvConfigState) !bool {
-	opts := ruby_env_config_l975_d15_cask_opts(&state)!
+	opts := env_config_cask_opts(&state)!
 	for index := opts.len - 1; index >= 0; index-- {
 		if opts[index] == '--binaries' {
 			return true
@@ -799,7 +799,7 @@ pub fn ruby_env_config_l980_d16_self_cask_opts_binaries(mut state EnvConfigState
 			return false
 		}
 	}
-	value := ruby_env_config_l912_d9_method_name('HOMEBREW_CASK_OPTS_BINARIES', mut state)!
+	value := env_config_optional_value('HOMEBREW_CASK_OPTS_BINARIES', mut state)!
 	if value.present {
 		return !env_config_falsey(value.value)
 	}
@@ -808,10 +808,10 @@ pub fn ruby_env_config_l980_d16_self_cask_opts_binaries(mut state EnvConfigState
 
 // Ruby method `cask_opts_require_sha?` at line 994.
 pub fn ruby_env_config_l994_d17_cask_opts_require_sha(mut state EnvConfigState) !bool {
-	if '--require-sha' in ruby_env_config_l975_d15_cask_opts(&state)! {
+	if '--require-sha' in env_config_cask_opts(&state)! {
 		return true
 	}
-	value := ruby_env_config_l912_d9_method_name('HOMEBREW_CASK_OPTS_REQUIRE_SHA', mut state)!
+	value := env_config_optional_value('HOMEBREW_CASK_OPTS_REQUIRE_SHA', mut state)!
 	return value.present && !env_config_falsey(value.value)
 }
 
@@ -864,7 +864,7 @@ pub fn ruby_env_config_l1039_d22_download_concurrency(state &EnvConfigState) int
 
 // Ruby method `tap_trust_configured?` at line 1053.
 pub fn ruby_env_config_l1053_d23_tap_trust_configured(mut state EnvConfigState) !bool {
-	return ruby_env_config_l891_d7_method_name('HOMEBREW_REQUIRE_TAP_TRUST', mut state)! || ruby_env_config_l891_d7_method_name('HOMEBREW_NO_REQUIRE_TAP_TRUST', mut state)!
+	return env_config_boolean_value('HOMEBREW_REQUIRE_TAP_TRUST', mut state)! || env_config_boolean_value('HOMEBREW_NO_REQUIRE_TAP_TRUST', mut state)!
 }
 
 // Original Ruby source (line-for-line):

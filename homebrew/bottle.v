@@ -79,9 +79,9 @@ pub fn new_bottle_filename(name string, version PkgVersion, tag BottleTag,
 		return error('Invalid bottle version')
 	}
 	return BottleFilename{
-		name:    basename
+		name: basename
 		version: version
-		tag:     tag.unstandardized_symbol()
+		tag: tag.unstandardized_symbol()
 		rebuild: rebuild
 	}
 }
@@ -162,16 +162,16 @@ pub fn bottle_path_resolved_basename(root_url string, name string, checksum Chec
 	if github_packages_root_url_if_match(root_url) != none {
 		path := '${bottle_github_image_name(name)}/blobs/sha256:${checksum.hexdigest}'
 		return BottleUrlDecision{
-			path:              path
+			path: path
 			resolved_basename: filename.github_packages()
-			url:               '${root_url.trim_string_right('/')}/${path}'
-			github_packages:   true
+			url: '${root_url.trim_string_right('/')}/${path}'
+			github_packages: true
 		}
 	}
 	path := filename.url_encode()
 	return BottleUrlDecision{
 		path: path
-		url:  '${root_url.trim_string_right('/')}/${path}'
+		url: '${root_url.trim_string_right('/')}/${path}'
 	}
 }
 
@@ -184,14 +184,14 @@ pub fn new_bottle(name string, pkg_version PkgVersion, mut specification BottleS
 	resource.set_version(pkg_version.to_s())!
 	resource.set_checksum(tag_specification.checksum)
 	mut bottle := Bottle{
-		name:                 name
-		pkg_version:          pkg_version
-		specification:        specification
-		tag:                  tag_specification.tag
-		cellar:               tag_specification.cellar
-		rebuild:              specification.rebuild()
-		resource:             resource
-		fetch_tab_retried:    false
+		name: name
+		pkg_version: pkg_version
+		specification: specification
+		tag: tag_specification.tag
+		cellar: tag_specification.cellar
+		rebuild: specification.rebuild()
+		resource: resource
+		fetch_tab_retried: false
 		tab_attributes_value: map[string]json2.Any{}
 	}
 	bottle.set_root_url(specification.root_url(), specification.root_url_specs)!
@@ -246,8 +246,7 @@ pub fn (mut bottle Bottle) set_root_url(value string, specs map[string]string) !
 	bottle.root_url_value = value.trim_string_right('/')
 	bottle.has_root_url = true
 	filename := bottle.filename()!
-	decision := bottle_path_resolved_basename(bottle.root_url_value, bottle.name,
-		bottle.resource.checksum, filename)
+	decision := bottle_path_resolved_basename(bottle.root_url_value, bottle.name, bottle.resource.checksum, filename)
 	mut selected_specs := specs.clone()
 	selected_specs['bottle'] = 'true'
 	bottle.resource.set_url(decision.url, selected_specs)!
@@ -308,16 +307,16 @@ pub fn (bottle Bottle) github_packages_manifest_plan() ?BottleManifestPlan {
 		mirrors << '${default_domain}/${manifest_path}'
 	}
 	return BottleManifestPlan{
-		descriptor:        BottleDescriptor{
-			name:     bottle.name
-			version:  bottle.pkg_version.to_s()
+		descriptor: BottleDescriptor{
+			name: bottle.name
+			version: bottle.pkg_version.to_s()
 			checksum: bottle.resource.checksum.hexdigest
-			rebuild:  bottle.rebuild
-			tag:      bottle.tag.symbol()
+			rebuild: bottle.rebuild
+			tag: bottle.tag.symbol()
 		}
-		url:               '${root}/${manifest_path}'
-		mirrors:           mirrors
-		version_rebuild:   version_rebuild
+		url: '${root}/${manifest_path}'
+		mirrors: mirrors
+		version_rebuild: version_rebuild
 		resolved_basename: '${bottle.name}-${version_rebuild}.bottle_manifest.json'
 	}
 }
@@ -426,7 +425,7 @@ pub fn (mut bottle Bottle) stage(destination string) !string {
 	}
 	return bottle.resource.unpack(destination, false) or {
 		original_error := err.msg()
-		if !ruby_bottle_l179_d26_discard_corrupt_cached_download(mut bottle)! {
+		if !bottle_discard_corrupt_cached_download(mut bottle)! {
 			return error(original_error)
 		}
 		bottle.resource.fetch(true, none, false, true)!
@@ -450,8 +449,8 @@ fn extract_queued_bottle(download string, temporary_cellar string) ! {
 		prioritize_extension: true
 	})
 	strategy.extract_nestedly(unpack_strategy.ExtractOptions{
-		destination:          temporary_cellar
-		basename:             os.file_name(download)
+		destination: temporary_cellar
+		basename: os.file_name(download)
 		prioritize_extension: true
 	})!
 }
@@ -652,7 +651,7 @@ pub fn ruby_bottle_l166_d25_with_corrupt_download_retry[T](mut bottle Bottle, qu
 	operation fn () !T) !T {
 	return operation() or {
 		original_error := err.msg()
-		ruby_bottle_l179_d26_discard_corrupt_cached_download(mut bottle)!
+		bottle_discard_corrupt_cached_download(mut bottle)!
 		cached_download := bottle.resource.cached_download() or { '' }
 		if cached_download != '' && ruby.path_exists(cached_download) {
 			return error(original_error)
@@ -663,7 +662,7 @@ pub fn ruby_bottle_l166_d25_with_corrupt_download_retry[T](mut bottle Bottle, qu
 }
 
 // Ruby method `discard_corrupt_cached_download` at line 179.
-pub fn ruby_bottle_l179_d26_discard_corrupt_cached_download(mut bottle Bottle) !bool {
+pub fn bottle_discard_corrupt_cached_download(mut bottle Bottle) !bool {
 	path := bottle.resource.cached_download() or { return false }
 	bottle.resource.verify_download_integrity(path) or {
 		bottle.clear_cache()!
@@ -742,7 +741,7 @@ pub fn ruby_bottle_l275_d38_filename(bottle &Bottle) !BottleFilename {
 }
 
 // Ruby method `staged_path_from_download_queue` at line 278.
-pub fn ruby_bottle_l278_d39_staged_path_from_download_queue(bottle &Bottle) string {
+pub fn bottle_staged_path_from_download_queue(bottle &Bottle) string {
 	temporary_cellar := ruby.environment_value('HOMEBREW_TEMP_CELLAR')
 	root := if temporary_cellar != '' { temporary_cellar } else { '/tmp/homebrew/Cellar' }
 	return bottle.staged_path_in(root)
@@ -755,7 +754,7 @@ pub fn (bottle Bottle) staged_path_in(temporary_cellar string) string {
 
 // Ruby method `staged_path_from_download_queue_marker` at line 284.
 pub fn ruby_bottle_l284_d40_staged_path_from_download_queue_marker(bottle &Bottle) string {
-	return '${ruby_bottle_l278_d39_staged_path_from_download_queue(bottle)}.poured'
+	return '${bottle_staged_path_from_download_queue(bottle)}.poured'
 }
 
 // Ruby method `stage_from_download_queue?(_download, pour:)` at line 289.

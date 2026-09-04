@@ -286,8 +286,8 @@ pub fn ruby_resource_spec_l304_d35_verify_download_integrity() bool {
 	mut cache := homebrew.DownloadableVerificationCache{
 		verified: map[string]bool{}
 	}
-	first := homebrew.ruby_downloadable_l34_d2_verify(mut cache, path, digest) or { return false }
-	second := homebrew.ruby_downloadable_l34_d2_verify(mut cache, path, digest) or { return false }
+	first := homebrew.downloadable_verify(mut cache, path, digest) or { return false }
+	second := homebrew.downloadable_verify(mut cache, path, digest) or { return false }
 	return !first.skipped && second.skipped
 }
 

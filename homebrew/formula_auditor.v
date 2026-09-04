@@ -378,7 +378,7 @@ pub fn ruby_formula_auditor_l52_d5_initialize(formula FormulaAuditFormula, optio
 }
 
 // Ruby method `audit_style` at line 80.
-pub fn ruby_formula_auditor_l80_d6_audit_style(mut auditor FormulaAuditor) {
+pub fn formula_auditor_audit_style(mut auditor FormulaAuditor) {
 	for offense in auditor.options.style_offenses {
 		prefix := if auditor.options.display_cop_names { '${offense.cop_name}: ' } else { '' }
 		auditor.problems << FormulaAuditProblem{
@@ -390,7 +390,7 @@ pub fn ruby_formula_auditor_l80_d6_audit_style(mut auditor FormulaAuditor) {
 }
 
 // Ruby method `audit_file` at line 92.
-pub fn ruby_formula_auditor_l92_d7_audit_file(mut auditor FormulaAuditor) {
+pub fn formula_auditor_audit_file(mut auditor FormulaAuditor) {
 	f := auditor.formula
 	if f.core_formula && auditor.versioned_formula {
 		unversioned_name := f.name.all_before('@')
@@ -454,7 +454,7 @@ pub fn ruby_formula_auditor_l176_d8_self_aliases(formula_aliases []string, tap_a
 }
 
 // Ruby method `audit_synced_versions_formulae` at line 182.
-pub fn ruby_formula_auditor_l182_d9_audit_synced_versions_formulae(mut auditor FormulaAuditor) {
+pub fn formula_auditor_audit_synced_versions_formulae(mut auditor FormulaAuditor) {
 	for synced in auditor.formula.synced_versions {
 		if synced.name != auditor.formula.name && synced.version != auditor.formula.version {
 			formula_audit_problem(mut auditor, 'Version of ${synced.name} (${synced.version}) should match version of ${auditor.formula.name} (${auditor.formula.version})')
@@ -463,7 +463,7 @@ pub fn ruby_formula_auditor_l182_d9_audit_synced_versions_formulae(mut auditor F
 }
 
 // Ruby method `audit_name` at line 204.
-pub fn ruby_formula_auditor_l204_d10_audit_name(mut auditor FormulaAuditor) {
+pub fn formula_auditor_audit_name(mut auditor FormulaAuditor) {
 	name := auditor.formula.name
 	mut errors := []string{}
 	if name != name.to_lower() { errors << 'uppercase letters' }
@@ -495,7 +495,7 @@ pub fn ruby_formula_auditor_l204_d10_audit_name(mut auditor FormulaAuditor) {
 }
 
 // Ruby method `audit_license` at line 267.
-pub fn ruby_formula_auditor_l267_d11_audit_license(mut auditor FormulaAuditor) {
+pub fn formula_auditor_audit_license(mut auditor FormulaAuditor) {
 	f := auditor.formula
 	if f.license != '' || f.licenses.len > 0 {
 		licenses := if f.licenses.len > 0 { f.licenses.clone() } else { [f.license] }
@@ -547,7 +547,7 @@ pub fn ruby_formula_auditor_l267_d11_audit_license(mut auditor FormulaAuditor) {
 }
 
 // Ruby method `audit_deps` at line 339.
-pub fn ruby_formula_auditor_l339_d12_audit_deps(mut auditor FormulaAuditor) {
+pub fn formula_auditor_audit_deps(mut auditor FormulaAuditor) {
 	f := auditor.formula
 	for dep in f.dependencies {
 		if dep.cross_tap_missing {
@@ -661,7 +661,7 @@ pub fn ruby_formula_auditor_l339_d12_audit_deps(mut auditor FormulaAuditor) {
 }
 
 // Ruby method `audit_node_modules` at line 517.
-pub fn ruby_formula_auditor_l517_d13_audit_node_modules(mut auditor FormulaAuditor) {
+pub fn formula_auditor_audit_node_modules(mut auditor FormulaAuditor) {
 	if !auditor.core_tap || !auditor.formula.libexec_node_modules {
 		return
 	}
@@ -673,7 +673,7 @@ pub fn ruby_formula_auditor_l517_d13_audit_node_modules(mut auditor FormulaAudit
 }
 
 // Ruby method `audit_conflicts` at line 540.
-pub fn ruby_formula_auditor_l540_d14_audit_conflicts(mut auditor FormulaAuditor) {
+pub fn formula_auditor_audit_conflicts(mut auditor FormulaAuditor) {
 	for conflict in auditor.formula.conflicts {
 		if conflict.cross_tap_missing {
 			continue
@@ -705,8 +705,8 @@ pub fn ruby_formula_auditor_l540_d14_audit_conflicts(mut auditor FormulaAuditor)
 }
 
 // Ruby method `audit_gcc_dependency` at line 578.
-pub fn ruby_formula_auditor_l578_d15_audit_gcc_dependency(mut auditor FormulaAuditor) {
-	if !auditor.core_tap || !auditor.formula.linux || !ruby_formula_auditor_l1348_d50_linux_only_gcc_dep(auditor.formula) {
+pub fn formula_auditor_audit_gcc_dependency(mut auditor FormulaAuditor) {
+	if !auditor.core_tap || !auditor.formula.linux || !formula_auditor_linux_only_gcc_dep(auditor.formula) {
 		return
 	}
 	if formula_audit_exception(auditor, 'linux_only_gcc_dependency_allowlist', auditor.formula.name) {
@@ -716,7 +716,7 @@ pub fn ruby_formula_auditor_l578_d15_audit_gcc_dependency(mut auditor FormulaAud
 }
 
 // Ruby method `audit_glibc` at line 590.
-pub fn ruby_formula_auditor_l590_d16_audit_glibc(mut auditor FormulaAuditor) {
+pub fn formula_auditor_audit_glibc(mut auditor FormulaAuditor) {
 	f := auditor.formula
 	if !auditor.core_tap || f.name != 'glibc' || f.version in [
 		f.linux_glibc_ci_version,
@@ -728,7 +728,7 @@ pub fn ruby_formula_auditor_l590_d16_audit_glibc(mut auditor FormulaAuditor) {
 }
 
 // Ruby method `audit_relicensed_formulae` at line 602.
-pub fn ruby_formula_auditor_l602_d17_audit_relicensed_formulae(mut auditor FormulaAuditor) {
+pub fn formula_auditor_audit_relicensed_formulae(mut auditor FormulaAuditor) {
 	f := auditor.formula
 	if !auditor.core_tap || f.relicensed_version == '' || formula_audit_compare_versions(f.version, f.relicensed_version) < 0 {
 		return
@@ -737,7 +737,7 @@ pub fn ruby_formula_auditor_l602_d17_audit_relicensed_formulae(mut auditor Formu
 }
 
 // Ruby method `audit_versioned_keg_only` at line 614.
-pub fn ruby_formula_auditor_l614_d18_audit_versioned_keg_only(mut auditor FormulaAuditor) {
+pub fn formula_auditor_audit_versioned_keg_only(mut auditor FormulaAuditor) {
 	f := auditor.formula
 	if !auditor.versioned_formula || !auditor.core_tap {
 		return
@@ -752,7 +752,7 @@ pub fn ruby_formula_auditor_l614_d18_audit_versioned_keg_only(mut auditor Formul
 }
 
 // Ruby method `audit_homepage` at line 629.
-pub fn ruby_formula_auditor_l629_d19_audit_homepage(mut auditor FormulaAuditor) {
+pub fn formula_auditor_audit_homepage(mut auditor FormulaAuditor) {
 	f := auditor.formula
 	if f.homepage == '' || f.homepage_browsed_recently || !auditor.options.online {
 		return
@@ -769,7 +769,7 @@ pub fn ruby_formula_auditor_l629_d19_audit_homepage(mut auditor FormulaAuditor) 
 }
 
 // Ruby method `audit_duplicate_formula` at line 665.
-pub fn ruby_formula_auditor_l665_d20_audit_duplicate_formula(mut auditor FormulaAuditor) {
+pub fn formula_auditor_audit_duplicate_formula(mut auditor FormulaAuditor) {
 	if !auditor.core_tap || !auditor.new_formula || auditor.formula.stable_url == '' {
 		return
 	}
@@ -782,14 +782,14 @@ pub fn ruby_formula_auditor_l665_d20_audit_duplicate_formula(mut auditor Formula
 }
 
 // Ruby method `audit_bottle_spec` at line 686.
-pub fn ruby_formula_auditor_l686_d21_audit_bottle_spec(mut auditor FormulaAuditor) {
+pub fn formula_auditor_audit_bottle_spec(mut auditor FormulaAuditor) {
 	if auditor.new_formula_inclusive && auditor.core_tap && auditor.formula.bottle_defined {
 		formula_audit_new_problem(mut auditor, 'New formulae in homebrew/core should not have a `bottle do` block')
 	}
 }
 
 // Ruby method `audit_eol` at line 697.
-pub fn ruby_formula_auditor_l697_d22_audit_eol(mut auditor FormulaAuditor) {
+pub fn formula_auditor_audit_eol(mut auditor FormulaAuditor) {
 	f := auditor.formula
 	if !auditor.options.online || !auditor.core_tap || f.deprecated || f.disabled || !f.eol {
 		return
@@ -807,7 +807,7 @@ pub fn ruby_formula_auditor_l697_d22_audit_eol(mut auditor FormulaAuditor) {
 }
 
 // Ruby method `audit_wayback_url` at line 727.
-pub fn ruby_formula_auditor_l727_d23_audit_wayback_url(mut auditor FormulaAuditor) {
+pub fn formula_auditor_audit_wayback_url(mut auditor FormulaAuditor) {
 	f := auditor.formula
 	if !auditor.core_tap || f.deprecated || f.disabled {
 		return
@@ -825,11 +825,11 @@ pub fn ruby_formula_auditor_l727_d23_audit_wayback_url(mut auditor FormulaAudito
 }
 
 // Ruby method `audit_github_repository_archived` at line 750.
-pub fn ruby_formula_auditor_l750_d24_audit_github_repository_archived(mut auditor FormulaAuditor) {
+pub fn formula_auditor_audit_github_repository_archived(mut auditor FormulaAuditor) {
 	if auditor.formula.deprecated || auditor.formula.disabled || !auditor.options.online {
 		return
 	}
-	if _, _ := ruby_formula_auditor_l838_d31_get_repo_data(auditor, 'github.com') {
+	if _, _ := formula_auditor_get_repo_data(auditor, 'github.com') {
 		if auditor.formula.github_repo.archived {
 			formula_audit_problem(mut auditor, 'GitHub repository is archived')
 		}
@@ -837,11 +837,11 @@ pub fn ruby_formula_auditor_l750_d24_audit_github_repository_archived(mut audito
 }
 
 // Ruby method `audit_gitlab_repository_archived` at line 763.
-pub fn ruby_formula_auditor_l763_d25_audit_gitlab_repository_archived(mut auditor FormulaAuditor) {
+pub fn formula_auditor_audit_gitlab_repository_archived(mut auditor FormulaAuditor) {
 	if auditor.formula.deprecated || auditor.formula.disabled || !auditor.options.online {
 		return
 	}
-	if _, _ := ruby_formula_auditor_l838_d31_get_repo_data(auditor, 'gitlab.com') {
+	if _, _ := formula_auditor_get_repo_data(auditor, 'gitlab.com') {
 		if auditor.formula.gitlab_repo.archived {
 			formula_audit_problem(mut auditor, 'GitLab repository is archived')
 		}
@@ -849,11 +849,11 @@ pub fn ruby_formula_auditor_l763_d25_audit_gitlab_repository_archived(mut audito
 }
 
 // Ruby method `audit_forgejo_repository_archived` at line 776.
-pub fn ruby_formula_auditor_l776_d26_audit_forgejo_repository_archived(mut auditor FormulaAuditor) {
+pub fn formula_auditor_audit_forgejo_repository_archived(mut auditor FormulaAuditor) {
 	if auditor.formula.deprecated || auditor.formula.disabled || !auditor.options.online {
 		return
 	}
-	if _, _ := ruby_formula_auditor_l838_d31_get_repo_data(auditor, 'codeberg.org') {
+	if _, _ := formula_auditor_get_repo_data(auditor, 'codeberg.org') {
 		data := auditor.formula.forgejo_repo
 		if data.archived {
 			formula_audit_problem(mut auditor, 'Forgejo repository is archived since ${data.archived_at}')
@@ -862,12 +862,12 @@ pub fn ruby_formula_auditor_l776_d26_audit_forgejo_repository_archived(mut audit
 }
 
 // Ruby method `audit_github_repository` at line 789.
-pub fn ruby_formula_auditor_l789_d27_audit_github_repository(mut auditor FormulaAuditor) {
+pub fn formula_auditor_audit_github_repository(mut auditor FormulaAuditor) {
 	if !auditor.new_formula {
 		return
 	}
-	if owner, _ := ruby_formula_auditor_l838_d31_get_repo_data(auditor, 'github.com') {
-		_ = ruby_formula_auditor_l1336_d48_self_submission(owner, auditor.options.self_submission_owners)
+	if owner, _ := formula_auditor_get_repo_data(auditor, 'github.com') {
+		_ = formula_auditor_submission(owner, auditor.options.self_submission_owners)
 		if auditor.formula.github_repo.warning != '' {
 			formula_audit_new_problem(mut auditor, auditor.formula.github_repo.warning)
 		}
@@ -875,12 +875,12 @@ pub fn ruby_formula_auditor_l789_d27_audit_github_repository(mut auditor Formula
 }
 
 // Ruby method `audit_gitlab_repository` at line 802.
-pub fn ruby_formula_auditor_l802_d28_audit_gitlab_repository(mut auditor FormulaAuditor) {
+pub fn formula_auditor_audit_gitlab_repository(mut auditor FormulaAuditor) {
 	if !auditor.new_formula {
 		return
 	}
-	if owner, _ := ruby_formula_auditor_l838_d31_get_repo_data(auditor, 'gitlab.com') {
-		_ = ruby_formula_auditor_l1336_d48_self_submission(owner, auditor.options.self_submission_owners)
+	if owner, _ := formula_auditor_get_repo_data(auditor, 'gitlab.com') {
+		_ = formula_auditor_submission(owner, auditor.options.self_submission_owners)
 		if auditor.formula.gitlab_repo.warning != '' {
 			formula_audit_new_problem(mut auditor, auditor.formula.gitlab_repo.warning)
 		}
@@ -888,12 +888,12 @@ pub fn ruby_formula_auditor_l802_d28_audit_gitlab_repository(mut auditor Formula
 }
 
 // Ruby method `audit_bitbucket_repository` at line 814.
-pub fn ruby_formula_auditor_l814_d29_audit_bitbucket_repository(mut auditor FormulaAuditor) {
+pub fn formula_auditor_audit_bitbucket_repository(mut auditor FormulaAuditor) {
 	if !auditor.new_formula {
 		return
 	}
-	if owner, _ := ruby_formula_auditor_l838_d31_get_repo_data(auditor, 'bitbucket.org') {
-		_ = ruby_formula_auditor_l1336_d48_self_submission(owner, auditor.options.self_submission_owners)
+	if owner, _ := formula_auditor_get_repo_data(auditor, 'bitbucket.org') {
+		_ = formula_auditor_submission(owner, auditor.options.self_submission_owners)
 		if auditor.formula.bitbucket_repo.warning != '' {
 			formula_audit_new_problem(mut auditor, auditor.formula.bitbucket_repo.warning)
 		}
@@ -901,12 +901,12 @@ pub fn ruby_formula_auditor_l814_d29_audit_bitbucket_repository(mut auditor Form
 }
 
 // Ruby method `audit_forgejo_repository` at line 826.
-pub fn ruby_formula_auditor_l826_d30_audit_forgejo_repository(mut auditor FormulaAuditor) {
+pub fn formula_auditor_audit_forgejo_repository(mut auditor FormulaAuditor) {
 	if !auditor.new_formula {
 		return
 	}
-	if owner, _ := ruby_formula_auditor_l838_d31_get_repo_data(auditor, 'codeberg.org') {
-		_ = ruby_formula_auditor_l1336_d48_self_submission(owner, auditor.options.self_submission_owners)
+	if owner, _ := formula_auditor_get_repo_data(auditor, 'codeberg.org') {
+		_ = formula_auditor_submission(owner, auditor.options.self_submission_owners)
 		if auditor.formula.forgejo_repo.warning != '' {
 			formula_audit_new_problem(mut auditor, auditor.formula.forgejo_repo.warning)
 		}
@@ -914,7 +914,7 @@ pub fn ruby_formula_auditor_l826_d30_audit_forgejo_repository(mut auditor Formul
 }
 
 // Ruby method `get_repo_data(regex)` at line 838.
-pub fn ruby_formula_auditor_l838_d31_get_repo_data(auditor FormulaAuditor, host string) ?(string, string) {
+pub fn formula_auditor_get_repo_data(auditor FormulaAuditor, host string) ?(string, string) {
 	if !auditor.core_tap || !auditor.options.online {
 		return none
 	}
@@ -927,9 +927,9 @@ pub fn ruby_formula_auditor_l838_d31_get_repo_data(auditor FormulaAuditor, host 
 }
 
 // Ruby method `audit_specs` at line 853.
-pub fn ruby_formula_auditor_l853_d32_audit_specs(mut auditor FormulaAuditor) {
+pub fn formula_auditor_audit_specs(mut auditor FormulaAuditor) {
 	f := auditor.formula
-	if ruby_formula_auditor_l1343_d49_head_only(f) && auditor.core_tap {
+	if formula_auditor_head_only(f) && auditor.core_tap {
 		formula_audit_problem(mut auditor, 'HEAD-only (no stable download)')
 	}
 	for spec in [f.stable_spec, f.head_spec] {
@@ -1006,7 +1006,7 @@ pub fn ruby_formula_auditor_l853_d32_audit_specs(mut auditor FormulaAuditor) {
 }
 
 // Ruby method `audit_stable_version` at line 990.
-pub fn ruby_formula_auditor_l990_d33_audit_stable_version(mut auditor FormulaAuditor) {
+pub fn formula_auditor_audit_stable_version(mut auditor FormulaAuditor) {
 	f := auditor.formula
 	if !auditor.options.git || f.tap_name == '' || !f.tap_git || !f.stable || f.committed_base.version == '' {
 		return
@@ -1020,7 +1020,7 @@ pub fn ruby_formula_auditor_l990_d33_audit_stable_version(mut auditor FormulaAud
 }
 
 // Ruby method `audit_revision` at line 1010.
-pub fn ruby_formula_auditor_l1010_d34_audit_revision(mut auditor FormulaAuditor) {
+pub fn formula_auditor_audit_revision(mut auditor FormulaAuditor) {
 	f := auditor.formula
 	if auditor.new_formula && f.revision != 0 {
 		formula_audit_new_problem(mut auditor, 'New formulae should not define a revision.')
@@ -1059,7 +1059,7 @@ pub fn ruby_formula_auditor_l1010_d34_audit_revision(mut auditor FormulaAuditor)
 }
 
 // Ruby method `audit_compatibility_version` at line 1074.
-pub fn ruby_formula_auditor_l1074_d35_audit_compatibility_version(mut auditor FormulaAuditor) {
+pub fn formula_auditor_audit_compatibility_version(mut auditor FormulaAuditor) {
 	f := auditor.formula
 	if !auditor.options.git || f.tap_name == '' || !f.tap_git || (f.committed_base.version == '' && !f.committed_base.has_compatibility_version) {
 		return
@@ -1088,7 +1088,7 @@ pub fn ruby_formula_auditor_l1074_d35_audit_compatibility_version(mut auditor Fo
 }
 
 // Ruby method `audit_version_scheme` at line 1125.
-pub fn ruby_formula_auditor_l1125_d36_audit_version_scheme(mut auditor FormulaAuditor) {
+pub fn formula_auditor_audit_version_scheme(mut auditor FormulaAuditor) {
 	f := auditor.formula
 	if !auditor.options.git || f.tap_name == '' || !f.tap_git || !f.stable || !f.committed_base.has_version_scheme {
 		return
@@ -1102,7 +1102,7 @@ pub fn ruby_formula_auditor_l1125_d36_audit_version_scheme(mut auditor FormulaAu
 }
 
 // Ruby method `audit_unconfirmed_checksum_change` at line 1145.
-pub fn ruby_formula_auditor_l1145_d37_audit_unconfirmed_checksum_change(mut auditor FormulaAuditor) {
+pub fn formula_auditor_audit_unconfirmed_checksum_change(mut auditor FormulaAuditor) {
 	f := auditor.formula
 	base := f.committed_base
 	if !auditor.options.git || f.tap_name == '' || !f.tap_git || !f.stable {
@@ -1114,7 +1114,7 @@ pub fn ruby_formula_auditor_l1145_d37_audit_unconfirmed_checksum_change(mut audi
 }
 
 // Ruby method `audit_text` at line 1171.
-pub fn ruby_formula_auditor_l1171_d38_audit_text(mut auditor FormulaAuditor) {
+pub fn formula_auditor_audit_text(mut auditor FormulaAuditor) {
 	mut names := [auditor.formula.name]
 	mut candidates := auditor.formula.aliases.clone()
 	candidates << auditor.formula.bin_names
@@ -1133,7 +1133,7 @@ pub fn ruby_formula_auditor_l1171_d38_audit_text(mut auditor FormulaAuditor) {
 }
 
 // Ruby method `audit_reverse_migration` at line 1191.
-pub fn ruby_formula_auditor_l1191_d39_audit_reverse_migration(mut auditor FormulaAuditor) {
+pub fn formula_auditor_audit_reverse_migration(mut auditor FormulaAuditor) {
 	if auditor.options.strict && auditor.core_tap && auditor.formula.tap_migration {
 		f := auditor.formula
 		formula_audit_problem(mut auditor, '${f.name} seems to be listed in tap_migrations.json!\nPlease remove ${f.name} from present tap & tap_migrations.json\nbefore submitting it to Homebrew/homebrew-${f.tap_repository}.\n')
@@ -1141,14 +1141,14 @@ pub fn ruby_formula_auditor_l1191_d39_audit_reverse_migration(mut auditor Formul
 }
 
 // Ruby method `audit_prefix_has_contents` at line 1205.
-pub fn ruby_formula_auditor_l1205_d40_audit_prefix_has_contents(mut auditor FormulaAuditor) {
+pub fn formula_auditor_audit_prefix_has_contents(mut auditor FormulaAuditor) {
 	if auditor.formula.prefix_directory && auditor.formula.empty_installation {
 		formula_audit_problem(mut auditor, 'The installation seems to be empty. Please ensure the prefix\nis set correctly and expected files are installed.\nThe prefix configure/make argument may be case-sensitive.\n')
 	}
 }
 
 // Ruby method `audit_deprecate_disable` at line 1217.
-pub fn ruby_formula_auditor_l1217_d41_audit_deprecate_disable(mut auditor FormulaAuditor) {
+pub fn formula_auditor_audit_deprecate_disable(mut auditor FormulaAuditor) {
 	if auditor.formula.deprecate_disable_error != '' {
 		formula_audit_problem(mut auditor, auditor.formula.deprecate_disable_error)
 	}
@@ -1177,71 +1177,71 @@ pub fn ruby_formula_auditor_l1228_d43_audit(mut auditor FormulaAuditor) {
 			continue
 		}
 		match name {
-			'style' { ruby_formula_auditor_l80_d6_audit_style(mut auditor) }
-			'file' { ruby_formula_auditor_l92_d7_audit_file(mut auditor) }
+			'style' { formula_auditor_audit_style(mut auditor) }
+			'file' { formula_auditor_audit_file(mut auditor) }
 			'synced_versions_formulae' {
-				ruby_formula_auditor_l182_d9_audit_synced_versions_formulae(mut auditor)
+				formula_auditor_audit_synced_versions_formulae(mut auditor)
 			}
-			'name' { ruby_formula_auditor_l204_d10_audit_name(mut auditor) }
-			'license' { ruby_formula_auditor_l267_d11_audit_license(mut auditor) }
-			'deps' { ruby_formula_auditor_l339_d12_audit_deps(mut auditor) }
-			'node_modules' { ruby_formula_auditor_l517_d13_audit_node_modules(mut auditor) }
-			'conflicts' { ruby_formula_auditor_l540_d14_audit_conflicts(mut auditor) }
-			'gcc_dependency' { ruby_formula_auditor_l578_d15_audit_gcc_dependency(mut auditor) }
-			'glibc' { ruby_formula_auditor_l590_d16_audit_glibc(mut auditor) }
+			'name' { formula_auditor_audit_name(mut auditor) }
+			'license' { formula_auditor_audit_license(mut auditor) }
+			'deps' { formula_auditor_audit_deps(mut auditor) }
+			'node_modules' { formula_auditor_audit_node_modules(mut auditor) }
+			'conflicts' { formula_auditor_audit_conflicts(mut auditor) }
+			'gcc_dependency' { formula_auditor_audit_gcc_dependency(mut auditor) }
+			'glibc' { formula_auditor_audit_glibc(mut auditor) }
 			'relicensed_formulae' {
-				ruby_formula_auditor_l602_d17_audit_relicensed_formulae(mut auditor)
+				formula_auditor_audit_relicensed_formulae(mut auditor)
 			}
 			'versioned_keg_only' {
-				ruby_formula_auditor_l614_d18_audit_versioned_keg_only(mut auditor)
+				formula_auditor_audit_versioned_keg_only(mut auditor)
 			}
-			'homepage' { ruby_formula_auditor_l629_d19_audit_homepage(mut auditor) }
+			'homepage' { formula_auditor_audit_homepage(mut auditor) }
 			'duplicate_formula' {
-				ruby_formula_auditor_l665_d20_audit_duplicate_formula(mut auditor)
+				formula_auditor_audit_duplicate_formula(mut auditor)
 			}
-			'bottle_spec' { ruby_formula_auditor_l686_d21_audit_bottle_spec(mut auditor) }
-			'eol' { ruby_formula_auditor_l697_d22_audit_eol(mut auditor) }
-			'wayback_url' { ruby_formula_auditor_l727_d23_audit_wayback_url(mut auditor) }
+			'bottle_spec' { formula_auditor_audit_bottle_spec(mut auditor) }
+			'eol' { formula_auditor_audit_eol(mut auditor) }
+			'wayback_url' { formula_auditor_audit_wayback_url(mut auditor) }
 			'github_repository_archived' {
-				ruby_formula_auditor_l750_d24_audit_github_repository_archived(mut auditor)
+				formula_auditor_audit_github_repository_archived(mut auditor)
 			}
 			'gitlab_repository_archived' {
-				ruby_formula_auditor_l763_d25_audit_gitlab_repository_archived(mut auditor)
+				formula_auditor_audit_gitlab_repository_archived(mut auditor)
 			}
 			'forgejo_repository_archived' {
-				ruby_formula_auditor_l776_d26_audit_forgejo_repository_archived(mut auditor)
+				formula_auditor_audit_forgejo_repository_archived(mut auditor)
 			}
 			'github_repository' {
-				ruby_formula_auditor_l789_d27_audit_github_repository(mut auditor)
+				formula_auditor_audit_github_repository(mut auditor)
 			}
 			'gitlab_repository' {
-				ruby_formula_auditor_l802_d28_audit_gitlab_repository(mut auditor)
+				formula_auditor_audit_gitlab_repository(mut auditor)
 			}
 			'bitbucket_repository' {
-				ruby_formula_auditor_l814_d29_audit_bitbucket_repository(mut auditor)
+				formula_auditor_audit_bitbucket_repository(mut auditor)
 			}
 			'forgejo_repository' {
-				ruby_formula_auditor_l826_d30_audit_forgejo_repository(mut auditor)
+				formula_auditor_audit_forgejo_repository(mut auditor)
 			}
-			'specs' { ruby_formula_auditor_l853_d32_audit_specs(mut auditor) }
-			'stable_version' { ruby_formula_auditor_l990_d33_audit_stable_version(mut auditor) }
-			'revision' { ruby_formula_auditor_l1010_d34_audit_revision(mut auditor) }
+			'specs' { formula_auditor_audit_specs(mut auditor) }
+			'stable_version' { formula_auditor_audit_stable_version(mut auditor) }
+			'revision' { formula_auditor_audit_revision(mut auditor) }
 			'compatibility_version' {
-				ruby_formula_auditor_l1074_d35_audit_compatibility_version(mut auditor)
+				formula_auditor_audit_compatibility_version(mut auditor)
 			}
-			'version_scheme' { ruby_formula_auditor_l1125_d36_audit_version_scheme(mut auditor) }
+			'version_scheme' { formula_auditor_audit_version_scheme(mut auditor) }
 			'unconfirmed_checksum_change' {
-				ruby_formula_auditor_l1145_d37_audit_unconfirmed_checksum_change(mut auditor)
+				formula_auditor_audit_unconfirmed_checksum_change(mut auditor)
 			}
-			'text' { ruby_formula_auditor_l1171_d38_audit_text(mut auditor) }
+			'text' { formula_auditor_audit_text(mut auditor) }
 			'reverse_migration' {
-				ruby_formula_auditor_l1191_d39_audit_reverse_migration(mut auditor)
+				formula_auditor_audit_reverse_migration(mut auditor)
 			}
 			'prefix_has_contents' {
-				ruby_formula_auditor_l1205_d40_audit_prefix_has_contents(mut auditor)
+				formula_auditor_audit_prefix_has_contents(mut auditor)
 			}
 			'deprecate_disable' {
-				ruby_formula_auditor_l1217_d41_audit_deprecate_disable(mut auditor)
+				formula_auditor_audit_deprecate_disable(mut auditor)
 			}
 			else {}
 		}
@@ -1309,17 +1309,17 @@ pub fn ruby_formula_auditor_l1331_d47_new_formula_problem(mut auditor FormulaAud
 }
 
 // Ruby method `self_submission?(repo_owner)` at line 1336.
-pub fn ruby_formula_auditor_l1336_d48_self_submission(repo_owner string, submission_owners []string) bool {
+pub fn formula_auditor_submission(repo_owner string, submission_owners []string) bool {
 	return repo_owner != '' && repo_owner in submission_owners
 }
 
 // Ruby method `head_only?(formula)` at line 1343.
-pub fn ruby_formula_auditor_l1343_d49_head_only(formula FormulaAuditFormula) bool {
+pub fn formula_auditor_head_only(formula FormulaAuditFormula) bool {
 	return formula.head_url != '' && !formula.stable
 }
 
 // Ruby method `linux_only_gcc_dep?(formula)` at line 1348.
-pub fn ruby_formula_auditor_l1348_d50_linux_only_gcc_dep(formula FormulaAuditFormula) bool {
+pub fn formula_auditor_linux_only_gcc_dep(formula FormulaAuditFormula) bool {
 	if !formula.linux {
 		return false
 	}

@@ -487,8 +487,10 @@ fn cask_loader_localisations(values map[string]json2.Any) []CaskLoaderLocalisati
 		}
 		localisations << CaskLoaderLocalisation{
 			languages: if raw_languages := variation['languages'] {
-				cask_loader_any_strings(raw_languages)} else {
-				[]string{}}
+				cask_loader_any_strings(raw_languages)
+			} else {
+				[]string{}
+			}
 			value: cask_loader_any_string(variation, 'value')
 			is_default: cask_loader_any_bool(variation, 'default')
 			version: cask_loader_any_string(overrides, 'version')
@@ -642,13 +644,13 @@ fn cask_loader_lookup_cask(reference string, context CaskLoaderLookupContext) !C
 fn cask_loader_load_selected(mut loader CaskLoader, config CaskLoaderConfig,
 	context CaskLoaderLoadContext) !CaskLoaderCask {
 	return match loader.kind {
-		.content { ruby_cask_loader_l104_d8_load(mut loader, config, context)! }
-		.path, .installed_path { ruby_cask_loader_l167_d15_load(mut loader, config, context)! }
-		.uri { ruby_cask_loader_l282_d21_load(mut loader, config, context)! }
-		.tap { ruby_cask_loader_l347_d26_load(mut loader, config, context)! }
-		.instance { ruby_cask_loader_l373_d29_load(loader, config) }
-		.api { ruby_cask_loader_l442_d35_load(loader, config, context)! }
-		.null_loader { ruby_cask_loader_l680_d45_load(loader, config)! }
+		.content { cask_loader_load_content(mut loader, config, context)! }
+		.path, .installed_path { cask_loader_load_path(mut loader, config, context)! }
+		.uri { cask_loader_load_uri(mut loader, config, context)! }
+		.tap { cask_loader_load_tap(mut loader, config, context)! }
+		.instance { cask_loader_load_instance(loader, config) }
+		.api { cask_loader_load_api(loader, config, context)! }
+		.null_loader { cask_loader_load_null(loader, config)! }
 		else {
 			return error('CaskError: No cask loader found for ${loader.token}')
 		}
@@ -656,28 +658,28 @@ fn cask_loader_load_selected(mut loader CaskLoader, config CaskLoaderConfig,
 }
 
 // Ruby method `load(config:); end` at line 31.
-pub fn ruby_cask_loader_l31_d1_load(mut loader CaskLoader, config CaskLoaderConfig,
+pub fn cask_loader_load(mut loader CaskLoader, config CaskLoaderConfig,
 	context CaskLoaderLoadContext) !CaskLoaderCask {
 	return cask_loader_load_selected(mut loader, config, context)
 }
 
 // Ruby attr_reader `attr_reader :content` at line 42.
-pub fn ruby_cask_loader_l42_d2_content(loader CaskLoader) string {
+pub fn cask_loader_content(loader CaskLoader) string {
 	return loader.content
 }
 
 // Ruby attr_reader `attr_reader :tap` at line 45.
-pub fn ruby_cask_loader_l45_d3_tap(loader CaskLoader) ?CaskLoaderTap {
+pub fn cask_loader_content_tap(loader CaskLoader) ?CaskLoaderTap {
 	return if loader.has_tap { loader.tap } else { none }
 }
 
 // Ruby method `initialize` at line 48.
-pub fn ruby_cask_loader_l48_d4_initialize() CaskLoader {
+pub fn new_base_cask_loader() CaskLoader {
 	return CaskLoader{ kind: .abstract_content }
 }
 
 // Ruby method `cask(header_token, **options, &block)` at line 63.
-pub fn ruby_cask_loader_l63_d5_cask(loader CaskLoader, header_token string,
+pub fn cask_loader_cask(loader CaskLoader, header_token string,
 	definition CaskLoaderCask) CaskLoaderCask {
 	return CaskLoaderCask{
 		...definition
@@ -690,16 +692,16 @@ pub fn ruby_cask_loader_l63_d5_cask(loader CaskLoader, header_token string,
 }
 
 // Ruby method `self.try_new(ref, warn: false)` at line 74.
-pub fn ruby_cask_loader_l74_d6_self_try_new(ref CaskLoaderReference) ?CaskLoader {
+pub fn cask_loader_try_content(ref CaskLoaderReference) ?CaskLoader {
 	if ref.kind == .cask || !cask_loader_content_match(cask_loader_ref_text(ref)) {
 		return none
 	}
-	return ruby_cask_loader_l96_d7_initialize(cask_loader_ref_text(ref), none)
+	return new_content_cask_loader(cask_loader_ref_text(ref), none)
 }
 
 // Ruby method `initialize(content, tap: T.unsafe(nil))` at line 96.
-pub fn ruby_cask_loader_l96_d7_initialize(content string, tap ?CaskLoaderTap) CaskLoader {
-	mut loader := ruby_cask_loader_l48_d4_initialize()
+pub fn new_content_cask_loader(content string, tap ?CaskLoaderTap) CaskLoader {
+	mut loader := new_base_cask_loader()
 	loader.kind = .content
 	loader.content = content
 	if actual := tap {
@@ -710,7 +712,7 @@ pub fn ruby_cask_loader_l96_d7_initialize(content string, tap ?CaskLoaderTap) Ca
 }
 
 // Ruby method `load(config:)` at line 104.
-pub fn ruby_cask_loader_l104_d8_load(mut loader CaskLoader, config CaskLoaderConfig,
+pub fn cask_loader_load_content(mut loader CaskLoader, config CaskLoaderConfig,
 	context CaskLoaderLoadContext) !CaskLoaderCask {
 	loader.config = config
 	loader.has_config = true
@@ -719,20 +721,20 @@ pub fn ruby_cask_loader_l104_d8_load(mut loader CaskLoader, config CaskLoaderCon
 }
 
 // Ruby method `self.try_new(ref, warn: false)` at line 119.
-pub fn ruby_cask_loader_l119_d9_self_try_new(ref CaskLoaderReference,
+pub fn cask_loader_try_path(ref CaskLoaderReference,
 	context CaskLoaderLookupContext) ?CaskLoader {
 	if ref.kind !in [.text, .path] {
 		return none
 	}
 	path := os.abs_path(ref.value)
-	if !os.exists(path) || ruby_cask_loader_l137_d10_self_invalid_path(path, ['.rb', '.json']) || (!os.is_file(path) && !os.is_link(path)) {
+	if !os.exists(path) || cask_loader_invalid_path(path, ['.rb', '.json']) || (!os.is_file(path) && !os.is_link(path)) {
 		return none
 	}
-	return ruby_cask_loader_l154_d14_initialize(path, '', context)
+	return new_path_cask_loader(path, '', context)
 }
 
 // Ruby method `self.invalid_path?(pathname, valid_extnames: %w[.rb .json])` at line 137.
-pub fn ruby_cask_loader_l137_d10_self_invalid_path(pathname string,
+pub fn cask_loader_invalid_path(pathname string,
 	valid_extnames []string) bool {
 	return cask_loader_extension(pathname) !in valid_extnames || os.base(pathname) in [
 		'INSTALL_RECEIPT.json',
@@ -741,28 +743,28 @@ pub fn ruby_cask_loader_l137_d10_self_invalid_path(pathname string,
 }
 
 // Ruby attr_reader `attr_reader :token` at line 145.
-pub fn ruby_cask_loader_l145_d11_token(loader CaskLoader) string {
+pub fn cask_loader_token(loader CaskLoader) string {
 	return loader.token
 }
 
 // Ruby attr_reader `attr_reader :path` at line 148.
-pub fn ruby_cask_loader_l148_d12_path(loader CaskLoader) string {
+pub fn cask_loader_path(loader CaskLoader) string {
 	return loader.path
 }
 
 // Ruby attr_writer `attr_writer :from_installed_caskfile` at line 151.
-pub fn ruby_cask_loader_l151_d13_from_installed_caskfile(mut loader CaskLoader,
+pub fn cask_loader_set_from_installed_caskfile(mut loader CaskLoader,
 	from_installed_caskfile bool) {
 	loader.from_installed_caskfile = from_installed_caskfile
 }
 
 // Ruby method `initialize(path, token: T.unsafe(nil))` at line 154.
-pub fn ruby_cask_loader_l154_d14_initialize(path string, _ string,
+pub fn new_path_cask_loader(path string, _ string,
 	context CaskLoaderLookupContext) CaskLoader {
 	absolute := os.abs_path(path)
-	mut loader := ruby_cask_loader_l48_d4_initialize()
+	mut loader := new_base_cask_loader()
 	loader.kind = .path
-	loader.token = ruby_cask_loader_l806_d52_self_token_from_path(absolute)
+	loader.token = cask_loader_token_from_path(absolute)
 	loader.path = absolute
 	if tap := context.source_download_taps[absolute] {
 		loader.tap = tap
@@ -772,7 +774,7 @@ pub fn ruby_cask_loader_l154_d14_initialize(path string, _ string,
 }
 
 // Ruby method `load(config:)` at line 167.
-pub fn ruby_cask_loader_l167_d15_load(mut loader CaskLoader, config CaskLoaderConfig,
+pub fn cask_loader_load_path(mut loader CaskLoader, config CaskLoaderConfig,
 	context CaskLoaderLoadContext) !CaskLoaderCask {
 	if !os.exists(loader.path) {
 		return error("CaskUnavailableError: '${loader.path}' does not exist.")
@@ -790,11 +792,11 @@ pub fn ruby_cask_loader_l167_d15_load(mut loader CaskLoader, config CaskLoaderCo
 	loader.content = os.read_file(loader.path)!
 	loader.config = config
 	loader.has_config = true
-	if !ruby_cask_loader_l137_d10_self_invalid_path(loader.path, ['.json']) {
+	if !cask_loader_invalid_path(loader.path, ['.json']) {
 		source := cask_loader_parse_json(loader.content)!
 		if loader.from_installed_caskfile || source.present {
-			api_loader := ruby_cask_loader_l420_d34_initialize(loader.token, source, loader.path, loader.from_installed_caskfile, loader.path.ends_with('.internal.json'), loader.api_fallback, context.lookup)
-			return ruby_cask_loader_l442_d35_load(api_loader, config, context) or {
+			api_loader := new_api_cask_loader(loader.token, source, loader.path, loader.from_installed_caskfile, loader.path.ends_with('.internal.json'), loader.api_fallback, context.lookup)
+			return cask_loader_load_api(api_loader, config, context) or {
 				if loader.from_installed_caskfile && err.msg().contains('CaskInvalidError') {
 					return error(err.msg().replace('CaskInvalidError', 'CaskUnreadableError'))
 				}
@@ -815,19 +817,19 @@ pub fn ruby_cask_loader_l167_d15_load(mut loader CaskLoader, config CaskLoaderCo
 }
 
 // Ruby method `cask(header_token, **options, &block)` at line 231.
-pub fn ruby_cask_loader_l231_d16_cask(loader CaskLoader, header_token string,
+pub fn cask_loader_validate_cask(loader CaskLoader, header_token string,
 	definition CaskLoaderCask) !CaskLoaderCask {
 	if loader.token != header_token {
 		return error("CaskTokenMismatchError: expected '${loader.token}', got '${header_token}'")
 	}
 	return CaskLoaderCask{
-		...ruby_cask_loader_l63_d5_cask(loader, header_token, definition)
+		...cask_loader_cask(loader, header_token, definition)
 		sourcefile_path: loader.path
 	}
 }
 
 // Ruby method `self.try_new(ref, warn: false)` at line 244.
-pub fn ruby_cask_loader_l244_d17_self_try_new(ref CaskLoaderReference,
+pub fn cask_loader_try_uri(ref CaskLoaderReference,
 	context CaskLoaderLookupContext) ?CaskLoader {
 	if context.forbid_packages_from_paths {
 		return none
@@ -837,25 +839,25 @@ pub fn ruby_cask_loader_l244_d17_self_try_new(ref CaskLoaderReference,
 	if uri.path == '' || (!raw.contains('://') && !raw.starts_with('file:')) {
 		return none
 	}
-	return ruby_cask_loader_l272_d20_initialize(raw, context)
+	return new_uri_cask_loader(raw, context)
 }
 
 // Ruby attr_reader `attr_reader :url` at line 266.
-pub fn ruby_cask_loader_l266_d18_url(loader CaskLoader) string {
+pub fn cask_loader_uri_url(loader CaskLoader) string {
 	return loader.url
 }
 
 // Ruby attr_reader `attr_reader :name` at line 269.
-pub fn ruby_cask_loader_l269_d19_name(loader CaskLoader) string {
+pub fn cask_loader_uri_name(loader CaskLoader) string {
 	return loader.name
 }
 
 // Ruby method `initialize(url)` at line 272.
-pub fn ruby_cask_loader_l272_d20_initialize(url string,
+pub fn new_uri_cask_loader(url string,
 	context CaskLoaderLookupContext) CaskLoader {
 	parsed := urllib.parse(url) or { panic('unexpected nil url.path') }
 	name := os.base(parsed.path)
-	mut loader := ruby_cask_loader_l154_d14_initialize(os.join_path(context.cache_path, name), '', context)
+	mut loader := new_path_cask_loader(os.join_path(context.cache_path, name), '', context)
 	loader.kind = .uri
 	loader.url = url
 	loader.name = name
@@ -863,7 +865,7 @@ pub fn ruby_cask_loader_l272_d20_initialize(url string,
 }
 
 // Ruby method `load(config:)` at line 282.
-pub fn ruby_cask_loader_l282_d21_load(mut loader CaskLoader, config CaskLoaderConfig,
+pub fn cask_loader_load_uri(mut loader CaskLoader, config CaskLoaderConfig,
 	context CaskLoaderLoadContext) !CaskLoaderCask {
 	os.mkdir_all(os.dir(loader.path))!
 	parsed := urllib.parse(loader.url)!
@@ -880,19 +882,19 @@ pub fn ruby_cask_loader_l282_d21_load(mut loader CaskLoader, config CaskLoaderCo
 	os.write_file(loader.path, contents) or {
 		return error('CaskUnavailableError: Failed to download ${loader.url}.')
 	}
-	return ruby_cask_loader_l167_d15_load(mut loader, config, context)
+	return cask_loader_load_path(mut loader, config, context)
 }
 
 // Ruby attr_reader `attr_reader :tap` at line 306.
-pub fn ruby_cask_loader_l306_d22_tap(loader CaskLoader) CaskLoaderTap {
+pub fn cask_loader_tap(loader CaskLoader) CaskLoaderTap {
 	return loader.tap
 }
 
 // Ruby method `self.try_new(ref, warn: false)` at line 313.
-pub fn ruby_cask_loader_l313_d23_self_try_new(ref CaskLoaderReference, warn bool,
+pub fn cask_loader_try_tap(ref CaskLoaderReference, warn bool,
 	context CaskLoaderLookupContext) ?CaskLoader {
-	resolution := ruby_cask_loader_l704_d48_self_tap_cask_token_type(cask_loader_ref_text(ref), warn, context) or { return none }
-	mut loader := ruby_cask_loader_l325_d24_self_loader_from_token_tap_type(resolution, context) or {
+	resolution := cask_loader_tap_cask_token_type(cask_loader_ref_text(ref), warn, context) or { return none }
+	mut loader := cask_loader_loader_from_token_tap_type(resolution, context) or {
 		return none
 	}
 	loader.warning = resolution.warning
@@ -900,29 +902,29 @@ pub fn ruby_cask_loader_l313_d23_self_try_new(ref CaskLoaderReference, warn bool
 }
 
 // Ruby method `self.loader_from_token_tap_type(token_tap_type)` at line 325.
-pub fn ruby_cask_loader_l325_d24_self_loader_from_token_tap_type(resolution CaskLoaderTokenTapType,
+pub fn cask_loader_loader_from_token_tap_type(resolution CaskLoaderTokenTapType,
 	context CaskLoaderLookupContext) ?CaskLoader {
 	if resolution.type_name == .migration && resolution.tap.core_cask_tap {
-		if loader := ruby_cask_loader_l395_d33_self_try_new(CaskLoaderReference{
+		if loader := cask_loader_try_api(CaskLoaderReference{
 			kind: .text
 			value: resolution.token
 		}, false, context) {
 			return loader
 		}
 	}
-	return ruby_cask_loader_l336_d25_initialize('${resolution.tap.name}/${resolution.token}', context) or {
+	return new_tap_cask_loader('${resolution.tap.name}/${resolution.token}', context) or {
 		none
 	}
 }
 
 // Ruby method `initialize(tapped_token)` at line 336.
-pub fn ruby_cask_loader_l336_d25_initialize(tapped_token string,
+pub fn new_tap_cask_loader(tapped_token string,
 	context CaskLoaderLookupContext) !CaskLoader {
 	tap, token := cask_loader_with_token(context, tapped_token) or {
 		return error('unexpected nil Tap.with_cask_token')
 	}
-	path := ruby_cask_loader_l937_d59_self_find_cask_in_tap(token, tap)
-	mut loader := ruby_cask_loader_l154_d14_initialize(path, '', context)
+	path := cask_loader_find_cask_in_tap(token, tap)
+	mut loader := new_path_cask_loader(path, '', context)
 	loader.kind = .tap
 	loader.tap = tap
 	loader.has_tap = true
@@ -930,46 +932,46 @@ pub fn ruby_cask_loader_l336_d25_initialize(tapped_token string,
 }
 
 // Ruby method `load(config:)` at line 347.
-pub fn ruby_cask_loader_l347_d26_load(mut loader CaskLoader, config CaskLoaderConfig,
+pub fn cask_loader_load_tap(mut loader CaskLoader, config CaskLoaderConfig,
 	context CaskLoaderLoadContext) !CaskLoaderCask {
 	if !loader.tap.installed {
 		return error('TapCaskUnavailableError: ${loader.tap.name}/${loader.token}; If you trust this tap')
 	}
-	return ruby_cask_loader_l167_d15_load(mut loader, config, context)
+	return cask_loader_load_path(mut loader, config, context)
 }
 
 // Ruby method `self.try_new(ref, warn: false)` at line 362.
-pub fn ruby_cask_loader_l362_d27_self_try_new(ref CaskLoaderReference) ?CaskLoader {
-	return if ref.kind == .cask { ruby_cask_loader_l367_d28_initialize(ref.cask) } else { none }
+pub fn cask_loader_try_instance(ref CaskLoaderReference) ?CaskLoader {
+	return if ref.kind == .cask { new_instance_cask_loader(ref.cask) } else { none }
 }
 
 // Ruby method `initialize(cask)` at line 367.
-pub fn ruby_cask_loader_l367_d28_initialize(cask CaskLoaderCask) CaskLoader {
+pub fn new_instance_cask_loader(cask CaskLoaderCask) CaskLoader {
 	return CaskLoader{ kind: .instance, cask: cask, has_cask: true, token: cask.token }
 }
 
 // Ruby method `load(config:)` at line 373.
-pub fn ruby_cask_loader_l373_d29_load(loader CaskLoader, _ CaskLoaderConfig) CaskLoaderCask {
+pub fn cask_loader_load_instance(loader CaskLoader, _ CaskLoaderConfig) CaskLoaderCask {
 	return loader.cask
 }
 
 // Ruby attr_reader `attr_reader :token` at line 383.
-pub fn ruby_cask_loader_l383_d30_token(loader CaskLoader) string {
+pub fn cask_loader_api_token(loader CaskLoader) string {
 	return loader.token
 }
 
 // Ruby attr_reader `attr_reader :path` at line 386.
-pub fn ruby_cask_loader_l386_d31_path(loader CaskLoader) string {
+pub fn cask_loader_api_path(loader CaskLoader) string {
 	return loader.path
 }
 
 // Ruby attr_reader `attr_reader :from_json` at line 389.
-pub fn ruby_cask_loader_l389_d32_from_json(loader CaskLoader) ?CaskLoaderApiSource {
+pub fn cask_loader_api_source(loader CaskLoader) ?CaskLoaderApiSource {
 	return if loader.from_json.present { loader.from_json } else { none }
 }
 
 // Ruby method `self.try_new(ref, warn: false)` at line 395.
-pub fn ruby_cask_loader_l395_d33_self_try_new(ref CaskLoaderReference, warn bool,
+pub fn cask_loader_try_api(ref CaskLoaderReference, warn bool,
 	context CaskLoaderLookupContext) ?CaskLoader {
 	if context.no_install_from_api || ref.kind != .text {
 		return none
@@ -990,14 +992,14 @@ pub fn ruby_cask_loader_l395_d33_self_try_new(ref CaskLoaderReference, warn bool
 	if !cask_loader_valid_token(token) || (token !in context.api_tokens && token !in context.api_renames) {
 		return none
 	}
-	resolution := ruby_cask_loader_l704_d48_self_tap_cask_token_type('${context.core_cask_tap.name}/${token}', warn, context) or { return none }
-	mut loader := ruby_cask_loader_l420_d34_initialize('${resolution.tap.name}/${resolution.token}', CaskLoaderApiSource{}, '', false, false, true, context)
+	resolution := cask_loader_tap_cask_token_type('${context.core_cask_tap.name}/${token}', warn, context) or { return none }
+	mut loader := new_api_cask_loader('${resolution.tap.name}/${resolution.token}', CaskLoaderApiSource{}, '', false, false, true, context)
 	loader.warning = resolution.warning
 	return loader
 }
 
 // Ruby method `initialize(token, from_json: T.unsafe(nil), path: nil, from_installed_caskfile: false,` at line 420.
-pub fn ruby_cask_loader_l420_d34_initialize(raw_token string, from_json CaskLoaderApiSource,
+pub fn new_api_cask_loader(raw_token string, from_json CaskLoaderApiSource,
 	path string, from_installed_caskfile bool, from_internal_json bool, api_fallback bool,
 	context CaskLoaderLookupContext) CaskLoader {
 	mut token := raw_token
@@ -1019,8 +1021,10 @@ pub fn ruby_cask_loader_l420_d34_initialize(raw_token string, from_json CaskLoad
 		kind: .api
 		token: token
 		path: if path != '' {
-			path} else {
-			ruby_cask_loader_l932_d58_self_default_path(token, context)}
+			path
+		} else {
+			cask_loader_default_path(token, context)
+		}
 		from_json: from_json
 		from_installed_caskfile: from_installed_caskfile
 		from_internal_json: from_internal_json
@@ -1030,20 +1034,20 @@ pub fn ruby_cask_loader_l420_d34_initialize(raw_token string, from_json CaskLoad
 }
 
 // Ruby method `load(config:)` at line 442.
-pub fn ruby_cask_loader_l442_d35_load(loader CaskLoader, config CaskLoaderConfig,
+pub fn cask_loader_load_api(loader CaskLoader, config CaskLoaderConfig,
 	context CaskLoaderLoadContext) !CaskLoaderCask {
 	if loader.from_json.present {
 		return if loader.from_internal_json {
-			ruby_cask_loader_l491_d38_load_from_internal_json(loader, config, loader.from_json, context)
+			cask_loader_load_from_internal_json(loader, config, loader.from_json, context)
 		} else {
-			ruby_cask_loader_l468_d37_load_from_json(loader, config, loader.from_json, context)
+			cask_loader_load_from_json(loader, config, loader.from_json, context)
 		}
 	}
-	return ruby_cask_loader_l457_d36_load_from_internal_api(loader, config, context)
+	return cask_loader_load_from_internal_api(loader, config, context)
 }
 
 // Ruby method `load_from_internal_api(config:)` at line 457.
-pub fn ruby_cask_loader_l457_d36_load_from_internal_api(loader CaskLoader,
+pub fn cask_loader_load_from_internal_api(loader CaskLoader,
 	config CaskLoaderConfig, context CaskLoaderLoadContext) !CaskLoaderCask {
 	source := if context.internal_api.present {
 		context.internal_api
@@ -1052,11 +1056,11 @@ pub fn ruby_cask_loader_l457_d36_load_from_internal_api(loader CaskLoader,
 			return error("KeyError: key not found: '${loader.token}'")
 		}
 	}
-	return ruby_cask_loader_l508_d39_load_from_struct(loader, config, source, source, source.tap_git_head, true, context.lookup)
+	return cask_loader_load_from_struct(loader, config, source, source, source.tap_git_head, true, context.lookup)
 }
 
 // Ruby method `load_from_json(config:, api_source:)` at line 468.
-pub fn ruby_cask_loader_l468_d37_load_from_json(loader CaskLoader, config CaskLoaderConfig,
+pub fn cask_loader_load_from_json(loader CaskLoader, config CaskLoaderConfig,
 	raw_source CaskLoaderApiSource, context CaskLoaderLoadContext) !CaskLoaderCask {
 	mut source := raw_source
 	if loader.from_installed_caskfile {
@@ -1067,7 +1071,7 @@ pub fn ruby_cask_loader_l468_d37_load_from_json(loader CaskLoader, config CaskLo
 			}
 		}
 		if source.version == '' || !source.has_artifacts {
-			receipt := ruby_cask_loader_l827_d55_self_load_installed_tab(CaskLoaderReference{
+			receipt := cask_loader_load_installed_tab(CaskLoaderReference{
 				kind: .text
 				value: loader.token
 			}, context.lookup)
@@ -1075,7 +1079,7 @@ pub fn ruby_cask_loader_l468_d37_load_from_json(loader CaskLoader, config CaskLo
 			artifacts := if source.has_artifacts {
 				source.artifacts
 			} else {
-				ruby_cask_loader_l846_d56_self_resolve_installed_artifacts(loader.token, receipt.uninstall_artifacts, receipt.has_uninstall_artifacts, if receipt.has_tap {
+				cask_loader_resolve_installed_artifacts(loader.token, receipt.uninstall_artifacts, receipt.has_uninstall_artifacts, if receipt.has_tap {
 					receipt.tap
 				} else {
 					none
@@ -1084,18 +1088,18 @@ pub fn ruby_cask_loader_l468_d37_load_from_json(loader CaskLoader, config CaskLo
 			source = CaskLoaderApiSource{ ...source, version: version, artifacts: artifacts, has_artifacts: true }
 		}
 	}
-	return ruby_cask_loader_l508_d39_load_from_struct(loader, config, source, source, source.tap_git_head, false, context.lookup)
+	return cask_loader_load_from_struct(loader, config, source, source, source.tap_git_head, false, context.lookup)
 }
 
 // Ruby method `load_from_internal_json(config:, api_source:)` at line 491.
-pub fn ruby_cask_loader_l491_d38_load_from_internal_json(loader CaskLoader,
+pub fn cask_loader_load_from_internal_json(loader CaskLoader,
 	config CaskLoaderConfig, source CaskLoaderApiSource,
 	context CaskLoaderLoadContext) !CaskLoaderCask {
-	return ruby_cask_loader_l508_d39_load_from_struct(loader, config, source, CaskLoaderApiSource{ ...source, tap_git_head: '' }, source.tap_git_head, true, context.lookup)
+	return cask_loader_load_from_struct(loader, config, source, CaskLoaderApiSource{ ...source, tap_git_head: '' }, source.tap_git_head, true, context.lookup)
 }
 
 // Ruby method `load_from_struct(config:, cask_struct:, api_source:, tap_git_head:, internal_api: false)` at line 508.
-pub fn ruby_cask_loader_l508_d39_load_from_struct(loader CaskLoader,
+pub fn cask_loader_load_from_struct(loader CaskLoader,
 	config CaskLoaderConfig, cask_struct CaskLoaderApiSource, api_source CaskLoaderApiSource,
 	tap_git_head string, internal_api bool, context CaskLoaderLookupContext) !CaskLoaderCask {
 	if cask_struct.invalid_reason != '' {
@@ -1255,8 +1259,10 @@ pub fn ruby_cask_loader_l508_d39_load_from_struct(loader CaskLoader,
 		conflicts_with: localised.conflicts_with.clone()
 		renames: localised.renames.clone()
 		depends_on: if localised.depends_on_error == '' {
-			localised.depends_on.clone()} else {
-			map[string]string{}}
+			localised.depends_on.clone()
+		} else {
+			map[string]string{}
+		}
 		ignored_dependency_error: localised.depends_on_error
 		container_nested: localised.container_nested
 		container_type: localised.container_type
@@ -1268,15 +1274,15 @@ pub fn ruby_cask_loader_l508_d39_load_from_struct(loader CaskLoader,
 }
 
 // Ruby method `self.try_new(ref, warn: false)` at line 592.
-pub fn ruby_cask_loader_l592_d40_self_try_new(ref CaskLoaderReference, warn bool,
+pub fn cask_loader_try_name(ref CaskLoaderReference, warn bool,
 	context CaskLoaderLookupContext) CaskLoaderTryResult {
 	if ref.kind != .text || !cask_loader_valid_token(ref.value) {
 		return CaskLoaderTryResult{}
 	}
 	token := ref.value.to_lower()
 	if context.core_cask_tap.installed {
-		if resolution := ruby_cask_loader_l704_d48_self_tap_cask_token_type('${context.core_cask_tap.name}/${token}', false, context) {
-			mut loader := ruby_cask_loader_l325_d24_self_loader_from_token_tap_type(resolution, context) or { CaskLoader{} }
+		if resolution := cask_loader_tap_cask_token_type('${context.core_cask_tap.name}/${token}', false, context) {
+			mut loader := cask_loader_loader_from_token_tap_type(resolution, context) or { CaskLoader{} }
 			if warn && resolution.type_name in [.rename, .migration] && !(resolution.type_name == .migration && resolution.tap.core_tap) {
 				loader.warning = 'Cask ${token} was renamed to ${if resolution.tap.core_cask_tap {
 					resolution.token
@@ -1294,7 +1300,7 @@ pub fn ruby_cask_loader_l592_d40_self_try_new(ref CaskLoaderReference, warn bool
 		if !tap.installed || tap.core_cask_tap {
 			continue
 		}
-		if loader := ruby_cask_loader_l313_d23_self_try_new(CaskLoaderReference{
+		if loader := cask_loader_try_tap(CaskLoaderReference{
 			kind: .text
 			value: '${tap.name}/${token}'
 		}, warn, context) {
@@ -1315,23 +1321,23 @@ pub fn ruby_cask_loader_l592_d40_self_try_new(ref CaskLoaderReference, warn bool
 }
 
 // Ruby method `self.try_new(ref, warn: false, api_fallback: true)` at line 635.
-pub fn ruby_cask_loader_l635_d41_self_try_new(ref CaskLoaderReference, api_fallback bool,
+pub fn cask_loader_try_installed_path(ref CaskLoaderReference, api_fallback bool,
 	context CaskLoaderLookupContext) ?CaskLoader {
 	token := if ref.kind == .text {
 		ref.value
 	} else if ref.kind == .path {
-		ruby_cask_loader_l806_d52_self_token_from_path(ref.value)
+		cask_loader_token_from_path(ref.value)
 	} else {
 		return none
 	}
 	path := context.installed_caskfiles[token] or { return none }
-	return ruby_cask_loader_l650_d42_initialize(path, '', api_fallback, context)
+	return new_installed_path_cask_loader(path, '', api_fallback, context)
 }
 
 // Ruby method `initialize(path, token: "", api_fallback: true)` at line 650.
-pub fn ruby_cask_loader_l650_d42_initialize(path string, token string, api_fallback bool,
+pub fn new_installed_path_cask_loader(path string, token string, api_fallback bool,
 	context CaskLoaderLookupContext) CaskLoader {
-	mut loader := ruby_cask_loader_l154_d14_initialize(path, token, context)
+	mut loader := new_path_cask_loader(path, token, context)
 	loader.kind = .installed_path
 	receipt := context.installed_receipts[loader.token] or { CaskLoaderReceipt{} }
 	if receipt.has_tap {
@@ -1344,37 +1350,37 @@ pub fn ruby_cask_loader_l650_d42_initialize(path string, token string, api_fallb
 }
 
 // Ruby method `self.try_new(ref, warn: false)` at line 666.
-pub fn ruby_cask_loader_l666_d43_self_try_new(ref CaskLoaderReference,
+pub fn cask_loader_try_null(ref CaskLoaderReference,
 	context CaskLoaderLookupContext) ?CaskLoader {
 	if ref.kind in [.cask, .uri] {
 		return none
 	}
-	return ruby_cask_loader_l674_d44_initialize(ref.value, context)
+	return new_null_cask_loader(ref.value, context)
 }
 
 // Ruby method `initialize(ref)` at line 674.
-pub fn ruby_cask_loader_l674_d44_initialize(ref string,
+pub fn new_null_cask_loader(ref string,
 	context CaskLoaderLookupContext) CaskLoader {
 	token := os.base(ref).trim_string_right('.rb')
-	mut loader := ruby_cask_loader_l154_d14_initialize(ruby_cask_loader_l932_d58_self_default_path(token, context), '', context)
+	mut loader := new_path_cask_loader(cask_loader_default_path(token, context), '', context)
 	loader.kind = .null_loader
 	return loader
 }
 
 // Ruby method `load(config:)` at line 680.
-pub fn ruby_cask_loader_l680_d45_load(loader CaskLoader, _ CaskLoaderConfig) !CaskLoaderCask {
+pub fn cask_loader_load_null(loader CaskLoader, _ CaskLoaderConfig) !CaskLoaderCask {
 	return error('CaskUnavailableError: ${loader.token}: No Cask with this name exists.')
 }
 
 // Ruby method `self.path(ref)` at line 688.
-pub fn ruby_cask_loader_l688_d46_self_path(ref CaskLoaderReference,
+pub fn cask_loader_path_for(ref CaskLoaderReference,
 	context CaskLoaderLookupContext) !string {
-	loader := ruby_cask_loader_l755_d49_self_for(ref, true, true, context)!
+	loader := cask_loader_for(ref, true, true, context)!
 	return loader.path
 }
 
 // Ruby method `self.load(ref, config: nil, warn: true)` at line 698.
-pub fn ruby_cask_loader_l698_d47_self_load(ref CaskLoaderReference,
+pub fn cask_loader_load_reference(ref CaskLoaderReference,
 	config CaskLoaderConfig, warn bool, context CaskLoaderLoadContext) !CaskLoaderCask {
 	if loaded := context.lookup.load_casks[cask_loader_ref_text(ref)] {
 		return loaded
@@ -1382,12 +1388,12 @@ pub fn ruby_cask_loader_l698_d47_self_load(ref CaskLoaderReference,
 	if cask_loader_ref_text(ref) in context.lookup.load_failures {
 		return error('CaskUnavailableError: ${cask_loader_ref_text(ref)}')
 	}
-	mut loader := ruby_cask_loader_l755_d49_self_for(ref, false, warn, context.lookup)!
+	mut loader := cask_loader_for(ref, false, warn, context.lookup)!
 	return cask_loader_load_selected(mut loader, config, context)
 }
 
 // Ruby method `self.tap_cask_token_type(tapped_token, warn:)` at line 704.
-pub fn ruby_cask_loader_l704_d48_self_tap_cask_token_type(tapped_token string, warn bool,
+pub fn cask_loader_tap_cask_token_type(tapped_token string, warn bool,
 	context CaskLoaderLookupContext) ?CaskLoaderTokenTapType {
 	tap_value, token_value := cask_loader_with_token(context, tapped_token) or { return none }
 	mut tap := tap_value
@@ -1413,7 +1419,7 @@ pub fn ruby_cask_loader_l704_d48_self_tap_cask_token_type(tapped_token string, w
 		new_tapped_token := '${new_tap.name}/${migrated_token}'
 		if tapped_token.to_lower() != new_tapped_token.to_lower() {
 			old_token = if tap.core_cask_tap { token } else { tapped_token.to_lower() }
-			resolution := ruby_cask_loader_l704_d48_self_tap_cask_token_type(new_tapped_token, false, context) or { return none }
+			resolution := cask_loader_tap_cask_token_type(new_tapped_token, false, context) or { return none }
 			token = resolution.token
 			tap = resolution.tap
 			new_token = if new_tap.core_cask_tap { token } else { '${tap.name}/${token}' }
@@ -1422,7 +1428,7 @@ pub fn ruby_cask_loader_l704_d48_self_tap_cask_token_type(tapped_token string, w
 	}
 	mut warning := ''
 	if warn && old_token != '' && new_token != '' {
-		destination := ruby_cask_loader_l937_d59_self_find_cask_in_tap(token, tap)
+		destination := cask_loader_find_cask_in_tap(token, tap)
 		destination_exists := os.exists(destination) || (tap.core_cask_tap && !context.no_install_from_api && token in context.api_tokens)
 		if destination_exists {
 			warning = 'Cask ${old_token} was renamed to ${new_token}.'
@@ -1439,44 +1445,44 @@ pub fn ruby_cask_loader_l704_d48_self_tap_cask_token_type(tapped_token string, w
 }
 
 // Ruby method `self.for(ref, need_path: false, warn: true)` at line 755.
-pub fn ruby_cask_loader_l755_d49_self_for(ref CaskLoaderReference, _ bool, warn bool,
+pub fn cask_loader_for(ref CaskLoaderReference, _ bool, warn bool,
 	context CaskLoaderLookupContext) !CaskLoader {
-	if loader := ruby_cask_loader_l362_d27_self_try_new(ref) {
+	if loader := cask_loader_try_instance(ref) {
 		return loader
 	}
-	if loader := ruby_cask_loader_l74_d6_self_try_new(ref) {
+	if loader := cask_loader_try_content(ref) {
 		return loader
 	}
-	if loader := ruby_cask_loader_l244_d17_self_try_new(ref, context) {
+	if loader := cask_loader_try_uri(ref, context) {
 		return loader
 	}
-	if loader := ruby_cask_loader_l395_d33_self_try_new(ref, warn, context) {
+	if loader := cask_loader_try_api(ref, warn, context) {
 		return loader
 	}
-	if loader := ruby_cask_loader_l313_d23_self_try_new(ref, warn, context) {
+	if loader := cask_loader_try_tap(ref, warn, context) {
 		return loader
 	}
-	name_result := ruby_cask_loader_l592_d40_self_try_new(ref, warn, context)
+	name_result := cask_loader_try_name(ref, warn, context)
 	if name_result.error_message != '' {
 		return error(name_result.error_message)
 	}
 	if name_result.found {
 		return name_result.loader
 	}
-	if loader := ruby_cask_loader_l119_d9_self_try_new(ref, context) {
+	if loader := cask_loader_try_path(ref, context) {
 		return loader
 	}
-	if loader := ruby_cask_loader_l635_d41_self_try_new(ref, true, context) {
+	if loader := cask_loader_try_installed_path(ref, true, context) {
 		return loader
 	}
-	if loader := ruby_cask_loader_l666_d43_self_try_new(ref, context) {
+	if loader := cask_loader_try_null(ref, context) {
 		return loader
 	}
 	return error('CaskError: No cask loader found for ${cask_loader_ref_text(ref)}')
 }
 
 // Ruby method `self.load_prefer_installed(ref, config: nil, warn: true)` at line 777.
-pub fn ruby_cask_loader_l777_d50_self_load_prefer_installed(ref string,
+pub fn cask_loader_load_prefer_installed(ref string,
 	config CaskLoaderConfig, warn bool, context CaskLoaderLoadContext) !CaskLoaderCask {
 	mut token := ref
 	mut tap_name := ''
@@ -1497,33 +1503,33 @@ pub fn ruby_cask_loader_l777_d50_self_load_prefer_installed(ref string,
 }
 
 // Ruby method `self.load_from_installed_caskfile(path, config: nil, warn: true, api_fallback: true)` at line 798.
-pub fn ruby_cask_loader_l798_d51_self_load_from_installed_caskfile(path string,
+pub fn cask_loader_load_from_installed_caskfile(path string,
 	config CaskLoaderConfig, warn bool, api_fallback bool,
 	context CaskLoaderLoadContext) !CaskLoaderCask {
 	ref := CaskLoaderReference{ kind: .path, value: path }
-	mut loader := ruby_cask_loader_l635_d41_self_try_new(ref, api_fallback, context.lookup) or {
-		ruby_cask_loader_l674_d44_initialize(path, context.lookup)
+	mut loader := cask_loader_try_installed_path(ref, api_fallback, context.lookup) or {
+		new_null_cask_loader(path, context.lookup)
 	}
 	return if loader.kind == .null_loader {
-		ruby_cask_loader_l680_d45_load(loader, config)
+		cask_loader_load_null(loader, config)
 	} else {
-		ruby_cask_loader_l167_d15_load(mut loader, config, context)
+		cask_loader_load_path(mut loader, config, context)
 	}
 }
 
 // Ruby method `self.token_from_path(path)` at line 806.
-pub fn ruby_cask_loader_l806_d52_self_token_from_path(path string) string {
+pub fn cask_loader_token_from_path(path string) string {
 	return os.base(path).trim_string_right(cask_loader_extension(path)).trim_string_right('.internal')
 }
 
 // Ruby method `self.installed_json_caskfile?(path)` at line 812.
-pub fn ruby_cask_loader_l812_d53_self_installed_json_caskfile(path string) bool {
+pub fn cask_loader_installed_json_caskfile(path string) bool {
 	return cask_loader_extension(path) == '.json' && !os.base(path).ends_with('.internal.json')
 }
 
 // Ruby method `self.load_installed_json(path)` at line 817.
-pub fn ruby_cask_loader_l817_d54_self_load_installed_json(path string) ?CaskLoaderApiSource {
-	if !ruby_cask_loader_l812_d53_self_installed_json_caskfile(path) {
+pub fn cask_loader_load_installed_json(path string) ?CaskLoaderApiSource {
+	if !cask_loader_installed_json_caskfile(path) {
 		return none
 	}
 	contents := os.read_file(path) or { return none }
@@ -1531,7 +1537,7 @@ pub fn ruby_cask_loader_l817_d54_self_load_installed_json(path string) ?CaskLoad
 }
 
 // Ruby method `self.load_installed_tab(cask_or_token)` at line 827.
-pub fn ruby_cask_loader_l827_d55_self_load_installed_tab(cask_or_token CaskLoaderReference,
+pub fn cask_loader_load_installed_tab(cask_or_token CaskLoaderReference,
 	context CaskLoaderLookupContext) CaskLoaderReceipt {
 	token := if cask_or_token.kind == .cask {
 		cask_or_token.cask.token
@@ -1542,7 +1548,7 @@ pub fn ruby_cask_loader_l827_d55_self_load_installed_tab(cask_or_token CaskLoade
 }
 
 // Ruby method `self.resolve_installed_artifacts(token, artifacts, tap: nil, api_fallback: true)` at line 846.
-pub fn ruby_cask_loader_l846_d56_self_resolve_installed_artifacts(token string,
+pub fn cask_loader_resolve_installed_artifacts(token string,
 	artifacts []CaskLoaderArtifact, has_artifacts bool, tap ?CaskLoaderTap,
 	api_fallback bool, context CaskLoaderLookupContext) []CaskLoaderArtifact {
 	if has_artifacts && artifacts.len > 0 {
@@ -1574,24 +1580,24 @@ pub fn ruby_cask_loader_l846_d56_self_resolve_installed_artifacts(token string,
 }
 
 // Ruby method `self.recover_from_installed_caskfile(path, tab: nil, fallback_cask: nil, config: nil)` at line 888.
-pub fn ruby_cask_loader_l888_d57_self_recover_from_installed_caskfile(path string,
+pub fn cask_loader_recover_from_installed_caskfile(path string,
 	tab ?CaskLoaderReceipt, fallback_cask ?CaskLoaderCask, config CaskLoaderConfig,
 	context CaskLoaderLookupContext) ?CaskLoaderCask {
 	if os.base(os.dir(path)) != 'Casks' {
 		return none
 	}
-	token := ruby_cask_loader_l806_d52_self_token_from_path(path)
+	token := cask_loader_token_from_path(path)
 	if token in context.recovery_invalid_tokens {
 		return none
 	}
 	receipt := tab or {
 		if fallback := fallback_cask {
-			ruby_cask_loader_l827_d55_self_load_installed_tab(CaskLoaderReference{
+			cask_loader_load_installed_tab(CaskLoaderReference{
 				kind: .cask
 				cask: fallback
 			}, context)
 		} else {
-			ruby_cask_loader_l827_d55_self_load_installed_tab(CaskLoaderReference{
+			cask_loader_load_installed_tab(CaskLoaderReference{
 				kind: .text
 				value: token
 			}, context)
@@ -1616,7 +1622,7 @@ pub fn ruby_cask_loader_l888_d57_self_recover_from_installed_caskfile(path strin
 		}
 	}
 	if artifacts.len == 0 {
-		artifacts = ruby_cask_loader_l846_d56_self_resolve_installed_artifacts(token, [], false, if receipt.has_tap {
+		artifacts = cask_loader_resolve_installed_artifacts(token, [], false, if receipt.has_tap {
 			receipt.tap
 		} else {
 			none
@@ -1631,7 +1637,7 @@ pub fn ruby_cask_loader_l888_d57_self_recover_from_installed_caskfile(path strin
 	if fallback := fallback_cask {
 		url_specs = fallback.url_specs.clone()
 	}
-	if source := ruby_cask_loader_l817_d54_self_load_installed_json(path) {
+	if source := cask_loader_load_installed_json(path) {
 		if source.url_specs.len > 0 {
 			url_specs = source.url_specs.clone()
 		}
@@ -1651,13 +1657,13 @@ pub fn ruby_cask_loader_l888_d57_self_recover_from_installed_caskfile(path strin
 }
 
 // Ruby method `self.default_path(token)` at line 932.
-pub fn ruby_cask_loader_l932_d58_self_default_path(token string,
+pub fn cask_loader_default_path(token string,
 	context CaskLoaderLookupContext) string {
-	return ruby_cask_loader_l937_d59_self_find_cask_in_tap(token.to_lower(), context.core_cask_tap)
+	return cask_loader_find_cask_in_tap(token.to_lower(), context.core_cask_tap)
 }
 
 // Ruby method `self.find_cask_in_tap(token, tap)` at line 937.
-pub fn ruby_cask_loader_l937_d59_self_find_cask_in_tap(token string,
+pub fn cask_loader_find_cask_in_tap(token string,
 	tap CaskLoaderTap) string {
 	return tap.cask_files_by_name[token] or { os.join_path(tap.cask_dir, '${token}.rb') }
 }

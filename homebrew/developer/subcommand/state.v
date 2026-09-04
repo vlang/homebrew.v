@@ -14,7 +14,7 @@ pub mut:
 }
 
 // Ruby method `run` at line 21.
-pub fn ruby_state_l21_d1_run(state DeveloperState) string {
+pub fn developer_state_message(state DeveloperState) string {
 	mut lines := []string{}
 	if state.developer_environment {
 		lines << 'Developer mode is enabled because HOMEBREW_DEVELOPER is set.'

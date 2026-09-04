@@ -188,10 +188,10 @@ pub fn ruby_search_spec_l27_d5_collection() [][]string {
 pub fn ruby_search_spec_l29_d6_searches() bool {
 	collection := homebrew.search_row_collection(ruby_search_spec_l27_d5_collection())
 	query := homebrew.SearchQuery{ value: 'withdashes', is_regex: true }
-	short := homebrew.ruby_search_l223_d7_self_search(collection, query, search_spec_short_name) or {
+	short := homebrew.search_search(collection, query, search_spec_short_name) or {
 		return false
 	}
-	long := homebrew.ruby_search_l223_d7_self_search(collection, query, search_spec_long_name) or {
+	long := homebrew.search_search(collection, query, search_spec_long_name) or {
 		return false
 	}
 	return short.entries.len > 0 && long.entries.len == 0
@@ -199,13 +199,13 @@ pub fn ruby_search_spec_l29_d6_searches() bool {
 
 // Ruby it `it "does not simplify strings" do` at line 36.
 pub fn ruby_search_spec_l36_d7_does() bool {
-	result := homebrew.ruby_search_l223_d7_self_search(homebrew.search_string_collection(ruby_search_spec_l24_d4_collection()), homebrew.SearchQuery{ value: 'with-dashes', is_regex: true }, homebrew.search_identity_projector) or { return false }
+	result := homebrew.search_search(homebrew.search_string_collection(ruby_search_spec_l24_d4_collection()), homebrew.SearchQuery{ value: 'with-dashes', is_regex: true }, homebrew.search_identity_projector) or { return false }
 	return homebrew.search_collection_strings(result) == ['with-dashes']
 }
 
 // Ruby it `it "simplifies both the query and searched strings" do` at line 42.
 pub fn ruby_search_spec_l42_d8_simplifies() bool {
-	result := homebrew.ruby_search_l223_d7_self_search(homebrew.search_string_collection(ruby_search_spec_l24_d4_collection()), homebrew.SearchQuery{ value: 'with dashes' }, homebrew.search_identity_projector) or {
+	result := homebrew.search_search(homebrew.search_string_collection(ruby_search_spec_l24_d4_collection()), homebrew.SearchQuery{ value: 'with dashes' }, homebrew.search_identity_projector) or {
 		return false
 	}
 	return homebrew.search_collection_strings(result) == ['with-dashes']
@@ -214,10 +214,10 @@ pub fn ruby_search_spec_l42_d8_simplifies() bool {
 // Ruby it `it "does not simplify strings with @ and + characters" do` at line 46.
 pub fn ruby_search_spec_l46_d9_does() bool {
 	collection := homebrew.search_string_collection(ruby_search_spec_l24_d4_collection())
-	alpha := homebrew.ruby_search_l223_d7_self_search(collection, homebrew.SearchQuery{ value: 'with@alpha' }, homebrew.search_identity_projector) or {
+	alpha := homebrew.search_search(collection, homebrew.SearchQuery{ value: 'with@alpha' }, homebrew.search_identity_projector) or {
 		return false
 	}
-	plus := homebrew.ruby_search_l223_d7_self_search(collection, homebrew.SearchQuery{ value: 'with+plus' }, homebrew.search_identity_projector) or {
+	plus := homebrew.search_search(collection, homebrew.SearchQuery{ value: 'with+plus' }, homebrew.search_identity_projector) or {
 		return false
 	}
 	return homebrew.search_collection_strings(alpha) == ['with@alpha'] && homebrew.search_collection_strings(plus) == [
@@ -238,7 +238,7 @@ pub fn ruby_search_spec_l53_d10_collection() homebrew.SearchCollection {
 
 // Ruby it `it "returns a Hash" do` at line 55.
 pub fn ruby_search_spec_l55_d11_returns() bool {
-	result := homebrew.ruby_search_l223_d7_self_search(ruby_search_spec_l53_d10_collection(), homebrew.SearchQuery{ value: 'foo' }, homebrew.search_identity_projector) or { return false }
+	result := homebrew.search_search(ruby_search_spec_l53_d10_collection(), homebrew.SearchQuery{ value: 'foo' }, homebrew.search_identity_projector) or { return false }
 	return result.kind == .string_map && result.entries == ruby_search_spec_l53_d10_collection().entries
 }
 
@@ -255,7 +255,7 @@ pub fn ruby_search_spec_l60_d12_collection() homebrew.SearchCollection {
 
 // Ruby it `it "does not raise an error" do` at line 62.
 pub fn ruby_search_spec_l62_d13_does() bool {
-	result := homebrew.ruby_search_l223_d7_self_search(ruby_search_spec_l60_d12_collection(), homebrew.SearchQuery{ value: 'foo' }, homebrew.search_identity_projector) or { return false }
+	result := homebrew.search_search(ruby_search_spec_l60_d12_collection(), homebrew.SearchQuery{ value: 'foo' }, homebrew.search_identity_projector) or { return false }
 	return result.entries == ruby_search_spec_l60_d12_collection().entries
 }
 
@@ -271,25 +271,25 @@ pub fn ruby_search_spec_l71_d15_formula() homebrew.SearchFormula {
 
 // Ruby it `it "annotates deprecated formulae" do` at line 85.
 pub fn ruby_search_spec_l85_d16_annotates() bool {
-	result := homebrew.ruby_search_l118_d4_self_search_formulae(homebrew.SearchQuery{ value: 'testball', is_regex: true }, search_spec_formula_state(true, false, false)) or { return false }
+	result := homebrew.search_search_formulae(homebrew.SearchQuery{ value: 'testball', is_regex: true }, search_spec_formula_state(true, false, false)) or { return false }
 	return result.len == 1 && result[0].contains('(deprecated)')
 }
 
 // Ruby it `it "annotates disabled formulae" do` at line 90.
 pub fn ruby_search_spec_l90_d17_annotates() bool {
-	result := homebrew.ruby_search_l118_d4_self_search_formulae(homebrew.SearchQuery{ value: 'testball', is_regex: true }, search_spec_formula_state(false, true, false)) or { return false }
+	result := homebrew.search_search_formulae(homebrew.SearchQuery{ value: 'testball', is_regex: true }, search_spec_formula_state(false, true, false)) or { return false }
 	return result.len == 1 && result[0].contains('(disabled)')
 }
 
 // Ruby it `it "does not annotate normal formulae" do` at line 95.
 pub fn ruby_search_spec_l95_d18_does() bool {
-	result := homebrew.ruby_search_l118_d4_self_search_formulae(homebrew.SearchQuery{ value: 'testball', is_regex: true }, search_spec_formula_state(false, false, false)) or { return false }
+	result := homebrew.search_search_formulae(homebrew.SearchQuery{ value: 'testball', is_regex: true }, search_spec_formula_state(false, false, false)) or { return false }
 	return result == ['testball']
 }
 
 // Ruby it `it "shows only the installed icon for installed formulae" do` at line 99.
 pub fn ruby_search_spec_l99_d19_shows() bool {
-	result := homebrew.ruby_search_l118_d4_self_search_formulae(homebrew.SearchQuery{ value: 'testball', is_regex: true }, search_spec_formula_state(false, false, true)) or { return false }
+	result := homebrew.search_search_formulae(homebrew.SearchQuery{ value: 'testball', is_regex: true }, search_spec_formula_state(false, false, true)) or { return false }
 	return result == [
 		brew_utils.pretty_installed('testball', search_spec_output_options()),
 	]
@@ -312,37 +312,37 @@ pub fn ruby_search_spec_l110_d22_cask() homebrew.SearchCask {
 
 // Ruby it `it "annotates deprecated casks", :needs_macos do` at line 122.
 pub fn ruby_search_spec_l122_d23_annotates() bool {
-	result := homebrew.ruby_search_l160_d5_self_search_casks(homebrew.SearchQuery{ value: 'testball', is_regex: true }, search_spec_cask_state(true, false, false, true, false)) or { return false }
+	result := homebrew.search_search_casks(homebrew.SearchQuery{ value: 'testball', is_regex: true }, search_spec_cask_state(true, false, false, true, false)) or { return false }
 	return result.len == 1 && result[0].contains('(deprecated)')
 }
 
 // Ruby it `it "annotates disabled casks", :needs_macos do` at line 127.
 pub fn ruby_search_spec_l127_d24_annotates() bool {
-	result := homebrew.ruby_search_l160_d5_self_search_casks(homebrew.SearchQuery{ value: 'testball', is_regex: true }, search_spec_cask_state(false, true, false, true, false)) or { return false }
+	result := homebrew.search_search_casks(homebrew.SearchQuery{ value: 'testball', is_regex: true }, search_spec_cask_state(false, true, false, true, false)) or { return false }
 	return result.len == 1 && result[0].contains('(disabled)')
 }
 
 // Ruby it `it "does not annotate normal casks", :needs_macos do` at line 132.
 pub fn ruby_search_spec_l132_d25_does() bool {
-	result := homebrew.ruby_search_l160_d5_self_search_casks(homebrew.SearchQuery{ value: 'testball', is_regex: true }, search_spec_cask_state(false, false, false, true, false)) or { return false }
+	result := homebrew.search_search_casks(homebrew.SearchQuery{ value: 'testball', is_regex: true }, search_spec_cask_state(false, false, false, true, false)) or { return false }
 	return result == ['testball']
 }
 
 // Ruby it `it "hides macOS-only casks on Linux", :needs_linux do` at line 136.
 pub fn ruby_search_spec_l136_d26_hides() bool {
-	result := homebrew.ruby_search_l160_d5_self_search_casks(homebrew.SearchQuery{ value: 'testball', is_regex: true }, search_spec_cask_state(false, false, false, false, true)) or { return false }
+	result := homebrew.search_search_casks(homebrew.SearchQuery{ value: 'testball', is_regex: true }, search_spec_cask_state(false, false, false, false, true)) or { return false }
 	return result.len == 0
 }
 
 // Ruby it `it "shows Linux-compatible casks on Linux", :needs_linux do` at line 142.
 pub fn ruby_search_spec_l142_d27_shows() bool {
-	result := homebrew.ruby_search_l160_d5_self_search_casks(homebrew.SearchQuery{ value: 'testball', is_regex: true }, search_spec_cask_state(false, false, false, true, true)) or { return false }
+	result := homebrew.search_search_casks(homebrew.SearchQuery{ value: 'testball', is_regex: true }, search_spec_cask_state(false, false, false, true, true)) or { return false }
 	return result == ['testball']
 }
 
 // Ruby it `it "shows only the installed icon for installed casks", :needs_macos do` at line 146.
 pub fn ruby_search_spec_l146_d28_shows() bool {
-	result := homebrew.ruby_search_l160_d5_self_search_casks(homebrew.SearchQuery{ value: 'testball', is_regex: true }, search_spec_cask_state(false, false, true, true, false)) or { return false }
+	result := homebrew.search_search_casks(homebrew.SearchQuery{ value: 'testball', is_regex: true }, search_spec_cask_state(false, false, true, true, false)) or { return false }
 	return result == [
 		brew_utils.pretty_installed('testball', search_spec_output_options()),
 	]

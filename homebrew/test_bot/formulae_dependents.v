@@ -450,7 +450,7 @@ pub fn ruby_formulae_dependents_l508_d11_skip_recursive_dependents(_formula Form
 }
 
 // Ruby method `build_dependent_from_source?(_dependent)` at line 513.
-pub fn ruby_formulae_dependents_l513_d12_build_dependent_from_source(_dependent FormulaeDependentsFormula) bool {
+pub fn formulae_dependents_build_dependent_from_source(_dependent FormulaeDependentsFormula) bool {
 	return true
 }
 
@@ -521,7 +521,7 @@ pub fn (mut formulae_dependents FormulaeDependents) dependents_for_formula(formu
 	mut remaining := []FormulaeDependentPair{}
 	for pair in pairs {
 		all_deps_bottled_or_built := pair.dependencies.all(it.bottled_or_built)
-		if ruby_formulae_dependents_l513_d12_build_dependent_from_source(pair.dependent)
+		if formulae_dependents_build_dependent_from_source(pair.dependent)
 			&& args.build_dependents_from_source && all_deps_bottled_or_built {
 			source_dependents << pair.dependent
 		} else {

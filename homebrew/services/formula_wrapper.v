@@ -246,7 +246,7 @@ pub fn ruby_formula_wrapper_l31_d3_initialize(formula FormulaWrapperFormula,
 }
 
 // Ruby method `name` at line 42.
-pub fn ruby_formula_wrapper_l42_d4_name(wrapper &FormulaWrapper) string {
+pub fn formula_wrapper_name(wrapper &FormulaWrapper) string {
 	return wrapper.formula.name
 }
 
@@ -256,7 +256,7 @@ pub fn ruby_formula_wrapper_l48_d5_service(wrapper &FormulaWrapper) bool {
 }
 
 // Ruby method `timed?` at line 54.
-pub fn ruby_formula_wrapper_l54_d6_timed(wrapper &FormulaWrapper) bool {
+pub fn formula_wrapper_timed(wrapper &FormulaWrapper) bool {
 	return wrapper.formula.has_service && wrapper.formula.service.timed
 }
 
@@ -275,7 +275,7 @@ pub fn ruby_formula_wrapper_l71_d8_path_dirs(wrapper &FormulaWrapper) []string {
 }
 
 // Ruby method `service_name` at line 80.
-pub fn ruby_formula_wrapper_l80_d9_service_name(wrapper &FormulaWrapper) string {
+pub fn formula_wrapper_service_name(wrapper &FormulaWrapper) string {
 	return if wrapper.system.manager == .launchctl {
 		wrapper.formula.plist_name
 	} else {
@@ -284,7 +284,7 @@ pub fn ruby_formula_wrapper_l80_d9_service_name(wrapper &FormulaWrapper) string 
 }
 
 // Ruby method `service_file` at line 92.
-pub fn ruby_formula_wrapper_l92_d10_service_file(wrapper &FormulaWrapper) string {
+pub fn formula_wrapper_service_file(wrapper &FormulaWrapper) string {
 	return if wrapper.system.manager == .launchctl {
 		wrapper.formula.launchd_service_path
 	} else {
@@ -293,18 +293,18 @@ pub fn ruby_formula_wrapper_l92_d10_service_file(wrapper &FormulaWrapper) string
 }
 
 // Ruby method `timer_file` at line 103.
-pub fn ruby_formula_wrapper_l103_d11_timer_file(wrapper &FormulaWrapper) string {
+pub fn formula_wrapper_timer_file(wrapper &FormulaWrapper) string {
 	return wrapper.formula.systemd_timer_path
 }
 
 // Ruby method `timer_name` at line 108.
-pub fn ruby_formula_wrapper_l108_d12_timer_name(wrapper &FormulaWrapper) string {
-	return basename(ruby_formula_wrapper_l103_d11_timer_file(wrapper))
+pub fn formula_wrapper_timer_name(wrapper &FormulaWrapper) string {
+	return basename(formula_wrapper_timer_file(wrapper))
 }
 
 // Ruby method `timer_dest` at line 113.
 pub fn ruby_formula_wrapper_l113_d13_timer_dest(wrapper &FormulaWrapper) string {
-	return os.join_path(ruby_formula_wrapper_l131_d15_dest_dir(wrapper), ruby_formula_wrapper_l108_d12_timer_name(wrapper))
+	return os.join_path(formula_wrapper_dest_dir(wrapper), formula_wrapper_timer_name(wrapper))
 }
 
 // Ruby method `service_startup?` at line 119.
@@ -313,13 +313,13 @@ pub fn ruby_formula_wrapper_l119_d14_service_startup(wrapper &FormulaWrapper) bo
 }
 
 // Ruby method `dest_dir` at line 131.
-pub fn ruby_formula_wrapper_l131_d15_dest_dir(wrapper &FormulaWrapper) string {
+pub fn formula_wrapper_dest_dir(wrapper &FormulaWrapper) string {
 	return if wrapper.system.root { wrapper.system.boot_path } else { wrapper.system.user_path }
 }
 
 // Ruby method `dest` at line 137.
-pub fn ruby_formula_wrapper_l137_d16_dest(wrapper &FormulaWrapper) string {
-	return os.join_path(ruby_formula_wrapper_l131_d15_dest_dir(wrapper), basename(ruby_formula_wrapper_l92_d10_service_file(wrapper)))
+pub fn formula_wrapper_dest(wrapper &FormulaWrapper) string {
+	return os.join_path(formula_wrapper_dest_dir(wrapper), basename(formula_wrapper_service_file(wrapper)))
 }
 
 // Ruby method `installed?` at line 143.
@@ -328,45 +328,45 @@ pub fn ruby_formula_wrapper_l143_d17_installed(wrapper &FormulaWrapper) bool {
 }
 
 // Ruby method `reset_cache!` at line 148.
-pub fn ruby_formula_wrapper_l148_d18_reset_cache(mut wrapper FormulaWrapper) {
+pub fn formula_wrapper_reset_cache(mut wrapper FormulaWrapper) {
 	wrapper.has_status_cache = false
 }
 
 // Ruby method `loaded?(cached: false)` at line 154.
-pub fn ruby_formula_wrapper_l154_d19_loaded(mut wrapper FormulaWrapper, cached bool) bool {
+pub fn formula_wrapper_loaded(mut wrapper FormulaWrapper, cached bool) bool {
 	if wrapper.system.manager == .launchctl {
 		if !cached {
-			ruby_formula_wrapper_l148_d18_reset_cache(mut wrapper)
+			formula_wrapper_reset_cache(mut wrapper)
 		}
-		return ruby_formula_wrapper_l312_d33_status_success(mut wrapper)
+		return formula_wrapper_status_success(mut wrapper)
 	}
-	wrapper.last_quiet_run_target = if ruby_formula_wrapper_l54_d6_timed(&wrapper) {
-		ruby_formula_wrapper_l108_d12_timer_name(&wrapper)
+	wrapper.last_quiet_run_target = if formula_wrapper_timed(&wrapper) {
+		formula_wrapper_timer_name(&wrapper)
 	} else {
-		basename(ruby_formula_wrapper_l92_d10_service_file(&wrapper))
+		basename(formula_wrapper_service_file(&wrapper))
 	}
 	return wrapper.system.systemctl_quiet_run_result
 }
 
 // Ruby method `service_file_present?(type: nil)` at line 166.
-pub fn ruby_formula_wrapper_l166_d20_service_file_present(wrapper &FormulaWrapper,
+pub fn formula_wrapper_service_file_present(wrapper &FormulaWrapper,
 	type_ FormulaWrapperServiceFileType) bool {
 	if wrapper.has_service_file_present_override {
 		return wrapper.service_file_present_override
 	}
 	return match type_ {
-		.root { ruby_formula_wrapper_l373_d39_boot_path_service_file_present(wrapper) }
-		.user { ruby_formula_wrapper_l381_d40_user_path_service_file_present(wrapper) }
+		.root { formula_wrapper_boot_path_service_file_present(wrapper) }
+		.user { formula_wrapper_user_path_service_file_present(wrapper) }
 		.any {
-			ruby_formula_wrapper_l373_d39_boot_path_service_file_present(wrapper) || ruby_formula_wrapper_l381_d40_user_path_service_file_present(wrapper)
+			formula_wrapper_boot_path_service_file_present(wrapper) || formula_wrapper_user_path_service_file_present(wrapper)
 		}
 	}
 }
 
 // Ruby method `owner` at line 178.
-pub fn ruby_formula_wrapper_l178_d21_owner(wrapper &FormulaWrapper) ?string {
+pub fn formula_wrapper_owner(wrapper &FormulaWrapper) ?string {
 	if wrapper.system.manager == .launchctl {
-		destination := ruby_formula_wrapper_l137_d16_dest(wrapper)
+		destination := formula_wrapper_dest(wrapper)
 		if os.exists(destination) {
 			contents := os.read_file(destination) or { '' }
 			if username := plist_username(contents) {
@@ -374,18 +374,18 @@ pub fn ruby_formula_wrapper_l178_d21_owner(wrapper &FormulaWrapper) ?string {
 			}
 		}
 	}
-	if ruby_formula_wrapper_l373_d39_boot_path_service_file_present(wrapper) {
+	if formula_wrapper_boot_path_service_file_present(wrapper) {
 		return 'root'
 	}
-	if ruby_formula_wrapper_l381_d40_user_path_service_file_present(wrapper) {
+	if formula_wrapper_user_path_service_file_present(wrapper) {
 		return wrapper.system.user
 	}
 	return none
 }
 
 // Ruby method `pid?` at line 198.
-pub fn ruby_formula_wrapper_l198_d22_pid(mut wrapper FormulaWrapper) bool {
-	return formula_wrapper_pid_present_value(ruby_formula_wrapper_l216_d25_pid(mut wrapper))
+pub fn formula_wrapper_has_pid(mut wrapper FormulaWrapper) bool {
+	return formula_wrapper_pid_present_value(formula_wrapper_pid(mut wrapper))
 }
 
 pub fn formula_wrapper_pid_present_value(pid ?int) bool {
@@ -394,8 +394,8 @@ pub fn formula_wrapper_pid_present_value(pid ?int) bool {
 }
 
 // Ruby method `error?` at line 203.
-pub fn ruby_formula_wrapper_l203_d23_error(mut wrapper FormulaWrapper) bool {
-	return formula_wrapper_error_values(ruby_formula_wrapper_l216_d25_pid(mut wrapper), ruby_formula_wrapper_l222_d26_exit_code(mut wrapper))
+pub fn formula_wrapper_error(mut wrapper FormulaWrapper) bool {
+	return formula_wrapper_error_values(formula_wrapper_pid(mut wrapper), formula_wrapper_exit_code(mut wrapper))
 }
 
 pub fn formula_wrapper_error_values(pid ?int, exit_code ?int) bool {
@@ -407,14 +407,14 @@ pub fn formula_wrapper_error_values(pid ?int, exit_code ?int) bool {
 }
 
 // Ruby method `unknown_status?` at line 210.
-pub fn ruby_formula_wrapper_l210_d24_unknown_status(mut wrapper FormulaWrapper) bool {
-	return ruby_formula_wrapper_l307_d32_status_output(mut wrapper).trim_space() == '' && !ruby_formula_wrapper_l198_d22_pid(mut wrapper)
+pub fn formula_wrapper_unknown_status(mut wrapper FormulaWrapper) bool {
+	return formula_wrapper_status_output(mut wrapper).trim_space() == '' && !formula_wrapper_has_pid(mut wrapper)
 }
 
 // Ruby method `pid` at line 216.
-pub fn ruby_formula_wrapper_l216_d25_pid(mut wrapper FormulaWrapper) ?int {
-	output := ruby_formula_wrapper_l307_d32_status_output(mut wrapper)
-	type_ := ruby_formula_wrapper_l317_d34_status_type(mut wrapper)
+pub fn formula_wrapper_pid(mut wrapper FormulaWrapper) ?int {
+	output := formula_wrapper_status_output(mut wrapper)
+	type_ := formula_wrapper_status_type(mut wrapper)
 	return match type_ {
 		.launchctl_list { integer_match(output, '"PID" = ', ';', true) }
 		.launchctl_print { digits_after(output, 'pid = ') }
@@ -434,9 +434,9 @@ pub fn ruby_formula_wrapper_l216_d25_pid(mut wrapper FormulaWrapper) ?int {
 }
 
 // Ruby method `exit_code` at line 222.
-pub fn ruby_formula_wrapper_l222_d26_exit_code(mut wrapper FormulaWrapper) ?int {
-	output := ruby_formula_wrapper_l307_d32_status_output(mut wrapper)
-	return match ruby_formula_wrapper_l317_d34_status_type(mut wrapper) {
+pub fn formula_wrapper_exit_code(mut wrapper FormulaWrapper) ?int {
+	output := formula_wrapper_status_output(mut wrapper)
+	return match formula_wrapper_status_type(mut wrapper) {
 		.launchctl_list { integer_match(output, '"LastExitStatus" = ', ';', true) }
 		.launchctl_print { digits_after(output, 'last exit code = ') }
 		.systemctl { integer_match(output, '(code=exited, status=', ')', true) }
@@ -444,28 +444,30 @@ pub fn ruby_formula_wrapper_l222_d26_exit_code(mut wrapper FormulaWrapper) ?int 
 }
 
 // Ruby method `loaded_file` at line 227.
-pub fn ruby_formula_wrapper_l227_d27_loaded_file(mut wrapper FormulaWrapper) ?string {
-	return loaded_file_from_output(ruby_formula_wrapper_l307_d32_status_output(mut wrapper), ruby_formula_wrapper_l317_d34_status_type(mut wrapper))
+pub fn formula_wrapper_loaded_file(mut wrapper FormulaWrapper) ?string {
+	return loaded_file_from_output(formula_wrapper_status_output(mut wrapper), formula_wrapper_status_type(mut wrapper))
 }
 
 // Ruby method `to_hash` at line 232.
 pub fn ruby_formula_wrapper_l232_d28_to_hash(mut wrapper FormulaWrapper) FormulaWrapperHash {
-	registered := ruby_formula_wrapper_l166_d20_service_file_present(&wrapper, .any)
+	registered := formula_wrapper_service_file_present(&wrapper, .any)
 	mut result := FormulaWrapperHash{
-		name: ruby_formula_wrapper_l42_d4_name(&wrapper)
-		service_name: ruby_formula_wrapper_l80_d9_service_name(&wrapper)
-		running: ruby_formula_wrapper_l198_d22_pid(mut wrapper)
-		loaded: ruby_formula_wrapper_l154_d19_loaded(mut wrapper, true)
-		schedulable: ruby_formula_wrapper_l54_d6_timed(&wrapper)
-		pid: ruby_formula_wrapper_l216_d25_pid(mut wrapper)
-		exit_code: ruby_formula_wrapper_l222_d26_exit_code(mut wrapper)
-		user: ruby_formula_wrapper_l178_d21_owner(&wrapper)
-		status: ruby_formula_wrapper_l322_d35_status_symbol(mut wrapper)
+		name: formula_wrapper_name(&wrapper)
+		service_name: formula_wrapper_service_name(&wrapper)
+		running: formula_wrapper_has_pid(mut wrapper)
+		loaded: formula_wrapper_loaded(mut wrapper, true)
+		schedulable: formula_wrapper_timed(&wrapper)
+		pid: formula_wrapper_pid(mut wrapper)
+		exit_code: formula_wrapper_exit_code(mut wrapper)
+		user: formula_wrapper_owner(&wrapper)
+		status: formula_wrapper_status_symbol(mut wrapper)
 		file: if registered {
-			ruby_formula_wrapper_l137_d16_dest(&wrapper)} else {
-			ruby_formula_wrapper_l92_d10_service_file(&wrapper)}
+			formula_wrapper_dest(&wrapper)
+		} else {
+			formula_wrapper_service_file(&wrapper)
+		}
 		registered: registered
-		loaded_file: ruby_formula_wrapper_l227_d27_loaded_file(mut wrapper)
+		loaded_file: formula_wrapper_loaded_file(mut wrapper)
 	}
 	if !wrapper.formula.has_service || wrapper.formula.service.command.len == 0 {
 		return result
@@ -486,7 +488,7 @@ pub fn ruby_formula_wrapper_l232_d28_to_hash(mut wrapper FormulaWrapper) Formula
 // Ruby method `service_contents` at line 270.
 pub fn ruby_formula_wrapper_l270_d29_service_contents(wrapper &FormulaWrapper) !string {
 	if !wrapper.formula.has_service || wrapper.formula.service.command.len == 0 {
-		return os.read_file(ruby_formula_wrapper_l92_d10_service_file(wrapper))
+		return os.read_file(formula_wrapper_service_file(wrapper))
 	}
 	return if wrapper.system.manager == .launchctl {
 		wrapper.formula.service.plist_contents
@@ -501,7 +503,7 @@ pub fn ruby_formula_wrapper_l286_d30_load_service(wrapper &FormulaWrapper) Formu
 }
 
 // Ruby method `status_output_success_type` at line 293.
-pub fn ruby_formula_wrapper_l293_d31_status_output_success_type(mut wrapper FormulaWrapper) StatusOutputSuccessType {
+pub fn formula_wrapper_status_output_success_type(mut wrapper FormulaWrapper) StatusOutputSuccessType {
 	if wrapper.has_status_cache {
 		return wrapper.status_cache
 	}
@@ -520,37 +522,37 @@ pub fn ruby_formula_wrapper_l293_d31_status_output_success_type(mut wrapper Form
 }
 
 // Ruby method `status_output` at line 307.
-pub fn ruby_formula_wrapper_l307_d32_status_output(mut wrapper FormulaWrapper) string {
-	return ruby_formula_wrapper_l293_d31_status_output_success_type(mut wrapper).output
+pub fn formula_wrapper_status_output(mut wrapper FormulaWrapper) string {
+	return formula_wrapper_status_output_success_type(mut wrapper).output
 }
 
 // Ruby method `status_success` at line 312.
-pub fn ruby_formula_wrapper_l312_d33_status_success(mut wrapper FormulaWrapper) bool {
-	return ruby_formula_wrapper_l293_d31_status_output_success_type(mut wrapper).success
+pub fn formula_wrapper_status_success(mut wrapper FormulaWrapper) bool {
+	return formula_wrapper_status_output_success_type(mut wrapper).success
 }
 
 // Ruby method `status_type` at line 317.
-pub fn ruby_formula_wrapper_l317_d34_status_type(mut wrapper FormulaWrapper) FormulaWrapperStatusType {
-	return ruby_formula_wrapper_l293_d31_status_output_success_type(mut wrapper).type_
+pub fn formula_wrapper_status_type(mut wrapper FormulaWrapper) FormulaWrapperStatusType {
+	return formula_wrapper_status_output_success_type(mut wrapper).type_
 }
 
 // Ruby method `status_symbol` at line 322.
-pub fn ruby_formula_wrapper_l322_d35_status_symbol(mut wrapper FormulaWrapper) FormulaWrapperStatusSymbol {
-	if ruby_formula_wrapper_l198_d22_pid(mut wrapper) {
+pub fn formula_wrapper_status_symbol(mut wrapper FormulaWrapper) FormulaWrapperStatusSymbol {
+	if formula_wrapper_has_pid(mut wrapper) {
 		return .started
 	}
-	if !ruby_formula_wrapper_l154_d19_loaded(mut wrapper, true) {
+	if !formula_wrapper_loaded(mut wrapper, true) {
 		return .none
 	}
-	if exit_code := ruby_formula_wrapper_l222_d26_exit_code(mut wrapper) {
+	if exit_code := formula_wrapper_exit_code(mut wrapper) {
 		if exit_code == 0 {
-			return if ruby_formula_wrapper_l54_d6_timed(&wrapper) { .scheduled } else { .stopped }
+			return if formula_wrapper_timed(&wrapper) { .scheduled } else { .stopped }
 		}
 	}
-	if ruby_formula_wrapper_l203_d23_error(mut wrapper) {
+	if formula_wrapper_error(mut wrapper) {
 		return .error
 	}
-	if ruby_formula_wrapper_l210_d24_unknown_status(mut wrapper) {
+	if formula_wrapper_unknown_status(mut wrapper) {
 		return .unknown
 	}
 	return .other
@@ -584,13 +586,13 @@ pub fn ruby_formula_wrapper_l363_d38_loaded_file_regex(status_type FormulaWrappe
 }
 
 // Ruby method `boot_path_service_file_present?` at line 373.
-pub fn ruby_formula_wrapper_l373_d39_boot_path_service_file_present(wrapper &FormulaWrapper) bool {
-	return wrapper.system.boot_path != '' && os.exists(os.join_path(wrapper.system.boot_path, basename(ruby_formula_wrapper_l92_d10_service_file(wrapper))))
+pub fn formula_wrapper_boot_path_service_file_present(wrapper &FormulaWrapper) bool {
+	return wrapper.system.boot_path != '' && os.exists(os.join_path(wrapper.system.boot_path, basename(formula_wrapper_service_file(wrapper))))
 }
 
 // Ruby method `user_path_service_file_present?` at line 381.
-pub fn ruby_formula_wrapper_l381_d40_user_path_service_file_present(wrapper &FormulaWrapper) bool {
-	return wrapper.system.user_path != '' && os.exists(os.join_path(wrapper.system.user_path, basename(ruby_formula_wrapper_l92_d10_service_file(wrapper))))
+pub fn formula_wrapper_user_path_service_file_present(wrapper &FormulaWrapper) bool {
+	return wrapper.system.user_path != '' && os.exists(os.join_path(wrapper.system.user_path, basename(formula_wrapper_service_file(wrapper))))
 }
 
 // Ruby method `self.path_or_label_regex` at line 389.

@@ -240,7 +240,7 @@ fn skip_spec_status_hashes() map[string]SkipInformation {
 
 fn skip_spec_information(package SkipConditionsPackage, expected SkipInformation,
 	extract_plist bool) bool {
-	actual := livecheck_core.ruby_skip_conditions_l235_d11_self_skip_information(package, false, false, extract_plist)
+	actual := livecheck_core.skip_conditions_skip_information(package, false, false, extract_plist)
 	return livecheck_core.skip_information_equal(actual, expected)
 }
 
@@ -337,7 +337,7 @@ pub fn ruby_skip_conditions_spec_l422_d14_skips() bool {
 
 // Ruby it `it "does not skip" do` at line 430.
 pub fn ruby_skip_conditions_spec_l430_d15_does() bool {
-	return !livecheck_core.ruby_skip_conditions_l235_d11_self_skip_information(skip_spec_casks()['future_disable_fails_gatekeeper_check'], false, false, true).present
+	return !livecheck_core.skip_conditions_skip_information(skip_spec_casks()['future_disable_fails_gatekeeper_check'], false, false, true).present
 }
 
 // Ruby it `it "skips" do` at line 436.
@@ -364,12 +364,12 @@ pub fn ruby_skip_conditions_spec_l457_d19_skips() bool {
 
 // Ruby it `it "returns an empty hash for a non-skippable formula" do` at line 466.
 pub fn ruby_skip_conditions_spec_l466_d20_returns() bool {
-	return !livecheck_core.ruby_skip_conditions_l235_d11_self_skip_information(skip_spec_formulae()['basic'], false, false, true).present
+	return !livecheck_core.skip_conditions_skip_information(skip_spec_formulae()['basic'], false, false, true).present
 }
 
 // Ruby it `it "returns an empty hash for a non-skippable cask" do` at line 470.
 pub fn ruby_skip_conditions_spec_l470_d21_returns() bool {
-	return !livecheck_core.ruby_skip_conditions_l235_d11_self_skip_information(skip_spec_casks()['basic'], false, false, true).present
+	return !livecheck_core.skip_conditions_skip_information(skip_spec_casks()['basic'], false, false, true).present
 }
 
 // Ruby let `let(:original_name) { "original" }` at line 476.

@@ -184,15 +184,15 @@ fn from_api_spec_setup(root string, local_token string) FromApiLoaderSpecSetup {
 		source: source
 		internal_source: internal_source
 		lookup: lookup
-		api_loader: brew_cask.ruby_cask_loader_l420_d34_initialize(api_token, source, '', false, false, true, lookup)
-		internal_loader: brew_cask.ruby_cask_loader_l420_d34_initialize(internal_token, internal_source, '', false, true, true, lookup)
+		api_loader: brew_cask.new_api_cask_loader(api_token, source, '', false, false, true, lookup)
+		internal_loader: brew_cask.new_api_cask_loader(internal_token, internal_source, '', false, true, true, lookup)
 	}
 }
 
 fn from_api_spec_load(setup FromApiLoaderSpecSetup, internal bool,
 	config brew_cask.CaskLoaderConfig) !brew_cask.CaskLoaderCask {
 	loader := if internal { setup.internal_loader } else { setup.api_loader }
-	return brew_cask.ruby_cask_loader_l442_d35_load(loader, config, brew_cask.CaskLoaderLoadContext{
+	return brew_cask.cask_loader_load_api(loader, config, brew_cask.CaskLoaderLoadContext{
 		lookup: setup.lookup
 		internal_api: setup.internal_source
 	})
@@ -225,7 +225,7 @@ pub fn ruby_from_api_loader_spec_l6_d1_api_token(local_token string) string {
 
 // Ruby let `let(:cask_from_source) { Cask::CaskLoader.load(local_token) }` at line 7.
 pub fn ruby_from_api_loader_spec_l7_d2_cask_from_source(setup FromApiLoaderSpecSetup) !brew_cask.CaskLoaderCask {
-	return brew_cask.ruby_cask_loader_l698_d47_self_load(brew_cask.CaskLoaderReference{
+	return brew_cask.cask_loader_load_reference(brew_cask.CaskLoaderReference{
 		kind: .text
 		value: setup.local_token
 	}, brew_cask.CaskLoaderConfig{}, true, brew_cask.CaskLoaderLoadContext{ lookup: setup.lookup })
@@ -291,7 +291,7 @@ pub fn ruby_from_api_loader_spec_l47_d12_internal_api_loader(setup FromApiLoader
 // Ruby it `it "returns false" do` at line 69.
 pub fn ruby_from_api_loader_spec_l69_d13_returns(setup FromApiLoaderSpecSetup) bool {
 	context := brew_cask.CaskLoaderLookupContext{ ...setup.lookup, no_install_from_api: true }
-	return brew_cask.ruby_cask_loader_l395_d33_self_try_new(brew_cask.CaskLoaderReference{
+	return brew_cask.cask_loader_try_api(brew_cask.CaskLoaderReference{
 		kind: .text
 		value: setup.api_token
 	}, false, context) == none
@@ -299,7 +299,7 @@ pub fn ruby_from_api_loader_spec_l69_d13_returns(setup FromApiLoaderSpecSetup) b
 
 // Ruby it `it "returns a loader for valid token" do` at line 77.
 pub fn ruby_from_api_loader_spec_l77_d14_returns(setup FromApiLoaderSpecSetup) bool {
-	loader := brew_cask.ruby_cask_loader_l395_d33_self_try_new(brew_cask.CaskLoaderReference{
+	loader := brew_cask.cask_loader_try_api(brew_cask.CaskLoaderReference{
 		kind: .text
 		value: setup.api_token
 	}, false, setup.lookup) or { return false }
@@ -308,7 +308,7 @@ pub fn ruby_from_api_loader_spec_l77_d14_returns(setup FromApiLoaderSpecSetup) b
 
 // Ruby it `it "returns a loader for valid full name" do` at line 83.
 pub fn ruby_from_api_loader_spec_l83_d15_returns(setup FromApiLoaderSpecSetup) bool {
-	loader := brew_cask.ruby_cask_loader_l395_d33_self_try_new(brew_cask.CaskLoaderReference{
+	loader := brew_cask.cask_loader_try_api(brew_cask.CaskLoaderReference{
 		kind: .text
 		value: 'homebrew/cask/${setup.api_token}'
 	}, false, setup.lookup) or { return false }
@@ -332,7 +332,7 @@ pub fn ruby_from_api_loader_spec_l112_d18_returns(setup FromApiLoaderSpecSetup) 
 
 // Ruby it `it "returns a loader for valid token" do` at line 129.
 pub fn ruby_from_api_loader_spec_l129_d19_returns(setup FromApiLoaderSpecSetup) bool {
-	loader := brew_cask.ruby_cask_loader_l395_d33_self_try_new(brew_cask.CaskLoaderReference{
+	loader := brew_cask.cask_loader_try_api(brew_cask.CaskLoaderReference{
 		kind: .text
 		value: setup.internal_token
 	}, false, setup.lookup) or { return false }
@@ -341,7 +341,7 @@ pub fn ruby_from_api_loader_spec_l129_d19_returns(setup FromApiLoaderSpecSetup) 
 
 // Ruby it `it "returns a loader for valid full name" do` at line 135.
 pub fn ruby_from_api_loader_spec_l135_d20_returns(setup FromApiLoaderSpecSetup) bool {
-	loader := brew_cask.ruby_cask_loader_l395_d33_self_try_new(brew_cask.CaskLoaderReference{
+	loader := brew_cask.cask_loader_try_api(brew_cask.CaskLoaderReference{
 		kind: .text
 		value: 'homebrew/cask/${setup.internal_token}'
 	}, false, setup.lookup) or { return false }
@@ -365,7 +365,7 @@ pub fn ruby_from_api_loader_spec_l164_d23_returns(setup FromApiLoaderSpecSetup) 
 
 // Ruby it `it "returns nil for full name with invalid tap" do` at line 178.
 pub fn ruby_from_api_loader_spec_l178_d24_returns(setup FromApiLoaderSpecSetup) bool {
-	return brew_cask.ruby_cask_loader_l395_d33_self_try_new(brew_cask.CaskLoaderReference{
+	return brew_cask.cask_loader_try_api(brew_cask.CaskLoaderReference{
 		kind: .text
 		value: 'homebrew/foo/test-opera'
 	}, false, setup.lookup) == none
@@ -417,8 +417,8 @@ pub fn ruby_from_api_loader_spec_l222_d27_does(root string) !bool {
 		]
 		has_artifacts: true
 	}
-	loader := brew_cask.ruby_cask_loader_l420_d34_initialize(setup.api_token, source, path, true, false, true, setup.lookup)
-	cask := brew_cask.ruby_cask_loader_l442_d35_load(loader, brew_cask.CaskLoaderConfig{}, brew_cask.CaskLoaderLoadContext{
+	loader := brew_cask.new_api_cask_loader(setup.api_token, source, path, true, false, true, setup.lookup)
+	cask := brew_cask.cask_loader_load_api(loader, brew_cask.CaskLoaderConfig{}, brew_cask.CaskLoaderLoadContext{
 		lookup: brew_cask.CaskLoaderLookupContext{
 			...setup.lookup
 			installed_receipts: {
@@ -505,8 +505,8 @@ pub fn ruby_from_api_loader_spec_l339_d33_loads(setup FromApiLoaderSpecSetup) !b
 // Ruby it `it "keeps the source fallback for old API data" do` at line 353.
 pub fn ruby_from_api_loader_spec_l353_d34_keeps(setup FromApiLoaderSpecSetup) !bool {
 	old_source := brew_cask.CaskLoaderApiSource{ ...setup.source, localisations: [] }
-	loader := brew_cask.ruby_cask_loader_l420_d34_initialize(setup.api_token, old_source, '', false, false, true, setup.lookup)
-	cask := brew_cask.ruby_cask_loader_l442_d35_load(loader, brew_cask.CaskLoaderConfig{}, brew_cask.CaskLoaderLoadContext{ lookup: setup.lookup })!
+	loader := brew_cask.new_api_cask_loader(setup.api_token, old_source, '', false, false, true, setup.lookup)
+	cask := brew_cask.cask_loader_load_api(loader, brew_cask.CaskLoaderConfig{}, brew_cask.CaskLoaderLoadContext{ lookup: setup.lookup })!
 	return cask.caskfile_only
 }
 
@@ -524,12 +524,12 @@ fn from_api_spec_migration(setup FromApiLoaderSpecSetup, internal bool, full_nam
 		...setup.lookup
 		taps: [setup.lookup.core_cask_tap, foo]
 	}
-	resolution := brew_cask.ruby_cask_loader_l704_d48_self_tap_cask_token_type('${foo.name}/${old_token}', false, context) or { return false }
+	resolution := brew_cask.cask_loader_tap_cask_token_type('${foo.name}/${old_token}', false, context) or { return false }
 	if resolution.token != token || !resolution.tap.core_cask_tap {
 		return false
 	}
 	ref := if full_name { '${foo.name}/${old_token}' } else { old_token }
-	loader := brew_cask.ruby_cask_loader_l755_d49_self_for(brew_cask.CaskLoaderReference{
+	loader := brew_cask.cask_loader_for(brew_cask.CaskLoaderReference{
 		kind: .text
 		value: ref
 	}, false, false, context) or { return false }

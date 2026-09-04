@@ -143,7 +143,7 @@ fn formula_auditor_spec_license(line int) bool {
 		options = homebrew.FormulaAuditorOptions{ ...options, strict: true }
 	}
 	mut auditor := formula_auditor_spec_auditor(formula, options)
-	homebrew.ruby_formula_auditor_l267_d11_audit_license(mut auditor)
+	homebrew.formula_auditor_audit_license(mut auditor)
 	return match line {
 		157, 256, 268, 280, 292, 304, 318, 330, 342, 354, 370, 386, 421, 468, 485, 519 {
 			auditor.problems.len == 0
@@ -175,7 +175,7 @@ fn formula_auditor_spec_run(line int) bool {
 			formula = homebrew.FormulaAuditFormula{ ...formula, homepage_browsed_recently: line == 106 }
 			options = homebrew.FormulaAuditorOptions{ online: true, homepage_problem: 'homepage failed' }
 			mut auditor := formula_auditor_spec_auditor(formula, options)
-			homebrew.ruby_formula_auditor_l629_d19_audit_homepage(mut auditor)
+			homebrew.formula_auditor_audit_homepage(mut auditor)
 			return if line == 106 {
 				auditor.problems.len == 0
 			} else {
@@ -192,7 +192,7 @@ fn formula_auditor_spec_run(line int) bool {
 			}
 			options = homebrew.FormulaAuditorOptions{ core_tap: line != 580 }
 			mut auditor := formula_auditor_spec_auditor(formula, options)
-			homebrew.ruby_formula_auditor_l517_d13_audit_node_modules(mut auditor)
+			homebrew.formula_auditor_audit_node_modules(mut auditor)
 			return if line in [570, 580] {
 				auditor.problems.len == 0
 			} else {
@@ -201,13 +201,13 @@ fn formula_auditor_spec_run(line int) bool {
 		}
 		591, 605 {
 			mut auditor := formula_auditor_spec_auditor(formula, options)
-			homebrew.ruby_formula_auditor_l92_d7_audit_file(mut auditor)
+			homebrew.formula_auditor_audit_file(mut auditor)
 			return auditor.problems.len == 0
 		}
 		617 {
 			formula = homebrew.FormulaAuditFormula{ ...formula, name: 'Foo' }
 			mut auditor := formula_auditor_spec_auditor(formula, options)
-			homebrew.ruby_formula_auditor_l204_d10_audit_name(mut auditor)
+			homebrew.formula_auditor_audit_name(mut auditor)
 			return formula_auditor_spec_has_problem(auditor, 'uppercase letters')
 		}
 		631, 650 {
@@ -224,7 +224,7 @@ fn formula_auditor_spec_run(line int) bool {
 			}
 			formula = homebrew.FormulaAuditFormula{ ...formula, stable_spec: stable }
 			mut auditor := formula_auditor_spec_auditor(formula, options)
-			homebrew.ruby_formula_auditor_l853_d32_audit_specs(mut auditor)
+			homebrew.formula_auditor_audit_specs(mut auditor)
 			return formula_auditor_spec_has_problem(auditor, 'FooSomething')
 		}
 		671, 686, 698 {
@@ -374,7 +374,7 @@ fn formula_auditor_spec_audit_specs(line int) bool {
 	}
 	formula = homebrew.FormulaAuditFormula{ ...formula, stable_spec: stable, version: stable.version }
 	mut auditor := formula_auditor_spec_auditor(formula, options)
-	homebrew.ruby_formula_auditor_l853_d32_audit_specs(mut auditor)
+	homebrew.formula_auditor_audit_specs(mut auditor)
 	return match line {
 		809 { formula_auditor_spec_has_problem(auditor, 'Checksum is missing') }
 		879, 898, 917 { formula_auditor_spec_has_problem(auditor, 'working HTTP mirror') }
@@ -444,7 +444,7 @@ fn formula_auditor_spec_deps(line int) bool {
 	}
 	formula = homebrew.FormulaAuditFormula{ ...formula, dependencies: [dep] }
 	mut auditor := formula_auditor_spec_auditor(formula, options)
-	homebrew.ruby_formula_auditor_l339_d12_audit_deps(mut auditor)
+	homebrew.formula_auditor_audit_deps(mut auditor)
 	return match line {
 		1197, 1267, 1289, 1327 {
 			auditor.problems.len == 0 && auditor.new_formula_problems.len == 0
@@ -480,7 +480,7 @@ fn formula_auditor_spec_stable_version(line int) bool {
 		else {}
 	}
 	mut auditor := formula_auditor_spec_auditor(formula, homebrew.FormulaAuditorOptions{ git: true })
-	homebrew.ruby_formula_auditor_l990_d33_audit_stable_version(mut auditor)
+	homebrew.formula_auditor_audit_stable_version(mut auditor)
 	return if line in [1448, 1458] { auditor.problems.len == 0 } else { auditor.problems.len == 1 }
 }
 
@@ -511,7 +511,7 @@ fn formula_auditor_spec_revision_history(line int) bool {
 		else {}
 	}
 	mut auditor := formula_auditor_spec_auditor(formula, options)
-	homebrew.ruby_formula_auditor_l1010_d34_audit_revision(mut auditor)
+	homebrew.formula_auditor_audit_revision(mut auditor)
 	return match line {
 		1495 { formula_auditor_spec_has_new_problem(auditor, 'should not define a revision') }
 		1513, 1543, 1552, 1572, 1582 { auditor.problems.len == 0 }
@@ -575,7 +575,7 @@ fn formula_auditor_spec_compatibility(line int) bool {
 		else {}
 	}
 	mut auditor := formula_auditor_spec_auditor(formula, homebrew.FormulaAuditorOptions{ git: true })
-	homebrew.ruby_formula_auditor_l1074_d35_audit_compatibility_version(mut auditor)
+	homebrew.formula_auditor_audit_compatibility_version(mut auditor)
 	return match line {
 		1758 { formula_auditor_spec_has_problem(auditor, 'should not decrease') }
 		1772 { formula_auditor_spec_has_problem(auditor, 'only increment by 1') }
@@ -635,7 +635,7 @@ fn formula_auditor_spec_revision_relationship(line int) bool {
 		else {}
 	}
 	mut auditor := formula_auditor_spec_auditor(formula, homebrew.FormulaAuditorOptions{ git: true })
-	homebrew.ruby_formula_auditor_l1010_d34_audit_revision(mut auditor)
+	homebrew.formula_auditor_audit_revision(mut auditor)
 	return if line == 1966 {
 		formula_auditor_spec_has_problem(auditor, 'must increase `compatibility_version`')
 	} else {
@@ -646,7 +646,7 @@ fn formula_auditor_spec_revision_relationship(line int) bool {
 fn formula_auditor_spec_versioned_keg(line int) bool {
 	formula := homebrew.FormulaAuditFormula{ name: 'foo@1.1', versioned_formula: true, keg_only: line != 2003, keg_reason_versioned: line == 2031 }
 	mut auditor := formula_auditor_spec_auditor(formula, homebrew.FormulaAuditorOptions{ core_tap: true })
-	homebrew.ruby_formula_auditor_l614_d18_audit_versioned_keg_only(mut auditor)
+	homebrew.formula_auditor_audit_versioned_keg_only(mut auditor)
 	return if line == 2031 {
 		auditor.problems.len == 0
 	} else {
@@ -664,7 +664,7 @@ fn formula_auditor_spec_duplicate(line int) bool {
 	}
 	options := homebrew.FormulaAuditorOptions{ core_tap: true, has_new_formula: true, new_formula: line == 2054, online: line != 2079 }
 	mut auditor := formula_auditor_spec_auditor(formula, options)
-	homebrew.ruby_formula_auditor_l665_d20_audit_duplicate_formula(mut auditor)
+	homebrew.formula_auditor_audit_duplicate_formula(mut auditor)
 	return if line == 2054 {
 		formula_auditor_spec_has_new_problem(auditor, 'Possible duplicate')
 	} else {
@@ -690,7 +690,7 @@ fn formula_auditor_spec_conflict(line int) bool {
 		conflicts: [conflict]
 	}
 	mut auditor := formula_auditor_spec_auditor(formula, homebrew.FormulaAuditorOptions{})
-	homebrew.ruby_formula_auditor_l540_d14_audit_conflicts(mut auditor)
+	homebrew.formula_auditor_audit_conflicts(mut auditor)
 	return match line {
 		2100 { formula_auditor_spec_has_problem(auditor, "Can't find conflicting") }
 		2115 { formula_auditor_spec_has_problem(auditor, 'conflict with itself') }
@@ -708,7 +708,7 @@ fn formula_auditor_spec_deprecate(line int) bool {
 		}
 	}
 	mut auditor := formula_auditor_spec_auditor(formula, homebrew.FormulaAuditorOptions{})
-	homebrew.ruby_formula_auditor_l1217_d41_audit_deprecate_disable(mut auditor)
+	homebrew.formula_auditor_audit_deprecate_disable(mut auditor)
 	return if line == 2167 {
 		formula_auditor_spec_has_problem(auditor, 'foobar')
 	} else {
@@ -749,7 +749,7 @@ fn formula_auditor_spec_gcc(line int) bool {
 		}
 	}
 	mut auditor := formula_auditor_spec_auditor(formula, options)
-	homebrew.ruby_formula_auditor_l578_d15_audit_gcc_dependency(mut auditor)
+	homebrew.formula_auditor_audit_gcc_dependency(mut auditor)
 	return if line == 2230 {
 		formula_auditor_spec_has_problem(auditor, 'Linux-only dependency on GCC')
 	} else {

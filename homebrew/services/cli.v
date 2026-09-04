@@ -248,12 +248,12 @@ pub fn ruby_cli_l20_d2_self_sudo_service_user(mut state CliState, sudo_service_u
 }
 
 // Ruby method `self.bin` at line 26.
-pub fn ruby_cli_l26_d3_self_bin() string {
+pub fn cli_bin() string {
 	return 'brew services'
 }
 
 // Ruby method `self.running` at line 32.
-pub fn ruby_cli_l32_d4_self_running(system CliSystem) []string {
+pub fn cli_running(system CliSystem) []string {
 	if system.running_labels.len > 0 {
 		return system.running_labels.clone()
 	}
@@ -267,7 +267,7 @@ pub fn ruby_cli_l32_d4_self_running(system CliSystem) []string {
 }
 
 // Ruby method `self.check!(targets)` at line 48.
-pub fn ruby_cli_l48_d5_self_check(targets []CliService) !bool {
+pub fn cli_check(targets []CliService) !bool {
 	if targets.len == 0 {
 		return error('Invalid usage: Formula(e) missing, please provide a formula name or use `--all`.')
 	}
@@ -279,7 +279,7 @@ pub fn ruby_cli_l56_d6_self_kill_orphaned_services(mut state CliState, system Cl
 	resolver CliFormulaResolver) CliActionResult {
 	mut result := CliActionResult{}
 	mut services := []CliService{}
-	for label in ruby_cli_l32_d4_self_running(system) {
+	for label in cli_running(system) {
 		resolved := resolver.resolve(label)
 		if resolved.found {
 			if !os.is_file(resolved.service.dest) {
@@ -287,10 +287,10 @@ pub fn ruby_cli_l56_d6_self_kill_orphaned_services(mut state CliState, system Cl
 				services << resolved.service
 			}
 		} else {
-			result.warnings << 'Warning: Service ${label} not managed by `${ruby_cli_l26_d3_self_bin()}` => skipping'
+			result.warnings << 'Warning: Service ${label} not managed by `${cli_bin()}` => skipping'
 		}
 	}
-	killed := ruby_cli_l258_d11_self_kill(mut state, system, mut services, false)
+	killed := cli_kill(mut state, system, mut services, false)
 	cli_merge(mut result, killed)
 	return result
 }
@@ -298,7 +298,7 @@ pub fn ruby_cli_l56_d6_self_kill_orphaned_services(mut state CliState, system Cl
 // Ruby method `self.remove_unused_service_files` at line 74.
 pub fn ruby_cli_l74_d7_self_remove_unused_service_files(system CliSystem) !CliActionResult {
 	mut result := CliActionResult{}
-	running := ruby_cli_l32_d4_self_running(system)
+	running := cli_running(system)
 	mut files := os.ls(system.path)!
 	files.sort()
 	for name in files {
@@ -333,14 +333,14 @@ pub fn ruby_cli_l95_d8_self_run(mut state CliState, system CliSystem, mut target
 	mut result := CliActionResult{}
 	for index in 0 .. targets.len {
 		if cli_pid(mut targets[index]) {
-			result.stdout << 'Service `${targets[index].name}` already running, use `${ruby_cli_l26_d3_self_bin()} restart ${targets[index].name}` to restart.'
+			result.stdout << 'Service `${targets[index].name}` already running, use `${cli_bin()} restart ${targets[index].name}` to restart.'
 			continue
 		}
 		if system.root {
 			result.stdout << 'Service `${targets[index].name}` cannot be run (but can be started) as root.'
 			continue
 		}
-		loaded := ruby_cli_l378_d15_self_service_load(mut state, system, mut targets[index], service_file, false)!
+		loaded := cli_service_load(mut state, system, mut targets[index], service_file, false)!
 		cli_merge(mut result, loaded)
 	}
 	_ = verbose
@@ -357,7 +357,7 @@ pub fn ruby_cli_l122_d9_self_start(mut state CliState, system CliSystem,
 	mut file := service_file
 	for index in 0 .. targets.len {
 		if cli_pid(mut targets[index]) {
-			result.stdout << 'Service `${targets[index].name}` already started, use `${ruby_cli_l26_d3_self_bin()} restart ${targets[index].name}` to restart.'
+			result.stdout << 'Service `${targets[index].name}` already started, use `${cli_bin()} restart ${targets[index].name}` to restart.'
 			continue
 		}
 		if !targets[index].installed {
@@ -367,7 +367,7 @@ pub fn ruby_cli_l122_d9_self_start(mut state CliState, system CliSystem,
 			file = CliFileArgument{ present: true, path: targets[index].legacy_service_file }
 		}
 		if !targets[index].install_handled_by_collaborator {
-			installed := ruby_cli_l407_d16_self_install_service_file(state, system, targets[index], file)!
+			installed := cli_install_service_file(state, system, targets[index], file)!
 			cli_merge(mut result, installed)
 		}
 		if !file.present && verbose {
@@ -376,12 +376,12 @@ pub fn ruby_cli_l122_d9_self_start(mut state CliState, system CliSystem,
 			result.stdout << '   ${contents.replace('\n', '\n   ')}'
 			result.stdout << ''
 		}
-		ownership := ruby_cli_l288_d12_self_take_root_ownership(state, system, targets[index])
+		ownership := cli_take_root_ownership(state, system, targets[index])
 		cli_merge(mut result, ownership)
 		if !ownership.ownership_taken && state.sudo_service_user != none && !system.root {
 			continue
 		}
-		loaded := ruby_cli_l378_d15_self_service_load(mut state, system, mut targets[index], CliFileArgument{}, true)!
+		loaded := cli_service_load(mut state, system, mut targets[index], CliFileArgument{}, true)!
 		cli_merge(mut result, loaded)
 	}
 	return result
@@ -403,7 +403,7 @@ pub fn ruby_cli_l174_d10_self_stop(system CliSystem, mut targets []CliService,
 			}
 			if targets[index].service_file_present {
 				prefix := if system.root { '' } else { 'sudo ' }
-				return error('Error: Service `${targets[index].name}` is started as `${targets[index].owner}`. Try:\n  ${prefix}${ruby_cli_l26_d3_self_bin()} stop ${targets[index].name}')
+				return error('Error: Service `${targets[index].name}` is started as `${targets[index].owner}`. Try:\n  ${prefix}${cli_bin()} stop ${targets[index].name}')
 			}
 			if system.manager == .launchctl && system.quiet_command_success {
 				result.commands << cli_launchctl_command(['bootout',
@@ -521,7 +521,7 @@ pub fn ruby_cli_l174_d10_self_stop(system CliSystem, mut targets []CliService,
 }
 
 // Ruby method `self.kill(targets, verbose: false)` at line 258.
-pub fn ruby_cli_l258_d11_self_kill(mut state CliState, system CliSystem,
+pub fn cli_kill(mut state CliState, system CliSystem,
 	mut targets []CliService, verbose bool) CliActionResult {
 	mut result := CliActionResult{}
 	for index in 0 .. targets.len {
@@ -557,7 +557,7 @@ pub fn ruby_cli_l258_d11_self_kill(mut state CliState, system CliSystem,
 }
 
 // Ruby method `self.take_root_ownership?(service)` at line 288.
-pub fn ruby_cli_l288_d12_self_take_root_ownership(state CliState, system CliSystem,
+pub fn cli_take_root_ownership(state CliState, system CliSystem,
 	service CliService) CliActionResult {
 	mut result := CliActionResult{}
 	if !system.root || state.sudo_service_user != none {
@@ -599,7 +599,7 @@ pub fn ruby_cli_l288_d12_self_take_root_ownership(state CliState, system CliSyst
 }
 
 // Ruby method `self.launchctl_load(service, file:, enable:)` at line 361.
-pub fn ruby_cli_l361_d13_self_launchctl_load(system CliSystem, service CliService,
+pub fn cli_launchctl_load(system CliSystem, service CliService,
 	file string, enable bool) CliActionResult {
 	mut result := CliActionResult{}
 	if enable {
@@ -611,7 +611,7 @@ pub fn ruby_cli_l361_d13_self_launchctl_load(system CliSystem, service CliServic
 }
 
 // Ruby method `self.systemd_load(service, enable:)` at line 367.
-pub fn ruby_cli_l367_d14_self_systemd_load(system CliSystem, service CliService,
+pub fn cli_systemd_load(system CliSystem, service CliService,
 	enable bool) CliActionResult {
 	mut result := CliActionResult{}
 	result.commands << cli_systemctl_command(system, ['start', service.service_name], false)
@@ -627,7 +627,7 @@ pub fn ruby_cli_l367_d14_self_systemd_load(system CliSystem, service CliService,
 }
 
 // Ruby method `self.service_load(service, file, enable:)` at line 378.
-pub fn ruby_cli_l378_d15_self_service_load(mut state CliState, system CliSystem,
+pub fn cli_service_load(mut state CliState, system CliSystem,
 	mut service CliService, file CliFileArgument, enable bool) !CliActionResult {
 	mut result := CliActionResult{}
 	if system.root && !service.service_startup && state.sudo_service_user == none {
@@ -652,16 +652,16 @@ pub fn ruby_cli_l378_d15_self_service_load(mut state CliState, system CliSystem,
 		for path in service.path_dirs {
 			os.mkdir_all(path)!
 		}
-		cli_merge(mut result, ruby_cli_l361_d13_self_launchctl_load(system, service, selected, enable))
+		cli_merge(mut result, cli_launchctl_load(system, service, selected, enable))
 	} else if system.manager == .systemctl {
 		if !os.exists(service.dest) && !service.install_handled_by_collaborator {
-			installed := ruby_cli_l407_d16_self_install_service_file(state, system, service, file)!
+			installed := cli_install_service_file(state, system, service, file)!
 			cli_merge(mut result, installed)
 		}
 		for path in service.path_dirs {
 			os.mkdir_all(path)!
 		}
-		cli_merge(mut result, ruby_cli_l367_d14_self_systemd_load(system, service, enable))
+		cli_merge(mut result, cli_systemd_load(system, service, enable))
 	}
 	function := if enable { 'started' } else { 'ran' }
 	result.stdout << '==> Successfully ${function} `${service.name}` (label: ${service.service_name})'
@@ -670,7 +670,7 @@ pub fn ruby_cli_l378_d15_self_service_load(mut state CliState, system CliSystem,
 }
 
 // Ruby method `self.install_service_file(service, file)` at line 407.
-pub fn ruby_cli_l407_d16_self_install_service_file(state CliState, system CliSystem,
+pub fn cli_install_service_file(state CliState, system CliSystem,
 	service CliService, file CliFileArgument) !CliActionResult {
 	if !service.installed {
 		return error('Invalid usage: Formula `${service.name}` is not installed.')

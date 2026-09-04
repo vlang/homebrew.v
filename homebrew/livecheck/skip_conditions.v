@@ -83,8 +83,10 @@ pub fn skip_conditions_package_from_livecheck(package LivecheckPackage) SkipCond
 		livecheck_defined: package.livecheck_defined
 		livecheck_skip: package.livecheck_strategy == 'skip'
 		livecheck_skip_message: if package.livecheck_strategy == 'skip' && package.livecheck_messages.len > 0 {
-			package.livecheck_messages[0]} else {
-			''}
+			package.livecheck_messages[0]
+		} else {
+			''
+		}
 		head_only: package.head_only
 		any_version_installed: package.installed_head_commit != ''
 		versioned: package.kind != 'cask' && package.name.contains('@')
@@ -130,7 +132,7 @@ fn gist_url(url string) bool {
 }
 
 // Ruby method `self.package_or_resource_skip(` at line 17.
-pub fn ruby_skip_conditions_l17_d1_self_package_or_resource_skip(package SkipConditionsPackage,
+pub fn skip_conditions_package_or_resource_skip(package SkipConditionsPackage,
 	livecheck_defined bool, full_name bool, verbose bool) SkipInformation {
 	_ = verbose
 	mut skip_message := ''
@@ -156,7 +158,7 @@ pub fn ruby_skip_conditions_l17_d1_self_package_or_resource_skip(package SkipCon
 }
 
 // Ruby method `self.formula_head_only(formula, _livecheck_defined, full_name: false, verbose: false)` at line 59.
-pub fn ruby_skip_conditions_l59_d2_self_formula_head_only(formula SkipConditionsPackage,
+pub fn skip_conditions_formula_head_only(formula SkipConditionsPackage,
 	_livecheck_defined bool, full_name bool, verbose bool) SkipInformation {
 	_ = verbose
 	if !formula.head_only || formula.any_version_installed {
@@ -168,7 +170,7 @@ pub fn ruby_skip_conditions_l59_d2_self_formula_head_only(formula SkipConditions
 }
 
 // Ruby method `self.formula_deprecated(formula, livecheck_defined, full_name: false, verbose: false)` at line 79.
-pub fn ruby_skip_conditions_l79_d3_self_formula_deprecated(formula SkipConditionsPackage,
+pub fn skip_conditions_formula_deprecated(formula SkipConditionsPackage,
 	livecheck_defined bool, full_name bool, verbose bool) SkipInformation {
 	_ = verbose
 	if !formula.deprecated || livecheck_defined {
@@ -178,7 +180,7 @@ pub fn ruby_skip_conditions_l79_d3_self_formula_deprecated(formula SkipCondition
 }
 
 // Ruby method `self.formula_disabled(formula, livecheck_defined, full_name: false, verbose: false)` at line 93.
-pub fn ruby_skip_conditions_l93_d4_self_formula_disabled(formula SkipConditionsPackage,
+pub fn skip_conditions_formula_disabled(formula SkipConditionsPackage,
 	livecheck_defined bool, full_name bool, verbose bool) SkipInformation {
 	_ = verbose
 	if !formula.disabled || livecheck_defined {
@@ -188,7 +190,7 @@ pub fn ruby_skip_conditions_l93_d4_self_formula_disabled(formula SkipConditionsP
 }
 
 // Ruby method `self.formula_versioned(formula, livecheck_defined, full_name: false, verbose: false)` at line 107.
-pub fn ruby_skip_conditions_l107_d5_self_formula_versioned(formula SkipConditionsPackage,
+pub fn skip_conditions_formula_versioned(formula SkipConditionsPackage,
 	livecheck_defined bool, full_name bool, verbose bool) SkipInformation {
 	_ = verbose
 	if !formula.versioned || livecheck_defined {
@@ -198,7 +200,7 @@ pub fn ruby_skip_conditions_l107_d5_self_formula_versioned(formula SkipCondition
 }
 
 // Ruby method `self.cask_deprecated(cask, livecheck_defined, full_name: false, verbose: false)` at line 121.
-pub fn ruby_skip_conditions_l121_d6_self_cask_deprecated(cask SkipConditionsPackage,
+pub fn skip_conditions_cask_deprecated(cask SkipConditionsPackage,
 	livecheck_defined bool, full_name bool, verbose bool) SkipInformation {
 	_ = verbose
 	if !cask.deprecated || livecheck_defined {
@@ -211,7 +213,7 @@ pub fn ruby_skip_conditions_l121_d6_self_cask_deprecated(cask SkipConditionsPack
 }
 
 // Ruby method `self.cask_disabled(cask, livecheck_defined, full_name: false, verbose: false)` at line 136.
-pub fn ruby_skip_conditions_l136_d7_self_cask_disabled(cask SkipConditionsPackage,
+pub fn skip_conditions_cask_disabled(cask SkipConditionsPackage,
 	livecheck_defined bool, full_name bool, verbose bool) SkipInformation {
 	_ = verbose
 	if !cask.disabled || livecheck_defined {
@@ -221,7 +223,7 @@ pub fn ruby_skip_conditions_l136_d7_self_cask_disabled(cask SkipConditionsPackag
 }
 
 // Ruby method `self.cask_extract_plist(` at line 151.
-pub fn ruby_skip_conditions_l151_d8_self_cask_extract_plist(cask SkipConditionsPackage,
+pub fn skip_conditions_cask_extract_plist(cask SkipConditionsPackage,
 	_livecheck_defined bool, full_name bool, verbose bool, extract_plist bool) SkipInformation {
 	_ = verbose
 	if extract_plist || cask.livecheck_strategy != 'extract_plist' {
@@ -233,7 +235,7 @@ pub fn ruby_skip_conditions_l151_d8_self_cask_extract_plist(cask SkipConditionsP
 }
 
 // Ruby method `self.cask_version_latest(cask, livecheck_defined, full_name: false, verbose: false)` at line 177.
-pub fn ruby_skip_conditions_l177_d9_self_cask_version_latest(cask SkipConditionsPackage,
+pub fn skip_conditions_cask_version_latest(cask SkipConditionsPackage,
 	livecheck_defined bool, full_name bool, verbose bool) SkipInformation {
 	_ = verbose
 	if !(cask.present && cask.version_latest) || livecheck_defined {
@@ -243,7 +245,7 @@ pub fn ruby_skip_conditions_l177_d9_self_cask_version_latest(cask SkipConditions
 }
 
 // Ruby method `self.cask_url_unversioned(cask, livecheck_defined, full_name: false, verbose: false)` at line 191.
-pub fn ruby_skip_conditions_l191_d10_self_cask_url_unversioned(cask SkipConditionsPackage,
+pub fn skip_conditions_cask_url_unversioned(cask SkipConditionsPackage,
 	livecheck_defined bool, full_name bool, verbose bool) SkipInformation {
 	_ = verbose
 	if !(cask.present && cask.url_unversioned) || livecheck_defined {
@@ -253,20 +255,20 @@ pub fn ruby_skip_conditions_l191_d10_self_cask_url_unversioned(cask SkipConditio
 }
 
 // Ruby method `self.skip_information(package_or_resource, full_name: false, verbose: false, extract_plist: true)` at line 235.
-pub fn ruby_skip_conditions_l235_d11_self_skip_information(package SkipConditionsPackage,
+pub fn skip_conditions_skip_information(package SkipConditionsPackage,
 	full_name bool, verbose bool, extract_plist bool) SkipInformation {
 	livecheck_defined := package.livecheck_defined
-	first := ruby_skip_conditions_l17_d1_self_package_or_resource_skip(package, livecheck_defined, full_name, verbose)
+	first := skip_conditions_package_or_resource_skip(package, livecheck_defined, full_name, verbose)
 	if first.present {
 		return first
 	}
 	match package.kind {
 		.formula {
 			for result in [
-				ruby_skip_conditions_l59_d2_self_formula_head_only(package, livecheck_defined, full_name, verbose),
-				ruby_skip_conditions_l93_d4_self_formula_disabled(package, livecheck_defined, full_name, verbose),
-				ruby_skip_conditions_l79_d3_self_formula_deprecated(package, livecheck_defined, full_name, verbose),
-				ruby_skip_conditions_l107_d5_self_formula_versioned(package, livecheck_defined, full_name, verbose),
+				skip_conditions_formula_head_only(package, livecheck_defined, full_name, verbose),
+				skip_conditions_formula_disabled(package, livecheck_defined, full_name, verbose),
+				skip_conditions_formula_deprecated(package, livecheck_defined, full_name, verbose),
+				skip_conditions_formula_versioned(package, livecheck_defined, full_name, verbose),
 			] {
 				if result.present {
 					return result
@@ -275,11 +277,11 @@ pub fn ruby_skip_conditions_l235_d11_self_skip_information(package SkipCondition
 		}
 		.cask {
 			for result in [
-				ruby_skip_conditions_l136_d7_self_cask_disabled(package, livecheck_defined, full_name, verbose),
-				ruby_skip_conditions_l121_d6_self_cask_deprecated(package, livecheck_defined, full_name, verbose),
-				ruby_skip_conditions_l151_d8_self_cask_extract_plist(package, livecheck_defined, full_name, verbose, extract_plist),
-				ruby_skip_conditions_l177_d9_self_cask_version_latest(package, livecheck_defined, full_name, verbose),
-				ruby_skip_conditions_l191_d10_self_cask_url_unversioned(package, livecheck_defined, full_name, verbose),
+				skip_conditions_cask_disabled(package, livecheck_defined, full_name, verbose),
+				skip_conditions_cask_deprecated(package, livecheck_defined, full_name, verbose),
+				skip_conditions_cask_extract_plist(package, livecheck_defined, full_name, verbose, extract_plist),
+				skip_conditions_cask_version_latest(package, livecheck_defined, full_name, verbose),
+				skip_conditions_cask_url_unversioned(package, livecheck_defined, full_name, verbose),
 			] {
 				if result.present {
 					return result
@@ -295,7 +297,7 @@ pub fn ruby_skip_conditions_l235_d11_self_skip_information(package SkipCondition
 pub fn ruby_skip_conditions_l273_d12_self_referenced_skip_information(package SkipConditionsPackage,
 	original_name string, full_name bool, verbose bool,
 	extract_plist bool) !ReferencedSkipInformation {
-	mut information := ruby_skip_conditions_l235_d11_self_skip_information(package, full_name, verbose, extract_plist)
+	mut information := skip_conditions_skip_information(package, full_name, verbose, extract_plist)
 	if !information.present {
 		return ReferencedSkipInformation{}
 	}

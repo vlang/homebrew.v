@@ -19,7 +19,7 @@ pub fn env_config_compiler_decoration() TapiocaDecoration {
 			continue
 		}
 		entry := entries[environment_name]
-		name := homebrew.ruby_env_config_l801_d1_env_method_name(environment_name, entry)
+		name := homebrew.env_config_env_method_name(environment_name, entry)
 		return_type := if name.ends_with('?') {
 			'T::Boolean'
 		} else if entry.has_default && entry.default_value != '' {
